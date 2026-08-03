@@ -42,7 +42,7 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) VertexSet {
 		}
 	}
 
-	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
+	if err := g.depthFirstWalk(start, memoFunc); err != nil {
 		return NewVertexSet()
 	}
 
@@ -70,7 +70,7 @@ func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Ver
 	}
 
 	// our memoFunc doesn't return an error
-	g.DepthFirstWalk(start, searchFunc)
+	g.depthFirstWalk(start, searchFunc)
 
 	return s
 }
@@ -94,7 +94,7 @@ func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
 	}
 
 	// our memoFunc doesn't return an error
-	g.DepthFirstWalk(start, matchFunc)
+	g.depthFirstWalk(start, matchFunc)
 
 	return ret
 }
@@ -114,7 +114,7 @@ func (g *AcyclicGraph) Descendants(v Vertex) VertexSet {
 	}
 
 	// our memoFunc doesn't return an error
-	g.ReverseDepthFirstWalk(start, memoFunc)
+	g.reverseDepthFirstWalk(start, memoFunc)
 
 	return s
 }
@@ -140,7 +140,7 @@ func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) V
 	}
 
 	// our memoFunc doesn't return an error
-	g.ReverseDepthFirstWalk(start, searchFunc)
+	g.reverseDepthFirstWalk(start, searchFunc)
 
 	return s
 }
@@ -164,7 +164,7 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 	}
 
 	// our memoFunc doesn't return an error
-	g.ReverseDepthFirstWalk(start, matchFunc)
+	g.reverseDepthFirstWalk(start, matchFunc)
 
 	return ret
 }
@@ -210,7 +210,7 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	for u := range g.VerticesSeq() {
 		uTargets := g.edgesFrom[u]
 
-		g.DepthFirstWalk(g.edgesFrom[u], func(v Vertex, d int) error {
+		g.depthFirstWalk(g.edgesFrom[u], func(v Vertex, d int) error {
 			shared := uTargets.Intersection(g.edgesFrom[v])
 			for vPrime := range shared.All() {
 				g.RemoveEdge(u, vPrime)
@@ -386,27 +386,27 @@ var (
 	errStopWalk = errors.New("stop walk")
 )
 
-// DepthFirstWalk does a depth-first walk of the graph starting from
+// depthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) DepthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) depthFirstWalk(start VertexSet, f depthWalkFunc) error {
 	return g.walk(depthFirst|downOrder, false, start, f)
 }
 
-// ReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
+// reverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) ReverseDepthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) reverseDepthFirstWalk(start VertexSet, f depthWalkFunc) error {
 	return g.walk(depthFirst|upOrder, false, start, f)
 }
 
-// BreadthFirstWalk does a breadth-first walk of the graph starting from
+// breadthFirstWalk does a breadth-first walk of the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) BreadthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f depthWalkFunc) error {
 	return g.walk(breadthFirst|downOrder, false, start, f)
 }
 
-// ReverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
+// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) ReverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error {
 	return g.walk(breadthFirst|upOrder, false, start, f)
 }
 
@@ -417,6 +417,12 @@ type vertexAtDepth struct {
 
 // Setting test to true will walk sets of vertices in sorted order for
 // deterministic testing.
+//
+// The reason the walk method takes a set of starting vertices which is threaded
+// through all callers, is that we have a couple hot paths which benefit from
+// walking from multiple nodes concurrently. If that was not the case, start
+// could easily be a single vertex and callers could be simplified, matching the
+// fact that we also enforce single root graphs.
 func (g *AcyclicGraph) walk(order walkType, test bool, start VertexSet, f depthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
 	var frontier []vertexAtDepth
