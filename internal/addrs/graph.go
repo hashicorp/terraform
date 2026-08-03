@@ -11,15 +11,15 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
-// keyVertex wraps a UniqueKey so it satisfies dag.Vertex (= dag.NamedVertex).
-// The dag graph requires vertices to have a Name() method, but UniqueKey is a
-// private opaque type, so we wrap it here.
+// keyVertex wraps a UniqueKey so it satisfies dag.Vertex. The dag graph
+// requires vertices to have a Name() method, but UniqueKey is a private opaque
+// type, so we wrap it here.
 type keyVertex struct {
-	key UniqueKey
+	UniqueKey
 }
 
 func (v keyVertex) Name() string {
-	return fmt.Sprintf("%v", v.key)
+	return fmt.Sprintf("%v", v.UniqueKey)
 }
 
 // DirectedGraph represents a directed graph whose nodes are addresses of
@@ -105,7 +105,7 @@ func (g DirectedGraph[T]) DirectDependenciesOf(addr T) Set[T] {
 	ret := MakeSet[T]()
 	raw := g.g.EdgesFrom(keyVertex{k})
 	for otherKI := range raw.All() {
-		ret.Add(g.nodes[otherKI.(keyVertex).key])
+		ret.Add(g.nodes[otherKI.(keyVertex).UniqueKey])
 	}
 	return ret
 }
@@ -119,7 +119,7 @@ func (g DirectedGraph[T]) TransitiveDependenciesOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
 	for otherKI := range g.g.Ancestors(keyVertex{k}).All() {
-		ret.Add(g.nodes[otherKI.(keyVertex).key])
+		ret.Add(g.nodes[otherKI.(keyVertex).UniqueKey])
 	}
 	return ret
 }
@@ -131,7 +131,7 @@ func (g DirectedGraph[T]) DirectDependentsOf(addr T) Set[T] {
 	ret := MakeSet[T]()
 	raw := g.g.EdgesTo(keyVertex{k})
 	for otherKI := range raw.All() {
-		ret.Add(g.nodes[otherKI.(keyVertex).key])
+		ret.Add(g.nodes[otherKI.(keyVertex).UniqueKey])
 	}
 	return ret
 }
@@ -145,7 +145,7 @@ func (g DirectedGraph[T]) TransitiveDependentsOf(addr T) Set[T] {
 	k := addr.UniqueKey()
 	ret := MakeSet[T]()
 	for otherKI := range g.g.Descendants(keyVertex{k}).All() {
-		ret.Add(g.nodes[otherKI.(keyVertex).key])
+		ret.Add(g.nodes[otherKI.(keyVertex).UniqueKey])
 	}
 	return ret
 }
@@ -163,7 +163,7 @@ func (g DirectedGraph[T]) TopologicalOrder() []T {
 	}
 	ret := make([]T, len(raw))
 	for i, k := range raw {
-		ret[i] = g.nodes[k.(keyVertex).key]
+		ret[i] = g.nodes[k.(keyVertex).UniqueKey]
 	}
 	return ret
 }
