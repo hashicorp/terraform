@@ -21,7 +21,6 @@ type Init interface {
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
-	Log(message string, params ...any)
 
 	ModuleInstallationLogger
 	ProviderInstallationLogger
@@ -164,11 +163,6 @@ func (v *InitHuman) LogModuleInstallation(message string) {
 	v.view.streams.Println(strings.TrimSpace(message))
 }
 
-// this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
-func (v *InitHuman) Log(message string, params ...any) {
-	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
-}
-
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -248,11 +242,6 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	}
 
 	v.view.Log(preppedMessage)
-}
-
-// this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
-func (v *InitJSON) Log(message string, params ...any) {
-	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
 func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
