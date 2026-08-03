@@ -27,6 +27,7 @@ type ConcreteResourceNodeFunc func(*NodeAbstractResource) dag.Vertex
 // The type of operation cannot be assumed, only that this node represents
 // the given resource.
 type GraphNodeConfigResource interface {
+	dag.Vertex
 	ResourceAddr() addrs.ConfigResource
 }
 
@@ -39,6 +40,8 @@ type ConcreteResourceInstanceNodeFunc func(*NodeAbstractResourceInstance) dag.Ve
 // for example, the "count" or "for_each" argument is used for it in
 // configuration.
 type GraphNodeResourceInstance interface {
+	dag.Vertex
+
 	ResourceInstanceAddr() addrs.AbsResourceInstance
 
 	// StateDependencies returns any inter-resource dependencies that are

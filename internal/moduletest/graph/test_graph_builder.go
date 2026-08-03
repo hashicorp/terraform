@@ -59,8 +59,8 @@ func (b *TestGraphBuilder) Steps() []terraform.GraphTransformer {
 
 			// ensure that the teardown node runs after all the run nodes
 			for v := range dag.ExcludeSeq[*TeardownSubgraph](g.VerticesSeq()) {
-				if g.UpEdges(v).Len() == 0 {
-					g.Connect(dag.BasicEdge(cleanup, v))
+				if g.EdgesTo(v).Len() == 0 {
+					g.Connect(cleanup, v)
 				}
 			}
 
@@ -106,17 +106,17 @@ func Walk(g *terraform.Graph, ctx *EvalContext) tfdiags.Diagnostics {
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
 
-		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
+		log.Printf("[TRACE] vertex %q: starting visit (%T)", v.Name(), v)
 
 		defer func() {
 			if r := recover(); r != nil {
 				// If the walkFn panics, we get confusing logs about how the
 				// visit was complete. To stop this, we'll catch the panic log
 				// that the vertex panicked without finishing and re-panic.
-				log.Printf("[ERROR] vertex %q panicked", dag.VertexName(v))
+				log.Printf("[ERROR] vertex %q panicked", v.Name())
 				panic(r) // re-panic
 			}
-			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			log.Printf("[TRACE] vertex %q: visit complete", v.Name())
 		}()
 
 		// expandable nodes are not executed, but they are walked and

@@ -26,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -3864,14 +3863,14 @@ resource "test_object" "c" {
 	tfdiags.AssertNoErrors(t, diags)
 
 	// the destroy node for "a" must depend on the destroy node for "c"
-	for _, v := range g.Vertices() {
-		if dag.VertexName(v) != "test_object.a (destroy)" {
+	for v := range g.VerticesSeq() {
+		if v.Name() != "test_object.a (destroy)" {
 			continue
 		}
 
 		// make sure the "c" destroy node is a dependency
-		for _, dep := range g.Ancestors(v) {
-			if dag.VertexName(dep) == "test_object.c (destroy)" {
+		for dep := range g.Ancestors(v).All() {
+			if dep.Name() == "test_object.c (destroy)" {
 				// OK!
 				return
 			}

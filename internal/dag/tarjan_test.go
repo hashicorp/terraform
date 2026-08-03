@@ -11,10 +11,10 @@ import (
 
 func TestGraphStronglyConnected(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 1))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
 	expected := strings.TrimSpace(testGraphStronglyConnectedStr)
@@ -25,11 +25,11 @@ func TestGraphStronglyConnected(t *testing.T) {
 
 func TestGraphStronglyConnected_two(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 1))
-	g.Add(3)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
+	g.Add(testV(3))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
 	expected := strings.TrimSpace(testGraphStronglyConnectedTwoStr)
@@ -40,17 +40,17 @@ func TestGraphStronglyConnected_two(t *testing.T) {
 
 func TestGraphStronglyConnected_three(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Connect(BasicEdge(1, 2))
-	g.Connect(BasicEdge(2, 1))
-	g.Add(3)
-	g.Add(4)
-	g.Add(5)
-	g.Add(6)
-	g.Connect(BasicEdge(4, 5))
-	g.Connect(BasicEdge(5, 6))
-	g.Connect(BasicEdge(6, 4))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Connect(testV(1), testV(2))
+	g.Connect(testV(2), testV(1))
+	g.Add(testV(3))
+	g.Add(testV(4))
+	g.Add(testV(5))
+	g.Add(testV(6))
+	g.Connect(testV(4), testV(5))
+	g.Connect(testV(5), testV(6))
+	g.Connect(testV(6), testV(4))
 
 	actual := strings.TrimSpace(testSCCStr(StronglyConnected(&g)))
 	expected := strings.TrimSpace(testGraphStronglyConnectedThreeStr)
@@ -64,7 +64,7 @@ func testSCCStr(list [][]Vertex) string {
 	for _, vs := range list {
 		result := make([]string, len(vs))
 		for i, v := range vs {
-			result[i] = VertexName(v)
+			result[i] = v.Name()
 		}
 
 		sort.Strings(result)

@@ -3,17 +3,18 @@
 
 package dag
 
+import "slices"
+
 // StronglyConnected returns the list of strongly connected components
 // within the Graph g. This information is primarily used by this package
 // for cycle detection, but strongly connected components have widespread
 // use.
 func StronglyConnected(g *Graph) [][]Vertex {
-	vs := g.Vertices()
 	acct := sccAcct{
 		NextIndex:   1,
-		VertexIndex: make(map[Vertex]int, len(vs)),
+		VertexIndex: make(map[Vertex]int, g.VertexCount()),
 	}
-	for _, v := range vs {
+	for v := range g.VerticesSeq() {
 		// Recurse on any non-visited nodes
 		if acct.VertexIndex[v] == 0 {
 			stronglyConnected(&acct, g, v)
@@ -27,8 +28,7 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	index := acct.visit(v)
 	minIdx := index
 
-	for _, raw := range g.downEdgesNoCopy(v) {
-		target := raw.(Vertex)
+	for target := range g.edgesFrom[v].All() {
 		targetIdx := acct.VertexIndex[target]
 
 		// Recurse on successor if not yet visited
@@ -94,10 +94,5 @@ func (s *sccAcct) pop() Vertex {
 
 // inStack checks if a vertex is in the stack
 func (s *sccAcct) inStack(needle Vertex) bool {
-	for _, n := range s.Stack {
-		if n == needle {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s.Stack, needle)
 }

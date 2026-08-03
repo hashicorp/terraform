@@ -37,7 +37,7 @@ type ForcedCBDTransformer struct {
 }
 
 func (t *ForcedCBDTransformer) Transform(g *Graph) error {
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		dn, ok := v.(GraphNodeCreateBeforeDestroy)
 		if !ok {
 			continue
@@ -47,7 +47,7 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 			// If there are no CBD decendant (dependent nodes), then we
 			// do nothing here.
 			if !t.hasCBDDescendant(g, v) {
-				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", dag.VertexName(v), v)
+				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", v.Name(), v)
 				continue
 			}
 
@@ -55,10 +55,10 @@ func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 			// and we need to auto-upgrade this node to CBD. We do this because
 			// a CBD node depending on non-CBD will result in cycles. To avoid this,
 			// we always attempt to upgrade it.
-			log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q (%T)", dag.VertexName(v), v)
+			log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q (%T)", v.Name(), v)
 			dn.ForceCreateBeforeDestroy()
 		} else {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) already has create_before_destroy set", dag.VertexName(v), v)
+			log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) already has create_before_destroy set", v.Name(), v)
 		}
 	}
 	return nil
@@ -72,7 +72,7 @@ func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
 		dn, ok := ov.(GraphNodeCreateBeforeDestroy)
 		if ok && dn.CreateBeforeDestroy() {
 			// some descendant is CreateBeforeDestroy, so we need to follow suit
-			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", dag.VertexName(v), dag.VertexName(ov))
+			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", v.Name(), ov.Name())
 			return true
 		}
 		return false
@@ -82,14 +82,14 @@ func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
 
 	// It's also possible that there are some orphaned CBD nodes from dependents
 	// that no longer exist. These will be directly connected destroy nodes.
-	for _, dep := range g.DownEdges(v) {
+	for dep := range g.EdgesFrom(v).All() {
 		if _, destroyer := dep.(GraphNodeDestroyer); !destroyer {
 			continue
 		}
 
 		dn, ok := dep.(GraphNodeCreateBeforeDestroy)
 		if ok && dn.CreateBeforeDestroy() {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q depends on CBD destroy node %q", dag.VertexName(v), dag.VertexName(dep))
+			log.Printf("[TRACE] ForcedCBDTransformer: %q depends on CBD destroy node %q", v.Name(), dep.Name())
 			return true
 		}
 	}
@@ -130,7 +130,7 @@ type CBDEdgeTransformer struct {
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 	// Go through and reverse any destroy edges
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		dn, ok := v.(GraphNodeCreateBeforeDestroy)
 		if !ok {
 			continue
@@ -144,16 +144,15 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		// Find the resource edges
-		for _, e := range g.EdgesTo(v) {
-			src := e.Source()
+		for src := range g.EdgesTo(v).All() {
 
 			// If source is a create node, invert the edge.
 			// This covers both the node's own creator, as well as reversing
 			// any dependants' edges.
 			if _, ok := src.(GraphNodeCreator); ok {
-				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", dag.VertexName(src), dag.VertexName(v))
-				g.RemoveEdge(e)
-				g.Connect(dag.BasicEdge(v, src))
+				log.Printf("[TRACE] CBDEdgeTransformer: reversing edge %s -> %s", src.Name(), v.Name())
+				g.RemoveEdge(src, v)
+				g.Connect(v, src)
 			}
 		}
 	}
