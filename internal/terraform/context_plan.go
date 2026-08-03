@@ -69,6 +69,9 @@ type PlanOpts struct {
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
+	// TODO:@austinvalle: docs
+	Excludes []addrs.Targetable
+
 	// ActionTargets represents the actions that should be triggered by this
 	// execution. This is incompatible with the `Targets` attribute, only one
 	// can be set. Also, Mode must be plans.RefreshOnly when using
@@ -304,6 +307,9 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
+	// TODO:@austinvalle: Add validation that target/exclude/action target are not set
+	// TODO:@austinvalle: Add separate warning?
+
 	if len(opts.Targets) > 0 && len(opts.ActionTargets) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
@@ -412,10 +418,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 			plan.VariableMarks = varMarks
 		}
 
-		// Append all targets into the plans targets, note that opts.Targets
-		// and opts.ActionTargets should never both be populated.
+		// Append all targets into the plans targets, note that opts.Targets,
+		// opts.ActionTargets, and opts.Excludes are mutually exclusive.
 		plan.TargetAddrs = opts.Targets
 		plan.ActionTargetAddrs = opts.ActionTargets
+		plan.ExcludeAddrs = opts.Excludes
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}
@@ -1025,6 +1032,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
+			Excludes:                  opts.Excludes,
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
@@ -1051,6 +1059,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			ActionTargets:             opts.ActionTargets,
+			Excludes:                  opts.Excludes, // TODO:@austinvalle: Does this make sense in the context of refresh? Does target?
 			skipRefresh:               opts.SkipRefresh,
 			skipPlanChanges:           true, // this activates "refresh only" mode.
 			Operation:                 walkPlan,
@@ -1069,6 +1078,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
+			Excludes:                  opts.Excludes, // TODO:@austinvalle: Does this make sense in the context of destroy? Does target?
 			skipRefresh:               opts.SkipRefresh,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,

@@ -11,12 +11,13 @@ import (
 )
 
 // GraphNodeTargetable is an interface for graph nodes to implement when they
-// need to be told about incoming targets. This is useful for nodes that need
-// to respect targets as they dynamically expand. Note that the list of targets
-// provided will contain every target provided, and each implementing graph
-// node must filter this list to targets considered relevant.
+// need to be told about incoming targets or exclusions. This is useful for nodes
+// that need to respect targets and exclusions as they dynamically expand. Note that
+// the list of targetable addresses provided will contain every address provided, and
+// each implementing graph node must filter these lists to the addresses considered relevant.
 type GraphNodeTargetable interface {
 	SetTargets([]addrs.Targetable)
+	SetExcludes([]addrs.Targetable)
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a

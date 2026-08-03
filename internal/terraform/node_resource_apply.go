@@ -142,6 +142,9 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
+		// TODO:@austinvalle: Is this even needed? Targets seems to only be included for
+		// legacy reasons... I should look into this a little deeper (also it's just ephemeral? can you expand an ephemeral resource during apply?)
+		&ExcludesTransformer{Excludes: n.Excludes},
 
 		// Make sure there is a single root
 		&RootTransformer{},

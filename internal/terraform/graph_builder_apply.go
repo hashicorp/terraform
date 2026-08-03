@@ -63,6 +63,10 @@ type ApplyGraphBuilder struct {
 	// outputs, so when/if we remove Targets we can remove this as well.
 	ActionTargets []addrs.Targetable
 
+	// TODO:@austinvalle: Is this even needed? Targets seems to only be included for
+	// legacy reasons... I should look into this a little deeper
+	Excludes []addrs.Targetable
+
 	// ForceReplace are the resource instance addresses that the user
 	// requested to force replacement for when creating the plan, if any.
 	// The apply step refers to these as part of verifying that the planned
@@ -250,8 +254,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			skip: b.Operation != walkDestroy,
 		},
 
-		// Target
+		// Targeting
 		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
+		&ExcludesTransformer{Excludes: b.Excludes},
 
 		// Close any ephemeral resource instances.
 		&ephemeralResourceCloseTransformer{},

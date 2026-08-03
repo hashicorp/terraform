@@ -167,6 +167,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.ActionTargetAddrs = append(plan.ActionTargetAddrs, target.Subject)
 	}
 
+	for _, rawExcludeAddr := range rawPlan.ExcludeAddrs {
+		exclude, diags := addrs.ParseTargetStr(rawExcludeAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid exclude address %q: %s", exclude, diags.Err())
+		}
+		plan.ExcludeAddrs = append(plan.ExcludeAddrs, exclude.Subject)
+	}
+
 	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
 		addr, diags := addrs.ParseAbsResourceInstanceStr(rawReplaceAddr)
 		if diags.HasErrors() {
@@ -714,6 +722,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, actionAddr := range plan.ActionTargetAddrs {
 		rawPlan.ActionTargetAddrs = append(rawPlan.ActionTargetAddrs, actionAddr.String())
+	}
+
+	for _, excludeAddr := range plan.ExcludeAddrs {
+		rawPlan.ExcludeAddrs = append(rawPlan.ExcludeAddrs, excludeAddr.String())
 	}
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {

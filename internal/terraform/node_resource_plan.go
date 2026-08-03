@@ -543,6 +543,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
+		&ExcludesTransformer{Excludes: n.Excludes},
 
 		// Make sure there is a single root
 		&RootTransformer{},

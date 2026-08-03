@@ -352,6 +352,7 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
+		&ExcludesTransformer{Excludes: n.Excludes},
 
 		// Make sure there is a single root
 		&RootTransformer{},
