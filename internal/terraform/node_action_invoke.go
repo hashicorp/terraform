@@ -155,7 +155,6 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 			}
 		}
 	}
-	addRootNodeToGraph(&g)
 
 	if !actionFound {
 		diags = diags.Append(fmt.Errorf("invoke target %s not found", n.Target))
