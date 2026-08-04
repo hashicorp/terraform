@@ -1381,14 +1381,14 @@ provider "registry.terraform.io/hashicorp/test2" {
 				t.Fatalf("expected output %q, got %q", expectedMsg, out.Stdout())
 			}
 		}
-		// notExpectedMsg := []string{
-		// 	"The state store provider was approved automatically", // shouldn't be there as no explicit CLI flag used.
-		// }
-		// for _, notExpected := range notExpectedMsg {
-		// 	if strings.Contains(out.Stdout(), notExpected) {
-		// 		t.Fatalf("did not expect output %q, but got %q", notExpected, out.Stdout())
-		// 	}
-		// }
+		notExpectedMsg := []string{
+			"The state store provider was approved automatically", // shouldn't be there as no explicit CLI flag used.
+		}
+		for _, notExpected := range notExpectedMsg {
+			if strings.Contains(out.Stdout(), notExpected) {
+				t.Fatalf("did not expect output %q, but got %q", notExpected, out.Stdout())
+			}
+		}
 
 		// Assert the state is migrated successfully to the destination state store by inspecting the mock.
 		b, err = destinationProvider.MockStates.Read("test2_dst", "default")
