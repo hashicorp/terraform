@@ -119,6 +119,7 @@ type Operation struct {
 	PlanMode             plans.Mode
 	AutoApprove          bool
 	Targets              []addrs.Targetable
+	Excludes             []addrs.Targetable
 	ActionTargets        []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue

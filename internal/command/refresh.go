@@ -138,6 +138,7 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 	opReq.ConfigDir = "."
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
+	opReq.Excludes = args.Excludes
 	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
 
@@ -193,6 +194,9 @@ Options:
   -no-color           If specified, output won't contain any color.
 
   -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+
+  -exclude=resource   Exclude a resource from the operation. This flag can be
+                      used multiple times.
 
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used

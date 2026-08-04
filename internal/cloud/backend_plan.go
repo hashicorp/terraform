@@ -86,6 +86,18 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		))
 	}
 
+	// TODO:@austinvalle: we should probably add this rather than returning an error :P
+	if len(op.Excludes) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource exclusion is currently not supported",
+			fmt.Sprintf(
+				`%s does not support the -exclude option for plans at this time.`,
+				b.appName,
+			),
+		))
+	}
+
 	if len(op.GenerateConfigOut) > 0 {
 		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
 	}

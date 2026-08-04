@@ -280,6 +280,7 @@ func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view vi
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
+	opReq.Excludes = args.Excludes
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()

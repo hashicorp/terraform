@@ -165,6 +165,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.PlanOutPath = planOutPath
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
+	opReq.Excludes = args.Excludes
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
@@ -230,6 +231,11 @@ Plan Customization Options:
                       produced an update or no-op action for this instance,
                       Terraform will plan to replace it instead. You can use
                       this option multiple times to replace more than one object.
+
+  -exclude=resource   Exclude a module, resource, or resource instance and all
+                      of its dependents from the planning operation. You can
+                      use this option multiple times to exclude more than one
+                      object. This is for exceptional use only.
 
   -target=resource    Limit the planning operation to only the given module,
                       resource, or resource instance and all of its

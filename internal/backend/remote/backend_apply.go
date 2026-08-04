@@ -160,6 +160,18 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Oper
 		}
 	}
 
+	if len(op.Excludes) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource exclusion is not supported",
+			fmt.Sprintf(
+				`The host %s does not support the -exclude option for `+
+					`remote plans.`,
+				b.hostname,
+			),
+		))
+	}
+
 	// Return if there are any errors.
 	if diags.HasErrors() {
 		return nil, diags.Err()
