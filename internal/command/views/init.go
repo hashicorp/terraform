@@ -21,8 +21,8 @@ type Init interface {
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
-	Log(message string, params ...any)
 
+	ModuleInstallationLogger
 	ProviderInstallationLogger
 	DependencyLockingLogger
 
@@ -137,19 +137,30 @@ func (v *InitHuman) LogPartnerAndCommunityProviders() {
 	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
+// Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileCreated() {
 	params := []any{}
 	v.view.streams.Println(v.prepareMessage(LockInfo, params...))
 }
 
+// Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileUpdated() {
 	params := []any{}
 	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo, params...))
 }
 
-// this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
-func (v *InitHuman) Log(message string, params ...any) {
-	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitHuman) LogModuleDownload(message string) {
+	v.view.streams.Println(strings.TrimSpace(message))
+}
+
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitHuman) LogModuleInstallation(message string) {
+	v.view.streams.Println(strings.TrimSpace(message))
 }
 
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
@@ -231,11 +242,6 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	}
 
 	v.view.Log(preppedMessage)
-}
-
-// this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
-func (v *InitJSON) Log(message string, params ...any) {
-	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
 func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -329,6 +335,7 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 	v.logInitMessage(PartnerAndCommunityProvidersMessage)
 }
 
+// Implements DependencyLockingLogger
 func (v *InitJSON) LogDependencyLockfileCreated() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
@@ -336,11 +343,26 @@ func (v *InitJSON) LogDependencyLockfileCreated() {
 	v.Output(LockInfo, params...)
 }
 
+// Implements DependencyLockingLogger
 func (v *InitJSON) LogDependencyLockfileUpdated() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
 	v.Output(DependenciesLockChangesInfo, params...)
+}
+
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitJSON) LogModuleDownload(message string) {
+	v.view.Log(message)
+}
+
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitJSON) LogModuleInstallation(message string) {
+	v.view.Log(message)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
