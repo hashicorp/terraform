@@ -432,8 +432,6 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, expandedInstances)
 	}
 
-	addRootNodeToGraph(&g)
-
 	return &g, diags
 }
 
@@ -543,9 +541,6 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
-
-		// Make sure there is a single root
-		&RootTransformer{},
 	}
 
 	// Build the graph

@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -23,37 +22,15 @@ func TestWalker_basic(t *testing.T) {
 	for range 50 {
 		var order []any
 		w := NewWalker(walkCbRecord(&order))
-		w.Update(&g)
+		if diags := w.Walk(&g); diags.HasErrors() {
+			t.Fatalf("err: %s", diags.ErrWithWarnings())
 
-		// Wait
-		if err := w.Wait(); err != nil {
-			t.Fatalf("err: %s", err)
 		}
 
 		// Check
-		expected := []any{testV(1), testV(2)}
+		expected := []any{testV(2), testV(1)}
 		if !reflect.DeepEqual(order, expected) {
 			t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
-		}
-	}
-}
-
-func TestWalker_updateNilGraph(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
-
-	// Run it a bunch of times since it is timing dependent
-	for range 50 {
-		var order []any
-		w := NewWalker(walkCbRecord(&order))
-		w.Update(&g)
-		w.Update(nil)
-
-		// Wait
-		if err := w.Wait(); err != nil {
-			t.Fatalf("err: %s", err)
 		}
 	}
 }
@@ -64,9 +41,9 @@ func TestWalker_error(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(testV(3))
 	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(4))
+	g.Connect(testV(2), testV(1))
+	g.Connect(testV(3), testV(2))
+	g.Connect(testV(4), testV(3))
 
 	// Record function
 	var order []any
@@ -84,137 +61,12 @@ func TestWalker_error(t *testing.T) {
 	}
 
 	w := NewWalker(cb)
-	w.Update(&g)
-
-	// Wait
-	if err := w.Wait(); err == nil {
+	if diags := w.Walk(&g); !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
 	// Check
 	expected := []any{testV(1)}
-	if !reflect.DeepEqual(order, expected) {
-		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
-	}
-}
-
-func TestWalker_newVertex(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
-
-	// Record function
-	var order []any
-	recordF := walkCbRecord(&order)
-	done2 := make(chan int)
-
-	// Build a callback that notifies us when 2 has been walked
-	cb := func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(2) {
-			defer close(done2)
-		}
-		return recordF(v)
-	}
-
-	// Add the initial vertices
-	w := NewWalker(cb)
-	w.Update(&g)
-
-	// if 2 has been visited, the walk is complete so far
-	<-done2
-
-	// Update the graph
-	g.Add(testV(3))
-	w.Update(&g)
-
-	// Update the graph again but with the same vertex
-	g.Add(testV(3))
-	w.Update(&g)
-
-	// Wait
-	if err := w.Wait(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check
-	expected := []any{testV(1), testV(2), testV(3)}
-	if !reflect.DeepEqual(order, expected) {
-		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
-	}
-}
-
-func TestWalker_removeVertex(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
-
-	// Record function
-	var order []any
-	recordF := walkCbRecord(&order)
-
-	w := NewWalker(nil)
-	cb := func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(1) {
-			g.Remove(testV(2))
-			w.Update(&g)
-		}
-
-		return recordF(v)
-	}
-
-	// Add the initial vertices
-	w.Callback = cb
-	w.Update(&g)
-
-	// Wait
-	if err := w.Wait(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check
-	expected := []any{testV(1)}
-	if !reflect.DeepEqual(order, expected) {
-		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
-	}
-}
-
-func TestWalker_newEdge(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
-
-	// Record function
-	var order []any
-	recordF := walkCbRecord(&order)
-
-	w := NewWalker(nil)
-	cb := func(v Vertex) tfdiags.Diagnostics {
-		// record where we are first, otherwise the Updated vertex may get
-		// walked before the first visit.
-		diags := recordF(v)
-
-		if v == testV(1) {
-			g.Add(testV(3))
-			g.Connect(testV(3), testV(2))
-			w.Update(&g)
-		}
-		return diags
-	}
-
-	// Add the initial vertices
-	w.Callback = cb
-	w.Update(&g)
-
-	// Wait
-	if err := w.Wait(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Check
-	expected := []any{testV(1), testV(3), testV(2)}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -236,9 +88,9 @@ func TestWalker_tolerantVertex(t *testing.T) {
 	g.Add(testV(2))
 	g.Add(tolerantTestVertex("t"))
 	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), tolerantTestVertex("t"))
-	g.Connect(tolerantTestVertex("t"), testV(4))
+	g.Connect(testV(2), testV(1))
+	g.Connect(tolerantTestVertex("t"), testV(2))
+	g.Connect(testV(4), tolerantTestVertex("t"))
 
 	var order []any
 
@@ -251,81 +103,12 @@ func TestWalker_tolerantVertex(t *testing.T) {
 
 		return walkCbRecord(&order)(v)
 	})
-	w.Update(&g)
 
-	if err := w.Wait(); err == nil {
+	if diags := w.Walk(&g); !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
 	expected := []any{testV(1), tolerantTestVertex("t")}
-	if !reflect.DeepEqual(order, expected) {
-		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
-	}
-}
-
-func TestWalker_removeEdge(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(3), testV(2))
-
-	// Record function
-	var order []any
-	recordF := walkCbRecord(&order)
-
-	// The way this works is that our original graph forces
-	// the order of 1 => 3 => 2. During the execution of 1, we
-	// remove the edge forcing 3 before 2. Then, during the execution
-	// of 3, we wait on a channel that is only closed by 2, implicitly
-	// forcing 2 before 3 via the callback (and not the graph). If
-	// 2 cannot execute before 3 (edge removal is non-functional), then
-	// this test will timeout.
-	w := NewWalker(nil)
-	gateCh := make(chan struct{})
-	cb := func(v Vertex) tfdiags.Diagnostics {
-		t.Logf("visit vertex %#v", v)
-		switch v {
-		case testV(1):
-			g.RemoveEdge(testV(3), testV(2))
-			w.Update(&g)
-			t.Logf("removed edge from 3 to 2")
-
-		case testV(2):
-			// this visit isn't completed until we've recorded it
-			// Once the visit is official, we can then close the gate to
-			// let 3 continue.
-			defer close(gateCh)
-			defer t.Logf("2 unblocked 3")
-
-		case testV(3):
-			select {
-			case <-gateCh:
-				t.Logf("vertex 3 gate channel is now closed")
-			case <-time.After(500 * time.Millisecond):
-				t.Logf("vertex 3 timed out waiting for the gate channel to close")
-				var diags tfdiags.Diagnostics
-				diags = diags.Append(fmt.Errorf("timeout 3 waiting for 2"))
-				return diags
-			}
-		}
-
-		return recordF(v)
-	}
-
-	// Add the initial vertices
-	w.Callback = cb
-	w.Update(&g)
-
-	// Wait
-	if diags := w.Wait(); diags.HasErrors() {
-		t.Fatalf("unexpected errors: %s", diags.Err())
-	}
-
-	// Check
-	expected := []any{testV(1), testV(2), testV(3)}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}

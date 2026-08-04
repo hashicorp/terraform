@@ -123,7 +123,6 @@ func TestNodePolicyEval_DynamicExpand_FinishWiring(t *testing.T) {
 	// Dynamic expansion returns a walk graph, but must not mutate the accumulated
 	// policy subgraph while doing finish/root wiring.
 	testGraphNotContains(t, &ps.graph, "(policy evaluation complete)")
-	testGraphNotContains(t, &ps.graph, rootNodeName)
 }
 
 // TestNodePolicyEval_DynamicExpand_ConcurrentExecution verifies that when

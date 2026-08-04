@@ -169,28 +169,6 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 	return ret
 }
 
-// Root returns the root of the DAG, or an error.
-//
-// Complexity: O(V)
-func (g *AcyclicGraph) Root() (Vertex, error) {
-	roots := make([]Vertex, 0, 1)
-	for v := range g.VerticesSeq() {
-		if g.edgesTo[v].Len() == 0 {
-			roots = append(roots, v)
-		}
-	}
-
-	if len(roots) > 1 {
-		return nil, fmt.Errorf("multiple roots: %#v", roots)
-	}
-
-	if len(roots) == 0 {
-		return nil, fmt.Errorf("no roots found")
-	}
-
-	return roots[0], nil
-}
-
 // TransitiveReduction performs the transitive reduction of graph g in place.
 // The transitive reduction of a graph is a graph with as few edges as
 // possible with the same reachability as the original graph. This means
@@ -221,14 +199,8 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	}
 }
 
-// Validate validates the DAG. A DAG is valid if it has a single root with no
-// cycles. A single root is not required for a graph to be walked, but it's an
-// invariant we maintain for consistency.
+// Validate validates the DAG. A DAG is valid if it has no cycles.
 func (g *AcyclicGraph) Validate() error {
-	if _, err := g.Root(); err != nil {
-		return err
-	}
-
 	// Look for cycles of more than 1 component
 	var err error
 	cycles := g.Cycles()
@@ -297,9 +269,7 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // problems from all graphs visited, in no particular order.
 func (g *AcyclicGraph) Walk(cb walkFunc) tfdiags.Diagnostics {
 	w := NewWalker(cb)
-	w.Reverse = true
-	w.Update(g)
-	return w.Wait()
+	return w.Walk(g)
 }
 
 // TopologicalOrder returns a topological sort of the given graph, with source
@@ -403,17 +373,19 @@ These are currently unused outside of tests, and the linter does not like unused
 code. Leaving as example however to show how the walk function can be flexibly
 used.
 
-// breadthFirstWalk does a breadth-first walk of the graph starting from // the
-vertices in start. func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f
-depthWalkFunc) error { return g.walk(breadthFirst|downOrder, false, start, f)
-}
+	// breadthFirstWalk does a breadth-first walk of the graph starting from
+	// the vertices in start.
+	func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f depthWalkFunc) error {
+	    return g.walk(breadthFirst|downOrder, false, start, f)
+	}
 
-// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting
-from // the vertices in start. func (g *AcyclicGraph)
-reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error { return
-g.walk(breadthFirst|upOrder, false, start, f)
-}
+	// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
+	// the vertices in start.
+	func (g *AcyclicGraph) reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error {
+	    return g.walk(breadthFirst|upOrder, false, start, f)
+	}
 */
+
 type vertexAtDepth struct {
 	Vertex Vertex
 	Depth  int
@@ -425,8 +397,7 @@ type vertexAtDepth struct {
 // The reason the walk method takes a set of starting vertices which is threaded
 // through all callers, is that we have a couple hot paths which benefit from
 // walking from multiple nodes concurrently. If that was not the case, start
-// could easily be a single vertex and callers could be simplified, matching the
-// fact that we also enforce single root graphs.
+// could easily be a single vertex and callers could be simplified.
 func (g *AcyclicGraph) walk(order walkType, test bool, start VertexSet, f depthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
 	var frontier []vertexAtDepth

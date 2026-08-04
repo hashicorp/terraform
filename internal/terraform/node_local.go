@@ -81,7 +81,6 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 		log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	})
-	addRootNodeToGraph(&g)
 	return &g, nil
 }
 

@@ -58,8 +58,6 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 		g.Connect(finish, pn)
 	}
 
-	// ensure the graph has a single root
-	addRootNodeToGraph(&g)
 	return &g
 }
 
