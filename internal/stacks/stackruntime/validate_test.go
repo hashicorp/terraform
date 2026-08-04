@@ -553,3 +553,79 @@ Terraform uses references to decide a suitable order for performing operations, 
 		})
 	}
 }
+
+// TestValidate_versionMismatch_withProviderBlock verifies that a version
+// mismatch between the lock file and required_providers is reported as an
+// error during validation when the stack has an explicit "provider" block
+// (the direct code path through ProviderConfig.checkValid).
+func TestValidate_versionMismatch_withProviderBlock(t *testing.T) {
+	ctx := context.Background()
+	// "with-single-input/valid" has both required_providers and a provider block.
+	cfg := loadMainBundleConfigForTest(t, "with-single-input/valid")
+
+	// Lock says 0.2.0, but config says version = "0.1.0" (exact match constraint).
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.2.0"),
+		providerreqs.MustParseVersionConstraints("0.2.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	gotDiags := Validate(ctx, &ValidateRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ExperimentsAllowed: true,
+	})
+
+	if !gotDiags.HasErrors() {
+		t.Fatal("expected version mismatch error, got none")
+	}
+	if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
+		t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
+	}
+}
+
+// TestValidate_versionMismatch_passThroughProvider verifies that a version
+// mismatch between the lock file and required_providers is reported during
+// validation even when the root stack has no explicit "provider" block — it
+// only declares the provider in required_providers and passes it through to
+// an embedded stack.
+func TestValidate_versionMismatch_passThroughProvider(t *testing.T) {
+	ctx := context.Background()
+	// "policy-evaluation-embedded-stack" has required_providers in the root
+	// stack config but the provider block lives only in the embedded stack.
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation-embedded-stack")
+
+	// Lock says 0.2.0, but both the root and embedded configs say version = "0.1.0".
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.2.0"),
+		providerreqs.MustParseVersionConstraints("0.2.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	gotDiags := Validate(ctx, &ValidateRequest{
+		Config: cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks:    *lock,
+		ExperimentsAllowed: true,
+	})
+
+	if !gotDiags.HasErrors() {
+		t.Fatal("expected version mismatch error for pass-through provider, got none")
+	}
+	if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
+		t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
+	}
+}
