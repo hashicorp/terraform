@@ -382,7 +382,7 @@ the backend configuration is present and valid.
 // to only download a single provider, and the method will only return a single lock.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInstallAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, trust ProviderTrust, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -554,9 +554,9 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	}
 
 	// Return advice to the calling code about what to do regarding safe state store provider installation
-	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
+	trust = c.determineIfProviderTrusted(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
 
-	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
+	return true, lock, trust, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state
