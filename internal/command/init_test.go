@@ -5373,7 +5373,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		td2 := t.TempDir()
 		lockFileName := filepath.Join(td2, ".terraform.lock.hcl")
 
-		// It DOESNT contain the state store provider hashicorp/test though, causing an error.
+		// It DOESN'T contain the state store provider hashicorp/test though, causing an error.
 		locks := depsfile.NewLocks()
 		locks.SetProvider(
 			addrs.NewDefaultProvider("notusedprovider"),
