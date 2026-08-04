@@ -307,8 +307,16 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
-	// TODO:@austinvalle: Add validation that target/exclude/action target are not set
-	// TODO:@austinvalle: Add separate warning?
+	if len(opts.Targets) > 0 && len(opts.Excludes) > 0 {
+		// The CLI layer (and other similar callers) should prevent this
+		// combination of options.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan options",
+			"The resource targeting options -target and -exclude cannot be combined as they are mutually exclusive. This is a bug in Terraform.",
+		))
+		return nil, nil, diags
+	}
 
 	if len(opts.Targets) > 0 && len(opts.ActionTargets) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -317,6 +325,16 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
 
 The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
+
+	if len(opts.Excludes) > 0 && len(opts.ActionTargets) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Resource targeting is in effect",
+			`You are creating a plan with the -exclude option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+
+The -exclude option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 		))
 	}
 

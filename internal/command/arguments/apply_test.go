@@ -421,6 +421,11 @@ func TestParseApply_excludes(t *testing.T) {
 			want:    nil,
 			wantErr: "A data source name is required",
 		},
+		"invalid when combined with targets": {
+			args:    []string{"-target=foo_bar.baz", "-exclude=foo_bar.baz"},
+			want:    nil,
+			wantErr: "Incompatible plan mode options",
+		},
 	}
 
 	for name, tc := range testCases {
@@ -432,6 +437,7 @@ func TestParseApply_excludes(t *testing.T) {
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
 					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
 				}
+				return
 			}
 			if !cmp.Equal(got.Operation.Excludes, tc.want) {
 				t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.Excludes, tc.want))
@@ -460,6 +466,11 @@ func TestParseApplyDestroy_excludes(t *testing.T) {
 			want:    nil,
 			wantErr: "Dot must be followed by attribute name",
 		},
+		"invalid when combined with targets": {
+			args:    []string{"-target=foo_bar.baz", "-exclude=foo_bar.baz"},
+			want:    nil,
+			wantErr: "Incompatible plan mode options",
+		},
 	}
 
 	for name, tc := range testCases {
@@ -471,6 +482,7 @@ func TestParseApplyDestroy_excludes(t *testing.T) {
 				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
 					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
 				}
+				return
 			}
 			if !cmp.Equal(got.Operation.Excludes, tc.want) {
 				t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.Excludes, tc.want))

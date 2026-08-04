@@ -260,6 +260,14 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
+	if len(o.Targets) > 0 && len(o.Excludes) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan mode options",
+			"The resource targeting options -target and -exclude cannot be combined as they are mutually exclusive.",
+		))
+	}
+
 	return diags
 }
 
