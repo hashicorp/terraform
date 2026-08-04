@@ -97,23 +97,55 @@ func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
 		return proto.Operation_DELETE, true
 	case plans.NoOp:
 		return proto.Operation_NO_OP, true
-	case plans.Update,
-		plans.DeleteThenCreate,
-		plans.CreateThenDelete,
-		plans.CreateThenForget:
+	case plans.Update:
 		return proto.Operation_UPDATE, true
 	default:
 		return 0, false
 	}
 }
 
-// policyNodeFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.
-func policyNodeFromChange(change *plans.ResourceInstanceChange) *nodeResourcePolicy {
-	return &nodeResourcePolicy{
-		ResourceAddr: change.Addr,
-		ProviderAddr: change.ProviderAddr,
-		Action:       change.Action,
-		Before:       change.Before,
-		After:        change.After,
+// policyNodesFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.
+// For replace operations, two nodes are created: one for the create operation
+// and one for the delete operation, with the values swapped to reflect the
+// actual order of operations.
+func policyNodesFromChange(change *plans.ResourceInstanceChange) []*nodeResourcePolicy {
+	switch change.Action {
+	case plans.CreateThenDelete, plans.DeleteThenCreate:
+		return []*nodeResourcePolicy{
+			{
+				ResourceAddr: change.Addr,
+				ProviderAddr: change.ProviderAddr,
+				Action:       plans.Create,
+				Before:       cty.NilVal,
+				After:        change.After,
+			},
+			{
+				ResourceAddr: change.Addr,
+				ProviderAddr: change.ProviderAddr,
+				Action:       plans.Delete,
+				Before:       change.Before,
+				After:        cty.NilVal,
+			},
+		}
+	case plans.CreateThenForget:
+		return []*nodeResourcePolicy{
+			{
+				ResourceAddr: change.Addr,
+				ProviderAddr: change.ProviderAddr,
+				Action:       plans.Create,
+				Before:       cty.NilVal,
+				After:        change.After,
+			},
+		}
+	default:
+	}
+	return []*nodeResourcePolicy{
+		{
+			ResourceAddr: change.Addr,
+			ProviderAddr: change.ProviderAddr,
+			Action:       change.Action,
+			Before:       change.Before,
+			After:        change.After,
+		},
 	}
 }
