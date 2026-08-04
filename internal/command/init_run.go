@@ -230,10 +230,10 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		}
 
 		var getPSSProviderOutput bool
-		var safeInstallAction SafeStateStoreProviderInstallAction
+		var trust ProviderTrust
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 		var getPSSProviderDiags tfdiags.Diagnostics
-		getPSSProviderOutput, pssLock, safeInstallAction, stateStoreProviderAuthResult, getPSSProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		getPSSProviderOutput, pssLock, trust, stateStoreProviderAuthResult, getPSSProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
 		diags = diags.Append(getPSSProviderDiags)
 		if getPSSProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
@@ -245,10 +245,10 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			view.Spacer()
 		}
 
-		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
-		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
-		diags = diags.Append(safeDiags)
-		if safeDiags.HasErrors() {
+		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+		trustDiags := c.confirmProviderIsTrusted(trust, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
+		diags = diags.Append(trustDiags)
+		if trustDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
