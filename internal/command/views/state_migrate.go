@@ -46,7 +46,6 @@ Make sure you're supplying all the necessary attribute values for both the sourc
 )
 
 type StateMigrate interface {
-	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogMigrationStarted(source, destination string)
@@ -103,10 +102,6 @@ func (s *StateMigrateHuman) LogMigrationFailedAfter(source, destination string, 
 	s.log(msg)
 }
 
-func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.log(fmt.Sprintf(message, params...))
-}
-
 func (s *StateMigrateHuman) log(preparedMessage string) {
 	msg := s.view.colorize.Color(strings.TrimSpace(preparedMessage))
 	s.view.streams.Println(msg)
@@ -119,11 +114,8 @@ func (s *StateMigrateHuman) Spacer() {
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
-	msg, ok := MessageRegistry[code]
-	if !ok {
-		panic("missing message for InstallingProviderMessage init message code")
-	}
-	s.Log(msg.HumanValue, params...)
+	msg := s.prepareMessage(code, params...)
+	s.log(msg)
 }
 
 // Implements ProviderInstallationLogger interface.
