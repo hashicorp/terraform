@@ -38,19 +38,6 @@ func (g *Graph) VertexCount() int {
 	return g.vertices.Len()
 }
 
-// edgeSet is used to collect all dependencies for the concurrent graph walk.
-// Because the Walker allows dynamically updating the graph being walked, a set
-// data structure is useful to diff the two sets of dependencies.
-func (g *Graph) edgeSet() edgeSet {
-	edges := edgeSet{make(map[Edge]bool)}
-	for from, tos := range g.edgesFrom {
-		for to := range tos.All() {
-			edges.Add(Edge{from, to})
-		}
-	}
-	return edges
-}
-
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
 	result := make([]Edge, 0, len(g.edgesFrom))
@@ -179,10 +166,10 @@ func (g *Graph) Subsume(other *Graph) {
 	g.vertices = g.vertices.Union(other.vertices)
 
 	for v := range other.edgesFrom {
-		g.edgesFrom[v] = other.edgesFrom[v].Clone()
+		g.edgesFrom[v] = other.edgesFrom[v].Union(g.edgesFrom[v])
 	}
 	for v := range other.edgesTo {
-		g.edgesTo[v] = other.edgesTo[v].Clone()
+		g.edgesTo[v] = other.edgesTo[v].Union(g.EdgesTo(v))
 	}
 }
 

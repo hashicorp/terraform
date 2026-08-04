@@ -14,12 +14,6 @@ func NewVertexSet() VertexSet {
 
 type VertexSet = setMap[Vertex]
 
-func newEdgeSet() edgeSet {
-	return setMap[Edge]{make(map[Edge]bool)}
-}
-
-type edgeSet = setMap[Edge]
-
 // setMap is a set data structure, used to hold
 type setMap[T comparable] struct {
 	m map[T]bool

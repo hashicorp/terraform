@@ -204,8 +204,6 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.D
 		})
 	}
 
-	addRootNodeToGraph(g)
-
 	// Done!
 	return g, diags
 }
