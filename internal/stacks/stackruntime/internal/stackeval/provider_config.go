@@ -97,12 +97,6 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, v
 		return diags
 	}
 
-	// If the configuration declares version constraints for this provider,
-	// make sure the version recorded in the lockfile still satisfies them.
-	// A mismatch here typically means the version constraints in the
-	// configuration were changed after the lockfile was generated, leaving the
-	// lockfile inconsistent with the configuration. We must catch this so that
-	// we don't proceed with an out-of-date set of provider selections.
 	if len(versionConstraints) > 0 {
 		selectedVersion := lock.Version()
 		allowedVersions := providerreqs.MeetingConstraints(versionConstraints)

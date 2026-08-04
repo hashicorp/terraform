@@ -1,6 +1,6 @@
 kind: BUG FIXES
-body: Add a validation to check the provider versions in the lock file and configuration
-  are compatible for a Stack
+body: stacks: Fixed validation to ensure the provider versions in the lock file and
+  configuration are compatible.
 time: 2026-07-28T10:50:47.221088-04:00
 custom:
   Issue: "38829"
