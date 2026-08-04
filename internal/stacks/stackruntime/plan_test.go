@@ -7653,97 +7653,68 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	return gotPolicyResults
 }
 
-// TestPlan_versionMismatch_withProviderBlock verifies that a version mismatch
-// between the lock file and required_providers is reported as an error when the
-// stack has an explicit "provider" block (the direct code path through
-// ProviderConfig.checkValid).
-func TestPlan_versionMismatch_withProviderBlock(t *testing.T) {
-	ctx := context.Background()
-	// "with-single-input/valid" has both required_providers and a provider block.
-	cfg := loadMainBundleConfigForTest(t, "with-single-input/valid")
-
-	// Lock says 0.2.0, but config says version = "0.1.0" (exact match constraint).
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.2.0"),
-		providerreqs.MustParseVersionConstraints("0.2.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-
-	changesCh := make(chan stackplan.PlannedChange, 8)
-	diagsCh := make(chan tfdiags.Diagnostic, 2)
-	req := PlanRequest{
-		Config:          cfg,
-		DependencyLocks: *lock,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+// TestPlan_versionMismatch verifies that a version mismatch between the lock
+// file and required_providers is reported as an error. Two scenarios are
+// tested: a stack with an explicit "provider" block, and one where the provider
+// is only declared in required_providers and passed through to an embedded stack.
+func TestPlan_versionMismatch(t *testing.T) {
+	cases := []struct {
+		name            string
+		configDir       string
+		fatalMsg        string
+		providerFactory providers.Factory
+	}{
+		{
+			// "with-single-input/valid" has both required_providers and a
+			// provider block (direct code path through ProviderConfig.checkValid).
+			name:      "withProviderBlock",
+			configDir: "with-single-input/valid",
+			fatalMsg:  "expected version mismatch error, got none",
+			providerFactory: func() (providers.Interface, error) {
 				return &default_testing_provider.MockProvider{}, nil
 			},
 		},
-		InputValues: make(map[stackaddrs.InputVariable]ExternalInputValue),
-	}
-	resp := PlanResponse{PlannedChanges: changesCh, Diagnostics: diagsCh}
-
-	go Plan(ctx, &req, &resp)
-	_, gotDiags := collectPlanOutput(changesCh, diagsCh)
-
-	if !gotDiags.HasErrors() {
-		t.Fatal("expected version mismatch error, got none")
-	}
-	if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
-		t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
-	}
-}
-
-// TestPlan_versionMismatch_passThroughProvider verifies that a version mismatch
-// between the lock file and required_providers is reported even when the root
-// stack has no explicit "provider" block — it only declares the provider in
-// required_providers and passes it through to an embedded stack.
-func TestPlan_versionMismatch_passThroughProvider(t *testing.T) {
-	ctx := context.Background()
-	// "policy-evaluation-embedded-stack" has required_providers in the root
-	// stack config but the provider block lives only in the embedded stack.
-	cfg := loadMainBundleConfigForTest(t, "policy-evaluation-embedded-stack")
-
-	// Lock says 0.2.0, but both the root and embedded configs say version = "0.1.0".
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.2.0"),
-		providerreqs.MustParseVersionConstraints("0.2.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-
-	changesCh := make(chan stackplan.PlannedChange, 8)
-	diagsCh := make(chan tfdiags.Diagnostic, 2)
-	req := PlanRequest{
-		Config:          cfg,
-		DependencyLocks: *lock,
-		ProviderFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+		{
+			// "policy-evaluation-embedded-stack" has required_providers in the
+			// root stack config but the provider block lives only in the
+			// embedded stack.
+			name:      "passThroughProvider",
+			configDir: "policy-evaluation-embedded-stack",
+			fatalMsg:  "expected version mismatch error for pass-through provider, got none",
+			providerFactory: func() (providers.Interface, error) {
 				return stacks_testing_provider.NewProvider(t), nil
 			},
 		},
 	}
-	resp := PlanResponse{PlannedChanges: changesCh, Diagnostics: diagsCh}
 
-	go Plan(ctx, &req, &resp)
-	_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, tc.configDir)
+			// Lock says 0.2.0, but configs say version = "0.1.0".
+			lock := buildVersionMismatchLock()
 
-	if !gotDiags.HasErrors() {
-		t.Fatal("expected version mismatch error for pass-through provider, got none")
-	}
-	if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
-		t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
-	}
-}
+			changesCh := make(chan stackplan.PlannedChange, 8)
+			diagsCh := make(chan tfdiags.Diagnostic, 2)
+			req := PlanRequest{
+				Config:          cfg,
+				DependencyLocks: lock,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): tc.providerFactory,
+				},
+				InputValues: make(map[stackaddrs.InputVariable]ExternalInputValue),
+			}
+			resp := PlanResponse{PlannedChanges: changesCh, Diagnostics: diagsCh}
 
-func hasDiagSummary(diags tfdiags.Diagnostics, summary string) bool {
-	for _, diag := range diags {
-		if diag.Description().Summary == summary {
-			return true
-		}
+			go Plan(ctx, &req, &resp)
+			_, gotDiags := collectPlanOutput(changesCh, diagsCh)
+
+			if !gotDiags.HasErrors() {
+				t.Fatal(tc.fatalMsg)
+			}
+			if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
+				t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
+			}
+		})
 	}
-	return false
 }
