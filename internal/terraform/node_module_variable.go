@@ -87,7 +87,6 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 		}
 		g.Add(o)
 	})
-	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
 		ctx.Checks().ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)

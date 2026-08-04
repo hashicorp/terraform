@@ -163,17 +163,6 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					))
 					return
 				}
-				// If we passed validation then there is exactly one root node.
-				// That root node should always be "rootNode", the singleton
-				// root node value.
-				if n, err := g.Root(); err != nil || n != dag.Vertex(rootNode) {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Graph node has invalid dynamic subgraph",
-						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", v.Name(), n),
-					))
-					return
-				}
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", v.Name())

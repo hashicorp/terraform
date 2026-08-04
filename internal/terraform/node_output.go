@@ -164,7 +164,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			g.Add(node)
 		},
 	)
-	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
 		checkState := ctx.Checks()
