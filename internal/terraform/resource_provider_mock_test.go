@@ -95,6 +95,7 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 			ResourceTypeSchemaVersions: make(map[string]uint64),
 			DataSources:                make(map[string]*configschema.Block),
 			Actions:                    make(map[string]*providers.ActionSchema),
+			EphemeralResourceTypes:     make(map[string]*configschema.Block),
 		}
 	}
 
@@ -107,6 +108,7 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 		DataSources:                map[string]*configschema.Block{},
 		ResourceTypeSchemaVersions: map[string]uint64{},
 		Actions:                    map[string]*providers.ActionSchema{},
+		EphemeralResourceTypes:     map[string]*configschema.Block{},
 	}
 
 	for resType, s := range resp.ResourceTypes {
@@ -116,6 +118,10 @@ func getProviderSchema(p *testing_provider.MockProvider) *providerSchema {
 
 	for dataSource, s := range resp.DataSources {
 		schema.DataSources[dataSource] = s.Body
+	}
+
+	for ephemeralResource, s := range resp.EphemeralResourceTypes {
+		schema.EphemeralResourceTypes[ephemeralResource] = s.Body
 	}
 
 	for action, s := range resp.Actions {
@@ -138,18 +144,20 @@ type providerSchema struct {
 	ListResourceTypes              map[string]*configschema.Block
 	ListResourceTypeSchemaVersions map[string]uint64
 	Actions                        map[string]*providers.ActionSchema
+	EphemeralResourceTypes         map[string]*configschema.Block
 }
 
 // getProviderSchemaResponseFromProviderSchema is a test helper to convert a
 // providerSchema to a GetProviderSchemaResponse for use when building a mock provider.
 func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema) *providers.GetProviderSchemaResponse {
 	resp := &providers.GetProviderSchemaResponse{
-		Provider:          providers.Schema{Body: providerSchema.Provider},
-		ProviderMeta:      providers.Schema{Body: providerSchema.ProviderMeta},
-		ResourceTypes:     map[string]providers.Schema{},
-		DataSources:       map[string]providers.Schema{},
-		ListResourceTypes: map[string]providers.Schema{},
-		Actions:           map[string]providers.ActionSchema{},
+		Provider:               providers.Schema{Body: providerSchema.Provider},
+		ProviderMeta:           providers.Schema{Body: providerSchema.ProviderMeta},
+		ResourceTypes:          map[string]providers.Schema{},
+		DataSources:            map[string]providers.Schema{},
+		ListResourceTypes:      map[string]providers.Schema{},
+		Actions:                map[string]providers.ActionSchema{},
+		EphemeralResourceTypes: map[string]providers.Schema{},
 	}
 
 	for name, schema := range providerSchema.ResourceTypes {
@@ -169,6 +177,10 @@ func getProviderSchemaResponseFromProviderSchema(providerSchema *providerSchema)
 
 	for name, schema := range providerSchema.DataSources {
 		resp.DataSources[name] = providers.Schema{Body: schema}
+	}
+
+	for name, schema := range providerSchema.EphemeralResourceTypes {
+		resp.EphemeralResourceTypes[name] = providers.Schema{Body: schema}
 	}
 
 	for name, schema := range providerSchema.ListResourceTypes {

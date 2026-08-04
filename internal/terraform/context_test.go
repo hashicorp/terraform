@@ -756,6 +756,28 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 				},
 			},
 		},
+		Actions: map[string]*providers.ActionSchema{
+			name + "_action": {
+				ConfigSchema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"input": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+		EphemeralResourceTypes: map[string]*configschema.Block{
+			name + "_data": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
 	})
 }
 
