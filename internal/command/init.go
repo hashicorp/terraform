@@ -98,9 +98,9 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	defer span.End()
 
 	if upgrade {
-		view.Output(views.UpgradingModulesMessage)
+		view.LogModuleUpgrade()
 	} else {
-		view.Output(views.InitializingModulesMessage)
+		view.LogModuleInitialization()
 	}
 
 	uiHook := uiModuleInstallHooks{

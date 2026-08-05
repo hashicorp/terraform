@@ -163,6 +163,22 @@ func (v *InitHuman) LogModuleInstallation(message string) {
 	v.view.streams.Println(strings.TrimSpace(message))
 }
 
+// Implements ModuleInstallationLogger
+func (v *InitHuman) LogModuleUpgrade() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(UpgradingModulesMessage, params...))
+}
+
+// Implements ModuleInstallationLogger
+func (v *InitHuman) LogModuleInitialization() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.view.streams.Println(v.prepareMessage(InitializingModulesMessage, params...))
+}
+
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -363,6 +379,22 @@ func (v *InitJSON) LogModuleDownload(message string) {
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallation(message string) {
 	v.view.Log(message)
+}
+
+// Implements ModuleInstallationLogger
+func (v *InitJSON) LogModuleUpgrade() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(UpgradingModulesMessage, params...)
+}
+
+// Implements ModuleInstallationLogger
+func (v *InitJSON) LogModuleInitialization() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(InitializingModulesMessage, params...)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
