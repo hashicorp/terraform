@@ -163,6 +163,17 @@ func (v *InitHuman) LogModuleInstallation(message string) {
 	v.view.streams.Println(strings.TrimSpace(message))
 }
 
+// print formats (trims whitespace & applies colour) and
+// prints the formatted message to the stdout stream.
+func (v *InitHuman) print(message string) {
+	message = v.view.colorize.Color(strings.TrimSpace(message))
+	v.view.streams.Println(message)
+}
+
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitHuman the human message template is used.
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -174,7 +185,7 @@ func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) s
 		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
-	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
+	return fmt.Sprintf(message.HumanValue, params...)
 }
 
 // The InitJSON implementation renders streaming JSON logs, suitable for
@@ -365,6 +376,10 @@ func (v *InitJSON) LogModuleInstallation(message string) {
 	v.view.Log(message)
 }
 
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitJSON the JSON message template is used.
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
