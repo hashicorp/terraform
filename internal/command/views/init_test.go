@@ -897,8 +897,7 @@ func TestNewInit_LogInitializingStateStoreProviderStart_json(t *testing.T) {
 		`"@message":"Initializing provider hashicorp/test (~\u003e 1.0) for state store \"test_store\"..."`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
-		`"message_code":"initializing_state_store_provider_plugin_message"`,
-		`"type":"init_output"`,
+		`"type":"state_store_provider_initialization_start"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {
