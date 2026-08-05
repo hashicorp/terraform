@@ -38,7 +38,7 @@ import (
 // deleted in case vertices or edges are changed.
 type Walker struct {
 	// Callback is what is called for each vertex
-	Callback walkFunc
+	Callback WalkFunc
 
 	// Reverse, if true, causes the source of an edge to depend on a target.
 	// When false (default), the target depends on the source.
@@ -48,8 +48,8 @@ type Walker struct {
 	// should modify these fields. Modifying them outside of Update can cause
 	// serious problems.
 	changeLock sync.Mutex
-	vertices   VertexSet
-	edges      edgeSet
+	vertices   Set
+	edges      Set
 	vertexMap  map[Vertex]*walkerVertex
 
 	// wait is done when all vertices have executed. It may become "undone"
@@ -82,17 +82,21 @@ const (
 	DependencyResultSoftFailure DependencyResult = "soft-failure"
 )
 
-// NewWalker creates a new walker with the given callback function.
-func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
-	w := &Walker{
-		Callback: cb,
-		vertices: NewVertexSet(),
-		edges:    newEdgeSet(),
+func (w *Walker) init() {
+	if w.vertices == nil {
+		w.vertices = make(Set)
 	}
+	if w.edges == nil {
+		w.edges = make(Set)
+	}
+}
+
+// NewWalker creates a new walker with the given callback function.
+func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
+	w := &Walker{Callback: cb}
 	for _, opt := range opts {
 		opt(w)
 	}
-
 	return w
 }
 
@@ -166,10 +170,11 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 // Multiple Updates can be called in parallel. Update can be called at any
 // time during a walk.
 func (w *Walker) Update(g *AcyclicGraph) {
-	v := NewVertexSet()
-	e := newEdgeSet()
+	w.init()
+	v := make(Set)
+	e := make(Set)
 	if g != nil {
-		v, e = g.vertices, g.edgeSet()
+		v, e = g.vertices, g.edges
 	}
 
 	// Grab the change lock so no more updates happen but also so that
@@ -190,12 +195,14 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	oldVerts := w.vertices.Difference(v)
 
 	// Add the new vertices
-	for v := range newVerts.All() {
+	for _, raw := range newVerts {
+		v := raw.(Vertex)
+
 		// Add to the waitgroup so our walk is not done until everything finishes
 		w.wait.Add(1)
 
 		// Add to our own set so we know about it already
-		w.vertices.Add(v)
+		w.vertices.Add(raw)
 
 		// Initialize the vertex info
 		info := &walkerVertex{
@@ -209,7 +216,9 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Remove the old vertices
-	for v := range oldVerts.All() {
+	for _, raw := range oldVerts {
+		v := raw.(Vertex)
+
 		// Get the vertex info so we can cancel it
 		info, ok := w.vertexMap[v]
 		if !ok {
@@ -223,13 +232,14 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Delete it out of the map
 		delete(w.vertexMap, v)
-		w.vertices.Delete(v)
+		w.vertices.Delete(raw)
 	}
 
 	// Add the new edges
-	changedDeps := NewVertexSet()
-	for edge := range newEdges.All() {
-		waiter, dep := w.waitOrder(edge)
+	changedDeps := make(Set)
+	for _, raw := range newEdges {
+		edge := raw.(Edge)
+		waiter, dep := w.edgeParts(edge)
 
 		// Get the info for the waiter
 		waiterInfo, ok := w.vertexMap[waiter]
@@ -250,12 +260,13 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-		w.edges.Add(edge)
+		w.edges.Add(raw)
 	}
 
 	// Process removed edges
-	for edge := range oldEdges.All() {
-		waiter, dep := w.waitOrder(edge)
+	for _, raw := range oldEdges {
+		edge := raw.(Edge)
+		waiter, dep := w.edgeParts(edge)
 
 		// Get the info for the waiter
 		waiterInfo, ok := w.vertexMap[waiter]
@@ -269,12 +280,13 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 		// Record that the deps changed for this waiter
 		changedDeps.Add(waiter)
-		w.edges.Delete(edge)
+		w.edges.Delete(raw)
 	}
 
 	// For each vertex with changed dependencies, we need to kick off
 	// a new waiter and notify the vertex of the changes.
-	for v := range changedDeps.All() {
+	for _, raw := range changedDeps {
+		v := raw.(Vertex)
 		info, ok := w.vertexMap[v]
 		if !ok {
 			// Vertex doesn't exist... shouldn't be possible but ignore.
@@ -314,19 +326,20 @@ func (w *Walker) Update(g *AcyclicGraph) {
 
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are set up above.
-	for v := range newVerts.All() {
+	for _, raw := range newVerts {
+		v := raw.(Vertex)
 		go w.walkVertex(v, w.vertexMap[v])
 	}
 }
 
-// waitOrder returns the waiter and the dependency, in that order.
+// edgeParts returns the waiter and the dependency, in that order.
 // The waiter is waiting on the dependency.
-func (w *Walker) waitOrder(e Edge) (Vertex, Vertex) {
+func (w *Walker) edgeParts(e Edge) (Vertex, Vertex) {
 	if w.Reverse {
-		return e.Source, e.Target
+		return e.Source(), e.Target()
 	}
 
-	return e.Target, e.Source
+	return e.Target(), e.Source()
 }
 
 // walkVertex walks a single vertex, waiting for any dependencies before
@@ -401,7 +414,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// We note that our upstream failed if the result is hard failure or soft failure.
 	if depsSuccess == DependencyResultHardFailure || depsSuccess == DependencyResultSoftFailure {
-		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", v.Name())
+		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))
 		// This won't be displayed to the user because we'll set upstreamFailed,
 		// but we need to ensure there's at least one error in here so that
 		// the failures will cascade downstream.
@@ -448,7 +461,7 @@ func (w *Walker) waitDeps(
 
 			case <-time.After(time.Second * 5):
 				log.Printf("[TRACE] dag/walk: vertex %q is waiting for %q",
-					v.Name(), dep.Name())
+					VertexName(v), VertexName(dep))
 			}
 		}
 	}

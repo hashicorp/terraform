@@ -45,7 +45,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	// This is done all at once here, because orphaned modules were already
 	// handled by the RemovedModuleTransformer, and those module closers are in
 	// the graph already, and need to be connected to their parent closers.
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		switch v.(type) {
 		case GraphNodeDestroyer:
 			// Destroy nodes can only be ordered relative to other resource
@@ -66,7 +66,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
-			g.Connect(closer, v)
+			g.Connect(dag.BasicEdge(closer, v))
 		}
 	}
 
@@ -75,7 +75,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	for _, c := range t.closers {
 		for _, d := range t.closers {
 			if len(d.Addr) > len(c.Addr) && c.Addr.Equal(d.Addr[:len(c.Addr)]) {
-				g.Connect(c, d)
+				g.Connect(dag.BasicEdge(c, d))
 			}
 		}
 	}
@@ -102,8 +102,8 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 	log.Printf("[TRACE] ModuleExpansionTransformer: Added %s as %T", c.Path, expander)
 
 	if parentNode != nil {
-		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", expander.Name(), parentNode.Name())
-		g.Connect(expander, parentNode)
+		log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(expander), dag.VertexName(parentNode))
+		g.Connect(dag.BasicEdge(expander, parentNode))
 	}
 
 	// Add the closer (which acts as the root module node) to provide a
@@ -112,10 +112,10 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		Addr: c.Path,
 	}
 	g.Add(closer)
-	g.Connect(closer, expander)
+	g.Connect(dag.BasicEdge(closer, expander))
 	t.closers[c.Path.String()] = closer
 
-	for childV := range g.VerticesSeq() {
+	for _, childV := range g.Vertices() {
 		// don't connect a node to itself
 		if childV == expander {
 			continue
@@ -134,8 +134,8 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		}
 
 		if path.Equal(c.Path) {
-			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", childV.Name(), c.Path)
-			g.Connect(childV, expander)
+			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
+			g.Connect(dag.BasicEdge(childV, expander))
 		}
 	}
 

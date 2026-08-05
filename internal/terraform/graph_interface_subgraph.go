@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // GraphNodeModuleInstance says that a node is part of a graph with a
@@ -17,7 +16,6 @@ type GraphNodeModuleInstance interface {
 // GraphNodeModulePath is implemented by all referenceable nodes, to indicate
 // their configuration path in unexpanded modules.
 type GraphNodeModulePath interface {
-	dag.Vertex
 	ModulePath() addrs.Module
 }
 

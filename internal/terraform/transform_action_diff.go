@@ -23,7 +23,7 @@ func (t *ActionDiffTransformer) Transform(g *Graph) error {
 	actionConfigNodes := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
 
 	// collect all the instance nodes, any of which could have action triggers
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		switch v := v.(type) {
 		case GraphNodeResourceInstance:
 			instances := resourceInstanceNodes.Get(v.ResourceInstanceAddr())

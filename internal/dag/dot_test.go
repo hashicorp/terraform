@@ -34,10 +34,6 @@ type testDotVertex struct {
 	DotNodeReturn *DotNode
 }
 
-func (v *testDotVertex) Name() string {
-	return "testDotVertex"
-}
-
 func (v *testDotVertex) DotNode(title string, opts *DotOpts) *DotNode {
 	v.DotNodeCalled = true
 	v.DotNodeTitle = title

@@ -23,43 +23,29 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// vertex type for our test graph integer nodes
-type testV int
-
-func (i testV) Name() string {
-	return fmt.Sprint(i)
-}
-
-// vertex type for test graph string nodes
-type testNamedString string
-
-func (s testNamedString) Name() string {
-	return string(s)
-}
-
 func TestAcyclicGraphRoot(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(3), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(3, 1))
 
 	if root, err := g.Root(); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if root != testV(3) {
+	} else if root != 3 {
 		t.Fatalf("bad: %#v", root)
 	}
 }
 
 func TestAcyclicGraphRoot_cycle(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 1))
 
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
@@ -68,10 +54,10 @@ func TestAcyclicGraphRoot_cycle(t *testing.T) {
 
 func TestAcyclicGraphRoot_multiple(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
 
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
@@ -80,12 +66,12 @@ func TestAcyclicGraphRoot_multiple(t *testing.T) {
 
 func TestAyclicGraphTransReduction(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(2), testV(3))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(2, 3))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -97,16 +83,16 @@ func TestAyclicGraphTransReduction(t *testing.T) {
 
 func TestAyclicGraphTransReduction_more(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(4))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(2), testV(4))
-	g.Connect(testV(3), testV(4))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(3, 4))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -118,27 +104,27 @@ func TestAyclicGraphTransReduction_more(t *testing.T) {
 
 func TestAyclicGraphTransReduction_multipleRoots(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(4))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(2), testV(4))
-	g.Connect(testV(3), testV(4))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(3, 4))
 
-	g.Add(testV(5))
-	g.Add(testV(6))
-	g.Add(testV(7))
-	g.Add(testV(8))
-	g.Connect(testV(5), testV(6))
-	g.Connect(testV(5), testV(7))
-	g.Connect(testV(5), testV(8))
-	g.Connect(testV(6), testV(7))
-	g.Connect(testV(6), testV(8))
-	g.Connect(testV(7), testV(8))
+	g.Add(5)
+	g.Add(6)
+	g.Add(7)
+	g.Add(8)
+	g.Connect(BasicEdge(5, 6))
+	g.Connect(BasicEdge(5, 7))
+	g.Connect(BasicEdge(5, 8))
+	g.Connect(BasicEdge(6, 7))
+	g.Connect(BasicEdge(6, 8))
+	g.Connect(BasicEdge(7, 8))
 	g.TransitiveReduction()
 
 	actual := strings.TrimSpace(g.String())
@@ -150,17 +136,13 @@ func TestAyclicGraphTransReduction_multipleRoots(t *testing.T) {
 
 // use this to simulate slow sort operations
 type counter struct {
-	name  string
+	Name  string
 	Calls int64
 }
 
-func (s *counter) Name() string {
-	s.Calls++
-	return s.name
-}
-
 func (s *counter) String() string {
-	return s.Name()
+	s.Calls++
+	return s.Name
 }
 
 // Make sure we can reduce a sizable, fully-connected graph.
@@ -169,8 +151,8 @@ func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
 
 	const nodeCount = 200
 	nodes := make([]*counter, nodeCount)
-	for i := range nodeCount {
-		nodes[i] = &counter{name: strconv.Itoa(i)}
+	for i := 0; i < nodeCount; i++ {
+		nodes[i] = &counter{Name: strconv.Itoa(i)}
 	}
 
 	// Add them all to the graph
@@ -184,7 +166,7 @@ func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
 			if i == j {
 				continue
 			}
-			g.Connect(nodes[i], nodes[j])
+			g.Connect(BasicEdge(nodes[i], nodes[j]))
 		}
 	}
 
@@ -209,11 +191,11 @@ func TestAyclicGraphTransReduction_fullyConnected(t *testing.T) {
 
 func TestAcyclicGraphValidate(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(3), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(3, 1))
 
 	if err := g.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
@@ -222,13 +204,13 @@ func TestAcyclicGraphValidate(t *testing.T) {
 
 func TestAcyclicGraphValidate_cycle(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(3), testV(1))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(3, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 1))
 
 	if err := g.Validate(); err == nil {
 		t.Fatal("should error")
@@ -237,9 +219,9 @@ func TestAcyclicGraphValidate_cycle(t *testing.T) {
 
 func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 1))
 
 	if err := g.Validate(); err == nil {
 		t.Fatal("should error")
@@ -248,27 +230,27 @@ func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
 
 func TestAcyclicGraphAncestors(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Add(testV(5))
-	g.Connect(testV(0), testV(1))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(4))
-	g.Connect(testV(4), testV(5))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
 
-	actual := g.Ancestors(testV(2))
+	actual := g.Ancestors(2)
 
-	expected := []Vertex{testV(3), testV(4), testV(5)}
+	expected := []Vertex{3, 4, 5}
 
 	if actual.Len() != len(expected) {
 		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
 	}
 
 	for _, e := range expected {
-		if !actual.Contains(e) {
+		if !actual.Include(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
 	}
@@ -276,27 +258,27 @@ func TestAcyclicGraphAncestors(t *testing.T) {
 
 func TestAcyclicGraphDescendants(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Add(testV(5))
-	g.Connect(testV(0), testV(1))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(4))
-	g.Connect(testV(4), testV(5))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
 
-	actual := g.Descendants(testV(2))
+	actual := g.Descendants(2)
 
-	expected := []Vertex{testV(0), testV(1)}
+	expected := []Vertex{0, 1}
 
 	if actual.Len() != len(expected) {
 		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
 	}
 
 	for _, e := range expected {
-		if !actual.Contains(e) {
+		if !actual.Include(e) {
 			t.Fatalf("expected: %#v to include: %#v", expected, actual)
 		}
 	}
@@ -304,49 +286,49 @@ func TestAcyclicGraphDescendants(t *testing.T) {
 
 func TestAcyclicGraphFindDescendants(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(0))
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Add(testV(5))
-	g.Add(testV(6))
-	g.Connect(testV(0), testV(1))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(6))
-	g.Connect(testV(3), testV(4))
-	g.Connect(testV(4), testV(5))
-	g.Connect(testV(5), testV(6))
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 6))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
+	g.Connect(BasicEdge(5, 6))
 
-	actual := g.FirstDescendantsWith(testV(6), func(v Vertex) bool {
+	actual := g.FirstDescendantsWith(6, func(v Vertex) bool {
 		// looking for first odd descendants
-		return v.(testV)%2 != 0
+		return v.(int)%2 != 0
 	})
 
-	expected := NewVertexSet()
-	expected.Add(testV(1))
-	expected.Add(testV(5))
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
 
 	if expected.Intersection(actual).Len() != expected.Len() {
 		t.Fatalf("expected %#v, got %#v\n", expected, actual)
 	}
 
-	foundOne := g.MatchDescendant(testV(6), func(v Vertex) bool {
-		return v.(testV) == 1
+	foundOne := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 1
 	})
 	if !foundOne {
 		t.Fatal("did not match 1 in the graph")
 	}
 
-	foundSix := g.MatchDescendant(testV(6), func(v Vertex) bool {
-		return v.(testV) == 6
+	foundSix := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 6
 	})
 	if foundSix {
 		t.Fatal("6 should not be a descendant of itself")
 	}
 
-	foundTen := g.MatchDescendant(testV(6), func(v Vertex) bool {
-		return v.(testV) == 10
+	foundTen := g.MatchDescendant(6, func(v Vertex) bool {
+		return v.(int) == 10
 	})
 	if foundTen {
 		t.Fatal("10 is not in the graph at all")
@@ -355,49 +337,49 @@ func TestAcyclicGraphFindDescendants(t *testing.T) {
 
 func TestAcyclicGraphFindAncestors(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(0))
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Add(testV(5))
-	g.Add(testV(6))
-	g.Connect(testV(1), testV(0))
-	g.Connect(testV(2), testV(1))
-	g.Connect(testV(6), testV(2))
-	g.Connect(testV(4), testV(3))
-	g.Connect(testV(5), testV(4))
-	g.Connect(testV(6), testV(5))
+	g.Add(0)
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Add(6)
+	g.Connect(BasicEdge(1, 0))
+	g.Connect(BasicEdge(2, 1))
+	g.Connect(BasicEdge(6, 2))
+	g.Connect(BasicEdge(4, 3))
+	g.Connect(BasicEdge(5, 4))
+	g.Connect(BasicEdge(6, 5))
 
-	actual := g.FirstAncestorsWith(testV(6), func(v Vertex) bool {
+	actual := g.FirstAncestorsWith(6, func(v Vertex) bool {
 		// looking for first odd ancestors
-		return v.(testV)%2 != 0
+		return v.(int)%2 != 0
 	})
 
-	expected := NewVertexSet()
-	expected.Add(testV(1))
-	expected.Add(testV(5))
+	expected := make(Set)
+	expected.Add(1)
+	expected.Add(5)
 
 	if expected.Intersection(actual).Len() != expected.Len() {
 		t.Fatalf("expected %#v, got %#v\n", expected, actual)
 	}
 
-	foundOne := g.MatchAncestor(testV(6), func(v Vertex) bool {
-		return v.(testV) == 1
+	foundOne := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 1
 	})
 	if !foundOne {
 		t.Fatal("did not match 1 in the graph")
 	}
 
-	foundSix := g.MatchAncestor(testV(6), func(v Vertex) bool {
-		return v.(testV) == 6
+	foundSix := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 6
 	})
 	if foundSix {
 		t.Fatal("6 should not be a descendant of itself")
 	}
 
-	foundTen := g.MatchAncestor(testV(6), func(v Vertex) bool {
-		return v.(testV) == 10
+	foundTen := g.MatchAncestor(6, func(v Vertex) bool {
+		return v.(int) == 10
 	})
 	if foundTen {
 		t.Fatal("10 is not in the graph at all")
@@ -406,11 +388,11 @@ func TestAcyclicGraphFindAncestors(t *testing.T) {
 
 func TestAcyclicGraphWalk(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(3), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(3, 1))
 
 	var visits []Vertex
 	var lock sync.Mutex
@@ -425,8 +407,8 @@ func TestAcyclicGraphWalk(t *testing.T) {
 	}
 
 	expected := [][]Vertex{
-		{testV(1), testV(2), testV(3)},
-		{testV(2), testV(1), testV(3)},
+		{1, 2, 3},
+		{2, 1, 3},
 	}
 	for _, e := range expected {
 		if reflect.DeepEqual(visits, e) {
@@ -439,13 +421,13 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 func TestAcyclicGraphWalk_error(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Connect(testV(4), testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(2), testV(1))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(4, 3))
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(2, 1))
 
 	var visits []Vertex
 	var lock sync.Mutex
@@ -455,7 +437,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 		var diags tfdiags.Diagnostics
 
-		if v == testV(2) {
+		if v == 2 {
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
 		}
@@ -467,7 +449,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 		t.Fatal("should error")
 	}
 
-	expected := []Vertex{testV(1)}
+	expected := []Vertex{1}
 	if !reflect.DeepEqual(visits, expected) {
 		t.Errorf("wrong visits\ngot:  %#v\nwant: %#v", visits, expected)
 	}
@@ -482,44 +464,44 @@ func BenchmarkDAG(b *testing.B) {
 
 		// create 4 layers of fully connected nodes
 		// layer A
-		for i := range count {
-			g.Add(testNamedString(fmt.Sprintf("A%d", i)))
+		for i := 0; i < count; i++ {
+			g.Add(fmt.Sprintf("A%d", i))
 		}
 
 		// layer B
-		for i := range count {
-			B := testNamedString(fmt.Sprintf("B%d", i))
+		for i := 0; i < count; i++ {
+			B := fmt.Sprintf("B%d", i)
 			g.Add(B)
-			for j := range count {
-				g.Connect(B, testNamedString(fmt.Sprintf("A%d", j)))
+			for j := 0; j < count; j++ {
+				g.Connect(BasicEdge(B, fmt.Sprintf("A%d", j)))
 			}
 		}
 
 		// layer C
-		for i := range count {
-			c := testNamedString(fmt.Sprintf("C%d", i))
+		for i := 0; i < count; i++ {
+			c := fmt.Sprintf("C%d", i)
 			g.Add(c)
-			for j := range count {
+			for j := 0; j < count; j++ {
 				// connect them to previous layers so we have something that requires reduction
-				g.Connect(c, testNamedString(fmt.Sprintf("A%d", j)))
-				g.Connect(c, testNamedString(fmt.Sprintf("B%d", j)))
+				g.Connect(BasicEdge(c, fmt.Sprintf("A%d", j)))
+				g.Connect(BasicEdge(c, fmt.Sprintf("B%d", j)))
 			}
 		}
 
 		// layer D
-		for i := range count {
-			d := testNamedString(fmt.Sprintf("D%d", i))
+		for i := 0; i < count; i++ {
+			d := fmt.Sprintf("D%d", i)
 			g.Add(d)
-			for j := range count {
-				g.Connect(d, testNamedString(fmt.Sprintf("A%d", j)))
-				g.Connect(d, testNamedString(fmt.Sprintf("B%d", j)))
-				g.Connect(d, testNamedString(fmt.Sprintf("C%d", j)))
+			for j := 0; j < count; j++ {
+				g.Connect(BasicEdge(d, fmt.Sprintf("A%d", j)))
+				g.Connect(BasicEdge(d, fmt.Sprintf("B%d", j)))
+				g.Connect(BasicEdge(d, fmt.Sprintf("C%d", j)))
 			}
 		}
 
 		b.StartTimer()
 		// Find dependencies for every node
-		for v := range g.VerticesSeq() {
+		for _, v := range g.Vertices() {
 			_ = g.Ancestors(v)
 		}
 
@@ -544,28 +526,28 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 
 	var g AcyclicGraph
 	for i := 1; i <= 11; i++ {
-		g.Add(testV(i))
+		g.Add(i)
 	}
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(4))
-	g.Connect(testV(2), testV(4))
-	g.Connect(testV(2), testV(5))
-	g.Connect(testV(3), testV(6))
-	g.Connect(testV(4), testV(7))
-	g.Connect(testV(5), testV(7))
-	g.Connect(testV(7), testV(8))
-	g.Connect(testV(7), testV(9))
-	g.Connect(testV(7), testV(10))
-	g.Connect(testV(8), testV(11))
-	g.Connect(testV(9), testV(11))
-	g.Connect(testV(10), testV(11))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(2, 5))
+	g.Connect(BasicEdge(3, 6))
+	g.Connect(BasicEdge(4, 7))
+	g.Connect(BasicEdge(5, 7))
+	g.Connect(BasicEdge(7, 8))
+	g.Connect(BasicEdge(7, 9))
+	g.Connect(BasicEdge(7, 10))
+	g.Connect(BasicEdge(8, 11))
+	g.Connect(BasicEdge(9, 11))
+	g.Connect(BasicEdge(10, 11))
 
-	start := NewVertexSet()
-	start.Add(testV(2))
-	start.Add(testV(1))
-	reverse := NewVertexSet()
-	reverse.Add(testV(11))
-	reverse.Add(testV(6))
+	start := make(Set)
+	start.Add(2)
+	start.Add(1)
+	reverse := make(Set)
+	reverse.Add(11)
+	reverse.Add(6)
 
 	t.Run("DepthFirst", func(t *testing.T) {
 		var visits []vertexAtDepth
@@ -575,7 +557,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 
 		})
 		expect := []vertexAtDepth{
-			{testV(2), 0}, {testV(5), 1}, {testV(7), 2}, {testV(9), 3}, {testV(11), 4}, {testV(8), 3}, {testV(10), 3}, {testV(4), 1}, {testV(1), 0}, {testV(3), 1}, {testV(6), 2},
+			{2, 0}, {5, 1}, {7, 2}, {9, 3}, {11, 4}, {8, 3}, {10, 3}, {4, 1}, {1, 0}, {3, 1}, {6, 2},
 		}
 		if !reflect.DeepEqual(visits, expect) {
 			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
@@ -589,7 +571,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 
 		})
 		expect := []vertexAtDepth{
-			{testV(6), 0}, {testV(3), 1}, {testV(1), 2}, {testV(11), 0}, {testV(9), 1}, {testV(7), 2}, {testV(5), 3}, {testV(2), 4}, {testV(4), 3}, {testV(8), 1}, {testV(10), 1},
+			{6, 0}, {3, 1}, {1, 2}, {11, 0}, {9, 1}, {7, 2}, {5, 3}, {2, 4}, {4, 3}, {8, 1}, {10, 1},
 		}
 		if !reflect.DeepEqual(visits, expect) {
 			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
@@ -603,7 +585,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 
 		})
 		expect := []vertexAtDepth{
-			{testV(1), 0}, {testV(2), 0}, {testV(3), 1}, {testV(4), 1}, {testV(5), 1}, {testV(6), 2}, {testV(7), 2}, {testV(10), 3}, {testV(8), 3}, {testV(9), 3}, {testV(11), 4},
+			{1, 0}, {2, 0}, {3, 1}, {4, 1}, {5, 1}, {6, 2}, {7, 2}, {10, 3}, {8, 3}, {9, 3}, {11, 4},
 		}
 		if !reflect.DeepEqual(visits, expect) {
 			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
@@ -617,7 +599,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 
 		})
 		expect := []vertexAtDepth{
-			{testV(11), 0}, {testV(6), 0}, {testV(10), 1}, {testV(8), 1}, {testV(9), 1}, {testV(3), 1}, {testV(7), 2}, {testV(1), 2}, {testV(4), 3}, {testV(5), 3}, {testV(2), 4},
+			{11, 0}, {6, 0}, {10, 1}, {8, 1}, {9, 1}, {3, 1}, {7, 2}, {1, 2}, {4, 3}, {5, 3}, {2, 4},
 		}
 		if !reflect.DeepEqual(visits, expect) {
 			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
@@ -632,8 +614,8 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		// satisfied.
 		completed := map[Vertex]bool{}
 		for _, v := range order {
-			deps := g.EdgesFrom(v)
-			for dep := range deps.All() {
+			deps := g.DownEdges(v)
+			for _, dep := range deps {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
 				}
@@ -649,8 +631,8 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		// satisfied.
 		completed := map[Vertex]bool{}
 		for _, v := range order {
-			deps := g.EdgesTo(v)
-			for dep := range deps.All() {
+			deps := g.UpEdges(v)
+			for _, dep := range deps {
 				if !completed[dep] {
 					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
 				}

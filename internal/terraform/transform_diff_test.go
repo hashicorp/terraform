@@ -20,7 +20,7 @@ func TestDiffTransformer_nilDiff(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if g.VertexCount() > 0 {
+	if len(g.Vertices()) > 0 {
 		t.Fatal("graph should be empty")
 	}
 }

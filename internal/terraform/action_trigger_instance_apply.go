@@ -190,11 +190,6 @@ func (n *actionTriggerApplyInstance) References() []*addrs.Reference {
 	return refs
 }
 
-// Name implements dag.Vertex (GraphNodeModulePath).
-func (n *actionTriggerApplyInstance) Name() string {
-	return n.ActionInvocation.Addr.String()
-}
-
 // GraphNodeReferencer
 func (n *actionTriggerApplyInstance) ModulePath() addrs.Module {
 	return n.ActionInvocation.Addr.Module.Module()

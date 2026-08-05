@@ -19,9 +19,10 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
-// TestExperimentsAllowedArgs is a slice of args that can be passed to [GoBuild]
-// to build a terraform binary with experimental features enabled.
-var TestExperimentsAllowedArgs = []string{"-ldflags", "-X 'main.experimentsAllowed=yes'"}
+// TestExperimentFlag is the name of the environment variable that
+// can be set to built a terraform binary with experimental features enabled.
+// Any value besides "false" or an empty string will enable the feature.
+var TestExperimentFlag = "TF_TEST_EXPERIMENTS"
 
 // Type binary represents the combination of a compiled binary
 // and a temporary working directory to run it in.
@@ -253,7 +254,7 @@ func (b *binary) SetLocalState(state *states.State) error {
 	return statefile.Write(sf, f)
 }
 
-func GoBuild(pkgPath, tmpPrefix string, buildArgs ...string) string {
+func GoBuild(pkgPath, tmpPrefix string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
 	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
@@ -265,8 +266,8 @@ func GoBuild(pkgPath, tmpPrefix string, buildArgs ...string) string {
 	}
 
 	args := []string{"build", "-o", tmpFilename}
-	if len(buildArgs) > 0 {
-		args = append(args, buildArgs...)
+	if exp := os.Getenv(TestExperimentFlag); exp != "" && exp != "false" {
+		args = append(args, "-ldflags", "-X 'main.experimentsAllowed=yes'")
 	}
 	args = append(args, pkgPath)
 	cmd := exec.Command("go", args...)

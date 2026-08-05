@@ -29,10 +29,6 @@ type TeardownSubgraph struct {
 	mode   moduletest.CommandMode
 }
 
-func (g *TeardownSubgraph) Name() string {
-	return "TeardownSubgraph"
-}
-
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
@@ -41,7 +37,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	if b.mode == moduletest.CleanupMode {
 		for runNode := range dag.SelectSeq[*NodeTestRunCleanup](b.parent.VerticesSeq()) {
 			refs := b.parent.Ancestors(runNode)
-			for ref := range refs.All() {
+			for _, ref := range refs {
 				if ref, ok := ref.(*NodeTestRunCleanup); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
 					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
 				}
@@ -50,7 +46,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	} else {
 		for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
 			refs := b.parent.Ancestors(runNode)
-			for ref := range refs.All() {
+			for _, ref := range refs {
 				if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
 					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
 				}
@@ -139,7 +135,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			continue
 		}
 		refNode := cleanupNodes[refStateKey]
-		g.Connect(refNode, node)
+		g.Connect(dag.BasicEdge(refNode, node))
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
 }

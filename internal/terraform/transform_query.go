@@ -29,7 +29,7 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 	}
 
 	// a set to hold the resources that we want to keep and vertices along its path.
-	keep := dag.NewVertexSet()
+	keep := dag.Set{}
 
 	for v := range dag.SelectSeq[GraphNodeConfigResource](g.VerticesSeq()) {
 		// we only get here if we are building a query plan, but not validating.
@@ -39,7 +39,7 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 		if v.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
 			keep.Add(v)
 			deps := g.Ancestors(v)
-			for node := range deps.All() {
+			for node := range deps {
 				keep.Add(node)
 			}
 		}
@@ -47,7 +47,7 @@ func (t *QueryTransformer) Transform(g *Graph) error {
 
 	// Remove all nodes that are not in the keep set.
 	for v := range g.VerticesSeq() {
-		if !keep.Contains(v) {
+		if _, ok := keep[v]; !ok {
 			g.Remove(v)
 		}
 	}

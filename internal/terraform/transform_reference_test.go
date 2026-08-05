@@ -203,17 +203,12 @@ func TestReferenceMapReferences(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-			var g Graph
-			for _, node := range tc.Nodes {
-				g.Add(node)
-			}
-
-			rm := NewReferenceMap(&g)
+			rm := NewReferenceMap(tc.Nodes)
 			result := rm.References(tc.Check)
 
 			var resultStr []string
 			for _, v := range result {
-				resultStr = append(resultStr, v.Name())
+				resultStr = append(resultStr, dag.VertexName(v))
 			}
 
 			sort.Strings(resultStr)
@@ -291,10 +286,6 @@ type graphNodeFakeResourceInstance struct {
 var _ GraphNodeResourceInstance = (*graphNodeFakeResourceInstance)(nil)
 var _ GraphNodeReferenceable = (*graphNodeFakeResourceInstance)(nil)
 var _ GraphNodeReferencer = (*graphNodeFakeResourceInstance)(nil)
-
-func (n *graphNodeFakeResourceInstance) Name() string {
-	return n.String()
-}
 
 func (n *graphNodeFakeResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
 	return n.Addr
@@ -390,7 +381,7 @@ resource "test_resource" "in_modc" {
 	tfdiags.AssertNoErrors(t, diags)
 
 	// find the data resource node
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		data, ok := v.(*nodeExpandPlannableResource)
 		if !ok || data.Addr.Resource.Mode != addrs.DataResourceMode {
 			continue

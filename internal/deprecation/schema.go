@@ -21,11 +21,6 @@ func MarkDeprecatedValues(val cty.Value, schema *configschema.Block, origin stri
 	if schema == nil {
 		return val
 	}
-
-	if !schema.ContainsDeprecated() {
-		return val
-	}
-
 	newVal := val
 
 	// Check if the block is deprecated

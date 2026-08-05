@@ -159,7 +159,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		forget:                  w.Forget,
 		ProviderLocksValue:      w.ProviderLocks,
 		PolicyClientValue:       w.PolicyClient,
-		PolicySemaphoreValue:    w.Context.policySemaphore(),
 		DeprecationsValue:       w.Deprecations,
 	}
 

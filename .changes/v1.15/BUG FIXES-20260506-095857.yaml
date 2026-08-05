@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Avoid printing warnings from 'terraform output -json'
+time: 2026-05-06T09:58:57.334037+01:00
+custom:
+    Issue: "38530"

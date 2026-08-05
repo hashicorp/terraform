@@ -8,9 +8,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLength(t *testing.T) {
@@ -186,7 +185,7 @@ func TestLength(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Length(%#v)", test.Value), func(t *testing.T) {
-			got, err := LengthFunc.Call([]cty.Value{test.Value})
+			got, err := Length(test.Value)
 
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err)
@@ -262,7 +261,7 @@ func TestAllTrue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("alltrue(%#v)", test.Collection), func(t *testing.T) {
-			got, err := AllTrueFunc.Call([]cty.Value{test.Collection})
+			got, err := AllTrue(test.Collection)
 
 			if test.Err {
 				if err == nil {
@@ -351,7 +350,7 @@ func TestAnyTrue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("anytrue(%#v)", test.Collection), func(t *testing.T) {
-			got, err := AnyTrueFunc.Call([]cty.Value{test.Collection})
+			got, err := AnyTrue(test.Collection)
 
 			if test.Err {
 				if err == nil {
@@ -439,7 +438,7 @@ func TestCoalesce(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Coalesce(%#v...)", test.Values), func(t *testing.T) {
-			got, err := CoalesceFunc.Call(test.Values)
+			got, err := Coalesce(test.Values...)
 
 			if test.Err {
 				if err == nil {
@@ -558,7 +557,7 @@ func TestIndex(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("index(%#v, %#v)", test.List, test.Value), func(t *testing.T) {
-			got, err := IndexFunc.Call([]cty.Value{test.List, test.Value})
+			got, err := Index(test.List, test.Value)
 
 			if test.Err {
 				if err == nil {
@@ -902,7 +901,7 @@ func TestLookup(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("lookup(%#v)", test.Values), func(t *testing.T) {
-			got, err := LookupFunc.Call(test.Values)
+			got, err := Lookup(test.Values...)
 
 			if test.Err {
 				if err == nil {
@@ -947,7 +946,7 @@ func TestLookup_error(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := LookupFunc.Call(test.Values)
+			_, err := Lookup(test.Values...)
 
 			if err == nil {
 				t.Fatal("succeeded; want error")
@@ -1166,7 +1165,7 @@ func TestMatchkeys(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("matchkeys(%#v, %#v, %#v)", test.Keys, test.Values, test.Searchset), func(t *testing.T) {
-			got, err := MatchkeysFunc.Call([]cty.Value{test.Keys, test.Values, test.Searchset})
+			got, err := Matchkeys(test.Keys, test.Values, test.Searchset)
 
 			if test.Err {
 				if err == nil {
@@ -1445,7 +1444,7 @@ func TestOne(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("one(%#v)", test.List), func(t *testing.T) {
-			got, err := OneFunc.Call([]cty.Value{test.List})
+			got, err := One(test.List)
 
 			if test.Err != "" {
 				if err == nil {
@@ -1662,7 +1661,7 @@ func TestSum(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("sum(%#v)", test.List), func(t *testing.T) {
-			got, err := SumFunc.Call([]cty.Value{test.List})
+			got, err := Sum(test.List)
 
 			if test.Err != "" {
 				if err == nil {
@@ -1869,7 +1868,7 @@ func TestTranspose(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("transpose(%#v)", test.Values), func(t *testing.T) {
-			got, err := TransposeFunc.Call([]cty.Value{test.Values})
+			got, err := Transpose(test.Values)
 
 			if test.Err {
 				if err == nil {

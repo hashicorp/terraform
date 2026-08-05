@@ -60,7 +60,7 @@ func TestRootTransformer(t *testing.T) {
 
 	t.Run("only one initial node", func(t *testing.T) {
 		g := Graph{Path: addrs.RootModuleInstance}
-		g.Add(stringV("foo"))
+		g.Add("foo")
 		addRootNodeToGraph(&g)
 		got := strings.TrimSpace(g.String())
 		want := strings.TrimSpace(`

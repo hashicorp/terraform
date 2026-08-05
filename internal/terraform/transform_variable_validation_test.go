@@ -101,7 +101,7 @@ var.foo (validation)
 	// report the references we expect them to report, in the way that
 	// ReferenceTransformer would expect.
 	gotRefs := map[string]map[string]struct{}{}
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		v, ok := v.(*nodeVariableValidation) // the type of all nodes that this transformer adds
 		if !ok {
 			continue
@@ -234,7 +234,7 @@ var.qux (test fake)
 	// report the references we expect them to report, in the way that
 	// ReferenceTransformer would expect.
 	gotRefs := map[string]map[string]struct{}{}
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		v, ok := v.(*nodeVariableValidation) // the type of all nodes that this transformer adds
 		if !ok {
 			continue

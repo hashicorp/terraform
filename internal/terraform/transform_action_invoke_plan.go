@@ -36,7 +36,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 	// calledActions maps the action addresses to the callers, so we can lookup
 	// the resource below.
 	calledActions := addrs.MakeMap[addrs.ConfigAction, []GraphNodeActionCaller]()
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		caller, ok := v.(GraphNodeActionCaller)
 		if !ok {
 			continue
@@ -54,7 +54,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		actionNode, ok := v.(*NodeActionConfig)
 		if !ok {
 			continue

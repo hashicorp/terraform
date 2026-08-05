@@ -175,7 +175,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
 				`Initializing provider plugins...
-				- Reusing version 1.0.0 of hashicorp/random from the dependency lock file
+				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.0.0...
 				- Installed hashicorp/random v1.0.0`,
 			},
@@ -205,7 +205,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 			workDirPath: "init-provider-download-prerelease/config-state-file-and-lockfile",
 			expectedDownloadMsgs: []string{
 				`Initializing provider plugins...
-				- Reusing version 1.2.3-beta of hashicorp/random from the dependency lock file
+				- Reusing previous version of hashicorp/random from the dependency lock file
 				- Installing hashicorp/random v1.2.3-beta...
 				- Installed hashicorp/random v1.2.3-beta`,
 			},
@@ -260,13 +260,13 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 			workDirPath: "init-provider-download/state-store-config-only",
 			flags:       []string{"-enable-pluggable-state-storage-experiment"},
 			expectedDownloadMsgs: []string{
-				`Initializing provider hashicorp/test for state store "test_store"...
+				`Initializing provider plugin for state store "test_store"...
 				- Finding latest version of hashicorp/test...
 				- Installing hashicorp/test v1.2.3...
 				- Installed hashicorp/test v1.2.3`,
 				`Initializing the state store "test_store"...`,
 				`Initializing provider plugins...
-				- Reusing version 1.2.3 of hashicorp/test from the dependency lock file
+				- Reusing previous version of hashicorp/test from the dependency lock file
 				- Using previously-installed hashicorp/test v1.2.3`,
 			},
 		},
@@ -4276,7 +4276,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 
 		// Check output
 		output := testOutput.All()
-		expectedOutput := `Initializing provider hashicorp/test for state store "test_store"...
+		expectedOutput := `Initializing provider plugin for state store "test_store"...
 - Finding latest version of hashicorp/test...
 - Installing hashicorp/test v1.2.3...
 - Installed hashicorp/test v1.2.3 (verified checksum)
@@ -4284,7 +4284,7 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 Initializing the state store "test_store"...
 
 Initializing provider plugins...
-- Reusing version 1.2.3 of hashicorp/test from the dependency lock file
+- Reusing previous version of hashicorp/test from the dependency lock file
 - Using previously-installed hashicorp/test v1.2.3`
 		if !strings.Contains(output, expectedOutput) {
 			t.Fatalf("expected output to include %q, but got:\n%s", expectedOutput, output)
@@ -4619,7 +4619,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3": "yes",
+			"approve": "yes",
 		})
 
 		ui := testUiWrapped(t)
@@ -4765,7 +4765,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3": "yes",
+			"approve": "yes",
 		})
 
 		ui := testUiWrapped(t)
@@ -4845,7 +4845,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
 		inputWriter := testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3": "no",
+			"approve": "no",
 		})
 
 		ui := testUiWrapped(t)
@@ -4942,7 +4942,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Init number 1 - reject the provider
 		_ = testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3": "no",
+			"approve": "no",
 		})
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
@@ -4984,7 +4984,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Init number 2 - re-prompted for approval
 		_ = testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3": "yes",
+			"approve": "yes",
 		})
 		args = []string{
 			"-enable-pluggable-state-storage-experiment=true",
@@ -5061,7 +5061,7 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 
 	// Check stdout
 	stdout := testOutput.Stdout()
-	expectedOutput := `Initializing provider hashicorp/test (< 2.0.0) for state store "test_store"...
+	expectedOutput := `Initializing provider plugin for state store "test_store"...
 - Finding hashicorp/test versions matching "< 2.0.0"...
 - Installing hashicorp/test v1.0.0...
 - Installed hashicorp/test v1.0.0 (verified checksum)
@@ -5072,7 +5072,7 @@ Initializing modules...
 - child in child
 
 Initializing provider plugins...
-- Reusing version 1.0.0 of hashicorp/test from the dependency lock file
+- Reusing previous version of hashicorp/test from the dependency lock file
 `
 
 	if stdout != expectedOutput {
@@ -5373,7 +5373,7 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		td2 := t.TempDir()
 		lockFileName := filepath.Join(td2, ".terraform.lock.hcl")
 
-		// It DOESN'T contain the state store provider hashicorp/test though, causing an error.
+		// It DOESNT contain the state store provider hashicorp/test though, causing an error.
 		locks := depsfile.NewLocks()
 		locks.SetProvider(
 			addrs.NewDefaultProvider("notusedprovider"),
@@ -6271,8 +6271,8 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			Meta: Meta{
 				testingOverrides: &testingOverrides{
 					Providers: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_src"))),
-						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_dst"))),
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test2_store"))),
 					},
 				},
 				ProviderSource:            providerSource,

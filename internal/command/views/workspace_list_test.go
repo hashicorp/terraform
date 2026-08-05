@@ -16,18 +16,16 @@ import (
 
 func TestWorkspaceListHuman(t *testing.T) {
 	testCases := map[string]struct {
-		selected   string
-		list       []string
-		diags      tfdiags.Diagnostics
-		wantStdout string
-		wantStderr string
+		selected string
+		list     []string
+		diags    tfdiags.Diagnostics
+		wantLog  string
 	}{
 		"success": {
 			"default",
 			[]string{"default", "other"},
 			nil,
 			"* default\n  other",
-			"",
 		},
 		"success with warning": {
 			"default",
@@ -40,7 +38,6 @@ func TestWorkspaceListHuman(t *testing.T) {
 				),
 			},
 			"Warning: Example warning\n\nThis is an example warning message.\n* default\n  other",
-			"",
 		},
 		"error": {
 			"foobar",
@@ -52,9 +49,9 @@ func TestWorkspaceListHuman(t *testing.T) {
 					"This is an example error message.",
 				),
 			},
-			"Warning: Terraform cannot find any existing workspaces.\n\n" +
+			"Error: Example error\n\nThis is an example error message.\n\n" +
+				"Warning: Terraform cannot find any existing workspaces.\n\n" +
 				"The \"foobar\" workspace is selected in your working directory. You can create\nthis workspace by using the \"terraform workspace new\" subcommand or including\nthe \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
-			"Error: Example error\n\nThis is an example error message.\n\n",
 		},
 	}
 	for name, tc := range testCases {
@@ -66,19 +63,11 @@ func TestWorkspaceListHuman(t *testing.T) {
 
 			v.List(tc.selected, tc.list, tc.diags)
 
-			output := done(t)
+			got := strings.TrimSpace(done(t).All())
+			want := strings.TrimSpace(tc.wantLog)
 
 			// Assert contents
-			// This must be done separately for stdout and stderr due to
-			// the interleaving of output caused in tests by (TestOutput).All()
-			gotStdout := strings.TrimSpace(output.Stdout())
-			wantStdout := strings.TrimSpace(tc.wantStdout)
-			if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
-				t.Fatalf("unexpected diff in human output:\n%s", diff)
-			}
-			gotStderr := strings.TrimSpace(output.Stderr())
-			wantStderr := strings.TrimSpace(tc.wantStderr)
-			if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Fatalf("unexpected diff in human output:\n%s", diff)
 			}
 		})

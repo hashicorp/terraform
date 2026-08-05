@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // GraphNodeAttachResourceConfig is an interface that must be implemented by nodes
@@ -61,7 +62,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 	// action nodes must be embedded along with the configured action refs, so
 	// first find any action nodes that have already been inserted
 	actionConfigNodes := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		switch v := v.(type) {
 		case *NodeActionConfig:
 			actionConfigNodes.Put(v.ActionAddr(), v)
@@ -69,7 +70,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through and find GraphNodeAttachResource
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		arn, ok := v.(GraphNodeAttachResourceConfig)
 		if !ok {
 			continue
@@ -80,7 +81,7 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 
 		// Check for a removed block first, since that would preclude any resource config.
 		if remCfg, ok := removed.GetOk(addr); ok {
-			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) removed block from %#v", v.Name(), v, remCfg.DeclRange)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) removed block from %#v", dag.VertexName(v), v, remCfg.DeclRange)
 			arn.AttachResourceConfig(nil, remCfg)
 		}
 
@@ -88,19 +89,19 @@ func (t *AttachResourceConfigTransformer) Transform(g *Graph) error {
 		config := t.Config.Descendant(addr.Module)
 
 		if config == nil {
-			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", v.Name(), v)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: %q (%T) has no configuration available", dag.VertexName(v), v)
 			continue
 		}
 
 		if r := config.Module.ResourceByAddr(addr.Resource); r != nil {
-			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", v.Name(), v, r.DeclRange)
+			log.Printf("[TRACE] AttachResourceConfigTransformer: attaching to %q (%T) config from %#v", dag.VertexName(v), v, r.DeclRange)
 			arn.AttachResourceConfig(r, nil)
 			if gnapmc, ok := v.(GraphNodeAttachProviderMetaConfigs); ok {
-				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", v.Name())
+				log.Printf("[TRACE] AttachResourceConfigTransformer: attaching provider meta configs to %s", dag.VertexName(v))
 				if config.Module.ProviderMetas != nil {
 					gnapmc.AttachProviderMetaConfigs(config.Module.ProviderMetas)
 				} else {
-					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider meta configs available to attach to %s", v.Name())
+					log.Printf("[TRACE] AttachResourceConfigTransformer: no provider meta configs available to attach to %s", dag.VertexName(v))
 				}
 			}
 

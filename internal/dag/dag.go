@@ -18,32 +18,35 @@ type AcyclicGraph struct {
 	Graph
 }
 
-// walkFunc is the callback used for the primary concurrent walk of the graph.
-type walkFunc func(Vertex) tfdiags.Diagnostics
+// WalkFunc is the callback used for walking the graph.
+type WalkFunc func(Vertex) tfdiags.Diagnostics
 
-// depthWalkFunc is a walk function that also receives the current depth of the
-// walk as an argument. This is used for the various synchronous walks of the
-// graph.
-type depthWalkFunc func(Vertex, int) error
+// DepthWalkFunc is a walk function that also receives the current depth of the
+// walk as an argument
+type DepthWalkFunc func(Vertex, int) error
 
-// Returns a VertexSet that includes every Vertex yielded by walking down from the
-// provided Vertices vs.
-func (g *AcyclicGraph) Ancestors(vs ...Vertex) VertexSet {
-	s := NewVertexSet()
+func (g *AcyclicGraph) DirectedGraph() Grapher {
+	return g
+}
+
+// Returns a Set that includes every Vertex yielded by walking down from the
+// provided starting Vertex v.
+func (g *AcyclicGraph) Ancestors(vs ...Vertex) Set {
+	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	start := NewVertexSet()
+	start := make(Set)
 	for _, v := range vs {
-		for dep := range g.edgesFrom[v].All() {
+		for _, dep := range g.downEdgesNoCopy(v) {
 			start.Add(dep)
 		}
 	}
 
-	if err := g.depthFirstWalk(start, memoFunc); err != nil {
-		return NewVertexSet()
+	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
+		return nil
 	}
 
 	return s
@@ -53,8 +56,8 @@ func (g *AcyclicGraph) Ancestors(vs ...Vertex) VertexSet {
 // walking down from the provided starting Vertex v, and stopping each branch when
 // match returns true. This will return the set of all first ancestors
 // encountered which match some criteria.
-func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) VertexSet {
-	s := NewVertexSet()
+func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Set {
+	s := make(Set)
 	searchFunc := func(v Vertex, d int) error {
 		if match(v) {
 			s.Add(v)
@@ -64,13 +67,13 @@ func (g *AcyclicGraph) FirstAncestorsWith(v Vertex, match func(Vertex) bool) Ver
 		return nil
 	}
 
-	start := NewVertexSet()
-	for dep := range g.edgesFrom[v].All() {
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
 		start.Add(dep)
 	}
 
 	// our memoFunc doesn't return an error
-	g.depthFirstWalk(start, searchFunc)
+	g.DepthFirstWalk(start, searchFunc)
 
 	return s
 }
@@ -88,33 +91,33 @@ func (g *AcyclicGraph) MatchAncestor(v Vertex, match func(Vertex) bool) bool {
 		return nil
 	}
 
-	start := NewVertexSet()
-	for dep := range g.edgesFrom[v].All() {
+	start := make(Set)
+	for _, dep := range g.downEdgesNoCopy(v) {
 		start.Add(dep)
 	}
 
 	// our memoFunc doesn't return an error
-	g.depthFirstWalk(start, matchFunc)
+	g.DepthFirstWalk(start, matchFunc)
 
 	return ret
 }
 
 // Descendants returns a Set that includes every Vertex yielded by walking up
 // from the provided starting Vertex v.
-func (g *AcyclicGraph) Descendants(v Vertex) VertexSet {
-	s := NewVertexSet()
+func (g *AcyclicGraph) Descendants(v Vertex) Set {
+	s := make(Set)
 	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	start := NewVertexSet()
-	for dep := range g.edgesTo[v].All() {
+	start := make(Set)
+	for _, dep := range g.upEdgesNoCopy(v) {
 		start.Add(dep)
 	}
 
 	// our memoFunc doesn't return an error
-	g.reverseDepthFirstWalk(start, memoFunc)
+	g.ReverseDepthFirstWalk(start, memoFunc)
 
 	return s
 }
@@ -123,8 +126,8 @@ func (g *AcyclicGraph) Descendants(v Vertex) VertexSet {
 // walking up from the provided starting Vertex v, and stopping each branch when
 // match returns true. This will return the set of all first descendants
 // encountered which match some criteria.
-func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) VertexSet {
-	s := NewVertexSet()
+func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) Set {
+	s := make(Set)
 	searchFunc := func(v Vertex, d int) error {
 		if match(v) {
 			s.Add(v)
@@ -134,13 +137,13 @@ func (g *AcyclicGraph) FirstDescendantsWith(v Vertex, match func(Vertex) bool) V
 		return nil
 	}
 
-	start := NewVertexSet()
-	for dep := range g.edgesTo[v].All() {
+	start := make(Set)
+	for _, dep := range g.upEdgesNoCopy(v) {
 		start.Add(dep)
 	}
 
 	// our memoFunc doesn't return an error
-	g.reverseDepthFirstWalk(start, searchFunc)
+	g.ReverseDepthFirstWalk(start, searchFunc)
 
 	return s
 }
@@ -158,13 +161,13 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 		return nil
 	}
 
-	start := NewVertexSet()
-	for dep := range g.edgesTo[v].All() {
+	start := make(Set)
+	for _, dep := range g.upEdgesNoCopy(v) {
 		start.Add(dep)
 	}
 
 	// our memoFunc doesn't return an error
-	g.reverseDepthFirstWalk(start, matchFunc)
+	g.ReverseDepthFirstWalk(start, matchFunc)
 
 	return ret
 }
@@ -174,13 +177,14 @@ func (g *AcyclicGraph) MatchDescendant(v Vertex, match func(Vertex) bool) bool {
 // Complexity: O(V)
 func (g *AcyclicGraph) Root() (Vertex, error) {
 	roots := make([]Vertex, 0, 1)
-	for v := range g.VerticesSeq() {
-		if g.edgesTo[v].Len() == 0 {
+	for _, v := range g.Vertices() {
+		if g.upEdgesNoCopy(v).Len() == 0 {
 			roots = append(roots, v)
 		}
 	}
 
 	if len(roots) > 1 {
+		// TODO(mitchellh): make this error message a lot better
 		return nil, fmt.Errorf("multiple roots: %#v", roots)
 	}
 
@@ -207,13 +211,13 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	// v such that the edge (u,v) exists (v is a direct descendant of u).
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
-	for u := range g.VerticesSeq() {
-		uTargets := g.edgesFrom[u]
+	for _, u := range g.Vertices() {
+		uTargets := g.downEdgesNoCopy(u)
 
-		g.depthFirstWalk(g.edgesFrom[u], func(v Vertex, d int) error {
-			shared := uTargets.Intersection(g.edgesFrom[v])
-			for vPrime := range shared.All() {
-				g.RemoveEdge(u, vPrime)
+		g.DepthFirstWalk(g.downEdgesNoCopy(u), func(v Vertex, d int) error {
+			shared := uTargets.Intersection(g.downEdgesNoCopy(v))
+			for _, vPrime := range shared {
+				g.RemoveEdge(BasicEdge(u, vPrime))
 			}
 
 			return nil
@@ -221,9 +225,8 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	}
 }
 
-// Validate validates the DAG. A DAG is valid if it has a single root with no
-// cycles. A single root is not required for a graph to be walked, but it's an
-// invariant we maintain for consistency.
+// Validate validates the DAG. A DAG is valid if it has a single root
+// with no cycles.
 func (g *AcyclicGraph) Validate() error {
 	if _, err := g.Root(); err != nil {
 		return err
@@ -236,7 +239,7 @@ func (g *AcyclicGraph) Validate() error {
 		for _, cycle := range cycles {
 			cycleStr := make([]string, len(cycle))
 			for j, vertex := range cycle {
-				cycleStr[j] = vertex.Name()
+				cycleStr[j] = VertexName(vertex)
 			}
 
 			// Reverse the cycle string so readers can interpret it
@@ -271,9 +274,9 @@ func (g *AcyclicGraph) Validate() error {
 
 	// Look for cycles to self
 	for _, e := range g.Edges() {
-		if e.Source == e.Target {
+		if e.Source() == e.Target() {
 			err = errors.Join(err, fmt.Errorf(
-				"Self reference: %s", e.Source.Name()))
+				"Self reference: %s", VertexName(e.Source())))
 		}
 	}
 
@@ -292,14 +295,27 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 	return cycles
 }
 
-// Walk walks the graph, calling your callback as each node is visited. This
-// will walk nodes in concurrently if it can. The resulting diagnostics contains
-// problems from all graphs visited, in no particular order.
-func (g *AcyclicGraph) Walk(cb walkFunc) tfdiags.Diagnostics {
-	w := NewWalker(cb)
-	w.Reverse = true
+// Walk walks the graph, calling your callback as each node is visited.
+// This will walk nodes in parallel if it can. The resulting diagnostics
+// contains problems from all graphs visited, in no particular order.
+func (g *AcyclicGraph) Walk(cb WalkFunc) tfdiags.Diagnostics {
+	w := &Walker{Callback: cb, Reverse: true}
 	w.Update(g)
 	return w.Wait()
+}
+
+// simple convenience helper for converting a dag.Set to a []Vertex
+func AsVertexList(s Set) []Vertex {
+	vertexList := make([]Vertex, 0, len(s))
+	for _, raw := range s {
+		vertexList = append(vertexList, raw.(Vertex))
+	}
+	return vertexList
+}
+
+type vertexAtDepth struct {
+	Vertex Vertex
+	Depth  int
 }
 
 // TopologicalOrder returns a topological sort of the given graph, with source
@@ -321,7 +337,7 @@ func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 	// Use a dfs-based sorting algorithm, similar to that used in
 	// TransitiveReduction.
-	sorted := make([]Vertex, 0, g.vertices.Len())
+	sorted := make([]Vertex, 0, len(g.vertices))
 
 	// tmp track the current working node to check for cycles
 	tmp := map[Vertex]bool{}
@@ -341,17 +357,17 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 		}
 
 		tmp[v] = true
-		var next VertexSet
+		var next Set
 		switch {
 		case order&downOrder != 0:
-			next = g.edgesFrom[v]
+			next = g.downEdgesNoCopy(v)
 		case order&upOrder != 0:
-			next = g.edgesTo[v]
+			next = g.upEdgesNoCopy(v)
 		default:
 			panic(fmt.Sprintln("invalid order", order))
 		}
 
-		for u := range next.All() {
+		for _, u := range next {
 			visit(u)
 		}
 
@@ -360,7 +376,7 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 		sorted = append(sorted, v)
 	}
 
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		visit(v)
 	}
 
@@ -386,52 +402,36 @@ var (
 	errStopWalk = errors.New("stop walk")
 )
 
-// depthFirstWalk does a depth-first walk of the graph starting from
+// DepthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) depthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
 	return g.walk(depthFirst|downOrder, false, start, f)
 }
 
-// reverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
+// ReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) reverseDepthFirstWalk(start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
 	return g.walk(depthFirst|upOrder, false, start, f)
 }
 
-/*
-These are currently unused outside of tests, and the linter does not like unused
-code. Leaving as example however to show how the walk function can be flexibly
-used.
-
-// breadthFirstWalk does a breadth-first walk of the graph starting from // the
-vertices in start. func (g *AcyclicGraph) breadthFirstWalk(start VertexSet, f
-depthWalkFunc) error { return g.walk(breadthFirst|downOrder, false, start, f)
+// BreadthFirstWalk does a breadth-first walk of the graph starting from
+// the vertices in start.
+func (g *AcyclicGraph) BreadthFirstWalk(start Set, f DepthWalkFunc) error {
+	return g.walk(breadthFirst|downOrder, false, start, f)
 }
 
-// reverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting
-from // the vertices in start. func (g *AcyclicGraph)
-reverseBreadthFirstWalk(start VertexSet, f depthWalkFunc) error { return
-g.walk(breadthFirst|upOrder, false, start, f)
-}
-*/
-type vertexAtDepth struct {
-	Vertex Vertex
-	Depth  int
+// ReverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
+// the vertices in start.
+func (g *AcyclicGraph) ReverseBreadthFirstWalk(start Set, f DepthWalkFunc) error {
+	return g.walk(breadthFirst|upOrder, false, start, f)
 }
 
 // Setting test to true will walk sets of vertices in sorted order for
 // deterministic testing.
-//
-// The reason the walk method takes a set of starting vertices which is threaded
-// through all callers, is that we have a couple hot paths which benefit from
-// walking from multiple nodes concurrently. If that was not the case, start
-// could easily be a single vertex and callers could be simplified, matching the
-// fact that we also enforce single root graphs.
-func (g *AcyclicGraph) walk(order walkType, test bool, start VertexSet, f depthWalkFunc) error {
+func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
-	var frontier []vertexAtDepth
-
-	for v := range start.All() {
+	frontier := make([]vertexAtDepth, 0, len(start))
+	for _, v := range start {
 		frontier = append(frontier, vertexAtDepth{
 			Vertex: v,
 			Depth:  0,
@@ -477,12 +477,12 @@ func (g *AcyclicGraph) walk(order walkType, test bool, start VertexSet, f depthW
 			return err
 		}
 
-		var edges VertexSet
+		var edges Set
 		switch {
 		case order&downOrder != 0:
-			edges = g.edgesFrom[current.Vertex]
+			edges = g.downEdgesNoCopy(current.Vertex)
 		case order&upOrder != 0:
-			edges = g.edgesTo[current.Vertex]
+			edges = g.upEdgesNoCopy(current.Vertex)
 		default:
 			panic(fmt.Sprint("invalid walk order", order))
 		}
@@ -496,8 +496,8 @@ func (g *AcyclicGraph) walk(order walkType, test bool, start VertexSet, f depthW
 	return nil
 }
 
-func appendNext(frontier []vertexAtDepth, next VertexSet, depth int) []vertexAtDepth {
-	for v := range next.All() {
+func appendNext(frontier []vertexAtDepth, next Set, depth int) []vertexAtDepth {
+	for _, v := range next {
 		frontier = append(frontier, vertexAtDepth{
 			Vertex: v,
 			Depth:  depth,
@@ -506,9 +506,9 @@ func appendNext(frontier []vertexAtDepth, next VertexSet, depth int) []vertexAtD
 	return frontier
 }
 
-func testAppendNextSorted(frontier []vertexAtDepth, edges VertexSet, depth int) []vertexAtDepth {
+func testAppendNextSorted(frontier []vertexAtDepth, edges Set, depth int) []vertexAtDepth {
 	var newEdges []vertexAtDepth
-	for v := range edges.All() {
+	for _, v := range edges {
 		newEdges = append(newEdges, vertexAtDepth{
 			Vertex: v,
 			Depth:  depth,
@@ -519,6 +519,6 @@ func testAppendNextSorted(frontier []vertexAtDepth, edges VertexSet, depth int) 
 }
 func testSortFrontier(f []vertexAtDepth) {
 	sort.Slice(f, func(i, j int) bool {
-		return f[i].Vertex.Name() < f[j].Vertex.Name()
+		return VertexName(f[i].Vertex) < VertexName(f[j].Vertex)
 	})
 }

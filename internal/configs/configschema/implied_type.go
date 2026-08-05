@@ -59,29 +59,6 @@ func (b *Block) ContainsSensitive() bool {
 	return false
 }
 
-// ContainsDeprecated returns true if any of the attributes of the receiving
-// block or any of its descendant blocks are marked as deprecated.
-func (b *Block) ContainsDeprecated() bool {
-	if b.Deprecated {
-		return true
-	}
-
-	for _, attrS := range b.Attributes {
-		if attrS.Deprecated {
-			return true
-		}
-		if attrS.NestedType != nil && attrS.NestedType.ContainsDeprecated() {
-			return true
-		}
-	}
-	for _, blockS := range b.BlockTypes {
-		if blockS.ContainsDeprecated() {
-			return true
-		}
-	}
-	return false
-}
-
 // ContainsWriteOnly returns true if any of the attributes of the receiving
 // block or any of its descendant blocks are considered write only
 // based on the declarations in the schema.
@@ -184,20 +161,6 @@ func (o *Object) ContainsSensitive() bool {
 			return true
 		}
 		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsDeprecated returns true if any of the attributes of the receiving
-// Object are marked as sensitive.
-func (o *Object) ContainsDeprecated() bool {
-	for _, attrS := range o.Attributes {
-		if attrS.Deprecated {
-			return true
-		}
-		if attrS.NestedType != nil && attrS.NestedType.ContainsDeprecated() {
 			return true
 		}
 	}

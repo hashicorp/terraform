@@ -36,7 +36,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 
 	// We're going to step through all the vertices and pull out the relevant
 	// resources and data sources.
-	for vertex := range graph.VerticesSeq() {
+	for _, vertex := range graph.Vertices() {
 		if node, isResource := vertex.(GraphNodeCreator); isResource {
 			addr := node.CreateAddr()
 
@@ -52,7 +52,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 				// about the referencing resource.
 
 				leafResource := true
-				for other := range graph.EdgesTo(vertex).All() {
+				for _, other := range graph.UpEdges(vertex) {
 					if otherResource, isResource := other.(GraphNodeCreator); isResource {
 						otherAddr := otherResource.CreateAddr()
 						if otherAddr.Resource.Resource.Mode == addrs.ManagedResourceMode {
@@ -117,11 +117,11 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 		// Finally, connect everything up so it all executes in order.
 
 		for _, vertex := range nested {
-			graph.Connect(vertex, check)
+			graph.Connect(dag.BasicEdge(vertex, check))
 		}
 
 		for _, vertex := range resources {
-			graph.Connect(check, vertex)
+			graph.Connect(dag.BasicEdge(check, vertex))
 		}
 	}
 

@@ -11,42 +11,42 @@ import (
 func TestSetDifference(t *testing.T) {
 	cases := []struct {
 		Name     string
-		A, B     []testV
-		Expected []testV
+		A, B     []interface{}
+		Expected []interface{}
 	}{
 		{
 			"same",
-			[]testV{1, 2, 3},
-			[]testV{3, 1, 2},
-			[]testV{},
+			[]interface{}{1, 2, 3},
+			[]interface{}{3, 1, 2},
+			[]interface{}{},
 		},
 
 		{
 			"A has extra elements",
-			[]testV{1, 2, 3},
-			[]testV{3, 2},
-			[]testV{1},
+			[]interface{}{1, 2, 3},
+			[]interface{}{3, 2},
+			[]interface{}{1},
 		},
 
 		{
 			"B has extra elements",
-			[]testV{1, 2, 3},
-			[]testV{3, 2, 1, 4},
-			[]testV{},
+			[]interface{}{1, 2, 3},
+			[]interface{}{3, 2, 1, 4},
+			[]interface{}{},
 		},
 		{
 			"B is nil",
-			[]testV{1, 2, 3},
+			[]interface{}{1, 2, 3},
 			nil,
-			[]testV{1, 2, 3},
+			[]interface{}{1, 2, 3},
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			one := NewVertexSet()
-			two := NewVertexSet()
-			expected := NewVertexSet()
+			one := make(Set)
+			two := make(Set)
+			expected := make(Set)
 			for _, v := range tc.A {
 				one.Add(v)
 			}
@@ -54,7 +54,7 @@ func TestSetDifference(t *testing.T) {
 				two.Add(v)
 			}
 			if tc.B == nil {
-				two.m = nil
+				two = nil
 			}
 			for _, v := range tc.Expected {
 				expected.Add(v)
@@ -63,7 +63,7 @@ func TestSetDifference(t *testing.T) {
 			actual := one.Difference(two)
 			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
-				t.Fatalf("bad: %#v", actual.All())
+				t.Fatalf("bad: %#v", actual.List())
 			}
 		})
 	}
@@ -71,29 +71,29 @@ func TestSetDifference(t *testing.T) {
 
 func TestSetFilter(t *testing.T) {
 	cases := []struct {
-		Input    []testV
-		Expected []testV
+		Input    []interface{}
+		Expected []interface{}
 	}{
 		{
-			[]testV{1, 2, 3},
-			[]testV{1, 2, 3},
+			[]interface{}{1, 2, 3},
+			[]interface{}{1, 2, 3},
 		},
 
 		{
-			[]testV{4, 5, 6},
-			[]testV{4},
+			[]interface{}{4, 5, 6},
+			[]interface{}{4},
 		},
 
 		{
-			[]testV{7, 8, 9},
-			[]testV{},
+			[]interface{}{7, 8, 9},
+			[]interface{}{},
 		},
 	}
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%#v", i, tc.Input), func(t *testing.T) {
-			input := NewVertexSet()
-			expected := NewVertexSet()
+			input := make(Set)
+			expected := make(Set)
 			for _, v := range tc.Input {
 				input.Add(v)
 			}
@@ -101,24 +101,24 @@ func TestSetFilter(t *testing.T) {
 				expected.Add(v)
 			}
 
-			actual := input.Filter(func(v Vertex) bool {
-				return v.(testV) < 5
+			actual := input.Filter(func(v interface{}) bool {
+				return v.(int) < 5
 			})
 			match := actual.Intersection(expected)
 			if match.Len() != expected.Len() {
-				t.Fatalf("bad: %#v", actual.All())
+				t.Fatalf("bad: %#v", actual.List())
 			}
 		})
 	}
 }
 
 func TestSetCopy(t *testing.T) {
-	a := NewVertexSet()
-	a.Add(testV(1))
-	a.Add(testV(2))
+	a := make(Set)
+	a.Add(1)
+	a.Add(2)
 
-	b := a.Clone()
-	b.Add(testV(3))
+	b := a.Copy()
+	b.Add(3)
 
 	diff := b.Difference(a)
 
@@ -126,16 +126,16 @@ func TestSetCopy(t *testing.T) {
 		t.Fatalf("expected single diff value, got %#v", diff)
 	}
 
-	if !diff.Contains(testV(3)) {
+	if !diff.Include(3) {
 		t.Fatalf("diff does not contain 3, got %#v", diff)
 	}
 
 }
 
-func makeSet(n int) VertexSet {
-	ret := NewVertexSet()
-	for i := range n {
-		ret.Add(testV(i))
+func makeSet(n int) Set {
+	ret := make(Set, n)
+	for i := 0; i < n; i++ {
+		ret.Add(i)
 	}
 	return ret
 }

@@ -8,75 +8,69 @@ import (
 	"maps"
 )
 
-func NewVertexSet() VertexSet {
-	return setMap[Vertex]{make(map[Vertex]bool)}
+// Set is a set data structure.
+type Set map[interface{}]interface{}
+
+// Hashable is the interface used by set to get the hash code of a value.
+// If this isn't given, then the value of the item being added to the set
+// itself is used as the comparison value.
+type Hashable interface {
+	Hashcode() interface{}
 }
 
-type VertexSet = setMap[Vertex]
+// hashcode returns the hashcode used for set elements.
+func hashcode(v interface{}) interface{} {
+	if h, ok := v.(Hashable); ok {
+		return h.Hashcode()
+	}
 
-func newEdgeSet() edgeSet {
-	return setMap[Edge]{make(map[Edge]bool)}
-}
-
-type edgeSet = setMap[Edge]
-
-// setMap is a set data structure, used to hold
-type setMap[T comparable] struct {
-	m map[T]bool
+	return v
 }
 
 // Add adds an item to the set
-func (s setMap[T]) Add(v T) {
-	s.m[v] = true
+func (s Set) Add(v interface{}) {
+	s[hashcode(v)] = v
 }
 
 // Delete removes an item from the set.
-func (s setMap[T]) Delete(v T) {
-	delete(s.m, v)
+func (s Set) Delete(v interface{}) {
+	delete(s, hashcode(v))
 }
 
-// Contains returns true/false of whether a value is in the set.
-func (s setMap[T]) Contains(v T) bool {
-	return s.m[v]
+// Include returns true/false of whether a value is in the set.
+func (s Set) Include(v interface{}) bool {
+	_, ok := s[hashcode(v)]
+	return ok
 }
 
 // Intersection computes the set intersection with other.
-func (s setMap[T]) Intersection(other setMap[T]) setMap[T] {
-	result := setMap[T]{make(map[T]bool)}
-	if s.m == nil || other.m == nil {
+func (s Set) Intersection(other Set) Set {
+	result := make(Set)
+	if s == nil || other == nil {
 		return result
 	}
 	// Iteration over a smaller set has better performance.
 	if other.Len() < s.Len() {
 		s, other = other, s
 	}
-	for v := range s.m {
-		if other.Contains(v) {
+	for _, v := range s {
+		if other.Include(v) {
 			result.Add(v)
 		}
 	}
 	return result
 }
 
-// Union computes the union of the two sets
-func (s setMap[T]) Union(other setMap[T]) setMap[T] {
-	result := setMap[T]{maps.Clone(s.m)}
-	for v := range other.All() {
-		result.Add(v)
-	}
-	return result
-}
-
 // Difference returns a set with the elements that s has but
 // other doesn't.
-func (s setMap[T]) Difference(other setMap[T]) setMap[T] {
-	if other.m == nil || other.Len() == 0 {
-		return s.Clone()
+func (s Set) Difference(other Set) Set {
+	if other == nil || other.Len() == 0 {
+		return s.Copy()
 	}
 
-	result := setMap[T]{make(map[T]bool)}
-	for v := range s.m {
-		if _, ok := other.m[v]; !ok {
+	result := make(Set)
+	for k, v := range s {
+		if _, ok := other[k]; !ok {
 			result.Add(v)
 		}
 	}
@@ -86,10 +80,10 @@ func (s setMap[T]) Difference(other setMap[T]) setMap[T] {
 
 // Filter returns a set that contains the elements from the receiver
 // where the given callback returns true.
-func (s setMap[T]) Filter(cb func(T) bool) setMap[T] {
-	result := setMap[T]{make(map[T]bool)}
+func (s Set) Filter(cb func(interface{}) bool) Set {
+	result := make(Set)
 
-	for v := range s.m {
+	for _, v := range s {
 		if cb(v) {
 			result.Add(v)
 		}
@@ -99,14 +93,14 @@ func (s setMap[T]) Filter(cb func(T) bool) setMap[T] {
 }
 
 // Len is the number of items in the set.
-func (s setMap[T]) Len() int {
-	return len(s.m)
+func (s Set) Len() int {
+	return len(s)
 }
 
-// All returns the sequence of set elements.
-func (s setMap[T]) All() iter.Seq[T] {
-	return func(yield func(T) bool) {
-		for v := range s.m {
+// List returns the sequence of set elements.
+func (s Set) List() iter.Seq[any] {
+	return func(yield func(any) bool) {
+		for _, v := range s {
 			if !yield(v) {
 				return
 			}
@@ -114,7 +108,7 @@ func (s setMap[T]) All() iter.Seq[T] {
 	}
 }
 
-// Clone returns a shallow copy of the set.
-func (s setMap[T]) Clone() setMap[T] {
-	return setMap[T]{maps.Clone(s.m)}
+// Copy returns a shallow copy of the set.
+func (s Set) Copy() Set {
+	return maps.Clone(s)
 }

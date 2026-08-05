@@ -15,13 +15,13 @@ import (
 
 func TestWalker_basic(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
 	// Run it a bunch of times since it is timing dependent
-	for range 50 {
-		var order []any
+	for i := 0; i < 50; i++ {
+		var order []interface{}
 		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 
@@ -31,7 +31,7 @@ func TestWalker_basic(t *testing.T) {
 		}
 
 		// Check
-		expected := []any{testV(1), testV(2)}
+		expected := []interface{}{1, 2}
 		if !reflect.DeepEqual(order, expected) {
 			t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 		}
@@ -40,13 +40,13 @@ func TestWalker_basic(t *testing.T) {
 
 func TestWalker_updateNilGraph(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
 	// Run it a bunch of times since it is timing dependent
-	for range 50 {
-		var order []any
+	for i := 0; i < 50; i++ {
+		var order []interface{}
 		w := NewWalker(walkCbRecord(&order))
 		w.Update(&g)
 		w.Update(nil)
@@ -60,21 +60,21 @@ func TestWalker_updateNilGraph(t *testing.T) {
 
 func TestWalker_error(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(4))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
 
 	// Record function
-	var order []any
+	var order []interface{}
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
 	cb := func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(2) {
+		if v == 2 {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
@@ -92,7 +92,7 @@ func TestWalker_error(t *testing.T) {
 	}
 
 	// Check
-	expected := []any{testV(1)}
+	expected := []interface{}{1}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -100,18 +100,18 @@ func TestWalker_error(t *testing.T) {
 
 func TestWalker_newVertex(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []any
+	var order []interface{}
 	recordF := walkCbRecord(&order)
 	done2 := make(chan int)
 
 	// Build a callback that notifies us when 2 has been walked
 	cb := func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(2) {
+		if v == 2 {
 			defer close(done2)
 		}
 		return recordF(v)
@@ -125,11 +125,11 @@ func TestWalker_newVertex(t *testing.T) {
 	<-done2
 
 	// Update the graph
-	g.Add(testV(3))
+	g.Add(3)
 	w.Update(&g)
 
 	// Update the graph again but with the same vertex
-	g.Add(testV(3))
+	g.Add(3)
 	w.Update(&g)
 
 	// Wait
@@ -138,7 +138,7 @@ func TestWalker_newVertex(t *testing.T) {
 	}
 
 	// Check
-	expected := []any{testV(1), testV(2), testV(3)}
+	expected := []interface{}{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -146,18 +146,18 @@ func TestWalker_newVertex(t *testing.T) {
 
 func TestWalker_removeVertex(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []any
+	var order []interface{}
 	recordF := walkCbRecord(&order)
 
 	w := NewWalker(nil)
 	cb := func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(1) {
-			g.Remove(testV(2))
+		if v == 1 {
+			g.Remove(2)
 			w.Update(&g)
 		}
 
@@ -174,7 +174,7 @@ func TestWalker_removeVertex(t *testing.T) {
 	}
 
 	// Check
-	expected := []any{testV(1)}
+	expected := []interface{}{1}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -182,12 +182,12 @@ func TestWalker_removeVertex(t *testing.T) {
 
 func TestWalker_newEdge(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Connect(testV(1), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
 
 	// Record function
-	var order []any
+	var order []interface{}
 	recordF := walkCbRecord(&order)
 
 	w := NewWalker(nil)
@@ -196,9 +196,9 @@ func TestWalker_newEdge(t *testing.T) {
 		// walked before the first visit.
 		diags := recordF(v)
 
-		if v == testV(1) {
-			g.Add(testV(3))
-			g.Connect(testV(3), testV(2))
+		if v == 1 {
+			g.Add(3)
+			g.Connect(BasicEdge(3, 2))
 			w.Update(&g)
 		}
 		return diags
@@ -214,7 +214,7 @@ func TestWalker_newEdge(t *testing.T) {
 	}
 
 	// Check
-	expected := []any{testV(1), testV(3), testV(2)}
+	expected := []interface{}{1, 3, 2}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -222,28 +222,24 @@ func TestWalker_newEdge(t *testing.T) {
 
 type tolerantTestVertex string
 
-func (v tolerantTestVertex) Name() string {
-	return string(v)
-}
-
 func (v tolerantTestVertex) AllowUpstreamFailure(dep Vertex) bool {
-	return dep == testV(2)
+	return dep == 2
 }
 
 func TestWalker_tolerantVertex(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
+	g.Add(1)
+	g.Add(2)
 	g.Add(tolerantTestVertex("t"))
-	g.Add(testV(4))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), tolerantTestVertex("t"))
-	g.Connect(tolerantTestVertex("t"), testV(4))
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, tolerantTestVertex("t")))
+	g.Connect(BasicEdge(tolerantTestVertex("t"), 4))
 
 	var order []any
 
 	w := NewWalker(func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(2) {
+		if v == 2 {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
@@ -257,7 +253,7 @@ func TestWalker_tolerantVertex(t *testing.T) {
 		t.Fatal("expect error")
 	}
 
-	expected := []any{testV(1), tolerantTestVertex("t")}
+	expected := []any{1, tolerantTestVertex("t")}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
@@ -265,15 +261,15 @@ func TestWalker_tolerantVertex(t *testing.T) {
 
 func TestWalker_removeEdge(t *testing.T) {
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(3), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(3, 2))
 
 	// Record function
-	var order []any
+	var order []interface{}
 	recordF := walkCbRecord(&order)
 
 	// The way this works is that our original graph forces
@@ -288,19 +284,19 @@ func TestWalker_removeEdge(t *testing.T) {
 	cb := func(v Vertex) tfdiags.Diagnostics {
 		t.Logf("visit vertex %#v", v)
 		switch v {
-		case testV(1):
-			g.RemoveEdge(testV(3), testV(2))
+		case 1:
+			g.RemoveEdge(BasicEdge(3, 2))
 			w.Update(&g)
 			t.Logf("removed edge from 3 to 2")
 
-		case testV(2):
+		case 2:
 			// this visit isn't completed until we've recorded it
 			// Once the visit is official, we can then close the gate to
 			// let 3 continue.
 			defer close(gateCh)
 			defer t.Logf("2 unblocked 3")
 
-		case testV(3):
+		case 3:
 			select {
 			case <-gateCh:
 				t.Logf("vertex 3 gate channel is now closed")
@@ -325,14 +321,14 @@ func TestWalker_removeEdge(t *testing.T) {
 	}
 
 	// Check
-	expected := []any{testV(1), testV(2), testV(3)}
+	expected := []interface{}{1, 2, 3}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
 }
 
 // walkCbRecord is a test helper callback that just records the order called.
-func walkCbRecord(order *[]any) walkFunc {
+func walkCbRecord(order *[]interface{}) WalkFunc {
 	var l sync.Mutex
 	return func(v Vertex) tfdiags.Diagnostics {
 		l.Lock()

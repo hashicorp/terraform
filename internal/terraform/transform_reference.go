@@ -111,10 +111,11 @@ type ReferenceTransformer struct{}
 
 func (t *ReferenceTransformer) Transform(g *Graph) error {
 	// Build a reference map so we can efficiently look up the references
-	m := NewReferenceMap(g)
+	vertices := g.Vertices()
+	m := NewReferenceMap(vertices)
 
 	// Find the things that reference things and connect them
-	for v := range g.VerticesSeq() {
+	for _, v := range vertices {
 		if _, ok := v.(GraphNodeConfigAction); ok {
 			// Because actions were allowed to reference the calling resource in
 			// configuration, we need to deal with the resulting cycles. Skip
@@ -126,22 +127,22 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 		referencedNodes := m.References(v)
 		refDbg := make([]string, len(referencedNodes))
 		for i, v := range referencedNodes {
-			refDbg[i] = v.Name()
+			refDbg[i] = dag.VertexName(v)
 		}
 		log.Printf(
 			"[DEBUG] ReferenceTransformer: %q references: %v",
-			v.Name(), refDbg)
+			dag.VertexName(v), refDbg)
 
 		for _, referenced := range referencedNodes {
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, referenced) {
-				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", v.Name(), referenced.Name())
-				g.Connect(v, referenced)
+				log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(v), dag.VertexName(referenced))
+				g.Connect(dag.BasicEdge(v, referenced))
 			}
 		}
 	}
 
 	// now we can go back and connect the action configs to their dependencies
-	for v := range g.VerticesSeq() {
+	for _, v := range vertices {
 		actionConfig, ok := v.(GraphNodeConfigAction)
 		if !ok {
 			continue
@@ -149,7 +150,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 
 	ACTIONREFS:
 		for _, ref := range m.References(actionConfig) {
-			if g.Ancestors(ref).Contains(actionConfig) {
+			if g.Ancestors(ref).Include(actionConfig) {
 				// this reference creates a cycle, because the action is already
 				// an ancestor of the reference. We need to allow these for the
 				// back-references to calling resources, but only direct
@@ -158,7 +159,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 				caller, ok := ref.(GraphNodeActionCaller)
 				if !ok {
 					// this node cannot call any actions
-					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), ref.Name())
+					return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
 				}
 
 				// The reference can call actions, and we'll allow it if it
@@ -168,11 +169,11 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 						continue ACTIONREFS
 					}
 				}
-				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), ref.Name())
+				return fmt.Errorf("action reference cycle involving %s and %s", actionConfig.ActionAddr(), dag.VertexName(ref))
 			}
 
-			g.Connect(actionConfig, ref)
-			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", actionConfig.Name(), ref.Name())
+			g.Connect(dag.BasicEdge(actionConfig, ref))
+			log.Printf("[DEBUG] ReferenceTransformer: %q references: %v", dag.VertexName(actionConfig), dag.VertexName(ref))
 		}
 	}
 
@@ -206,9 +207,10 @@ func (t attachDataResourceDependsOnTransformer) Transform(g *Graph) error {
 	// First we need to make a map of referenceable addresses to their vertices.
 	// This is very similar to what's done in ReferenceTransformer, but we keep
 	// implementation separate as they may need to change independently.
-	refMap := NewReferenceMap(g)
+	vertices := g.Vertices()
+	refMap := NewReferenceMap(vertices)
 
-	for v := range g.VerticesSeq() {
+	for _, v := range vertices {
 		depender, ok := v.(graphNodeAttachDataResourceDependsOn)
 		if !ok {
 			continue
@@ -247,7 +249,7 @@ type AttachDependenciesTransformer struct {
 }
 
 func (t AttachDependenciesTransformer) Transform(g *Graph) error {
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		attacher, ok := v.(GraphNodeAttachDependencies)
 		if !ok {
 			continue
@@ -279,7 +281,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 		// since we need to type-switch over the nodes anyway, we're going to
 		// insert the address directly into depMap and forget about the returned
 		// set.
-		for d := range g.Ancestors(v).All() {
+		for _, d := range g.Ancestors(v) {
 			var addr addrs.ConfigResource
 
 			switch d := d.(type) {
@@ -307,7 +309,7 @@ func (t AttachDependenciesTransformer) Transform(g *Graph) error {
 			return deps[i].String() < deps[j].String()
 		})
 
-		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", v.Name(), deps)
+		log.Printf("[TRACE] AttachDependenciesTransformer: %s depends on %s", dag.VertexName(v), deps)
 		attacher.AttachDependencies(deps)
 	}
 
@@ -368,7 +370,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 // dependencies are declared, hence everything else is resolved via the normal
 // reference mechanism.
 func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Vertex {
-	res := dag.NewVertexSet()
+	res := make(dag.Set)
 
 	refs := depender.DependsOn()
 
@@ -402,7 +404,7 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 			// sources aren't just tracking this for graph edges, but rather
 			// they need to look for changes during the plan.
 			if _, ok := rv.(GraphNodeConfigResource); !ok {
-				for v := range g.Ancestors(rv).All() {
+				for _, v := range g.Ancestors(rv) {
 					if isDependableResource(v) {
 						res.Add(v)
 					}
@@ -412,12 +414,15 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) []dag.Ver
 	}
 
 	parentDeps := m.parentModuleDependsOn(g, depender)
-	res = res.Union(parentDeps)
+	// dag.Set doesn't have an insert/union method, but they are simple maps
+	for k, v := range parentDeps {
+		res[k] = v
+	}
 
 	// Now we need to convert the set back to our slice type, because Set.List()
 	// returns []any.
 	vertices := make([]dag.Vertex, 0, res.Len())
-	for v := range res.All() {
+	for _, v := range res {
 		vertices = append(vertices, v)
 	}
 	return vertices
@@ -459,13 +464,13 @@ func (m ReferenceMap) dataDependsOn(depender graphNodeDependsOn) []*addrs.Refere
 
 // parentModuleDependsOn returns the set of vertices that a data sources parent
 // module references through the module call's depends_on.
-func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.VertexSet {
-	res := dag.NewVertexSet()
+func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsOn) dag.Set {
+	res := make(dag.Set)
 
 	// Look for containing modules with DependsOn.
 	// This should be connected directly to the module node, so we only need to
 	// look one step away.
-	for v := range g.EdgesFrom(depender).All() {
+	for _, v := range g.DownEdges(depender) {
 		// we're only concerned with module expansion nodes here.
 		mod, ok := v.(*nodeExpandModule)
 		if !ok {
@@ -482,7 +487,7 @@ func (m ReferenceMap) parentModuleDependsOn(g *Graph, depender graphNodeDependsO
 		// We need to descend through all ancestors here, because data sources
 		// aren't just tracking this for graph edges, but rather they need to
 		// look for changes during the plan.
-		for v := range g.Ancestors(deps...).All() {
+		for _, v := range g.Ancestors(deps...) {
 			if isDependableResource(v) {
 				res.Add(v)
 			}
@@ -610,10 +615,10 @@ func (m ReferenceMap) referenceMapKey(path addrs.Module, addr addrs.Referenceabl
 
 // NewReferenceMap is used to create a new reference map for the
 // given set of vertices.
-func NewReferenceMap(g *Graph) ReferenceMap {
+func NewReferenceMap(vs []dag.Vertex) ReferenceMap {
 	// Build the lookup table
 	m := make(ReferenceMap)
-	for v := range g.VerticesSeq() {
+	for _, v := range vs {
 		// We're only looking for referenceable nodes
 		rn, ok := v.(GraphNodeReferenceable)
 		if !ok {

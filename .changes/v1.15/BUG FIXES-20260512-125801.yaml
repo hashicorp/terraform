@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix crash during provider installation when there is no config
+time: 2026-05-12T12:58:01.257167+02:00
+custom:
+    Issue: "38560"

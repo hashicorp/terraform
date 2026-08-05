@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'init: Prevent provider binaries from being installed into symlinked directories'
+time: 2026-05-18T16:49:38.375301+01:00
+custom:
+    Issue: "38611"

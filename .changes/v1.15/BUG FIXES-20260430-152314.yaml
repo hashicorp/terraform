@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Fixed "unknown provider function" errors occurring during init'
+time: 2026-04-30T15:23:14.65033-04:00
+custom:
+    Issue: "38472"

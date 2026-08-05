@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'init: Errors due to incompatible `-upgrade` and `-lockfile=readonly` flags are now raised earlier in the init process.'
+time: 2026-05-12T12:41:54.607183+01:00
+custom:
+    Issue: "38561"

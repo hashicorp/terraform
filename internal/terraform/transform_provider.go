@@ -182,7 +182,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// resolution of the resource's own provider.
 	forActions := map[dag.Vertex][]ProviderRef{}
 
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeActionProviderConsumer); ok {
 			forActions[v] = pv.ActionProviders()
 		}
@@ -216,12 +216,12 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 		_, ok := v.(GraphNodeModulePath)
 		if !ok && target == nil {
 			// No target and no path to traverse up from
-			diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", v.Name(), absProvider))
+			diags = diags.Append(fmt.Errorf("%s: provider %s couldn't be found", dag.VertexName(v), absProvider))
 			return nil
 		}
 
 		if target != nil {
-			log.Printf("[TRACE] ProviderTransformer: exact match for %s serving %s", absProvider, v.Name())
+			log.Printf("[TRACE] ProviderTransformer: exact match for %s serving %s", absProvider, dag.VertexName(v))
 		}
 
 		// if we don't have a provider at this level, walk up the path looking for one,
@@ -231,10 +231,10 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				key := pp.String()
 				target = m[key]
 				if target != nil {
-					log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", v.Name(), pp)
+					log.Printf("[TRACE] ProviderTransformer: %s uses inherited configuration %s", dag.VertexName(v), pp)
 					break
 				}
-				log.Printf("[TRACE] ProviderTransformer: looking for %s to serve %s", pp, v.Name())
+				log.Printf("[TRACE] ProviderTransformer: looking for %s to serve %s", pp, dag.VertexName(v))
 			}
 		}
 
@@ -263,7 +263,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				"Provider configuration not present",
 				fmt.Sprintf(
 					"To work with %s its original provider configuration at %s is required, but it has been removed. This occurs when a provider configuration is removed while objects created by that provider still exist in the state. Re-add the provider configuration to destroy %s, after which you can remove the provider configuration again.",
-					v.Name(), absProvider, v.Name(),
+					dag.VertexName(v), absProvider, dag.VertexName(v),
 				),
 			))
 			return nil
@@ -284,11 +284,11 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			return diags.Err()
 		}
 
-		log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", v.Name(), v, target.Name())
+		log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
 			pv.SetProvider(target.ProviderAddr())
 		}
-		g.Connect(v, target)
+		g.Connect(dag.BasicEdge(v, target))
 	}
 
 	for v, refs := range forActions {
@@ -297,8 +297,8 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			if target == nil {
 				return diags.Err()
 			}
-			log.Printf("[DEBUG] ProviderTransformer: %q (%T) actions need %s", v.Name(), v, target.Name())
-			g.Connect(v, target)
+			log.Printf("[DEBUG] ProviderTransformer: %q (%T) actions need %s", dag.VertexName(v), v, dag.VertexName(target))
+			g.Connect(dag.BasicEdge(v, target))
 		}
 	}
 
@@ -335,11 +335,11 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 		// this is added unconditionally, so it will connect to all instances
 		// of the provider. Extra edges will be removed by transitive
 		// reduction.
-		g.Connect(closer, p)
+		g.Connect(dag.BasicEdge(closer, p))
 	}
 
 	// Now look for all provider consumers and connect them to the appropriate closers.
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		var refs []ProviderRef
 
 		if pc, ok := v.(GraphNodeProviderConsumer); ok {
@@ -360,7 +360,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 			if !ok {
 				return fmt.Errorf("no graphNodeCloseProvider for %s", ref)
 			}
-			g.Connect(closer, v)
+			g.Connect(dag.BasicEdge(closer, v))
 		}
 	}
 
@@ -399,7 +399,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 
 	var err error
 	m := providerVertexMap(g)
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		pv, ok := v.(GraphNodeProviderConsumer)
 		if !ok {
 			continue
@@ -422,7 +422,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, v.Name())
+		log.Printf("[DEBUG] adding implicit provider configuration %s, implied first by %s", defaultAddr, dag.VertexName(v))
 
 		// create the missing top-level provider
 		provider = t.Concrete(&NodeAbstractProvider{
@@ -443,7 +443,7 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 type PruneProviderTransformer struct{}
 
 func (t *PruneProviderTransformer) Transform(g *Graph) error {
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		// We only care about providers
 		_, ok := v.(GraphNodeProvider)
 		if !ok {
@@ -452,13 +452,13 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 
 		// ProxyProviders will have up edges, but we're now done with them in the graph
 		if _, ok := v.(*graphNodeProxyProvider); ok {
-			log.Printf("[DEBUG] pruning proxy %s", v.Name())
+			log.Printf("[DEBUG] pruning proxy %s", dag.VertexName(v))
 			g.Remove(v)
 		}
 
 		// Remove providers with no dependencies.
-		if g.EdgesTo(v).Len() == 0 {
-			log.Printf("[DEBUG] pruning unused %s", v.Name())
+		if g.UpEdges(v).Len() == 0 {
+			log.Printf("[DEBUG] pruning unused %s", dag.VertexName(v))
 			g.Remove(v)
 		}
 	}
@@ -468,7 +468,7 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 
 func providerVertexMap(g *Graph) map[string]GraphNodeProvider {
 	m := make(map[string]GraphNodeProvider)
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProvider); ok {
 			addr := pv.ProviderAddr()
 			m[addr.String()] = pv
@@ -784,7 +784,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 }
 
 func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		// Only care about GraphNodeAttachProvider implementations
 		apn, ok := v.(GraphNodeAttachProvider)
 		if !ok {
@@ -807,7 +807,7 @@ func (t *ProviderConfigTransformer) attachProviderConfigs(g *Graph) error {
 		// Go through the provider configs to find the matching config
 		for _, p := range mc.Module.ProviderConfigs {
 			if p.Name == localName && p.Alias == addr.Alias {
-				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", v.Name(), p.DeclRange)
+				log.Printf("[TRACE] ProviderConfigTransformer: attaching to %q provider configuration from %s", dag.VertexName(v), p.DeclRange)
 				apn.AttachProvider(p)
 				break
 			}

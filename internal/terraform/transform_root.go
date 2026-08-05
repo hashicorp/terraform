@@ -34,13 +34,13 @@ func addRootNodeToGraph(g *Graph) {
 
 	// Everything that doesn't already depend on at least one other node will
 	// depend on the root node, except the root node itself.
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		if v == dag.Vertex(rootNode) {
 			continue
 		}
 
-		if g.EdgesTo(v).Len() == 0 {
-			g.Connect(rootNode, v)
+		if g.UpEdges(v).Len() == 0 {
+			g.Connect(dag.BasicEdge(rootNode, v))
 		}
 	}
 }
@@ -69,15 +69,15 @@ func (t *CloseRootModuleTransformer) Transform(g *Graph) error {
 
 	// since this is closing the root module, make it depend on everything in
 	// the root module.
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		if v == closeRoot {
 			continue
 		}
 
 		// since this is closing the root module,  and must be last, we can
 		// connect to anything that doesn't have any up edges.
-		if g.EdgesTo(v).Len() == 0 {
-			g.Connect(closeRoot, v)
+		if g.UpEdges(v).Len() == 0 {
+			g.Connect(dag.BasicEdge(closeRoot, v))
 		}
 	}
 

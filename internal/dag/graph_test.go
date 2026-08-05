@@ -4,15 +4,16 @@
 package dag
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
 
 func TestGraph_empty(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphEmptyStr)
@@ -23,10 +24,10 @@ func TestGraph_empty(t *testing.T) {
 
 func TestGraph_basic(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(3))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphBasicStr)
@@ -37,11 +38,11 @@ func TestGraph_basic(t *testing.T) {
 
 func TestGraph_remove(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(3))
-	g.Remove(testV(3))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
+	g.Remove(3)
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphRemoveStr)
@@ -50,41 +51,14 @@ func TestGraph_remove(t *testing.T) {
 	}
 }
 
-func TestGraph_removeEdges(t *testing.T) {
-	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-
-	g.RemoveEdge(testV(1), testV(2))
-	g.RemoveEdge(testV(1), testV(3))
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testGraphRemoveEdges)
-	if actual != expected {
-		t.Fatalf("bad: %s", actual)
-	}
-
-	if g.EdgesFrom(testV(1)).Len() != 0 {
-		t.Fatal("expected no edges from 1, got", g.EdgesFrom(testV(1)))
-	}
-
-	if g.EdgesTo(testV(3)).Len() != 1 {
-		t.Fatal("expected 1 edge to 3, got", g.EdgesTo(testV(3)))
-	}
-}
-
 func TestGraph_replace(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Replace(testV(2), testV(42))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Replace(2, 42)
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphReplaceStr)
@@ -95,12 +69,12 @@ func TestGraph_replace(t *testing.T) {
 
 func TestGraph_replaceSelf(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Replace(testV(2), testV(2))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Replace(2, 2)
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testGraphReplaceSelfStr)
@@ -109,46 +83,92 @@ func TestGraph_replaceSelf(t *testing.T) {
 	}
 }
 
+// This tests that connecting edges works based on custom Hashcode
+// implementations for uniqueness.
+func TestGraph_hashcode(t *testing.T) {
+	var g Graph
+	g.Add(&hashVertex{code: 1})
+	g.Add(&hashVertex{code: 2})
+	g.Add(&hashVertex{code: 3})
+	g.Connect(BasicEdge(
+		&hashVertex{code: 1},
+		&hashVertex{code: 3}))
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphBasicStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+func TestGraphHasVertex(t *testing.T) {
+	var g Graph
+	g.Add(1)
+
+	if !g.HasVertex(1) {
+		t.Fatal("should have 1")
+	}
+	if g.HasVertex(2) {
+		t.Fatal("should not have 2")
+	}
+}
+
+func TestGraphHasEdge(t *testing.T) {
+	var g Graph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 2))
+
+	if !g.HasEdge(BasicEdge(1, 2)) {
+		t.Fatal("should have 1,2")
+	}
+	if g.HasVertex(BasicEdge(2, 3)) {
+		t.Fatal("should not have 2,3")
+	}
+}
+
 func TestGraphEdgesFrom(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(2, 3))
 
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
+	edges := g.EdgesFrom(1)
 
-	edges := g.EdgesFrom(testV(1))
+	expected := make(Set)
+	expected.Add(BasicEdge(1, 3))
 
-	expected := NewVertexSet()
-	expected.Add(testV(3))
-	expected.Add(testV(2))
+	s := make(Set)
+	for _, e := range edges {
+		s.Add(e)
+	}
 
-	if edges.Intersection(expected).Len() != expected.Len() {
+	if s.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
 
 func TestGraphEdgesTo(t *testing.T) {
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Add(testV(4))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 2))
 
-	g.Connect(testV(1), testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
+	edges := g.EdgesTo(3)
 
-	edges := g.EdgesTo(testV(3))
+	expected := make(Set)
+	expected.Add(BasicEdge(1, 3))
 
-	expected := NewVertexSet()
-	expected.Add(testV(1))
-	expected.Add(testV(2))
+	s := make(Set)
+	for _, e := range edges {
+		s.Add(e)
+	}
 
-	if edges.Intersection(expected).Len() != expected.Len() {
+	if s.Intersection(expected).Len() != expected.Len() {
 		t.Fatalf("bad: %#v", edges)
 	}
 }
@@ -156,37 +176,49 @@ func TestGraphEdgesTo(t *testing.T) {
 func TestGraphUpdownEdges(t *testing.T) {
 	// Verify that we can't inadvertently modify the internal graph sets
 	var g Graph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
 
-	up := g.EdgesTo(testV(2))
-	if up.Len() != 1 || !up.Contains(testV(1)) {
+	up := g.UpEdges(2)
+	if up.Len() != 1 || !up.Include(1) {
 		t.Fatalf("expected only an up edge of '1', got %#v", up)
 	}
 	// modify the up set
-	up.Add(testV(9))
+	up.Add(9)
 
-	orig := g.EdgesTo(testV(2))
+	orig := g.UpEdges(2)
 	diff := up.Difference(orig)
-	if diff.Len() != 1 || !diff.Contains(testV(9)) {
+	if diff.Len() != 1 || !diff.Include(9) {
 		t.Fatalf("expected a diff of only '9', got %#v", diff)
 	}
 
-	down := g.EdgesFrom(testV(2))
-	if down.Len() != 1 || !down.Contains(testV(3)) {
+	down := g.DownEdges(2)
+	if down.Len() != 1 || !down.Include(3) {
 		t.Fatalf("expected only a down edge of '3', got %#v", down)
 	}
 	// modify the down set
-	down.Add(testV(8))
+	down.Add(8)
 
-	orig = g.EdgesFrom(testV(2))
+	orig = g.DownEdges(2)
 	diff = down.Difference(orig)
-	if diff.Len() != 1 || !diff.Contains(testV(8)) {
+	if diff.Len() != 1 || !diff.Include(8) {
 		t.Fatalf("expected a diff of only '8', got %#v", diff)
 	}
+}
+
+type hashVertex struct {
+	code interface{}
+}
+
+func (v *hashVertex) Hashcode() interface{} {
+	return v.code
+}
+
+func (v *hashVertex) Name() string {
+	return fmt.Sprintf("%#v", v.code)
 }
 
 const testGraphBasicStr = `
@@ -205,13 +237,6 @@ const testGraphEmptyStr = `
 const testGraphRemoveStr = `
 1
 2
-`
-
-const testGraphRemoveEdges = `
-1
-2
-  3
-3
 `
 
 const testGraphReplaceStr = `

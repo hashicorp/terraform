@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/providers"
 )
 
@@ -66,7 +67,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 		return fmt.Errorf("AttachSchemaTransformer used with nil Plugins")
 	}
 
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 
 		if tv, ok := v.(GraphNodeAttachResourceSchema); ok {
 			addr := tv.ResourceAddr()
@@ -82,7 +83,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", v.Name())
+			log.Printf("[TRACE] AttachSchemaTransformer: attaching resource schema to %s", dag.VertexName(v))
 			tv.AttachResourceSchema(&schema)
 		}
 
@@ -96,7 +97,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching provider config schema to %s", v.Name())
+			log.Printf("[TRACE] AttachSchemaTransformer: attaching provider config schema to %s", dag.VertexName(v))
 			tv.AttachProviderConfigSchema(schema)
 		}
 
@@ -108,10 +109,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 					return fmt.Errorf("failed to read provisioner configuration schema for %q: %s", name, err)
 				}
 				if schema == nil {
-					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, v.Name())
+					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, dag.VertexName(v))
 					continue
 				}
-				log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q config schema to %s", name, v.Name())
+				log.Printf("[TRACE] AttachSchemaTransformer: attaching provisioner %q config schema to %s", name, dag.VertexName(v))
 				tv.AttachProvisionerSchema(name, schema)
 			}
 		}
@@ -127,7 +128,7 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 				log.Printf("[ERROR] AttachSchemaTransformer: No action schema available for %s", addr)
 				continue
 			}
-			log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", v.Name())
+			log.Printf("[TRACE] AttachSchemaTransformer: attaching action schema to %s", dag.VertexName(v))
 			tv.AttachActionSchema(schema)
 		}
 	}

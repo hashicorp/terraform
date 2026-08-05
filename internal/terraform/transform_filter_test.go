@@ -30,11 +30,11 @@ func TestTransformFilter(t *testing.T) {
 
 	t.Run("keep all", func(t *testing.T) {
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -60,11 +60,11 @@ c
 
 	t.Run("remove all", func(t *testing.T) {
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -85,15 +85,15 @@ c
 		// a -> b -> c
 		// Keep only "a"; "b" and "c" should be preserved as ancestors.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "a"
+				return v.(string) == "a"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -118,15 +118,15 @@ c
 		// Keep only "c"; "a" and "b" are not ancestors of "c" so they
 		// should be removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "c"
+				return v.(string) == "c"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -145,15 +145,15 @@ c
 		// Keep "b"; "c" is an ancestor and stays, "a" depends on "b"
 		// but is not an ancestor so it is removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "b"
+				return v.(string) == "b"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -176,18 +176,18 @@ c
 		// a -> c -> d
 		// Keep "a"; everything is an ancestor of "a" so nothing is removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Add(stringV("d"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("a"), stringV("c"))
-		g.Connect(stringV("b"), stringV("d"))
-		g.Connect(stringV("c"), stringV("d"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Add("d")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("a", "c"))
+		g.Connect(dag.BasicEdge("b", "d"))
+		g.Connect(dag.BasicEdge("c", "d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "a"
+				return v.(string) == "a"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -216,18 +216,18 @@ d
 		// Keep "b"; "d" is an ancestor of "b" so it stays. "a" and "c"
 		// are not ancestors of "b" so they are removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Add(stringV("d"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("a"), stringV("c"))
-		g.Connect(stringV("b"), stringV("d"))
-		g.Connect(stringV("c"), stringV("d"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Add("d")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("a", "c"))
+		g.Connect(dag.BasicEdge("b", "d"))
+		g.Connect(dag.BasicEdge("c", "d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "b"
+				return v.(string) == "b"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -250,14 +250,14 @@ d
 		// Keep "a"; "b" is preserved as ancestor, "c" has no connection
 		// and is removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("b"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "b"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "a"
+				return v.(string) == "a"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -281,17 +281,17 @@ b
 		// Keep "a" and "c"; their combined ancestors are "b" and "d",
 		// so the entire graph is preserved.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Add(stringV("d"))
-		g.Connect(stringV("a"), stringV("b"))
-		g.Connect(stringV("b"), stringV("d"))
-		g.Connect(stringV("c"), stringV("d"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Add("d")
+		g.Connect(dag.BasicEdge("a", "b"))
+		g.Connect(dag.BasicEdge("b", "d"))
+		g.Connect(dag.BasicEdge("c", "d"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				s := v.(stringV)
+				s := v.(string)
 				return s == "a" || s == "c"
 			},
 		}
@@ -319,15 +319,15 @@ d
 		// b -> c
 		// Keep "a"; "c" is an ancestor and stays, "b" is removed.
 		var g Graph
-		g.Add(stringV("a"))
-		g.Add(stringV("b"))
-		g.Add(stringV("c"))
-		g.Connect(stringV("a"), stringV("c"))
-		g.Connect(stringV("b"), stringV("c"))
+		g.Add("a")
+		g.Add("b")
+		g.Add("c")
+		g.Connect(dag.BasicEdge("a", "c"))
+		g.Connect(dag.BasicEdge("b", "c"))
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
-				return v.(stringV) == "a"
+				return v.(string) == "a"
 			},
 		}
 		if err := tf.Transform(&g); err != nil {
@@ -347,7 +347,7 @@ c
 
 	t.Run("single node kept", func(t *testing.T) {
 		var g Graph
-		g.Add(stringV("a"))
+		g.Add("a")
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {
@@ -367,7 +367,7 @@ c
 
 	t.Run("single node removed", func(t *testing.T) {
 		var g Graph
-		g.Add(stringV("a"))
+		g.Add("a")
 
 		tf := &TransformFilter{
 			Keep: func(v dag.Vertex) bool {

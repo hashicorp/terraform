@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix panic for types modules with no expanded instances
+time: 2026-04-30T10:38:20.648469-04:00
+custom:
+    Issue: "38491"

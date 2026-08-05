@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -29,7 +30,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 	// graph, we must ensure they get evaluated before any of the corresponding
 	// instances by creating dependency edges.
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
-	for node := range g.VerticesSeq() {
+	for _, node := range g.Vertices() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -68,7 +69,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 			// Now we want to find the expansion node that would be applied for
 			// this resource, and tell it that it is performing a partial
 			// expansion.
-			for v := range g.VerticesSeq() {
+			for _, v := range g.Vertices() {
 				if n, ok := v.(*nodeExpandApplyableResource); ok {
 					if per.ConfigResource().Equal(n.Addr) {
 						n.PartialExpansions = append(n.PartialExpansions, per)
@@ -79,7 +80,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 			// Also connect the deferred instance node to the underlying
 			// resource node to make sure any expansion happens first.
 			for _, resourceNode := range resourceNodes.Get(node.Addr.ConfigResource()) {
-				g.Connect(node, resourceNode)
+				g.Connect(dag.BasicEdge(node, resourceNode))
 			}
 
 			continue
@@ -91,7 +92,7 @@ func (t *DeferredTransformer) Transform(g *Graph) error {
 		// Still connect the deferred instance node to the underlying resource
 		// node.
 		for _, resourceNode := range resourceNodes.Get(node.Addr.ConfigResource()) {
-			g.Connect(node, resourceNode)
+			g.Connect(dag.BasicEdge(node, resourceNode))
 		}
 	}
 

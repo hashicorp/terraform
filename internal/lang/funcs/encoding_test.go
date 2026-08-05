@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestBase64Decode(t *testing.T) {
@@ -48,7 +47,7 @@ func TestBase64Decode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("base64decode(%#v)", test.String), func(t *testing.T) {
-			got, err := Base64DecodeFunc.Call([]cty.Value{test.String})
+			got, err := Base64Decode(test.String)
 
 			if test.Err {
 				if err == nil {
@@ -87,7 +86,7 @@ func TestBase64Decode_error(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := Base64DecodeFunc.Call([]cty.Value{test.String})
+			_, err := Base64Decode(test.String)
 
 			if err == nil {
 				t.Fatal("succeeded; want error")
@@ -115,7 +114,7 @@ func TestBase64Encode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("base64encode(%#v)", test.String), func(t *testing.T) {
-			got, err := Base64EncodeFunc.Call([]cty.Value{test.String})
+			got, err := Base64Encode(test.String)
 
 			if test.Err {
 				if err == nil {
@@ -148,7 +147,7 @@ func TestBase64Gzip(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("base64gzip(%#v)", test.String), func(t *testing.T) {
-			got, err := Base64GzipFunc.Call([]cty.Value{test.String})
+			got, err := Base64Gzip(test.String)
 
 			if test.Err {
 				if err == nil {
@@ -196,7 +195,7 @@ func TestURLEncode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("urlencode(%#v)", test.String), func(t *testing.T) {
-			got, err := URLEncodeFunc.Call([]cty.Value{test.String})
+			got, err := URLEncode(test.String)
 
 			if test.Err {
 				if err == nil {
@@ -267,7 +266,7 @@ func TestBase64TextEncode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("textencodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
-			got, err := TextEncodeBase64Func.Call([]cty.Value{test.String, test.Encoding})
+			got, err := TextEncodeBase64(test.String, test.Encoding)
 
 			if test.Err != "" {
 				if err == nil {
@@ -347,7 +346,7 @@ func TestBase64TextDecode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("textdecodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
-			got, err := TextDecodeBase64Func.Call([]cty.Value{test.String, test.Encoding})
+			got, err := TextDecodeBase64(test.String, test.Encoding)
 
 			if test.Err != "" {
 				if err == nil {

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -21,10 +20,9 @@ type Init interface {
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
+	Log(message string, params ...any)
 
-	ModuleInstallationLogger
-	ProviderInstallationLogger
-	DependencyLockingLogger
+	ProviderInstaller
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -54,8 +52,8 @@ type InitHuman struct {
 }
 
 var (
-	_ Init                       = (*InitHuman)(nil)
-	_ ProviderInstallationLogger = (*InitHuman)(nil)
+	_ Init              = (*InitHuman)(nil)
+	_ ProviderInstaller = (*InitHuman)(nil)
 )
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
@@ -78,12 +76,8 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.view.streams.Println(v.prepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
-	consSuffix := ""
-	if len(cons) > 0 {
-		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
-	}
-	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+func (v *InitHuman) LogInitializingStateStoreProviderPlugin(storeType string) {
+	params := []any{storeType}
 	v.view.streams.Println(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
 }
 
@@ -117,8 +111,8 @@ func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, ve
 	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
 }
 
-func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{version, providerAddr.ForDisplay()}
+func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
 	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
 }
 
@@ -137,30 +131,9 @@ func (v *InitHuman) LogPartnerAndCommunityProviders() {
 	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
-// Implements DependencyLockingLogger
-func (v *InitHuman) LogDependencyLockfileCreated() {
-	params := []any{}
-	v.view.streams.Println(v.prepareMessage(LockInfo, params...))
-}
-
-// Implements DependencyLockingLogger
-func (v *InitHuman) LogDependencyLockfileUpdated() {
-	params := []any{}
-	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo, params...))
-}
-
-// Implements ModuleInstallationLogger
-//
-// See logging in hook_module_install.go
-func (v *InitHuman) LogModuleDownload(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
-}
-
-// Implements ModuleInstallationLogger
-//
-// See logging in hook_module_install.go
-func (v *InitHuman) LogModuleInstallation(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
+// this implements log method for use by interfaces that need to log generic string messages, e.g used for logging in hook_module_install.go
+func (v *InitHuman) Log(message string, params ...any) {
+	v.view.streams.Println(strings.TrimSpace(fmt.Sprintf(message, params...)))
 }
 
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
@@ -184,8 +157,8 @@ type InitJSON struct {
 }
 
 var (
-	_ Init                       = (*InitJSON)(nil)
-	_ ProviderInstallationLogger = (*InitJSON)(nil)
+	_ Init              = (*InitJSON)(nil)
+	_ ProviderInstaller = (*InitJSON)(nil)
 )
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
@@ -244,12 +217,13 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
-func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
-	consSuffix := ""
-	if len(cons) > 0 {
-		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
-	}
-	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+// this implements log method for use by services that need to log generic string messages, e.g usage logging in hook_module_install.go
+func (v *InitJSON) Log(message string, params ...any) {
+	v.view.Log(strings.TrimSpace(fmt.Sprintf(message, params...)))
+}
+
+func (v *InitJSON) LogInitializingStateStoreProviderPlugin(storeType string) {
+	params := []any{storeType}
 
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
@@ -304,8 +278,8 @@ func (v *InitJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, ver
 	v.logInitMessage(InstallingProviderMessage, params...)
 }
 
-func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
+func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
@@ -333,36 +307,6 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.logInitMessage(PartnerAndCommunityProvidersMessage)
-}
-
-// Implements DependencyLockingLogger
-func (v *InitJSON) LogDependencyLockfileCreated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(LockInfo, params...)
-}
-
-// Implements DependencyLockingLogger
-func (v *InitJSON) LogDependencyLockfileUpdated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(DependenciesLockChangesInfo, params...)
-}
-
-// Implements ModuleInstallationLogger
-//
-// See logging in hook_module_install.go
-func (v *InitJSON) LogModuleDownload(message string) {
-	v.view.Log(message)
-}
-
-// Implements ModuleInstallationLogger
-//
-// See logging in hook_module_install.go
-func (v *InitJSON) LogModuleInstallation(message string) {
-	v.view.Log(message)
 }
 
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
@@ -431,8 +375,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "Initializing provider plugins...",
 	},
 	"initializing_state_store_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider %s%s for state store %q...",
-		JSONValue:  "Initializing provider %s%s for state store %q...",
+		HumanValue: "\n[reset][bold]Initializing provider plugin for state store %q...",
+		JSONValue:  "Initializing provider plugin for state store %q...",
 	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
@@ -467,8 +411,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "%s is built in to Terraform",
 	},
 	"reusing_previous_version_info": {
-		HumanValue: "- Reusing version %s of %s from the dependency lock file",
-		JSONValue:  "%s: Reusing version %s from the dependency lock file",
+		HumanValue: "- Reusing previous version of %s from the dependency lock file",
+		JSONValue:  "%s: Reusing previous version from the dependency lock file",
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
@@ -670,6 +614,23 @@ see any changes that are required for your infrastructure.
 If you ever set or change modules or Terraform Settings, run "terraform init"
 again to reinitialize your working directory.
 `
+
+const previousLockInfoHuman = `
+Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.`
+
+const previousLockInfoJSON = `
+Terraform has created a lock file .terraform.lock.hcl to record the provider
+selections it made above. Include this file in your version control repository
+so that Terraform can guarantee to make the same selections by default when
+you run "terraform init" in the future.`
+
+const dependenciesLockChangesInfo = `
+Terraform has made some changes to the provider dependency selections recorded
+in the .terraform.lock.hcl file. Review those changes and commit them to your
+version control system if they represent changes you intended to make.`
 
 const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
 	"If you'd like to know more about provider signing, you can read about it here:\n" +

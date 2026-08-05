@@ -6,6 +6,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -38,7 +39,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	for v := range g.VerticesSeq() {
+	for _, v := range g.Vertices() {
 		// Nodes implement this interface to request state attachment.
 		an, ok := v.(GraphNodeAttachResourceState)
 		if !ok {
@@ -48,7 +49,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 
 		rs := t.State.Resource(addr.ContainingResource())
 		if rs == nil {
-			log.Printf("[DEBUG] Resource state not found for node %q, instance %s", v.Name(), addr)
+			log.Printf("[DEBUG] Resource state not found for node %q, instance %s", dag.VertexName(v), addr)
 			continue
 		}
 
@@ -57,7 +58,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 			// We don't actually need this here, since we'll attach the whole
 			// resource state, but we still check because it'd be weird
 			// for the specific instance we're attaching to not to exist.
-			log.Printf("[DEBUG] Resource instance state not found for node %q, instance %s", v.Name(), addr)
+			log.Printf("[DEBUG] Resource instance state not found for node %q, instance %s", dag.VertexName(v), addr)
 			continue
 		}
 

@@ -308,7 +308,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&CloseProviderTransformer{},
 
 		// Request policy evaluation for resources.
-		&policyEvalTransformer{PolicyClient: b.PolicyClient, QueryPlan: b.queryPlan},
+		&policyEvalTransformer{PolicyClient: b.PolicyClient},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},

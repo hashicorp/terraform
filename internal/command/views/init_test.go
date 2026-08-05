@@ -722,14 +722,13 @@ func TestNewInit_LogReusingPreviousProviderVersion_json(t *testing.T) {
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
-	version := getproviders.MustParseVersion("1.0.0")
-	initView.LogReusingPreviousProviderVersion(p, version)
+	initView.LogReusingPreviousProviderVersion(p)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"hashicorp/test: Reusing version 1.0.0 from the dependency lock file"`,
+		`"@message":"hashicorp/test: Reusing previous version from the dependency lock file"`,
 		`"@module":"terraform.ui"`,
 		`"type":"log"`,
 	}
@@ -885,116 +884,18 @@ func TestNewInit_LogInitializingStateStoreProviderPlugin_json(t *testing.T) {
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
-	pAddr := addrs.NewDefaultProvider("test")
-	cons := getproviders.MustParseVersionConstraints("~> 1.0")
 	storeType := "test_store"
-	initView.LogInitializingStateStoreProviderPlugin(pAddr, cons, storeType)
+	initView.LogInitializingStateStoreProviderPlugin(storeType)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initializing provider hashicorp/test (~\u003e 1.0) for state store \"test_store\"..."`,
+		`"@message":"Initializing provider plugin for state store \"test_store\"..."`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
 		`"message_code":"initializing_state_store_provider_plugin_message"`,
 		`"type":"init_output"`,
-	}
-	for _, snippet := range expectedOutputFields {
-		if !strings.Contains(output.Stdout(), snippet) {
-			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-		}
-	}
-}
-
-func TestNewInit_LogDependencyLockfileCreated_json(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	initView := NewInit(arguments.ViewJSON, view)
-
-	initView.LogDependencyLockfileCreated()
-
-	// Assert output
-	output := done(t)
-	expectedOutputFields := []string{
-		`"@level":"info"`,
-		`"@message":"Terraform has created a lock file .terraform.lock.hcl to `, // ... incomplete but sufficient for test
-		`"@module":"terraform.ui"`,
-		//@timestamp is dynamic
-		`"message_code":"lock_info"`,
-		`"type":"init_output"`,
-	}
-	for _, snippet := range expectedOutputFields {
-		if !strings.Contains(output.Stdout(), snippet) {
-			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-		}
-	}
-}
-
-func TestNewInit_LogDependencyLockfileUpdated_json(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	initView := NewInit(arguments.ViewJSON, view)
-
-	initView.LogDependencyLockfileUpdated()
-
-	// Assert output
-	output := done(t)
-	expectedOutputFields := []string{
-		`"@level":"info"`,
-		`"@message":"Terraform has made some changes to the provider dependency selections `, // ... incomplete but sufficient for test
-		`"@module":"terraform.ui"`,
-		//@timestamp is dynamic
-		`"message_code":"dependencies_lock_changes_info"`,
-		`"type":"init_output"`,
-	}
-	for _, snippet := range expectedOutputFields {
-		if !strings.Contains(output.Stdout(), snippet) {
-			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-		}
-	}
-}
-
-func TestNewInit_LogModuleDownload_json(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	initView := NewInit(arguments.ViewJSON, view)
-
-	message := "foobar"
-	initView.LogModuleDownload(message)
-
-	// Assert output
-	output := done(t)
-	expectedOutputFields := []string{
-		`"@level":"info"`,
-		fmt.Sprintf(`"@message":"%s"`, message),
-		`"@module":"terraform.ui"`,
-		//@timestamp is dynamic
-		`"type":"log"`,
-	}
-	for _, snippet := range expectedOutputFields {
-		if !strings.Contains(output.Stdout(), snippet) {
-			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-		}
-	}
-}
-
-func TestNewInit_LogModuleInstallation_json(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	initView := NewInit(arguments.ViewJSON, view)
-
-	message := "foobar"
-	initView.LogModuleInstallation(message)
-
-	// Assert output
-	output := done(t)
-	expectedOutputFields := []string{
-		`"@level":"info"`,
-		fmt.Sprintf(`"@message":"%s"`, message),
-		`"@module":"terraform.ui"`,
-		//@timestamp is dynamic
-		`"type":"log"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {

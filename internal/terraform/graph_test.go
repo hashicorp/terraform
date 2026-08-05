@@ -12,8 +12,8 @@ import (
 // testGraphnotContains is an assertion helper that tests that a node is
 // NOT contained in the graph.
 func testGraphNotContains(t *testing.T, g *Graph, name string) {
-	for v := range g.VerticesSeq() {
-		if v.Name() == name {
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) == name {
 			t.Fatalf(
 				"Expected %q to NOT be in:\n\n%s",
 				name, g.String())
@@ -27,8 +27,8 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 	t.Helper()
 	// Find the B vertex
 	var vertexB dag.Vertex
-	for v := range g.VerticesSeq() {
-		if v.Name() == B {
+	for _, v := range g.Vertices() {
+		if dag.VertexName(v) == B {
 			vertexB = v
 			break
 		}
@@ -41,8 +41,8 @@ func testGraphHappensBefore(t *testing.T, g *Graph, A, B string) {
 
 	// Look at ancestors
 	// Make sure B is in there
-	for v := range g.Ancestors(vertexB).All() {
-		if v.Name() == A {
+	for _, v := range g.Ancestors(vertexB) {
+		if dag.VertexName(v) == A {
 			// Success
 			return
 		}

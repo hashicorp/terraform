@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix crash on `init` for modules with empty source
+time: 2026-05-20T18:34:43.331672+02:00
+custom:
+    Issue: "38628"
