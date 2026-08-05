@@ -33,10 +33,10 @@ type Show interface {
 	DisplayResourceInstanceState(jsonformat.State, tfdiags.Diagnostics) int
 }
 
-func NewShow(vt arguments.ViewType, view *View) Show {
+func NewShow(vt arguments.ViewType, redactSensitive bool, view *View) Show {
 	switch vt {
 	case arguments.ViewJSON:
-		return &ShowJSON{view: view}
+		return &ShowJSON{view: view, redactSensitive: redactSensitive}
 	case arguments.ViewHuman:
 		return &ShowHuman{view: view}
 	default:
@@ -146,7 +146,8 @@ func (v *ShowHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ShowJSON struct {
-	view *View
+	view            *View
+	redactSensitive bool
 }
 
 var _ Show = (*ShowJSON)(nil)
@@ -156,16 +157,40 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 	// to building one ourselves.
 	if planJSON != nil {
 		if planJSON.Redacted {
-			v.view.streams.Eprintf("Didn't get external JSON plan format")
-			return 1
+			// Redacted cloud plan format: only usable for human display.
+			if !v.redactSensitive {
+				v.view.streams.Eprintf("Didn't get external JSON plan format")
+				return 1
+			}
+			// For -json-redacted with a cloud plan, treat the pre-redacted bytes
+			// as already safe to output (sensitive values were stripped server-side).
+			v.view.streams.Println(string(planJSON.JSONBytes))
+		} else {
+			bytes := planJSON.JSONBytes
+			if v.redactSensitive {
+				var err error
+				bytes, err = redactShowJSONBytes(bytes)
+				if err != nil {
+					v.view.streams.Eprintf("Failed to redact plan json: %s", err)
+					return 1
+				}
+			}
+			v.view.streams.Println(string(bytes))
 		}
-		v.view.streams.Println(string(planJSON.JSONBytes))
 	} else if plan != nil {
 		planJSON, err := jsonplan.Marshal(config, plan, stateFile, schemas)
 
 		if err != nil {
 			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 			return 1
+		}
+
+		if v.redactSensitive {
+			planJSON, err = redactShowJSONBytes(planJSON)
+			if err != nil {
+				v.view.streams.Eprintf("Failed to redact plan json: %s", err)
+				return 1
+			}
 		}
 		v.view.streams.Println(string(planJSON))
 	} else {
@@ -175,6 +200,14 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 		if err != nil {
 			v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
 			return 1
+		}
+
+		if v.redactSensitive {
+			jsonState, err = redactShowJSONBytes(jsonState)
+			if err != nil {
+				v.view.streams.Eprintf("Failed to redact state json: %s", err)
+				return 1
+			}
 		}
 		v.view.streams.Println(string(jsonState))
 	}
