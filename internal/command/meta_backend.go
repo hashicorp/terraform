@@ -3110,7 +3110,7 @@ func (m *Meta) determineIfProviderTrusted(provider addrs.Provider, providerLocat
 // confirmProviderIsTrusted takes the action determined by `determineIfProviderTrusted` and either prompts the user for approval, or returns an error if something has gone wrong with pre-supplied locks when Terraform was run in automation.
 //
 // NOTE: the command parameter is used to determine which command is being run, so that we can provide more specific guidance to the user. Do not use that parameter for any other purpose!
-func (m *Meta) confirmProviderIsTrusted(trust ProviderTrust, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, stateStoreProviderLock, locksBeforeInstall *depsfile.Locks, flagLockfilePath string, command cli.Command, view views.ProviderInstallationLogger) tfdiags.Diagnostics {
+func (m *Meta) confirmProviderIsTrusted(trust ProviderTrust, provider addrs.Provider, stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult, stateStoreProviderLock, locksBeforeInstall *depsfile.Locks, flagLockfilePath string, command cli.Command, view views.StateStoreProviderTrustLogger) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	switch trust {
@@ -3119,7 +3119,7 @@ func (m *Meta) confirmProviderIsTrusted(trust ProviderTrust, provider addrs.Prov
 
 		if flagLockfilePath != "" {
 			// If the user supplied a lock file path via CLI flag, we should notify them that it was used.
-			view.Output(views.StateStoreProviderAutomationApprovedMessage)
+			view.LogAutomaticApproval()
 			view.Spacer()
 		}
 	case RequiresApproval:
@@ -3127,12 +3127,12 @@ func (m *Meta) confirmProviderIsTrusted(trust ProviderTrust, provider addrs.Prov
 			// Prompt the user about trusting the provider used for state storage.
 			diags = diags.Append(m.promptStateStorageProviderApproval(provider, stateStoreProviderLock, stateStoreProviderAuthResult))
 			if diags.HasErrors() {
-				view.Output(views.StateStoreProviderInteractiveRejectedMessage)
+				view.LogInteractiveRejection()
 				view.Spacer()
 				return diags
 			}
 
-			view.Output(views.StateStoreProviderInteractiveApprovedMessage)
+			view.LogInteractiveApproval()
 			view.Spacer()
 		} else {
 			// Confirm that a lock was used to control download.
