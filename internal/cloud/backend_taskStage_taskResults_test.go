@@ -280,9 +280,12 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			cloud: b,
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
-			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
 			if cont != c.expectedContinue {
 				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
 			}
 
 			output := c.writer.output.String()
@@ -291,7 +294,7 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
 				}
 			}
-			return cont, nil
+			return false, nil
 		})
 	}
 }

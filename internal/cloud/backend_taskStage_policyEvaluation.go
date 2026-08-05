@@ -139,7 +139,6 @@ func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *In
 		}
 
 		if len(pending) > 0 {
-			policyEvaluations = completed
 			pendingToSkipCount = len(pending)
 		}
 	}

@@ -114,7 +114,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			},
 			writer:          writer,
 			context:         integrationContext,
-			expectedOutputs: []string{"Skipping policy evaluation.", "Pending policy evaluation skipped as task stage is failed.", "[dim]skipped"},
+			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
 		},
 		"pending-with-canceled-task-stage": {
@@ -170,6 +170,8 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"OPA Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
 				"Skipping 1 pending policy evaluation(s) because task stage is failed.",
 			},
 			isError: false,
@@ -191,6 +193,8 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 				"OPA Policy Evaluation",
 				"Overall Result: [green]PASSED",
 				"Overall Result: [red]FAILED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
 				"Skipping 2 pending policy evaluation(s) because task stage is failed.",
 			},
 			isError: false,
@@ -209,6 +213,8 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"OPA Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is canceled.",
 				"Skipping 1 pending policy evaluation(s) because task stage is canceled.",
 			},
 			isError: false,
@@ -227,6 +233,8 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"OPA Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is errored.",
 				"Skipping 1 pending policy evaluation(s) because task stage is errored.",
 			},
 			isError: false,
@@ -239,9 +247,12 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			cloud: b,
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
-			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
 			if cont != c.expectedContinue {
 				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
 			}
 
 			output := c.writer.output.String()
@@ -250,7 +261,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
 				}
 			}
-			return cont, nil
+			return false, nil
 		})
 	}
 }
@@ -359,7 +370,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			},
 			writer:          writer,
 			context:         integrationContext,
-			expectedOutputs: []string{"Skipping policy evaluation.", "Pending policy evaluation skipped as task stage is failed.", "[dim]skipped"},
+			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
 		},
 		"pending-with-canceled-task-stage": {
@@ -415,6 +426,8 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"Sentinel Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
 				"Skipping 1 pending policy evaluation(s) because task stage is failed.",
 			},
 			isError: false,
@@ -436,6 +449,8 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 				"Sentinel Policy Evaluation",
 				"Overall Result: [green]PASSED",
 				"Overall Result: [red]FAILED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
 				"Skipping 2 pending policy evaluation(s) because task stage is failed.",
 			},
 			isError: false,
@@ -454,6 +469,8 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"Sentinel Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is canceled.",
 				"Skipping 1 pending policy evaluation(s) because task stage is canceled.",
 			},
 			isError: false,
@@ -472,6 +489,8 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			expectedOutputs: []string{
 				"Sentinel Policy Evaluation",
 				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is errored.",
 				"Skipping 1 pending policy evaluation(s) because task stage is errored.",
 			},
 			isError: false,
@@ -484,9 +503,12 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			cloud: b,
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
-			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
 			if cont != c.expectedContinue {
 				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
 			}
 
 			output := c.writer.output.String()
@@ -495,7 +517,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
 				}
 			}
-			return cont, nil
+			return false, nil
 		})
 	}
 }
