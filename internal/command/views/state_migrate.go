@@ -207,12 +207,12 @@ func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 	s.log(msg)
 }
 
-// Implements DependencyLockLogger interface.
+// Implements DependencyLockingLogger interface.
 func (s *StateMigrateHuman) LogDependencyLockfileCreated() {
 	s.log(previousLockInfoHuman)
 }
 
-// Implements DependencyLockLogger interface.
+// Implements DependencyLockingLogger interface.
 func (s *StateMigrateHuman) LogDependencyLockfileUpdated() {
 	s.log(dependenciesLockChangesInfo)
 }
@@ -410,6 +410,22 @@ func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
 	s.view.log.Info(
 		msg,
 		"type", PartnerAndCommunityProvidersMessage,
+	)
+}
+
+// Implements DependencyLockingLogger interface.
+func (s *StateMigrateJSON) LogDependencyLockfileCreated() {
+	s.view.log.Info(
+		previousLockInfoJSON,
+		"type", json.DependencyLockFileCreated,
+	)
+}
+
+// Implements DependencyLockingLogger interface.
+func (s *StateMigrateJSON) LogDependencyLockfileUpdated() {
+	s.view.log.Info(
+		dependenciesLockChangesInfo,
+		"type", json.DependencyLockFileUpdated,
 	)
 }
 

@@ -66,6 +66,8 @@ const (
 
 	// Provider installation messages
 	InitializingStateStoreProviderStart MessageType = "state_store_provider_initialization_start"
+	DependencyLockFileCreated           MessageType = "dependency_lockfile_created"
+	DependencyLockFileUpdated           MessageType = "dependency_lockfile_updated"
 
 	// PSS messages
 	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
