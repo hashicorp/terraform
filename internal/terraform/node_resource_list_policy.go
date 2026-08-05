@@ -137,8 +137,10 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 	}
 
 	// Emit one consolidated warning per skip category rather than one per resource.
+	// Each warning carries a ListBlockAddrExtra so AddWarningDiags can route it
+	// to the correct block without string parsing.
 	if unknownCount > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
+		diags = diags.Append(tfdiags.SourcelessWithExtra(
 			tfdiags.Warning,
 			"Policy evaluation skipped",
 			fmt.Sprintf(
@@ -146,17 +148,19 @@ func (n *NodePlannableResourceInstance) generateListResourcePolicyData(
 					"Policy evaluation cannot be performed without resource state.",
 				unknownCount, listBlockAddr.String(),
 			),
+			&tfdiags.ListBlockAddrExtra{ListBlockAddr: listBlockAddr.String()},
 		))
 	}
 	if configErrCount > 0 {
 		// Config generation errors are unexpected but possible.
-		diags = diags.Append(tfdiags.Sourceless(
+		diags = diags.Append(tfdiags.SourcelessWithExtra(
 			tfdiags.Warning,
 			"Policy evaluation skipped",
 			fmt.Sprintf(
 				"%d resource(s) in list block %s could not generate config for policy evaluation.",
 				configErrCount, listBlockAddr.String(),
 			),
+			&tfdiags.ListBlockAddrExtra{ListBlockAddr: listBlockAddr.String()},
 		))
 	}
 

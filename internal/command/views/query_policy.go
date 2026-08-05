@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 	"sync"
@@ -31,13 +32,15 @@ type queryPolicySummary struct {
 }
 
 type queryPolicyIdentityResult struct {
-	Identity      map[string]string         `json:"identity,omitempty"`
-	TargetAddress string                    `json:"target_address"`
-	Result        queryPolicyResult         `json:"result"`
-	Policies      []queryPolicyPolicyResult `json:"policies"`
+	Identity      map[string]string       `json:"identity,omitempty"`
+	TargetAddress string                  `json:"target_address"`
+	Result        queryPolicyResult       `json:"result"`
+	Policies      []queryPolicyEvalResult `json:"policies"`
 }
 
-type queryPolicyPolicyResult struct {
+// queryPolicyEvalResult holds the per-policy outcome for a single evaluated
+// identity within a list block.
+type queryPolicyEvalResult struct {
 	PolicyMetadata viewjson.PolicyMetadata `json:"policy_metadata"`
 	Diagnostics    []viewjson.Diagnostic   `json:"diagnostics"`
 	Result         queryPolicyResult       `json:"result"`
@@ -61,6 +64,16 @@ func newQueryPolicyView() *queryPolicyView {
 	}
 }
 
+// AddWarningDiags routes warning diagnostics that carry a ListBlockAddrExtra
+// into the matching queryPolicyBlock so they are emitted together with the
+// policy summary at flush time. Diagnostics without that extra are silently
+// ignored by this function; callers are responsible for emitting them via the
+// normal diagnostic path.
+//
+// Only warning diagnostics are processed here. This is intentional: policy
+// query warnings (e.g., "policy was skipped for this identity") belong in the
+// query summary block output. Other severity levels are handled by standard
+// diagnostic paths.
 func (v *queryPolicyView) AddWarningDiags(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		return
@@ -73,11 +86,11 @@ func (v *queryPolicyView) AddWarningDiags(diags tfdiags.Diagnostics) {
 		if diag.Severity() != tfdiags.Warning {
 			continue
 		}
-		addr := queryPolicyListBlockAddr(diag.Description().Detail)
-		if addr == "" {
+		extra := tfdiags.ExtraInfo[*tfdiags.ListBlockAddrExtra](diag)
+		if extra == nil || extra.ListBlockAddr == "" {
 			continue
 		}
-		block := v.block(addr)
+		block := v.block(extra.ListBlockAddr)
 		block.WarningDiags = append(block.WarningDiags, diag)
 	}
 }
@@ -94,16 +107,18 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 	identityResult := block.ResultsByTarget[addr]
 	if identityResult == nil {
 		identityResult = &queryPolicyIdentityResult{
-			Identity:      copyIdentity(resp.Identity),
+			Identity:      maps.Clone(resp.Identity),
 			TargetAddress: addr,
-			Policies:      make([]queryPolicyPolicyResult, 0, len(resp.Policies)),
+			Policies:      make([]queryPolicyEvalResult, 0, len(resp.Policies)),
 		}
 		block.ResultsByTarget[addr] = identityResult
 	} else if identityResult.Identity == nil {
-		identityResult.Identity = copyIdentity(resp.Identity)
+		identityResult.Identity = maps.Clone(resp.Identity)
 	}
 
 	identityResult.Result = queryPolicyResultFromEvaluation(resp.Overall)
+	// Reset the per-policy slice so that a re-evaluation of the same
+	// identity always reflects only the most-recent response.
 	identityResult.Policies = identityResult.Policies[:0]
 
 	diagsByPolicy := make(map[string][]viewjson.Diagnostic, len(resp.Policies))
@@ -122,10 +137,15 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 		metadata := viewjson.MetadataFromPolicy(*pol)
 		block.PolicyMetadata[pol.Address] = metadata
 		policyDiags := diagsByPolicy[pol.Address]
+		// When there is exactly one policy and no diags matched its address
+		// (e.g. the diagnostic has no extra PolicyExtra metadata), fall back to
+		// the unmatched set so they are still associated with the sole policy.
+		// This handles policy plugins that may omit PolicyExtra from diagnostics
+		// in simpler scenarios, ensuring diagnostics are not lost or orphaned.
 		if len(policyDiags) == 0 && len(unmatchedDiags) > 0 && len(resp.Policies) == 1 {
 			policyDiags = unmatchedDiags
 		}
-		identityResult.Policies = append(identityResult.Policies, queryPolicyPolicyResult{
+		identityResult.Policies = append(identityResult.Policies, queryPolicyEvalResult{
 			PolicyMetadata: metadata,
 			Diagnostics:    policyDiags,
 			Result:         queryPolicyResultFromEvaluation(pol.Result),
@@ -179,12 +199,12 @@ func (v *queryPolicyView) block(addr string) *queryPolicyBlock {
 func (b *queryPolicyBlock) summary() queryPolicySummary {
 	results := make([]queryPolicyIdentityResult, 0, len(b.ResultsByTarget))
 	for _, result := range b.ResultsByTarget {
-		policies := append([]queryPolicyPolicyResult(nil), result.Policies...)
+		policies := append([]queryPolicyEvalResult(nil), result.Policies...)
 		sort.Slice(policies, func(i, j int) bool {
 			return policies[i].PolicyMetadata.PolicyName < policies[j].PolicyMetadata.PolicyName
 		})
 		results = append(results, queryPolicyIdentityResult{
-			Identity:      copyIdentity(result.Identity),
+			Identity:      maps.Clone(result.Identity),
 			TargetAddress: result.TargetAddress,
 			Result:        result.Result,
 			Policies:      policies,
@@ -242,42 +262,6 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 	default:
 		return queryPolicyResultUnknown
 	}
-}
-
-// queryPolicyListBlockAddr extracts the list block address from a warning
-// diagnostic detail string. It looks for the literal substring "list block "
-// and returns everything up to the next space or colon.
-//
-// Terraform list block addresses use the form TYPE.NAME (and, for nested
-// modules, module.M.TYPE.NAME), so dots are part of the address and must not
-// be used as a terminator.
-func queryPolicyListBlockAddr(detail string) string {
-	const marker = "list block "
-	idx := strings.Index(detail, marker)
-	if idx == -1 {
-		return ""
-	}
-	rest := detail[idx+len(marker):]
-	if rest == "" {
-		return ""
-	}
-	for i, r := range rest {
-		if r == ' ' || r == ':' {
-			return rest[:i]
-		}
-	}
-	return rest
-}
-
-func copyIdentity(identity map[string]string) map[string]string {
-	if len(identity) == 0 {
-		return nil
-	}
-	ret := make(map[string]string, len(identity))
-	for k, v := range identity {
-		ret[k] = v
-	}
-	return ret
 }
 
 func renderQueryPolicySummaryHuman(summary queryPolicySummary) string {
