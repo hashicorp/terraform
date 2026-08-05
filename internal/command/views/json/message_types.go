@@ -63,4 +63,9 @@ const (
 	MessagePolicyInfo             MessageType = "policy_info"
 	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
 	MessagePolicyEvaluationResult MessageType = "policy_result"
+
+	// PSS messages
+	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
+	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
+	StateStoreProviderAutomationApproval   MessageType = "state_store_provider_automatic_approval"
 )
