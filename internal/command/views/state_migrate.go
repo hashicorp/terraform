@@ -288,6 +288,30 @@ func (s *StateMigrateJSON) LogInitializingStateStoreProviderStart(providerAddr a
 	)
 }
 
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveApproval() {
+	s.view.log.Info(
+		logInteractiveApprovalMessageJSON,
+		"type", json.StateStoreProviderInteractiveApproval,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveRejection() {
+	s.view.log.Info(
+		logInteractiveRejectionMessageJSON,
+		"type", json.StateStoreProviderInteractiveRejection,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogAutomaticApproval() {
+	s.view.log.Info(
+		logInteractiveAutomaticApprovalMessageJSON,
+		"type", json.StateStoreProviderAutomationApproval,
+	)
+}
+
 // Implements ProviderInstaller interface.
 func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
