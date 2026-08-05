@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -15,19 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// NewQueryOperation creates the human-readable Operation implementation for the
-// query command. The JSON path is wired separately: QueryJSON.Operation() returns
-// a *QueryOperationJSON directly without going through this constructor, so
-// ViewJSON is intentionally not handled here. Passing ViewJSON would panic.
-func NewQueryOperation(vt arguments.ViewType, inAutomation bool, view *View) Operation {
-	switch vt {
-	case arguments.ViewHuman:
-		return &QueryOperationHuman{view: view, inAutomation: inAutomation}
-	default:
-		panic(fmt.Sprintf("unknown view type %v", vt))
-	}
-}
 
 type QueryOperationHuman struct {
 	view        *View
@@ -125,7 +111,8 @@ func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 
 func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	if v.queryPolicy == nil {
-		v.queryPolicy = newQueryPolicyView()
+		v.view.PolicyResult(addr, resp)
+		return
 	}
 	if v.queryPolicy.AddResult(addr, resp) {
 		return
@@ -186,7 +173,8 @@ func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 
 func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	if v.queryPolicy == nil {
-		v.queryPolicy = newQueryPolicyView()
+		v.view.PolicyResult(addr, resp)
+		return
 	}
 	if v.queryPolicy.AddResult(addr, resp) {
 		return

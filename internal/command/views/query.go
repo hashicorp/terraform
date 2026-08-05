@@ -5,7 +5,6 @@ package views
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -92,12 +91,9 @@ func (v *QueryJSON) HelpPrompt() {
 type queryUiHook struct {
 	*UiHook
 	op *QueryOperationHuman
-	mu sync.Mutex
 }
 
 func (h *queryUiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.op.PolicyResult(addr, resp)
 	return terraform.HookActionContinue, nil
 }
