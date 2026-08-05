@@ -158,8 +158,8 @@ func TestQueryOperationJSON_policySummary(t *testing.T) {
 
 			for i, want := range wants {
 				got := lines[i]
-				if got["@level"] != "error" {
-					t.Fatalf("record[%d] @level = %v, want error", i, got["@level"])
+				if got["@level"] != "info" {
+					t.Fatalf("record[%d] @level = %v, want info", i, got["@level"])
 				}
 				if got["@policy"] != "true" {
 					t.Fatalf("record[%d] @policy = %v, want true", i, got["@policy"])
@@ -314,40 +314,6 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 	}
 }
 
-func TestQueryPolicyListBlockAddr(t *testing.T) {
-	tests := []struct {
-		detail string
-		want   string
-	}{
-		{
-			detail: "1 resource(s) in list block aws_instance.example have no state",
-			want:   "aws_instance.example",
-		},
-		{
-			detail: "1 resource(s) in list block module.vpc.aws_instance.mylist have no state",
-			want:   "module.vpc.aws_instance.mylist",
-		},
-		{
-			detail: "1 resource(s) in list block aws_instance.example: extra text",
-			want:   "aws_instance.example",
-		},
-		{
-			detail: "no marker here",
-			want:   "",
-		},
-		{
-			detail: "list block ",
-			want:   "",
-		},
-	}
-	for _, tc := range tests {
-		got := queryPolicyListBlockAddr(tc.detail)
-		if got != tc.want {
-			t.Errorf("queryPolicyListBlockAddr(%q) = %q, want %q", tc.detail, got, tc.want)
-		}
-	}
-}
-
 func TestAddWarningDiagsRoutesCorrectly(t *testing.T) {
 	// Verify that a warning diagnostic for "aws_instance.example" is routed to
 	// the block keyed "aws_instance.example", not a truncated "aws_instance".
@@ -406,7 +372,12 @@ func queryEvalResp(listBlockAddr string, identity map[string]string, overall pol
 }
 
 func tfdiagsWarningForQueryTest(addr string) tfdiags.Diagnostics {
-	return tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Warning, "Policy evaluation skipped", "1 resource(s) in list block "+addr+" have no state (include_resource = false). Policy evaluation cannot be performed without resource state.")}
+	return tfdiags.Diagnostics{tfdiags.SourcelessWithExtra(
+		tfdiags.Warning,
+		"Policy evaluation skipped",
+		"1 resource(s) in list block "+addr+" have no state (include_resource = false). Policy evaluation cannot be performed without resource state.",
+		&tfdiags.ListBlockAddrExtra{ListBlockAddr: addr},
+	)}
 }
 
 // ---------------------------------------------------------------------------
@@ -479,8 +450,8 @@ func TestNewQueryJSON_hooksRouteToOperation(t *testing.T) {
 	}
 
 	rec := summaries[0]
-	if rec["@level"] != "error" {
-		t.Errorf("@level = %v, want error", rec["@level"])
+	if rec["@level"] != "info" {
+		t.Errorf("@level = %v, want info", rec["@level"])
 	}
 	if rec["@policy"] != "true" {
 		t.Errorf("@policy = %v, want true", rec["@policy"])
@@ -886,8 +857,8 @@ func TestQueryOperationJSON_recordShape(t *testing.T) {
 			t.Errorf("missing required field %q in policy_query_summary record", f)
 		}
 	}
-	if rec["@level"] != "error" {
-		t.Errorf("@level = %v, want error", rec["@level"])
+	if rec["@level"] != "info" {
+		t.Errorf("@level = %v, want info", rec["@level"])
 	}
 	if rec["@policy"] != "true" {
 		t.Errorf("@policy = %v, want true", rec["@policy"])

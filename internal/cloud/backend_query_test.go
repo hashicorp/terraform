@@ -38,7 +38,7 @@ func testOperationQueryWithTimeout(t *testing.T, configDir string, timeout time.
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
 	stateLockerView := views.NewStateLocker(arguments.ViewHuman, view)
-	operationView := views.NewQueryOperation(arguments.ViewHuman, false, view)
+	operationView := views.NewQuery(arguments.ViewHuman, view).Operation()
 
 	// Many of our tests use an overridden "null" provider that's just in-memory
 	// inside the test process, not a separate plugin on disk.
