@@ -64,6 +64,9 @@ const (
 	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
 	MessagePolicyEvaluationResult MessageType = "policy_result"
 
+	// Provider installation messages
+	InitializingStateStoreProviderStart MessageType = "state_store_provider_initialization_start"
+
 	// PSS messages
 	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
 	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
