@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -51,6 +52,7 @@ type StackConfig struct {
 
 var (
 	_ ExpressionScope = (*StackConfig)(nil)
+	_ StaticEvaler    = (*StackConfig)(nil)
 )
 
 func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, config *stackconfig.ConfigNode) *StackConfig {
@@ -613,4 +615,72 @@ func (s *StackConfig) ExternalFunctions(ctx context.Context) (lang.ExternalFuncs
 // the current plan is being run.
 func (s *StackConfig) PlanTimestamp() time.Time {
 	return s.main.PlanTimestamp()
+}
+
+// checkRequiredProviders validates that every provider declared in the
+// required_providers block that does NOT have an explicit "provider" block
+// in this stack is still present in the lock file and that the locked version
+// satisfies the declared version constraints.
+//
+// Providers that DO have an explicit "provider" block are validated separately
+// by ProviderConfig.checkValid, so we skip them here to avoid double-reporting.
+func (s *StackConfig) checkRequiredProviders(phase EvalPhase) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	depLocks := s.main.DependencyLocks(phase)
+	if depLocks == nil {
+		return diags
+	}
+
+	reqs := s.config.Stack.RequiredProviders
+	if reqs == nil {
+		return diags
+	}
+
+	for _, req := range reqs.Requirements {
+		providerAddr := req.Provider
+
+		// Skip providers that already have an explicit "provider" block — those
+		// are checked by ProviderConfig.checkValid which runs separately.
+		// A stack can have multiple "provider" blocks for the same type (using
+		// different names/aliases), so we just need to know if any exist.
+		localName, ok := reqs.LocalNameForProvider(providerAddr)
+		if !ok {
+			continue
+		}
+		hasProviderBlock := false
+		for cfgAddr := range s.config.Stack.ProviderConfigs {
+			if cfgAddr.LocalName == localName {
+				hasProviderBlock = true
+				break
+			}
+		}
+		if hasProviderBlock {
+			continue
+		}
+
+		pTy := s.main.ProviderType(providerAddr)
+		lockfileDiags := CheckProviderInLockfile(*depLocks, pTy, req.VersionConstraints, nil)
+		diags = diags.Append(lockfileDiags)
+	}
+
+	return diags
+}
+
+// tracingName implements StaticEvaler.
+func (s *StackConfig) tracingName() string {
+	if s.addr.IsRoot() {
+		return "root stack"
+	}
+	return s.addr.String()
+}
+
+// Validate implements Validatable.
+func (s *StackConfig) Validate(_ context.Context) tfdiags.Diagnostics {
+	return s.checkRequiredProviders(ValidatePhase)
+}
+
+// PlanChanges implements Plannable.
+func (s *StackConfig) PlanChanges(_ context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	return nil, s.checkRequiredProviders(PlanPhase)
 }

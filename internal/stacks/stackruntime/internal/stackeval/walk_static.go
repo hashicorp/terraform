@@ -43,6 +43,11 @@ func walkStaticObjectsInStackConfig[Output any](
 	stackConfig *StackConfig,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj StaticEvaler),
 ) {
+	// Visit the StackConfig itself so it can validate required_providers entries
+	// that don't have an explicit "provider" block (those are checked by
+	// ProviderConfig, but pass-through providers are only declared here).
+	visit(ctx, walk, stackConfig)
+
 	for _, obj := range stackConfig.InputVariables() {
 		visit(ctx, walk, obj)
 	}
