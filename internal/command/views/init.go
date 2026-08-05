@@ -88,13 +88,14 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
 }
 
-func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitHuman) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.print(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageHuman, params...)
+	v.print(msg)
 }
 
 // Implements StateStoreProviderTrustLogger interface.
@@ -304,16 +305,18 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
-func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
 
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.Output(InitializingStateStoreProviderPluginMessage, params...)
+	v.view.log.Info(
+		msg,
+		"type", json.InitializingStateStoreProviderStart,
+	)
 }
 
 // Implements StateStoreProviderTrustLogger interface.
@@ -534,10 +537,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_state_store_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider %s%s for state store %q...",
-		JSONValue:  "Initializing provider %s%s for state store %q...",
-	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
 		JSONValue:  "Initializing the state store %q...",
@@ -638,21 +637,20 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage                 InitMessageCode = "copying_configuration_message"
-	OutputInitEmptyMessage                      InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage                    InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage               InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage                 InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage            InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage                     InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage           InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage                  InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage                  InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage               InitMessageCode = "initializing_state_store_message"
-	InitializingStateStoreProviderPluginMessage InitMessageCode = "initializing_state_store_provider_plugin_message"
-	InitializingProviderPluginMessage           InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                                    InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo                 InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
+	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
+	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                          InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 

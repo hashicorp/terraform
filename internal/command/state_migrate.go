@@ -543,7 +543,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore 
 			// which will be surfaced as diagnostic during installation
 			if !pAddr.IsZero() {
 				cons := reqs[pAddr]
-				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, stateStore.Type)
+				view.LogInitializingStateStoreProviderStart(pAddr, cons, stateStore.Type)
 			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
