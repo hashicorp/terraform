@@ -106,8 +106,7 @@ func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
 
 // policyNodesFromChange creates a nodeResourcePolicy from a ResourceInstanceChange.
 // For replace operations, two nodes are created: one for the create operation
-// and one for the delete operation, with the values swapped to reflect the
-// actual order of operations.
+// and one for the delete operation.
 func policyNodesFromChange(change *plans.ResourceInstanceChange) []*nodeResourcePolicy {
 	switch change.Action {
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
