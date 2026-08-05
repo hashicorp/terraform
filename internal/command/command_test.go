@@ -1293,6 +1293,8 @@ func checkGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, 
 // checkParameterizedGoldenReferenceHumanOutput compares a test fixture's log output with the given test output.
 // The log is expected to be in a file called "output.log" or "output-parameterized.log" located under the specified fixture path.
 //
+// If any parameters are provided, this function expects to find and use a "output-parameterized.jsonlog" file.
+//
 // The log can contain format specifiers that will be replaced with the given params, and these are only intended
 // for use when output references values like current platform or Terraform version.
 func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal.TestOutput, fixturePathName string, params ...interface{}) {
@@ -1343,8 +1345,30 @@ func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal
 func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
 	t.Helper()
 
+	// No params
+	checkParameterizedGoldenReference(t, output, fixturePathName)
+}
+
+// checkParameterizedGoldenReference compares a test fixture's log output with the given test JSON output.
+// The log is expected to be in a file called "output.jsonlog" or "output-parameterized.jsonlog" located under the specified fixture path.
+//
+// If any parameters are provided, this function expects to find and use a "output-parameterized.jsonlog" file.
+//
+// The log can contain format specifiers that will be replaced with the given params, and these are only intended
+// for use when output references values like current platform or Terraform version.
+func checkParameterizedGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string, params ...interface{}) {
+	t.Helper()
+
+	var expectedFilePath string
+
+	if len(params) > 0 {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output-parameterized.jsonlog")
+	} else {
+		expectedFilePath = path.Join(testFixturePath(fixturePathName), "output.jsonlog")
+	}
+
 	// Load the golden reference fixture
-	wantFile, err := os.Open(path.Join(testFixturePath(fixturePathName), "output.jsonlog"))
+	wantFile, err := os.Open(expectedFilePath)
 	if err != nil {
 		t.Fatalf("failed to open output file: %s", err)
 	}
@@ -1353,7 +1377,8 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if err != nil {
 		t.Fatalf("failed to read output file: %s", err)
 	}
-	want := string(wantBytes)
+	wantTemplate := string(wantBytes)
+	want := fmt.Sprintf(wantTemplate, params...)
 
 	checkGoldenReferenceStr(t, output, want)
 }

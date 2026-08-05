@@ -63,4 +63,14 @@ const (
 	MessagePolicyInfo             MessageType = "policy_info"
 	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
 	MessagePolicyEvaluationResult MessageType = "policy_result"
+
+	// Provider installation messages
+	InitializingStateStoreProviderStart MessageType = "state_store_provider_initialization_start"
+	DependencyLockFileCreated           MessageType = "dependency_lockfile_created"
+	DependencyLockFileUpdated           MessageType = "dependency_lockfile_updated"
+
+	// PSS messages
+	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
+	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
+	StateStoreProviderAutomationApproval   MessageType = "state_store_provider_automatic_approval"
 )

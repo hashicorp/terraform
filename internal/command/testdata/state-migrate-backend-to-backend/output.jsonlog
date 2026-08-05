@@ -1,0 +1,3 @@
+{"@level":"info","@message":"Terraform 1.16.0-dev","@module":"terraform.ui","@timestamp":"2026-07-20T17:37:42.389757+01:00","terraform":"1.16.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"[reset][bold]Migrating state from backend \"local\" to backend \"local\"...[reset]","@module":"terraform.ui","@timestamp":"2026-07-20T17:37:42.392448+01:00"}
+{"@level":"info","@message":"[reset][bold]Finished migrating state from backend \"local\" to backend \"local\".[reset]","@module":"terraform.ui","@timestamp":"2026-07-20T17:37:42.402661+01:00"}

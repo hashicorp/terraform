@@ -10,6 +10,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -25,6 +26,8 @@ type Init interface {
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	DependencyLockingLogger
+
+	StateStoreProviderTrustLogger
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -75,94 +78,121 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.prepareMessage(messageCode, params...))
+	v.print(v.prepareMessage(messageCode, params...))
 }
 
-func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitHuman) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.view.streams.Println(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageHuman, params...)
+	v.print(msg)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitHuman) LogInteractiveApproval() {
+	v.print(logInteractiveApprovalMessageHuman)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitHuman) LogInteractiveRejection() {
+	v.print(logInteractiveRejectionMessageHuman)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitHuman) LogAutomaticApproval() {
+	v.print(logInteractiveAutomaticApprovalMessageHuman)
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-	v.view.streams.Println(v.prepareMessage(FindingMatchingVersionMessage, params...))
+	v.print(v.prepareMessage(FindingMatchingVersionMessage, params...))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(FindingLatestVersionMessage, params...))
+	v.print(v.prepareMessage(FindingLatestVersionMessage, params...))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
+	v.print(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+	v.print(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
+	v.print(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
 }
 
 func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
+	v.print(v.prepareMessage(InstallingProviderMessage, params...))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{version, providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
+	v.print(v.prepareMessage(ReusingPreviousVersionInfo, params...))
 }
 
 func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
-	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
+	v.print(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
 // Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileCreated() {
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(LockInfo, params...))
+	v.print(v.prepareMessage(LockInfo, params...))
 }
 
 // Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileUpdated() {
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo, params...))
+	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleDownload(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
+	v.print(strings.TrimSpace(message))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
+	v.print(message)
 }
 
+// print formats (trims whitespace & applies colour) and
+// prints the formatted message to the stdout stream.
+func (v *InitHuman) print(message string) {
+	message = v.view.colorize.Color(strings.TrimSpace(message))
+	v.view.streams.Println(message)
+}
+
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitHuman the human message template is used.
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -174,7 +204,7 @@ func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) s
 		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
-	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
+	return fmt.Sprintf(message.HumanValue, params...)
 }
 
 // The InitJSON implementation renders streaming JSON logs, suitable for
@@ -244,16 +274,42 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
-func (v *InitJSON) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
 
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.Output(InitializingStateStoreProviderPluginMessage, params...)
+	v.view.log.Info(
+		msg,
+		"type", json.InitializingStateStoreProviderStart,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitJSON) LogInteractiveApproval() {
+	v.view.log.Info(
+		logInteractiveApprovalMessageJSON,
+		"type", json.StateStoreProviderInteractiveApproval,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitJSON) LogInteractiveRejection() {
+	v.view.log.Info(
+		logInteractiveRejectionMessageJSON,
+		"type", json.StateStoreProviderInteractiveRejection,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (v *InitJSON) LogAutomaticApproval() {
+	v.view.log.Info(
+		logInteractiveAutomaticApprovalMessageJSON,
+		"type", json.StateStoreProviderAutomationApproval,
+	)
 }
 
 func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
@@ -365,6 +421,10 @@ func (v *InitJSON) LogModuleInstallation(message string) {
 	v.view.Log(message)
 }
 
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitJSON the JSON message template is used.
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -430,25 +490,9 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_state_store_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider %s%s for state store %q...",
-		JSONValue:  "Initializing provider %s%s for state store %q...",
-	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
 		JSONValue:  "Initializing the state store %q...",
-	},
-	"state_store_provider_interactive_approved_message": {
-		HumanValue: "\n[reset][bold]The state store provider was approved by the user.",
-		JSONValue:  "The state store provider was approved by the user.",
-	},
-	"state_store_provider_interactive_rejected_message": {
-		HumanValue: "\n[reset][bold]The state store provider was rejected by the user.",
-		JSONValue:  "The state store provider was rejected by the user.",
-	},
-	"state_store_provider_automation_approved_message": {
-		HumanValue: "\n[reset][bold]The state store provider was approved automatically.",
-		JSONValue:  "The state store provider was approved automatically.",
 	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
@@ -546,24 +590,20 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage                  InitMessageCode = "copying_configuration_message"
-	OutputInitEmptyMessage                       InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage                     InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage                InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage                  InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage             InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage                      InitMessageCode = "upgrading_modules_message"
-	InitializingTerraformCloudMessage            InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage                   InitMessageCode = "initializing_modules_message"
-	InitializingBackendMessage                   InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage                InitMessageCode = "initializing_state_store_message"
-	InitializingStateStoreProviderPluginMessage  InitMessageCode = "initializing_state_store_provider_plugin_message"
-	StateStoreProviderInteractiveApprovedMessage InitMessageCode = "state_store_provider_interactive_approved_message"
-	StateStoreProviderInteractiveRejectedMessage InitMessageCode = "state_store_provider_interactive_rejected_message"
-	StateStoreProviderAutomationApprovedMessage  InitMessageCode = "state_store_provider_automation_approved_message"
-	InitializingProviderPluginMessage            InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                                     InitMessageCode = "lock_info"
-	DependenciesLockChangesInfo                  InitMessageCode = "dependencies_lock_changes_info"
+	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
+	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
+	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
+	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
+	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
+	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
+	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
+	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
+	LockInfo                          InitMessageCode = "lock_info"
+	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
