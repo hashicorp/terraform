@@ -7,4 +7,7 @@ type ModuleInstallationLogger interface {
 	// TODO: Refactor calling code so that these methods can format the messages internally
 	LogModuleDownload(message string)
 	LogModuleInstallation(message string)
+
+	LogModuleUpgrade()
+	LogModuleInitialization()
 }
