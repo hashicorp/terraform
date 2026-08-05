@@ -79,7 +79,8 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+	evalResult := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+	result := evalResult.EvaluationResponse
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

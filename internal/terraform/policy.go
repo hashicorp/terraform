@@ -24,7 +24,30 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+// perCallTimeoutDiagMsg is the sentinel detail fragment appended to diagnostics
+// when an individual EvaluateResource RPC exceeds its per-call timeout.
+// Tests use this constant to assert the exact diagnostic content without
+// coupling to the full message format.
+const perCallTimeoutDiagMsg = "Policy evaluation timed out for this resource. The per-call timeout was exceeded."
+
+// overallDeadlineExceededDiagMsg is the sentinel detail fragment appended to
+// diagnostics when the overall policy-pass deadline fires before a resource
+// can be evaluated. Tests use this constant for the same reason.
+const overallDeadlineExceededDiagMsg = "Policy evaluation exceeded the overall pass deadline and could not be completed for this resource."
+
+// evaluatePoliciesResult is the return type of evaluatePolicies. It bundles the
+// EvaluationResponse with a flag indicating whether the per-call timeout fired
+// so callers can rewrite diagnostics with a human-readable timeout message.
+type evaluatePoliciesResult struct {
+	policy.EvaluationResponse
+
+	// PerCallTimedOut is true when the per-call context deadline was exceeded
+	// (rpcCtx.Err() != nil) while the parent evalCtx was still live. Callers
+	// use this to distinguish a per-call timeout from an ordinary policy error.
+	PerCallTimedOut bool
+}
+
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) evaluatePoliciesResult {
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
@@ -34,7 +57,19 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 		}
 	}
 
-	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+	// Wrap the RPC call with a per-call timeout if configured. The per-call
+	// context is derived from evalCtx so it is automatically cancelled when
+	// evalCtx is cancelled (e.g. parent request cancellation). Cancellation
+	// of the per-call timeout does NOT cancel evalCtx, preserving the ability
+	// to evaluate subsequent resources after a single call times out.
+	rpcCtx := evalCtx
+	var perCallCancel context.CancelFunc
+	if pg := ctx.PolicyGraph(); pg != nil && pg.timeouts.PerCall > 0 {
+		rpcCtx, perCallCancel = context.WithTimeout(evalCtx, pg.timeouts.PerCall)
+		defer perCallCancel()
+	}
+
+	resp := ctx.PolicyClient().EvaluateResource(rpcCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
 		Attrs:      policy.CtyToPolicyValue(attrs),
 		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
@@ -42,13 +77,21 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 		Callbacks:  callbacks,
 	})
 
+	// Detect whether the per-call timeout fired: the per-call context is done
+	// but the parent context is still live. We must check rpcCtx before
+	// cancelFunc runs so the deadline detection is accurate.
+	perCallTimedOut := false
+	if perCallCancel != nil && rpcCtx.Err() != nil && evalCtx.Err() == nil {
+		perCallTimedOut = true
+	}
+
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
 	// for such errors.
 	if config != nil {
-		result = result.WithLocalRange(config.DeclRange.Ptr())
+		resp = resp.WithLocalRange(config.DeclRange.Ptr())
 	}
 
-	return result
+	return evaluatePoliciesResult{EvaluationResponse: resp, PerCallTimedOut: perCallTimedOut}
 }
 
 func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
