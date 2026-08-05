@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: Fixed validation to ensure the provider versions in the lock file and configuration are compatible.'
+time: 2026-08-04T17:23:09.662989-04:00
+custom:
+    Issue: "38829"
