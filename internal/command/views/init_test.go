@@ -880,7 +880,7 @@ func TestNewInit_LogPartnerAndCommunityProviders_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogInitializingStateStoreProviderPlugin_json(t *testing.T) {
+func TestNewInit_LogInitializingStateStoreProviderStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
@@ -888,7 +888,7 @@ func TestNewInit_LogInitializingStateStoreProviderPlugin_json(t *testing.T) {
 	pAddr := addrs.NewDefaultProvider("test")
 	cons := getproviders.MustParseVersionConstraints("~> 1.0")
 	storeType := "test_store"
-	initView.LogInitializingStateStoreProviderPlugin(pAddr, cons, storeType)
+	initView.LogInitializingStateStoreProviderStart(pAddr, cons, storeType)
 
 	// Assert output
 	output := done(t)
