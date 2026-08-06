@@ -17,17 +17,18 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 	integrationContext, writer := newMockIntegrationContext(b, t)
 
 	cases := map[string]struct {
-		taskStage       func() *tfe.TaskStage
-		context         *IntegrationContext
-		writer          *testIntegrationOutput
-		expectedOutputs []string
-		isError         bool
+		taskStage        func() *tfe.TaskStage
+		context          *IntegrationContext
+		writer           *testIntegrationOutput
+		expectedOutputs  []string
+		expectedContinue bool
+		isError          bool
 	}{
 		"all-succeeded": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: "passed", PolicyKind: "opa"},
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.OPA},
 				}
 				return ts
 			},
@@ -40,7 +41,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: "failed", PolicyKind: "opa"},
+					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.OPA},
 				}
 				return ts
 			},
@@ -53,7 +54,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{AdvisoryFailed: 1}, Status: "failed", PolicyKind: "opa"},
+					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{AdvisoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.OPA},
 				}
 				return ts
 			},
@@ -66,7 +67,7 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: "unreachable", PolicyKind: "opa"},
+					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: tfe.PolicyEvaluationUnreachable, PolicyKind: tfe.OPA},
 				}
 				return ts
 			},
@@ -74,6 +75,169 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			context:         integrationContext,
 			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
+		},
+		"pending-with-running-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageRunning}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:           writer,
+			context:          integrationContext,
+			expectedOutputs:  []string{"Evaluating ... "},
+			expectedContinue: true,
+			isError:          false,
+		},
+		"unreachable-with-pending-in-terminal-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+					{ID: "pol-unreachable", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: tfe.PolicyEvaluationUnreachable, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-passed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStagePassed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"mixed-pending-and-completed-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.OPA},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"OPA Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
+				"Skipping 1 pending policy evaluation(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"multiple-mixed-states-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.OPA},
+					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.OPA},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationQueued, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"OPA Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"Overall Result: [red]FAILED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
+				"Skipping 2 pending policy evaluation(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.OPA},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"OPA Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is canceled.",
+				"Skipping 1 pending policy evaluation(s) because task stage is canceled.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.OPA},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.OPA},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"OPA Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is errored.",
+				"Skipping 1 pending policy evaluation(s) because task stage is errored.",
+			},
+			isError: false,
 		},
 	}
 
@@ -83,9 +247,12 @@ func TestCloud_runTaskStageWithOPAPolicyEvaluation(t *testing.T) {
 			cloud: b,
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
-			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
-			if cont {
-				return true, nil
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			if cont != c.expectedContinue {
+				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
 			}
 
 			output := c.writer.output.String()
@@ -106,17 +273,18 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 	integrationContext, writer := newMockIntegrationContext(b, t)
 
 	cases := map[string]struct {
-		taskStage       func() *tfe.TaskStage
-		context         *IntegrationContext
-		writer          *testIntegrationOutput
-		expectedOutputs []string
-		isError         bool
+		taskStage        func() *tfe.TaskStage
+		context          *IntegrationContext
+		writer           *testIntegrationOutput
+		expectedOutputs  []string
+		expectedContinue bool
+		isError          bool
 	}{
 		"all-succeeded": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: "passed", PolicyKind: "sentinel"},
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.Sentinel},
 				}
 				return ts
 			},
@@ -129,7 +297,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: "failed", PolicyKind: "sentinel"},
+					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.Sentinel},
 				}
 				return ts
 			},
@@ -142,7 +310,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{AdvisoryFailed: 1}, Status: "failed", PolicyKind: "sentinel"},
+					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{AdvisoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.Sentinel},
 				}
 				return ts
 			},
@@ -155,7 +323,7 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
-					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: "unreachable", PolicyKind: "sentinel"},
+					{ID: "adv-fail", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: tfe.PolicyEvaluationUnreachable, PolicyKind: tfe.Sentinel},
 				}
 				return ts
 			},
@@ -163,6 +331,169 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			context:         integrationContext,
 			expectedOutputs: []string{"Skipping policy evaluation."},
 			isError:         false,
+		},
+		"pending-with-running-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageRunning}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:           writer,
+			context:          integrationContext,
+			expectedOutputs:  []string{"Evaluating ... "},
+			expectedContinue: true,
+			isError:          false,
+		},
+		"unreachable-with-pending-in-terminal-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+					{ID: "pol-unreachable", ResultCount: &tfe.PolicyResultCount{Errored: 1}, Status: tfe.PolicyEvaluationUnreachable, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"pending-with-passed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStagePassed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping policy evaluation."},
+			isError:         false,
+		},
+		"mixed-pending-and-completed-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.Sentinel},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"Sentinel Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
+				"Skipping 1 pending policy evaluation(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"multiple-mixed-states-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.Sentinel},
+					{ID: "pol-fail", ResultCount: &tfe.PolicyResultCount{MandatoryFailed: 1}, Status: tfe.PolicyEvaluationFailed, PolicyKind: tfe.Sentinel},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+					{ID: "pol-pending-2", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationQueued, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"Sentinel Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"Overall Result: [red]FAILED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is failed.",
+				"Skipping 2 pending policy evaluation(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.Sentinel},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"Sentinel Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is canceled.",
+				"Skipping 1 pending policy evaluation(s) because task stage is canceled.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.PolicyEvaluations = []*tfe.PolicyEvaluation{
+					{ID: "pol-pass", ResultCount: &tfe.PolicyResultCount{Passed: 1}, Status: tfe.PolicyEvaluationPassed, PolicyKind: tfe.Sentinel},
+					{ID: "pol-pending", ResultCount: &tfe.PolicyResultCount{}, Status: tfe.PolicyEvaluationPending, PolicyKind: tfe.Sentinel},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"Sentinel Policy Evaluation",
+				"Overall Result: [green]PASSED",
+				"[dim]skipped",
+				"Pending policy evaluation skipped as task stage is errored.",
+				"Skipping 1 pending policy evaluation(s) because task stage is errored.",
+			},
+			isError: false,
 		},
 	}
 
@@ -172,9 +503,12 @@ func TestCloud_runTaskStageWithSentinelPolicyEvaluation(t *testing.T) {
 			cloud: b,
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
-			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
-			if cont {
-				return true, nil
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			if cont != c.expectedContinue {
+				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
 			}
 
 			output := c.writer.output.String()
