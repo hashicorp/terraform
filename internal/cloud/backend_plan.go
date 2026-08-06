@@ -86,7 +86,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		))
 	}
 
-	// TODO:@austinvalle: we should probably add this rather than returning an error :P
+	// TODO:@austinvalle: This will eventually be added to HCPT / go-tfe and should be removed
 	if op.PlanMinimalRefresh {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
