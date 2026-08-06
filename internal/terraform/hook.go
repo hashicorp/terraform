@@ -74,8 +74,8 @@ type Hook interface {
 	// PreDiff and PostDiff are called before and after a provider is given
 	// the opportunity to customize the proposed new state to produce the
 	// planned new state.
-	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error)
-	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error)
+	PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error)
+	PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error)
 
 	// The provisioning hooks signal both the overall start end end of
 	// provisioning for a particular instance and of each of the individual
@@ -179,11 +179,11 @@ func (*NilHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (*NilHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (*NilHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
