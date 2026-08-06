@@ -77,6 +77,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			// Don't render anything for deleted data sources.
 			continue
 		}
+				// Skip data sources that are reloaded only for check block verification
+		if action == plans.Read && diff.change.Mode == jsonstate.DataResourceMode &&
+			diff.change.ActionReason == jsonplan.ResourceInstanceReadBecauseCheckNested {
+			continue
+		}
 
 		changes = append(changes, diff)
 
@@ -395,6 +400,13 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 		// Skip resource changes that have nothing interesting to say.
 		return "", false
 	}
+		// Skip data sources that are reloaded only for check block verification
+	if diff.change.Mode == jsonstate.DataResourceMode &&
+		diff.change.ActionReason == jsonplan.ResourceInstanceReadBecauseCheckNested &&
+		action == plans.Read {
+		return "", false
+	}
+
 
 	var buf bytes.Buffer
 	buf.WriteString(renderer.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
