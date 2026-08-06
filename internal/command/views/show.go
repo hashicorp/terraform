@@ -37,15 +37,20 @@ func NewShow(vt arguments.ViewType, view *View) Show {
 	switch vt {
 	case arguments.ViewJSON:
 		return &ShowJSON{view: view}
+	case arguments.ViewJSONRedacted:
+		return &ShowJSON{view: view, redacted: true}
 	case arguments.ViewHuman:
 		return &ShowHuman{view: view}
+	case arguments.ViewHumanRedacted:
+		return &ShowHuman{view: view, redacted: true}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
 	}
 }
 
 type ShowHuman struct {
-	view *View
+	view     *View
+	redacted bool
 }
 
 var _ Show = (*ShowHuman)(nil)
@@ -87,6 +92,15 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			v.view.streams.Eprintf("Couldn't decode renderable JSON plan format: %s", err)
 		}
 
+		if v.redacted {
+			redacted, err := p.Redacted()
+			if err != nil {
+				v.view.streams.Eprintf("Failed to redact plan: %s", err)
+				return 1
+			}
+			p = redacted
+		}
+
 		v.view.streams.Print(v.view.colorize.Color(planJSON.RunHeader + "\n"))
 		renderer.RenderHumanPlan(p, planJSON.Mode, planJSON.Qualities...)
 		v.view.streams.Print(v.view.colorize.Color("\n" + planJSON.RunFooter + "\n"))
@@ -106,6 +120,15 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 			RelevantAttributes:    attrs,
 			ActionInvocations:     actions,
+		}
+
+		if v.redacted {
+			redacted, err := jplan.Redacted()
+			if err != nil {
+				v.view.streams.Eprintf("Failed to redact plan: %s", err)
+				return 1
+			}
+			jplan = redacted
 		}
 
 		var opts []plans.Quality
@@ -146,7 +169,8 @@ func (v *ShowHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ShowJSON struct {
-	view *View
+	view     *View
+	redacted bool
 }
 
 var _ Show = (*ShowJSON)(nil)
