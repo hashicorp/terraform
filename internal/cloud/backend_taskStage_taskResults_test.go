@@ -85,18 +85,19 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 	integrationContext, writer := newMockIntegrationContext(b, t)
 
 	cases := map[string]struct {
-		taskStage       func() *tfe.TaskStage
-		context         *IntegrationContext
-		writer          *testIntegrationOutput
-		expectedOutputs []string
-		isError         bool
+		taskStage        func() *tfe.TaskStage
+		context          *IntegrationContext
+		writer           *testIntegrationOutput
+		expectedOutputs  []string
+		expectedContinue bool
+		isError          bool
 	}{
 		"all-succeeded": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -109,8 +110,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "500 Error", Status: tfe.TaskFailed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -123,8 +124,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "500 Error", Status: tfe.TaskFailed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -137,8 +138,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskUnreachable, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskUnreachable, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -147,12 +148,40 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			expectedOutputs: []string{"Skipping"},
 			isError:         false,
 		},
+		"pending-with-running-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageRunning}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+				}
+				return ts
+			},
+			writer:           writer,
+			context:          integrationContext,
+			expectedOutputs:  []string{"tasks still pending"},
+			expectedContinue: true,
+			isError:          false,
+		},
+		"pending-with-passed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStagePassed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
 		"pending-with-failed-task-stage": {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -165,8 +194,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -179,8 +208,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "running", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -193,8 +222,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "Still running", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "Still running", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -211,8 +240,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -229,8 +258,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			taskStage: func() *tfe.TaskStage {
 				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
 				ts.TaskResults = []*tfe.TaskResult{
-					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-					{ID: "2", TaskName: "Advisory", Message: "", Status: "pending", WorkspaceTaskEnforcementLevel: "advisory"},
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
 				}
 				return ts
 			},
@@ -252,8 +281,8 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 		}
 		c.context.Poll(0, 0, func(i int) (bool, error) {
 			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
-			if cont {
-				return true, nil
+			if cont != c.expectedContinue {
+				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
 			}
 
 			output := c.writer.output.String()
@@ -262,7 +291,7 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
 				}
 			}
-			return false, nil
+			return cont, nil
 		})
 	}
 }
