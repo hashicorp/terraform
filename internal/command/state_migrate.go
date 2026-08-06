@@ -380,7 +380,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	view.Diagnostics(diags) // Log any warnings
 
-	view.Log(views.StateMigrationFinalizedMessage, source, destination)
+	view.LogStateMigrationFinalized(source, destination)
 
 	return 0
 }

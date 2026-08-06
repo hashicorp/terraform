@@ -75,4 +75,5 @@ const (
 	// State Migration messages (`state migrate` command)
 	StateMigrationStart                             MessageType = "migration_start"
 	StateMigrationComplete                          MessageType = "migration_complete"
+	StateMigrationFinalized                         MessageType = "migration_finalized"
 )
