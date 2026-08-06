@@ -37,47 +37,6 @@ func (s testNamedString) Name() string {
 	return string(s)
 }
 
-func TestAcyclicGraphRoot(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-	g.Connect(testV(3), testV(1))
-
-	if root, err := g.Root(); err != nil {
-		t.Fatalf("err: %s", err)
-	} else if root != testV(3) {
-		t.Fatalf("bad: %#v", root)
-	}
-}
-
-func TestAcyclicGraphRoot_cycle(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(1), testV(2))
-	g.Connect(testV(2), testV(3))
-	g.Connect(testV(3), testV(1))
-
-	if _, err := g.Root(); err == nil {
-		t.Fatal("should error")
-	}
-}
-
-func TestAcyclicGraphRoot_multiple(t *testing.T) {
-	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(testV(3))
-	g.Connect(testV(3), testV(2))
-
-	if _, err := g.Root(); err == nil {
-		t.Fatal("should error")
-	}
-}
-
 func TestAyclicGraphTransReduction(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))

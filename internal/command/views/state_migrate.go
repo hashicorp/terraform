@@ -50,6 +50,8 @@ type StateMigrate interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	ProviderInstallationLogger
+	DependencyLockingLogger
+
 	Spacer // The `state migrate` command logs empty lines to space-out different sections of human-readable output
 }
 
@@ -179,6 +181,16 @@ func (s *StateMigrateHuman) LogProviderVersionSuccessWithKeyID(providerAddr addr
 func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
 	s.log(msg)
+}
+
+// Implements DependencyLockLogger interface.
+func (s *StateMigrateHuman) LogDependencyLockfileCreated() {
+	s.log(previousLockInfoHuman)
+}
+
+// Implements DependencyLockLogger interface.
+func (s *StateMigrateHuman) LogDependencyLockfileUpdated() {
+	s.log(dependenciesLockChangesInfo)
 }
 
 // Implements ProviderInstallationLogger interface.

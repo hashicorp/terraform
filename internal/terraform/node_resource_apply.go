@@ -80,8 +80,6 @@ func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*
 		diags = diags.Append(expDiags)
 	}
 
-	addRootNodeToGraph(&g)
-
 	return &g, diags
 }
 
@@ -145,9 +143,6 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 		// TODO:@austinvalle: Is this even needed? Targets seems to only be included for
 		// legacy reasons... I should look into this a little deeper (also it's just ephemeral? can you expand an ephemeral resource during apply?)
 		&ExcludesTransformer{Excludes: n.Excludes},
-
-		// Make sure there is a single root
-		&RootTransformer{},
 	}
 
 	// Build the graph

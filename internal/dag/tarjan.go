@@ -3,7 +3,9 @@
 
 package dag
 
-import "slices"
+import (
+	"slices"
+)
 
 // StronglyConnected returns the list of strongly connected components
 // within the Graph g. This information is primarily used by this package
@@ -58,7 +60,7 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	return minIdx
 }
 
-// sccAcct is used ot pass around accounting information for
+// sccAcct is used to pass around accounting information for
 // the StronglyConnectedComponents algorithm
 type sccAcct struct {
 	NextIndex   int

@@ -46,20 +46,6 @@ func TestBasicGraphBuilder(t *testing.T) {
 	}
 }
 
-func TestBasicGraphBuilder_validate(t *testing.T) {
-	b := &BasicGraphBuilder{
-		Steps: []GraphTransformer{
-			&testBasicGraphBuilderTransform{testV(1)},
-			&testBasicGraphBuilderTransform{testV(2)},
-		},
-	}
-
-	_, err := b.Build(addrs.RootModuleInstance)
-	if err == nil {
-		t.Fatal("should error")
-	}
-}
-
 type testBasicGraphBuilderTransform struct {
 	V dag.Vertex
 }
