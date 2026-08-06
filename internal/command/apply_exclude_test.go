@@ -55,12 +55,7 @@ func TestApplyDestroy_excluded(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		// TODO:@austinvalle: I know the dependencies in destroy work differently, so excluding baz won't
-		// automatically exclude quux. Investigate this further to understand it and see if there
-		// are some use-cases to document for practitioners to understand this. (targeting might not
-		// have this problem?)
 		"-exclude", "test_instance.baz",
-		"-exclude", "test_instance.quux",
 	}
 	code := c.Run(args)
 	output := done(t)
@@ -68,7 +63,7 @@ func TestApplyDestroy_excluded(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if got, want := output.Stdout(), "Resources: 2 destroyed."; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "Resources: 1 destroyed."; !strings.Contains(got, want) {
 		t.Fatalf("expected destroy summary %q, got:\n%s", want, got)
 	}
 }
@@ -101,6 +96,9 @@ func excludeFixtureState(t *testing.T) *states.State {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"bar"}`),
 				Status:    states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{
+					mustResourceAddr("test_instance.foo"),
+				},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -116,6 +114,10 @@ func excludeFixtureState(t *testing.T) *states.State {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"baz"}`),
 				Status:    states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{
+					mustResourceAddr("test_instance.bar"),
+					mustResourceAddr("test_instance.foo"),
+				},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
@@ -131,6 +133,11 @@ func excludeFixtureState(t *testing.T) *states.State {
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"id":"quux"}`),
 				Status:    states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{
+					mustResourceAddr("test_instance.bar"),
+					mustResourceAddr("test_instance.baz"),
+					mustResourceAddr("test_instance.foo"),
+				},
 			},
 			addrs.AbsProviderConfig{
 				Provider: addrs.NewDefaultProvider("test"),
