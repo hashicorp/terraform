@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -29,7 +28,7 @@ func TestStatePush_empty(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -63,7 +62,7 @@ func TestStatePush_stateStore(t *testing.T) {
 	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -104,7 +103,7 @@ func TestStatePush_lockedState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -138,7 +137,7 @@ func TestStatePush_replaceMatch(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -175,7 +174,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 	defer testStdinPipe(t, &buf)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -205,7 +204,7 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 	expected := testStateRead(t, "local-state.tfstate")
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -235,7 +234,7 @@ func TestStatePush_serialNewer(t *testing.T) {
 	expected := testStateRead(t, "local-state.tfstate")
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -265,7 +264,7 @@ func TestStatePush_serialOlder(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
@@ -296,7 +295,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	statePath := testStateFile(t, s)
 
 	// init the backend
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{Ui: ui, View: view},
@@ -306,7 +305,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	}
 
 	// create a new workspace
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
@@ -328,7 +327,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	}
 
 	// push our local state to that new workspace
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &StatePushCommand{
 		Meta: Meta{Ui: ui, View: view},
 	}
@@ -344,7 +343,7 @@ func TestStatePush_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
@@ -370,7 +369,7 @@ func TestStatePush_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
@@ -407,7 +406,7 @@ module.replaced:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
@@ -442,7 +441,7 @@ func TestStatePush_checkRequiredVersion(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{

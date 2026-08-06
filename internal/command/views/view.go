@@ -190,6 +190,13 @@ func (v *View) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	}
 }
 
+var _ Spacer = (*View)(nil)
+
+// Spacer logs an empty line to space-out human-readable output.
+func (v *View) Spacer() {
+	v.streams.Println()
+}
+
 // HelpPrompt is intended to be called from commands which fail to parse all
 // of their CLI arguments successfully. It refers users to the full help output
 // rather than rendering it directly, which can be overwhelming and confusing.

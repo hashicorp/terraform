@@ -105,14 +105,6 @@ func (v *JSONView) PlannedActionInvocation(action *json.ActionInvocation) {
 	)
 }
 
-func (v *JSONView) AppliedActionInvocation(action *json.ActionInvocation) {
-	v.log.Info(
-		fmt.Sprintf("applied action invocation: %s", action.Action.Action),
-		"type", json.MessageAppliedActionInvocation,
-		"invocation", action,
-	)
-}
-
 func (v *JSONView) ResourceDrift(c *json.ResourceInstanceChange) {
 	v.log.Info(
 		fmt.Sprintf("%s: Drift detected (%s)", c.Resource.Addr, c.Action),
@@ -227,4 +219,11 @@ func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any
 	default:
 		v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
 	}
+}
+
+var _ Spacer = (*JSONView)(nil)
+
+// Spacer is a no-op for JSON view, as empty lines are not needed to space-out logs in machine-readable output.
+func (v *JSONView) Spacer() {
+	// do nothing
 }

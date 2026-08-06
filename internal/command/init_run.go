@@ -98,7 +98,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		}
 		span.End()
 
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If our directory is empty, then we're done. We can't get or set up
@@ -122,7 +122,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	// be the first error displayed if that is an issue, but other operations are required
 	// before being able to check core version requirements.
 	if rootModEarly == nil {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)), earlyConfDiags)
+		diags = diags.Append(errors.New(errInitConfigError), earlyConfDiags)
 		view.Diagnostics(diags)
 
 		return 1
@@ -229,26 +229,26 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 			}
 		}
 
-		var configProvidersOutput bool
-		var safeInstallAction SafeStateStoreProviderInstallAction
+		var getPSSProviderOutput bool
+		var trust ProviderTrust
 		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var configProviderDiags tfdiags.Diagnostics
-		configProvidersOutput, pssLock, safeInstallAction, stateStoreProviderAuthResult, configProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
-		diags = diags.Append(configProviderDiags)
-		if configProviderDiags.HasErrors() {
+		var getPSSProviderDiags tfdiags.Diagnostics
+		getPSSProviderOutput, pssLock, trust, stateStoreProviderAuthResult, getPSSProviderDiags = c.getProvidersFromPSSConfig(ctx, rootModEarly, alteredPreviousLocks, allowUpgrade, initArgs.PluginPath, initArgs.Lockfile, view)
+		diags = diags.Append(getPSSProviderDiags)
+		if getPSSProviderDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
-		if configProvidersOutput {
+		if getPSSProviderOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 
-		// Course of action depends on the SafeStateStoreProviderInstallAction returned from getProvidersFromPSSConfig
-		safeDiags := c.handleSafeProviderInstallAction(safeInstallAction, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
-		diags = diags.Append(safeDiags)
-		if safeDiags.HasErrors() {
+		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+		trustDiags := c.confirmProviderIsTrusted(trust, rootModEarly.StateStore.ProviderAddr, stateStoreProviderAuthResult, pssLock, alteredPreviousLocks, initArgs.StateStoreProviderLockFile, c, view)
+		diags = diags.Append(trustDiags)
+		if trustDiags.HasErrors() {
 			view.Diagnostics(diags)
 			return 1
 		}
@@ -276,7 +276,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if backendOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Set up the policy client now that the backend is configured, so the
@@ -343,7 +343,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		if modsOutput {
 			// If we outputted information, then we need to output a newline
 			// so that our success message is nicely spaced out from prior text.
-			view.Output(views.EmptyMessage)
+			view.Spacer()
 		}
 	}
 
@@ -370,7 +370,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	diags = diags.Append(earlyConfDiags)
 	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -385,7 +385,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// 3. Show any errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
-		diags = diags.Append(errors.New(view.PrepareMessage(views.InitConfigError)))
+		diags = diags.Append(errors.New(errInitConfigError))
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -409,16 +409,16 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 		// `getProviders`, else that method could download the PSS provider a second time, or download a different version.
 		previousLocksWithPSSOverride = c.mergeLockedDependencies(pssLock, previousLocksWithPSSOverride)
 	}
-	stateProvidersOutput, finalLocks, stateProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
-	diags = diags.Append(stateProvidersDiags)
-	if stateProvidersDiags.HasErrors() {
+	getProvidersOutput, finalLocks, getProvidersDiags := c.getProviders(ctx, config, state, initArgs.Upgrade, previousLocksWithPSSOverride, initArgs.PluginPath, view, providerHook)
+	diags = diags.Append(getProvidersDiags)
+	if getProvidersDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
-	if stateProvidersOutput {
+	if getProvidersOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// Update the dependency lock file, if it has changed.
@@ -438,7 +438,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if lockFileOutput {
 		// If we outputted information, then we need to output a newline
 		// so that our success message is nicely spaced out from prior text.
-		view.Output(views.EmptyMessage)
+		view.Spacer()
 	}
 
 	// If we accumulated any warnings along the way that weren't accompanied

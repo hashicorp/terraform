@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -596,7 +595,7 @@ func TestShow_json_output(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
@@ -705,7 +704,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -796,7 +795,7 @@ func TestShow_json_output_actions(t *testing.T) {
 	p := showFixtureProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -892,7 +891,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -1002,7 +1001,7 @@ func TestShow_json_output_state(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, _ := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{

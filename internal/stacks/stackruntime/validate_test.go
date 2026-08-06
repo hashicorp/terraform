@@ -349,14 +349,14 @@ func TestValidate_valid(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lock.SetProvider(
 				addrs.NewDefaultProvider("other"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -396,14 +396,14 @@ func TestValidate_invalid(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lock.SetProvider(
 				addrs.NewDefaultProvider("other"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -535,8 +535,8 @@ Terraform uses references to decide a suitable order for performing operations, 
 				for addr := range tc.providers {
 					locks.SetProvider(
 						addr,
-						providerreqs.MustParseVersion("0.0.0"),
-						providerreqs.MustParseVersionConstraints("=0.0.0"),
+						providerreqs.MustParseVersion("0.1.0"),
+						providerreqs.MustParseVersionConstraints("0.1.0"),
 						providerreqs.PreferredHashes([]providerreqs.Hash{}),
 					)
 				}
@@ -550,6 +550,62 @@ Terraform uses references to decide a suitable order for performing operations, 
 			testContext.Validate(t, ctx, TestCycle{
 				wantValidateDiags: tc.wantDiags,
 			})
+		})
+	}
+}
+
+// TestValidate_versionMismatch verifies that a version mismatch between the
+// lock file and required_providers is reported as an error during validation.
+// Two scenarios are tested: a stack with an explicit "provider" block, and one
+// where the provider is only declared in required_providers and passed through
+// to an embedded stack.
+func TestValidate_versionMismatch(t *testing.T) {
+	cases := []struct {
+		name      string
+		configDir string
+		fatalMsg  string
+	}{
+		{
+			// "with-single-input/valid" has both required_providers and a
+			// provider block (direct code path through ProviderConfig.checkValid).
+			name:      "withProviderBlock",
+			configDir: "with-single-input/valid",
+			fatalMsg:  "expected version mismatch error, got none",
+		},
+		{
+			// "policy-evaluation-embedded-stack" has required_providers in the
+			// root stack config but the provider block lives only in the
+			// embedded stack.
+			name:      "passThroughProvider",
+			configDir: "policy-evaluation-embedded-stack",
+			fatalMsg:  "expected version mismatch error for pass-through provider, got none",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, tc.configDir)
+			// Lock says 0.2.0, but configs say version = "0.1.0".
+			lock := buildVersionMismatchLock()
+
+			gotDiags := Validate(ctx, &ValidateRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(t), nil
+					},
+				},
+				DependencyLocks:    lock,
+				ExperimentsAllowed: true,
+			})
+
+			if !gotDiags.HasErrors() {
+				t.Fatal(tc.fatalMsg)
+			}
+			if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
+				t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
+			}
 		})
 	}
 }

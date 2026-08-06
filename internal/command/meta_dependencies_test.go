@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
@@ -110,7 +109,7 @@ func Test_mergeLockedDependencies(t *testing.T) {
 			td := t.TempDir()
 			t.Chdir(td)
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, _ := testView(t)
 
 			m := Meta{

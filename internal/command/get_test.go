@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
@@ -18,7 +16,7 @@ func TestGet(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -42,7 +40,7 @@ func TestGet_multipleArgs(t *testing.T) {
 	wd := tempWorkingDir(t)
 	t.Chdir(wd.RootModuleDir())
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -64,7 +62,7 @@ func TestGet_update(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -98,7 +96,7 @@ func TestGet_cancel(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -124,7 +122,7 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -149,7 +147,7 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -182,7 +180,7 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),

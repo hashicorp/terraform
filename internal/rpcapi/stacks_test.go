@@ -505,8 +505,8 @@ func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	stacksServer.providerDependencyLockOverride = lock
@@ -580,8 +580,8 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	stacksServer.providerDependencyLockOverride = lock
@@ -661,8 +661,8 @@ func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	stacksServer.providerDependencyLockOverride = lock
@@ -781,8 +781,8 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	stacksServer.providerDependencyLockOverride = lock
@@ -1424,8 +1424,8 @@ func TestStackChangeProgressDuringPlanNormal(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			stacksServer.providerDependencyLockOverride = lock
@@ -1651,8 +1651,8 @@ func TestStackChangeProgressDuringPlanDestroy(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			stacksServer.providerDependencyLockOverride = lock
@@ -1905,8 +1905,8 @@ func TestStackChangeProgressDuringApply(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			stacksServer.providerDependencyLockOverride = lock
@@ -2392,8 +2392,8 @@ func TestStacksMigrateTerraformState(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lockHandle := handles.NewDependencyLocks(lock)
@@ -2610,7 +2610,7 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 			Alias:     "default",
 			Namespace: "hashicorp",
 			Source:    "registry.terraform.io/hashicorp/testing",
-			Version:   "0.0.0",
+			Version:   "0.1.0",
 		}
 		if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
 			t.Fatalf("unexpected provider metadata\n%s", diff)
@@ -2624,6 +2624,13 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 		return policy.EvaluationResponse{
 			Overall:  policy.DenyResult,
 			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:  policy.AllowResult,
+					Message: "just an advisory message",
+					Policy:  policyObj(policy.AllowResult),
+				},
+			},
 			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
 				{
 					Severity: policyproto.Severity_ERROR,
@@ -2684,6 +2691,19 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 					},
 					Message: "just an advisory message",
 					Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Range: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+						Start: &terraform1.SourcePos{
+							Byte:   161,
+							Line:   14,
+							Column: 1,
+						},
+						End: &terraform1.SourcePos{
+							Byte:   206,
+							Line:   14,
+							Column: 46,
+						},
+					},
 				},
 			},
 			Diagnostics: []*stacks.PolicyDiagnostic{
@@ -2755,7 +2775,27 @@ func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string)
 					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
 				},
 			},
-			Infos: []*stacks.PolicyInfo{},
+			Infos: []*stacks.PolicyInfo{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: expectedPolicyMetadata,
+					Message:        "just an advisory message",
+					Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Range: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+						Start: &terraform1.SourcePos{
+							Byte:   98,
+							Line:   8,
+							Column: 1,
+						},
+						End: &terraform1.SourcePos{
+							Byte:   126,
+							Line:   8,
+							Column: 29,
+						},
+					},
+				},
+			},
 			Diagnostics: []*stacks.PolicyDiagnostic{
 				{
 					TargetAddress:  providerAddr,

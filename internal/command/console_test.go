@@ -29,7 +29,7 @@ func TestConsole_basic(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -79,7 +79,7 @@ func TestConsole_tfvars(t *testing.T) {
 			},
 		},
 	}
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -131,7 +131,7 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 			},
 		},
 	}
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -164,7 +164,7 @@ func TestConsole_variables(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
@@ -206,7 +206,7 @@ func TestConsole_modules(t *testing.T) {
 	t.Chdir(td)
 
 	p := applyFixtureProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &ConsoleCommand{
@@ -248,7 +248,7 @@ func TestConsole_modulesPlan(t *testing.T) {
 	t.Chdir(td)
 
 	p := applyFixtureProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &ConsoleCommand{
@@ -393,7 +393,6 @@ func TestConsole_scope(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath("console-nested-module-scopes"), td)
 			t.Chdir(td)
@@ -463,7 +462,6 @@ func TestConsole_scope_errors(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath("console-nested-module-scopes"), td)
 			t.Chdir(td)

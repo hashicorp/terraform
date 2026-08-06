@@ -168,8 +168,6 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	}
 	g.Subsume(&graph.AcyclicGraph.Graph)
 
-	addRootNodeToGraph(&g)
-
 	return &g, nil
 }
 

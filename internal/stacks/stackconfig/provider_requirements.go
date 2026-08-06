@@ -246,3 +246,15 @@ func (pr *ProviderRequirements) LocalNameForProvider(providerAddr addrs.Provider
 	}
 	return "", false
 }
+
+func (pr *ProviderRequirements) VersionConstraintsForProvider(providerAddr addrs.Provider) (constraints.IntersectionSpec, bool) {
+	if pr == nil {
+		return nil, false
+	}
+	for _, obj := range pr.Requirements {
+		if obj.Provider == providerAddr {
+			return obj.VersionConstraints, true
+		}
+	}
+	return nil, false
+}

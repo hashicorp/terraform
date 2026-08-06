@@ -71,7 +71,7 @@ func newMarshalVertex(v Vertex) *marshalVertex {
 
 	// the name will be quoted again later, so we need to ensure it's properly
 	// escaped without quotes.
-	name := strconv.Quote(VertexName(v))
+	name := strconv.Quote(v.Name())
 	name = name[1 : len(name)-1]
 
 	return &marshalVertex{
@@ -102,9 +102,9 @@ type marshalEdge struct {
 
 func newMarshalEdge(e Edge) *marshalEdge {
 	return &marshalEdge{
-		Name:   fmt.Sprintf("%s|%s", VertexName(e.Source()), VertexName(e.Target())),
-		Source: marshalVertexID(e.Source()),
-		Target: marshalVertexID(e.Target()),
+		Name:   fmt.Sprintf("%s|%s", e.Source.Name(), e.Target.Name()),
+		Source: marshalVertexID(e.Source),
+		Target: marshalVertexID(e.Target),
 		Attrs:  make(map[string]string),
 	}
 }
@@ -124,14 +124,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 		Attrs: make(map[string]string),
 	}
 
-	for _, v := range g.Vertices() {
-		id := marshalVertexID(v)
-		if sg, ok := marshalSubgrapher(v); ok {
-			smg := newMarshalGraph(VertexName(v), sg)
-			smg.ID = id
-			mg.Subgraphs = append(mg.Subgraphs, smg)
-		}
-
+	for v := range g.VerticesSeq() {
 		mv := newMarshalVertex(v)
 		mg.Vertices = append(mg.Vertices, mv)
 	}
@@ -160,7 +153,7 @@ func newMarshalGraph(name string, g *Graph) *marshalGraph {
 func marshalVertexID(v Vertex) string {
 	val := reflect.ValueOf(v)
 	switch val.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Pointer, reflect.Slice, reflect.UnsafePointer:
 		return strconv.Itoa(int(val.Pointer()))
 	case reflect.Interface:
 		// A vertex shouldn't contain another layer of interface, but handle
@@ -168,33 +161,9 @@ func marshalVertexID(v Vertex) string {
 		return fmt.Sprintf("%#v", val.Interface())
 	}
 
-	if v, ok := v.(Hashable); ok {
-		h := v.Hashcode()
-		if h, ok := h.(string); ok {
-			return h
-		}
-	}
-
 	// fallback to a name, which we hope is unique.
-	return VertexName(v)
+	return v.Name()
 
 	// we could try harder by attempting to read the arbitrary value from the
 	// interface, but we shouldn't get here from terraform right now.
-}
-
-// check for a Subgrapher, and return the underlying *Graph.
-func marshalSubgrapher(v Vertex) (*Graph, bool) {
-	sg, ok := v.(Subgrapher)
-	if !ok {
-		return nil, false
-	}
-
-	switch g := sg.Subgraph().DirectedGraph().(type) {
-	case *Graph:
-		return g, true
-	case *AcyclicGraph:
-		return &g.Graph, true
-	}
-
-	return nil, false
 }

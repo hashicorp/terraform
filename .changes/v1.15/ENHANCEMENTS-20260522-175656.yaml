@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: Support for module version evaluating to `null` (in the context of dynamic module sources)
-time: 2026-05-22T17:56:56.921372+02:00
-custom:
-    Issue: "38632"

@@ -294,7 +294,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 			t.Fatalf("wrong header value for stored-locally\ngot:  %s\nwant: %s", got, want)
 		}
 
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{
 			svchost.Hostname("stored-locally.example.com"): struct{}{},
 		}
@@ -343,7 +343,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 		}
 
 		// Nothing should have changed in the saved credentials file
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{
 			svchost.Hostname("stored-locally.example.com"): struct{}{},
 		}
@@ -391,7 +391,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 		}
 
 		// Should not be present in the credentials file anymore
-		got := readHostsInCredentialsFile(mockCredsFilename)
+		got := ReadHostsInCredentialsFile(mockCredsFilename)
 		want := map[svchost.Hostname]struct{}{}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Fatalf("wrong credentials file content\n%s", diff)
@@ -433,6 +433,105 @@ func TestCredentialsStoreForget(t *testing.T) {
 			t.Errorf("unexpected credentials helper operation log\n%s", diff)
 		}
 	}
+}
+
+func TestReadHostsInCredentialsFile(t *testing.T) {
+	t.Run("missing credentials file", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		got := ReadHostsInCredentialsFile(filename)
+
+		if diff := cmp.Diff(map[svchost.Hostname]struct{}(nil), got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("empty credentials object", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		if err := os.WriteFile(filename, []byte(`{"credentials":{}}`), 0600); err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got := ReadHostsInCredentialsFile(filename)
+
+		if diff := cmp.Diff(map[svchost.Hostname]struct{}{}, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("one host", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		if err := os.WriteFile(filename, []byte(`{"credentials":{"tfe.company.com":{"token":"x"}}}`), 0600); err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got := ReadHostsInCredentialsFile(filename)
+
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("tfe.company.com"): {},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("multiple hosts", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		contents := `{
+		  "credentials": {
+		    "third.example.com": {"token":"1"},
+		    "first.example.com": {"token":"2"},
+		    "second.example.com": {"token":"3"}
+		  }
+		}`
+		if err := os.WriteFile(filename, []byte(contents), 0600); err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got := ReadHostsInCredentialsFile(filename)
+
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("third.example.com"):  {},
+			svchost.Hostname("first.example.com"):  {},
+			svchost.Hostname("second.example.com"): {},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
+
+	t.Run("invalid hosts are ignored", func(t *testing.T) {
+		dir := t.TempDir()
+		filename := filepath.Join(dir, "credentials.tfrc.json")
+
+		contents := `{
+		  "credentials": {
+		    "valid.example.com": {"token":"1"},
+		    "not a hostname": {"token":"2"},
+		    "another.valid.example.com": {"token":"3"}
+		  }
+		}`
+		if err := os.WriteFile(filename, []byte(contents), 0600); err != nil {
+			t.Fatalf("failed to write credentials file: %s", err)
+		}
+
+		got := ReadHostsInCredentialsFile(filename)
+
+		want := map[svchost.Hostname]struct{}{
+			svchost.Hostname("valid.example.com"):         {},
+			svchost.Hostname("another.valid.example.com"): {},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Fatalf("wrong hosts returned\n%s", diff)
+		}
+	})
 }
 
 type mockCredentialsHelperChange struct {

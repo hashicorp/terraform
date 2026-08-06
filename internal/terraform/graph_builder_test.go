@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -16,10 +17,16 @@ func TestBasicGraphBuilder_impl(t *testing.T) {
 	var _ GraphBuilder = new(BasicGraphBuilder)
 }
 
+type testV int
+
+func (v testV) Name() string {
+	return fmt.Sprint(v)
+}
+
 func TestBasicGraphBuilder(t *testing.T) {
 	b := &BasicGraphBuilder{
 		Steps: []GraphTransformer{
-			&testBasicGraphBuilderTransform{1},
+			&testBasicGraphBuilderTransform{testV(1)},
 		},
 	}
 
@@ -36,20 +43,6 @@ func TestBasicGraphBuilder(t *testing.T) {
 	expected := strings.TrimSpace(testBasicGraphBuilderStr)
 	if actual != expected {
 		t.Fatalf("bad: %s", actual)
-	}
-}
-
-func TestBasicGraphBuilder_validate(t *testing.T) {
-	b := &BasicGraphBuilder{
-		Steps: []GraphTransformer{
-			&testBasicGraphBuilderTransform{1},
-			&testBasicGraphBuilderTransform{2},
-		},
-	}
-
-	_, err := b.Build(addrs.RootModuleInstance)
-	if err == nil {
-		t.Fatal("should error")
 	}
 }
 
