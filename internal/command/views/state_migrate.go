@@ -242,3 +242,28 @@ func (s *StateMigrateJSON) Diagnostics(diags tfdiags.Diagnostics) {
 func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
 }
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveApproval() {
+	s.view.log.Info(
+		logInteractiveApprovalMessageJSON,
+		"type", json.StateStoreProviderInteractiveApproval,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveRejection() {
+	s.view.log.Info(
+		logInteractiveRejectionMessageJSON,
+		"type", json.StateStoreProviderInteractiveRejection,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogAutomaticApproval() {
+	s.view.log.Info(
+		logInteractiveAutomaticApprovalMessageJSON,
+		"type", json.StateStoreProviderAutomaticApproval,
+	)
+}
+

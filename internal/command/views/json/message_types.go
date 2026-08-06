@@ -70,5 +70,5 @@ const (
 	// PSS messages
 	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
 	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
-	StateStoreProviderAutomationApproval   MessageType = "state_store_provider_automatic_approval"
+	StateStoreProviderAutomaticApproval    MessageType = "state_store_provider_automatic_approval"
 )
