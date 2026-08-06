@@ -70,6 +70,10 @@ type StateMigrate interface {
 	LogStateMigrationComplete()
 	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
 	LogStateMigrationFinalized(source, destination string)
+	// LogStateMigrationSourceInitializationStart()
+	// LogStateMigrationSourceInitializationComplete()
+	// LogStateMigrationDestinationInitializationStart()
+	// LogStateMigrationDestinationInitializationComplete()
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -93,6 +97,7 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 var (
 	_ StateMigrate               = (*StateMigrateHuman)(nil)
 	_ ProviderInstallationLogger = (*StateMigrateHuman)(nil)
+	_ DependencyLockingLogger    = (*StateMigrateHuman)(nil)
 	_ Spacer                     = (*StateMigrateHuman)(nil)
 )
 
@@ -297,6 +302,32 @@ func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
 }
 
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) Output(code InitMessageCode, params ...any) {
+	message, ok := MessageRegistry[code]
+	if !ok {
+		panic("missing message for InstallingProviderMessage init message code")
+	}
+	s.view.log.Info(
+		strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...)),
+		"type", "log",
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
+	s.view.log.Info(
+		msg,
+		"type", json.InitializingStateStoreProviderStart,
+	)
+}
+
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveApproval() {
 	s.view.log.Info(
@@ -319,6 +350,75 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 		logInteractiveAutomaticApprovalMessageJSON,
 		"type", json.StateStoreProviderAutomaticApproval,
 	)
+}
+
+// Implements ProviderInstallationLogger interface.
+// func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+// 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+// 	msg := fmt.Sprintf(logFindingMatchingVersionMessageHuman, params...)
+// 	s.Output(FindingMatchingVersionMessage, params...)
+
+// 	s.view.log.Info(
+// 		msg,
+// 		"type", json.Provider,
+// 	)
+// }
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	s.Output(FindingLatestVersionMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(ProviderAlreadyInstalledMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(UsingProviderFromCacheDirInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	s.Output(BuiltInProviderAvailableMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(InstallingProviderMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{version, providerAddr.ForDisplay()}
+	s.Output(ReusingPreviousVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""}
+	s.Output(InstalledProviderVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	params := []any{providerAddr.ForDisplay(), version, auth, fmt.Sprintf(", key ID %s", keyID)}
+	s.Output(InstalledProviderVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
+	s.Output(PartnerAndCommunityProvidersMessage)
+}
+
+func (s *StateMigrateJSON) Log(msg string, params ...any) {
+	panic("don't use this method")
 }
 
 func (s *StateMigrateJSON) LogStateMigrationStart(source, destination string) {

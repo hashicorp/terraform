@@ -77,4 +77,8 @@ const (
 	StateMigrationComplete                          MessageType = "migration_complete"
 	StateMigrationErrored                           MessageType = "migration_errored"
 	StateMigrationFinalized                         MessageType = "migration_finalized"
+	StateMigrationSourceInitializationStart         MessageType = "migration_source_initialization_start"
+	StateMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
+	StateMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
+	StateMigrationDestinationInitializationComplete MessageType = "migration_destination_initialization_complete"
 )
