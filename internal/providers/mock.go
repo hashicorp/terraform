@@ -362,59 +362,49 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
-func (m *Mock) ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return ValidateEphemeralResourceConfigResponse{
-		Diagnostics: diags,
-	}
+func (m *Mock) ValidateEphemeralResourceConfig(request ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
+	// Delegate to the underlying provider so it can validate the configuration
+	// against the real schema, exactly as we do for resources and data sources.
+	return m.Provider.ValidateEphemeralResourceConfig(request)
 }
 
-func (m *Mock) OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return OpenEphemeralResourceResponse{
-		Diagnostics: diags,
+func (m *Mock) OpenEphemeralResource(request OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
+	var response OpenEphemeralResourceResponse
+
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		return response
 	}
+
+	ephemeralSchema, exists := schema.EphemeralResourceTypes[request.TypeName]
+	if !exists {
+		// Should have been caught during validation.
+		panic(fmt.Errorf("failed to retrieve schema for ephemeral resource %s", request.TypeName))
+	}
+
+	mockedData := &mocking.MockedData{
+		Value: cty.NilVal, // If we have no mocked data we use cty.NilVal.
+	}
+	if mockedEphemeral, exists := m.Data.MockEphemeralResources[request.TypeName]; exists {
+		mockedData.Value = mockedEphemeral.Defaults
+		mockedData.Range = mockedEphemeral.DefaultsRange
+	}
+
+	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, ephemeralSchema.Body)
+	response.Diagnostics = response.Diagnostics.Append(diags)
+	response.Result = value
+	return response
 }
 
 func (m *Mock) RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return RenewEphemeralResourceResponse{
-		Diagnostics: diags,
-	}
+	// Mocked ephemeral resources never expire, so renewal is a no-op.
+	return RenewEphemeralResourceResponse{}
 }
 
 func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return CloseEphemeralResourceResponse{
-		Diagnostics: diags,
-	}
+	// Nothing to close for a mocked ephemeral resource.
+	return CloseEphemeralResourceResponse{}
 }
 
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {

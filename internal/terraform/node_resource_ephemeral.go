@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -24,6 +25,7 @@ type ephemeralResourceInput struct {
 	addr           addrs.AbsResourceInstance
 	config         *configs.Resource
 	providerConfig addrs.AbsProviderConfig
+	override       *configs.Override
 }
 
 // ephemeralResourceOpen implements the "open" step of the ephemeral resource
@@ -110,6 +112,26 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 			return h.PreEphemeralOp(rId, plans.Read)
 		})
 
+		return nil, diags
+	}
+
+	// If we have an override for this ephemeral resource, apply it directly
+	// without calling the provider — same approach used for data sources.
+	if inp.override != nil {
+		overrideVal, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value: inp.override.Values,
+			Range: inp.override.Range,
+		}, schema.Body)
+		diags = diags.Append(overrideDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		resultVal := overrideVal.Mark(marks.Ephemeral)
+		ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
+			Value:      resultVal,
+			ConfigBody: config.Config,
+		})
 		return nil, diags
 	}
 
