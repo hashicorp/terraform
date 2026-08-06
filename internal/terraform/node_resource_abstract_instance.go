@@ -456,7 +456,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), deposedKey, currentState.Value, nullVal, nil)
+		return h.PreDiff(n.HookResourceIdentity(), deposedKey, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -506,7 +506,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		diags = diags.Append(resp.Diagnostics)
 		if diags.HasErrors() {
 			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, diags.Err())
+				return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, diags.Err())
 			}))
 			return plan, deferred, diags
 		}
@@ -528,7 +528,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, currentState.Value, nullVal, nil)
+		return h.PostDiff(n.HookResourceIdentity(), deposedKey, plans.Delete, nil)
 	}))
 	if diags.HasErrors() {
 		return plan, deferred, diags
@@ -837,6 +837,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	createBeforeDestroy bool,
 	forceReplace bool,
 	keyData instances.RepetitionData,
+	suppressSideEffects bool,
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, *providers.Deferred, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var deferred *providers.Deferred
@@ -886,15 +887,18 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// Evaluate the configuration
 
-	checkDiags := evalCheckRules(
-		addrs.ResourcePrecondition,
-		n.Config.Preconditions,
-		ctx, n.Addr, keyData,
-		checkRuleSeverity,
-	)
-	diags = diags.Append(checkDiags)
-	if diags.HasErrors() {
-		return nil, nil, deferred, diags // failed preconditions prevent further evaluation
+	// Precondition evaluation store check results as a side effect
+	if !suppressSideEffects {
+		checkDiags := evalCheckRules(
+			addrs.ResourcePrecondition,
+			n.Config.Preconditions,
+			ctx, n.Addr, keyData,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
+		if diags.HasErrors() {
+			return nil, nil, deferred, diags // failed preconditions prevent further evaluation
+		}
 	}
 
 	// If we have a previous plan and the action was a noop, then the only
@@ -993,11 +997,13 @@ func (n *NodeAbstractResourceInstance) plan(
 	proposedNewVal := objchange.ProposedNew(schema.Body, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, priorVal, proposedNewVal, nil)
-	}))
-	if diags.HasErrors() {
-		return nil, nil, deferred, diags
+	if !suppressSideEffects {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, nil)
+		}))
+		if diags.HasErrors() {
+			return nil, nil, deferred, diags
+		}
 	}
 
 	var resp providers.PlanResourceChangeResponse
@@ -1044,9 +1050,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
-		}))
+		if !suppressSideEffects {
+			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, diags.Err())
+			}))
+		}
 		return nil, nil, deferred, diags
 	}
 
@@ -1263,9 +1271,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
-			}))
+			if !suppressSideEffects {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, diags.Err())
+				}))
+			}
 			return nil, nil, deferred, diags
 		}
 
@@ -1292,9 +1302,11 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
-			}))
+			if !suppressSideEffects {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, diags.Err())
+				}))
+			}
 			return nil, nil, deferred, diags
 		}
 
@@ -1313,9 +1325,12 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(writeOnlyDiags)
 
 		if writeOnlyDiags.HasErrors() {
-			diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, diags.Err())
-			}))
+
+			if !suppressSideEffects {
+				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+					return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, diags.Err())
+				}))
+			}
 			return nil, nil, deferred, diags
 		}
 	}
@@ -1365,9 +1380,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// Call post-refresh hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, priorVal, plannedNewVal, nil)
-	}))
+	if !suppressSideEffects {
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, action, nil)
+		}))
+	}
 	if diags.HasErrors() {
 		return nil, nil, deferred, diags
 	}
@@ -1985,7 +2002,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		}
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, priorVal, proposedNewVal, nil)
+			return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, nil)
 		}))
 
 		return plannedChange, plannedNewState, deferred, keyData, diags

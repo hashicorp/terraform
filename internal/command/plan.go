@@ -169,6 +169,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.ActionTargets = args.ActionTargets
+	opReq.PlanMinimalRefresh = args.MinimalRefresh
 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
@@ -219,6 +220,13 @@ Plan Customization Options:
                       whether remote objects still match the outcome of the
                       most recent Terraform apply but does not propose any
                       actions to undo any changes made outside of Terraform.
+
+  -minimal-refresh    Skips checking for external changes to objects managed by
+                      this configuration when an initial plan indicates that the
+                      object has not changed since the most recent Terraform apply.
+                      This can potentially make planning faster, but at the expense
+                      of possibly planning against a stale record of the remote
+                      system state.
 
   -refresh=false      Skip checking for external changes to remote objects
                       while creating the plan. This can potentially make
