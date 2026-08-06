@@ -10,14 +10,16 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Message text used in human output.
+// Message text used in human output, or as human-readable @message field in JSON output
 const (
 	// Notify the user that any preparation steps are over and the migration is starting.
-	StateMigrationStartMessage = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartMessageHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartMessageJSON  = "Migrating state from %s to %s..."
 
 	// Notify the user that everything has completed successfully.
 	StateMigrationCompletedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
@@ -48,6 +50,8 @@ Make sure you're supplying all the necessary attribute values for both the sourc
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	LogStateMigrationStart(source, destination string)
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -80,6 +84,11 @@ type StateMigrateHuman struct {
 
 func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationStartMessageHuman, source, destination)
+	s.log(msg)
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
@@ -267,3 +276,11 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 	)
 }
 
+func (s *StateMigrateJSON) LogStateMigrationStart(source, destination string) {
+	msg := fmt.Sprintf(logStateMigrationStartMessageJSON, source, destination)
+
+	s.view.log.Info(
+		msg,
+		"type", json.StateMigrationStart,
+	)
+}

@@ -71,4 +71,7 @@ const (
 	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
 	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
 	StateStoreProviderAutomaticApproval    MessageType = "state_store_provider_automatic_approval"
+
+	// State Migration messages (`state migrate` command)
+	StateMigrationStart                             MessageType = "migration_start"
 )

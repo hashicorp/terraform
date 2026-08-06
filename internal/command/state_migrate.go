@@ -328,7 +328,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Log(views.StateMigrationStartMessage, source, destination)
+	view.LogStateMigrationStart(source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
