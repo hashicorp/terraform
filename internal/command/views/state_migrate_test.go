@@ -117,6 +117,72 @@ func TestNewStateMigrate_Spacer_json(t *testing.T) {
 	}
 }
 
+func TestNewStateMigrate_LogStateMigrationErrored_human(t *testing.T) {
+	t.Run("migration error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := NewStateMigrate(arguments.ViewHuman, view)
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringMigration, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputSnippets := []string{
+			`Failed to migrate state from backend "local" to state store "test_store"`,
+		}
+		for _, snippet := range expectedOutputSnippets {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("provider lockfile error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := NewStateMigrate(arguments.ViewHuman, view)
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringLockfile, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputSnippets := []string{
+			`Finished migrating state from backend "local" to state store "test_store", but an error occurred before Terraform was finished.`,
+		}
+		for _, snippet := range expectedOutputSnippets {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("backend state file error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := NewStateMigrate(arguments.ViewHuman, view)
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringBackendStateFile, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputSnippets := []string{
+			`Finished migrating state from backend "local" to state store "test_store", but an error occurred before Terraform was finished.`,
+		}
+		for _, snippet := range expectedOutputSnippets {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+}
+
 func TestNewStateMigrate_LogInteractiveApproval_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
@@ -227,4 +293,84 @@ func TestNewStateMigrate_LogStateMigrationComplete_json(t *testing.T) {
 			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
 		}
 	}
+}
+
+func TestNewStateMigrate_LogStateMigrationErrored_json(t *testing.T) {
+	t.Run("migration error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := StateMigrateJSON{view: NewJSONView(view)}
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringMigration, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`Failed to migrate state from`, // @message
+			`"@module":"terraform.ui"`,
+			`"failure_mode":"error_during_migration"`, // custom field
+			`"type":"migration_errored"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("provider lockfile error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := StateMigrateJSON{view: NewJSONView(view)}
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringLockfile, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`Finished migrating state`,                        // @message
+			`an error occurred before Terraform was finished`, // @message
+			`"@module":"terraform.ui"`,
+			`"failure_mode":"error_updating_provider_lockfile"`, // custom field
+			`"type":"migration_errored"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("backend state file error", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		smView := StateMigrateJSON{view: NewJSONView(view)}
+
+		source := `backend "local"`
+		destination := `state store "test_store"`
+
+		smView.LogStateMigrationErrored(DuringBackendStateFile, source, destination)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`Finished migrating state`,                        // @message
+			`an error occurred before Terraform was finished`, // @message
+			`"@module":"terraform.ui"`,
+			`"failure_mode":"error_updating_workdir_state"`, // custom field
+			`"type":"migration_errored"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
 }

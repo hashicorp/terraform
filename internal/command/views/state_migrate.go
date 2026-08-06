@@ -30,7 +30,7 @@ const (
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
-	StateMigrationPostStepsInterruptedMessage = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
+	logStateMigrationErroredAfterMigrationMessageHuman = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
 
 Your state has been copied to the new destination, but Terraform was unable to perform final operations to enable future commands to use your migrated state. Either Terraform was unable to record the new provider used for the destination state store to your dependency lock file, or the backend state file was unable to be updated. Please check the errors message(s) above for more information.
 
@@ -38,10 +38,11 @@ The successful migration means you will have two copies of your state, both in t
 
 If you can address the errors you can retry this command safely. Otherwise, please report the issue to the Terraform team with the error messages and your configuration.
 `
+	logStateMigrationErroredAfterMigrationMessageJSON = `Finished migrating state from %s to %s, but an error occurred before Terraform was finished.`
 
 	// Notify the user that the migration failed. This may be due to a misconfiguration, e.g. insufficient permissions to interact with a service.
 	// We expect these errors to either be actionable by users, or to originate from a state store provider (but reports shouldn't come to us unless due to a backend).
-	StateMigrationFailureMessage = `[reset][bold]Failed to migrate state from %s to %s.[reset]
+	logStateMigrationErroredDuringMigrationMessageHuman = `[reset][bold]Failed to migrate state from %s to %s.[reset]
 
 Something went wrong while migrating the state. Please check the errors message(s) above for more information.
 
@@ -49,6 +50,16 @@ The "terraform state migrate" command does not modify the source state, so you c
 
 Make sure you're supplying all the necessary attribute values for both the source and destination state stores. Remember, some values may need to be supplied via environment variables for either of the source or destination locations. If you continue to experience issues please report the issue to either the Terraform team when using a backend, or to the relevant provider development team when using a pluggable state store.
 `
+
+	logStateMigrationErroredDuringMigrationMessageJSON = `Failed to migrate state from %s to %s.`
+)
+
+type stateMigrationFailureMode string
+
+const (
+	DuringMigration        = "error_during_migration"
+	DuringLockfile         = "error_updating_provider_lockfile"
+	DuringBackendStateFile = "error_updating_workdir_state"
 )
 
 type StateMigrate interface {
@@ -57,6 +68,7 @@ type StateMigrate interface {
 
 	LogStateMigrationStart(source, destination string)
 	LogStateMigrationComplete()
+	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
 	LogStateMigrationFinalized(source, destination string)
 
 	ProviderInstallationLogger
@@ -104,6 +116,24 @@ func (s *StateMigrateHuman) LogStateMigrationFinalized(source string, destinatio
 
 func (s *StateMigrateHuman) LogStateMigrationComplete() {
 	// no-op
+}
+
+func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string) {
+	// The JSON object describes slightly different failures that led to an error.
+	// So different messages are be logged depending which happened.
+	var msg string
+	switch failMode {
+	case DuringMigration:
+		// migration itself failed
+		msg = fmt.Sprintf(logStateMigrationErroredDuringMigrationMessageHuman, source, destination)
+	case DuringLockfile, DuringBackendStateFile:
+		// migration succeeded by updates in the working directory failed
+		msg = fmt.Sprintf(logStateMigrationErroredAfterMigrationMessageHuman, source, destination)
+	default:
+		panic("(*StateMigrateHuman)LogStateMigrationErrored: called incorrectly")
+	}
+
+	s.log(msg)
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
@@ -304,6 +334,28 @@ func (s *StateMigrateJSON) LogStateMigrationComplete() {
 	s.view.log.Info(
 		logStateMigrationCompletedMessageJSON,
 		"type", json.StateMigrationComplete,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string) {
+	// The JSON object describes slightly different failures that led to an error.
+	// So different messages are be logged depending which happened.
+	var msg string
+	switch failMode {
+	case DuringMigration:
+		// migration itself failed
+		msg = fmt.Sprintf(logStateMigrationErroredDuringMigrationMessageJSON, source, destination)
+	case DuringLockfile, DuringBackendStateFile:
+		// migration succeeded by updates in the working directory failed
+		msg = fmt.Sprintf(logStateMigrationErroredAfterMigrationMessageJSON, source, destination)
+	default:
+		panic("(*StateMigrateJSON)LogStateMigrationErrored: called incorrectly")
+	}
+
+	s.view.log.Info(
+		msg,
+		"failure_mode", failMode,
+		"type", json.StateMigrationErrored,
 	)
 }
 

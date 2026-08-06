@@ -335,7 +335,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
 		view.Diagnostics(diags)
-		view.Log(views.StateMigrationFailureMessage, source, destination)
+		view.LogStateMigrationErrored(views.DuringMigration, source, destination)
 		return 1
 	}
 
@@ -360,7 +360,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
 			view.Diagnostics(diags)
-			view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+			view.LogStateMigrationErrored(views.DuringLockfile, source, destination)
 			return 1
 		}
 		if output {
@@ -374,7 +374,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
 		view.Diagnostics(diags)
-		view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+		view.LogStateMigrationErrored(views.DuringBackendStateFile, source, destination)
 		return 1
 	}
 
