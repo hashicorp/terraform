@@ -21,8 +21,11 @@ const (
 	logStateMigrationStartMessageHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
 	logStateMigrationStartMessageJSON  = "Migrating state from %s to %s..."
 
-	// Notify the user that everything has completed successfully.
-	StateMigrationCompletedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	// JSON output only; mark when migration process ends within the wider command
+	logStateMigrationCompletedMessageJSON = "Migration complete"
+
+	// Notify the user that everything has completed successfully, including updating the backend state file.
+	StateMigrationFinalizedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
@@ -52,6 +55,7 @@ type StateMigrate interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogStateMigrationStart(source, destination string)
+	LogStateMigrationComplete()
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -89,6 +93,10 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
 	msg := fmt.Sprintf(logStateMigrationStartMessageHuman, source, destination)
 	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationComplete() {
+	// no-op
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
@@ -282,5 +290,12 @@ func (s *StateMigrateJSON) LogStateMigrationStart(source, destination string) {
 	s.view.log.Info(
 		msg,
 		"type", json.StateMigrationStart,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationComplete() {
+	s.view.log.Info(
+		logStateMigrationCompletedMessageJSON,
+		"type", json.StateMigrationComplete,
 	)
 }
