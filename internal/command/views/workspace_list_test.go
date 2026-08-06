@@ -5,6 +5,7 @@ package views
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +13,77 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+func TestWorkspaceListHuman(t *testing.T) {
+	testCases := map[string]struct {
+		selected   string
+		list       []string
+		diags      tfdiags.Diagnostics
+		wantStdout string
+		wantStderr string
+	}{
+		"success": {
+			"default",
+			[]string{"default", "other"},
+			nil,
+			"* default\n  other",
+			"",
+		},
+		"success with warning": {
+			"default",
+			[]string{"default", "other"},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Example warning",
+					"This is an example warning message.",
+				),
+			},
+			"Warning: Example warning\n\nThis is an example warning message.\n* default\n  other",
+			"",
+		},
+		"error": {
+			"foobar",
+			[]string{},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Example error",
+					"This is an example error message.",
+				),
+			},
+			"Warning: Terraform cannot find any existing workspaces.\n\n" +
+				"The \"foobar\" workspace is selected in your working directory. You can create\nthis workspace by using the \"terraform workspace new\" subcommand or including\nthe \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
+			"Error: Example error\n\nThis is an example error message.\n\n",
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewWorkspaceList(arguments.ViewHuman, view)
+
+			v.List(tc.selected, tc.list, tc.diags)
+
+			output := done(t)
+
+			// Assert contents
+			// This must be done separately for stdout and stderr due to
+			// the interleaving of output caused in tests by (TestOutput).All()
+			gotStdout := strings.TrimSpace(output.Stdout())
+			wantStdout := strings.TrimSpace(tc.wantStdout)
+			if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+				t.Fatalf("unexpected diff in human output:\n%s", diff)
+			}
+			gotStderr := strings.TrimSpace(output.Stderr())
+			wantStderr := strings.TrimSpace(tc.wantStderr)
+			if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+				t.Fatalf("unexpected diff in human output:\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestWorkspaceListJSON(t *testing.T) {
 	testCases := map[string]struct {
@@ -69,7 +141,7 @@ func TestWorkspaceListJSON(t *testing.T) {
 			},
 		},
 		"error": {
-			"",
+			"foobar",
 			[]string{},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

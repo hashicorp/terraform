@@ -75,7 +75,7 @@ func (f *FsStore) ConfigureStateStore(req providers.ConfigureStateStoreRequest) 
 	configVal := req.Config
 	if v := configVal.GetAttr("workspace_dir"); !v.IsNull() {
 		f.statesDir = v.AsString()
-	} else {
+	} else if f.statesDir == "" {
 		f.statesDir = defaultStatesDir
 	}
 

@@ -27,8 +27,8 @@ func TestMermaidBasic(t *testing.T) {
 	g.Add(b)
 	g.Add(c)
 
-	g.Connect(BasicEdge(a, b))
-	g.Connect(BasicEdge(b, c))
+	g.Connect(a, b)
+	g.Connect(b, c)
 
 	mg := newMarshalGraph("root", g)
 	out := string(mg.Mermaid(&DotOpts{DrawCycles: true, MaxDepth: -1, Verbose: true}))

@@ -4,9 +4,11 @@
 package views
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -20,14 +22,46 @@ type WorkspaceList interface {
 func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
 	switch viewType {
 	case arguments.ViewHuman:
-		// TODO: Implement human-readable output for workspace list command using the views package, and remove the use of cli.Ui. This is a breaking change.
-		panic("human-readable output for workspace list command is not supported via the views package.")
+		return &WorkspaceListHuman{
+			view: view,
+		}
 	case arguments.ViewJSON:
 		return &WorkspaceListJSON{
 			view: view,
 		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
+	}
+}
+
+// The WorkspaceListHuman implementation renders human-readable logs, suitable for direct consumption by a human user.
+type WorkspaceListHuman struct {
+	view *View
+}
+
+var _ WorkspaceList = (*WorkspaceListHuman)(nil)
+
+// List is used to assemble the list of Workspaces and log it via Output
+func (v *WorkspaceListHuman) List(selected string, list []string, diags tfdiags.Diagnostics) {
+	// Print diags above output
+	v.view.Diagnostics(diags)
+
+	// Print list
+	if len(list) > 0 {
+		var out bytes.Buffer
+		for _, s := range list {
+			if s == selected {
+				out.WriteString("* ")
+			} else {
+				out.WriteString("  ")
+			}
+			out.WriteString(s)
+			out.WriteString("\n")
+		}
+		v.view.streams.Println(out.String())
+	} else {
+		// Warn that no states exist
+		v.view.Diagnostics(warnNoEnvsExistDiag(selected))
 	}
 }
 
@@ -99,4 +133,36 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 	}
 
 	v.view.streams.Println(string(jsonOutput))
+}
+
+// warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
+// and provides guidance about how to create the workspace based on whether the workspace is
+// custom or not.
+func warnNoEnvsExistDiag(currentWorkspace string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	summary := "Terraform cannot find any existing workspaces."
+
+	if currentWorkspace == backend.DefaultStateName {
+		// Recommended actions for the user includes running `init` if they're using the default workspace.
+		msg := fmt.Sprintf(
+			"The %q workspace is selected in your working directory. You can create this workspace by running \"terraform init\", by using the \"terraform workspace new\" subcommand or by including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
+			currentWorkspace,
+		)
+		return diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			summary,
+			msg,
+		))
+	}
+
+	msg := fmt.Sprintf(
+		"The %q workspace is selected in your working directory. You can create this workspace by using the \"terraform workspace new\" subcommand or including the \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
+		currentWorkspace,
+	)
+	return diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		summary,
+		msg,
+	))
 }

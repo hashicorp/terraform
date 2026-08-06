@@ -6,6 +6,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
 
@@ -40,10 +41,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	args, diags := arguments.ParseStateMigrate(rawArgs)
 
-	stateMigrate := views.NewStateMigrate(args.ViewType, c.View)
+	view := views.NewStateMigrate(args.ViewType, c.View)
 
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -57,7 +58,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// return validation errors early if there are any
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -66,7 +67,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	cfg, mDiags := c.Meta.loadConfig(dir)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if cfg.Module.StateStore != nil {
@@ -80,15 +81,22 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"No state migration instructions found",
 			"No instructions were found in the configuration files. Please ensure that a file with a .tfmigrate.hcl extension is present and contains valid state migration instructions.",
 		))
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// When configuring the source and destination backends,
 	// we prepare options for the migration action.
+	//
+	// If input is disabled, we "force" the migration. This stops the migration logic shared
+	// with the init command failing when it discovers that input is disabled.
+	// In "terraform init" the force field is controlled by the -force-copy flag.
+	// In contrast, "terraform state migrate" assumes that if input is disabled the user wants to force the migration.
 	migrateOpts := &backendMigrateOpts{
 		ViewType: args.ViewType,
+		force:    args.ForceCopy,
 	}
+	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
 	// Load the source backend
 	var source string
@@ -103,25 +111,47 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.Source = srcB
 		}
 	} else if smi.StateStore != nil {
-		source = fmt.Sprintf("state store %q (%s)", smi.StateStore.Type,
-			smi.StateStore.ProviderAddr.ForDisplay())
-
 		// Load any pre-existing source provider lock file.
-		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(args.SourceLockFilePath)
+		var lockfilePath string
+		if args.SourceLockFilePath != "" {
+			lockfilePath = args.SourceLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(srcLockDiags)
 		if srcLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
-		upgrade := false // The first provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
+		upgrade := false // The source provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
 		var srcProviderDiags tfdiags.Diagnostics
-		_, sourceLock, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore.Type, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, stateMigrate)
+		var trust ProviderTrust
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
+		var output bool
+		output, sourceLock, trust, stateStoreProviderAuthResult, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
 		diags = diags.Append(srcProviderDiags)
 		if srcProviderDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
+		if output {
+			// Space out provider download output from the migration output below.
+			view.Spacer()
+		}
+
+		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+		trustDiags := c.confirmProviderIsTrusted(trust, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, args.SourceLockFilePath, c, view)
+		diags = diags.Append(trustDiags)
+		if trustDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
+		source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
+			smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
 
 		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
 		diags = diags.Append(srcDiags)
@@ -152,7 +182,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			})
 			diags = diags.Append(bcDiags)
 			if bcDiags.HasErrors() {
-				stateMigrate.Diagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 			bsf.Backend = &workdir.BackendConfigState{
@@ -162,27 +192,30 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			err := bsf.Backend.SetConfig(dstConfig, dstB.ConfigSchema())
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Can't serialize backend configuration as JSON: %s", err))
-				stateMigrate.Diagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 		}
 	} else if rootMod.StateStore != nil {
-		destination = fmt.Sprintf("state store %q (%s)", rootMod.StateStore.Type,
-			rootMod.StateStore.ProviderAddr.ForDisplay())
-
 		// Get single required_providers entry for state store provider.
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
 		if dstReqDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
 		// Load any pre-existing destination provider lock file.
-		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(args.DestinationLockFilePath)
+		var lockfilePath string
+		if args.DestinationLockFilePath != "" {
+			lockfilePath = args.DestinationLockFilePath
+		} else {
+			lockfilePath = dependencyLockFilename // default
+		}
+		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
 		diags = diags.Append(dstLockDiags)
 		if dstLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -205,14 +238,33 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		//
 		// We only pass in a single required provider, so we expect a single lock to be
 		// returned. This will be added the dependency lock file after a successful migration.
-		upgrade := false // TODO - control this by -upgrade flag
+		upgrade := args.Upgrade
 		var dstProviderDiags tfdiags.Diagnostics
-		_, destinationLock, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore.Type, dstReq, mergedLocks, upgrade, MigrationDestination, stateMigrate)
+		var trust ProviderTrust
+		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
+		var output bool
+		output, destinationLock, trust, stateStoreProviderAuthResult, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
 		diags = diags.Append(dstProviderDiags)
 		if dstProviderDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
+		if output {
+			// Space out provider download output from the migration output below.
+			view.Spacer()
+		}
+
+		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+		trustDiags := c.confirmProviderIsTrusted(trust, rootMod.StateStore.ProviderAddr, stateStoreProviderAuthResult, destinationLock, mergedLocks, args.DestinationLockFilePath, c, view)
+		diags = diags.Append(trustDiags)
+		if trustDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
+		destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
+			rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
 
 		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
 		diags = diags.Append(dstDiags)
@@ -228,14 +280,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		})
 		diags = diags.Append(sscDiags)
 		if sscDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
 		version, err := providerreqs.GoVersionFromVersion(v)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -251,14 +303,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
 		err = bsf.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -272,17 +324,18 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// present all errors from above together so user can fix them all at once
 	if diags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	stateMigrate.Log("Migrating state from %s to %s...", source, destination)
+	view.Log(views.StateMigrationStartMessage, source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("migration failed: %w", err))
-		stateMigrate.Diagnostics(diags)
+		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
+		view.Diagnostics(diags)
+		view.Log(views.StateMigrationFailureMessage, source, destination)
 		return 1
 	}
 
@@ -292,7 +345,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		originalLocks, originalLockDiags := c.lockedDependencies()
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -303,14 +356,16 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		// installation process are preserved)
 		newLocks := c.mergeLockedDependencies(destinationLock, originalLocks)
 
-		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, stateMigrate)
+		output, depLockFileDiags := c.saveDependencyLockFile(originalLocks, newLocks, view)
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
-			stateMigrate.Diagnostics(diags)
+			view.Diagnostics(diags)
+			view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
 			return 1
 		}
 		if output {
-			stateMigrate.LogInitMessage(views.EmptyMessage)
+			// Space out lock file creation/update output from the final outputs below.
+			view.Spacer()
 		}
 	}
 
@@ -318,13 +373,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	bsfDiags := c.updateBackendStateFile(bsf)
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
-		stateMigrate.Diagnostics(diags)
+		view.Diagnostics(diags)
+		view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
 		return 1
 	}
 
-	stateMigrate.Diagnostics(diags) // Log any warnings
+	view.Diagnostics(diags) // Log any warnings
 
-	stateMigrate.Log("Finished migrating state from %s to %s...", source, destination)
+	view.Log(views.StateMigrationCompletedMessage, source, destination)
 
 	return 0
 }
@@ -418,7 +474,7 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.StateMigrate) (output bool, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.DependencyLockingLogger) (output bool, diags tfdiags.Diagnostics) {
 	// The state migrate command does not support the -lockfile=readonly flag
 	// This flag is specific to the init command, and can only take "" or "readonly" as values.
 	// As state migrate doesn't take this flag, we can safely set it to "" here.
@@ -431,7 +487,7 @@ func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *de
 // Download of the up to 2 providers is kept separate due to:
 // - Potential for downloading different versions of the same provider
 // - Need to keep the locks separate for source and destination providers; destination providers are added to the dependency lock file.
-func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName string, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore *configs.StateStore, reqs providerreqs.Requirements, locks *depsfile.Locks, upgrade bool, location string, view views.StateMigrate) (output bool, resultingLock *depsfile.Locks, trust ProviderTrust, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install state migration "+location+" provider")
 	defer span.End()
 
@@ -454,43 +510,80 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 		}
 	}
 	if diags.HasErrors() {
-		return false, nil, diags
+		return false, nil, Invalid, nil, diags
 	}
 
 	// Use a source that looks for providers in all of the standard locations,
 	// possibly customized by the user in CLI config.
 	inst := c.providerInstaller()
 
-	// Because we're currently just streaming a series of events sequentially
-	// into the terminal, we're showing only a subset of the events to keep
-	// things relatively concise. Later it'd be nice to have a progress UI
-	// where statuses update in-place, but we can't do that as long as we
-	// are shimming our vt100 output to the legacy console API on Windows.
+	// Prepare callback functions for the installer.
+	// These allow us to send output to the terminal as events happen, catch
+	// diagnostics, etc.
+	//
+	// We use some callbacks to capture data that's surfaced during the
+	// installation process:
+	// - provider authentication info.
+	// - info about what type of location a provider is sourced from.
+	// These pieces of data are used to determine if additional security features
+	// need to be enabled.
+	providerLocations := make(map[addrs.Provider]getproviders.PackageLocation)
+	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.LogInitMessage(views.InitializingStateStoreProviderPluginMessage, storeName)
+			pAddr := stateStore.ProviderAddr
+			// empty address would indicate wrong configuration
+			// such as missing or mismatching provider requirement
+			// which will be surfaced as diagnostic during installation
+			if !pAddr.IsZero() {
+				cons := reqs[pAddr]
+				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, stateStore.Type)
+			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
 		BuiltInProviderFailure:   builtInProviderFailureCallback(&diags),
 		QueryPackagesBegin: func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool) {
 			if locked {
-				view.LogInitMessage(views.ReusingPreviousVersionInfo, provider.ForDisplay())
+				pLock := locks.Provider(provider)
+				view.LogReusingPreviousProviderVersion(provider, pLock.Version())
 			} else {
 				if len(versionConstraints) > 0 {
-					view.LogInitMessage(views.FindingMatchingVersionMessage, provider.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
+					view.LogFindingMatchingVersion(provider, versionConstraints)
 				} else {
-					view.LogInitMessage(views.FindingLatestVersionMessage, provider.ForDisplay())
+					view.LogFindingLatestVersion(provider)
 				}
 			}
 		},
-		LinkFromCacheBegin:   linkFromCacheBeginCallback(view),
-		FetchPackageBegin:    fetchPackageBeginCallback(view),
+		LinkFromCacheBegin: linkFromCacheBeginCallback(view),
+		FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
+			// 1) Record the location of this provider.
+			//
+			// FetchPackageBegin is the callback hook at the start of the process of obtaining a provider that isn't yet
+			// in the dependency lock file. Providers that are processed here will not be processed here on the next init,
+			// as then they will be in the lock file. The same provider type would only be processed here again if the
+			// provider version changed via an `init -upgrade` command.
+			providerLocations[provider] = location
+
+			// 2) Call the shared callback for FetchPackageBegin.
+			cb := fetchPackageBeginCallback(view)
+			cb(provider, version, location)
+		},
 		QueryPackagesFailure: queryPackagesFailureCallback(&diags, ctx, inst.ProviderSource(), reqs, nil),
 		QueryPackagesWarning: queryPackagesWarningCallback(&diags),
 		LinkFromCacheFailure: linkFromCacheFailureCallback(&diags),
 		FetchPackageFailure:  fetchPackageFailureCallback(&diags, reqs),
-		FetchPackageSuccess:  fetchPackageSuccessCallback(view),
+		FetchPackageSuccess: func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult) {
+			// 1. Capture auth result if this provider is used for state storage.
+			if stateStore != nil && provider.Equals(stateStore.ProviderAddr) {
+				log.Printf("[TRACE] getProvidersFromConfig: state storage provider %s (%q) auth result: %q", stateStore.ProviderAddr.Type, stateStore.ProviderAddr.ForDisplay(), stateStoreProviderAuthResult.String())
+				stateStoreProviderAuthResult = authResult
+			}
+
+			// 2. Call the shared callback for FetchPackageSuccess
+			cb := fetchPackageSuccessCallback(view)
+			cb(provider, version, localDir, authResult)
+		},
 		ProvidersLockUpdated: providersLockUpdatedCallback(&c.incompleteProviders),
 		ProvidersFetched:     providersFetchedCallback(view),
 	}
@@ -504,7 +597,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 	newLocks, err := inst.EnsureProviderVersions(ctx, locks, reqs, mode)
 	if ctx.Err() == context.Canceled {
 		diags = diags.Append(fmt.Errorf("Provider installation was canceled by an interrupt signal."))
-		return true, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 	if err != nil {
 		// The errors captured in "err" should be redundant with what we
@@ -514,8 +607,11 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, storeName s
 			diags = diags.Append(err)
 		}
 
-		return true, nil, diags
+		return true, nil, Invalid, nil, diags
 	}
 
-	return true, newLocks, diags
+	// Return advice to the calling code about what to do regarding safe state store provider installation
+	trust = c.determineIfProviderTrusted(stateStore.ProviderAddr, providerLocations, locks)
+
+	return true, newLocks, trust, stateStoreProviderAuthResult, diags
 }

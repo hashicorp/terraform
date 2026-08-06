@@ -82,7 +82,7 @@ func TestCidrHost(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("cidrhost(%#v, %#v)", test.Prefix, test.Hostnum), func(t *testing.T) {
-			got, err := CidrHost(test.Prefix, test.Hostnum)
+			got, err := CidrHostFunc.Call([]cty.Value{test.Prefix, test.Hostnum})
 
 			if test.Err {
 				if err == nil {
@@ -151,7 +151,7 @@ func TestCidrNetmask(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("cidrnetmask(%#v)", test.Prefix), func(t *testing.T) {
-			got, err := CidrNetmask(test.Prefix)
+			got, err := CidrNetmaskFunc.Call([]cty.Value{test.Prefix})
 
 			if test.Err {
 				if err == nil {
@@ -258,7 +258,7 @@ func TestCidrSubnet(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("cidrsubnet(%#v, %#v, %#v)", test.Prefix, test.Newbits, test.Netnum), func(t *testing.T) {
-			got, err := CidrSubnet(test.Prefix, test.Newbits, test.Netnum)
+			got, err := CidrSubnetFunc.Call([]cty.Value{test.Prefix, test.Newbits, test.Netnum})
 
 			if test.Err {
 				if err == nil {
@@ -375,7 +375,7 @@ func TestCidrSubnets(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("cidrsubnets(%#v, %#v)", test.Prefix, test.Newbits), func(t *testing.T) {
-			got, err := CidrSubnets(test.Prefix, test.Newbits...)
+			got, err := testCidrSubnets(test.Prefix, test.Newbits...)
 			wantErr := test.Err != ""
 
 			if wantErr {
@@ -395,4 +395,11 @@ func TestCidrSubnets(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testCidrSubnets(prefix cty.Value, newbits ...cty.Value) (cty.Value, error) {
+	args := make([]cty.Value, len(newbits)+1)
+	args[0] = prefix
+	copy(args[1:], newbits)
+	return CidrSubnetsFunc.Call(args)
 }

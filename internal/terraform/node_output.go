@@ -164,7 +164,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			g.Add(node)
 		},
 	)
-	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
 		checkState := ctx.Checks()
@@ -627,6 +626,10 @@ type nodeOutputInPartialModule struct {
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
 	RefreshOnly bool
+}
+
+func (n *nodeOutputInPartialModule) Name() string {
+	return n.Addr.String()
 }
 
 // Path implements [GraphNodePartialExpandedModule], meaning that the

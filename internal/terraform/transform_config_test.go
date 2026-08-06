@@ -17,7 +17,7 @@ func TestConfigTransformer_nilModule(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(g.Vertices()) > 0 {
+	if g.VertexCount() > 0 {
 		t.Fatalf("graph is not empty: %s", g.String())
 	}
 }

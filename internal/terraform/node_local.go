@@ -81,7 +81,6 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 		log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	})
-	addRootNodeToGraph(&g)
 	return &g, nil
 }
 
@@ -173,6 +172,10 @@ func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 type nodeLocalInPartialModule struct {
 	Addr   addrs.InPartialExpandedModule[addrs.LocalValue]
 	Config *configs.Local
+}
+
+func (n *nodeLocalInPartialModule) Name() string {
+	return n.Addr.String()
 }
 
 // Path implements [GraphNodePartialExpandedModule], meaning that the

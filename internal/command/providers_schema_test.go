@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -31,7 +30,7 @@ import (
 )
 
 func TestProvidersSchema_error(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -67,7 +66,7 @@ func TestProvidersSchema_output(t *testing.T) {
 			})
 
 			p := providersSchemaFixtureProvider()
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -123,7 +122,7 @@ func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
 	// We don't call t.Chdir, intentionally.
 
 	p := providersSchemaFixtureProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			Ui:               ui,
@@ -208,7 +207,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	// Mock for the provider in the state
 	mockProviderAddressBaz := addrs.NewDefaultProvider("baz")
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			Ui:                        ui,
@@ -274,7 +273,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -298,7 +297,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -336,7 +335,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := cli.NewMockUi()
+		ui := testUiWrapped(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),

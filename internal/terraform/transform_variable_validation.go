@@ -18,6 +18,8 @@ import (
 // nodes created alongside them to verify that the final value matches
 // the author's validation rules.
 type graphNodeValidatableVariable interface {
+	dag.Vertex
+
 	// variableValidationRules returns the information required to validate
 	// the final value produced by the implementing node.
 	//
@@ -63,7 +65,7 @@ var _ GraphTransformer = (*variableValidationTransformer)(nil)
 
 func (t *variableValidationTransformer) Transform(g *Graph) error {
 	log.Printf("[TRACE] variableValidationTransformer: adding validation nodes for any existing variable evaluation nodes")
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		v, ok := v.(graphNodeValidatableVariable)
 		if !ok {
 			continue // irrelevant node
@@ -86,7 +88,7 @@ func (t *variableValidationTransformer) Transform(g *Graph) error {
 		if len(rules) != 0 {
 			log.Printf("[TRACE] variableValidationTransformer: %s has %d validation rule(s)", configAddr, len(rules))
 			g.Add(newV)
-			g.Connect(dag.BasicEdge(newV, v))
+			g.Connect(newV, v)
 		} else {
 			log.Printf("[TRACE] variableValidationTransformer: %s has no validation rules", configAddr)
 		}
