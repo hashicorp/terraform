@@ -163,6 +163,10 @@ type PlanOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// SkipActions, when true, suppresses all action invocations during planning.
+	// This should be set during test runs where actions must not have real side-effects.
+	SkipActions bool
+
 	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file).
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -1039,6 +1043,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			queryPlan:                 opts.Query,
 			overridePreventDestroy:    opts.OverridePreventDestroy,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			SkipActions:               opts.SkipActions,
 			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
@@ -1058,6 +1063,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			SkipActions:               opts.SkipActions,
 			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
@@ -1075,6 +1081,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 			overridePreventDestroy:    opts.OverridePreventDestroy,
 			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			SkipActions:               opts.SkipActions,
 			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags

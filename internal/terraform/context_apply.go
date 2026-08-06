@@ -49,6 +49,10 @@ type ApplyOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// SkipActions, when true, suppresses all action invocations during apply.
+	// This should be set during test runs where actions must not have real side-effects.
+	SkipActions bool
+
 	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file). This is required by policy evaluations against providers to access version information.
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -72,6 +76,7 @@ func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 	return &ApplyOpts{
 		ExternalProviders:         po.ExternalProviders,
 		AllowRootEphemeralOutputs: po.AllowRootEphemeralOutputs,
+		SkipActions:               po.SkipActions,
 		ProviderLocks:             po.ProviderLocks,
 	}
 }
@@ -397,6 +402,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		Overrides:                 plan.Overrides,
 		SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		SkipActions:               opts.SkipActions,
 		PolicyClient:              opts.PolicyClient,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
