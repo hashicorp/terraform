@@ -299,6 +299,15 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 			// We'll treat this a little differently depending on whether
 			// the variable is declared as ephemeral or not.
 			if vc, ok := config.Module.Variables[name]; ok && vc.Ephemeral {
+				// If the ephemeral variable has a default value (optional)
+				// and the apply-time value is null, allow it. The variable
+				// was intentionally left unset during both phases.
+				vv := gotValues[name]
+				hasDefault := vc.Default != cty.NilVal
+				valueIsNull := vv.Value == cty.NilVal || vv.Value.IsNull()
+				if hasDefault && valueIsNull {
+					continue
+				}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"No value for required variable",
