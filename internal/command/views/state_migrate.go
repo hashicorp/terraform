@@ -52,6 +52,8 @@ type StateMigrate interface {
 	ProviderInstallationLogger
 	DependencyLockingLogger
 
+	StateStoreProviderTrustLogger
+
 	Spacer // The `state migrate` command logs empty lines to space-out different sections of human-readable output
 }
 
@@ -102,14 +104,29 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstallationLogger interface.
-func (s *StateMigrateHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (s *StateMigrateHuman) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := s.prepareMessage(InitializingStateStoreProviderPluginMessage, params...)
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageHuman, params...)
 	s.log(msg)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateHuman) LogInteractiveApproval() {
+	s.log(logInteractiveApprovalMessageHuman)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateHuman) LogInteractiveRejection() {
+	s.log(logInteractiveRejectionMessageHuman)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateHuman) LogAutomaticApproval() {
+	s.log(logInteractiveAutomaticApprovalMessageHuman)
 }
 
 // Implements ProviderInstallationLogger interface.
