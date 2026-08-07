@@ -63,4 +63,5 @@ const (
 	MessagePolicyInfo             MessageType = "policy_info"
 	MessagePolicyDiagnostic       MessageType = "policy_diagnostic"
 	MessagePolicyEvaluationResult MessageType = "policy_result"
+	MessagePolicyQuerySummary     MessageType = "policy_query_summary"
 )
