@@ -77,7 +77,7 @@ func (h *countHook) PostApply(id terraform.HookResourceIdentity, dk addrs.Depose
 	return terraform.HookActionContinue, nil
 }
 
-func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

@@ -39,22 +39,18 @@ type MockHook struct {
 	PostApplyReturnError error
 	PostApplyFn          func(addrs.AbsResourceInstance, addrs.DeposedKey, cty.Value, error) (HookAction, error)
 
-	PreDiffCalled        bool
-	PreDiffAddr          addrs.AbsResourceInstance
-	PreDiffGen           addrs.DeposedKey
-	PreDiffPriorState    cty.Value
-	PreDiffProposedState cty.Value
-	PreDiffReturn        HookAction
-	PreDiffError         error
+	PreDiffCalled bool
+	PreDiffAddr   addrs.AbsResourceInstance
+	PreDiffGen    addrs.DeposedKey
+	PreDiffReturn HookAction
+	PreDiffError  error
 
-	PostDiffCalled       bool
-	PostDiffAddr         addrs.AbsResourceInstance
-	PostDiffGen          addrs.DeposedKey
-	PostDiffAction       plans.Action
-	PostDiffPriorState   cty.Value
-	PostDiffPlannedState cty.Value
-	PostDiffReturn       HookAction
-	PostDiffError        error
+	PostDiffCalled bool
+	PostDiffAddr   addrs.AbsResourceInstance
+	PostDiffGen    addrs.DeposedKey
+	PostDiffAction plans.Action
+	PostDiffReturn HookAction
+	PostDiffError  error
 
 	PreProvisionInstanceCalled bool
 	PreProvisionInstanceAddr   addrs.AbsResourceInstance
@@ -212,19 +208,17 @@ func (h *MockHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreDiffCalled = true
 	h.PreDiffAddr = id.Addr
 	h.PreDiffGen = dk
-	h.PreDiffPriorState = priorState
-	h.PreDiffProposedState = proposedNewState
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -232,8 +226,6 @@ func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action
 	h.PostDiffAddr = id.Addr
 	h.PostDiffGen = dk
 	h.PostDiffAction = action
-	h.PostDiffPriorState = priorState
-	h.PostDiffPlannedState = plannedNewState
 	return h.PostDiffReturn, h.PostDiffError
 }
 

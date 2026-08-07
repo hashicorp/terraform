@@ -53,6 +53,11 @@ type PlanOpts struct {
 	// pre-destroy plan removed entirely.
 	PreDestroyRefresh bool
 
+	// MinimalRefresh will run an initial plan for each resource prior to refreshing:
+	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
+	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
+	MinimalRefresh bool
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
@@ -289,6 +294,29 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 				tfdiags.Error,
 				"Incompatible plan options",
 				"Must be in RefreshOnlyMode when invoking actions. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
+
+	if opts.MinimalRefresh {
+		if opts.Mode != plans.NormalMode && opts.Mode != plans.DestroyMode {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				fmt.Sprintf("The -minimal-refresh planning option is only allowed in normal or destroy planning modes, got %s. This is a bug in Terraform.", opts.Mode),
+			))
+			return nil, nil, diags
+		}
+		if opts.SkipRefresh {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The -minimal-refresh planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
 			))
 			return nil, nil, diags
 		}
@@ -541,6 +569,12 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 
 	if opts.Mode != plans.DestroyMode {
 		panic(fmt.Sprintf("called Context.destroyPlan with %s", opts.Mode))
+	}
+
+	// During a plan there isn't a way for providers to indicate that a refresh is needed or not prior to attempting
+	// to destroy a resource instance, so -minimal-refresh optimizes to skip refresh.
+	if !opts.SkipRefresh && opts.MinimalRefresh {
+		opts.SkipRefresh = true
 	}
 
 	priorState := prevRunState
@@ -1028,6 +1062,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
+			minimalRefresh:            opts.MinimalRefresh,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1053,6 +1088,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ActionTargets:             opts.ActionTargets,
 			skipRefresh:               opts.SkipRefresh,
 			skipPlanChanges:           true, // this activates "refresh only" mode.
+			minimalRefresh:            opts.MinimalRefresh,
 			Operation:                 walkPlan,
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
@@ -1070,6 +1106,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			skipRefresh:               opts.SkipRefresh,
+			minimalRefresh:            opts.MinimalRefresh,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
