@@ -303,7 +303,7 @@ func (p *Provider) ReadStateBytes(req providers.ReadStateBytesRequest) providers
 
 func (p *Provider) WriteStateBytes(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
 	var resp providers.WriteStateBytesResponse
-	resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
+	resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unsupported state store type %q", req.TypeName))
 	return resp
 }
 
