@@ -341,7 +341,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
-			minimalRefresh:      b.minimalRefresh,
+			minimalRefresh:       b.minimalRefresh,
 		}
 	}
 

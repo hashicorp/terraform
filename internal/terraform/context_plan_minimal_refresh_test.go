@@ -77,7 +77,7 @@ resource "test_object" "changed" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -176,7 +176,7 @@ resource "test_object" "changed" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.DestroyMode,
+		Mode:           plans.DestroyMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -319,7 +319,7 @@ resource "test_object" "mod_res" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -470,7 +470,7 @@ resource "test_object" "current" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -570,7 +570,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -618,7 +618,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -655,7 +655,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -696,7 +696,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -727,9 +727,9 @@ func TestContext2Plan_minimal_refresh_lifecycle_conditions_noop(t *testing.T) {
 	})
 
 	opts := &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
-		SetVariables:    testInputValuesUnset(m.Module.Variables),
+		SetVariables:   testInputValuesUnset(m.Module.Variables),
 	}
 	plan, diags := ctx.Plan(m, state, opts)
 	tfdiags.AssertNoErrors(t, diags)
@@ -761,9 +761,9 @@ func TestContext2Plan_minimal_refresh_lifecycle_conditions_update(t *testing.T) 
 	})
 
 	opts := &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
-		SetVariables:    testInputValuesUnset(m.Module.Variables),
+		SetVariables:   testInputValuesUnset(m.Module.Variables),
 	}
 
 	plan, diags := ctx.Plan(m, state, opts)
@@ -794,7 +794,7 @@ func TestContext2Plan_minimal_refresh_precondition_error(t *testing.T) {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 		SetVariables: InputValues{
 			"precond": &InputValue{Value: cty.False, SourceType: ValueFromCaller},
@@ -837,7 +837,7 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	if !diags.HasErrors() {
@@ -875,7 +875,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -916,9 +916,9 @@ resource "test_object" "a" {
 	})
 
 	opts := &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
-		ForceReplace:    []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_object.a")},
+		ForceReplace:   []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_object.a")},
 	}
 	plan, diags := ctx.Plan(m, state, opts)
 	tfdiags.AssertNoErrors(t, diags)
@@ -988,7 +988,7 @@ resource "test_object" "b" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -1034,7 +1034,7 @@ resource "test_object" "a" {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -1082,7 +1082,7 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 
@@ -1122,7 +1122,7 @@ resource "test_object" "a" {
 	})
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode:            plans.NormalMode,
+		Mode:           plans.NormalMode,
 		MinimalRefresh: true,
 	})
 	if !diags.HasErrors() {
