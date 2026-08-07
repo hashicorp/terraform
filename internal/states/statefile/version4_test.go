@@ -4,6 +4,7 @@
 package statefile
 
 import (
+	"os"
 	"sort"
 	"strings"
 	"testing"
@@ -258,5 +259,22 @@ func TestVersion4_marshalPaths(t *testing.T) {
 				t.Fatalf("wrong JSON output\n got: %s\nwant: %s\n", got, want)
 			}
 		})
+	}
+}
+
+// Regression test - make sure that errors parsing the provider address of a resource
+// are returned to calling code and result in user-facing diagnostics.
+func TestVersion4_readStateV4(t *testing.T) {
+	// internal/states/statefile/testdata/bad-state-files/
+	path := "testdata/bad-state-files/invalid-provider-for-resource.tfstate"
+	input, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, diags := readStateV4(input)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected an error due to bad provider address data, but got none")
 	}
 }
