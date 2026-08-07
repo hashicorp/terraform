@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/cli"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
