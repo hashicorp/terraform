@@ -75,7 +75,7 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.view.streams.Println(v.prepareMessage(messageCode, params...))
+	v.print(v.prepareMessage(messageCode, params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -84,83 +84,83 @@ func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provide
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.view.streams.Println(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
+	v.print(v.prepareMessage(InitializingStateStoreProviderPluginMessage, params...))
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-	v.view.streams.Println(v.prepareMessage(FindingMatchingVersionMessage, params...))
+	v.print(v.prepareMessage(FindingMatchingVersionMessage, params...))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(FindingLatestVersionMessage, params...))
+	v.print(v.prepareMessage(FindingLatestVersionMessage, params...))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
+	v.print(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+	v.print(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	params := []any{providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
+	v.print(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
 }
 
 func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
-	v.view.streams.Println(v.prepareMessage(InstallingProviderMessage, params...))
+	v.print(v.prepareMessage(InstallingProviderMessage, params...))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{version, providerAddr.ForDisplay()}
-	v.view.streams.Println(v.prepareMessage(ReusingPreviousVersionInfo, params...))
+	v.print(v.prepareMessage(ReusingPreviousVersionInfo, params...))
 }
 
 func (v *InitHuman) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 func (v *InitHuman) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-	v.view.streams.Println(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
-	v.view.streams.Println(v.prepareMessage(PartnerAndCommunityProvidersMessage))
+	v.print(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
 // Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileCreated() {
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(LockInfo, params...))
+	v.print(v.prepareMessage(LockInfo, params...))
 }
 
 // Implements DependencyLockingLogger
 func (v *InitHuman) LogDependencyLockfileUpdated() {
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(DependenciesLockChangesInfo, params...))
+	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleDownload(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
+	v.print(strings.TrimSpace(message))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(message string) {
-	v.view.streams.Println(strings.TrimSpace(message))
+	v.print(message)
 }
 
 // Implements ModuleInstallationLogger
@@ -168,7 +168,7 @@ func (v *InitHuman) LogModuleUpgrade() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(UpgradingModulesMessage, params...))
+	v.print(v.prepareMessage(UpgradingModulesMessage, params...))
 }
 
 // Implements ModuleInstallationLogger
@@ -176,9 +176,20 @@ func (v *InitHuman) LogModuleInitialization() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(InitializingModulesMessage, params...))
+	v.print(v.prepareMessage(InitializingModulesMessage, params...))
 }
 
+// print formats (trims whitespace & applies colour) and
+// prints the formatted message to the stdout stream.
+func (v *InitHuman) print(message string) {
+	message = v.view.colorize.Color(strings.TrimSpace(message))
+	v.view.streams.Println(message)
+}
+
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitHuman the human message template is used.
 func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
@@ -190,7 +201,7 @@ func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) s
 		panic("unexpected empty message for init message code: " + string(messageCode))
 	}
 
-	return v.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
+	return fmt.Sprintf(message.HumanValue, params...)
 }
 
 // The InitJSON implementation renders streaming JSON logs, suitable for
@@ -397,6 +408,10 @@ func (v *InitJSON) LogModuleInitialization() {
 	v.Output(InitializingModulesMessage, params...)
 }
 
+// prepareMessage retrieves a message template matching the InitMessageCode and
+// returns a formatted string made using the template and param argument(s).
+//
+// As this is implemented on InitJSON the JSON message template is used.
 func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
 	message, ok := MessageRegistry[messageCode]
 	if !ok {
