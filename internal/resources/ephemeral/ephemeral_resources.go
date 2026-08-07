@@ -246,7 +246,7 @@ func (r *resourceInstanceInternal) handleRenewal(ctx context.Context, wg *sync.W
 			// It's time to renew
 			r.renewMu.Lock()
 			anotherRenew, diags := r.impl.Renew(ctx, *nextRenew)
-			r.renewDiags.Append(diags)
+			r.renewDiags = r.renewDiags.Append(diags)
 			if diags.HasErrors() {
 				// If renewal fails then we'll stop trying to renew.
 				r.renewCancel = noopCancel
