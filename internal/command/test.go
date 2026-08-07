@@ -356,9 +356,12 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	// test runs rather than the root module.
 	//
 	// We do an early load of just the root module to discover which
-	// variables are const. We discard non-error diagnostics from this
-	// early load since loadConfigWithTests will re-parse and report them.
-	earlyMod, earlyDiags := m.loadSingleModuleWithTests(".", preparation.Args.TestDirectory)
+	// variables are const. We only need the Variables declarations here,
+	// so we use loadRawModuleWithTests (no init graph) to avoid a
+	// chicken-and-egg problem where const variable values aren't known yet.
+	// Non-error diagnostics are discarded since loadConfigWithTests will
+	// reparse and report them.
+	earlyMod, earlyDiags := m.loadRawModuleWithTests(".", preparation.Args.TestDirectory)
 	if earlyDiags.HasErrors() {
 		diags = diags.Append(earlyDiags)
 		view.Diagnostics(nil, nil, diags)

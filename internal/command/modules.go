@@ -72,8 +72,8 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Read the root module path so we can then traverse the tree
-	rootModEarly, earlyConfDiags := c.loadSingleModule(rootModPath)
+	// Read the root module path so we can then traverse the tree.
+	rootModEarly, earlyConfDiags := c.loadRawModule(rootModPath)
 	if rootModEarly == nil {
 		diags = diags.Append(errors.New("root module not found. Please run terraform init"), earlyConfDiags)
 		view.Diagnostics(diags)

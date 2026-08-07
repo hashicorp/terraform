@@ -24,7 +24,7 @@ var (
 	_ GraphNodeExecutable     = (*nodeResolveProviderRequirements)(nil)
 	_ GraphNodeReferencer     = (*nodeResolveProviderRequirements)(nil)
 	_ GraphNodeModuleInstance = (*nodeResolveProviderRequirements)(nil)
-	_ dag.NamedVertex         = (*nodeResolveProviderRequirements)(nil)
+	_ dag.Vertex              = (*nodeResolveProviderRequirements)(nil)
 )
 
 func (n *nodeResolveProviderRequirements) Name() string {
@@ -48,6 +48,8 @@ func (n *nodeResolveProviderRequirements) Execute(
 	}
 
 	n.Module.GatherProviderLocalNames()
+
+	n.Module.ResolveResourceProviders()
 
 	return diags
 }
