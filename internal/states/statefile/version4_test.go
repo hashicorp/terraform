@@ -263,7 +263,8 @@ func TestVersion4_marshalPaths(t *testing.T) {
 }
 
 // Regression test - make sure that errors parsing the provider address of a resource
-// are returned to calling code and result in user-facing diagnostics.
+// are returned to calling code and result in user-facing diagnostics. This only happens
+// if 'regular' and legacy parsing attempts both fail.
 func TestVersion4_readStateV4(t *testing.T) {
 	// internal/states/statefile/testdata/bad-state-files/
 	path := "testdata/bad-state-files/invalid-provider-for-resource.tfstate"
