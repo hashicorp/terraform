@@ -2513,3 +2513,49 @@ resource "test_object" "a" {}
 		t.Fatal("Wrong, but impressive - how did you even defer the wrong resource?")
 	}
 }
+
+// This is a regression test for an expansion panic during plan where the
+// child import block registers an expansion in the root module, which would
+// then cause an "expansion already registered for <resource address>" panic.
+func TestContextPlan_import_in_module_matches_root_to_addr(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+import {
+  to = test_object.samename
+  id = "test-a"
+}
+		`,
+		"child/main.tf": `
+import {
+  to = test_object.samename
+  id = "test-b"
+}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(simpleMockProvider()),
+		},
+	})
+
+	validateDiags := ctx.Validate(m, nil)
+
+	wantErr := "module.child.test_object.samename not found. Only resources within the root module are eligible for config generation."
+	if !validateDiags.HasErrors() {
+		t.Errorf("unexpected success from validate\nwant: message containing %q", wantErr)
+	} else if got, want := validateDiags.Err().Error(), wantErr; !strings.Contains(got, want) {
+		t.Errorf("wrong error from validate:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+
+	// The expected error is only raised from validate, but the panic this regression test
+	// covers happens during expansion which is occurs in the plan.
+	//
+	// Since this isn't valid configuration we only care that plan doesn't panic.
+	ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+}
