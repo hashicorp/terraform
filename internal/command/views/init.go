@@ -24,6 +24,12 @@ type Init interface {
 
 	// LogCloudInitializationStart describes the start of initializing the cloud backend
 	LogCloudInitializationStart()
+	// LogCloudInitializationComplete describes the successful end of initializing the workspace
+	// while using the cloud backend
+	LogCloudInitializationComplete()
+
+	// LogInitializationComplete describes the successful end of initializing the workspace
+	LogInitializationComplete()
 
 	ModuleInstallationLogger
 	ProviderInstallationLogger
@@ -84,6 +90,16 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 func (v *InitHuman) LogCloudInitializationStart() {
 	params := []any{}
 	v.print(v.prepareMessage(InitializingTerraformCloudMessage, params...))
+}
+
+func (v *InitHuman) LogCloudInitializationComplete() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCloudMessage, params...))
+}
+
+func (v *InitHuman) LogInitializationComplete() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessMessage, params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -265,6 +281,22 @@ func (v *InitJSON) LogCloudInitializationStart() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.Output(InitializingTerraformCloudMessage, params...)
+}
+
+func (v *InitJSON) LogCloudInitializationComplete() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCloudMessage, params...)
+}
+
+func (v *InitJSON) LogInitializationComplete() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessMessage, params...)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
