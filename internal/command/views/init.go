@@ -168,7 +168,7 @@ func (v *InitHuman) LogModuleUpgrade() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(UpgradingModulesMessage, params...))
+	v.print(v.prepareMessage(UpgradingModulesMessage, params...))
 }
 
 // Implements ModuleInstallationLogger
@@ -176,7 +176,7 @@ func (v *InitHuman) LogModuleInitialization() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
-	v.view.streams.Println(v.prepareMessage(InitializingModulesMessage, params...))
+	v.print(v.prepareMessage(InitializingModulesMessage, params...))
 }
 
 // print formats (trims whitespace & applies colour) and
