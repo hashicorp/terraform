@@ -1123,6 +1123,54 @@ func TestNewInit_LogInitializationComplete_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogCloudInitializationCompleteCallToAction_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogCloudInitializationCompleteCallToAction()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"You may now begin working with HCP Terraform. Try running \"terraform plan\"`, // ... incomplete but sufficient for test
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"message_code":"output_init_success_cli_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitializationCompleteCallToAction_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitializationCompleteCallToAction()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"You may now begin working with Terraform. Try running \"terraform plan\" `, // ... incomplete but sufficient for test
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"message_code":"output_init_success_cli_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)

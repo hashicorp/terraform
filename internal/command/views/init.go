@@ -27,9 +27,15 @@ type Init interface {
 	// LogCloudInitializationComplete describes the successful end of initializing the workspace
 	// while using the cloud backend
 	LogCloudInitializationComplete()
+	// LogCloudInitializationCompleteCallToAction prompts users about what to do next after initialization.
+	// This is only used if the cloud backend is used, and the CLI is being used outside of automation; a human will see the CTA.
+	LogCloudInitializationCompleteCallToAction()
 
 	// LogInitializationComplete describes the successful end of initializing the workspace
 	LogInitializationComplete()
+	// LogInitializationCompleteCallToAction  prompts users about what to do next after initialization.
+	// This is only used if the CLI is being used outside of automation; a human will see the CTA.
+	LogInitializationCompleteCallToAction()
 
 	ModuleInstallationLogger
 	ProviderInstallationLogger
@@ -95,6 +101,16 @@ func (v *InitHuman) LogCloudInitializationStart() {
 func (v *InitHuman) LogCloudInitializationComplete() {
 	params := []any{}
 	v.print(v.prepareMessage(OutputInitSuccessCloudMessage, params...))
+}
+
+func (v *InitHuman) LogCloudInitializationCompleteCallToAction() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCLICloudMessage, params...))
+}
+
+func (v *InitHuman) LogInitializationCompleteCallToAction() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCLIMessage, params...))
 }
 
 func (v *InitHuman) LogInitializationComplete() {
@@ -289,6 +305,22 @@ func (v *InitJSON) LogCloudInitializationComplete() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	v.Output(OutputInitSuccessCloudMessage, params...)
+}
+
+func (v *InitJSON) LogCloudInitializationCompleteCallToAction() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCLICloudMessage, params...)
+}
+
+func (v *InitJSON) LogInitializationCompleteCallToAction() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCLIMessage, params...)
 }
 
 func (v *InitJSON) LogInitializationComplete() {
