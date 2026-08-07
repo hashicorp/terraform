@@ -5408,3 +5408,43 @@ output "test_output" {
 		},
 	}))
 }
+
+// TODO: This test currently can't recreate the bug because it uses the
+// legacy configuration builder (which still does the validation).
+func TestContextValidate_child_module_import_invalid(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+resource "test_object" "a" {}
+import {
+  to = test_object.a
+  id = "test-a"
+}
+		`,
+		"child/main.tf": `
+resource "test_object" "b" {}
+import {
+  to = test_object.b
+  id = "test-b"
+}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(simpleMockProvider()),
+		},
+	})
+
+	validateDiags := ctx.Validate(m, nil)
+
+	wantErr := "TBD"
+	if !validateDiags.HasErrors() {
+		t.Errorf("unexpected success from validate\nwant: message containing %q", wantErr)
+	} else if got, want := validateDiags.Err().Error(), wantErr; !strings.Contains(got, want) {
+		t.Errorf("wrong error from validate:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
