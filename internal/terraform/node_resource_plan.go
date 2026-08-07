@@ -602,7 +602,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
-			minimalRefresh:          n.minimalRefresh,
+			minimalRefresh:           n.minimalRefresh,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
 		}
 
