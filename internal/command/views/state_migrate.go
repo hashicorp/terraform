@@ -10,21 +10,27 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Message text used in human output.
+// Message text used in human output, or as human-readable @message field in JSON output
 const (
 	// Notify the user that any preparation steps are over and the migration is starting.
-	StateMigrationStartMessage = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartMessageHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartMessageJSON  = "Migrating state from %s to %s..."
 
-	// Notify the user that everything has completed successfully.
-	StateMigrationCompletedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	// JSON output only; mark when migration process ends within the wider command
+	logStateMigrationCompletedMessageJSON = "Migration complete"
+
+	// Notify the user that everything has completed successfully, including updating the backend state file.
+	logStateMigrationFinalizedMessageHuman = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	logStateMigrationFinalizedMessageJSON  = "Finished migrating state from %s to %s."
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
-	StateMigrationPostStepsInterruptedMessage = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
+	logStateMigrationErroredAfterMigrationMessageHuman = `[reset][bold]Finished migrating state from %s to %s, but an error occurred before Terraform was finished.[reset]
 
 Your state has been copied to the new destination, but Terraform was unable to perform final operations to enable future commands to use your migrated state. Either Terraform was unable to record the new provider used for the destination state store to your dependency lock file, or the backend state file was unable to be updated. Please check the errors message(s) above for more information.
 
@@ -32,10 +38,11 @@ The successful migration means you will have two copies of your state, both in t
 
 If you can address the errors you can retry this command safely. Otherwise, please report the issue to the Terraform team with the error messages and your configuration.
 `
+	logStateMigrationErroredAfterMigrationMessageJSON = `Finished migrating state from %s to %s, but an error occurred before Terraform was finished.`
 
 	// Notify the user that the migration failed. This may be due to a misconfiguration, e.g. insufficient permissions to interact with a service.
 	// We expect these errors to either be actionable by users, or to originate from a state store provider (but reports shouldn't come to us unless due to a backend).
-	StateMigrationFailureMessage = `[reset][bold]Failed to migrate state from %s to %s.[reset]
+	logStateMigrationErroredDuringMigrationMessageHuman = `[reset][bold]Failed to migrate state from %s to %s.[reset]
 
 Something went wrong while migrating the state. Please check the errors message(s) above for more information.
 
@@ -43,11 +50,30 @@ The "terraform state migrate" command does not modify the source state, so you c
 
 Make sure you're supplying all the necessary attribute values for both the source and destination state stores. Remember, some values may need to be supplied via environment variables for either of the source or destination locations. If you continue to experience issues please report the issue to either the Terraform team when using a backend, or to the relevant provider development team when using a pluggable state store.
 `
+
+	logStateMigrationErroredDuringMigrationMessageJSON = `Failed to migrate state from %s to %s.`
+)
+
+type stateMigrationFailureMode string
+
+const (
+	DuringMigration        = "error_during_migration"
+	DuringLockfile         = "error_updating_provider_lockfile"
+	DuringBackendStateFile = "error_updating_workdir_state"
 )
 
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	LogStateMigrationStart(source, destination string)
+	LogStateMigrationComplete()
+	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
+	LogStateMigrationFinalized(source, destination string)
+	// LogStateMigrationSourceInitializationStart()
+	// LogStateMigrationSourceInitializationComplete()
+	// LogStateMigrationDestinationInitializationStart()
+	// LogStateMigrationDestinationInitializationComplete()
 
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -71,6 +97,7 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 var (
 	_ StateMigrate               = (*StateMigrateHuman)(nil)
 	_ ProviderInstallationLogger = (*StateMigrateHuman)(nil)
+	_ DependencyLockingLogger    = (*StateMigrateHuman)(nil)
 	_ Spacer                     = (*StateMigrateHuman)(nil)
 )
 
@@ -80,6 +107,38 @@ type StateMigrateHuman struct {
 
 func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationStartMessageHuman, source, destination)
+	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationFinalized(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationFinalizedMessageHuman, source, destination)
+	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationComplete() {
+	// no-op
+}
+
+func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string) {
+	// The JSON object describes slightly different failures that led to an error.
+	// So different messages are be logged depending which happened.
+	var msg string
+	switch failMode {
+	case DuringMigration:
+		// migration itself failed
+		msg = fmt.Sprintf(logStateMigrationErroredDuringMigrationMessageHuman, source, destination)
+	case DuringLockfile, DuringBackendStateFile:
+		// migration succeeded by updates in the working directory failed
+		msg = fmt.Sprintf(logStateMigrationErroredAfterMigrationMessageHuman, source, destination)
+	default:
+		panic("(*StateMigrateHuman)LogStateMigrationErrored: called incorrectly")
+	}
+
+	s.log(msg)
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {
@@ -243,6 +302,32 @@ func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
 }
 
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) Output(code InitMessageCode, params ...any) {
+	message, ok := MessageRegistry[code]
+	if !ok {
+		panic("missing message for InstallingProviderMessage init message code")
+	}
+	s.view.log.Info(
+		strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...)),
+		"type", "log",
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+	consSuffix := ""
+	if len(cons) > 0 {
+		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
+	}
+	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
+	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
+	s.view.log.Info(
+		msg,
+		"type", json.InitializingStateStoreProviderStart,
+	)
+}
+
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveApproval() {
 	s.view.log.Info(
@@ -267,3 +352,116 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 	)
 }
 
+// Implements ProviderInstallationLogger interface.
+// func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
+// 	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
+// 	msg := fmt.Sprintf(logFindingMatchingVersionMessageHuman, params...)
+// 	s.Output(FindingMatchingVersionMessage, params...)
+
+// 	s.view.log.Info(
+// 		msg,
+// 		"type", json.Provider,
+// 	)
+// }
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	s.Output(FindingLatestVersionMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(ProviderAlreadyInstalledMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(UsingProviderFromCacheDirInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	params := []any{providerAddr.ForDisplay()}
+	s.Output(BuiltInProviderAvailableMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{providerAddr.ForDisplay(), version}
+	s.Output(InstallingProviderMessage, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+	params := []any{version, providerAddr.ForDisplay()}
+	s.Output(ReusingPreviousVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
+	params := []any{providerAddr.ForDisplay(), version, auth, ""}
+	s.Output(InstalledProviderVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
+	params := []any{providerAddr.ForDisplay(), version, auth, fmt.Sprintf(", key ID %s", keyID)}
+	s.Output(InstalledProviderVersionInfo, params...)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
+	s.Output(PartnerAndCommunityProvidersMessage)
+}
+
+func (s *StateMigrateJSON) Log(msg string, params ...any) {
+	panic("don't use this method")
+}
+
+func (s *StateMigrateJSON) LogStateMigrationStart(source, destination string) {
+	msg := fmt.Sprintf(logStateMigrationStartMessageJSON, source, destination)
+
+	s.view.log.Info(
+		msg,
+		"type", json.StateMigrationStart,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationComplete() {
+	s.view.log.Info(
+		logStateMigrationCompletedMessageJSON,
+		"type", json.StateMigrationComplete,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string) {
+	// The JSON object describes slightly different failures that led to an error.
+	// So different messages are be logged depending which happened.
+	var msg string
+	switch failMode {
+	case DuringMigration:
+		// migration itself failed
+		msg = fmt.Sprintf(logStateMigrationErroredDuringMigrationMessageJSON, source, destination)
+	case DuringLockfile, DuringBackendStateFile:
+		// migration succeeded by updates in the working directory failed
+		msg = fmt.Sprintf(logStateMigrationErroredAfterMigrationMessageJSON, source, destination)
+	default:
+		panic("(*StateMigrateJSON)LogStateMigrationErrored: called incorrectly")
+	}
+
+	s.view.log.Info(
+		msg,
+		"failure_mode", failMode,
+		"type", json.StateMigrationErrored,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationFinalized() {
+	s.view.log.Info(
+		logStateMigrationFinalizedMessageJSON,
+		"type", json.StateMigrationFinalized,
+	)
+}

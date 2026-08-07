@@ -71,4 +71,14 @@ const (
 	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
 	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
 	StateStoreProviderAutomaticApproval    MessageType = "state_store_provider_automatic_approval"
+
+	// State Migration messages (`state migrate` command)
+	StateMigrationStart                             MessageType = "migration_start"
+	StateMigrationComplete                          MessageType = "migration_complete"
+	StateMigrationErrored                           MessageType = "migration_errored"
+	StateMigrationFinalized                         MessageType = "migration_finalized"
+	StateMigrationSourceInitializationStart         MessageType = "migration_source_initialization_start"
+	StateMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
+	StateMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
+	StateMigrationDestinationInitializationComplete MessageType = "migration_destination_initialization_complete"
 )

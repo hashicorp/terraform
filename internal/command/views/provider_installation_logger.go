@@ -56,4 +56,7 @@ type ProviderInstallationLogger interface {
 const (
 	logInitializingStateStoreProviderStartMessageHuman = "[reset][bold]Initializing provider %s%s for state store %q..."
 	logInitializingStateStoreProviderStartMessageJSON  = "Initializing provider %s%s for state store %q..."
+
+	logFindingMatchingVersionMessageHuman = "- Finding %s versions matching %q..."
+	logFindingMatchingVersionMessageJSON  = "Finding matching versions for provider: %s, version_constraint: %q"
 )
