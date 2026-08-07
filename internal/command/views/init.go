@@ -32,7 +32,9 @@ type Init interface {
 	LogCloudInitializationCompleteCallToAction()
 
 	// LogInitializationComplete describes the successful end of initializing the workspace.
-	// Output is different depending on whether the configuration is empty or contains resources.
+	//
+	// Output is different depending on whether the configuration is empty or contains resources. Calling code should report if
+	// the config is empty via the boolean.
 	LogInitializationComplete(emptyDirectory bool)
 	// LogInitializationCompleteCallToAction  prompts users about what to do next after initialization.
 	// This is only used if the CLI is being used outside of automation; a human will see the CTA.
