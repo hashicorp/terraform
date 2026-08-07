@@ -31,8 +31,9 @@ type Init interface {
 	// This is only used if the cloud backend is used, and the CLI is being used outside of automation; a human will see the CTA.
 	LogCloudInitializationCompleteCallToAction()
 
-	// LogInitializationComplete describes the successful end of initializing the workspace
-	LogInitializationComplete()
+	// LogInitializationComplete describes the successful end of initializing the workspace.
+	// Output is different depending on whether the configuration is empty or contains resources.
+	LogInitializationComplete(emptyDirectory bool)
 	// LogInitializationCompleteCallToAction  prompts users about what to do next after initialization.
 	// This is only used if the CLI is being used outside of automation; a human will see the CTA.
 	LogInitializationCompleteCallToAction()
@@ -113,9 +114,15 @@ func (v *InitHuman) LogInitializationCompleteCallToAction() {
 	v.print(v.prepareMessage(OutputInitSuccessCLIMessage, params...))
 }
 
-func (v *InitHuman) LogInitializationComplete() {
+func (v *InitHuman) LogInitializationComplete(emptyDirectory bool) {
 	params := []any{}
-	v.print(v.prepareMessage(OutputInitSuccessMessage, params...))
+	var code InitMessageCode
+	if emptyDirectory {
+		code = OutputInitEmptyMessage
+	} else {
+		code = OutputInitSuccessMessage
+	}
+	v.print(v.prepareMessage(code, params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -323,12 +330,18 @@ func (v *InitJSON) LogInitializationCompleteCallToAction() {
 	v.Output(OutputInitSuccessCLIMessage, params...)
 }
 
-func (v *InitJSON) LogInitializationComplete() {
+func (v *InitJSON) LogInitializationComplete(emptyDirectory bool) {
 	params := []any{}
+	var code InitMessageCode
+	if emptyDirectory {
+		code = OutputInitEmptyMessage
+	} else {
+		code = OutputInitSuccessMessage
+	}
 
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
-	v.Output(OutputInitSuccessMessage, params...)
+	v.Output(code, params...)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.

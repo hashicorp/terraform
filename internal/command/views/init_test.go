@@ -1100,27 +1100,54 @@ func TestNewInit_LogCloudInitializationComplete_json(t *testing.T) {
 }
 
 func TestNewInit_LogInitializationComplete_json(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	initView := NewInit(arguments.ViewJSON, view)
+	t.Run("empty config", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
 
-	initView.LogInitializationComplete()
+		empty := true
+		initView.LogInitializationComplete(empty)
 
-	// Assert output
-	output := done(t)
-	expectedOutputFields := []string{
-		`"@level":"info"`,
-		`"@message":"Terraform has been successfully initialized!"`,
-		`"@module":"terraform.ui"`,
-		//@timestamp is dynamic
-		`"message_code":"output_init_success_message"`,
-		`"type":"init_output"`,
-	}
-	for _, snippet := range expectedOutputFields {
-		if !strings.Contains(output.Stdout(), snippet) {
-			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`"@message":"Terraform initialized in an empty directory!`, // ... incomplete but sufficient for test
+			`"@module":"terraform.ui"`,
+			//@timestamp is dynamic
+			`"message_code":"output_init_empty_message"`,
+			`"type":"init_output"`,
 		}
-	}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("non-empty config", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		empty := false
+		initView.LogInitializationComplete(empty)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`"@message":"Terraform has been successfully initialized!"`,
+			`"@module":"terraform.ui"`,
+			//@timestamp is dynamic
+			`"message_code":"output_init_success_message"`,
+			`"type":"init_output"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
 }
 
 func TestNewInit_LogCloudInitializationCompleteCallToAction_json(t *testing.T) {

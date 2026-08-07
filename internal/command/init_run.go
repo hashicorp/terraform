@@ -110,7 +110,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 	if empty {
-		view.Output(views.OutputInitEmptyMessage)
+		view.LogInitializationComplete(true)
 		return 0
 	}
 
@@ -449,7 +449,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if cloud {
 		view.LogCloudInitializationComplete()
 	} else {
-		view.LogInitializationComplete()
+		view.LogInitializationComplete(false)
 	}
 
 	if !c.RunningInAutomation {
