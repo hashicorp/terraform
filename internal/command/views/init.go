@@ -22,6 +22,9 @@ type Init interface {
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
 
+	// LogConfigurationCopyingStart describes the start of copying a module to create the root module in an empty directory.
+	LogConfigurationCopyingStart(moduleSource string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -76,6 +79,10 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.print(v.prepareMessage(messageCode, params...))
+}
+
+func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
+	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
 }
 
 func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -249,6 +256,14 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		"type", "init_output",
 		"message_code", string(messageCode),
 	)
+}
+
+func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
+	params := []any{moduleSource}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(CopyingConfigurationMessage, params...)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
