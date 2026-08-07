@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "ephemeral: Terraform will now use and display diagnostics raised when _renewing_ an ephemeral resource. This may cause warnings to appear that previously were lost. We expect that any error diagnostics that were previously lost would have caused confusing downstream errors."
+time: 2026-08-07T12:17:58.779212+01:00
+custom:
+  Issue: "38989"
