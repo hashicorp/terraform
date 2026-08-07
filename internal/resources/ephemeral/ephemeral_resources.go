@@ -102,7 +102,10 @@ func (r *Resources) InstanceValue(addr addrs.AbsResourceInstance) (val cty.Value
 	}
 	// If renewal has failed then we can't assume that the object is still
 	// live, but we can still return the original value regardless.
-	return inst.value, !inst.renewDiags.HasErrors()
+	inst.renewMu.Lock()
+	live = !inst.renewDiags.HasErrors()
+	inst.renewMu.Unlock()
+	return inst.value, live
 }
 
 // CloseInstances shuts down any live ephemeral resource instances that are
