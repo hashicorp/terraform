@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: WriteSnapshotToDir now closes modules.json after writes to avoid file descriptor leaks
+time: 2026-05-06T19:51:31-05:00
+custom:
+    Issue: "38302"
