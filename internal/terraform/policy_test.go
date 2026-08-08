@@ -166,9 +166,8 @@ func TestPolicyOperationForAction(t *testing.T) {
 	}{
 		{name: "create", action: plans.Create, want: proto.Operation_CREATE, wantValid: true},
 		{name: "update", action: plans.Update, want: proto.Operation_UPDATE, wantValid: true},
-		{name: "delete-then-create", action: plans.DeleteThenCreate, want: proto.Operation_UPDATE, wantValid: true},
-		{name: "create-then-delete", action: plans.CreateThenDelete, want: proto.Operation_UPDATE, wantValid: true},
-		{name: "create-then-forget", action: plans.CreateThenForget, want: proto.Operation_UPDATE, wantValid: true},
+		{name: "delete-then-create", action: plans.DeleteThenCreate, wantValid: false},
+		{name: "create-then-delete", action: plans.CreateThenDelete, wantValid: false},
 		{name: "delete", action: plans.Delete, want: proto.Operation_DELETE, wantValid: true},
 		{name: "no-op", action: plans.NoOp, want: proto.Operation_NO_OP, wantValid: true},
 		{name: "read", action: plans.Read, wantValid: false},

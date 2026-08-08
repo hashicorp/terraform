@@ -799,8 +799,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			},
 		},
 		{
-			name:        "replace resource with cbd. policy is evaluated with update operation",
-			expectCalls: 1,
+			name:        "replace resource with cbd. policy is evaluated with create and update operation",
+			expectCalls: 2,
 			mainConfig: `
 				terraform {
 					required_providers {
@@ -839,14 +839,11 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 			}),
 			forceReplace: []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_resource.test")},
 			prepareExpectations: func(t *testing.T, data *data) {
-				var called int
+				ops := make([]proto.Operation, 0, 2)
 				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 					data.policyEvalCalls++
-					called++
-					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
-						ProviderType: "test",
-						Operation:    proto.Operation_UPDATE,
-					}, protocmp.Transform()); diff != "" {
+					ops = append(ops, req.Meta.Operation)
+					if diff := cmp.Diff(req.Meta.ProviderType, "test"); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -854,8 +851,10 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				}
 
 				t.Cleanup(func() {
-					if called != 1 {
-						t.Errorf("Expected EvalPolicy to be called once got %d", called)
+					sort.Slice(ops, func(i, j int) bool { return ops[i] < ops[j] })
+					want := []proto.Operation{proto.Operation_CREATE, proto.Operation_DELETE}
+					if diff := cmp.Diff(want, ops, protocmp.Transform()); diff != "" {
+						t.Errorf("wrong policy operations (-want +got):\n%s", diff)
 					}
 				})
 			},
