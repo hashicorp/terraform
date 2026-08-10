@@ -19,8 +19,8 @@ const (
 	// Notify the user that any preparation steps are over and the migration is starting.
 	StateMigrationStartMessage = "[reset][bold]Migrating state from %s to %s...[reset]"
 
-	// Notify the user that everything has completed successfully.
-	StateMigrationCompletedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	// Notify the user that everything has finished successfully; migration and lockfile+backend state file updates.
+	StateMigrationFinalizedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
@@ -49,6 +49,10 @@ type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
 
+	LogStateMigrationStart(source, destination string)
+	LogStateMigrationComplete()
+	LogStateMigrationFinalized(source, destination string)
+
 	ProviderInstallationLogger
 	DependencyLockingLogger
 
@@ -76,6 +80,20 @@ type StateMigrateHuman struct {
 
 func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
+	msg := fmt.Sprintf(StateMigrationStartMessage, source, destination)
+	s.log(msg)
+}
+
+func (s *StateMigrateHuman) LogStateMigrationComplete() {
+	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogStateMigrationFinalized(source string, destination string) {
+	msg := fmt.Sprintf(StateMigrationFinalizedMessage, source, destination)
+	s.log(msg)
 }
 
 func (s *StateMigrateHuman) Log(message string, params ...any) {

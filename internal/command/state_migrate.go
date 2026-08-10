@@ -328,7 +328,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Log(views.StateMigrationStartMessage, source, destination)
+	view.LogStateMigrationStart(source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
@@ -338,6 +338,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.Log(views.StateMigrationFailureMessage, source, destination)
 		return 1
 	}
+
+	view.LogStateMigrationComplete()
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
 	// details of the destination state store provider.
@@ -380,7 +382,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	view.Diagnostics(diags) // Log any warnings
 
-	view.Log(views.StateMigrationCompletedMessage, source, destination)
+	view.LogStateMigrationFinalized(source, destination)
 
 	return 0
 }
