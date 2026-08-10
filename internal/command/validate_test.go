@@ -21,11 +21,27 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.TestOutput, int) {
 	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args = append(args, "-no-color")
+	args = append(args, testFixturePath(fixturepath))
+
+	code := c.Run(args)
+	return done(t), code
+}
+
+func validateTestProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
@@ -50,18 +66,8 @@ func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.Test
 			},
 		},
 	}
-	c := &ValidateCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
 
-	args = append(args, "-no-color")
-	args = append(args, testFixturePath(fixturepath))
-
-	code := c.Run(args)
-	return done(t), code
+	return p
 }
 
 func TestValidateCommand(t *testing.T) {
@@ -337,34 +343,10 @@ func TestValidate_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		p := testProvider()
-		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-			ResourceTypes: map[string]providers.Schema{
-				"test_instance": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"ami": {Type: cty.String, Optional: true},
-						},
-						BlockTypes: map[string]*configschema.NestedBlock{
-							"network_interface": {
-								Nesting: configschema.NestingList,
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"device_index": {Type: cty.String, Optional: true},
-										"description":  {Type: cty.String, Optional: true},
-										"name":         {Type: cty.String, Optional: true},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
 		view, done := testView(t)
 		c := &ValidateCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
+				testingOverrides: metaOverridesForProvider(validateTestProvider()),
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -393,34 +375,10 @@ func TestValidate_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		p := testProvider()
-		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-			ResourceTypes: map[string]providers.Schema{
-				"test_instance": {
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"ami": {Type: cty.String, Optional: true},
-						},
-						BlockTypes: map[string]*configschema.NestedBlock{
-							"network_interface": {
-								Nesting: configschema.NestingList,
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"device_index": {Type: cty.String, Optional: true},
-										"description":  {Type: cty.String, Optional: true},
-										"name":         {Type: cty.String, Optional: true},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
 		view, done := testView(t)
 		c := &ValidateCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
+				testingOverrides: metaOverridesForProvider(validateTestProvider()),
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -856,4 +814,91 @@ func TestValidate_resourceBlock(t *testing.T) {
 			)
 		}
 	})
+}
+
+func TestValidate_child_module_backend_warning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("invalid-child-modules/with-backend"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful exit code, got: %d\n\n%s", code, output.Stdout())
+	}
+
+	expectedWarning := "Warning: Backend configuration ignored"
+	if !strings.Contains(output.Stdout(), expectedWarning) {
+		t.Fatalf("unexpected stdout content: wanted %q, got: %s",
+			expectedWarning,
+			output.Stdout(),
+		)
+	}
+}
+
+func TestValidate_child_module_cloud_block_warning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("invalid-child-modules/with-cloud-block"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful exit code, got: %d\n\n%s", code, output.Stdout())
+	}
+
+	expectedWarning := "Warning: Cloud configuration ignored"
+	if !strings.Contains(output.Stdout(), expectedWarning) {
+		t.Fatalf("unexpected stdout content: wanted %q, got: %s",
+			expectedWarning,
+			output.Stdout(),
+		)
+	}
+}
+
+func TestValidate_child_module_import(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("invalid-child-modules/with-import"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("expected non-successful exit code %d\n\n%s", code, output.Stdout())
+	}
+
+	expectedErr := "Error: Invalid import configuration"
+	if !strings.Contains(output.Stderr(), expectedErr) {
+		t.Fatalf("unexpected error content: wanted %q, got: %s",
+			expectedErr,
+			output.Stderr(),
+		)
+	}
 }
