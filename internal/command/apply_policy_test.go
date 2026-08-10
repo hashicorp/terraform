@@ -39,9 +39,8 @@ func TestApply_WithPolicyDiagnosticsJSON(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 	resp := policy.EvaluationFromProtoResponse(
@@ -176,9 +175,8 @@ func TestApply_PolicyResultsJSON_WithSavedPlan(t *testing.T) {
 	planOverrides.PolicyClient = policy.NewTestMockClient(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          planOverrides,
-			View:                      planView,
-			AllowExperimentalFeatures: true,
+			testingOverrides: planOverrides,
+			View:             planView,
 		},
 	}
 	if code := planCmd.Run([]string{"-policies", td, "-no-color", "-out=planfile"}); code != 0 {
@@ -193,9 +191,8 @@ func TestApply_PolicyResultsJSON_WithSavedPlan(t *testing.T) {
 	applyOverrides.PolicyClient = applyPolicyClient
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides:          applyOverrides,
-			View:                      applyView,
-			AllowExperimentalFeatures: true,
+			testingOverrides: applyOverrides,
+			View:             applyView,
 		},
 	}
 
@@ -314,9 +311,8 @@ func TestApply_WithPolicyClientStopAfterApply(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -357,9 +353,8 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {

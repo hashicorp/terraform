@@ -177,8 +177,7 @@ func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBacken
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
-	// validatePolicyPaths call ejects early if -policies flag was passed for non-experimental builds
-	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyPaths(args.PolicyPaths))
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {

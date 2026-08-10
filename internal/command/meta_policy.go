@@ -29,10 +29,6 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string, ent *poli
 			client.Stop()
 		}
 	}
-	if !c.AllowExperimentalFeatures {
-		log.Printf("[DEBUG] Policies are not supported without experiments enabled, skipping policy client setup")
-		return client, nil, closer
-	}
 	if len(policyPaths) == 0 {
 		log.Printf("[DEBUG] No policy paths configured, skipping policy client setup")
 		return client, nil, closer
