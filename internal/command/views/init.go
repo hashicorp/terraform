@@ -22,6 +22,24 @@ type Init interface {
 	PolicyDiagnostics(diags policy.Diagnostics)
 	Output(messageCode InitMessageCode, params ...any)
 
+	// LogCloudInitializationStart describes the start of initializing the cloud backend
+	LogCloudInitializationStart()
+	// LogCloudInitializationComplete describes the successful end of initializing the workspace
+	// while using the cloud backend
+	LogCloudInitializationComplete()
+	// LogCloudInitializationCompleteCallToAction prompts users about what to do next after initialization.
+	// This is only used if the cloud backend is used, and the CLI is being used outside of automation; a human will see the CTA.
+	LogCloudInitializationCompleteCallToAction()
+
+	// LogInitializationComplete describes the successful end of initializing the workspace.
+	//
+	// Output is different depending on whether the configuration is empty or contains resources. Calling code should report if
+	// the config is empty via the boolean.
+	LogInitializationComplete(emptyDirectory bool)
+	// LogInitializationCompleteCallToAction  prompts users about what to do next after initialization.
+	// This is only used if the CLI is being used outside of automation; a human will see the CTA.
+	LogInitializationCompleteCallToAction()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	DependencyLockingLogger
@@ -76,6 +94,37 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 
 func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 	v.print(v.prepareMessage(messageCode, params...))
+}
+
+func (v *InitHuman) LogCloudInitializationStart() {
+	params := []any{}
+	v.print(v.prepareMessage(InitializingTerraformCloudMessage, params...))
+}
+
+func (v *InitHuman) LogCloudInitializationComplete() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCloudMessage, params...))
+}
+
+func (v *InitHuman) LogCloudInitializationCompleteCallToAction() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCLICloudMessage, params...))
+}
+
+func (v *InitHuman) LogInitializationCompleteCallToAction() {
+	params := []any{}
+	v.print(v.prepareMessage(OutputInitSuccessCLIMessage, params...))
+}
+
+func (v *InitHuman) LogInitializationComplete(emptyDirectory bool) {
+	params := []any{}
+	var code InitMessageCode
+	if emptyDirectory {
+		code = OutputInitEmptyMessage
+	} else {
+		code = OutputInitSuccessMessage
+	}
+	v.print(v.prepareMessage(code, params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreProviderPlugin(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -249,6 +298,52 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 		"type", "init_output",
 		"message_code", string(messageCode),
 	)
+}
+
+func (v *InitJSON) LogCloudInitializationStart() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(InitializingTerraformCloudMessage, params...)
+}
+
+func (v *InitJSON) LogCloudInitializationComplete() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCloudMessage, params...)
+}
+
+func (v *InitJSON) LogCloudInitializationCompleteCallToAction() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCLICloudMessage, params...)
+}
+
+func (v *InitJSON) LogInitializationCompleteCallToAction() {
+	params := []any{}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(OutputInitSuccessCLIMessage, params...)
+}
+
+func (v *InitJSON) LogInitializationComplete(emptyDirectory bool) {
+	params := []any{}
+	var code InitMessageCode
+	if emptyDirectory {
+		code = OutputInitEmptyMessage
+	} else {
+		code = OutputInitSuccessMessage
+	}
+
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	v.Output(code, params...)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
