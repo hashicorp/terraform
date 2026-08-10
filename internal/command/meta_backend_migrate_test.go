@@ -42,7 +42,7 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 		t.Log("Test: ", name)
 		m := testMetaBackend(t, nil)
 		input := map[string]string{}
-		_ = testInputMap(t, input)
+		inputWriter := testInputMap(t, input)
 		if tc.renamePrompt != "" {
 			input["backend-migrate-multistate-to-tfc"] = tc.renamePrompt
 		}
@@ -50,13 +50,19 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 			input["backend-migrate-multistate-to-tfc-pattern"] = tc.patternPrompt
 		}
 
-		sourceType := "cloud"
+		sourceType := "s3"
 		_, err := m.promptMultiStateMigrationPattern(sourceType, "backend", "HCP Terraform")
 		if tc.expectedErr == "" && err != nil {
 			t.Fatalf("expected error to be nil, but was %s", err.Error())
 		}
 		if tc.expectedErr != "" && tc.expectedErr != err.Error() {
 			t.Fatalf("expected error to eq %s but got %s", tc.expectedErr, err.Error())
+		}
+
+		// Check prompt text uses arguments in expected way
+		expected := `migrating existing workspaces from the backend "s3" to HCP Terraform`
+		if !strings.Contains(inputWriter.String(), expected) {
+			t.Fatalf("expected the input prompt to include: %s\nbut got:\n %s", expected, inputWriter.String())
 		}
 	}
 }
