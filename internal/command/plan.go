@@ -134,7 +134,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 }
 
 func (c *PlanCommand) Validate(args *arguments.Plan) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyPaths(args.PolicyPaths))
 }
 
 func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {

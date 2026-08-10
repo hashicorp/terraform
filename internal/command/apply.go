@@ -162,7 +162,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 }
 
 func (c *ApplyCommand) Validate(args *arguments.Apply) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyPaths(args.PolicyPaths))
 }
 
 func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {

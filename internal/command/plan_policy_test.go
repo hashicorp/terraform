@@ -40,9 +40,8 @@ func TestPlan_WithPolicy(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 	resp := policy.EvaluationFromProtoResponse(
@@ -158,9 +157,8 @@ func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 	resp := policy.EvaluationFromProtoResponse(
@@ -355,9 +353,8 @@ func TestPlan_WithPolicyUnknown(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -482,10 +479,9 @@ func TestPlan_WithPolicySuccessInfo(t *testing.T) {
 	policyClient := policy.NewTestMockClient(t)
 	overrides.PolicyClient = policyClient
 	meta := Meta{
-		testingOverrides:          overrides,
-		View:                      view,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
+		testingOverrides: overrides,
+		View:             view,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{
@@ -674,9 +670,8 @@ func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -859,9 +854,8 @@ func TestPlan_Policy_Destroy(t *testing.T) {
 
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -948,9 +942,8 @@ func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -991,9 +984,8 @@ func TestPlan_WithPolicySetupFailure(t *testing.T) {
 	// diagnostics from attempting to connect to the policy engine.
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
@@ -1073,9 +1065,8 @@ func TestPlan_WithPolicySetupFailureJSON(t *testing.T) {
 	// diagnostics from attempting to connect to the policy engine.
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
+			testingOverrides: overrides,
+			View:             view,
 		},
 	}
 
