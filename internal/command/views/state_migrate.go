@@ -46,12 +46,24 @@ Make sure you're supplying all the necessary attribute values for both the sourc
 `
 )
 
+type stateMigrationFailureMode string
+
+// In the human view these values are only used to control which human-readable message is printed to stdout.
+// In the JSON view these values are used as the value of a field indicating when the error occurred.
+// Therefore these strings are user-facing in JSON output and should not be changed!
+const (
+	DuringMigration        = "error_during_migration"
+	DuringLockfile         = "error_updating_provider_lockfile"
+	DuringBackendStateFile = "error_updating_workdir_state"
+)
+
 type StateMigrate interface {
 	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogStateMigrationStart(source, destination string)
 	LogStateMigrationComplete()
+	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
 	LogStateMigrationFinalized(source, destination string)
 
 	LogMigrationSourceInitializationStart()
@@ -98,6 +110,24 @@ func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination st
 
 func (s *StateMigrateHuman) LogStateMigrationComplete() {
 	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string) {
+	// The JSON object describes slightly different failures that led to an error.
+	// So different messages are be logged depending which happened.
+	var msg string
+	switch failMode {
+	case DuringMigration:
+		// migration itself failed
+		msg = fmt.Sprintf(StateMigrationFailureMessage, source, destination)
+	case DuringLockfile, DuringBackendStateFile:
+		// migration succeeded by updates in the working directory failed
+		msg = fmt.Sprintf(StateMigrationPostStepsInterruptedMessage, source, destination)
+	default:
+		panic(fmt.Sprintf("(*StateMigrateHuman)LogStateMigrationErrored: called incorrectly with unknown failure mode : %q", failMode))
+	}
+
+	s.log(msg)
 }
 
 func (s *StateMigrateHuman) LogMigrationSourceInitializationStart() {
