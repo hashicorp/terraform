@@ -15,9 +15,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -364,6 +367,62 @@ func TestQueryCommand_Validate(t *testing.T) {
 				return
 			}
 			tfdiags.AssertDiagnosticsMatch(t, got, tc.wantDiags)
+		})
+	}
+}
+
+type queryPolicyRemoteCommandBackend struct {
+	backendrun.OperationsBackend
+	local bool
+}
+
+func (*queryPolicyRemoteCommandBackend) IgnoreVersionConflict() {}
+
+func (*queryPolicyRemoteCommandBackend) VerifyWorkspaceTerraformVersion(string) tfdiags.Diagnostics {
+	return nil
+}
+
+func (b *queryPolicyRemoteCommandBackend) IsLocalOperations() bool {
+	return b.local
+}
+
+func TestQueryCommand_policyClientRouting(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		remote      bool
+		forceLocal  bool
+		policyPaths []string
+		wantClient  bool
+	}{
+		{name: "remote", remote: true, policyPaths: []string{"policy.tfpolicy.hcl"}},
+		{name: "forced local", remote: true, forceLocal: true, policyPaths: []string{"policy.tfpolicy.hcl"}, wantClient: true},
+		{name: "local", policyPaths: []string{"policy.tfpolicy.hcl"}, wantClient: true},
+		{name: "no policies"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var be backendrun.OperationsBackend = backendLocal.New()
+			if tc.remote {
+				be = &queryPolicyRemoteCommandBackend{OperationsBackend: be, local: tc.forceLocal}
+			}
+
+			client := policy.NewTestMockClient(t)
+			cmd := &QueryCommand{Meta: Meta{
+				AllowExperimentalFeatures: true,
+				testingOverrides:          &testingOverrides{PolicyClient: client},
+			}}
+			op := &backendrun.Operation{PolicyPaths: tc.policyPaths}
+			stop := cmd.configureQueryPolicyClient(be, op)
+			stop()
+			if tc.wantClient {
+				if op.PolicyClient != client {
+					t.Fatal("policy client was not propagated to the operation")
+				}
+			} else if op.PolicyClient != nil {
+				t.Fatal("remote operation unexpectedly received a local policy client")
+			}
+			if client.StopCalled != tc.wantClient {
+				t.Fatalf("policy client stopped = %t, want %t", client.StopCalled, tc.wantClient)
+			}
 		})
 	}
 }
