@@ -46,7 +46,7 @@ type ProviderInstallationLogger interface {
 	LogPartnerAndCommunityProviders()
 
 	// LogInitializingStateStoreProviderStart indicates progress during installation of a state store provider plugin
-	LogInitializingStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
+	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
 
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
@@ -54,6 +54,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	logInitializingStateStoreProviderStartMessageHuman = "[reset][bold]Initializing provider %s%s for state store %q..."
-	logInitializingStateStoreProviderStartMessageJSON  = "Initializing provider %s%s for state store %q..."
+	logInstallingStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
+	logInstallingStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
 )

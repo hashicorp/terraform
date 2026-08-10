@@ -880,7 +880,7 @@ func TestNewInit_LogPartnerAndCommunityProviders_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogInitializingStateStoreProviderStart_json(t *testing.T) {
+func TestNewInit_LogInstallStateStoreProviderStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
@@ -888,16 +888,16 @@ func TestNewInit_LogInitializingStateStoreProviderStart_json(t *testing.T) {
 	pAddr := addrs.NewDefaultProvider("test")
 	cons := getproviders.MustParseVersionConstraints("~> 1.0")
 	storeType := "test_store"
-	initView.LogInitializingStateStoreProviderStart(pAddr, cons, storeType)
+	initView.LogInstallStateStoreProviderStart(pAddr, cons, storeType)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initializing provider hashicorp/test (~\u003e 1.0) for state store \"test_store\"..."`,
+		`"@message":"Installing provider hashicorp/test (~\u003e 1.0) for state store \"test_store\"..."`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
-		`"type":"state_store_provider_initialization_start"`,
+		`"type":"state_store_provider_installation_start"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {

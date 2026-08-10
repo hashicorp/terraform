@@ -477,7 +477,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			// which will be surfaced as diagnostic during installation
 			if !pAddr.IsZero() {
 				cons := reqs[pAddr]
-				view.LogInitializingStateStoreProviderStart(pAddr, cons, rootModEarly.StateStore.Type)
+				view.LogInstallStateStoreProviderStart(pAddr, cons, rootModEarly.StateStore.Type)
 			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),

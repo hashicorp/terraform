@@ -65,7 +65,7 @@ const (
 	MessagePolicyEvaluationResult MessageType = "policy_result"
 
 	// Provider installation messages
-	InitializingStateStoreProviderStart MessageType = "state_store_provider_initialization_start"
+	InstallStateStoreProviderStart MessageType = "state_store_provider_installation_start"
 
 	// Provider trust-related message (currently used only in PSS context)
 	ProviderInteractiveApproval  MessageType = "provider_interactive_approval"

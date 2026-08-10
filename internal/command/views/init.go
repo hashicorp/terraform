@@ -88,13 +88,13 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
 }
 
-func (v *InitHuman) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageHuman, params...)
+	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageHuman, params...)
 	v.print(msg)
 }
 
@@ -305,17 +305,17 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
-func (v *InitJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageJSON, params...)
+	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageJSON, params...)
 
 	v.view.log.Info(
 		msg,
-		"type", json.InitializingStateStoreProviderStart,
+		"type", json.InstallStateStoreProviderStart,
 	)
 }
 
