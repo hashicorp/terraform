@@ -48,6 +48,50 @@ func Test_backendMigrateState_S_S(t *testing.T) {
 	}
 }
 
+func Test_backendMigrateState_S_s(t *testing.T) {
+	storeType := "test_store"
+	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
+	p.ConfigureProviderCalled = true
+	p.ConfigureStateStoreCalled = true
+	source, err := pluggable.NewPluggable(p, storeType)
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	destination := backendLocal.TestNewLocalSingle() // local with no workspace support
+
+	opts := &backendMigrateOpts{
+		SourceType: storeType,
+		Source:     source,
+
+		DestinationType: "local",
+		Destination:     destination,
+	}
+
+	inputWriter := testInputMap(t, map[string]string{
+		"backend-migrate-multistate-to-single": "no", // We're only testing the prompt, no is sufficient
+	})
+
+	meta := Meta{
+		input: true,
+		Ui:    testUiWrapped(t),
+	}
+	err = meta.backendMigrateState_S_s(opts)
+	if err == nil {
+		t.Fatal("expected a 'Migration aborted by user' error but got none")
+	}
+
+	// Check the source and destination are interpolated in the expected places
+	expected := []string{
+		`Destination backend "local" doesn't support workspaces`,
+		`The existing "test_store" state store supports workspaces`,
+	}
+	for _, e := range expected {
+		if !strings.Contains(inputWriter.String(), e) {
+			t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, inputWriter.String())
+		}
+	}
+}
+
 func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 	// Setup the meta
 
