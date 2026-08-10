@@ -7,8 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/pluggable"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func Test_backendMigrateState_S_S(t *testing.T) {
@@ -92,122 +96,143 @@ func Test_backendMigrateState_S_s(t *testing.T) {
 	}
 }
 
-// A method that `backendMigrateState_s_s` uses to prompt users (no direct tests for `backendMigrateState_s_s`)
-func Test_backendMigrateEmptyConfirm(t *testing.T) {
-	workspaceName := "default"
+func Test_backendMigrateState_s_s(t *testing.T) {
+	t.Run("no state in destination - prompt via backendMigrateEmptyConfirm", func(t *testing.T) {
+		workspaceName := "default"
 
-	storeType := "test_store"
-	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
-	p.ConfigureProviderCalled = true
-	p.ConfigureStateStoreCalled = true
-	source, err := pluggable.NewPluggable(p, storeType)
-	if err != nil {
-		t.Fatalf("unexpected err: %s", err)
-	}
-	sourceStateMgr, diags := source.StateMgr(workspaceName)
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
+		storeType := "test_store"
+		p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
+		p.ConfigureProviderCalled = true
+		p.ConfigureStateStoreCalled = true
 
-	destination := backendLocal.New()
-	destinationStateMgr, diags := source.StateMgr(workspaceName)
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
+		// We need a state to migrate
+		p.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+			"test_store",
+			workspaceName,
+			[]byte(`{"version":4,"terraform_version":"1.16.0","serial":1,"lineage":"8595356e-c764-dea1-8dae-156b936ec6e2","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		)
+		source, err := pluggable.NewPluggable(p, storeType)
+		if err != nil {
+			t.Fatalf("unexpected err: %s", err)
+		}
+		destination := backendLocal.New()
 
-	opts := &backendMigrateOpts{
-		SourceType: storeType,
-		Source:     source,
+		opts := &backendMigrateOpts{
+			SourceType: storeType,
+			Source:     source,
 
-		DestinationType: "local",
-		Destination:     destination,
-	}
+			DestinationType: "local",
+			Destination:     destination,
 
-	inputWriter := testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "no", // We're only testing the prompt, no is sufficient
+			sourceWorkspace: workspaceName,
+		}
+
+		inputWriter := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "no", // We're only testing the prompt, no is sufficient
+		})
+
+		meta := Meta{
+			input: true,
+			Ui:    testUiWrapped(t),
+		}
+		err = meta.backendMigrateState_s_s(opts)
+		if err != nil {
+			t.Fatalf("Didn't expect an error but got: %s", err)
+		}
+
+		// Check the source and destination are interpolated in the expected places
+		promptText := cleanString(inputWriter.String()) // assertions need to space newlines, this makes it easier
+		expected := []string{
+			`migrating the previous "test_store" state store to the newly configured "local" backend.`,
+			`No existing state was found in the newly configured "local" backend`,
+			`copy this state to the new "local" backend?`,
+		}
+		for _, e := range expected {
+			if !strings.Contains(promptText, e) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, promptText)
+			}
+		}
 	})
 
-	meta := Meta{
-		input: true,
-		Ui:    testUiWrapped(t),
-	}
-	_, err = meta.backendMigrateEmptyConfirm(sourceStateMgr, destinationStateMgr, opts)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+	t.Run("state in destination - prompt via backendMigrateNonEmptyConfirm", func(t *testing.T) {
+		td := t.TempDir()
+		t.Chdir(td)
 
-	// Check the source and destination are interpolated in the expected places
-	promptText := cleanString(inputWriter.String()) // assertions need to space newlines, this makes it easier
-	expected := []string{
-		`migrating the previous "test_store" state store to the newly configured "local" backend.`,
-		`No existing state was found in the newly configured "local" backend`,
-		`copy this state to the new "local" backend?`,
-	}
-	for _, e := range expected {
-		if !strings.Contains(promptText, e) {
-			t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, promptText)
+		workspaceName := "default"
+
+		// Source - has a state for migration
+		storeType := "test_store"
+		p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
+		p.ConfigureProviderCalled = true
+		p.ConfigureStateStoreCalled = true
+		p.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+			"test_store",
+			workspaceName,
+			[]byte(`{"version":4,"terraform_version":"1.16.0","serial":1,"lineage":"8595356e-c764-dea1-8dae-156b936ec6e2","outputs":{"test":{"value":"test","type":"string"}},"resources":[],"check_results":null}`),
+		)
+		source, err := pluggable.NewPluggable(p, storeType)
+		if err != nil {
+			t.Fatalf("unexpected err: %s", err)
 		}
-	}
-}
 
-// A method that `backendMigrateState_s_s` uses to prompt users (no direct tests for `backendMigrateState_s_s`)
-func Test_backendMigrateNonEmptyConfirm(t *testing.T) {
-	workspaceName := "default"
+		// Destination - has a state present to cause the prompt under test
+		state := states.NewState()
+		state.SetOutputValue(
+			addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar value"), false,
+		)
+		state.SetOutputValue(
+			addrs.OutputValue{Name: "secret"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("secret value"), true,
+		)
+		destination := backendLocal.New()
+		dStateMgr, diags := destination.StateMgr(workspaceName)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		err = dStateMgr.WriteState(state)
+		if err != nil {
+			t.Fatalf("unexpected err: %s", err)
+		}
 
-	storeType := "test_store"
-	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
-	p.ConfigureProviderCalled = true
-	p.ConfigureStateStoreCalled = true
-	source, err := pluggable.NewPluggable(p, storeType)
-	if err != nil {
-		t.Fatalf("unexpected err: %s", err)
-	}
-	sourceStateMgr, diags := source.StateMgr(workspaceName)
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
+		opts := &backendMigrateOpts{
+			SourceType: storeType,
+			Source:     source,
 
-	destination := backendLocal.New()
-	destinationStateMgr, diags := source.StateMgr(workspaceName)
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
+			DestinationType: "local",
+			Destination:     destination,
 
-	opts := &backendMigrateOpts{
-		SourceType: storeType,
-		Source:     source,
+			sourceWorkspace: workspaceName,
+		}
 
-		DestinationType: "local",
-		Destination:     destination,
-	}
+		inputWriter := testInputMap(t, map[string]string{
+			"backend-migrate-to-backend": "no", // We're only testing the prompt, no is sufficient
+		})
 
-	inputWriter := testInputMap(t, map[string]string{
-		"backend-migrate-to-backend": "no", // We're only testing the prompt, no is sufficient
+		meta := Meta{
+			input: true,
+			Ui:    testUiWrapped(t),
+		}
+		err = meta.backendMigrateState_s_s(opts)
+		if err != nil {
+			t.Fatalf("Didn't expect an error but got: %s", err)
+		}
+
+		// Check the source and destination are interpolated in the expected places
+		promptText := cleanString(inputWriter.String()) // assertions need to space newlines, this makes it easier
+		expected := []string{
+			`migrating the previous "test_store" state store to the newly configured "local" backend.`,
+			`non-empty state already exists in the new backend.`,
+			`Previous (state store "test_store"):`,
+			`New (backend "local"):`,
+			`overwrite the state in the new backend with the previous state?`,
+		}
+		for _, e := range expected {
+			if !strings.Contains(promptText, e) {
+				t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, promptText)
+			}
+		}
 	})
-
-	meta := Meta{
-		input: true,
-		Ui:    testUiWrapped(t),
-	}
-	_, err = meta.backendMigrateNonEmptyConfirm(sourceStateMgr, destinationStateMgr, opts)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	// Check the source and destination are interpolated in the expected places
-	promptText := cleanString(inputWriter.String()) // assertions need to space newlines, this makes it easier
-	expected := []string{
-		`migrating the previous "test_store" state store to the newly configured "local" backend.`,
-		`non-empty state already exists in the new backend.`,
-		`Previous (state store "test_store"):`,
-		`New (backend "local"):`,
-		`overwrite the state in the new backend with the previous state?`,
-	}
-	for _, e := range expected {
-		if !strings.Contains(promptText, e) {
-			t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, promptText)
-		}
-	}
 }
 
 func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
