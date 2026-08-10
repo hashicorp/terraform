@@ -67,8 +67,8 @@ const (
 	// Provider installation messages
 	InitializingStateStoreProviderStart MessageType = "state_store_provider_initialization_start"
 
-	// PSS messages
-	StateStoreProviderInteractiveApproval  MessageType = "state_store_provider_interactive_approval"
-	StateStoreProviderInteractiveRejection MessageType = "state_store_provider_interactive_rejection"
-	StateStoreProviderAutomationApproval   MessageType = "state_store_provider_automatic_approval"
+	// Provider trust-related message (currently used only in PSS context)
+	ProviderInteractiveApproval  MessageType = "provider_interactive_approval"
+	ProviderInteractiveRejection MessageType = "provider_interactive_rejection"
+	ProviderAutomationApproval   MessageType = "provider_automatic_approval"
 )

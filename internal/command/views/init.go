@@ -323,7 +323,7 @@ func (v *InitJSON) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider,
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
 		logInteractiveApprovalMessageJSON,
-		"type", json.StateStoreProviderInteractiveApproval,
+		"type", json.ProviderInteractiveApproval,
 	)
 }
 
@@ -331,7 +331,7 @@ func (v *InitJSON) LogInteractiveApproval() {
 func (v *InitJSON) LogInteractiveRejection() {
 	v.view.log.Info(
 		logInteractiveRejectionMessageJSON,
-		"type", json.StateStoreProviderInteractiveRejection,
+		"type", json.ProviderInteractiveRejection,
 	)
 }
 
@@ -339,7 +339,7 @@ func (v *InitJSON) LogInteractiveRejection() {
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
-		"type", json.StateStoreProviderAutomationApproval,
+		"type", json.ProviderAutomationApproval,
 	)
 }
 
