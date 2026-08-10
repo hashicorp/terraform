@@ -343,7 +343,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// The practitioner indicated that they don't want to refresh the instance if the configuration
 	// provided doesn't produce a change on it's own, which we will confirm by running an initial plan.
 	// If that plan is a no-op we report the changes and return without refreshing the state.
-	if n.minimalRefresh && !schemaVersionUpgraded && !importing {
+	if n.minimalRefresh && !schemaVersionUpgraded && !importing && instanceRefreshState != nil {
+		// We'll keep all the diagnostics separated in this block until we return
+		var initialPlanDiags tfdiags.Diagnostics
+
 		// Evaluate preconditions before we do the initial plan. This can only be done once, so future plan calls will
 		// use the "preRefreshPlanExecuted" variable to prevent the (*NodeAbstractResourceInstance).plan method from evaluating
 		// preconditions again.
@@ -354,20 +357,17 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			ctx, n.Addr, repData,
 			checkRuleSeverity,
 		)
-		diags = diags.Append(checkDiags)
-		if diags.HasErrors() {
-			return diags // failed preconditions prevent further evaluation
+		initialPlanDiags = initialPlanDiags.Append(checkDiags)
+		if initialPlanDiags.HasErrors() {
+			return diags.Append(initialPlanDiags) // failed preconditions prevent further evaluation
 		}
-
-		// If we end up running a follow-up refresh/plan, we don't want to duplicate any warning diagnostics
-		initialPlanDiags := diags
 
 		// Call pre-diff hook (future plan calls will prevent side effects from calling this hook again)
 		initialPlanDiags = initialPlanDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(n.HookResourceIdentity(), addrs.NotDeposed, nil)
 		}))
 		if initialPlanDiags.HasErrors() {
-			return initialPlanDiags
+			return diags.Append(initialPlanDiags)
 		}
 
 		change, instancePlanState, planDeferred, planDiags := n.plan(
@@ -377,30 +377,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if initialPlanDiags.HasErrors() {
 			// Since we suppressed all hooks in the plan method above, any errors need to call the post-diff hook
 			initialPlanDiags = initialPlanDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, initialPlanDiags.Err())
+				return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.NoOp, initialPlanDiags.Err())
 			}))
 
-			// If we are importing and generating a configuration, we need to
-			// ensure the change is written out so the configuration can be
-			// captured.
-			if planDeferred == nil && len(n.generateConfigPath) > 0 {
-				// Update our return plan
-				change := &plans.ResourceInstanceChange{
-					Addr:         n.Addr,
-					PrevRunAddr:  n.prevRunAddr(ctx),
-					ProviderAddr: n.ResolvedProvider,
-					Change: plans.Change{
-						// we only need a placeholder, so this will be a NoOp
-						Action:          plans.NoOp,
-						Before:          instanceRefreshState.Value,
-						After:           instanceRefreshState.Value,
-						GeneratedConfig: n.generatedConfigHCL,
-					},
-				}
-				initialPlanDiags = initialPlanDiags.Append(n.writeChange(ctx, change, states.NotDeposed))
-			}
-
-			return initialPlanDiags
+			return diags.Append(initialPlanDiags)
 		}
 
 		if change.Action == plans.NoOp {
@@ -416,7 +396,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					initialPlanDiags = initialPlanDiags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 						return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, change.Action, initialPlanDiags.Err())
 					}))
-					return initialPlanDiags
+					return diags.Append(initialPlanDiags)
 				}
 			}
 
@@ -427,7 +407,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 			// Since the plan was a no-op and the practitioner indicated they don't want to refresh,
 			// we can go through the process of reporting the relevant changes, deferrals, state, etc.
-			return initialPlanDiags.Append(n.reportPlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
+			initialPlanDiags = initialPlanDiags.Append(n.reportPlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
+
+			return diags.Append(initialPlanDiags)
 		} else {
 			log.Printf("[DEBUG] Minimal refresh mode: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
 		}
@@ -497,7 +479,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			if preRefreshPlanExecuted {
 				// Since we suppressed all hooks in the plan method above, any errors need to call the post-diff hook
 				diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-					return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.Read, diags.Err())
+					return h.PostDiff(n.HookResourceIdentity(), addrs.NotDeposed, plans.NoOp, diags.Err())
 				}))
 			}
 
