@@ -104,13 +104,13 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstallationLogger interface.
-func (s *StateMigrateHuman) LogInitializingStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
+func (s *StateMigrateHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInitializingStateStoreProviderStartMessageHuman, params...)
+	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageHuman, params...)
 	s.log(msg)
 }
 
