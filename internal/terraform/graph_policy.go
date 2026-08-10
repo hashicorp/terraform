@@ -44,10 +44,9 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 
 	ps.span = span
 
-	g := ps.graphCopyLocked()
 	finish := &nodePolicyEvalFinish{span: span}
-	g.Add(finish)
-	for pn := range g.VerticesSeq() {
+	ps.graph.Add(finish)
+	for pn := range ps.graph.VerticesSeq() {
 		// Wire finish only to policy node types; all other vertices are skipped.
 		switch pn.(type) {
 		case *nodeResourcePolicy, *nodeQueryResourcePolicy:
@@ -55,19 +54,8 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 			continue
 		}
 		// finish depends on pn, so pn runs first and finish runs after.
-		g.Connect(finish, pn)
+		ps.graph.Connect(finish, pn)
 	}
 
-	return &g
-}
-
-func (ps *policySubgraph) graphCopyLocked() Graph {
-	var g Graph
-	for v := range ps.graph.VerticesSeq() {
-		g.Add(v)
-	}
-	for _, e := range ps.graph.Edges() {
-		g.Connect(e.Source, e.Target)
-	}
-	return g
+	return &ps.graph
 }
