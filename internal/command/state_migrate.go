@@ -99,6 +99,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
 	// Load the source backend
+	view.LogMigrationSourceInitializationStart()
 	var source string
 	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
 	if smi.Backend != nil {
@@ -160,8 +161,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.Source = srcB
 		}
 	}
+	view.LogMigrationSourceInitializationComplete()
 
 	// Load the destination backend
+	view.LogMigrationDestinationInitializationStart()
 	rootMod := cfg.Module
 	var destination string
 	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
@@ -327,6 +330,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.Diagnostics(diags)
 		return 1
 	}
+	view.LogMigrationDestinationInitializationComplete()
 
 	view.LogStateMigrationStart(source, destination)
 
