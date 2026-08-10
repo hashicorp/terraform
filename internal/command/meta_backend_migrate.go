@@ -1161,7 +1161,7 @@ Enter "yes" to copy and "no" to start with an empty state.
 const inputBackendMigrateNonEmpty = `
 Pre-existing state was found while migrating the previous %[1]q %[2]s to the
 newly configured %[4]q %[5]s. An existing non-empty state already exists in
-the new %[5]. The two states have been saved to temporary files that will be
+the new %[5]s. The two states have been saved to temporary files that will be
 removed after responding to this query.
 
 Previous (%[2]s %[1]q): %[3]s
