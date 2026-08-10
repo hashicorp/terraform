@@ -1146,7 +1146,7 @@ Enter "yes" to proceed or "no" to cancel.
 
 const inputBackendMigrateEmpty = `
 Pre-existing state was found while migrating the previous %[1]q %[2]s to the
-newly configured %[1]q %[4]s. No existing state was found in the newly
+newly configured %[3]q %[4]s. No existing state was found in the newly
 configured %[3]q %[4]s. Do you want to copy this state to the new %[3]q
 %[4]s? Enter "yes" to copy and "no" to start with an empty state.
 `

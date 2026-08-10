@@ -92,6 +92,64 @@ func Test_backendMigrateState_S_s(t *testing.T) {
 	}
 }
 
+// A method that `backendMigrateState_s_s` uses to prompt users (no direct tests for `backendMigrateState_s_s`)
+func Test_backendMigrateEmptyConfirm(t *testing.T) {
+	workspaceName := "default"
+
+	storeType := "test_store"
+	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
+	p.ConfigureProviderCalled = true
+	p.ConfigureStateStoreCalled = true
+	source, err := pluggable.NewPluggable(p, storeType)
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	sourceStateMgr, diags := source.StateMgr(workspaceName)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	destination := backendLocal.New()
+	destinationStateMgr, diags := source.StateMgr(workspaceName)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	opts := &backendMigrateOpts{
+		SourceType: storeType,
+		Source:     source,
+
+		DestinationType: "local",
+		Destination:     destination,
+	}
+
+	inputWriter := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "no", // We're only testing the prompt, no is sufficient
+	})
+
+	meta := Meta{
+		input: true,
+		Ui:    testUiWrapped(t),
+	}
+	_, err = meta.backendMigrateEmptyConfirm(sourceStateMgr, destinationStateMgr, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// Check the source and destination are interpolated in the expected places
+	promptText := cleanString(inputWriter.String()) // assertions need to space newlines, this makes it easier
+	expected := []string{
+		`migrating the previous "test_store" state store to the newly configured "local" backend.`,
+		`No existing state was found in the newly configured "local" backend`,
+		`copy this state to the new "local" backend?`,
+	}
+	for _, e := range expected {
+		if !strings.Contains(promptText, e) {
+			t.Fatalf("expected the input prompt to include %q, but got':\n %s", e, promptText)
+		}
+	}
+}
+
 func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 	// Setup the meta
 
