@@ -4,8 +4,49 @@
 package command
 
 import (
+	"strings"
 	"testing"
+
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/backend/pluggable"
 )
+
+func Test_backendMigrateState_S_S(t *testing.T) {
+	storeType := "test_store"
+	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
+	source, err := pluggable.NewPluggable(p, storeType)
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	destination := backendLocal.New() // local
+
+	opts := &backendMigrateOpts{
+		SourceType: storeType,
+		Source:     source,
+
+		DestinationType: "local",
+		Destination:     destination,
+	}
+
+	inputWriter := testInputMap(t, map[string]string{
+		"backend-migrate-multistate-to-multistate": "no", // We're only testing the prompt, no is sufficient
+	})
+
+	meta := Meta{
+		input: true,
+		Ui:    testUiWrapped(t),
+	}
+	err = meta.backendMigrateState_S_S(opts)
+	if err == nil {
+		t.Fatal("expected a 'Migration aborted by user' error but got none")
+	}
+
+	// Check the source and destination are interpolated in the expected places
+	expected := `the existing "test_store" state store and the newly configured "local" backend`
+	if !strings.Contains(inputWriter.String(), expected) {
+		t.Fatalf("expected the input prompt to include %q, but got':\n %s", expected, inputWriter.String())
+	}
+}
 
 func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 	// Setup the meta
