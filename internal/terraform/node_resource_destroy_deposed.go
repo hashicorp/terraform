@@ -334,6 +334,9 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
+	// after destroy, we still need to evaluate policy
+	n.addPolicyNode(ctx, change, state)
+
 	// after destroy we continue to use the before value, since there is no after
 	diags = diags.Append(n.invokeDestroyActions(ctx, configs.AfterDestroy, op))
 

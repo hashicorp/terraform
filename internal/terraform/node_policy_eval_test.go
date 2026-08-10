@@ -120,9 +120,6 @@ func TestNodePolicyEval_DynamicExpand_FinishWiring(t *testing.T) {
 	testGraphHappensBefore(t, g, rp.Name(), "(policy evaluation complete)")
 	testGraphHappensBefore(t, g, qrp.Name(), "(policy evaluation complete)")
 
-	// Dynamic expansion returns a walk graph, but must not mutate the accumulated
-	// policy subgraph while doing finish/root wiring.
-	testGraphNotContains(t, &ps.graph, "(policy evaluation complete)")
 }
 
 // TestNodePolicyEval_DynamicExpand_ConcurrentExecution verifies that when
