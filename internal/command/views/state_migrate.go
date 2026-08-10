@@ -53,6 +53,11 @@ type StateMigrate interface {
 	LogStateMigrationComplete()
 	LogStateMigrationFinalized(source, destination string)
 
+	LogMigrationSourceInitializationStart()
+	LogMigrationSourceInitializationComplete()
+	LogMigrationDestinationInitializationStart()
+	LogMigrationDestinationInitializationComplete()
+
 	ProviderInstallationLogger
 	DependencyLockingLogger
 
@@ -88,6 +93,22 @@ func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination st
 }
 
 func (s *StateMigrateHuman) LogStateMigrationComplete() {
+	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogMigrationSourceInitializationStart() {
+	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogMigrationSourceInitializationComplete() {
+	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogMigrationDestinationInitializationStart() {
+	// no-op in human view
+}
+
+func (s *StateMigrateHuman) LogMigrationDestinationInitializationComplete() {
 	// no-op in human view
 }
 
