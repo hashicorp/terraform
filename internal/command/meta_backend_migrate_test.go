@@ -15,6 +15,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// TODO - there are no tests for `backendMigrateTFC`
+
 func Test_backendMigrateState_S_S(t *testing.T) {
 	storeType := "test_store"
 	p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema(storeType))
@@ -96,6 +98,7 @@ func Test_backendMigrateState_S_s(t *testing.T) {
 	}
 }
 
+// Scenarios that cause a prompt to be created via `backendMigrateEmptyConfirm` or `backendMigrateNonEmptyConfirm`
 func Test_backendMigrateState_s_s(t *testing.T) {
 	t.Run("no state in destination - prompt via backendMigrateEmptyConfirm", func(t *testing.T) {
 		workspaceName := "default"
