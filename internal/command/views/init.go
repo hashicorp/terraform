@@ -339,7 +339,7 @@ func (v *InitJSON) LogInteractiveRejection() {
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
-		"type", json.ProviderAutomationApproval,
+		"type", json.ProviderAutomaticApproval,
 	)
 }
 
