@@ -71,5 +71,5 @@ const (
 	// Provider trust-related message (currently used only in PSS context)
 	ProviderInteractiveApproval  MessageType = "provider_interactive_approval"
 	ProviderInteractiveRejection MessageType = "provider_interactive_rejection"
-	ProviderAutomationApproval   MessageType = "provider_automatic_approval"
+	ProviderAutomaticApproval    MessageType = "provider_automatic_approval"
 )
