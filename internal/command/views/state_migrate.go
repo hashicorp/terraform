@@ -264,3 +264,14 @@ func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) 
 
 	return s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
 }
+
+type StateMigrateJSON struct {
+	view *JSONView
+}
+
+var _ Spacer = (*StateMigrateJSON)(nil)
+
+// Implements Spacer
+func (s *StateMigrateJSON) Spacer() {
+	// no-op for JSON output, since we don't want to log empty messages in JSON
+}
