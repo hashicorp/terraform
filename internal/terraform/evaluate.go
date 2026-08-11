@@ -655,11 +655,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// does a bunch of instance-related work itself below.
 	//
 	// Currently, unknown instance keys are only possible when planning with
-	// DeferralAllowed set to true in the PlanOpts, which should only be the
-	// case in the stacks runtime (not the "normal terraform" modules runtime).
-	// Thus, we have some amount of duplicated code remaining, to be more
-	// certain that stacks-specific behaviors won't leak out into the standard
-	// runtime.
+	// DeferralAllowed set to true in the PlanOpts.
 	//
 	// TODO: When deferred actions are more stable and robust in stacks, it
 	// would be nice to rework this function to rely on the ResourceInstanceKeys

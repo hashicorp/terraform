@@ -22,9 +22,7 @@ import (
 // deferred.
 type Deferred struct {
 
-	// deferralAllowed marks whether deferred actions are supported by the
-	// current runtime. At time of writing, the modules runtime does not support
-	// deferral, but the stacks runtime does.
+	// deferralAllowed marks whether deferred actions are supported by the current runtime.
 	deferralAllowed bool
 
 	// externalDependencyDeferred marks the special situation where the
@@ -229,8 +227,7 @@ func (d *Deferred) SetExternalDependencyDeferred() {
 	d.externalDependencyDeferred = true
 }
 
-// DeferralAllowed checks whether deferred actions are supported by the current
-// runtime.
+// DeferralAllowed checks whether deferred actions are supported by the current runtime.
 func (d *Deferred) DeferralAllowed() bool {
 	// Gracefully recover from being called on nil, for tests that use
 	// MockEvalContext without a real Deferred pointer set up.

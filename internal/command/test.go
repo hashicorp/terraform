@@ -298,17 +298,6 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	view := views.NewTest(preparation.Args.ViewType, m.View)
 	preparation.View = view
 
-	// EXPERIMENTAL: maybe enable deferred actions
-	if !m.AllowExperimentalFeatures && preparation.Args.DeferralAllowed {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
-		))
-		view.Diagnostics(nil, nil, diags)
-		return
-	}
-
 	// The specified testing directory must be a relative path, and it must
 	// point to a directory that is a descendant of the configuration directory.
 	if !filepath.IsLocal(preparation.Args.TestDirectory) {
