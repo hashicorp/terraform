@@ -143,7 +143,7 @@ func (m *Meta) annotateDependencyLocksWithOverrides(ret *depsfile.Locks) *depsfi
 // saveDependencyLockFile can overwrite the contents of the dependency lock file.
 // If the locks match the previous locks, then the file is not updated and no output is produced.
 // If a "readonly" -lockfile flag is supplied then changing the file is blocked.
-func (m *Meta) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, incompleteProviders []string, flagLockfile string, view views.DependencyLockingLogger) (output bool, diags tfdiags.Diagnostics) {
+func (m *Meta) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, incompleteProviders []string, flagLockfile string, view views.ProviderLockingLogger) (output bool, diags tfdiags.Diagnostics) {
 	// If the provider dependencies have changed since the last run then we'll
 	// say a little about that in case the reader wasn't expecting a change.
 	// (When we later integrate module dependencies into the lock file we'll
@@ -194,10 +194,10 @@ func (m *Meta) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, i
 			// say a little about what the dependency lock file is, for new
 			// users or those who are upgrading from a previous Terraform
 			// version that didn't have dependency lock files.
-			view.LogDependencyLockfileCreated()
+			view.LogProviderLockfileCreated()
 			output = true
 		} else {
-			view.LogDependencyLockfileUpdated()
+			view.LogProviderLockfileUpdated()
 			output = true
 		}
 		lockFileDiags := m.replaceLockedDependencies(newLocks)

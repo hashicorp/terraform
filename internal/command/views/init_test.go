@@ -911,7 +911,7 @@ func TestNewInit_LogDependencyLockfileCreated_json(t *testing.T) {
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
-	initView.LogDependencyLockfileCreated()
+	initView.LogProviderLockfileCreated()
 
 	// Assert output
 	output := done(t)
@@ -935,7 +935,7 @@ func TestNewInit_LogDependencyLockfileUpdated_json(t *testing.T) {
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
-	initView.LogDependencyLockfileUpdated()
+	initView.LogProviderLockfileUpdated()
 
 	// Assert output
 	output := done(t)

@@ -72,7 +72,7 @@ type StateMigrate interface {
 	LogMigrationDestinationInitializationComplete()
 
 	ProviderInstallationLogger
-	DependencyLockingLogger
+	ProviderLockingLogger
 
 	StateStoreProviderTrustLogger
 
@@ -272,12 +272,12 @@ func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 }
 
 // Implements DependencyLockLogger interface.
-func (s *StateMigrateHuman) LogDependencyLockfileCreated() {
+func (s *StateMigrateHuman) LogProviderLockfileCreated() {
 	s.log(previousLockInfoHuman)
 }
 
 // Implements DependencyLockLogger interface.
-func (s *StateMigrateHuman) LogDependencyLockfileUpdated() {
+func (s *StateMigrateHuman) LogProviderLockfileUpdated() {
 	s.log(dependenciesLockChangesInfo)
 }
 
@@ -302,7 +302,7 @@ type StateMigrateJSON struct {
 }
 
 var (
-	_ DependencyLockingLogger       = (*StateMigrateJSON)(nil)
+	_ ProviderLockingLogger         = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
 )
@@ -336,8 +336,8 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 	)
 }
 
-// Implements DependencyLockingLogger interface.
-func (s *StateMigrateJSON) LogDependencyLockfileCreated() {
+// Implements ProviderLockingLogger interface.
+func (s *StateMigrateJSON) LogProviderLockfileCreated() {
 	msg := strings.TrimSpace(previousLockInfoJSON)
 	s.view.log.Info(
 		msg,
@@ -345,8 +345,8 @@ func (s *StateMigrateJSON) LogDependencyLockfileCreated() {
 	)
 }
 
-// Implements DependencyLockingLogger interface.
-func (s *StateMigrateJSON) LogDependencyLockfileUpdated() {
+// Implements ProviderLockingLogger interface.
+func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
 	msg := strings.TrimSpace(dependenciesLockChangesInfo)
 	s.view.log.Info(
 		msg,

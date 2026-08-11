@@ -3,9 +3,9 @@
 
 package views
 
-type DependencyLockingLogger interface {
-	LogDependencyLockfileCreated()
-	LogDependencyLockfileUpdated()
+type ProviderLockingLogger interface {
+	LogProviderLockfileCreated()
+	LogProviderLockfileUpdated()
 }
 
 const previousLockInfoHuman = `
