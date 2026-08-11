@@ -40,7 +40,7 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext, allowUnknown 
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",
-			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
+			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use either the -target argument or the -allow-deferral argument to first apply only the resources that the count depends on.`,
 			Subject:  expr.Range().Ptr(),
 
 			// TODO: Also populate Expression and EvalContext in here, but
