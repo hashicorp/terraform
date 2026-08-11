@@ -128,7 +128,7 @@ func TestNewStateMigrate_LogInteractiveApproval_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`approved by the user`, // @message
+		`approved by the user`, // @message - incomplete but sufficient
 		`"@module":"terraform.ui"`,
 		`"type":"provider_interactive_approval"`,
 	}
@@ -150,7 +150,7 @@ func TestNewStateMigrate_LogInteractiveRejection_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`rejected by the user`, // @message
+		`rejected by the user`, // @message - incomplete but sufficient
 		`"@module":"terraform.ui"`,
 		`"type":"provider_interactive_rejection"`,
 	}
@@ -172,9 +172,31 @@ func TestNewStateMigrate_LogAutomaticApproval_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`approved automatically`, // @message
+		`approved automatically`, // @message - incomplete but sufficient
 		`"@module":"terraform.ui"`,
 		`"type":"provider_automatic_approval"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogDependencyLockfileCreated()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`Terraform has created a lock file .terraform.lock.hcl`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_lockfile_created"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {
