@@ -188,7 +188,7 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 	view := NewView(streams)
 	smView := StateMigrateJSON{view: NewJSONView(view)}
 
-	smView.LogDependencyLockfileCreated()
+	smView.LogProviderLockfileCreated()
 
 	// Assert output
 	output := done(t)

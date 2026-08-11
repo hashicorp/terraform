@@ -28,7 +28,7 @@ type Init interface {
 
 	ModuleInstallationLogger
 	ProviderInstallationLogger
-	DependencyLockingLogger
+	ProviderLockingLogger
 
 	StateStoreProviderTrustLogger
 
@@ -163,14 +163,14 @@ func (v *InitHuman) LogPartnerAndCommunityProviders() {
 	v.print(v.prepareMessage(PartnerAndCommunityProvidersMessage))
 }
 
-// Implements DependencyLockingLogger
-func (v *InitHuman) LogDependencyLockfileCreated() {
+// Implements ProviderLockingLogger
+func (v *InitHuman) LogProviderLockfileCreated() {
 	params := []any{}
 	v.print(v.prepareMessage(LockInfo, params...))
 }
 
-// Implements DependencyLockingLogger
-func (v *InitHuman) LogDependencyLockfileUpdated() {
+// Implements ProviderLockingLogger
+func (v *InitHuman) LogProviderLockfileUpdated() {
 	params := []any{}
 	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
 }
@@ -422,16 +422,16 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 	v.logInitMessage(PartnerAndCommunityProvidersMessage)
 }
 
-// Implements DependencyLockingLogger
-func (v *InitJSON) LogDependencyLockfileCreated() {
+// Implements ProviderLockingLogger
+func (v *InitJSON) LogProviderLockfileCreated() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
 	v.Output(LockInfo, params...)
 }
 
-// Implements DependencyLockingLogger
-func (v *InitJSON) LogDependencyLockfileUpdated() {
+// Implements ProviderLockingLogger
+func (v *InitJSON) LogProviderLockfileUpdated() {
 	// This was previously logged via Output, so we need to match implementation of that method
 	// to ensure the same JSON log is produced.
 	params := []any{}
