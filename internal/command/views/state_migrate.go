@@ -52,9 +52,9 @@ type stateMigrationFailureMode string
 // In the JSON view these values are used as the value of a field indicating when the error occurred.
 // Therefore these strings are user-facing in JSON output and should not be changed!
 const (
-	DuringMigration        stateMigrationFailureMode = "error_during_migration"
-	DuringLockfile         stateMigrationFailureMode = "error_updating_provider_lockfile"
-	DuringBackendStateFile stateMigrationFailureMode = "error_updating_workdir_state"
+	DuringMigration          stateMigrationFailureMode = "error_during_migration"
+	DuringLockfile           stateMigrationFailureMode = "error_updating_provider_lockfile"
+	DuringWorkDirStateUpdate stateMigrationFailureMode = "error_updating_workdir_state"
 )
 
 type StateMigrate interface {
@@ -120,7 +120,7 @@ func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFail
 	case DuringMigration:
 		// migration itself failed
 		msg = fmt.Sprintf(StateMigrationFailureMessage, source, destination)
-	case DuringLockfile, DuringBackendStateFile:
+	case DuringLockfile, DuringWorkDirStateUpdate:
 		// migration succeeded by updates in the working directory failed
 		msg = fmt.Sprintf(StateMigrationPostStepsInterruptedMessage, source, destination)
 	default:
