@@ -89,9 +89,10 @@ const (
 	LogListComplete      JSONLogType = "list_complete"
 
 	// Policy Messages
-	LogPolicyInfo       JSONLogType = "policy_info"
-	LogPolicyResult     JSONLogType = "policy_result"
-	LogPolicyDiagnostic JSONLogType = "policy_diagnostic"
+	LogPolicyInfo         JSONLogType = "policy_info"
+	LogPolicyResult       JSONLogType = "policy_result"
+	LogPolicyDiagnostic   JSONLogType = "policy_diagnostic"
+	LogPolicyQuerySummary JSONLogType = "policy_query_summary"
 )
 
 func incompatibleVersions(localVersion, remoteVersion string) bool {
@@ -176,7 +177,8 @@ func (renderer Renderer) RenderLog(log *JSONLog) error {
 		LogListComplete,
 		LogPolicyInfo,
 		LogPolicyResult,
-		LogPolicyDiagnostic:
+		LogPolicyDiagnostic,
+		LogPolicyQuerySummary:
 		// We won't display these types of logs
 		return nil
 
