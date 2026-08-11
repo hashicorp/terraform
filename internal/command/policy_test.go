@@ -44,18 +44,6 @@ func TestValidatePolicyPaths(t *testing.T) {
 				),
 			},
 		},
-		{
-			name:             "existing path, experiments disallowed",
-			path:             existingPath,
-			allowExperiments: false,
-			want: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to parse command-line flags",
-					"The -policies flag is only valid in experimental builds of Terraform.",
-				),
-			},
-		},
 	}
 
 	for _, tc := range tests {

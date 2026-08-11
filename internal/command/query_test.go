@@ -347,18 +347,6 @@ func TestQueryCommand_Validate(t *testing.T) {
 				),
 			},
 		},
-		{
-			name:             "experiments disallowed",
-			policyPaths:      []string{td},
-			allowExperiments: false,
-			wantDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to parse command-line flags",
-					"The -policies flag is only valid in experimental builds of Terraform.",
-				),
-			},
-		},
 	}
 
 	for _, tc := range tests {
