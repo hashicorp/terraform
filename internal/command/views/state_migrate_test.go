@@ -205,6 +205,28 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 	}
 }
 
+func TestNewStateMigrate_LogDependencyLockfileUpdated_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogProviderLockfileUpdated()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`Terraform has made some changes to the provider dependency selections`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_lockfile_updated"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewStateMigrate_LogInstallProvidersStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
