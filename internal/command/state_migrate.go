@@ -381,7 +381,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
 		view.Diagnostics(diags)
-		view.LogStateMigrationErrored(views.DuringBackendStateFile, source, destination)
+		view.LogStateMigrationErrored(views.DuringWorkDirStateUpdate, source, destination)
 		return 1
 	}
 
