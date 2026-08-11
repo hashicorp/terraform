@@ -302,6 +302,7 @@ type StateMigrateJSON struct {
 }
 
 var (
+	_ DependencyLockingLogger       = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
 )
@@ -332,5 +333,23 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 	s.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
 		"type", json.ProviderAutomaticApproval,
+	)
+}
+
+// Implements DependencyLockingLogger interface.
+func (s *StateMigrateJSON) LogDependencyLockfileCreated() {
+	msg := strings.TrimSpace(previousLockInfoJSON)
+	s.view.log.Info(
+		msg,
+		"type", json.ProviderLockfileCreated,
+	)
+}
+
+// Implements DependencyLockingLogger interface.
+func (s *StateMigrateJSON) LogDependencyLockfileUpdated() {
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	s.view.log.Info(
+		msg,
+		"type", json.ProviderLockfileUpdated,
 	)
 }
