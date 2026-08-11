@@ -10,6 +10,7 @@ import (
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -76,9 +77,10 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 }
 
 var (
-	_ StateMigrate               = (*StateMigrateHuman)(nil)
-	_ ProviderInstallationLogger = (*StateMigrateHuman)(nil)
-	_ Spacer                     = (*StateMigrateHuman)(nil)
+	_ StateMigrate                  = (*StateMigrateHuman)(nil)
+	_ ProviderInstallationLogger    = (*StateMigrateHuman)(nil)
+	_ StateStoreProviderTrustLogger = (*StateMigrateHuman)(nil)
+	_ Spacer                        = (*StateMigrateHuman)(nil)
 )
 
 type StateMigrateHuman struct {
@@ -269,9 +271,36 @@ type StateMigrateJSON struct {
 	view *JSONView
 }
 
-var _ Spacer = (*StateMigrateJSON)(nil)
+var (
+	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
+	_ Spacer                        = (*StateMigrateJSON)(nil)
+)
 
 // Implements Spacer
 func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveApproval() {
+	s.view.log.Info(
+		logInteractiveApprovalMessageJSON,
+		"type", json.ProviderInteractiveApproval,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogInteractiveRejection() {
+	s.view.log.Info(
+		logInteractiveRejectionMessageJSON,
+		"type", json.ProviderInteractiveRejection,
+	)
+}
+
+// Implements StateStoreProviderTrustLogger interface.
+func (s *StateMigrateJSON) LogAutomaticApproval() {
+	s.view.log.Info(
+		logInteractiveAutomaticApprovalMessageJSON,
+		"type", json.ProviderAutomaticApproval,
+	)
 }
