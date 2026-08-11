@@ -237,3 +237,5 @@ func testState() *states.State {
 		// operation, and all fields have been copied correctly.
 	}).DeepCopy()
 }
+
+// TODO:@austinvalle: Add tests for deferred resources here as well

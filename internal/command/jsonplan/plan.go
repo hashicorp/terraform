@@ -203,16 +203,23 @@ type variable struct {
 func MarshalForRenderer(
 	p *plans.Plan,
 	schemas *terraform.Schemas,
-) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, []ActionInvocation, error) {
+) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, []ActionInvocation, []DeferredResourceChange, error) {
 	output := newPlan()
 
 	var err error
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
 	if output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas); err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
+	}
+
+	if len(p.DeferredResources) > 0 {
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
+		if err != nil {
+			return nil, nil, nil, nil, nil, nil, err
+		}
 	}
 
 	if len(p.DriftedResources) > 0 {
@@ -232,19 +239,19 @@ func MarshalForRenderer(
 		}
 		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
-			return nil, nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, nil, err
 		}
 	}
 
 	if err := output.marshalRelevantAttrs(p); err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
 	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations, schemas); err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, nil, err
 	}
 
-	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, output.ActionInvocations, nil
+	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, output.ActionInvocations, output.DeferredChanges, nil
 }
 
 // Marshal returns the json encoding of a terraform plan.

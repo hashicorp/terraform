@@ -1563,3 +1563,5 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
+
+// TODO:@austinvalle: Add tests for deferred resources here as well (both human + JSON)

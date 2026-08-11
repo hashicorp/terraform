@@ -3323,3 +3323,5 @@ func dynamicValue(t *testing.T, value cty.Value, typ cty.Type) plans.DynamicValu
 	}
 	return d
 }
+
+// TODO:@austinvalle: Add tests for deferred resources here as well (both human + JSON)
