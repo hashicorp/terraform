@@ -289,7 +289,7 @@ func TestContextApply_import_in_state_not_config(t *testing.T) {
 	}
 }
 
-func TestContextApply_import_in_module_expressions(t *testing.T) {
+func TestContextApply_import_expressions(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 module "child" {
@@ -427,6 +427,271 @@ import {
 	assertImportedId(t, state, "test_object.root_bar", "bar-123")
 	assertImportedId(t, state, "module.child.test_object.child_foo", "foo-456")
 	assertImportedId(t, state, "module.child.test_object.child_bar", "bar-456")
+}
+
+func TestContextApply_import_into_module_expressions(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+locals {
+  root_foo_id = "foo-123"
+  root_bar_id = "bar-123"
+}
+import {
+  to = module.child.test_object.child_foo
+  id = local.root_foo_id
+}
+import {
+  to = module.child.test_object.child_bar
+  identity = {
+    id = local.root_bar_id
+  }
+}
+		`,
+		"child/main.tf": `
+resource "test_object" "child_foo" {}
+resource "test_object" "child_bar" {}
+
+locals {
+  child_foo_id = "foo-456"
+  child_bar_id = "bar-456"
+}
+module "grandchild" {
+  source = "./grandchild"
+}
+import {
+  to = module.grandchild.test_object.grandchild_foo
+  id = local.child_foo_id
+}
+import {
+  to = module.grandchild.test_object.grandchild_bar
+  identity = {
+    id = local.child_bar_id
+  }
+}
+		`,
+		"child/grandchild/main.tf": `
+resource "test_object" "grandchild_foo" {}
+resource "test_object" "grandchild_bar" {}
+		`,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: &configschema.Block{}},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id":          {Type: cty.String, Computed: true},
+							"test_string": {Type: cty.String, Optional: true},
+						},
+					},
+					Identity: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Required: true},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		if !req.Identity.IsNull() {
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "test_object",
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": req.Identity.GetAttr("id"),
+						}),
+						State: cty.ObjectVal(map[string]cty.Value{
+							"test_string": cty.StringVal("importable"),
+							"id":          req.Identity.GetAttr("id"),
+						}),
+					},
+				},
+			}
+		}
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_object",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"test_string": cty.StringVal("importable"),
+						"id":          cty.StringVal(req.ID),
+					}),
+					Identity: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(req.ID),
+					}),
+				},
+			},
+		}
+	}
+	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+		id := r.PriorState.GetAttr("id")
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"test_string": cty.StringVal("importable"),
+				"id":          id,
+			}),
+			Identity: cty.ObjectVal(map[string]cty.Value{
+				"id": id,
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !p.ImportResourceStateCalled {
+		t.Fatal("resources not imported")
+	}
+
+	assertImportedId(t, state, "module.child.test_object.child_foo", "foo-123")
+	assertImportedId(t, state, "module.child.test_object.child_bar", "bar-123")
+	assertImportedId(t, state, "module.child.module.grandchild.test_object.grandchild_foo", "foo-456")
+	assertImportedId(t, state, "module.child.module.grandchild.test_object.grandchild_bar", "bar-456")
+}
+
+func TestContextApply_import_into_module_expressions_foreach(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  for_each = local.rep_data
+  source = "./child"
+  rep_data = toset([each.key])
+}
+
+locals {
+  num = 123
+  rep_data = toset(["foo", "bar"])
+}
+import {
+  for_each = local.rep_data
+  to = module.child[each.key].test_object.child_obj[each.key]
+  id = "${each.key}-${local.num}"
+}
+		`,
+		"child/main.tf": `
+variable "rep_data" {
+  type = set(string)
+}
+resource "test_object" "child_obj" {
+  for_each = var.rep_data
+}
+		`,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: &configschema.Block{}},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id":          {Type: cty.String, Computed: true},
+							"test_string": {Type: cty.String, Optional: true},
+						},
+					},
+					Identity: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Required: true},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		if !req.Identity.IsNull() {
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "test_object",
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": req.Identity.GetAttr("id"),
+						}),
+						State: cty.ObjectVal(map[string]cty.Value{
+							"test_string": cty.StringVal("importable"),
+							"id":          req.Identity.GetAttr("id"),
+						}),
+					},
+				},
+			}
+		}
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_object",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"test_string": cty.StringVal("importable"),
+						"id":          cty.StringVal(req.ID),
+					}),
+					Identity: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(req.ID),
+					}),
+				},
+			},
+		}
+	}
+	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+		id := r.PriorState.GetAttr("id")
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"test_string": cty.StringVal("importable"),
+				"id":          id,
+			}),
+			Identity: cty.ObjectVal(map[string]cty.Value{
+				"id": id,
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !p.ImportResourceStateCalled {
+		t.Fatal("resources not imported")
+	}
+
+	assertImportedId(t, state, `module.child["foo"].test_object.child_obj["foo"]`, "foo-123")
+	assertImportedId(t, state, `module.child["bar"].test_object.child_obj["bar"]`, "bar-123")
 }
 
 func assertImportedId(t *testing.T, state *states.State, resourceAddr, expectedID string) {
