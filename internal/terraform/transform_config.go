@@ -275,7 +275,7 @@ func (t *ConfigTransformer) validateImportTargets() error {
 		var toResource addrs.ConfigResource
 		switch {
 		case i.Config != nil:
-			toResource = i.Config.ToResource
+			toResource = i.AbsToConfigResource
 		default:
 			toResource = i.LegacyAddr.ConfigResource()
 		}
