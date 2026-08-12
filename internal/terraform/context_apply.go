@@ -303,7 +303,7 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 			if vc, ok := config.Module.Variables[name]; ok && vc.Ephemeral {
 
 				// Only non-null ephemeral variables are recorded in the plan as needed,
-				// therefore we can treat a supplied null value here if it was not set
+				// therefore we can treat a supplied null value here as if it was not set
 				if !value.Value.IsNull() {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
