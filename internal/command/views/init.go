@@ -26,6 +26,10 @@ type Init interface {
 	// LogConfigurationCopyingStart describes the start of copying a module to create the root module in an empty directory.
 	LogConfigurationCopyingStart(moduleSource string)
 
+	// LogInitializingStateStoreProviderStart indicates progress during installation of a state store provider.
+	// This is signposted as distinct from general provider download, which may happen later in init.
+	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -88,13 +92,17 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
 }
 
+func (v *InitHuman) LogInstallProvidersStart() {
+	v.print(v.prepareMessage(InitializingProviderPluginMessage))
+}
+
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageHuman, params...)
+	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...)
 	v.print(msg)
 }
 
@@ -305,13 +313,20 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	v.view.Log(preppedMessage)
 }
 
+func (v *InitJSON) LogInstallProvidersStart() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(InitializingProviderPluginMessage, params...)
+}
+
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageJSON, params...)
+	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...)
 
 	v.view.log.Info(
 		msg,
@@ -794,3 +809,9 @@ has changed. Terraform will now check for existing state in the backends.`
 const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
 
 const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
+
+const (
+	// LogInstallStateStoreProviderStart method's message templates
+	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
+	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
+)
