@@ -59,7 +59,7 @@ type PlanOpts struct {
 	// type for more information on how to correctly populate this.
 	// Variables that are declared but not set are also included here,
 	// but their values are set to nil, so that Terraform Core
-	// can later subst substitute a default if available, or generate an error
+	// can later substitute a default if available, or generate an error
 	// if not.
 	SetVariables InputValues
 
