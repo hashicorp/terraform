@@ -181,7 +181,7 @@ func (s *StateMigrateHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provi
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageHuman, params...)
+	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...)
 	s.log(msg)
 }
 

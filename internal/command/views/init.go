@@ -94,7 +94,7 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageHuman, params...)
+	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...)
 	v.print(msg)
 }
 
@@ -311,7 +311,7 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallingStateStoreProviderStartMessageJSON, params...)
+	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...)
 
 	v.view.log.Info(
 		msg,

@@ -54,6 +54,7 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	logInstallingStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
-	logInstallingStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
+	// LogInstallStateStoreProviderStart
+	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
+	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
 )
