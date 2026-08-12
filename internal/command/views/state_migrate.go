@@ -175,6 +175,11 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 }
 
 // Implements ProviderInstallationLogger interface.
+func (s *StateMigrateHuman) LogInstallProvidersStart() {
+	s.log(logInstallProvidersStartMessageHuman)
+}
+
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
@@ -351,5 +356,13 @@ func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
 	s.view.log.Info(
 		msg,
 		"type", json.ProviderLockfileUpdated,
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogInstallProvidersStart() {
+	s.view.log.Info(
+		logInstallProvidersStartMessageJSON,
+		"type", json.InstallProvidersStart,
 	)
 }

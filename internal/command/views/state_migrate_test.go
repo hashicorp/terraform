@@ -204,3 +204,25 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 		}
 	}
 }
+
+func TestNewStateMigrate_LogInstallProvidersStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogInstallProvidersStart()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installing providers..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_installation_start"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
