@@ -26,6 +26,10 @@ type Init interface {
 	// LogConfigurationCopyingStart describes the start of copying a module to create the root module in an empty directory.
 	LogConfigurationCopyingStart(moduleSource string)
 
+	// LogInitializingStateStoreProviderStart indicates progress during installation of a state store provider.
+	// This is signposted as distinct from general provider download, which may happen later in init.
+	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -805,3 +809,9 @@ has changed. Terraform will now check for existing state in the backends.`
 const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
 
 const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
+
+const (
+	// LogInstallStateStoreProviderStart method's message templates
+	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
+	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
+)
