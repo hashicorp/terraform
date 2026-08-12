@@ -88,6 +88,10 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
 }
 
+func (v *InitHuman) LogInstallProvidersStart() {
+	v.print(v.prepareMessage(InitializingProviderPluginMessage))
+}
+
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
 	consSuffix := ""
 	if len(cons) > 0 {
@@ -303,6 +307,13 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 	}
 
 	v.view.Log(preppedMessage)
+}
+
+func (v *InitJSON) LogInstallProvidersStart() {
+	// This was previously logged via Output, so we need to match implementation of that method
+	// to ensure the same JSON log is produced.
+	params := []any{}
+	v.Output(InitializingProviderPluginMessage, params...)
 }
 
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {

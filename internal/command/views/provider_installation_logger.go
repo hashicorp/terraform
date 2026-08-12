@@ -48,6 +48,9 @@ type ProviderInstallationLogger interface {
 	// LogInitializingStateStoreProviderStart indicates progress during installation of a state store provider plugin
 	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
 
+	// LogInstallStateStoreProviderStart indicates progress during installation provider(s)
+	LogInstallProvidersStart()
+
 	prepareMessage(messageCode InitMessageCode, params ...any) string
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
