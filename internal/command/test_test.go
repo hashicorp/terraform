@@ -189,8 +189,8 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"no_state": {
 			expectedOut: []string{"0 passed, 1 failed"},
-			expectedErr: []string{"No value for required variable"},
-			description: "the run apply fails, causing it to produce a nil state.",
+			expectedErr: []string{"apply_fail is set to true"},
+			description: "the run apply fails, causing it to produce a nil state. We expect a failure, but no panic",
 			code:        1,
 		},
 		"variables": {
@@ -357,6 +357,12 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input": {
 			expectedOut: []string{"2 passed, 0 failed."},
+			code:        0,
+		},
+		"ephemeral_input_optional_unset": {
+			override:    "ephemeral_input",
+			expectedOut: []string{"2 passed, 0 failed."},
+			args:        []string{"-var=foo=\"triple\""},
 			code:        0,
 		},
 		"ephemeral_input_with_error": {
