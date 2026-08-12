@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'test: Optional ephemeral values do not have to be set at plan time'
+time: 2026-08-12T17:23:44.947966+02:00
+custom:
+    Issue: "38974"
