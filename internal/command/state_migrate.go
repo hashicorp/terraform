@@ -538,14 +538,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore 
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			pAddr := stateStore.ProviderAddr
-			// empty address would indicate wrong configuration
-			// such as missing or mismatching provider requirement
-			// which will be surfaced as diagnostic during installation
-			if !pAddr.IsZero() {
-				cons := reqs[pAddr]
-				view.LogInstallStateStoreProviderStart(pAddr, cons, stateStore.Type)
-			}
+			view.LogInstallProvidersStart()
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
