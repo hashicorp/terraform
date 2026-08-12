@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -72,30 +73,8 @@ func TestContextApply_import_in_module(t *testing.T) {
 		t.Fatal("resource not imported")
 	}
 
-	rs := state.ResourceInstance(mustResourceInstanceAddr("module.child.test_object.bar[\"first\"]"))
-	if rs == nil {
-		t.Fatal("imported resource not found in module")
-	}
-	var attrs map[string]interface{}
-	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, want := attrs["id"], "testa"; got != want {
-		t.Fatalf("wrong id for \"first\" got:  %#v  want: %#v\n", got, want)
-	}
-
-	rs = state.ResourceInstance(mustResourceInstanceAddr("module.child.test_object.bar[\"second\"]"))
-	if rs == nil {
-		t.Fatal("imported resource not found in module")
-	}
-	err = json.Unmarshal(rs.Current.AttrsJSON, &attrs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, want := attrs["id"], "testb"; got != want {
-		t.Fatalf("wrong id for \"second\" got:  %#v  want: %#v\n", got, want)
-	}
+	assertImportedId(t, state, "module.child.test_object.bar[\"first\"]", "testa")
+	assertImportedId(t, state, "module.child.test_object.bar[\"second\"]", "testb")
 }
 
 func TestContextApply_import_in_nested_module(t *testing.T) { // more nested than the test above. nesteder.
@@ -249,20 +228,8 @@ func TestContextApply_import_duplication(t *testing.T) {
 	state, diags := ctx.Apply(plan, m, nil)
 	tfdiags.AssertNoErrors(t, diags)
 
-	rs := state.ResourceInstance(mustResourceInstanceAddr("module.child.test_object.foo"))
-	if rs == nil {
-		t.Fatal("imported resource not found in module")
-	}
-	var attrs map[string]interface{}
-	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	// the parent module import takes precedence (confirming the comment in refactoring/import_statement.go)
-	if got, want := attrs["id"], "rootimport"; got != want {
-		t.Fatalf("wrong id! got:  %#v  want: %#v\n", got, want)
-	}
+	assertImportedId(t, state, "module.child.test_object.foo", "rootimport")
 }
 
 func TestContextApply_import_in_state_not_config(t *testing.T) {
@@ -319,5 +286,163 @@ func TestContextApply_import_in_state_not_config(t *testing.T) {
 	_, diags = ctx.Plan(m, state, nil)
 	if !strings.Contains(diags.Err().Error(), "Configuration for import target does not exist") {
 		t.Fatalf("wrong error! got %s\n", diags.Err())
+	}
+}
+
+func TestContextApply_import_in_module_expressions(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+resource "test_object" "root_foo" {}
+resource "test_object" "root_bar" {}
+
+locals {
+  root_foo_id = "foo-123"
+  root_bar_id = "bar-123"
+}
+import {
+  to = test_object.root_foo
+  id = local.root_foo_id
+}
+import {
+  to = test_object.root_bar
+  identity = {
+    id = local.root_bar_id
+  }
+}
+		`,
+		"child/main.tf": `
+resource "test_object" "child_foo" {}
+resource "test_object" "child_bar" {}
+
+locals {
+  child_foo_id = "foo-456"
+  child_bar_id = "bar-456"
+}
+import {
+  to = test_object.child_foo
+  id = local.child_foo_id
+}
+import {
+  to = test_object.child_bar
+  identity = {
+    id = local.child_bar_id
+  }
+}
+
+		`,
+	})
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: &configschema.Block{}},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id":          {Type: cty.String, Computed: true},
+							"test_string": {Type: cty.String, Optional: true},
+						},
+					},
+					Identity: &configschema.Object{
+						Nesting: configschema.NestingSingle,
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Required: true},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		if !req.Identity.IsNull() {
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "test_object",
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": req.Identity.GetAttr("id"),
+						}),
+						State: cty.ObjectVal(map[string]cty.Value{
+							"test_string": cty.StringVal("importable"),
+							"id":          req.Identity.GetAttr("id"),
+						}),
+					},
+				},
+			}
+		}
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_object",
+					State: cty.ObjectVal(map[string]cty.Value{
+						"test_string": cty.StringVal("importable"),
+						"id":          cty.StringVal(req.ID),
+					}),
+					Identity: cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal(req.ID),
+					}),
+				},
+			},
+		}
+	}
+	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+		id := r.PriorState.GetAttr("id")
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"test_string": cty.StringVal("importable"),
+				"id":          id,
+			}),
+			Identity: cty.ObjectVal(map[string]cty.Value{
+				"id": id,
+			}),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !p.ImportResourceStateCalled {
+		t.Fatal("resources not imported")
+	}
+
+	assertImportedId(t, state, "test_object.root_foo", "foo-123")
+	assertImportedId(t, state, "test_object.root_bar", "bar-123")
+	assertImportedId(t, state, "module.child.test_object.child_foo", "foo-456")
+	assertImportedId(t, state, "module.child.test_object.child_bar", "bar-456")
+}
+
+func assertImportedId(t *testing.T, state *states.State, resourceAddr, expectedID string) {
+	t.Helper()
+
+	rs := state.ResourceInstance(mustResourceInstanceAddr(resourceAddr))
+	if rs == nil {
+		t.Errorf("imported resource %q not found in module", resourceAddr)
+		return
+	}
+	var attrs map[string]interface{}
+	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := attrs["id"]; got != expectedID {
+		t.Errorf("wrong id for %q got:  %#v  want: %#v\n", resourceAddr, got, expectedID)
 	}
 }
