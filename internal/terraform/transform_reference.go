@@ -344,8 +344,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 
 	if rn, ok := v.(GraphNodeImportReferencer); ok {
 		for _, ref := range rn.ImportReferences() {
-			// import block references are always in the root module scope
-			referenceKeys = append(referenceKeys, m.referenceMapKey(addrs.RootModule, ref.Subject))
+			referenceKeys = append(referenceKeys, m.referenceMapKey(vertexReferencePath(v), ref.Subject))
 		}
 	}
 
