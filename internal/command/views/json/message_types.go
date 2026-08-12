@@ -66,6 +66,7 @@ const (
 	MessagePolicyQuerySummary     MessageType = "policy_query_summary"
 
 	// Provider installation messages
+	InstallProvidersStart          MessageType = "provider_installation_start"
 	InstallStateStoreProviderStart MessageType = "state_store_provider_installation_start"
 
 	// Dependency lock file messages
