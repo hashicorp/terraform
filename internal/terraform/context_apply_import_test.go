@@ -335,73 +335,7 @@ import {
 		`,
 	})
 
-	p := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Body: &configschema.Block{}},
-			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id":          {Type: cty.String, Computed: true},
-							"test_string": {Type: cty.String, Optional: true},
-						},
-					},
-					Identity: &configschema.Object{
-						Nesting: configschema.NestingSingle,
-						Attributes: map[string]*configschema.Attribute{
-							"id": {Type: cty.String, Required: true},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-		if !req.Identity.IsNull() {
-			return providers.ImportResourceStateResponse{
-				ImportedResources: []providers.ImportedResource{
-					{
-						TypeName: "test_object",
-						Identity: cty.ObjectVal(map[string]cty.Value{
-							"id": req.Identity.GetAttr("id"),
-						}),
-						State: cty.ObjectVal(map[string]cty.Value{
-							"test_string": cty.StringVal("importable"),
-							"id":          req.Identity.GetAttr("id"),
-						}),
-					},
-				},
-			}
-		}
-		return providers.ImportResourceStateResponse{
-			ImportedResources: []providers.ImportedResource{
-				{
-					TypeName: "test_object",
-					State: cty.ObjectVal(map[string]cty.Value{
-						"test_string": cty.StringVal("importable"),
-						"id":          cty.StringVal(req.ID),
-					}),
-					Identity: cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(req.ID),
-					}),
-				},
-			},
-		}
-	}
-	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
-		id := r.PriorState.GetAttr("id")
-		return providers.ReadResourceResponse{
-			NewState: cty.ObjectVal(map[string]cty.Value{
-				"test_string": cty.StringVal("importable"),
-				"id":          id,
-			}),
-			Identity: cty.ObjectVal(map[string]cty.Value{
-				"id": id,
-			}),
-		}
-	}
-
+	p := childModuleImportTestProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
@@ -479,73 +413,7 @@ resource "test_object" "grandchild_bar" {}
 		`,
 	})
 
-	p := &testing_provider.MockProvider{
-		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{Body: &configschema.Block{}},
-			ResourceTypes: map[string]providers.Schema{
-				"test_object": providers.Schema{
-					Body: &configschema.Block{
-						Attributes: map[string]*configschema.Attribute{
-							"id":          {Type: cty.String, Computed: true},
-							"test_string": {Type: cty.String, Optional: true},
-						},
-					},
-					Identity: &configschema.Object{
-						Nesting: configschema.NestingSingle,
-						Attributes: map[string]*configschema.Attribute{
-							"id": {Type: cty.String, Required: true},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-		if !req.Identity.IsNull() {
-			return providers.ImportResourceStateResponse{
-				ImportedResources: []providers.ImportedResource{
-					{
-						TypeName: "test_object",
-						Identity: cty.ObjectVal(map[string]cty.Value{
-							"id": req.Identity.GetAttr("id"),
-						}),
-						State: cty.ObjectVal(map[string]cty.Value{
-							"test_string": cty.StringVal("importable"),
-							"id":          req.Identity.GetAttr("id"),
-						}),
-					},
-				},
-			}
-		}
-		return providers.ImportResourceStateResponse{
-			ImportedResources: []providers.ImportedResource{
-				{
-					TypeName: "test_object",
-					State: cty.ObjectVal(map[string]cty.Value{
-						"test_string": cty.StringVal("importable"),
-						"id":          cty.StringVal(req.ID),
-					}),
-					Identity: cty.ObjectVal(map[string]cty.Value{
-						"id": cty.StringVal(req.ID),
-					}),
-				},
-			},
-		}
-	}
-	p.ReadResourceFn = func(r providers.ReadResourceRequest) providers.ReadResourceResponse {
-		id := r.PriorState.GetAttr("id")
-		return providers.ReadResourceResponse{
-			NewState: cty.ObjectVal(map[string]cty.Value{
-				"test_string": cty.StringVal("importable"),
-				"id":          id,
-			}),
-			Identity: cty.ObjectVal(map[string]cty.Value{
-				"id": id,
-			}),
-		}
-	}
-
+	p := childModuleImportTestProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
@@ -602,6 +470,51 @@ resource "test_object" "child_obj" {
 		`,
 	})
 
+	p := childModuleImportTestProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !p.ImportResourceStateCalled {
+		t.Fatal("resources not imported")
+	}
+
+	assertImportedId(t, state, `module.child["foo"].test_object.child_obj["foo"]`, "foo-123")
+	assertImportedId(t, state, `module.child["bar"].test_object.child_obj["bar"]`, "bar-123")
+}
+
+func assertImportedId(t *testing.T, state *states.State, resourceAddr, expectedID string) {
+	t.Helper()
+
+	rs := state.ResourceInstance(mustResourceInstanceAddr(resourceAddr))
+	if rs == nil {
+		t.Errorf("imported resource %q not found in module", resourceAddr)
+		return
+	}
+	var attrs map[string]interface{}
+	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := attrs["id"]; got != expectedID {
+		t.Errorf("wrong id for %q got:  %#v  want: %#v\n", resourceAddr, got, expectedID)
+	}
+}
+
+func childModuleImportTestProvider() *testing_provider.MockProvider {
 	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Body: &configschema.Block{}},
@@ -669,45 +582,5 @@ resource "test_object" "child_obj" {
 		}
 	}
 
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
-	diags := ctx.Validate(m, nil)
-	tfdiags.AssertNoErrors(t, diags)
-
-	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode: plans.NormalMode,
-	})
-	tfdiags.AssertNoErrors(t, diags)
-
-	state, diags := ctx.Apply(plan, m, nil)
-	tfdiags.AssertNoErrors(t, diags)
-
-	if !p.ImportResourceStateCalled {
-		t.Fatal("resources not imported")
-	}
-
-	assertImportedId(t, state, `module.child["foo"].test_object.child_obj["foo"]`, "foo-123")
-	assertImportedId(t, state, `module.child["bar"].test_object.child_obj["bar"]`, "bar-123")
-}
-
-func assertImportedId(t *testing.T, state *states.State, resourceAddr, expectedID string) {
-	t.Helper()
-
-	rs := state.ResourceInstance(mustResourceInstanceAddr(resourceAddr))
-	if rs == nil {
-		t.Errorf("imported resource %q not found in module", resourceAddr)
-		return
-	}
-	var attrs map[string]interface{}
-	err := json.Unmarshal(rs.Current.AttrsJSON, &attrs)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := attrs["id"]; got != expectedID {
-		t.Errorf("wrong id for %q got:  %#v  want: %#v\n", resourceAddr, got, expectedID)
-	}
+	return p
 }
