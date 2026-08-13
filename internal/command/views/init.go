@@ -569,8 +569,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logProviderVersionAlreadyInstalledJSON,
 	},
 	"built_in_provider_available_message": {
-		HumanValue: "- %s is built in to Terraform",
-		JSONValue:  "%s is built in to Terraform",
+		HumanValue: logBuiltInProviderAvailableHuman,
+		JSONValue:  logBuiltInProviderAvailableJSON,
 	},
 	"reusing_previous_version_info": {
 		HumanValue: logReusingPreviousProviderVersionHuman,

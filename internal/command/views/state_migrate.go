@@ -368,6 +368,15 @@ func (s *StateMigrateJSON) LogInstallProvidersStart() {
 }
 
 // Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	msg := fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay())
+	s.view.log.Info(
+		msg,
+		"type", json.BuiltInProviderAvailable,
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	msg := fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version)
 	s.view.log.Info(
