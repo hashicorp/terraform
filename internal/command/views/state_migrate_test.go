@@ -319,3 +319,27 @@ func TestNewStateMigrate_LogFindingLatestVersion_json(t *testing.T) {
 		}
 	}
 }
+
+func TestNewStateMigrate_LogProviderVersionAlreadyInstalled_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	version := getproviders.MustParseVersion("1.0.0")
+	smView.LogProviderVersionAlreadyInstalled(p, version)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test v1.0.0: Using previously-installed provider version"`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_version_already_installed"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}

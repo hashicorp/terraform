@@ -69,4 +69,9 @@ const (
 	// LogReusingPreviousProviderVersion
 	logReusingPreviousProviderVersionHuman = "- Reusing version %s of %s from the dependency lock file"
 	logReusingPreviousProviderVersionJSON  = "%s: Reusing version %s from the dependency lock file"
+
+	// LogProviderVersionAlreadyInstalled
+	logProviderVersionAlreadyInstalledHuman = "- Using previously-installed %s v%s"
+	logProviderVersionAlreadyInstalledJSON  = "%s v%s: Using previously-installed provider version"
+
 )

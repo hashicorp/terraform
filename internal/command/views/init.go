@@ -565,8 +565,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  previousLockInfoJSON,
 	},
 	"provider_already_installed_message": {
-		HumanValue: "- Using previously-installed %s v%s",
-		JSONValue:  "%s v%s: Using previously-installed provider version",
+		HumanValue: logProviderVersionAlreadyInstalledHuman,
+		JSONValue:  logProviderVersionAlreadyInstalledJSON,
 	},
 	"built_in_provider_available_message": {
 		HumanValue: "- %s is built in to Terraform",
