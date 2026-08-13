@@ -402,3 +402,12 @@ func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs
 		"type", json.LogProviderVersionAlreadyInstalled,
 	)
 }
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
+	msg := fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version)
+	s.view.log.Info(
+		msg,
+		"type", json.LogUsingProviderVersionFromCacheDir,
+	)
+}
