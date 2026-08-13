@@ -91,5 +91,6 @@ const (
 	// State migration-related messages
 	LogStateMigrationStart     MessageType = "migration_start"
 	LogStateMigrationComplete  MessageType = "migration_complete"
+	LogStateMigrationErrored   MessageType = "migration_errored"
 	LogStateMigrationFinalized MessageType = "migration_finalized"
 )
