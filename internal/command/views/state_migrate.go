@@ -21,6 +21,9 @@ const (
 	logStateMigrationStartHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
 	logStateMigrationStartJSON  = "Migrating state from %s to %s..."
 
+	// JSON-only - log when Terraform has copied state from source to destination
+	logStateMigrationCompleteJSON = "The migration process has copied state from the source %s to the destination %s"
+
 	// Notify the user that everything has finished successfully; migration and lockfile+backend state file updates.
 	StateMigrationFinalizedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
 
@@ -63,7 +66,7 @@ type StateMigrate interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogStateMigrationStart(source, destination string)
-	LogStateMigrationComplete()
+	LogStateMigrationComplete(source string, destination string)
 	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
 	LogStateMigrationFinalized(source, destination string)
 
@@ -110,7 +113,7 @@ func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination st
 	s.log(msg)
 }
 
-func (s *StateMigrateHuman) LogStateMigrationComplete() {
+func (s *StateMigrateHuman) LogStateMigrationComplete(_, _ string) {
 	// no-op in human view
 }
 
@@ -325,6 +328,14 @@ func (s *StateMigrateJSON) LogStateMigrationStart(source string, destination str
 	s.view.log.Info(
 		msg,
 		"type", json.LogStateMigrationStart,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationComplete(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationCompleteJSON, source, destination)
+	s.view.log.Info(
+		msg,
+		"type", json.LogStateMigrationComplete,
 	)
 }
 

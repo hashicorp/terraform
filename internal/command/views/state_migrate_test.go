@@ -490,3 +490,27 @@ func TestNewStateMigrate_LogStateMigrationStart_json(t *testing.T) {
 		}
 	}
 }
+
+func TestNewStateMigrate_LogStateMigrationComplete_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	source := "backend \"s3\""
+	destination := "state store \"test_store\""
+	smView.LogStateMigrationComplete(source, destination)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"The migration process has copied state from the source backend \"s3\" to the destination state store \"test_store\""`,
+		`"@module":"terraform.ui"`,
+		`"type":"migration_complete"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
