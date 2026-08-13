@@ -577,8 +577,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logReusingPreviousProviderVersionJSON,
 	},
 	"finding_matching_version_message": {
-		HumanValue: "- Finding %s versions matching %q...",
-		JSONValue:  "Finding matching versions for provider: %s, version_constraint: %q",
+		HumanValue: logFindingMatchingVersionHuman,
+		JSONValue:  logFindingMatchingVersionJSON,
 	},
 	"finding_latest_version_message": {
 		HumanValue: "- Finding latest version of %s...",

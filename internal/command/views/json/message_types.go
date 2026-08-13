@@ -69,6 +69,7 @@ const (
 	InstallProvidersStart             MessageType = "provider_installation_start"
 	InstallStateStoreProviderStart    MessageType = "state_store_provider_installation_start"
 	LogReusingPreviousProviderVersion MessageType = "provider_query_use_previous_version"
+	LogFindingMatchingVersion         MessageType = "provider_query_use_constraints"
 
 	// Dependency lock file messages
 	// Uses provider-oriented language in case we add a module lock file in future.
