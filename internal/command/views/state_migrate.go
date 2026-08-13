@@ -317,11 +317,16 @@ type StateMigrateJSON struct {
 }
 
 var (
+	_ StateMigrate                  = (*StateMigrateJSON)(nil)
 	_ ProviderInstallationLogger    = (*StateMigrateJSON)(nil)
 	_ ProviderLockingLogger         = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
 )
+
+func (s *StateMigrateJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	s.view.Diagnostics(diags)
+}
 
 // Implements Spacer
 func (s *StateMigrateJSON) Spacer() {
