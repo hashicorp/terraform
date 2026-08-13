@@ -15,11 +15,11 @@ import (
 type ProviderInstallationLogger interface {
 	Output(messageCode InitMessageCode, params ...any)
 
-	// LogProviderVersionSuccess describes a successfully installed provider along with its version
-	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	// LogInstallProviderVersionComplete describes a successfully installed provider along with its version
+	LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 
-	// LogProviderVersionSuccessWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
-	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	// LogInstallProviderVersionCompleteWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
+	LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	// LogProviderVersionAlreadyInstalled indicates a provider that is already installed during installation
 	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)

@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
-func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
+func TestNewStateMigrate_LogInstallProviderVersionComplete(t *testing.T) {
 	const verifiedChecksum = 0
 	const officialProvider = 1
 	const noKey = ""
@@ -27,7 +27,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		var authResult *getproviders.PackageAuthenticationResult = nil
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -45,7 +45,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -64,7 +64,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -75,7 +75,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 	})
 }
 
-func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
+func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID(t *testing.T) {
 	const partnerProvider = 2
 
 	t.Run("partner provider auth result - human view", func(t *testing.T) {
@@ -88,7 +88,7 @@ func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
 
-		smView.LogProviderVersionSuccessWithKeyID(p, ver, authResult, key)
+		smView.LogInstallProviderVersionCompleteWithKeyID(p, ver, authResult, key)
 
 		// Assert output - human
 		output := done(t)

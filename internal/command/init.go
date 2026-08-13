@@ -1209,11 +1209,11 @@ func fetchPackageSuccessCallback(view views.ProviderInstallationLogger) func(pro
 			keyID = authResult.KeyID
 		}
 		if keyID != "" {
-			view.LogProviderVersionSuccessWithKeyID(provider, version, authResult, keyID)
+			view.LogInstallProviderVersionCompleteWithKeyID(provider, version, authResult, keyID)
 			return
 		}
 
-		view.LogProviderVersionSuccess(provider, version, authResult)
+		view.LogInstallProviderVersionComplete(provider, version, authResult)
 	}
 }
 
