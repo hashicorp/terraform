@@ -87,4 +87,7 @@ const (
 	ProviderInteractiveApproval  MessageType = "provider_interactive_approval"
 	ProviderInteractiveRejection MessageType = "provider_interactive_rejection"
 	ProviderAutomaticApproval    MessageType = "provider_automatic_approval"
+
+	// State migration-related messages
+	LogStateMigrationStart     MessageType = "migration_start"
 )

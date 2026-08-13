@@ -15,10 +15,11 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Message text used in human output.
+// Message text used in human or machine-readable outputs.
 const (
 	// Notify the user that any preparation steps are over and the migration is starting.
-	StateMigrationStartMessage = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
+	logStateMigrationStartJSON  = "Migrating state from %s to %s..."
 
 	// Notify the user that everything has finished successfully; migration and lockfile+backend state file updates.
 	StateMigrationFinalizedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
@@ -105,7 +106,7 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
-	msg := fmt.Sprintf(StateMigrationStartMessage, source, destination)
+	msg := fmt.Sprintf(logStateMigrationStartHuman, source, destination)
 	s.log(msg)
 }
 
@@ -317,6 +318,14 @@ var (
 // Implements Spacer
 func (s *StateMigrateJSON) Spacer() {
 	// no-op for JSON output, since we don't want to log empty messages in JSON
+}
+
+func (s *StateMigrateJSON) LogStateMigrationStart(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationStartJSON, source, destination)
+	s.view.log.Info(
+		msg,
+		"type", json.LogStateMigrationStart,
+	)
 }
 
 // Implements StateStoreProviderTrustLogger interface.
