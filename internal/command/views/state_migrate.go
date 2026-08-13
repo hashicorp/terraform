@@ -62,7 +62,6 @@ const (
 )
 
 type StateMigrate interface {
-	Log(message string, params ...any)
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogStateMigrationStart(source, destination string)
@@ -176,7 +175,7 @@ func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
 	if !ok {
 		panic("missing message for InstallingProviderMessage init message code")
 	}
-	s.Log(msg.HumanValue, params...)
+	s.log(fmt.Sprintf(msg.HumanValue, params...))
 }
 
 // Implements ProviderInstallationLogger interface.
