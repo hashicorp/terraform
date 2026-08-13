@@ -377,6 +377,15 @@ func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.
 }
 
 // Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
+	msg := fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay())
+	s.view.log.Info(
+		msg,
+		"type", json.LogFindingLatestVersion,
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	msg := fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
 	s.view.log.Info(

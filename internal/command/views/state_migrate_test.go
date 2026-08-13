@@ -296,3 +296,26 @@ func TestNewStateMigrate_LogFindingMatchingVersion_json(t *testing.T) {
 		}
 	}
 }
+
+func TestNewStateMigrate_LogFindingLatestVersion_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	smView.LogFindingLatestVersion(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test: Finding latest version..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_query_use_latest"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}

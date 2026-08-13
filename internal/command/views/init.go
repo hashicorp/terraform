@@ -581,8 +581,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logFindingMatchingVersionJSON,
 	},
 	"finding_latest_version_message": {
-		HumanValue: "- Finding latest version of %s...",
-		JSONValue:  "%s: Finding latest version...",
+		HumanValue: logFindingLatestVersionHuman,
+		JSONValue:  logFindingLatestVersionJSON,
 	},
 	"using_provider_from_cache_dir_info": {
 		HumanValue: "- Using %s v%s from the shared cache directory",
