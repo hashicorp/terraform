@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -360,6 +361,59 @@ func TestNewStateMigrate_LogUsingProviderVersionFromCacheDir_json(t *testing.T) 
 		`"@message":"hashicorp/test v1.0.0: Using from the shared cache directory"`,
 		`"@module":"terraform.ui"`,
 		`"type":"provider_version_found_in_cache_dir"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogInstallProviderVersionComplete_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	officialProvider := 1
+	authResult := getproviders.NewPackageAuthenticationResult(officialProvider, "key-id-123")
+	smView.LogInstallProviderVersionComplete(p, v, authResult)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by HashiCorp)"`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_version_installation_complete"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	v := versions.MustParseVersion("1.0.0")
+	partnerProvider := 2
+	keyID := "key-id-123"
+	authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, keyID)
+	smView.LogInstallProviderVersionCompleteWithKeyID(p, v, authResult, keyID)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_version_installation_complete"`,
 	}
 	for _, snippet := range expectedOutputFields {
 		if !strings.Contains(output.Stdout(), snippet) {

@@ -77,4 +77,12 @@ const (
 	// LogUsingProviderVersionFromCacheDir
 	logUsingProviderVersionFromCacheDirHuman = "- Using %s v%s from the shared cache directory"
 	logUsingProviderVersionFromCacheDirJSON  = "%s v%s: Using from the shared cache directory"
+
+	// LogInstallProviderVersionStart
+	logInstallProviderVersionStartHuman = "- Installing %s v%s..."
+	logInstallProviderVersionStartJSON  = "Installing provider version: %s v%s..."
+
+	// LogInstallProviderVersionComplete
+	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
+	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
 )

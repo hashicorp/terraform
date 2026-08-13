@@ -589,12 +589,12 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logUsingProviderVersionFromCacheDirJSON,
 	},
 	"installing_provider_message": {
-		HumanValue: "- Installing %s v%s...",
-		JSONValue:  "Installing provider version: %s v%s...",
+		HumanValue: logInstallProviderVersionStartHuman,
+		JSONValue:  logInstallProviderVersionStartJSON,
 	},
 	"installed_provider_version_info": {
-		HumanValue: "- Installed %s v%s (%s%s)",
-		JSONValue:  "Installed provider version: %s v%s (%s%s)",
+		HumanValue: logInstallProviderVersionCompleteHuman,
+		JSONValue:  logInstallProviderVersionCompleteJSON,
 	},
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,

@@ -73,6 +73,8 @@ const (
 	LogFindingLatestVersion             MessageType = "provider_query_use_latest"
 	LogProviderVersionAlreadyInstalled  MessageType = "provider_version_already_installed"
 	LogUsingProviderVersionFromCacheDir MessageType = "provider_version_found_in_cache_dir"
+	LogInstallProviderVersionStart      MessageType = "provider_version_installation_start"
+	LogInstallProviderVersionComplete   MessageType = "provider_version_installation_complete"
 
 	// Dependency lock file messages
 	// Uses provider-oriented language in case we add a module lock file in future.
