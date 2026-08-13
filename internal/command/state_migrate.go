@@ -343,7 +343,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.LogStateMigrationComplete()
+	view.LogStateMigrationComplete(source, destination)
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
 	// details of the destination state store provider.
