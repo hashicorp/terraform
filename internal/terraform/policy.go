@@ -188,7 +188,7 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 	}
 }
 
-func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, currentAddr addrs.AbsResourceInstance, currentAttrs cty.Value) func(context.Context, string, *callback.ConnectedBlock) (callback.RelatedResource, error) {
+func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, currentAddr addrs.AbsResourceInstance, currentAttrs cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
 	var rscConfig hcl.Body
 	for config := range config.AllModules() {
 		if rsc := config.Module.ResourceByAddr(currentAddr.Resource.Resource); rsc != nil {
@@ -210,8 +210,8 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 			Value:  currentAttrs,
 		},
 	}
-	return func(_ context.Context, target string, conn *callback.ConnectedBlock) (callback.RelatedResource, error) {
-		related, err := cb.GetRelatedResources(ctx, target, conn, cty.NilVal)
+	return func(_ context.Context, blk *callback.RelationshipBlock) (callback.RelatedResource, error) {
+		related, err := cb.GetRelatedResources(ctx, blk, cty.NilVal)
 		return related, err
 	}
 }

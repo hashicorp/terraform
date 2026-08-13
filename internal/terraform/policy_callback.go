@@ -35,7 +35,7 @@ type ConnectingResource struct {
 }
 
 // GetRelatedResources returns the related resources for the given target resource type and connection.
-func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, target string, conn *callback.ConnectedBlock, val cty.Value) (callback.RelatedResource, error) {
+func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callback.RelationshipBlock, val cty.Value) (callback.RelatedResource, error) {
 	found := make([]callback.RelatedResource, 0)
 	partial := false
 	var err error
@@ -51,7 +51,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, target str
 	// { sourceAttribute: "id", relatedAttribute: "bucket" }
 	cb.Config.DeepEach(func(cfg *configs.Config) {
 		for _, resource := range cfg.Module.ManagedResources {
-			if resource.Type != target {
+			if resource.Type != blk.RelatedType {
 				continue
 			}
 			relatedAddr := resource.Addr().InModule(cfg.Path)
@@ -111,7 +111,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, target str
 					Schema: resourceSchema.Body,
 					Value:  resourceValue,
 				}
-				matched := cb.Match(ctx, &cb.Source, &related, conn)
+				matched := cb.Match(ctx, &cb.Source, &related, blk)
 				if matched.IsWhollyKnown() && matched.True() {
 					resourceValue, _ = resourceValue.UnmarkDeep()
 
@@ -124,9 +124,8 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, target str
 					// If the resource matched, and the connected block has a block itself,
 					// we recursively get the related resources
 					var relatedRes callback.RelatedResource
-					if conn.Nested != nil {
-						target = conn.Nested.TargetType
-						relatedRes, err = cbCtx.GetRelatedResources(ctx, target, conn.Nested, resourceValue)
+					if blk.Nested != nil {
+						relatedRes, err = cbCtx.GetRelatedResources(ctx, blk.Nested, resourceValue)
 						if err != nil {
 							return
 						}
@@ -148,11 +147,11 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, target str
 	}, err
 }
 
-func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *ConnectingResource, conn *callback.ConnectedBlock) cty.Value {
+func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *ConnectingResource, conn *callback.RelationshipBlock) cty.Value {
 	// we will return unknown if we cannot determine whether the resource matches
 	unknown := cty.UnknownVal(cty.Bool)
 
-	currentValue := source.Value
+	currentValue := subject.Value
 	relatedValue := related.Value
 
 	// if there is no related body. What to do?
@@ -162,19 +161,15 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 
 	// Parse the resource config as a simple body that contains only attributes that are either
 	// simple traversals or literal values.
-	cfg, ok := related.Body.(*hclsyntax.Body)
-	if !ok {
-		return unknown
-	}
-	relatedBody, parseDiags := cfg.AsSimpleBody()
-	if parseDiags.HasErrors() {
+	relatedBody, diags := hclsyntax.ParseSimpleBody(related.Body)
+	if diags.HasErrors() {
 		return unknown
 	}
 
 	for _, pair := range conn.AttributePairs {
 		// If the current resource is null or does not have the source attribute,
 		// we cannot compare the literal to the current value.
-		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SourceAttribute) {
+		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SubjectAttribute) {
 			// TODO: Is this unknown or false?
 			return unknown
 		}
@@ -184,7 +179,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 		// to the source attribute directly, without re-evaluating the related attribute expression.
 		relatedValue, relatedTraversal, foundRelated := lookupValue(relatedValue, pair.RelatedAttribute)
 		if foundRelated {
-			sourceValue, _, foundSource := lookupValue(currentValue, pair.SourceAttribute)
+			sourceValue, _, foundSource := lookupValue(currentValue, pair.SubjectAttribute)
 			if !foundSource {
 				return unknown
 			}
@@ -203,8 +198,8 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 		path, _ := traversalToPath(relatedTraversal)
 		relatedExpr, found := getAttributeFromBody(relatedBody, path, related.Schema)
 		if !found {
-			// related attribute or block not found
-			return unknown
+			// related attribute or block not found. Then it is not a match.
+			return cty.False
 		}
 
 		// If the expression is a literal, try a direct comparison against
@@ -213,7 +208,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 			litVal, litDiags := relatedExpr.Expr.Value(nil)
 			if !litDiags.HasErrors() {
 				litVal, _ = litVal.UnmarkDeep()
-				sourceValue := currentValue.GetAttr(pair.SourceAttribute)
+				sourceValue := currentValue.GetAttr(pair.SubjectAttribute)
 				sourceValue, _ = sourceValue.UnmarkDeep()
 				equals := litVal.Equals(sourceValue)
 				if equals.IsKnown() {
@@ -251,7 +246,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 			ContainerAddr: c.Source.Addr.Module,
 			LocalRef: &addrs.Reference{
 				Subject:   c.Source.Addr.Resource,
-				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
+				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SubjectAttribute}},
 			},
 		}
 
@@ -297,14 +292,14 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, source, related *Connecti
 // 	}
 // }
 
-func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, conn *callback.ConnectedBlock, resourceSchema *configschema.Block) cty.Value {
+func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, conn *callback.RelationshipBlock, resourceSchema *configschema.Block) cty.Value {
 	// we will return unknown if we cannot determine whether the resource matches
 	unknown := cty.UnknownVal(cty.Bool)
 
 	for _, pair := range conn.AttributePairs {
 		// If the current resource is null or does not have the source attribute,
 		// we cannot compare the literal to the current value.
-		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SourceAttribute) {
+		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SubjectAttribute) {
 			// TODO: Is this unknown or false?
 			return unknown
 		}
@@ -314,7 +309,7 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody
 		// to the source attribute directly, without re-evaluating the related attribute expression.
 		relatedValue, relatedTraversal, foundRelated := lookupValue(relatedValue, pair.RelatedAttribute)
 		if foundRelated {
-			sourceValue, _, foundSource := lookupValue(currentValue, pair.SourceAttribute)
+			sourceValue, _, foundSource := lookupValue(currentValue, pair.SubjectAttribute)
 			if !foundSource {
 				return unknown
 			}
@@ -343,7 +338,7 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody
 			litVal, litDiags := relatedExpr.Expr.Value(nil)
 			if !litDiags.HasErrors() {
 				litVal, _ = litVal.UnmarkDeep()
-				sourceValue := currentValue.GetAttr(pair.SourceAttribute)
+				sourceValue := currentValue.GetAttr(pair.SubjectAttribute)
 				sourceValue, _ = sourceValue.UnmarkDeep()
 				equals := litVal.Equals(sourceValue)
 				if equals.IsKnown() {
@@ -381,7 +376,7 @@ func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody
 			ContainerAddr: current.Module,
 			LocalRef: &addrs.Reference{
 				Subject:   current.Resource,
-				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SourceAttribute}},
+				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SubjectAttribute}},
 			},
 		}
 
@@ -434,8 +429,9 @@ func equalRef(ref *globalref.Reference, other *globalref.Reference) bool {
 	return true
 }
 
-func lookupValue(val cty.Value, attr string) (cty.Value, hcl.Traversal, bool) {
-	traversal, diags := hclsyntax.ParseTraversalAbs([]byte(attr), "", hcl.Pos{Line: 1, Column: 1})
+// lookupValue looks up the attribute path within the value.
+func lookupValue(val cty.Value, attrPath string) (cty.Value, hcl.Traversal, bool) {
+	traversal, diags := hclsyntax.ParseTraversalAbs([]byte(attrPath), "", hcl.Pos{Line: 1, Column: 1})
 	if diags != nil {
 		log.Println("[DEBUG] Error parsing traversal: ", diags)
 		return val, nil, false

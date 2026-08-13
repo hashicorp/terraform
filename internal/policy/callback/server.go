@@ -63,8 +63,8 @@ func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedRes
 		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 		return nil, err
 	}
-	conn := buildConnection(functions.ResourceType, request.Connection)
-	related, err := functions.Functions.RelatedResources(ctx, request.Type, conn)
+	relationship := buildRelationship(functions.ResourceType, request.Relationship)
+	related, err := functions.Functions.RelatedResources(ctx, relationship)
 	if err != nil {
 		return nil, err
 	}
@@ -85,22 +85,35 @@ func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedRes
 	}, nil
 }
 
-func buildConnection(typeStr string, connection *proto.RelatedResourcesRequest_Connection) *ConnectedBlock {
-	conn := &ConnectedBlock{
-		SourceType:     typeStr,
-		TargetType:     connection.Type,
-		AttributePairs: make([]RelatedAttributePair, 0, len(connection.AttributePairs)),
+func buildRelationship(subjectType string, relationship *proto.RelatedResourcesRequest_Relationship) *RelationshipBlock {
+	blk := &RelationshipBlock{
+		SubjectType:    subjectType,
+		RelatedType:    relationship.Type,
+		Direction:      directionFromProto(relationship.Direction),
+		AttributePairs: make([]RelatedAttributePair, 0, len(relationship.AttributePairs)),
 	}
-	for _, pair := range connection.AttributePairs {
-		conn.AttributePairs = append(conn.AttributePairs, RelatedAttributePair{
-			SourceAttribute:  pair.SourceAttribute,
+
+	for _, pair := range relationship.AttributePairs {
+		blk.AttributePairs = append(blk.AttributePairs, RelatedAttributePair{
+			SubjectAttribute: pair.SubjectAttribute,
 			RelatedAttribute: pair.RelatedAttribute,
 		})
 	}
-	if connection.Connection != nil {
-		conn.Nested = buildConnection(connection.Type, connection.Connection)
+	if relationship.Nested != nil {
+		blk.Nested = buildRelationship(relationship.Type, relationship.Nested)
 	}
-	return conn
+	return blk
+}
+
+func directionFromProto(dir proto.RelatedResourcesRequest_Direction) Direction {
+	switch dir {
+	case proto.RelatedResourcesRequest_Inbound:
+		return DirectionInbound
+	case proto.RelatedResourcesRequest_Outbound:
+		return DirectionOutbound
+	}
+	// Defaults to inbound
+	return DirectionInbound
 }
 
 func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {

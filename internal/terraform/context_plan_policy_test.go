@@ -2301,15 +2301,13 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		config              string
-		childConfig         string
-		child2Config        string
-		pairs               *callback.ConnectedBlock
-		currentResourceType string
-		relatedResourceType string
-		wantRelated         []RelatedResource
-		wantPartial         bool
-		additionalSchema    map[string]providers.Schema
+		config           string
+		childConfig      string
+		child2Config     string
+		pairs            *callback.RelationshipBlock
+		wantRelated      []RelatedResource
+		wantPartial      bool
+		additionalSchema map[string]providers.Schema
 	}{
 		"direct traversal with pair conjunction": {
 			config: `
@@ -2339,12 +2337,12 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random          = "mismatch"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
-					{SourceAttribute: "sensitive_value", RelatedAttribute: "sensitive_value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "sensitive_value", RelatedAttribute: "sensitive_value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "direct"}},
@@ -2371,11 +2369,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "literal"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "value", RelatedAttribute: "value"},
+					{SubjectAttribute: "value", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "literal"}},
@@ -2405,11 +2403,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "indirect"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "indirect"}},
@@ -2444,11 +2442,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "indirect"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "direct"}, {Value: "indirect"}},
@@ -2476,14 +2474,45 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "block_related"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "nesting_single.value"},
+					{SubjectAttribute: "id", RelatedAttribute: "nesting_single.value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "block_related"}},
+			wantPartial: false,
+		},
+		"not found: non existent related attribute in nested block.": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		resource "test_instance" "block_related" {
+			nesting_single {
+				value = test_resource.source.id
+			}
+			random = "block_related"
+		}
+		`,
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
+				AttributePairs: []callback.RelatedAttributePair{
+					{SubjectAttribute: "id", RelatedAttribute: "nesting_single.not_exist"},
+				},
+			},
 			wantPartial: false,
 		},
 		"related attribute in repeated nested block": {
@@ -2512,11 +2541,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "block_related"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "nested[0].value"},
+					{SubjectAttribute: "id", RelatedAttribute: "nested[0].value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "block_related"}},
@@ -2552,11 +2581,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			value = test_resource.source.id
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "from_output"}},
@@ -2606,11 +2635,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "indirect"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "indirect"}},
@@ -2650,11 +2679,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			value = test_resource.source.id
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "indirect"}},
@@ -2687,11 +2716,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random   = each.value
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantPartial: false,
@@ -2727,11 +2756,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "conditional"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "sensitive_value", RelatedAttribute: "value"},
+					{SubjectAttribute: "sensitive_value", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "conditional"}},
@@ -2758,11 +2787,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "transformed"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "value", RelatedAttribute: "value"},
+					{SubjectAttribute: "value", RelatedAttribute: "value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "transformed"}},
@@ -2789,11 +2818,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "transformed"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "id", RelatedAttribute: "value"},
+					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
 			wantPartial: false,
@@ -2821,13 +2850,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "candidate"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
-				SourceType: "test_resource",
-				TargetType: "test_instance",
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "value", RelatedAttribute: "nesting_single.value"},
+					{SubjectAttribute: "value", RelatedAttribute: "nesting_single.value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "candidate"}},
@@ -2862,19 +2889,17 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			random = "grandchild"
 		}
 		`,
-			currentResourceType: "test_resource",
-			relatedResourceType: "test_instance",
-			pairs: &callback.ConnectedBlock{
-				SourceType: "test_resource",
-				TargetType: "test_instance",
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
-					{SourceAttribute: "value", RelatedAttribute: "nesting_single.value"},
+					{SubjectAttribute: "value", RelatedAttribute: "nesting_single.value"},
 				},
-				Nested: &callback.ConnectedBlock{
-					SourceType: "test_instance",
-					TargetType: "test_grandchild",
+				Nested: &callback.RelationshipBlock{
+					SubjectType: "test_instance",
+					RelatedType: "test_grandchild",
 					AttributePairs: []callback.RelatedAttributePair{
-						{SourceAttribute: "ami", RelatedAttribute: "value"},
+						{SubjectAttribute: "ami", RelatedAttribute: "value"},
 					},
 				},
 			},
@@ -2956,7 +2981,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			gotRelatedRandom := make([]RelatedResource, 0)
 
 			policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-				if req.Target != tc.currentResourceType {
+				if req.Target != tc.pairs.SubjectType {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 				if req.Attrs.Raw.IsNull() || !req.Attrs.Raw.Type().HasAttribute("random") {
@@ -2973,7 +2998,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
-				related, err := req.Callbacks.RelatedResources(t.Context(), tc.relatedResourceType, tc.pairs)
+				related, err := req.Callbacks.RelatedResources(t.Context(), tc.pairs)
 				if err != nil {
 					t.Errorf("RelatedResources callback failed: %v", err)
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
@@ -3168,9 +3193,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources_KnownValuePrecedesTraversa
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}
 
-				related, err := req.Callbacks.RelatedResources(t.Context(), "test_resource", &callback.ConnectedBlock{
+				related, err := req.Callbacks.RelatedResources(t.Context(), &callback.RelationshipBlock{
+					SubjectType: "test_resource",
+					RelatedType: "test_instance",
 					AttributePairs: []callback.RelatedAttributePair{
-						{SourceAttribute: "sensitive_value", RelatedAttribute: "value"},
+						{SubjectAttribute: "sensitive_value", RelatedAttribute: "value"},
 					},
 				})
 				if err != nil {
@@ -4013,9 +4040,11 @@ func TestContext2Plan_PolicyCallback_RelatedResources2(t *testing.T) {
 			return policy.EvaluationResponse{Overall: policy.AllowResult}
 		}
 
-		related, err := req.Callbacks.RelatedResources(t.Context(), "test_instance", &callback.ConnectedBlock{
+		related, err := req.Callbacks.RelatedResources(t.Context(), &callback.RelationshipBlock{
+			SubjectType: "test_resource",
+			RelatedType: "test_instance",
 			AttributePairs: []callback.RelatedAttributePair{
-				{SourceAttribute: "id", RelatedAttribute: "value"},
+				{SubjectAttribute: "id", RelatedAttribute: "value"},
 			},
 		})
 		if err != nil {

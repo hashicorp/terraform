@@ -30,20 +30,33 @@ message GetResourcesResponse {
   bool partial = 2;
 }
 
+
 message RelatedResourcesRequest {
-  message Connection {
+    // Direction indicates the direction of the reference relative to the subject.
+    enum Direction {
+      Invalid = 0;
+      // Direction is Inbound if the related attribute is a reference to the subject.
+      Inbound = 1;
+
+      // Direction is Outbound if the subject is a reference to the related attribute.
+      Outbound = 2;
+    }
+
+  message Relationship {
+    // type is the type of the related resource
     string type = 1;
     repeated AttributePair attribute_pairs = 2;
-    Connection connection = 3;
+    Relationship nested = 3;
+    Direction direction = 4;
   }
 
   message AttributePair {
-    string source_attribute = 1;
+    string subject_attribute = 1;
     string related_attribute = 2;
   }
 
   string type = 1;
-  Connection connection = 2;
+  Relationship relationship = 2;
   // evaluation_request_id is the ID of the policy evaluation request that is
   // making this callback request.
   uint32 evaluation_request_id = 3;

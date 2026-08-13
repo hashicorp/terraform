@@ -10,28 +10,37 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// ConnectedBlock represents a connection between two resource types, with a list of related attribute pairs.
-// A connection can have a connection itself, allowing for nested connections.
-type ConnectedBlock struct {
-	SourceType     string
-	TargetType     string
+type Direction string
+
+const (
+	DirectionInbound  Direction = "inbound"
+	DirectionOutbound Direction = "outbound"
+)
+
+// RelationshipBlock represents a relationship between two resource types, with a list of related attribute pairs.
+// A relationship can also nest other relationships.
+type RelationshipBlock struct {
+	SubjectType string
+	RelatedType string
+	// Inbound is true if the source attribute points to the target attribute.
+	// A block is outbound by default, so this value will be false in that case.
+	Direction      Direction
 	AttributePairs []RelatedAttributePair
 
-	// A connected block itself can have a nested block
-	Nested *ConnectedBlock
+	// A relationship block itself can have a nested block
+	Nested *RelationshipBlock
 }
 
 // RelatedAttributePair represents a pair of related attributes between two resources.
 type RelatedAttributePair struct {
-	SourceAttribute  string
+	SubjectAttribute string
 	RelatedAttribute string
 }
 
 type Functions struct {
 	GetResources func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
-	// RelatedResources returns candidate resources whose target attributes
-	// directly traverse to, or statically equal, the current resource attributes.
-	RelatedResources func(ctx context.Context, resource string, conn *ConnectedBlock) (RelatedResource, error)
+	// RelatedResources returns candidate resources that match the defined relationship block
+	RelatedResources func(ctx context.Context, blk *RelationshipBlock) (RelatedResource, error)
 	GetDataSource    func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
 }
 
