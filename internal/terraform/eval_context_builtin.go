@@ -77,30 +77,30 @@ type BuiltinEvalContext struct {
 	// only allowd in the context of a destroy plan.
 	forget bool
 
-	Hooks                    []Hook
-	InputValue               UIInput
-	ProviderCache            map[string]providers.Interface
-	ProviderFuncCache        map[string]providers.Interface
-	FunctionResults          *lang.FunctionResults
-	ProviderInputConfig      map[string]map[string]cty.Value
-	ProviderLock             *sync.Mutex
-	ProvisionerCache         map[string]provisioners.Interface
-	ProvisionerLock          *sync.Mutex
-	ChangesValue             *plans.ChangesSync
-	StateValue               *states.SyncState
-	ChecksValue              *checks.State
-	EphemeralResourcesValue  *ephemeral.Resources
-	RefreshStateValue        *states.SyncState
-	PrevRunStateValue        *states.SyncState
-	PolicyGraphValue         *policySubgraph
-	PolicySemaphoreValue     Semaphore
-	InstanceExpanderValue    *instances.Expander
-	MoveResultsValue         refactoring.MoveResults
-	OverrideValues           *mocking.Overrides
-	ResourceAttrRefTreeValue *simplerefs.SimpleReferenceTree
-	ProviderLocksValue       map[addrs.Provider]*depsfile.ProviderLock
-	PolicyClientValue        policy.Client
-	DeprecationsValue        *deprecation.Deprecations
+	Hooks                     []Hook
+	InputValue                UIInput
+	ProviderCache             map[string]providers.Interface
+	ProviderFuncCache         map[string]providers.Interface
+	FunctionResults           *lang.FunctionResults
+	ProviderInputConfig       map[string]map[string]cty.Value
+	ProviderLock              *sync.Mutex
+	ProvisionerCache          map[string]provisioners.Interface
+	ProvisionerLock           *sync.Mutex
+	ChangesValue              *plans.ChangesSync
+	StateValue                *states.SyncState
+	ChecksValue               *checks.State
+	EphemeralResourcesValue   *ephemeral.Resources
+	RefreshStateValue         *states.SyncState
+	PrevRunStateValue         *states.SyncState
+	PolicyGraphValue          *policySubgraph
+	PolicySemaphoreValue      Semaphore
+	InstanceExpanderValue     *instances.Expander
+	MoveResultsValue          refactoring.MoveResults
+	OverrideValues            *mocking.Overrides
+	ResourceAttrRefGraphValue *simplerefs.ReferenceGraph
+	ProviderLocksValue        map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue         policy.Client
+	DeprecationsValue         *deprecation.Deprecations
 }
 
 func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
@@ -486,8 +486,8 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	return ref, replace, diags
 }
 
-func (ctx *BuiltinEvalContext) ResourceAttrRefTree() *simplerefs.SimpleReferenceTree {
-	return ctx.ResourceAttrRefTreeValue
+func (ctx *BuiltinEvalContext) ResourceAttrRefGraph() *simplerefs.ReferenceGraph {
+	return ctx.ResourceAttrRefGraphValue
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {

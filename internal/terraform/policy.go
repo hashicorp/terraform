@@ -203,7 +203,7 @@ func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperat
 		WalkOperation: walkOperation,
 		Schema:        schema,
 		Config:        config,
-		Source: ConnectingResource{
+		Source: &PolicyResource{
 			Addr:   currentAddr,
 			Body:   rscConfig,
 			Schema: schema.SchemaForResourceAddr(currentAddr.Resource.Resource).Body,

@@ -565,7 +565,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		},
 	}
 	if ref != nil {
-		ctx.ResourceAttrRefTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+		ctx.ResourceAttrRefGraph().SetReference(ref, n.Config.Expr, n.Addr.Module)
 	}
 
 	return diags

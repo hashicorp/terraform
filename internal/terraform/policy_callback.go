@@ -24,10 +24,11 @@ type PolicyCallbackManager struct {
 	WalkOperation walkOperation
 	Schema        providers.GetProviderSchemaResponse
 	Config        *configs.Config
-	Source        ConnectingResource
+	Source        *PolicyResource
 }
 
-type ConnectingResource struct {
+// PolicyResource co-locates the data required for the relationship analysis for a single resource
+type PolicyResource struct {
 	Addr   addrs.AbsResourceInstance
 	Body   hcl.Body
 	Schema *configschema.Block
@@ -105,13 +106,13 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 			// If it is a traversal, we check if the traversal points to the source attribute.
 			for addr, resourceValue := range resourcesSeq {
 				resourceSchema := cb.Schema.SchemaForResourceAddr(relatedAddr.Resource)
-				related := ConnectingResource{
+				related := &PolicyResource{
 					Addr:   addr,
 					Body:   resource.Config,
 					Schema: resourceSchema.Body,
 					Value:  resourceValue,
 				}
-				matched := cb.Match(ctx, &cb.Source, &related, blk)
+				matched := cb.Match(ctx, cb.Source, related, blk)
 				if matched.IsWhollyKnown() && matched.True() {
 					resourceValue, _ = resourceValue.UnmarkDeep()
 
@@ -147,7 +148,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 	}, err
 }
 
-func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *ConnectingResource, conn *callback.RelationshipBlock) cty.Value {
+func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock) cty.Value {
 	// we will return unknown if we cannot determine whether the resource matches
 	unknown := cty.UnknownVal(cty.Bool)
 
@@ -204,7 +205,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *Connect
 			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
 			return unknown
 		}
-		tree := ctx.ResourceAttrRefTree()
+		tree := ctx.ResourceAttrRefGraph()
 		attrRef, found := tree.ResolveReference(relatedRef)
 		if !found {
 			return unknown

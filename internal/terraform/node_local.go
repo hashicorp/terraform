@@ -149,14 +149,18 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 
 	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
 
-	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "local"}, hcl.TraverseAttr{Name: n.Addr.LocalValue.Name}}
 	// Set the expression as a simple traversal if it is one.
-	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
+	ref, refDiags := globalref.ParseRef(n.Addr.Module, n.Traversal())
 	diags = diags.Append(refDiags)
 	if ref != nil {
-		ctx.ResourceAttrRefTree().SetReference(ref, n.Config.Expr, n.Addr.Module)
+		ctx.ResourceAttrRefGraph().SetReference(ref, n.Config.Expr, n.Addr.Module)
 	}
 	return diags
+}
+
+func (n *NodeLocal) Traversal() hcl.Traversal {
+	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "local"}, hcl.TraverseAttr{Name: n.Addr.LocalValue.Name}}
+	return traversal
 }
 
 // dag.GraphNodeDotter impl.

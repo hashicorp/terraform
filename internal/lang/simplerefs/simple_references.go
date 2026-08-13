@@ -14,27 +14,26 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 )
 
-// SimpleReferenceTree is a thread-safe map of global references that supports
+// ReferenceGraph is a thread-safe map of global references that supports
 // resolution via a custom selector function.
 //
 // The selector function is called for each reference to determine if it should
 // be selected or left as-is. Such references are the end goal of resolution.
-type SimpleReferenceTree struct {
+type ReferenceGraph struct {
 	mu       sync.RWMutex
 	refs     collections.Map[*globalref.Reference, *globalref.Reference]
 	selector func(*globalref.Reference) bool
 }
 
-func NewReferenceTree(selector func(*globalref.Reference) bool) *SimpleReferenceTree {
-	return &SimpleReferenceTree{
+func NewReferenceGraph(selector func(*globalref.Reference) bool) *ReferenceGraph {
+	return &ReferenceGraph{
 		refs:     collections.NewMapFunc[*globalref.Reference, *globalref.Reference](globalReferenceUniqueKeyFunc),
 		selector: selector,
 	}
 }
 
 // SetReference records a source reference and the expression it points to.
-// sourceRef is interpreted in its own container module; expr is interpreted in exprModule.
-func (s *SimpleReferenceTree) SetReference(sourceRef *globalref.Reference, expr hcl.Expression, exprModule addrs.ModuleInstance) {
+func (s *ReferenceGraph) SetReference(sourceRef *globalref.Reference, expr hcl.Expression, exprModule addrs.ModuleInstance) {
 	if s == nil {
 		return
 	}
@@ -60,6 +59,7 @@ func (s *SimpleReferenceTree) SetReference(sourceRef *globalref.Reference, expr 
 		return
 	}
 
+	// parse the expression using exprModule as its container.
 	exprRef, diags := globalref.ParseRef(exprModule, exprTraversal)
 	if diags.HasErrors() {
 		return
@@ -81,13 +81,15 @@ func (s *SimpleReferenceTree) SetReference(sourceRef *globalref.Reference, expr 
 	}
 }
 
-func (s *SimpleReferenceTree) ResolveReference(ref *globalref.Reference) (*globalref.Reference, bool) {
+func (s *ReferenceGraph) ResolveReference(ref *globalref.Reference) (*globalref.Reference, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.resolveReference(ref)
 }
 
-func (s *SimpleReferenceTree) resolveReference(ref *globalref.Reference) (*globalref.Reference, bool) {
+// resolveReference tries to resolve the given reference. If the reference matches the selector,
+// then resolution is done. Otherwise, we look up the local store.
+func (s *ReferenceGraph) resolveReference(ref *globalref.Reference) (*globalref.Reference, bool) {
 	if s == nil {
 		return nil, false
 	}
@@ -104,7 +106,7 @@ func (s *SimpleReferenceTree) resolveReference(ref *globalref.Reference) (*globa
 	return s.get(ref)
 }
 
-func (s *SimpleReferenceTree) set(sourceRef *globalref.Reference, resolvedRef *globalref.Reference) {
+func (s *ReferenceGraph) set(sourceRef *globalref.Reference, resolvedRef *globalref.Reference) {
 	if sourceRef == nil || sourceRef.LocalRef == nil {
 		return
 	}
@@ -115,7 +117,7 @@ func (s *SimpleReferenceTree) set(sourceRef *globalref.Reference, resolvedRef *g
 	s.refs.Put(sourceRef, resolvedRef)
 }
 
-func (s *SimpleReferenceTree) get(ref *globalref.Reference) (*globalref.Reference, bool) {
+func (s *ReferenceGraph) get(ref *globalref.Reference) (*globalref.Reference, bool) {
 	if ref == nil {
 		return nil, false
 	}

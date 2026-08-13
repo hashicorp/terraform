@@ -191,8 +191,8 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
-	// Set up a reference tree that tracks resource attribute references
-	refTree := simplerefs.NewReferenceTree(func(ref *globalref.Reference) bool {
+	// Set up a reference graph that tracks resource attribute references
+	refGraph := simplerefs.NewReferenceGraph(func(ref *globalref.Reference) bool {
 		if _, ok := ref.ResourceAttr(); ok {
 			return true
 		}
@@ -224,7 +224,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PolicyClient:            opts.PolicyClient,
 		Deprecations:            deprecation.NewDeprecations(),
 		contexts:                collections.NewMap[evalContextScope, *BuiltinEvalContext](),
-		ResourceAttrRefTree:     refTree,
+		ResourceAttrRefGraph:    refGraph,
 		providerCache:           make(map[string]providers.Interface),
 		providerFuncCache:       make(map[string]providers.Interface),
 		providerSchemas:         make(map[string]providers.ProviderSchema),

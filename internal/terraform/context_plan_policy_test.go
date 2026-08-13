@@ -2569,12 +2569,8 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 		}
 
 		resource "test_instance" "block_related" {
-			nested {
-				value = test_resource.source.id
-			}
-
 			nested_map "foo" {
-				value = "nested value"
+				value = test_resource.source.id
 			}
 			random = "block_related"
 		}

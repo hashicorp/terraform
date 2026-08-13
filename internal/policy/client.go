@@ -302,7 +302,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	// Register the callback functions with the callback service, so that they are available
+	// Store the callback functions with the internal registry, so that they are available
 	// for use during evaluation.
 	evalID := c.callbackRegistry.Register(req.Target, req.Callbacks)
 

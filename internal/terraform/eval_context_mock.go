@@ -121,7 +121,7 @@ type MockEvalContext struct {
 	EvaluateExprDiags  tfdiags.Diagnostics
 
 	ReferenceTreeCalled bool
-	ReferenceTreeValue  *simplerefs.SimpleReferenceTree
+	ReferenceTreeValue  *simplerefs.ReferenceGraph
 
 	EvaluationScopeCalled  bool
 	EvaluationScopeSelf    addrs.Referenceable
@@ -299,7 +299,7 @@ func (c *MockEvalContext) EvaluateReplaceTriggeredBy(hcl.Expression, instances.R
 	return nil, false, nil
 }
 
-func (c *MockEvalContext) ResourceAttrRefTree() *simplerefs.SimpleReferenceTree {
+func (c *MockEvalContext) ResourceAttrRefGraph() *simplerefs.ReferenceGraph {
 	c.ReferenceTreeCalled = true
 	return c.ReferenceTreeValue
 }

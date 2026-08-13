@@ -267,8 +267,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 	// Custom validation rules are handled by a separate graph node of type
 	// nodeVariableValidation, added by variableValidationTransformer.
 
-	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "var"}, hcl.TraverseAttr{Name: n.Addr.Variable.Name}}
-	ref, refDiags := globalref.ParseRef(n.Addr.Module, traversal)
+	ref, refDiags := globalref.ParseRef(n.Addr.Module, n.Traversal())
 	if refDiags.HasErrors() {
 		diags = diags.Append(refDiags)
 	}
@@ -276,9 +275,14 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 		// The traversal source is in the callee module (var.x), while the
 		// value expression is authored/evaluated in the caller module,
 		// so we need to set the reference to the caller module's path.
-		ctx.ResourceAttrRefTree().SetReference(ref, n.Expr, n.Path())
+		ctx.ResourceAttrRefGraph().SetReference(ref, n.Expr, n.Path())
 	}
 	return diags
+}
+
+func (n *nodeModuleVariable) Traversal() hcl.Traversal {
+	traversal := hcl.Traversal{hcl.TraverseRoot{Name: "var"}, hcl.TraverseAttr{Name: n.Addr.Variable.Name}}
+	return traversal
 }
 
 // dag.GraphNodeDotter impl.
