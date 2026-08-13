@@ -89,4 +89,9 @@ const (
 	// LogInstallProviderVersionComplete
 	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
 	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
+
+	// LogPartnerAndCommunityProviders
+	logPartnerAndCommunityProviders = "Partner and community providers are signed by their developers.\n" +
+		"If you'd like to know more about provider signing, you can read about it here:\n" +
+		"https://developer.hashicorp.com/terraform/cli/plugins/signing"
 )

@@ -76,6 +76,7 @@ const (
 	LogInstallProviderVersionStart      MessageType = "provider_version_installation_start"
 	LogInstallProviderVersionComplete   MessageType = "provider_version_installation_complete"
 	BuiltInProviderAvailable            MessageType = "built_in_provider_available"
+	LogPartnerAndCommunityProviders     MessageType = "third_party_providers_installed"
 
 	// Dependency lock file messages
 	// Uses provider-oriented language in case we add a module lock file in future.

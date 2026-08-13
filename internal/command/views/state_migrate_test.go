@@ -444,3 +444,25 @@ func TestNewStateMigrate_LogBuiltInProviderAvailable_json(t *testing.T) {
 		}
 	}
 }
+
+func TestNewStateMigrate_LogPartnerAndCommunityProviders_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogPartnerAndCommunityProviders()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Partner and community providers are`, // incomplete but sufficient for asserting message
+		`"@module":"terraform.ui"`,
+		`"type":"third_party_providers_installed"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}

@@ -449,3 +449,11 @@ func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAd
 		"type", json.LogInstallProviderVersionComplete,
 	)
 }
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
+	s.view.log.Info(
+		logPartnerAndCommunityProviders,
+		"type", json.LogPartnerAndCommunityProviders,
+	)
+}
