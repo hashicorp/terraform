@@ -25,7 +25,8 @@ const (
 	logStateMigrationCompleteJSON = "The migration process has copied state from the source %s to the destination %s"
 
 	// Notify the user that everything has finished successfully; migration and lockfile+backend state file updates.
-	StateMigrationFinalizedMessage = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	logStateMigrationFinalizedHuman = "[reset][bold]Finished migrating state from %s to %s.[reset]"
+	logStateMigrationFinalizedJSON  = "Finished migrating state from %s to %s."
 
 	// Notify the user that an error has occurred, but there have been changes to where state is stored.
 	// Hopefully the errors accompanying this message are actionable by users, but if not we expect a bug report.
@@ -151,12 +152,8 @@ func (s *StateMigrateHuman) LogMigrationDestinationInitializationComplete() {
 }
 
 func (s *StateMigrateHuman) LogStateMigrationFinalized(source string, destination string) {
-	msg := fmt.Sprintf(StateMigrationFinalizedMessage, source, destination)
+	msg := fmt.Sprintf(logStateMigrationFinalizedHuman, source, destination)
 	s.log(msg)
-}
-
-func (s *StateMigrateHuman) Log(message string, params ...any) {
-	s.log(fmt.Sprintf(message, params...))
 }
 
 func (s *StateMigrateHuman) log(preparedMessage string) {
@@ -335,6 +332,14 @@ func (s *StateMigrateJSON) LogStateMigrationComplete(source string, destination 
 	s.view.log.Info(
 		msg,
 		"type", json.LogStateMigrationComplete,
+	)
+}
+
+func (s *StateMigrateJSON) LogStateMigrationFinalized(source string, destination string) {
+	msg := fmt.Sprintf(logStateMigrationFinalizedJSON, source, destination)
+	s.view.log.Info(
+		msg,
+		"type", json.LogStateMigrationFinalized,
 	)
 }
 
