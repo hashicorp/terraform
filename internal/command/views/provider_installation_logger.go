@@ -57,4 +57,8 @@ const (
 	// LogInstallProvidersStart
 	logInstallProvidersStartMessageHuman = "[reset][bold]Installing providers..."
 	logInstallProvidersStartMessageJSON  = "Installing providers..."
+
+	// LogReusingPreviousProviderVersion
+	logReusingPreviousProviderVersionHuman = "- Reusing version %s of %s from the dependency lock file"
+	logReusingPreviousProviderVersionJSON  = "%s: Reusing version %s from the dependency lock file"
 )

@@ -573,8 +573,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "%s is built in to Terraform",
 	},
 	"reusing_previous_version_info": {
-		HumanValue: "- Reusing version %s of %s from the dependency lock file",
-		JSONValue:  "%s: Reusing version %s from the dependency lock file",
+		HumanValue: logReusingPreviousProviderVersionHuman,
+		JSONValue:  logReusingPreviousProviderVersionJSON,
 	},
 	"finding_matching_version_message": {
 		HumanValue: "- Finding %s versions matching %q...",
