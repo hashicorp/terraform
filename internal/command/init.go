@@ -963,7 +963,7 @@ func linkFromCacheBeginCallback(view views.ProviderInstallationLogger) func(prov
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInstallingProviderVersion(provider, version)
+		view.LogInstallProviderVersionStart(provider, version)
 	}
 }
 
@@ -1209,11 +1209,11 @@ func fetchPackageSuccessCallback(view views.ProviderInstallationLogger) func(pro
 			keyID = authResult.KeyID
 		}
 		if keyID != "" {
-			view.LogProviderVersionSuccessWithKeyID(provider, version, authResult, keyID)
+			view.LogInstallProviderVersionCompleteWithKeyID(provider, version, authResult, keyID)
 			return
 		}
 
-		view.LogProviderVersionSuccess(provider, version, authResult)
+		view.LogInstallProviderVersionComplete(provider, version, authResult)
 	}
 }
 

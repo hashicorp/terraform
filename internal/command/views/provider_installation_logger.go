@@ -15,11 +15,11 @@ import (
 type ProviderInstallationLogger interface {
 	Output(messageCode InitMessageCode, params ...any)
 
-	// LogProviderVersionSuccess describes a successfully installed provider along with its version
-	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
+	// LogInstallProviderVersionComplete describes a successfully installed provider along with its version
+	LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 
-	// LogProviderVersionSuccessWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
-	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	// LogInstallProviderVersionCompleteWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
+	LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	// LogProviderVersionAlreadyInstalled indicates a provider that is already installed during installation
 	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
@@ -33,8 +33,8 @@ type ProviderInstallationLogger interface {
 	// FindingLatestVersion indicates that Terraform is looking for the latest version of a provider during installation (no constraint nor prior lock was supplied)
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
-	// LogInstallingProviderVersion indicates that a provider is being installed (from a remote location)
-	LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
+	// LogInstallProviderVersionStart indicates that a provider is being installed (from a remote location)
+	LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogBuiltInProviderAvailable indicates a built-in provider is available in the current Terraform core binary and is in use during installation
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
