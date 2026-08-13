@@ -91,6 +91,7 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 var (
 	_ StateMigrate                  = (*StateMigrateHuman)(nil)
 	_ ProviderInstallationLogger    = (*StateMigrateHuman)(nil)
+	_ ProviderLockingLogger         = (*StateMigrateHuman)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateHuman)(nil)
 	_ Spacer                        = (*StateMigrateHuman)(nil)
 )
@@ -307,6 +308,7 @@ type StateMigrateJSON struct {
 }
 
 var (
+	_ ProviderInstallationLogger    = (*StateMigrateJSON)(nil)
 	_ ProviderLockingLogger         = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
