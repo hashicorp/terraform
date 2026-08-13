@@ -115,16 +115,16 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 				if matched.IsWhollyKnown() && matched.True() {
 					resourceValue, _ = resourceValue.UnmarkDeep()
 
-					cbCtx := &PolicyCallbackManager{
-						WalkOperation: cb.WalkOperation,
-						Schema:        cb.Schema,
-						Config:        cb.Config,
-						Source:        related,
-					}
 					// If the resource matched, and the connected block has a block itself,
 					// we recursively get the related resources
 					var relatedRes callback.RelatedResource
 					if blk.Nested != nil {
+						cbCtx := &PolicyCallbackManager{
+							WalkOperation: cb.WalkOperation,
+							Schema:        cb.Schema,
+							Config:        cb.Config,
+							Source:        related,
+						}
 						relatedRes, err = cbCtx.GetRelatedResources(ctx, blk.Nested, resourceValue)
 						if err != nil {
 							return
@@ -152,11 +152,19 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *Connect
 	unknown := cty.UnknownVal(cty.Bool)
 
 	currentValue := subject.Value
-	relatedValue := related.Value
 
 	// if there is no related body. What to do?
 	if related.Body == nil {
 		return unknown
+	}
+
+	// First try to match by values
+	if !conn.QueryAttributes.IsNull() {
+		filterMap := conn.QueryAttributes.AsValueMap()
+		matches, _ := resourceMatchesFilter(related.Addr.ConfigResource(), related.Schema, filterMap, related.Value)
+		if matches {
+			return cty.True
+		}
 	}
 
 	// Parse the resource config as a simple body that contains only attributes that are either
@@ -174,26 +182,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *Connect
 			return unknown
 		}
 
-		// The changeset supercedes config, so we check it first.
-		// If we have enough information to verify equality, we can compare the related attribute
-		// to the source attribute directly, without re-evaluating the related attribute expression.
-		relatedValue, relatedTraversal, foundRelated := lookupValue(relatedValue, pair.RelatedAttribute)
-		if foundRelated {
-			sourceValue, _, foundSource := lookupValue(currentValue, pair.SubjectAttribute)
-			if !foundSource {
-				return unknown
-			}
-			equals := relatedValue.Equals(sourceValue)
-			if equals.IsKnown() {
-				if equals.False() { // we can return early if the values do not match
-					return cty.False
-				}
-
-				// otherwise, the values match, so we continue to the next pair
-				continue
-			}
-		}
-
+		relatedTraversal, _ := hclsyntax.ParseTraversalAbs([]byte(pair.RelatedAttribute), "", hcl.InitialPos)
 		// get the attribute's expression from the body
 		path, _ := traversalToPath(relatedTraversal)
 		relatedExpr, found := getAttributeFromBody(relatedBody, path, related.Schema)
@@ -202,28 +191,9 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *Connect
 			return cty.False
 		}
 
-		// If the expression is a literal, try a direct comparison against
-		// source value so we can make an early decision if the values do not match.
-		if relatedExpr.IsLiteral() && relatedExpr.Expr != nil {
-			litVal, litDiags := relatedExpr.Expr.Value(nil)
-			if !litDiags.HasErrors() {
-				litVal, _ = litVal.UnmarkDeep()
-				sourceValue := currentValue.GetAttr(pair.SubjectAttribute)
-				sourceValue, _ = sourceValue.UnmarkDeep()
-				equals := litVal.Equals(sourceValue)
-				if equals.IsKnown() {
-					if equals.False() {
-						return cty.False
-					}
-					continue
-				}
-			}
-			return unknown
-		}
-
-		// Anything more complex than a plain traversal cannot be compared structurally,
+		// If the related expression is not a plain traversal, it cannot be compared structurally,
 		// so we assume it to be unknown if the related attribute expression is not a plain traversal.
-		if relatedExpr.Kind == hclsyntax.AttributeKindOther {
+		if !relatedExpr.IsTraversal() {
 			return unknown
 		}
 
@@ -258,137 +228,6 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *Connect
 		}
 	}
 
-	return cty.True
-}
-
-// func getConnections(ctx EvalContext, conn *callback.Connection, connectable *Connectable) {
-
-// 	// Parse the resource config as a simple body that contains only attributes that are either
-// 	// simple traversals or literal values.
-// 	cfg, ok := connectable.body.(*hclsyntax.Body)
-// 	if !ok {
-// 		continue
-// 	}
-// 	relatedBody, parseDiags := cfg.AsSimpleBody()
-// 	if parseDiags.HasErrors() {
-// 		partial = true
-// 		continue
-// 	}
-
-// 	// If the current iteration is for aws_s3_bucket_acl.example, we will
-// 	// check for the given related attribute pair to match aws_s3_bucket.example.
-// 	// We do that by checking if the related attribute (e.g. bucket) is a literal value
-// 	// or a simple traversal. If it is a literal value, we check if it matches the source attribute
-// 	// in aws_s3_bucket.example.
-// 	// If it is a traversal, we check if the traversal points to the source attribute.
-// 	for addr, resourceValue := range resourcesSeq {
-// 		resourceSchema := schema.SchemaForResourceAddr(connectable.addr.Resource)
-// 		matched := relatedResourceMatchesPairs(ctx, relatedBody, currentAddr, addr, resourceValue, currentAttrs, conn, resourceSchema.Body)
-// 		if matched.IsWhollyKnown() && matched.True() {
-// 			resourceValue, _ = resourceValue.UnmarkDeep()
-// 			found = append(found, resourceValue)
-// 		}
-// 		partial = partial || !matched.IsWhollyKnown()
-// 	}
-// }
-
-func relatedResourceMatchesPairs(evalCtx EvalContext, body *hclsyntax.SimpleBody, current, related addrs.AbsResourceInstance, relatedValue, currentValue cty.Value, conn *callback.RelationshipBlock, resourceSchema *configschema.Block) cty.Value {
-	// we will return unknown if we cannot determine whether the resource matches
-	unknown := cty.UnknownVal(cty.Bool)
-
-	for _, pair := range conn.AttributePairs {
-		// If the current resource is null or does not have the source attribute,
-		// we cannot compare the literal to the current value.
-		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SubjectAttribute) {
-			// TODO: Is this unknown or false?
-			return unknown
-		}
-
-		// The changeset supercedes config, so we check it first.
-		// If we have enough information to verify equality, we can compare the related attribute
-		// to the source attribute directly, without re-evaluating the related attribute expression.
-		relatedValue, relatedTraversal, foundRelated := lookupValue(relatedValue, pair.RelatedAttribute)
-		if foundRelated {
-			sourceValue, _, foundSource := lookupValue(currentValue, pair.SubjectAttribute)
-			if !foundSource {
-				return unknown
-			}
-			equals := relatedValue.Equals(sourceValue)
-			if equals.IsKnown() {
-				if equals.False() { // we can return early if the values do not match
-					return cty.False
-				}
-
-				// otherwise, the values match, so we continue to the next pair
-				continue
-			}
-		}
-
-		// get the attribute's expression from the body
-		path, _ := traversalToPath(relatedTraversal)
-		relatedExpr, found := getAttributeFromBody(body, path, resourceSchema)
-		if !found {
-			// related attribute or block not found
-			return unknown
-		}
-
-		// If the expression is a literal, try a direct comparison against
-		// source value so we can make an early decision if the values do not match.
-		if relatedExpr.IsLiteral() && relatedExpr.Expr != nil {
-			litVal, litDiags := relatedExpr.Expr.Value(nil)
-			if !litDiags.HasErrors() {
-				litVal, _ = litVal.UnmarkDeep()
-				sourceValue := currentValue.GetAttr(pair.SubjectAttribute)
-				sourceValue, _ = sourceValue.UnmarkDeep()
-				equals := litVal.Equals(sourceValue)
-				if equals.IsKnown() {
-					if equals.False() {
-						return cty.False
-					}
-					continue
-				}
-			}
-			return unknown
-		}
-
-		// Anything more complex than a plain traversal cannot be compared structurally,
-		// so we assume it to be unknown if the related attribute expression is not a plain traversal.
-		if relatedExpr.Kind == hclsyntax.AttributeKindOther {
-			return unknown
-		}
-
-		// Walk the reference tree to resolve the related attribute reference to a
-		// resource attribute reference.
-		relatedRef, refDiags := globalref.ParseRef(related.Module, relatedExpr.Traversal)
-		if refDiags.HasErrors() {
-			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
-			return unknown
-		}
-		tree := evalCtx.ResourceAttrRefTree()
-		attrRef, found := tree.ResolveReference(relatedRef)
-		if !found {
-			return unknown
-		}
-
-		// Compare the resolved attribute reference to the source reference, including
-		// the module instance where both are resolved.
-		sourceRef := &globalref.Reference{
-			ContainerAddr: current.Module,
-			LocalRef: &addrs.Reference{
-				Subject:   current.Resource,
-				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SubjectAttribute}},
-			},
-		}
-
-		if !equalRef(sourceRef, attrRef) {
-			srcStr := sourceRef.DebugString()
-			resStr := attrRef.DebugString()
-			log.Printf("[TRACE] global ref comparison failed: source=%s resolved=%s", srcStr, resStr)
-			return unknown
-		}
-	}
-
-	// We found a match at this level, now descend into the next level.
 	return cty.True
 }
 
@@ -429,42 +268,8 @@ func equalRef(ref *globalref.Reference, other *globalref.Reference) bool {
 	return true
 }
 
-// lookupValue looks up the attribute path within the value.
-func lookupValue(val cty.Value, attrPath string) (cty.Value, hcl.Traversal, bool) {
-	traversal, diags := hclsyntax.ParseTraversalAbs([]byte(attrPath), "", hcl.Pos{Line: 1, Column: 1})
-	if diags != nil {
-		log.Println("[DEBUG] Error parsing traversal: ", diags)
-		return val, nil, false
-	}
-	if val.Type().HasAttribute(traversal.RootName()) {
-		path, _ := traversalToPath(traversal)
-		val, _ := path.Apply(val)
-		val, _ = val.UnmarkDeep()
-		return val, traversal, true
-	}
-
-	return val, nil, false
-}
-
-// getAttributeFromBody looks up an attribute expression inside a parsed restricted body
+// getAttributeFromBody looks up an attribute expression inside a parsed simple body
 // tree using a block/attribute path.
-//
-// A block instance is addressed by its block type followed by each of its
-// labels. Once an attribute is selected, any remaining path steps are resolved
-// recursively through object and tuple constructor expressions stored in the
-// returned RestrictedAttribute.
-//
-// For example, given:
-//
-//	resource "aws_vpc" "foo" {
-//	  config = {
-//	    vpc_id = local.ids["primary"]
-//	  }
-//	}
-//
-// the path to the nested "vpc_id" expression is:
-//
-//	resource.aws_vpc.foo.config.vpc_id
 func getAttributeFromBody(simpleBody *hclsyntax.SimpleBody, path cty.Path, resourceSchema *configschema.Block) (hclsyntax.SimpleAttribute, bool) {
 	var attr hclsyntax.SimpleAttribute
 	if len(path) == 0 {
@@ -480,8 +285,8 @@ func getAttributeFromBody(simpleBody *hclsyntax.SimpleBody, path cty.Path, resou
 			return attr, ok
 		}
 
-		// If it is not a block, then it should have already been handled as an attribute
 		blk := resourceSchema.BlockTypes[step.Name]
+		// If it is not a block, then it should have already been handled as an attribute
 		if blk == nil {
 			return attr, false
 		}
@@ -495,39 +300,46 @@ func getAttributeFromBody(simpleBody *hclsyntax.SimpleBody, path cty.Path, resou
 			return final, ok
 		}
 
+		// Now we treat other kinds of repeated blocks
+		blocks := make(map[string][]hclsyntax.SimpleBlock)
+		// group the blocks by type
+		for _, block := range simpleBody.Blocks {
+			if _, ok := blocks[block.Type]; !ok {
+				blocks[block.Type] = make([]hclsyntax.SimpleBlock, 0, len(simpleBody.Blocks))
+			}
+			blocks[block.Type] = append(blocks[block.Type], block)
+		}
+
+		currentBlock, ok := blocks[step.Name]
+		if !ok {
+			return attr, false
+		}
+		// if the block is a repeated block, then the next step
+		// has to be an index step.
+		if len(remaining) == 0 {
+			return attr, false
+		}
+		indexStep, ok := remaining[0].(cty.IndexStep)
+		if !ok {
+			return attr, false
+		}
+
 		if blk.Nesting == configschema.NestingList {
-			blocks := make(map[string][]hclsyntax.SimpleBlock)
-			// group the blocks by type
-			for _, block := range simpleBody.Blocks {
-				if _, ok := blocks[block.Type]; !ok {
-					blocks[block.Type] = make([]hclsyntax.SimpleBlock, 0, len(simpleBody.Blocks))
-				}
-				blocks[block.Type] = append(blocks[block.Type], block)
-			}
-
-			currentBlock, ok := blocks[step.Name]
-			if !ok {
-				return attr, false
-			}
-
-			// if the block is a repeated block, then the next step
-			// has to be an index step.
-			if len(remaining) == 0 {
-				return attr, false
-			}
-
-			step, ok := remaining[0].(cty.IndexStep)
-			if !ok {
-				return attr, false
-			}
-
-			idx, _ := step.Key.AsBigFloat().Int64()
+			idx, _ := indexStep.Key.AsBigFloat().Int64()
 			current := currentBlock[idx]
 			remaining = remaining[1:]
 
 			final, ok := getAttributeFromBody(current.Body, remaining, &blk.Block)
 			if ok {
 				return final, true
+			}
+		} else if blk.Nesting == configschema.NestingMap {
+			for _, block := range currentBlock {
+				if block.Labels[0] == indexStep.Key.AsString() {
+					remaining = remaining[1:]
+					final, ok := getAttributeFromBody(block.Body, remaining, &blk.Block)
+					return final, ok
+				}
 			}
 		}
 	default:

@@ -36,7 +36,7 @@ func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRe
 		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 		return nil, err
 	}
-	resources, isPartialResult, err := functions.Functions.GetResources(ctx, request.Type, attrs)
+	resources, isPartialResult, err := functions.GetResources(ctx, request.Type, attrs)
 	if err != nil {
 		return nil, err
 	}
@@ -63,8 +63,9 @@ func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedRes
 		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 		return nil, err
 	}
-	relationship := buildRelationship(functions.ResourceType, request.Relationship)
-	related, err := functions.Functions.RelatedResources(ctx, relationship)
+
+	relationship, err := relationshipFromProto(functions.ResourceType, request.Relationship)
+	related, err := functions.RelatedResources(ctx, relationship)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +86,20 @@ func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedRes
 	}, nil
 }
 
-func buildRelationship(subjectType string, relationship *proto.RelatedResourcesRequest_Relationship) *RelationshipBlock {
+func relationshipFromProto(subjectType string, relationship *proto.RelatedResourcesRequest_Relationship) (*RelationshipBlock, error) {
 	blk := &RelationshipBlock{
 		SubjectType:    subjectType,
 		RelatedType:    relationship.Type,
 		Direction:      directionFromProto(relationship.Direction),
 		AttributePairs: make([]RelatedAttributePair, 0, len(relationship.AttributePairs)),
 	}
+
+	queryAttributes, err := msgpack.Unmarshal(relationship.QueryAttributes, cty.DynamicPseudoType)
+	if err != nil {
+		err = fmt.Errorf("failed to unserialize query attributes: %w", err)
+		return nil, err
+	}
+	blk.QueryAttributes = queryAttributes
 
 	for _, pair := range relationship.AttributePairs {
 		blk.AttributePairs = append(blk.AttributePairs, RelatedAttributePair{
@@ -100,9 +108,9 @@ func buildRelationship(subjectType string, relationship *proto.RelatedResourcesR
 		})
 	}
 	if relationship.Nested != nil {
-		blk.Nested = buildRelationship(relationship.Type, relationship.Nested)
+		blk.Nested, err = relationshipFromProto(relationship.Type, relationship.Nested)
 	}
-	return blk
+	return blk, err
 }
 
 func directionFromProto(dir proto.RelatedResourcesRequest_Direction) Direction {
@@ -129,7 +137,7 @@ func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSource
 		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
 		return nil, err
 	}
-	datasource, isDeferred, err := functions.Functions.GetDataSource(ctx, request.Type, config)
+	datasource, isDeferred, err := functions.GetDataSource(ctx, request.Type, config)
 	if err != nil {
 		return nil, err
 	}

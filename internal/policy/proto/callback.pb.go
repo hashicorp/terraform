@@ -426,12 +426,13 @@ func (x *GetDataSourceResponse) GetDeferred() bool {
 type RelatedResourcesRequest_Relationship struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// type is the type of the related resource
-	Type           string                                   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	AttributePairs []*RelatedResourcesRequest_AttributePair `protobuf:"bytes,2,rep,name=attribute_pairs,json=attributePairs,proto3" json:"attribute_pairs,omitempty"`
-	Nested         *RelatedResourcesRequest_Relationship    `protobuf:"bytes,3,opt,name=nested,proto3" json:"nested,omitempty"`
-	Direction      RelatedResourcesRequest_Direction        `protobuf:"varint,4,opt,name=direction,proto3,enum=proto.RelatedResourcesRequest_Direction" json:"direction,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	Type            string                                   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	AttributePairs  []*RelatedResourcesRequest_AttributePair `protobuf:"bytes,2,rep,name=attribute_pairs,json=attributePairs,proto3" json:"attribute_pairs,omitempty"`
+	Nested          *RelatedResourcesRequest_Relationship    `protobuf:"bytes,3,opt,name=nested,proto3" json:"nested,omitempty"`
+	QueryAttributes []byte                                   `protobuf:"bytes,4,opt,name=query_attributes,json=queryAttributes,proto3" json:"query_attributes,omitempty"`
+	Direction       RelatedResourcesRequest_Direction        `protobuf:"varint,5,opt,name=direction,proto3,enum=proto.RelatedResourcesRequest_Direction" json:"direction,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *RelatedResourcesRequest_Relationship) Reset() {
@@ -481,6 +482,13 @@ func (x *RelatedResourcesRequest_Relationship) GetAttributePairs() []*RelatedRes
 func (x *RelatedResourcesRequest_Relationship) GetNested() *RelatedResourcesRequest_Relationship {
 	if x != nil {
 		return x.Nested
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetQueryAttributes() []byte {
+	if x != nil {
+		return x.QueryAttributes
 	}
 	return nil
 }
@@ -557,16 +565,17 @@ const file_callback_proto_rawDesc = "" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"J\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
 	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
-	"\apartial\x18\x02 \x01(\bR\apartial\"\xdb\x04\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\"\x86\x05\n" +
 	"\x17RelatedResourcesRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12O\n" +
 	"\frelationship\x18\x02 \x01(\v2+.proto.RelatedResourcesRequest.RelationshipR\frelationship\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\x1a\x86\x02\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\x1a\xb1\x02\n" +
 	"\fRelationship\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12U\n" +
 	"\x0fattribute_pairs\x18\x02 \x03(\v2,.proto.RelatedResourcesRequest.AttributePairR\x0eattributePairs\x12C\n" +
-	"\x06nested\x18\x03 \x01(\v2+.proto.RelatedResourcesRequest.RelationshipR\x06nested\x12F\n" +
-	"\tdirection\x18\x04 \x01(\x0e2(.proto.RelatedResourcesRequest.DirectionR\tdirection\x1ai\n" +
+	"\x06nested\x18\x03 \x01(\v2+.proto.RelatedResourcesRequest.RelationshipR\x06nested\x12)\n" +
+	"\x10query_attributes\x18\x04 \x01(\fR\x0fqueryAttributes\x12F\n" +
+	"\tdirection\x18\x05 \x01(\x0e2(.proto.RelatedResourcesRequest.DirectionR\tdirection\x1ai\n" +
 	"\rAttributePair\x12+\n" +
 	"\x11subject_attribute\x18\x01 \x01(\tR\x10subjectAttribute\x12+\n" +
 	"\x11related_attribute\x18\x02 \x01(\tR\x10relatedAttribute\"3\n" +

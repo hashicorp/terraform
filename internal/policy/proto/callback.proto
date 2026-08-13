@@ -47,7 +47,8 @@ message RelatedResourcesRequest {
     string type = 1;
     repeated AttributePair attribute_pairs = 2;
     Relationship nested = 3;
-    Direction direction = 4;
+    bytes query_attributes = 4;
+    Direction direction = 5;
   }
 
   message AttributePair {

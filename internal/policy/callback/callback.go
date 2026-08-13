@@ -27,6 +27,11 @@ type RelationshipBlock struct {
 	Direction      Direction
 	AttributePairs []RelatedAttributePair
 
+	// QueryAttributes is a map of literal values to query objects related to the subject.
+	// If an object of the related type is matched by these attributes, the reference
+	// comparison is skipped.
+	QueryAttributes cty.Value
+
 	// A relationship block itself can have a nested block
 	Nested *RelationshipBlock
 }
@@ -52,7 +57,7 @@ type RelatedResource struct {
 
 type ResourceFunction struct {
 	ResourceType string
-	Functions    Functions
+	Functions
 }
 
 // Registry is an interface for managing callback functions for resources and
@@ -100,11 +105,4 @@ func (s *InternalRegistry) Get(id uint32) (ResourceFunction, bool) {
 	defer s.lock.RUnlock()
 	fns, ok := s.provider[id]
 	return fns, ok
-}
-
-func (s *InternalRegistry) GetResource(id uint32) (string, bool) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	fns, ok := s.provider[id]
-	return fns.ResourceType, ok
 }

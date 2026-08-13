@@ -2301,13 +2301,13 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		config           string
-		childConfig      string
-		child2Config     string
-		pairs            *callback.RelationshipBlock
-		wantRelated      []RelatedResource
-		wantPartial      bool
-		additionalSchema map[string]providers.Schema
+		config       string
+		childConfig  string
+		child2Config string
+		pairs        *callback.RelationshipBlock
+		wantRelated  []RelatedResource
+		wantPartial  bool
+		updateSchema func(*providers.GetProviderSchemaResponse)
 	}{
 		"direct traversal with pair conjunction": {
 			config: `
@@ -2360,7 +2360,6 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 		}
 
 		resource "test_resource" "source" {
-			value  = "literal-source"
 			random = "source"
 		}
 
@@ -2375,6 +2374,9 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 				AttributePairs: []callback.RelatedAttributePair{
 					{SubjectAttribute: "value", RelatedAttribute: "value"},
 				},
+				QueryAttributes: cty.ObjectVal(map[string]cty.Value{
+					"value": cty.StringVal("literal-source"),
+				}),
 			},
 			wantRelated: []RelatedResource{{Value: "literal"}},
 			wantPartial: false,
@@ -2546,6 +2548,42 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 				RelatedType: "test_instance",
 				AttributePairs: []callback.RelatedAttributePair{
 					{SubjectAttribute: "id", RelatedAttribute: "nested[0].value"},
+				},
+			},
+			wantRelated: []RelatedResource{{Value: "block_related"}},
+			wantPartial: false,
+		},
+		"related attribute in NestingMap block": {
+			config: `
+		terraform {
+			required_providers {
+				test = {
+					source = "hashicorp/test"
+					version = "1.0.0"
+				}
+			}
+		}
+
+		resource "test_resource" "source" {
+			random = "source"
+		}
+
+		resource "test_instance" "block_related" {
+			nested {
+				value = test_resource.source.id
+			}
+
+			nested_map "foo" {
+				value = "nested value"
+			}
+			random = "block_related"
+		}
+		`,
+			pairs: &callback.RelationshipBlock{
+				SubjectType: "test_resource",
+				RelatedType: "test_instance",
+				AttributePairs: []callback.RelatedAttributePair{
+					{SubjectAttribute: "id", RelatedAttribute: "nested_map[\"foo\"].value"},
 				},
 			},
 			wantRelated: []RelatedResource{{Value: "block_related"}},
@@ -2725,7 +2763,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			},
 			wantPartial: false,
 		},
-		"conditional expression with known selected value": {
+		"not found: conditional expression with known selected value": {
 			config: `
 		terraform {
 			required_providers {
@@ -2763,10 +2801,9 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					{SubjectAttribute: "sensitive_value", RelatedAttribute: "value"},
 				},
 			},
-			wantRelated: []RelatedResource{{Value: "conditional"}},
 			wantPartial: false,
 		},
-		"function expression with known result": {
+		"not found: function expression with known result": {
 			config: `
 		terraform {
 			required_providers {
@@ -2794,7 +2831,6 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					{SubjectAttribute: "value", RelatedAttribute: "value"},
 				},
 			},
-			wantRelated: []RelatedResource{{Value: "transformed"}},
 			wantPartial: false,
 		},
 		"function expression with unknown result": {
@@ -2825,39 +2861,6 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					{SubjectAttribute: "id", RelatedAttribute: "value"},
 				},
 			},
-			wantPartial: false,
-		},
-		"known nested block value should precede traversal": {
-			config: `
-		terraform {
-			required_providers {
-				test = {
-					source = "hashicorp/test"
-					version = "1.0.0"
-				}
-			}
-		}
-
-		resource "test_resource" "source" {
-			value = "expected"
-			random          = "source"
-		}
-
-		resource "test_instance" "candidate" {
-			nesting_single {
-				value = "expected"
-			}
-			random = "candidate"
-		}
-		`,
-			pairs: &callback.RelationshipBlock{
-				SubjectType: "test_resource",
-				RelatedType: "test_instance",
-				AttributePairs: []callback.RelatedAttributePair{
-					{SubjectAttribute: "value", RelatedAttribute: "nesting_single.value"},
-				},
-			},
-			wantRelated: []RelatedResource{{Value: "candidate"}},
 			wantPartial: false,
 		},
 		"multi-level connection": {
@@ -2903,8 +2906,8 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					},
 				},
 			},
-			additionalSchema: map[string]providers.Schema{
-				"test_grandchild": {
+			updateSchema: func(resp *providers.GetProviderSchemaResponse) {
+				resp.ResourceTypes["test_grandchild"] = providers.Schema{
 					Body: &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
 							"value": {
@@ -2917,7 +2920,7 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 							},
 						},
 					},
-				},
+				}
 			},
 			wantRelated: []RelatedResource{{
 				Value: "candidate",
@@ -2954,12 +2957,9 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 			providerAddr := addrs.NewDefaultProvider("test")
 			provider := testProvider("test")
 			oldSchema := provider.GetProviderSchemaResponse
-			testResourceSchema := oldSchema.ResourceTypes["test_resource"]
-			maps.Copy(oldSchema.ResourceTypes["test_instance"].Body.Attributes, testResourceSchema.Body.Attributes)
-			blt := make(map[string]*configschema.NestedBlock)
-			maps.Copy(blt, testResourceSchema.Body.BlockTypes)
-			oldSchema.ResourceTypes["test_instance"].Body.BlockTypes = blt
-			oldSchema.ResourceTypes["test_instance"].Body.BlockTypes["nested"] = &configschema.NestedBlock{
+
+			// add a NestingList block to the test_resource
+			oldSchema.ResourceTypes["test_resource"].Body.BlockTypes["nested"] = &configschema.NestedBlock{
 				Nesting: configschema.NestingList,
 				Block: configschema.Block{
 					Deprecated: true,
@@ -2971,7 +2971,31 @@ func TestContext2Plan_PolicyCallback_RelatedResources(t *testing.T) {
 					},
 				},
 			}
-			maps.Copy(oldSchema.ResourceTypes, tc.additionalSchema)
+
+			// add a NestingMap block to the test_resource
+			oldSchema.ResourceTypes["test_resource"].Body.BlockTypes["nested_map"] = &configschema.NestedBlock{
+				Nesting: configschema.NestingMap,
+				Block: configschema.Block{
+					Deprecated: true,
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			}
+
+			// copy attributes from test_resource to test_instance
+			maps.Copy(oldSchema.ResourceTypes["test_instance"].Body.Attributes, oldSchema.ResourceTypes["test_resource"].Body.Attributes)
+
+			// copy block types from test_resource to test_instance
+			maps.Copy(oldSchema.ResourceTypes["test_instance"].Body.BlockTypes, oldSchema.ResourceTypes["test_resource"].Body.BlockTypes)
+
+			// each test case may also update the schema
+			if tc.updateSchema != nil {
+				tc.updateSchema(oldSchema)
+			}
 
 			provider.GetProviderSchemaResponse = oldSchema
 
