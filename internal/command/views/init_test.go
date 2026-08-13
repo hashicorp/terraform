@@ -787,14 +787,14 @@ func TestNewInit_LogFindingLatestVersion_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogInstallingProviderVersion_json(t *testing.T) {
+func TestNewInit_LogInstallProviderVersionStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
-	initView.LogInstallingProviderVersion(p, v)
+	initView.LogInstallProviderVersionStart(p, v)
 
 	// Assert output
 	output := done(t)

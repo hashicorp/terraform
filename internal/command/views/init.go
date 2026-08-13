@@ -146,7 +146,7 @@ func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	v.print(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
 }
 
-func (v *InitHuman) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 	v.print(v.prepareMessage(InstallingProviderMessage, params...))
 }
@@ -398,7 +398,7 @@ func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	v.logInitMessage(BuiltInProviderAvailableMessage, params...)
 }
 
-func (v *InitJSON) LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
+func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
 	params := []any{providerAddr.ForDisplay(), version}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method

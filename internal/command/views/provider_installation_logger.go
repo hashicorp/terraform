@@ -33,8 +33,8 @@ type ProviderInstallationLogger interface {
 	// FindingLatestVersion indicates that Terraform is looking for the latest version of a provider during installation (no constraint nor prior lock was supplied)
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
-	// LogInstallingProviderVersion indicates that a provider is being installed (from a remote location)
-	LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
+	// LogInstallProviderVersionStart indicates that a provider is being installed (from a remote location)
+	LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogBuiltInProviderAvailable indicates a built-in provider is available in the current Terraform core binary and is in use during installation
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
