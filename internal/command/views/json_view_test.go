@@ -504,3 +504,5 @@ func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]int
 	}
 	testJSONViewOutputEqualsFull(t, output, want, options...)
 }
+
+// TODO:@austinvalle: Add tests for new JSON deferred logs + partial plan output

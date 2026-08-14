@@ -239,7 +239,8 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 
 	cs := &json.ChangeSummary{
-		Operation: json.OperationPlanned,
+		Operation:   json.OperationPlanned,
+		PartialPlan: !plan.Complete,
 	}
 	for _, change := range plan.Changes.Resources {
 		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
@@ -283,6 +284,10 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 	if len(rootModuleOutputs) > 0 {
 		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
+	}
+
+	for _, deferredChange := range plan.DeferredResources {
+		v.view.DeferredChange(json.NewDeferredResourceInstanceChange(deferredChange))
 	}
 }
 

@@ -24,6 +24,10 @@ type ChangeSummary struct {
 	ActionInvocation int       `json:"action_invocation"`
 	ActionFail       int       `json:"action_fail"`
 	Operation        Operation `json:"operation"`
+
+	// TODO:@austinvalle: Should we just emit a new log for this? (plan.Complete)
+	// TODO:@austinvalle: Is it okay that this is re-used for apply? (where this won't be set)
+	PartialPlan bool `json:"partial_plan,omitempty"`
 }
 
 // The summary strings for apply and plan are accidentally a public interface
@@ -63,6 +67,9 @@ func (cs *ChangeSummary) String() string {
 	default:
 		buf.WriteString(fmt.Sprintf("%s: %d add, %d change, %d destroy", cs.Operation, cs.Add, cs.Change, cs.Remove))
 	}
+
+	// TODO:@austinvalle: Should we also render if the plan is partial? The comment indicates this
+	// is relied on by HCPT already, so don't want to break anything...
 
 	return buf.String()
 }
