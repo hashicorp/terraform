@@ -42,9 +42,8 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 // AllowUpstreamFailure allows failures from upstream nodes to be tolerated
 // so that the policy evaluation can proceed even if some resource instance nodes
 // evaluated with error diagnostics.
-func (n *nodePolicyEval) AllowUpstreamFailure(dep dag.Vertex) bool {
-	_, ok := dep.(GraphNodeConfigResource)
-	return ok
+func (n *nodePolicyEval) AllowUpstreamFailure() bool {
+	return true
 }
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
@@ -69,10 +68,6 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 
 // AllowUpstreamFailure tolerates failures from the policy nodes so the phase
 // span is always ended.
-func (n *nodePolicyEvalFinish) AllowUpstreamFailure(dep dag.Vertex) bool {
-	switch dep.(type) {
-	case *nodeResourcePolicy, *nodeQueryResourcePolicy:
-		return true
-	}
-	return false
+func (n *nodePolicyEvalFinish) AllowUpstreamFailure() bool {
+	return true
 }

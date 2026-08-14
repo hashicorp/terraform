@@ -340,7 +340,7 @@ func (w *Walker) waitDeps(
 		if w.diagsMap[dep].HasErrors() {
 
 			// If the vertex allows upstream failures, we can tolerate this error
-			if fv, ok := v.(TolerantVertex); ok && fv.AllowUpstreamFailure(dep) {
+			if fv, ok := v.(TolerantVertex); ok && fv.AllowUpstreamFailure() {
 				allowUpstreamFailure = true
 				continue
 			}
@@ -351,7 +351,7 @@ func (w *Walker) waitDeps(
 		}
 	}
 
-	// If we have an error from a dependency that we can tolerate, return a soft failure result
+	// If we have an error but the node can tolerate failures, return a soft failure result
 	// This allows us to treat such vertices specially, while still maintaining the flow
 	// of errors to dependencies further down the DAG.
 	if allowUpstreamFailure {

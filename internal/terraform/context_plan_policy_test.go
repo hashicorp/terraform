@@ -1798,6 +1798,7 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 
 		resource "test_resource" "fail" {
 			value = "fail"
+			depends_on = [test_resource.ok]
 		}
 		`
 

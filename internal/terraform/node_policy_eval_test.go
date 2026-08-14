@@ -62,7 +62,7 @@ func TestNodePolicyEvalFinish_AllowUpstreamFailure(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := finish.AllowUpstreamFailure(tc.dep)
+			got := finish.AllowUpstreamFailure()
 			if got != tc.want {
 				t.Errorf("AllowUpstreamFailure(%T) = %v, want %v", tc.dep, got, tc.want)
 			}

@@ -31,7 +31,7 @@ type TolerantVertex interface {
 
 	// AllowUpstreamFailure returns true if the receiver vertex can tolerate a
 	// failure in the given vertex.
-	AllowUpstreamFailure(Vertex) bool
+	AllowUpstreamFailure() bool
 }
 
 func (g *Graph) VertexCount() int {
