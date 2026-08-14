@@ -43,11 +43,10 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
-			Detail:   `The import block "id" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
-			Subject:  expr.Range().Ptr(),
-			//	Expression:
-			//	EvalContext:
-			Extra: diagnosticCausedByUnknown(true),
+			Detail: `The import block "id" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource. ` +
+				"To work around this, use either the -target argument or the -allow-deferral argument to first apply only the resources that the import id depends on.",
+			Subject: expr.Range().Ptr(),
+			Extra:   diagnosticCausedByUnknown(true),
 		})
 	}
 
@@ -87,7 +86,6 @@ func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschem
 	scope := ctx.EvaluationScope(nil, nil, keyData)
 	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ConfigType())
 	if evalDiags.HasErrors() {
-		// TODO? Do we need to improve the error message?
 		return cty.NilVal, evalDiags
 	}
 
@@ -103,9 +101,10 @@ func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschem
 		return cty.NilVal, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import identity argument",
-			Detail:   `The import block "identity" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
-			Subject:  expr.Range().Ptr(),
-			Extra:    diagnosticCausedByUnknown(true),
+			Detail: `The import block "identity" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource. ` +
+				"To work around this, use either the -target argument or the -allow-deferral argument to first apply only the resources that the import identity depends on.",
+			Subject: expr.Range().Ptr(),
+			Extra:   diagnosticCausedByUnknown(true),
 		})
 	}
 
