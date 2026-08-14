@@ -4143,3 +4143,8 @@ func mustParseJson(values map[string]interface{}) []byte {
 	}
 	return data
 }
+
+// TODO:@austinvalle: Go through these tests and add any that might be missing
+// - unknown imports (for_each, id expr, identity expr)
+// - deferred by dependency (different types)
+// - action deferrals
