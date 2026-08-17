@@ -37,14 +37,13 @@ func (s testNamedString) Name() string {
 	return string(s)
 }
 
-func (v testNamedString) OnErroredDependencies(deps ...Vertex) DependencyResult {
-	for _, dep := range deps {
-		if dep.Name() == "error" {
-			return DependencyResultSoftFailure
-		}
-	}
-	return DependencyResultHardFailure
+type testAlwaysRunVertex string
+
+func (v testAlwaysRunVertex) Name() string {
+	return string(v)
 }
+
+func (v testAlwaysRunVertex) AlwaysRun() {}
 
 func TestAyclicGraphTransReduction(t *testing.T) {
 	var g AcyclicGraph

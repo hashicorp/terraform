@@ -24,15 +24,14 @@ type Vertex interface {
 	Name() string
 }
 
-// ErroredDependencyHandler is implemented by vertices that want to
-// determine their own DependencyResult when one or more of their
-// dependencies have failed, rather than defaulting to a hard failure.
-type ErroredDependencyHandler interface {
+// AlwaysRunVertex is implemented by vertices that should be evaluated
+// even when one or more of their dependencies have failed.
+type AlwaysRunVertex interface {
 	Vertex
 
-	// OnErroredDependencies is called with the set of dependency vertices
-	// that produced errors.
-	OnErroredDependencies(...Vertex) DependencyResult
+	// AlwaysRun marks the vertex as always-run,
+	// even when one or more dependencies have failed.
+	AlwaysRun()
 }
 
 func (g *Graph) VertexCount() int {

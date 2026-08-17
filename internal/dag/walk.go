@@ -51,21 +51,6 @@ type Walker struct {
 	diagsLock      sync.Mutex
 }
 
-// DependencyResult indicates if a dependency check resulted in success, failure, or tolerance.
-type DependencyResult string
-
-const (
-	// DependencyResultSuccess indicates that all dependencies were satisfied.
-	DependencyResultSuccess DependencyResult = "success"
-
-	// DependencyResultHardFailure indicates that one or more dependencies were not satisfied.
-	DependencyResultHardFailure DependencyResult = "hard-failure"
-
-	// DependencyResultSoftFailure indicates that there exists a dependency that could not be satisfied,
-	// but the current vertex should still be evaluated.
-	DependencyResultSoftFailure DependencyResult = "soft-failure"
-)
-
 // NewWalker creates a new walker with the given callback function.
 func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
 	w := &Walker{
@@ -101,7 +86,7 @@ type walkerVertex struct {
 	// dependencies are complete. No other values will ever be sent again.
 	//
 	// DepsUpdateCh is closed when there is a new DepsCh set.
-	DepsCh chan DependencyResult
+	DepsCh chan bool
 
 	// Below is not safe to read/write in parallel. This behavior is
 	// enforced by changes only happening in Update. Nothing else should
@@ -178,7 +163,7 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 		}
 
 		// Create a new done channel
-		doneCh := make(chan DependencyResult, 1)
+		doneCh := make(chan bool, 1)
 
 		// Create the channel we close for cancellation
 		cancelCh := make(chan struct{})
@@ -236,12 +221,12 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// Wait for our dependencies. We create a [closed] deps channel so
 	// that we can immediately fall through to load our actual DepsCh.
-	var depsSuccess DependencyResult
+	var depsSuccess bool
 
 	// if there are no deps we have a nil chan, so we need to initialize
 	// something that won't block
-	depsCh := make(chan DependencyResult, 1)
-	depsCh <- DependencyResultSuccess
+	depsCh := make(chan bool, 1)
+	depsCh <- true
 	close(depsCh)
 
 	if info.DepsCh != nil {
@@ -269,16 +254,9 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
-	// We go through a three-way boolean logic here to handle the three possible
-	// dependency results: success, soft failure, and hard failure.
-
-	// We run the callback if the result is success or soft failure.
-	if depsSuccess == DependencyResultSuccess || depsSuccess == DependencyResultSoftFailure {
+	if depsSuccess {
 		diags = w.Callback(v)
-	}
-
-	// We note that our upstream failed if the result is hard failure or soft failure.
-	if depsSuccess == DependencyResultHardFailure || depsSuccess == DependencyResultSoftFailure {
+	} else {
 		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", v.Name())
 		// This won't be displayed to the user because we'll set upstreamFailed,
 		// but we need to ensure there's at least one error in here so that
@@ -306,7 +284,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 func (w *Walker) waitDeps(
 	v Vertex,
 	deps map[Vertex]<-chan struct{},
-	doneCh chan<- DependencyResult,
+	doneCh chan<- bool,
 	cancelCh <-chan struct{}) {
 
 	// For each dependency given to us, wait for it to complete
@@ -321,7 +299,7 @@ func (w *Walker) waitDeps(
 			case <-cancelCh:
 				// Wait cancelled. Note that we didn't satisfy dependencies
 				// so that anything waiting on us also doesn't run.
-				doneCh <- DependencyResultHardFailure
+				doneCh <- false
 				return
 
 			case <-time.After(time.Second * 5):
@@ -331,31 +309,24 @@ func (w *Walker) waitDeps(
 		}
 	}
 
+	// If the vertex implements [AlwaysRunVertex], then
+	// return ignore the errored dependecies and return success.
+	if _, ok := v.(AlwaysRunVertex); ok {
+		doneCh <- true
+		return
+	}
+
 	// Dependencies satisfied! We need to check if any errored
 	w.diagsLock.Lock()
 	defer w.diagsLock.Unlock()
-
-	erroredDeps := make([]Vertex, 0)
 	for dep := range deps {
 		if w.diagsMap[dep].HasErrors() {
-			erroredDeps = append(erroredDeps, dep)
+			// One of our dependencies failed, so return false
+			doneCh <- false
+			return
 		}
 	}
 
 	// All dependencies satisfied and successful
-	if len(erroredDeps) == 0 {
-		doneCh <- DependencyResultSuccess
-		return
-	}
-
-	// If the vertex implements [ErroredDependencyHandler], then
-	// give it a chance to handle its own dependency errors.
-	if fv, ok := v.(ErroredDependencyHandler); ok {
-		doneCh <- fv.OnErroredDependencies(erroredDeps...)
-		return
-	}
-
-	// One of our dependencies failed, so return a hard failure result
-	doneCh <- DependencyResultHardFailure
-
+	doneCh <- true
 }

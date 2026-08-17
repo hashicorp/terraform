@@ -72,15 +72,14 @@ func TestWalker_error(t *testing.T) {
 	}
 }
 
-func TestWalker_tolerantVertex(t *testing.T) {
-	// This tests that a tolerant vertex whose dependencies return a soft failure
-	// still executes, but it does not proceed walking to its downstream dependents.
-	// The graph is a > error > c > d
-	// When b is a soft failure, c executes, but d does not
+func TestWalker_alwaysRunVertex(t *testing.T) {
+	// This tests that an [AlwaysRun] vertex whose dependencies fail still executes.
+	// The graph is a > error > c > d.
+	// When error is a failure, c executes
 	var g AcyclicGraph
 	resA := testNamedString("a")
 	resErr := testNamedString("error")
-	resC := testNamedString("c")
+	resC := testAlwaysRunVertex("c")
 	resD := testNamedString("d")
 	g.Add(resA)
 	g.Add(resErr)
@@ -106,7 +105,7 @@ func TestWalker_tolerantVertex(t *testing.T) {
 		t.Fatal("expect error")
 	}
 
-	expected := []any{resA, resC}
+	expected := []any{resA, resC, resD}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}

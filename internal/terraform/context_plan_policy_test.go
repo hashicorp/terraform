@@ -1955,6 +1955,10 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 			if len(policyDiags) != 0 {
 				t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
 			}
+
+			if !provider.CloseCalled {
+				t.Fatal("Expected provider to be closed, but it was not")
+			}
 		})
 	}
 }

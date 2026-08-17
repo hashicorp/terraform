@@ -18,7 +18,7 @@ type nodePolicyEval struct {
 }
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
-var _ dag.ErroredDependencyHandler = (*nodePolicyEval)(nil)
+var _ dag.AlwaysRunVertex = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
 	return "(evaluate policies)"
@@ -40,12 +40,9 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	return policyGraph.evalGraph(span), nil
 }
 
-// OnErroredDependencies allows failures from upstream nodes to be tolerated
-// so that the policy evaluation can proceed even if some resource instance nodes
-// evaluated with error diagnostics.
-func (n *nodePolicyEval) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
-	return dag.DependencyResultSoftFailure
-}
+// AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
+// can proceed even if some resource instance nodes evaluated with error diagnostics.
+func (n *nodePolicyEval) AlwaysRun() {}
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
 // runs after every policy node and ends the policy-execution phase span. It
@@ -56,7 +53,7 @@ type nodePolicyEvalFinish struct {
 }
 
 var _ GraphNodeExecutable = (*nodePolicyEvalFinish)(nil)
-var _ dag.ErroredDependencyHandler = (*nodePolicyEvalFinish)(nil)
+var _ dag.AlwaysRunVertex = (*nodePolicyEvalFinish)(nil)
 
 func (n *nodePolicyEvalFinish) Name() string {
 	return "(policy evaluation complete)"
@@ -67,8 +64,6 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 	return nil
 }
 
-// OnErroredDependencies returns a soft failure so that this node still executes
+// AlwaysRun implements [dag.AlwaysRunVertex] so that this node still executes
 // even if dependencies errored
-func (n *nodePolicyEvalFinish) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
-	return dag.DependencyResultSoftFailure
-}
+func (n *nodePolicyEvalFinish) AlwaysRun() {}
