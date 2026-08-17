@@ -13,8 +13,7 @@ const (
 	accountDetails = `{"data":{"id":"user-abc123","type":"users","attributes":{"username":"testuser","email":"testuser@example.com"}}}`
 	MOTD           = `{"msg":"Welcome to HCP Terraform!"}`
 
-	orgsWithMaxTTL    = `{"data":[{"id":"org-abc123","type":"organizations","attributes":{"name":"ttl-org","max-ttl-enabled":true}}],"meta":{"pagination":{"current-page":1,"total-pages":1,"total-count":1}}}`
-	orgsWithoutMaxTTL = `{"data":[{"id":"org-abc123","type":"organizations","attributes":{"name":"no-ttl-org","max-ttl-enabled":false}}],"meta":{"pagination":{"current-page":1,"total-pages":1,"total-count":1}}}`
+	orgsResponse = `{"data":[{"id":"org-abc123","type":"organizations","attributes":{"name":"my-org","max-ttl-enabled":false}}],"meta":{"pagination":{"current-page":1,"total-pages":1,"total-count":1}}}`
 )
 
 // Handler is an implementation of net/http.Handler that provides a stub
@@ -25,12 +24,7 @@ const (
 //	/organizations   - organizations list endpoint
 var Handler http.Handler
 
-// HandlerWithMaxTTL is like Handler but returns organizations with MaxTTLEnabled set to true.
-var HandlerWithMaxTTL http.Handler
-
-type handler struct {
-	maxTTLEnabled bool
-}
+type handler struct{}
 
 func (h handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-Type", "application/vnd.api+json")
@@ -68,13 +62,8 @@ func (h handler) serveOrganizations(resp http.ResponseWriter, req *http.Request)
 		http.Error(resp, `{"errors":[{"status":"401","title":"unauthorized"}]}`, http.StatusUnauthorized)
 		return
 	}
-	if h.maxTTLEnabled {
-		resp.WriteHeader(http.StatusOK)
-		resp.Write([]byte(orgsWithMaxTTL))
-	} else {
-		resp.WriteHeader(http.StatusOK)
-		resp.Write([]byte(orgsWithoutMaxTTL))
-	}
+	resp.WriteHeader(http.StatusOK)
+	resp.Write([]byte(orgsResponse))
 }
 
 func (h handler) serveMOTD(resp http.ResponseWriter, req *http.Request) {
@@ -83,6 +72,5 @@ func (h handler) serveMOTD(resp http.ResponseWriter, req *http.Request) {
 }
 
 func init() {
-	Handler = handler{maxTTLEnabled: false}
-	HandlerWithMaxTTL = handler{maxTTLEnabled: true}
+	Handler = handler{}
 }

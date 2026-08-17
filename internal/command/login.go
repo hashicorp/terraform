@@ -222,10 +222,12 @@ func (c *LoginCommand) Run(args []string) int {
 		))
 	}
 
-	// Warn the user if any of their organizations enforce a token TTL policy.
-	// We resolve tfe.v2 from the host directly so this works for both the
-	// OAuth path (where tfeservice is nil) and the TFE/TFC UI path.
-	diags = diags.Append(c.checkOrgMaxTTL(token, host))
+	// Always warn the user that token TTL policies may apply.
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"Token TTL policy",
+		"If the user token TTL exceeds organization policy, it will be rejected from accessing that organization.",
+	))
 
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
@@ -806,53 +808,3 @@ is running to see the result of the login process.</p>
 </html>
 `
 
-// checkOrgMaxTTL builds a TFE client using the given token, lists all
-// organizations accessible to that token, and returns a warning diagnostic if
-// any organization has MaxTTLEnabled set. It silently skips the check when the
-// host does not expose the tfe.v2 API (e.g. a plain OAuth-only host with no
-// TFE backing).
-func (c *LoginCommand) checkOrgMaxTTL(token svcauth.HostCredentialsToken, host *disco.Host) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if host == nil {
-		return diags
-	}
-
-	apiURL, err := host.ServiceURL("tfe.v2")
-	if err != nil {
-		// Host doesn't expose a TFE API — nothing to check.
-		return diags
-	}
-
-	cfg := &tfe.Config{
-		Address:  apiURL.String(),
-		BasePath: apiURL.Path,
-		Token:    string(token),
-		Headers:  make(http.Header),
-	}
-	client, err := tfe.NewClient(cfg)
-	if err != nil {
-		log.Printf("[DEBUG] login: could not create TFE client for TTL check: %s", err)
-		return diags
-	}
-
-	orgs, err := client.Organizations.List(context.Background(), nil)
-	if err != nil {
-		log.Printf("[DEBUG] login: could not list organizations for TTL check: %s", err)
-		return diags
-	}
-
-	for _, org := range orgs.Items {
-		if org.MaxTTLEnabled {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Token TTL policy",
-				"If the user token TTL exceeds organization policy, it will be rejected from accessing that organization.",
-			))
-			// One warning is enough — no need to repeat it per org.
-			break
-		}
-	}
-
-	return diags
-}

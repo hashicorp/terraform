@@ -296,25 +296,19 @@ func TestLogin_tokenTTLWarning(t *testing.T) {
 	s := httptest.NewServer(oauthserver.Handler)
 	defer s.Close()
 
-	// tsNoTTL serves orgs with MaxTTLEnabled=false.
-	tsNoTTL := httptest.NewServer(tfeserver.Handler)
-	defer tsNoTTL.Close()
-
-	// tsWithTTL serves orgs with MaxTTLEnabled=true.
-	tsWithTTL := httptest.NewServer(tfeserver.HandlerWithMaxTTL)
-	defer tsWithTTL.Close()
+	ts := httptest.NewServer(tfeserver.Handler)
+	defer ts.Close()
 
 	wantWarning := "If the user token TTL exceeds organization policy, it will be rejected from accessing that organization."
 
-	makeCmd := func(t *testing.T, ts *httptest.Server) (*LoginCommand, *ui.WrappedMockUi) {
+	makeCmd := func(t *testing.T) (*LoginCommand, *ui.WrappedMockUi) {
 		t.Helper()
 		workDir := t.TempDir()
 		mockUi := testUiWrapped(t, new(cli.MockUi))
 		creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 		svcs := disco.NewWithCredentialsSource(creds)
 		svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
-		// example.com uses the OAuth login flow; tfe.v2 is also advertised so
-		// checkOrgMaxTTL can reach the organizations API after login.
+		// example.com uses the OAuth login flow.
 		svcs.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
 			"login.v1": map[string]interface{}{
 				"client": "anything-goes",
@@ -350,10 +344,10 @@ func TestLogin_tokenTTLWarning(t *testing.T) {
 		return cmd, mockUi
 	}
 
-	// --- MaxTTL enabled: warning expected on all host types ---
+	// The TTL warning is shown on every successful login regardless of org settings.
 
-	t.Run("warning shown on oauth flow when MaxTTL enabled (example.com)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsWithTTL)
+	t.Run("warning shown on oauth flow (example.com)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
 		_ = testInputMap(t, map[string]string{"approve": "yes"})
 		status := cmd.Run([]string{"example.com"})
 		if status != 0 {
@@ -364,8 +358,8 @@ func TestLogin_tokenTTLWarning(t *testing.T) {
 		}
 	})
 
-	t.Run("warning shown on HCP Terraform when MaxTTL enabled (app.terraform.io)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsWithTTL)
+	t.Run("warning shown on HCP Terraform (app.terraform.io)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
 		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "good-token",
@@ -379,8 +373,8 @@ func TestLogin_tokenTTLWarning(t *testing.T) {
 		}
 	})
 
-	t.Run("warning shown on TFE host when MaxTTL enabled (tfe.acme.com)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsWithTTL)
+	t.Run("warning shown on TFE host (tfe.acme.com)", func(t *testing.T) {
+		cmd, mockUi := makeCmd(t)
 		_ = testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "good-token",
@@ -391,50 +385,6 @@ func TestLogin_tokenTTLWarning(t *testing.T) {
 		}
 		if got := mockUi.OutputWriter.String(); !strings.Contains(got, wantWarning) {
 			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", wantWarning, got)
-		}
-	})
-
-	// --- MaxTTL disabled: no warning expected ---
-
-	t.Run("no warning on oauth flow when MaxTTL disabled (example.com)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsNoTTL)
-		_ = testInputMap(t, map[string]string{"approve": "yes"})
-		status := cmd.Run([]string{"example.com"})
-		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
-		}
-		if got := mockUi.OutputWriter.String(); strings.Contains(got, wantWarning) {
-			t.Errorf("unexpected TTL warning in output\ngot:\n%s", got)
-		}
-	})
-
-	t.Run("no warning on HCP Terraform when MaxTTL disabled (app.terraform.io)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsNoTTL)
-		_ = testInputMap(t, map[string]string{
-			"approve": "yes",
-			"token":   "good-token",
-		})
-		status := cmd.Run([]string{"app.terraform.io"})
-		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
-		}
-		if got := mockUi.OutputWriter.String(); strings.Contains(got, wantWarning) {
-			t.Errorf("unexpected TTL warning in output\ngot:\n%s", got)
-		}
-	})
-
-	t.Run("no warning on TFE host when MaxTTL disabled (tfe.acme.com)", func(t *testing.T) {
-		cmd, mockUi := makeCmd(t, tsNoTTL)
-		_ = testInputMap(t, map[string]string{
-			"approve": "yes",
-			"token":   "good-token",
-		})
-		status := cmd.Run([]string{"tfe.acme.com"})
-		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, mockUi.ErrorWriter.String())
-		}
-		if got := mockUi.OutputWriter.String(); strings.Contains(got, wantWarning) {
-			t.Errorf("unexpected TTL warning in output\ngot:\n%s", got)
 		}
 	})
 }
