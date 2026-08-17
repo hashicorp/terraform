@@ -222,6 +222,13 @@ func (c *LoginCommand) Run(args []string) int {
 		))
 	}
 
+	// Always warn the user that token TTL policies may apply.
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"Token TTL policy",
+		"If the user token TTL exceeds organization policy, it will be rejected from accessing that organization.",
+	))
+
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 1

@@ -23,6 +23,12 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
+// ttlWarning is the warning title emitted by terraform login on every
+// successful login to inform users that token TTL policies may apply.
+// We match on the title rather than the body because the diagnostics renderer
+// word-wraps the body text, making an exact substring match unreliable.
+const ttlWarning = "Warning: Token TTL policy"
+
 func TestLogin(t *testing.T) {
 	// oauthserver.Handler is a stub OAuth server implementation that will,
 	// on success, always issue a bearer token named "good-token".
@@ -128,6 +134,9 @@ func TestLogin(t *testing.T) {
 		if got, want := ui.OutputWriter.String(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
+		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
+		}
 	}))
 
 	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
@@ -151,6 +160,9 @@ func TestLogin(t *testing.T) {
 
 		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
+		}
+		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
@@ -184,6 +196,9 @@ func TestLogin(t *testing.T) {
 
 		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
+		}
+		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
@@ -225,6 +240,9 @@ func TestLogin(t *testing.T) {
 		if got, want := ui.OutputWriter.String(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
+		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
+		}
 	}))
 
 	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
@@ -246,6 +264,10 @@ func TestLogin(t *testing.T) {
 		if creds != nil {
 			t.Errorf("wrong token %q; should have no token", creds.Token())
 		}
+		// Warning must not appear on failed login.
+		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+			t.Errorf("unexpected TTL warning on failed login\ngot:\n%s", got)
+		}
 	}))
 
 	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
@@ -256,6 +278,10 @@ func TestLogin(t *testing.T) {
 
 		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
+		}
+		// Warning must not appear when the host doesn't support login at all.
+		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+			t.Errorf("unexpected TTL warning on failed login\ngot:\n%s", got)
 		}
 	}))
 
@@ -272,6 +298,10 @@ func TestLogin(t *testing.T) {
 		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
+		// Warning must not appear when login is cancelled before a token is obtained.
+		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+			t.Errorf("unexpected TTL warning on cancelled login\ngot:\n%s", got)
+		}
 	}))
 
 	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
@@ -286,6 +316,10 @@ func TestLogin(t *testing.T) {
 
 		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
+		}
+		// Warning must not appear when login is cancelled before a token is obtained.
+		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+			t.Errorf("unexpected TTL warning on cancelled login\ngot:\n%s", got)
 		}
 	}))
 }
