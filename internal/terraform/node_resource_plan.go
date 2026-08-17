@@ -50,6 +50,8 @@ type nodeExpandPlannableResource struct {
 	// structure in the future, as we need to compare for equality and take the
 	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
+
+	excludes []addrs.Targetable
 }
 
 var (
@@ -61,6 +63,7 @@ var (
 	_ GraphNodeConfigResource       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeAttachDependencies   = (*nodeExpandPlannableResource)(nil)
+	_ GraphNodeAttachExcludes       = (*nodeExpandPlannableResource)(nil)
 	_ GraphNodeTargetable           = (*nodeExpandPlannableResource)(nil)
 )
 
@@ -71,6 +74,11 @@ func (n *nodeExpandPlannableResource) Name() string {
 // GraphNodeAttachDependencies
 func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigResource) {
 	n.dependencies = deps
+}
+
+// GraphNodeAttachExcludes
+func (n *nodeExpandPlannableResource) AttachExcludes(excludes []addrs.Targetable) {
+	n.excludes = excludes
 }
 
 // GraphNodeDestroyerCBD
@@ -594,6 +602,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
+			excludes:                 n.excludes,
 		}
 
 		if importID, ok := knownImports.GetOk(a.Addr); ok {
@@ -641,6 +650,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 		NodeAbstractResourceInstance: a,
 		skipRefresh:                  n.skipRefresh,
 		skipPlanChanges:              n.skipPlanChanges,
+		excludes:                     n.excludes,
 	}
 }
 

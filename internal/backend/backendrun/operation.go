@@ -116,10 +116,14 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	PlanMode             plans.Mode
-	AutoApprove          bool
-	Targets              []addrs.Targetable
-	ActionTargets        []addrs.Targetable
+	PlanMode    plans.Mode
+	AutoApprove bool
+
+	Targets       []addrs.Targetable
+	ActionTargets []addrs.Targetable
+
+	Excludes []addrs.Targetable
+
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue
 	StatePersistInterval int

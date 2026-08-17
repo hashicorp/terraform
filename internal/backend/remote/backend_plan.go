@@ -128,6 +128,18 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		}
 	}
 
+	if len(op.Excludes) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource exclusion is not supported",
+			fmt.Sprintf(
+				`The host %s does not support the -exclude option for `+
+					`remote plans.`,
+				b.hostname,
+			),
+		))
+	}
+
 	if !op.PlanRefresh {
 		desiredAPIVersion, _ := version.NewVersion("2.4")
 

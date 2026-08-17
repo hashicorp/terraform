@@ -33,6 +33,9 @@ type NodePlannableResourceInstanceOrphan struct {
 	// forgetModules lists modules that should not be destroyed, only removed
 	// from state.
 	forgetModules []addrs.Module
+
+	// TODO:@austinvalle: Should you even be able to exclude an orphaned object? :P
+	excludes []addrs.Targetable
 }
 
 var (
@@ -179,6 +182,21 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
 	var deferred *providers.Deferred
+
+	// TODO:@austinvalle: Make this into a map for easier access
+	for _, excludeAddr := range n.excludes {
+		// Check if this resource will be deferred directly via excluded
+		if excludeAddr.TargetContains(addr) {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			}
+			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
+			// remove the node from the graph, which means it will still refresh + plan...
+			//
+			// Is that an issue? If so, we could set skipRefresh + skipPlanChanges here :P
+		}
+	}
+
 	if forget {
 		change, pDiags = n.planForget(ctx, oldState, "")
 		diags = diags.Append(pDiags)

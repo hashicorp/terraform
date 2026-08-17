@@ -51,6 +51,8 @@ type NodePlannableResourceInstance struct {
 	// importTarget, if populated, contains the information necessary to plan
 	// an import of this resource.
 	importTarget importTarget
+
+	excludes []addrs.Targetable
 }
 
 type importTarget struct {
@@ -208,6 +210,20 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	importing := n.importTarget.target != cty.NilVal && !n.preDestroyRefresh
 
 	var deferred *providers.Deferred
+
+	// TODO:@austinvalle: Make this into a map for easier access
+	for _, excludeAddr := range n.excludes {
+		// Check if this resource will be deferred directly via excluded
+		if excludeAddr.TargetContains(addr) {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			}
+			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
+			// remove the node from the graph, which means it will still refresh + plan...
+			//
+			// Is that an issue? If so, we could set skipRefresh + skipPlanChanges here :P
+		}
+	}
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.

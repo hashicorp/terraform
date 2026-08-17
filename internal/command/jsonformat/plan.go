@@ -480,7 +480,6 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	var buf bytes.Buffer
 	var explanation string
 	switch deferred.reason {
-	// TODO: Add other cases
 	case jsonplan.DeferredReasonInstanceCountUnknown:
 		explanation = "because the number of resource instances is unknown"
 	case jsonplan.DeferredReasonResourceConfigUnknown:
@@ -491,6 +490,8 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 		explanation = "because a prerequisite for this resource is deferred"
 	case jsonplan.DeferredReasonAbsentPrereq:
 		explanation = "because a prerequisite for this resource has not yet been created"
+	case jsonplan.DeferredReasonExcluded:
+		explanation = "because the resource was excluded"
 	default:
 		explanation = "for an unknown reason"
 	}

@@ -71,8 +71,14 @@ type Plan struct {
 	DeferredResources         []*DeferredResourceInstanceChangeSrc
 	DeferredActionInvocations []*DeferredActionInvocationSrc
 	TargetAddrs               []addrs.Targetable
-	ActionTargetAddrs         []addrs.Targetable
-	ForceReplaceAddrs         []addrs.AbsResourceInstance
+	// TODO:@austinvalle: I'm 99% sure we don't need exclude addresses in the plan, as all the deferrals
+	// should have already happened at this point. No more information should be needed to create a complete
+	// graph during apply.
+	//
+	// I don't think there are any edge cases where deferral doesn't happen until apply? (I think that would be
+	// a violation of the plan :P)
+	ActionTargetAddrs []addrs.Targetable
+	ForceReplaceAddrs []addrs.AbsResourceInstance
 
 	Backend    *Backend
 	StateStore *StateStore

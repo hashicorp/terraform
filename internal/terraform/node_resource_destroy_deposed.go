@@ -51,6 +51,8 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// forgetModules lists modules that should not be destroyed, only removed
 	// from state.
 	forgetModules []addrs.Module
+
+	// TODO:@austinvalle: Should you even be able to exclude a deposed object? :P
 }
 
 var (

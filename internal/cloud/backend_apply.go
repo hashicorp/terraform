@@ -76,6 +76,18 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		))
 	}
 
+	// TODO:@austinvalle: we should probably add this + -allow-deferral support rather than returning an error :P
+	if len(op.Excludes) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource exclusion is currently not supported",
+			fmt.Sprintf(
+				`%s does not support the -exclude option for plans at this time.`,
+				b.appName,
+			),
+		))
+	}
+
 	// Return if there are any errors.
 	if diags.HasErrors() {
 		return &RunResult{}, diags.Err()
