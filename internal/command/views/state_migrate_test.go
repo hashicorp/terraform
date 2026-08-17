@@ -4,6 +4,7 @@
 package views
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -12,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
-func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
+func TestNewStateMigrate_LogInstallProviderVersionComplete(t *testing.T) {
 	const verifiedChecksum = 0
 	const officialProvider = 1
 	const noKey = ""
@@ -26,7 +27,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		var authResult *getproviders.PackageAuthenticationResult = nil
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -44,7 +45,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		ver := getproviders.MustParseVersion("1.2.3")
 		authResult := getproviders.NewPackageAuthenticationResult(verifiedChecksum, noKey)
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -63,7 +64,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(officialProvider, key)
 
-		smView.LogProviderVersionSuccess(p, ver, authResult)
+		smView.LogInstallProviderVersionComplete(p, ver, authResult)
 
 		// Assert output
 		output := done(t)
@@ -74,7 +75,7 @@ func TestNewStateMigrate_LogProviderVersionSuccess(t *testing.T) {
 	})
 }
 
-func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
+func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID(t *testing.T) {
 	const partnerProvider = 2
 
 	t.Run("partner provider auth result - human view", func(t *testing.T) {
@@ -87,7 +88,7 @@ func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 		key := "key-id-123"
 		authResult := getproviders.NewPackageAuthenticationResult(partnerProvider, key)
 
-		smView.LogProviderVersionSuccessWithKeyID(p, ver, authResult, key)
+		smView.LogInstallProviderVersionCompleteWithKeyID(p, ver, authResult, key)
 
 		// Assert output - human
 		output := done(t)
@@ -96,4 +97,132 @@ func TestNewStateMigrate_LogProviderVersionSuccessWithKeyID(t *testing.T) {
 			t.Fatalf("expected %q, got %q", expectedOutput, output.Stdout())
 		}
 	})
+}
+
+func TestNewStateMigrate_Spacer_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.Spacer()
+
+	// Assert output
+	output := done(t)
+
+	// We cannot simply assert no output as the JSON view logs the version message on initialization
+	// Splitting on \n when there's only the version log will get an array of the log and an empty string.
+	// If there are more logs there'll be >2 elements.
+	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
+		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
+	}
+}
+
+func TestNewStateMigrate_LogInteractiveApproval_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogInteractiveApproval()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`approved by the user`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_interactive_approval"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogInteractiveRejection_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogInteractiveRejection()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`rejected by the user`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_interactive_rejection"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogAutomaticApproval_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogAutomaticApproval()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`approved automatically`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_automatic_approval"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogProviderLockfileCreated()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`Terraform has created a lock file .terraform.lock.hcl`, // @message - incomplete but sufficient
+		`"@module":"terraform.ui"`,
+		`"type":"provider_lockfile_created"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogInstallProvidersStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogInstallProvidersStart()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Installing providers..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"provider_installation_start"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
 }

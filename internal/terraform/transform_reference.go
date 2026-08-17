@@ -42,13 +42,24 @@ type GraphNodeReferencer interface {
 	References() []*addrs.Reference
 }
 
+// ImportReference pairs a reference with the module path of the import block
+// that contains it, which is the correct scope for resolving the reference.
+type ImportReference struct {
+	// RelModule is the path of the module containing the import block.
+	RelModule addrs.Module
+
+	// Ref is a reference found in an import block expressions.
+	Ref *addrs.Reference
+}
+
 // GraphNodeReferencer must be implemented by nodes that import resources.
 type GraphNodeImportReferencer interface {
 	GraphNodeReferencer
 
 	// ImportReferences returns a list of references made by this node's
-	// associated import block.
-	ImportReferences() []*addrs.Reference
+	// associated import block, each paired with the module path of the import
+	// block where the reference was written.
+	ImportReferences() []ImportReference
 }
 
 type GraphNodeAttachDependencies interface {
@@ -343,9 +354,8 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 	}
 
 	if rn, ok := v.(GraphNodeImportReferencer); ok {
-		for _, ref := range rn.ImportReferences() {
-			// import block references are always in the root module scope
-			referenceKeys = append(referenceKeys, m.referenceMapKey(addrs.RootModule, ref.Subject))
+		for _, ir := range rn.ImportReferences() {
+			referenceKeys = append(referenceKeys, m.referenceMapKey(ir.RelModule, ir.Ref.Subject))
 		}
 	}
 
