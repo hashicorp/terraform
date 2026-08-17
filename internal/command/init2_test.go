@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/cli"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
@@ -795,6 +797,13 @@ func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
 		},
 		"const with extra resource": {
 			fixture: "provider-source-with-resources",
+			args:    []string{},
+			providers: map[string][]string{
+				"hashicorp2/test": {"1.0.0"},
+			},
+		},
+		"const with extra resource and provider local name": {
+			fixture: "provider-source-with-resources-and-provider-local-name",
 			args:    []string{},
 			providers: map[string][]string{
 				"hashicorp2/test": {"1.0.0"},

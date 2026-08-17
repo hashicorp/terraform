@@ -49,6 +49,8 @@ func (n *nodeResolveProviderRequirements) Execute(
 
 	n.Module.GatherProviderLocalNames()
 
+	n.Module.ResolveResourceProviders()
+
 	return diags
 }
 
