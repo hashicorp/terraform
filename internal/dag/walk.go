@@ -75,8 +75,7 @@ type walkerVertex struct {
 	// CancelCh is closed when the vertex should cancel execution. If execution
 	// is already complete (DoneCh is closed), this has no effect. Otherwise,
 	// execution is cancelled as quickly as possible.
-	DoneCh   chan struct{}
-	CancelCh chan struct{}
+	DoneCh chan struct{}
 
 	// Dependency information. Any changes to any of these fields requires
 	// holding DepsLock.
@@ -91,8 +90,7 @@ type walkerVertex struct {
 	// Below is not safe to read/write in parallel. This behavior is
 	// enforced by changes only happening in Update. Nothing else should
 	// ever modify these.
-	deps         map[Vertex]chan struct{}
-	depsCancelCh chan struct{}
+	deps map[Vertex]chan struct{}
 }
 
 // Walk loads the graph and dispatches the concurrent walker. Walk can only be
@@ -122,9 +120,8 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 
 		// Initialize the vertex info
 		info := &walkerVertex{
-			DoneCh:   make(chan struct{}),
-			CancelCh: make(chan struct{}),
-			deps:     make(map[Vertex]chan struct{}),
+			DoneCh: make(chan struct{}),
+			deps:   make(map[Vertex]chan struct{}),
 		}
 
 		// Add it to the map and kick off the walk
@@ -165,9 +162,6 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 		// Create a new done channel
 		doneCh := make(chan bool, 1)
 
-		// Create the channel we close for cancellation
-		cancelCh := make(chan struct{})
-
 		// Build a new deps copy
 		deps := make(map[Vertex]<-chan struct{})
 		for k, v := range info.deps {
@@ -176,14 +170,8 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 
 		info.DepsCh = doneCh
 
-		// Cancel the older waiter
-		if info.depsCancelCh != nil {
-			close(info.depsCancelCh)
-		}
-		info.depsCancelCh = cancelCh
-
 		// Start the waiter
-		go w.waitDeps(v, deps, doneCh, cancelCh)
+		go w.waitDeps(v, deps, doneCh)
 	}
 
 	// Start all the new vertices. We do this at the end so that all
@@ -233,23 +221,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 		depsCh = info.DepsCh
 	}
 
-	select {
-	case <-info.CancelCh:
-		// Cancel
-		return
-
-	case depsSuccess = <-depsCh:
-		// New deps, reloop
-	}
-
-	// If we passed dependencies, we just want to check once more that
-	// we're not cancelled, since this can happen just as dependencies pass.
-	select {
-	case <-info.CancelCh:
-		// Cancelled during an update while dependencies completed.
-		return
-	default:
-	}
+	depsSuccess = <-depsCh
 
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
@@ -284,8 +256,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 func (w *Walker) waitDeps(
 	v Vertex,
 	deps map[Vertex]<-chan struct{},
-	doneCh chan<- bool,
-	cancelCh <-chan struct{}) {
+	doneCh chan<- bool) {
 
 	// For each dependency given to us, wait for it to complete
 	for dep, depCh := range deps {
@@ -295,12 +266,6 @@ func (w *Walker) waitDeps(
 			case <-depCh:
 				// Dependency satisfied!
 				break DepSatisfied
-
-			case <-cancelCh:
-				// Wait cancelled. Note that we didn't satisfy dependencies
-				// so that anything waiting on us also doesn't run.
-				doneCh <- false
-				return
 
 			case <-time.After(time.Second * 5):
 				log.Printf("[TRACE] dag/walk: vertex %q is waiting for %q",
