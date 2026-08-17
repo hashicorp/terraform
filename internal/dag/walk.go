@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"errors"
 	"log"
 	"sync"
@@ -65,37 +66,22 @@ func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
 }
 
 type walkerVertex struct {
-	// These should only be set once on initialization and never written again.
-	// They are not protected by a lock since they don't need to be since
-	// they are write-once.
-
 	// DoneCh is closed when this vertex has completed execution, regardless
 	// of success.
-	//
-	// CancelCh is closed when the vertex should cancel execution. If execution
-	// is already complete (DoneCh is closed), this has no effect. Otherwise,
-	// execution is cancelled as quickly as possible.
 	DoneCh chan struct{}
 
-	// Dependency information. Any changes to any of these fields requires
-	// holding DepsLock.
-	//
 	// DepsCh is sent a single value that denotes whether the upstream deps
 	// were successful (no errors). Any value sent means that the upstream
 	// dependencies are complete. No other values will ever be sent again.
-	//
-	// DepsUpdateCh is closed when there is a new DepsCh set.
 	DepsCh chan bool
 
-	// Below is not safe to read/write in parallel. This behavior is
-	// enforced by changes only happening in Update. Nothing else should
-	// ever modify these.
+	// deps maps each vertex to it's DoneCh
 	deps map[Vertex]chan struct{}
 }
 
 // Walk loads the graph and dispatches the concurrent walker. Walk can only be
 // called once for a single Walker.
-func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
+func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) tfdiags.Diagnostics {
 	if g == nil {
 		return nil
 	}
@@ -160,7 +146,7 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 		}
 
 		// Create a new done channel
-		doneCh := make(chan bool, 1)
+		depsCh := make(chan bool, 1)
 
 		// Build a new deps copy
 		deps := make(map[Vertex]<-chan struct{})
@@ -168,16 +154,16 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 			deps[k] = v
 		}
 
-		info.DepsCh = doneCh
+		info.DepsCh = depsCh
 
 		// Start the waiter
-		go w.waitDeps(v, deps, doneCh)
+		go w.waitDeps(v, deps, depsCh)
 	}
 
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are set up above.
 	for v, info := range w.vertexMap {
-		go w.walkVertex(v, info)
+		go w.walkVertex(ctx, v, info)
 	}
 
 	// Wait for completion
@@ -200,16 +186,12 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 
 // walkVertex walks a single vertex, waiting for any dependencies before
 // executing the callback.
-func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
+func (w *Walker) walkVertex(ctx context.Context, v Vertex, info *walkerVertex) {
 	// When we're done executing, lower the waitgroup count
 	defer w.wait.Done()
 
 	// When we're done, always close our done channel
 	defer close(info.DoneCh)
-
-	// Wait for our dependencies. We create a [closed] deps channel so
-	// that we can immediately fall through to load our actual DepsCh.
-	var depsSuccess bool
 
 	// if there are no deps we have a nil chan, so we need to initialize
 	// something that won't block
@@ -221,13 +203,21 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 		depsCh = info.DepsCh
 	}
 
-	depsSuccess = <-depsCh
+	// wait for all deps
+	var depsSuccess bool
+	select {
+	case depsSuccess = <-depsCh:
+	case <-ctx.Done():
+		// context was canceled, stop processing callbacks
+		return
+	}
 
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
+
 	if depsSuccess {
-		diags = w.Callback(v)
+		diags = w.Callback(ctx, v)
 	} else {
 		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", v.Name())
 		// This won't be displayed to the user because we'll set upstreamFailed,
@@ -253,10 +243,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	w.diagsLock.Unlock()
 }
 
-func (w *Walker) waitDeps(
-	v Vertex,
-	deps map[Vertex]<-chan struct{},
-	doneCh chan<- bool) {
+func (w *Walker) waitDeps(v Vertex, deps map[Vertex]<-chan struct{}, depsCh chan<- bool) {
 
 	// For each dependency given to us, wait for it to complete
 	for dep, depCh := range deps {
@@ -275,9 +262,9 @@ func (w *Walker) waitDeps(
 	}
 
 	// If the vertex implements [AlwaysRunVertex], then
-	// return ignore the errored dependecies and return success.
+	// return ignore the errored dependencies and return success.
 	if _, ok := v.(AlwaysRunVertex); ok {
-		doneCh <- true
+		depsCh <- true
 		return
 	}
 
@@ -287,11 +274,11 @@ func (w *Walker) waitDeps(
 	for dep := range deps {
 		if w.diagsMap[dep].HasErrors() {
 			// One of our dependencies failed, so return false
-			doneCh <- false
+			depsCh <- false
 			return
 		}
 	}
 
 	// All dependencies satisfied and successful
-	doneCh <- true
+	depsCh <- true
 }

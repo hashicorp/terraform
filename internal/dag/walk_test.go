@@ -4,6 +4,7 @@
 package dag
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -22,7 +23,7 @@ func TestWalker_basic(t *testing.T) {
 	for range 50 {
 		var order []any
 		w := NewWalker(walkCbRecord(&order))
-		if diags := w.Walk(&g); diags.HasErrors() {
+		if diags := w.Walk(context.TODO(), &g); diags.HasErrors() {
 			t.Fatalf("err: %s", diags.ErrWithWarnings())
 
 		}
@@ -50,18 +51,18 @@ func TestWalker_error(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
-	cb := func(v Vertex) tfdiags.Diagnostics {
+	cb := func(_ context.Context, v Vertex) tfdiags.Diagnostics {
 		if v == testV(2) {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
 		}
 
-		return recordF(v)
+		return recordF(context.TODO(), v)
 	}
 
 	w := NewWalker(cb)
-	if diags := w.Walk(&g); !diags.HasErrors() {
+	if diags := w.Walk(context.TODO(), &g); !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
@@ -91,17 +92,17 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 
 	var order []any
 
-	w := NewWalker(func(v Vertex) tfdiags.Diagnostics {
+	w := NewWalker(func(_ context.Context, v Vertex) tfdiags.Diagnostics {
 		if v == testNamedString("error") {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
 		}
 
-		return walkCbRecord(&order)(v)
+		return walkCbRecord(&order)(context.TODO(), v)
 	})
 
-	if diags := w.Walk(&g); !diags.HasErrors() {
+	if diags := w.Walk(context.TODO(), &g); !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
@@ -114,7 +115,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 // walkCbRecord is a test helper callback that just records the order called.
 func walkCbRecord(order *[]any) walkFunc {
 	var l sync.Mutex
-	return func(v Vertex) tfdiags.Diagnostics {
+	return func(_ context.Context, v Vertex) tfdiags.Diagnostics {
 		l.Lock()
 		defer l.Unlock()
 		*order = append(*order, v)

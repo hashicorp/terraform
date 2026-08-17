@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -39,7 +40,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	ctx := walker.EvalContext()
 
 	// Walk the graph.
-	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(_ context.Context, v dag.Vertex) (diags tfdiags.Diagnostics) {
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
@@ -184,7 +185,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		return
 	}
 
-	return g.AcyclicGraph.Walk(walkFn)
+	return g.AcyclicGraph.Walk(context.TODO(), walkFn)
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the
