@@ -6,6 +6,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
@@ -14,10 +15,13 @@ import (
 // nodePolicyEval is a node that completes the building of the policy graph,
 // with incoming edges from the resource graph so that policy evaluation
 // is performed only when the resource graph is complete.
-type nodePolicyEval struct{}
+type nodePolicyEval struct {
+	// a dependency map of resource nodes. This also includes transitive dependencies.
+	resourceDepMap collections.Map[dag.Vertex, dag.VertexSet]
+}
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
-var _ dag.TolerantVertex = (*nodePolicyEval)(nil)
+var _ dag.ErroredDependencyHandler = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
 	return "(evaluate policies)"
@@ -39,11 +43,37 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	return policyGraph.evalGraph(span), nil
 }
 
-// AllowUpstreamFailure allows failures from upstream nodes to be tolerated
+// OnErroredDependencies allows failures from upstream nodes to be tolerated
 // so that the policy evaluation can proceed even if some resource instance nodes
 // evaluated with error diagnostics.
-func (n *nodePolicyEval) AllowUpstreamFailure() bool {
-	return true
+func (n *nodePolicyEval) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
+	dependencyResult := dag.DependencyResultSoftFailure
+	// Loop through all the dependencies in the graph
+	for _, dep := range deps {
+		// If a dependency failed and is not a resource instance, then
+		// return a hard failure early
+		if _, ok := dep.(GraphNodeConfigResource); !ok {
+			return dag.DependencyResultHardFailure
+		}
+
+		// Get transitive dependencies as well.
+		depDeps, ok := n.resourceDepMap.GetOk(dep)
+		if !ok {
+			continue
+		}
+
+		for range depDeps.All() {
+			// If a dependency failed and is not a resource instance, then
+			// return a hard failure early
+			if _, ok := dep.(GraphNodeConfigResource); !ok {
+				return dag.DependencyResultHardFailure
+			}
+
+			// this is a node resource, so we are probably returning a soft failure
+		}
+	}
+
+	return dependencyResult
 }
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
@@ -55,7 +85,7 @@ type nodePolicyEvalFinish struct {
 }
 
 var _ GraphNodeExecutable = (*nodePolicyEvalFinish)(nil)
-var _ dag.TolerantVertex = (*nodePolicyEvalFinish)(nil)
+var _ dag.ErroredDependencyHandler = (*nodePolicyEvalFinish)(nil)
 
 func (n *nodePolicyEvalFinish) Name() string {
 	return "(policy evaluation complete)"
@@ -66,8 +96,8 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 	return nil
 }
 
-// AllowUpstreamFailure tolerates failures from the policy nodes so the phase
-// span is always ended.
-func (n *nodePolicyEvalFinish) AllowUpstreamFailure() bool {
-	return true
+// OnErroredDependencies returns a soft failure so that this node still executes
+// even if dependencies errored
+func (n *nodePolicyEvalFinish) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
+	return dag.DependencyResultSoftFailure
 }

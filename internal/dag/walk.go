@@ -240,7 +240,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// if there are no deps we have a nil chan, so we need to initialize
 	// something that won't block
-	depsCh := make(chan DependencyResult, 1) //make(chan DependencyResult, 1)
+	depsCh := make(chan DependencyResult, 1)
 	depsCh <- DependencyResultSuccess
 	close(depsCh)
 
@@ -335,30 +335,27 @@ func (w *Walker) waitDeps(
 	w.diagsLock.Lock()
 	defer w.diagsLock.Unlock()
 
-	var allowUpstreamFailure bool
+	erroredDeps := make([]Vertex, 0)
 	for dep := range deps {
 		if w.diagsMap[dep].HasErrors() {
-
-			// If the vertex allows upstream failures, we can tolerate this error
-			if fv, ok := v.(TolerantVertex); ok && fv.AllowUpstreamFailure() {
-				allowUpstreamFailure = true
-				continue
-			}
-
-			// One of our dependencies failed, so return a hard failure result
-			doneCh <- DependencyResultHardFailure
-			return
+			erroredDeps = append(erroredDeps, dep)
 		}
 	}
 
-	// If we have an error but the node can tolerate failures, return a soft failure result
-	// This allows us to treat such vertices specially, while still maintaining the flow
-	// of errors to dependencies further down the DAG.
-	if allowUpstreamFailure {
-		doneCh <- DependencyResultSoftFailure
+	// All dependencies satisfied and successful
+	if len(erroredDeps) == 0 {
+		doneCh <- DependencyResultSuccess
 		return
 	}
 
-	// All dependencies satisfied and successful
-	doneCh <- DependencyResultSuccess
+	// If the vertex implements [ErroredDependencyHandler], then
+	// give it a chance to handle its own dependency errors.
+	if fv, ok := v.(ErroredDependencyHandler); ok {
+		doneCh <- fv.OnErroredDependencies(erroredDeps...)
+		return
+	}
+
+	// One of our dependencies failed, so return a hard failure result
+	doneCh <- DependencyResultHardFailure
+
 }

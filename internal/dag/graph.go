@@ -24,14 +24,15 @@ type Vertex interface {
 	Name() string
 }
 
-// TolerantVertex is an optional interface that can be implemented by Vertex
-// to allow it to tolerate upstream failures.
-type TolerantVertex interface {
+// ErroredDependencyHandler is implemented by vertices that want to
+// determine their own DependencyResult when one or more of their
+// dependencies have failed, rather than defaulting to a hard failure.
+type ErroredDependencyHandler interface {
 	Vertex
 
-	// AllowUpstreamFailure returns true if the receiver vertex can tolerate a
-	// failure in the given vertex.
-	AllowUpstreamFailure() bool
+	// OnErroredDependencies is called with the set of dependency vertices
+	// that produced errors.
+	OnErroredDependencies(...Vertex) DependencyResult
 }
 
 func (g *Graph) VertexCount() int {
