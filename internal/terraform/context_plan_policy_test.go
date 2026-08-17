@@ -1788,11 +1788,16 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	// The policy eval node depends on all resource nodes.
 	// However, due to transitive dependencies, there may be no dependency edges between
 	// a resource node and the policy node, making the graph dependency failure tolerance insufficient.
-	configMap := map[string]string{
+	type testCase struct {
+		name     string
+		config   string
+		expected map[string]struct{}
+	}
+	configMap := map[string]testCase{
 
 		// Here, policy node depends on both resource nodes.
-		"simple config, one fails": `
-			terraform {
+		"simple config, one fails": {
+			config: `terraform {
 				required_providers {
 					test = {
 						source = "hashicorp/test"
@@ -1809,11 +1814,14 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 				value = "fail"
 			}
 			`,
+			expected: map[string]struct{}{"ok": {}},
+		},
 
 		// In this scenario, the policy dependency on the "ok"
-		// config is omitted in the graph due to the transitivity
+		// resource is omitted in the graph due to the transitivity
 		// via the "fail" resource.
-		"failed config depends on other config": `
+		"failed resource depends on other resource": {
+			config: `
 			terraform {
 				required_providers {
 					test = {
@@ -1832,9 +1840,12 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 				depends_on = [test_resource.ok]
 			}
 			`,
+			expected: map[string]struct{}{"ok": {}},
+		},
 		// This is similar to the above case, but the dependency
 		// goes through an intermediate object.
-		"failed dependency through intermediate object": `
+		"failed dependency through intermediate object": {
+			config: `
 				terraform {
 					required_providers {
 						test = {
@@ -1858,12 +1869,36 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 					
 				}
 				`,
+			expected: map[string]struct{}{"ok": {}},
+		},
+		"failed resource is depended on by other resource": {
+			config: `
+					terraform {
+						required_providers {
+							test = {
+								source = "hashicorp/test"
+								version = "1.0.0"
+							}
+						}
+					}
+			
+					resource "test_resource" "ok" {
+						value = "ok"
+						depends_on = [test_resource.fail]
+					}
+			
+					resource "test_resource" "fail" {
+						value = "fail"
+					}
+					`,
+			expected: map[string]struct{}{},
+		},
 	}
 
-	for key, cfg := range configMap {
+	for key, testCase := range configMap {
 		t.Run(key, func(t *testing.T) {
 			mod := testModuleInline(t, map[string]string{
-				"main.tf":           cfg,
+				"main.tf":           testCase.config,
 				"main.tfpolicy.hcl": samplePolicyConfig,
 			})
 
@@ -1914,10 +1949,7 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 
-			// now check that the policy evaluation results match our expectations
-			// we only expect evaluation for the "ok" resource, not the "fail" resource
-			expectedValues := map[string]struct{}{"ok": {}}
-			if diff := cmp.Diff(evaluatedPolicyValues, expectedValues); diff != "" {
+			if diff := cmp.Diff(evaluatedPolicyValues, testCase.expected); diff != "" {
 				t.Errorf("unexpected evaluated policy values: %s", diff)
 			}
 			if len(policyDiags) != 0 {

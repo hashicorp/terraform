@@ -48,7 +48,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 // evaluated with error diagnostics.
 func (n *nodePolicyEval) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
 	dependencyResult := dag.DependencyResultSoftFailure
-	// Loop through all the dependencies in the graph
+	// Loop through all the non-transitive dependencies in the graph
 	for _, dep := range deps {
 		// If a dependency failed and is not a resource instance, then
 		// return a hard failure early
@@ -62,15 +62,16 @@ func (n *nodePolicyEval) OnErroredDependencies(deps ...dag.Vertex) dag.Dependenc
 			continue
 		}
 
-		for range depDeps.All() {
-			// If a dependency failed and is not a resource instance, then
+		for dep := range depDeps.All() {
+			// If a transitive dependency failed and is not a resource instance, then
 			// return a hard failure early
 			if _, ok := dep.(GraphNodeConfigResource); !ok {
 				return dag.DependencyResultHardFailure
 			}
 
-			// this is a node resource, so we are probably returning a soft failure
 		}
+		// Getting here means we have a node resource, so we will eventually fallback
+		//  to returning a soft failure if all failures are from resource nodes.
 	}
 
 	return dependencyResult
