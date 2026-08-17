@@ -24,14 +24,14 @@ type Vertex interface {
 	Name() string
 }
 
-// TolerantVertex is an optional interface that can be implemented by Vertex
-// to allow it to tolerate upstream failures.
-type TolerantVertex interface {
+// AlwaysRunVertex is implemented by vertices that should be evaluated
+// even when one or more of their dependencies have failed.
+type AlwaysRunVertex interface {
 	Vertex
 
-	// AllowUpstreamFailure returns true if the receiver vertex can tolerate a
-	// failure in the given vertex.
-	AllowUpstreamFailure(Vertex) bool
+	// AlwaysRun marks the vertex as always-run,
+	// even when one or more dependencies have failed.
+	AlwaysRun()
 }
 
 func (g *Graph) VertexCount() int {
