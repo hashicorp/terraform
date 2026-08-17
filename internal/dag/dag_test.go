@@ -37,6 +37,15 @@ func (s testNamedString) Name() string {
 	return string(s)
 }
 
+func (v testNamedString) OnErroredDependencies(deps ...Vertex) DependencyResult {
+	for _, dep := range deps {
+		if dep.Name() == "error" {
+			return DependencyResultSoftFailure
+		}
+	}
+	return DependencyResultHardFailure
+}
+
 func TestAyclicGraphTransReduction(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))
