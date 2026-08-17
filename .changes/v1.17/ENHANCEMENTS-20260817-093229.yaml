@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'command/login: always display token TTL policy warning after successful login, regardless of organization settings'
+time: 2026-08-17T09:32:29.000000Z
+custom:
+    Issue: ""
