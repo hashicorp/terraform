@@ -1784,12 +1784,12 @@ resource_policy "test_resource" "policy_name" {
 func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 	// This test asserts how policy evaluations work in partial plans.
 	// Policy evaluations still need to run when some resource nodes fail,
-	// and the way we do that is by tolerating failures from the policy eval node.
+	// and the way we do that is by tolerating failures from the policy eval node's
+	// dependencies.
 	// The policy eval node depends on all resource nodes.
 	// However, due to transitive dependencies, there may be no dependency edges between
 	// a resource node and the policy node, making the graph dependency failure tolerance insufficient.
 	type testCase struct {
-		name     string
 		config   string
 		expected map[string]struct{}
 	}

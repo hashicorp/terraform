@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
@@ -16,8 +15,6 @@ import (
 // with incoming edges from the resource graph so that policy evaluation
 // is performed only when the resource graph is complete.
 type nodePolicyEval struct {
-	// a dependency map of resource nodes. This also includes transitive dependencies.
-	resourceDepMap collections.Map[dag.Vertex, dag.VertexSet]
 }
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
@@ -47,34 +44,7 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 // so that the policy evaluation can proceed even if some resource instance nodes
 // evaluated with error diagnostics.
 func (n *nodePolicyEval) OnErroredDependencies(deps ...dag.Vertex) dag.DependencyResult {
-	dependencyResult := dag.DependencyResultSoftFailure
-	// Loop through all the non-transitive dependencies in the graph
-	for _, dep := range deps {
-		// If a dependency failed and is not a resource instance, then
-		// return a hard failure early
-		if _, ok := dep.(GraphNodeConfigResource); !ok {
-			return dag.DependencyResultHardFailure
-		}
-
-		// Get transitive dependencies as well.
-		depDeps, ok := n.resourceDepMap.GetOk(dep)
-		if !ok {
-			continue
-		}
-
-		for dep := range depDeps.All() {
-			// If a transitive dependency failed and is not a resource instance, then
-			// return a hard failure early
-			if _, ok := dep.(GraphNodeConfigResource); !ok {
-				return dag.DependencyResultHardFailure
-			}
-
-		}
-		// Getting here means we have a node resource, so we will eventually fallback
-		//  to returning a soft failure if all failures are from resource nodes.
-	}
-
-	return dependencyResult
+	return dag.DependencyResultSoftFailure
 }
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that

@@ -5,8 +5,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
 
@@ -28,9 +26,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 	if t.PolicyClient == nil {
 		return nil
 	}
-	policyNode := &nodePolicyEval{
-		resourceDepMap: collections.NewMapFunc[dag.Vertex, dag.VertexSet](vertexKeyFunc),
-	}
+	policyNode := &nodePolicyEval{}
 	g.Add(policyNode)
 
 	for v := range g.VerticesSeq() {
@@ -62,23 +58,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		// executes only after all remaining graph work that can still mutate state
 		// or changes has completed.
 		g.Connect(policyNode, v)
-
-		// Now work out the resource dependency map
-		if _, ok := v.(GraphNodeConfigResource); ok {
-			policyNode.resourceDepMap.Put(v, g.Ancestors(v).Filter(func(v dag.Vertex) bool {
-				_, ok := v.(GraphNodeConfigResource)
-				return ok
-			}))
-		}
 	}
 
 	return nil
-}
-
-type vertexKey string
-
-func (k vertexKey) IsUniqueKey(dag.Vertex) {}
-
-func vertexKeyFunc(v dag.Vertex) collections.UniqueKey[dag.Vertex] {
-	return vertexKey(v.Name())
 }
