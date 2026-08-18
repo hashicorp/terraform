@@ -1413,9 +1413,8 @@ import {
 `
 )
 
-// TestContext2Plan_importIdentityWithSensitiveLocal tests that the
-// ImportResourceState RPC is called with an import identity whose value
-// must have been stripped of any marks.
+// TestContext2Plan_importIdentityWithSensitiveLocal tests that a plan with
+// import identity value with sensitive data returns an error
 func TestContext2Plan_importIdentityWithSensitiveLocal(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -1457,12 +1456,6 @@ import {
 		},
 	}
 	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-		if !req.Identity.IsNull() {
-			_, pvms := req.Identity.UnmarkDeepWithPaths()
-			if len(pvms) != 0 {
-				t.Fatalf("Expected identity to not contain marks")
-			}
-		}
 		var err error
 		state, err := resourceSchema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 			"test_string": cty.StringVal("z-123456"),
@@ -1494,7 +1487,14 @@ import {
 	}
 
 	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-	if diags.HasErrors() {
-		t.Fatalf("unexpected plan errors\n%s", diags.Err().Error())
-	}
+	tfdiags.AssertDiagnosticCount(t, diags, 1)
+
+	var exp tfdiags.Diagnostics
+	exp = exp.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid import identity",
+		Detail:   "Import identity for test_object.a must not contain sensitive values\n",
+	})
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/ephemeral"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
@@ -628,6 +629,38 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	var deferred *providers.Deferred
 	importTarget := n.importTarget.target
 
+	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+	if schema.Body == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+		return nil, deferred, diags
+	}
+
+	// import identities (either legacy or object) must not contain sensitive or ephemeral marks
+	if marks.Contains(importTarget, marks.Sensitive) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid import identity",
+			fmt.Sprintf(
+				"Import identity for %s must not contain sensitive values\n",
+				n.Addr,
+			),
+		))
+	}
+	if marks.Contains(importTarget, marks.Ephemeral) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid import identity",
+			fmt.Sprintf(
+				"Import identity for %s must not contain ephemeral values\n",
+				n.Addr,
+			),
+		))
+	}
+	if diags.HasErrors() {
+		return nil, deferred, diags
+	}
+
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PrePlanImport(hookResourceID, importTarget)
 	}))
@@ -637,13 +670,6 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	// Unmark the import target before sending to the provider
 	importTarget, _ = importTarget.UnmarkDeep()
-
-	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
-	if schema.Body == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
-		return nil, deferred, diags
-	}
 
 	var resp providers.ImportResourceStateResponse
 	if n.override != nil {
