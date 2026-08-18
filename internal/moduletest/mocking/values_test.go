@@ -544,6 +544,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingList,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_list_attribute_computed_empty": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -565,6 +599,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: nil,
 		},
 		"nested_set_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
@@ -641,6 +676,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingSet,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_set_attribute_computed_empty": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -662,6 +731,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: nil,
 		},
 		"nested_map_attribute": {
 			target: cty.ObjectVal(map[string]cty.Value{
@@ -738,6 +808,40 @@ func TestComputedValuesForDataSource(t *testing.T) {
 				}))),
 			}),
 			with: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("myvalue"),
+					}),
+				}),
+			}),
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"nested": {
+						NestedType: &configschema.Object{
+							Attributes: computedAttributes,
+							Nesting:    configschema.NestingMap,
+						},
+						Computed: true,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("myvalue"),
+						"value": cty.StringVal("ssnk9qhr"),
+					}),
+				}),
+			}),
+		},
+		"nested_map_attribute_computed_empty": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"nested": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"id":    cty.String,
+					"value": cty.String,
+				}))),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
 				"nested": cty.ObjectVal(map[string]cty.Value{
 					"id": cty.StringVal("myvalue"),
 				}),
@@ -759,6 +863,7 @@ func TestComputedValuesForDataSource(t *testing.T) {
 					"value": cty.String,
 				})),
 			}),
+			expectedFailures: nil,
 		},
 		"invalid_replacement_path": {
 			target: cty.ObjectVal(map[string]cty.Value{
@@ -934,6 +1039,41 @@ func TestComputedValuesForDataSource(t *testing.T) {
 			}),
 			expectedFailures: []string{
 				"Terraform could not compute a value for the target type string with the mocked data defined at :0,0-0 with the attribute \".block[0].id\": string required, but have object.",
+			},
+		},
+
+		"invalid_replacement_path_nested_list_block": {
+			target: cty.ObjectVal(map[string]cty.Value{
+				"block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.NullVal(cty.String),
+						"value": cty.StringVal("one"),
+					}),
+				}),
+			}),
+			with: cty.ObjectVal(map[string]cty.Value{
+				"block": cty.ListVal([]cty.Value{
+					cty.StringVal("Hello, world!"),
+				}),
+			}),
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"block": {
+						Block:   computedBlock,
+						Nesting: configschema.NestingList,
+					},
+				},
+			},
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":    cty.StringVal("ssnk9qhr"),
+						"value": cty.StringVal("one"),
+					}),
+				}),
+			}),
+			expectedFailures: []string{
+				"Terraform expected an object type for attribute \".block[0]\" defined within the mocked data at :0,0-0, but found list of string.",
 			},
 		},
 		"dynamic_attribute_unset": {

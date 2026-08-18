@@ -301,7 +301,7 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"mocking": {
-			expectedOut: []string{"10 passed, 0 failed."},
+			expectedOut: []string{"11 passed, 0 failed."},
 			code:        0,
 		},
 		"mocking-invalid": {
@@ -386,12 +386,14 @@ func TestTest_Runs(t *testing.T) {
 			code:        0,
 		},
 		"write-only-attributes-mocked": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "wrong value"},
+			code:        1,
 		},
 		"write-only-attributes-overridden": {
-			expectedOut: []string{"1 passed, 0 failed."},
-			code:        0,
+			expectedOut: []string{"0 passed, 1 failed."},
+			expectedErr: []string{"Test assertion failed", "wrong value"},
+			code:        1,
 		},
 		"with-default-variables": {
 			args:        []string{"-var=input_two=universe"},
@@ -5951,6 +5953,118 @@ func TestTest_TeardownOrder(t *testing.T) {
 
 	if provider.ResourceCount() > 0 {
 		t.Logf("Resources remaining after test completion (this might indicate the teardown issue): %v", provider.ResourceString())
+	}
+}
+
+func TestTest_OverrideDataMocking(t *testing.T) {
+	tcs := map[string]struct {
+		dir            string
+		expectedCode   int
+		expectedStdout string
+		expectedStderr string
+	}{
+		"plain_list_attribute": {
+			dir:            "override_data_list_attribute",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"nested_list_attribute": {
+			dir:            "override_data_nested_list_attribute",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"nested_list_attribute_with_object_value": {
+			dir:            "override_data_nested_list_attribute_object",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"nested_list_attribute_with_invalid_type_value": {
+			dir:            "override_data_nested_list_attribute_invalid_type",
+			expectedCode:   1,
+			expectedStderr: "incompatible types; expected list of object, found",
+		},
+		"list_attribute_with_partial_element_values": {
+			dir:            "override_data_list_attribute_partial_elements",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"set_attribute_with_partial_element_values": {
+			dir:            "override_data_complex_set_attribute_partial_elements",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"nested_set_attribute_with_object_value": {
+			dir:            "override_data_complex_nested_set_attribute_object",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+		"nested_list_attribute_with_partial_element_values": {
+			dir:            "override_data_nested_list_attribute_partial_elements",
+			expectedCode:   0,
+			expectedStdout: "1 passed, 0 failed.",
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", tc.dir)), td)
+			t.Chdir(td)
+
+			provider := testing_command.NewProvider(nil)
+			providerSource, closeFn := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer closeFn()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				output := done(t)
+				t.Fatalf("expected init status code 0 but got %d: %s", code, output.All())
+			}
+
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != tc.expectedCode {
+				t.Fatalf("expected status code %d but got %d:\n\n%s", tc.expectedCode, code, output.All())
+			}
+
+			if tc.expectedStdout != "" && !strings.Contains(output.Stdout(), tc.expectedStdout) {
+				t.Errorf("expected stdout to contain %q but got:\n\nstdout:\n%s\nstderr:\n%s", tc.expectedStdout, output.Stdout(), output.Stderr())
+			}
+
+			if tc.expectedStderr != "" && !strings.Contains(output.Stderr(), tc.expectedStderr) {
+				t.Errorf("expected stderr to contain %q but got:\n\nstdout:\n%s\nstderr:\n%s", tc.expectedStderr, output.Stdout(), output.Stderr())
+			}
+
+			if tc.expectedCode == 0 && output.Stderr() != "" {
+				t.Errorf("unexpected stderr output:\n%s", output.Stderr())
+			}
+		})
 	}
 }
 
