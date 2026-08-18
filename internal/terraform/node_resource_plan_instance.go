@@ -635,6 +635,9 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return nil, deferred, diags
 	}
 
+	// Unmark the import target before sending to the provider
+	importTarget, _ = importTarget.UnmarkDeep()
+
 	schema := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
 	if schema.Body == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
