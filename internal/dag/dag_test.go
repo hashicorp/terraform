@@ -382,11 +382,11 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(context.TODO(), func(_ context.Context, v Vertex) tfdiags.Diagnostics {
+	err := g.Walk(context.TODO(), func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
-		return nil
+		return nil, nil
 	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -417,19 +417,27 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(context.TODO(), func(_ context.Context, v Vertex) tfdiags.Diagnostics {
+	err := g.Walk(context.TODO(), func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		lock.Lock()
 		defer lock.Unlock()
+
+		for _, sig := range Signals(ctx) {
+			if sig == errStopWalk {
+				// skipping
+				return nil, nil
+			}
+		}
 
 		var diags tfdiags.Diagnostics
 
 		if v == testV(2) {
 			diags = diags.Append(fmt.Errorf("error"))
-			return diags
+			// return errStopWalk as our signal to not proceed
+			return errStopWalk, diags
 		}
 
 		visits = append(visits, v)
-		return diags
+		return nil, diags
 	})
 	if err == nil {
 		t.Fatal("should error")

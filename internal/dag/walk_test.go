@@ -51,11 +51,11 @@ func TestWalker_error(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
-	cb := func(_ context.Context, v Vertex) tfdiags.Diagnostics {
+	cb := func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		if v == testV(2) {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return diags
+			return nil, diags
 		}
 
 		return recordF(context.TODO(), v)
@@ -92,11 +92,11 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 
 	var order []any
 
-	w := NewWalker(func(_ context.Context, v Vertex) tfdiags.Diagnostics {
+	w := NewWalker(func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		if v == testNamedString("error") {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return diags
+			return nil, diags
 		}
 
 		return walkCbRecord(&order)(context.TODO(), v)
@@ -115,10 +115,10 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 // walkCbRecord is a test helper callback that just records the order called.
 func walkCbRecord(order *[]any) walkFunc {
 	var l sync.Mutex
-	return func(_ context.Context, v Vertex) tfdiags.Diagnostics {
+	return func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		l.Lock()
 		defer l.Unlock()
 		*order = append(*order, v)
-		return nil
+		return nil, nil
 	}
 }

@@ -40,7 +40,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	ctx := walker.EvalContext()
 
 	// Walk the graph.
-	walkFn := func(_ context.Context, v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(_ context.Context, v dag.Vertex) (walkSignal any, diags tfdiags.Diagnostics) {
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()

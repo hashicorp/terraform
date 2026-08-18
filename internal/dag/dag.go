@@ -20,7 +20,7 @@ type AcyclicGraph struct {
 }
 
 // walkFunc is the callback used for the primary concurrent walk of the graph.
-type walkFunc func(context.Context, Vertex) tfdiags.Diagnostics
+type walkFunc func(context.Context, Vertex) (any, tfdiags.Diagnostics)
 
 // depthWalkFunc is a walk function that also receives the current depth of the
 // walk as an argument. This is used for the various synchronous walks of the
