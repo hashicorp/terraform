@@ -1442,3 +1442,88 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 			"Please communicate with HCP Terraform team before resolving", diff)
 	}
 }
+
+// TestPlan_importIdentityWithSensitiveLocal exercises the bug where
+// UiHook.PrePlanImport is called with a cty identity value that carries
+// sensitivity marks on its attributes.
+func TestPlan_importIdentityWithSensitiveLocal(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// Write a config that imports using an identity whose attribute value
+	// comes from a sensitive local.
+	if err := os.WriteFile(filepath.Join(td, "main.tf"), []byte(`
+locals {
+  env = {
+    zone_id = sensitive("z-123456")
+  }
+}
+
+resource "test_instance" "a" {}
+
+import {
+  to = test_instance.a
+  identity = {
+    id = local.env.zone_id
+  }
+}
+`), 0644); err != nil {
+		t.Fatalf("failed to write main.tf: %s", err)
+	}
+
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Computed: true},
+						},
+					},
+					Identity: &configschema.Object{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {Type: cty.String, Required: true},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+				},
+			},
+		},
+		ImportResourceStateFn: func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+			if !req.Identity.IsNull() {
+				_, pvms := req.Identity.UnmarkDeepWithPaths()
+				if len(pvms) != 0 {
+					t.Fatalf("Expected identity to not contain marks")
+				}
+			}
+			return providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "test_instance",
+						State: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("z-123456"),
+						}),
+						Identity: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("z-123456"),
+						}),
+					},
+				},
+			}
+		},
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	// The plan should succeed without panic
+	code := c.Run([]string{"-no-color"})
+	done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit code %d", code)
+	}
+}

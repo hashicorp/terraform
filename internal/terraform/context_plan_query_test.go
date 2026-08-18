@@ -1412,3 +1412,89 @@ import {
 
 `
 )
+
+// TestContext2Plan_importIdentityWithSensitiveLocal tests that the
+// ImportResourceState RPC is called with an import identity whose value
+// must have been stripped of any marks.
+func TestContext2Plan_importIdentityWithSensitiveLocal(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  env = {
+    zone_id = sensitive("z-123456")
+  }
+}
+
+resource "test_object" "a" {
+}
+
+import {
+  to = test_object.a
+  identity = {
+    test_string = local.env.zone_id
+  }
+}
+`,
+	})
+
+	resourceSchema := simpleTestSchema()
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Body: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: resourceSchema,
+				Identity: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"test_string": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingSingle,
+				},
+			},
+		},
+	}
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+		if !req.Identity.IsNull() {
+			_, pvms := req.Identity.UnmarkDeepWithPaths()
+			if len(pvms) != 0 {
+				t.Fatalf("Expected identity to not contain marks")
+			}
+		}
+		var err error
+		state, err := resourceSchema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("z-123456"),
+		}))
+		if err != nil {
+			t.Fatalf("Error while coercing value for test")
+		}
+
+		return providers.ImportResourceStateResponse{
+			ImportedResources: []providers.ImportedResource{
+				{
+					TypeName: "test_object",
+					State:    state,
+					Identity: req.Identity,
+				},
+			},
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, &ValidateOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected validation errors\n%s", diags.Err().Error())
+	}
+
+	_, diags = ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected plan errors\n%s", diags.Err().Error())
+	}
+}
