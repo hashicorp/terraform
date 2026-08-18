@@ -166,6 +166,7 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.Excludes = args.Excludes
+	opReq.Includes = args.Includes
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
@@ -224,6 +225,11 @@ Plan Customization Options:
                       dependencies. You can use this option multiple times to
                       include more than one object. This is for exceptional
                       use only.
+
+  -include=resource   Creates a partial plan for the current configuration including only
+                      a module, resource, or resource instance and all of its dependents
+                      in the planning operation. You can use this option multiple times
+                      to include more than one object in the plan.
 
   -exclude=resource   Creates a partial plan for the current configuration, excluding
                       a module, resource, or resource instance and all of its dependents

@@ -123,6 +123,7 @@ type Operation struct {
 	ActionTargets []addrs.Targetable
 
 	Excludes []addrs.Targetable
+	Includes []addrs.Targetable
 
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue

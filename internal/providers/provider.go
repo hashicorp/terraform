@@ -523,6 +523,11 @@ const (
 	// DeferredReasonExcluded is used when the reason for deferring is
 	// that a the practitioner excluded the resource via the -exclude flag
 	DeferredReasonExcluded DeferredReason = "excluded"
+
+	// DeferredReasonNotIncluded is used when the reason for deferring is
+	// that the practitioner used the -include flag and this resource was
+	// not part of the included set.
+	DeferredReasonNotIncluded DeferredReason = "not_included"
 )
 
 type Deferred struct {

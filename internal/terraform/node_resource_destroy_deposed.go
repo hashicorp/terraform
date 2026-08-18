@@ -52,6 +52,7 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// from state.
 	forgetModules []addrs.Module
 
+	// TODO:@austinvalle: Should you even be able to include a deposed object? :P
 	// TODO:@austinvalle: Should you even be able to exclude a deposed object? :P
 }
 

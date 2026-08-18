@@ -57,6 +57,10 @@ type PlanGraphBuilder struct {
 	// Excludes are the resources to exclude (defer) in the plan graph.
 	Excludes []addrs.Targetable
 
+	// Includes are the resources to include in the plan graph; all other
+	// managed resources will be deferred.
+	Includes []addrs.Targetable
+
 	// ActionTargets are actions that should be triggered.
 	ActionTargets []addrs.Targetable
 
@@ -298,6 +302,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
 
 		&AttachExcludesTransformer{Excludes: b.Excludes},
+
+		// &AttachIncludesTransformer{Includes: b.Includes},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},

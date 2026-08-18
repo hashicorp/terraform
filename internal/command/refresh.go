@@ -139,6 +139,7 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
 	opReq.Excludes = args.Excludes
+	opReq.Includes = args.Includes
 	opReq.Type = backendrun.OperationTypeRefresh
 	opReq.View = view.Operation()
 	opReq.DeferralAllowed = args.DeferralAllowed
@@ -185,6 +186,9 @@ Options:
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used
                       multiple times.
+
+  -include=resource   Include only this resource and it's dependants in the operation.
+                      This flag can be used multiple times.
 
   -exclude=resource   Exclude a resource from the operation. This flag can be
                       used multiple times.

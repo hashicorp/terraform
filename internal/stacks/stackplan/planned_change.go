@@ -639,6 +639,9 @@ func EncodeDeferred(reason providers.DeferredReason) *stacks.Deferred {
 	case providers.DeferredReasonExcluded:
 		// TODO:@austinvalle: Add new deferred excluded reason to proto
 		panic("TODO!")
+	case providers.DeferredReasonNotIncluded:
+		// TODO:@austinvalle: Add new deferred not included reason to proto
+		panic("TODO!")
 	default:
 		deferred.Reason = stacks.Deferred_INVALID
 	}

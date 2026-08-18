@@ -160,6 +160,18 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Oper
 		}
 	}
 
+	if len(op.Includes) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource inclusion is not supported",
+			fmt.Sprintf(
+				`The host %s does not support the -include option for `+
+					`remote plans.`,
+				b.hostname,
+			),
+		))
+	}
+
 	if len(op.Excludes) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

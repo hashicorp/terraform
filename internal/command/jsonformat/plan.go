@@ -492,6 +492,9 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 		explanation = "because a prerequisite for this resource has not yet been created"
 	case jsonplan.DeferredReasonExcluded:
 		explanation = "because the resource was excluded"
+	case jsonplan.DeferredReasonNotIncluded:
+		// TODO:@austinvalle: Improve this messaging :P
+		explanation = "because the resource was not included"
 	default:
 		explanation = "for an unknown reason"
 	}

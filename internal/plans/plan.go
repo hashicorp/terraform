@@ -71,7 +71,7 @@ type Plan struct {
 	DeferredResources         []*DeferredResourceInstanceChangeSrc
 	DeferredActionInvocations []*DeferredActionInvocationSrc
 	TargetAddrs               []addrs.Targetable
-	// TODO:@austinvalle: I'm 99% sure we don't need exclude addresses in the plan, as all the deferrals
+	// TODO:@austinvalle: I'm 99% sure we don't need include or exclude addresses in the plan, as all the deferrals
 	// should have already happened at this point. No more information should be needed to create a complete
 	// graph during apply.
 	//

@@ -72,6 +72,9 @@ type PlanOpts struct {
 	// TODO:@austinvalle: docs
 	Excludes []addrs.Targetable
 
+	// TODO:@austinvalle: docs
+	Includes []addrs.Targetable
+
 	// ActionTargets represents the actions that should be triggered by this
 	// execution. This is incompatible with the `Targets` attribute, only one
 	// can be set. Also, Mode must be plans.RefreshOnly when using
@@ -306,6 +309,40 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	// includes language asking the user to report a bug.
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
+
+	if len(opts.Includes) > 0 {
+		if len(opts.Targets) > 0 {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The resource targeting options -target and -include cannot be combined as they are mutually exclusive. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+
+		if len(opts.Excludes) > 0 {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The resource targeting options -include and -exclude cannot be combined as they are mutually exclusive. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+
+		if !opts.DeferralAllowed {
+			// The CLI layer (and other similar callers) should prevent this.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The resource targeting option -include must be combined with -allow-deferral as including only specific resources will create a partial plan. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
 
 	if len(opts.Excludes) > 0 {
 		if len(opts.Targets) > 0 {
@@ -1052,6 +1089,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			Excludes:                  opts.Excludes,
+			Includes:                  opts.Includes,
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
@@ -1078,6 +1116,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			Excludes:                  opts.Excludes,
+			Includes:                  opts.Includes,
 			ActionTargets:             opts.ActionTargets,
 			skipRefresh:               opts.SkipRefresh,
 			skipPlanChanges:           true, // this activates "refresh only" mode.
@@ -1098,6 +1137,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			Excludes:                  opts.Excludes,
+			Includes:                  opts.Includes,
 			skipRefresh:               opts.SkipRefresh,
 			Operation:                 walkPlanDestroy,
 			Overrides:                 opts.Overrides,
