@@ -4,8 +4,6 @@
 package terraform
 
 import (
-	"log"
-
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
@@ -26,10 +24,6 @@ func (n *nodePolicyEval) Name() string {
 
 func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	policyGraph := ctx.PolicyGraph()
-	if policyGraph == nil {
-		log.Printf("[DEBUG] policyGraph is nil")
-		return nil, nil
-	}
 	// Close the changes/state objects to prevent writes during policy evaluation.
 	// This is safe to do because policy evaluation is the final step in the plan/apply process.
 	// If any future nodes attempt to write to these states, they will panic.

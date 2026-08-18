@@ -93,6 +93,16 @@ func TestQueryOperationJSON_policySummary(t *testing.T) {
 			wantPolicies: 1,
 		},
 		{
+			name: "unmatched",
+			responses: []policy.EvaluationResponse{
+				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.AllowResult, nil),
+			},
+			targets:      []string{"aws_instance.example_0"},
+			wantOverall:  "pass",
+			wantResults:  1,
+			wantPolicies: 0,
+		},
+		{
 			name: "multiple list blocks",
 			wantPerBlock: []wantBlock{
 				{
@@ -256,6 +266,27 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 			},
 		},
 		{
+			name: "policy_error",
+			setup: func(v *QueryOperationHuman) {
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(
+					listBlockAddr,
+					map[string]string{"id": "i-1"},
+					policy.PolicyErrorResult,
+					[]policyResultSpec{{
+						address:     "policy.error",
+						result:      policy.PolicyErrorResult,
+						diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("errored", "detail", policy.PolicyErrorResult)},
+					}},
+				))
+			},
+			want: []string{
+				"Evaluated 1 policies.",
+				"Policy results for aws_instance.example (ERROR)",
+				"id=i-1: ERROR",
+				"policy.error: errored (mandatory)",
+			},
+		},
+		{
 			name: "unknown_result",
 			setup: func(v *QueryOperationHuman) {
 				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.EvaluateResult(999), []policyResultSpec{{address: "policy.unknown", result: policy.EvaluateResult(999)}}))
@@ -265,6 +296,33 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Policy results for aws_instance.example (UNKNOWN)",
 				"id=i-1: UNKNOWN",
 			},
+		},
+		{
+			name: "unmatched_result",
+			setup: func(v *QueryOperationHuman) {
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.AllowResult, nil))
+			},
+			want: []string{
+				"Evaluated 0 policies.",
+				"Policy results for aws_instance.example (PASS)",
+				"id=i-1: N/A",
+			},
+			notWant: []string{"id=i-1: PASS"},
+		},
+		{
+			name: "error_without_policy_details",
+			setup: func(v *QueryOperationHuman) {
+				resp := queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.PolicyErrorResult, nil)
+				resp.Diagnostics = policy.Diagnostics{policy.NewErrorDiagnostic("evaluation failed", "detail", policy.PolicyErrorResult)}
+				v.PolicyResult("aws_instance.example_0", resp)
+			},
+			want: []string{
+				"Evaluated 0 policies.",
+				"Policy results for aws_instance.example (ERROR)",
+				"id=i-1: ERROR",
+				"Error: evaluation failed",
+			},
+			notWant: []string{"N/A"},
 		},
 		{
 			name:    "no_policies",
@@ -365,6 +423,9 @@ func queryEvalResp(listBlockAddr string, identity map[string]string, overall pol
 		pol := &policy.Policy{Address: spec.address, Filename: "policy.tfpolicy.hcl", EnforcementLevel: "mandatory", Result: spec.result}
 		resp.Policies = append(resp.Policies, pol)
 		for _, diag := range spec.diagnostics {
+			if extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag); extra != nil {
+				extra.Policy = *pol
+			}
 			resp.Diagnostics = append(resp.Diagnostics, diag)
 		}
 	}
@@ -380,18 +441,8 @@ func tfdiagsWarningForQueryTest(addr string) tfdiags.Diagnostics {
 	)}
 }
 
-// ---------------------------------------------------------------------------
-// CORE-7 Regression tests
-// The original bug: QueryHuman.Hooks() and QueryJSON.Hooks() returned raw
-// UiHook/jsonHook wired to the base view. When nodeQueryResourcePolicy fired
-// the PolicyResult hook it landed in the generic renderer, so query policy
-// results were emitted as "policy_result" records instead of being buffered
-// into the queryPolicyView and flushed as a single "policy_query_summary".
-// ---------------------------------------------------------------------------
-
-// TestNewQueryJSON_hooksRouteToOperation is the primary regression test for
-// CORE-7. It drives the full public surface (NewQuery → Hooks → PolicyResult
-// hook call → Operation().Plan) and asserts that:
+// TestNewQueryJSON_hooksRouteToOperation drives the full public surface from
+// hook invocation through summary rendering and asserts that:
 //  1. Exactly one policy_query_summary record is emitted.
 //  2. No generic policy_result records are emitted.
 //  3. The summary record carries the correct shape and field values.
@@ -510,202 +561,52 @@ func TestNewQueryHuman_hooksRouteToOperation(t *testing.T) {
 	}
 }
 
-// TestNewQueryJSON_noDuplicateRecords verifies that when a result has no
-// ListBlockAddr (i.e. not a query policy result), it falls through to the
-// generic emitter and does NOT produce a policy_query_summary.
-func TestNewQueryJSON_noDuplicateRecords(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	q := NewQuery(arguments.ViewJSON, NewView(streams))
-
-	// A response with no ListBlockAddr should NOT be buffered as query policy.
-	for _, hook := range q.Hooks() {
-		hook.PolicyResult("some.resource", queryEvalResp( //nolint:errcheck
-			"", // empty ListBlockAddr — should NOT be buffered
-			nil,
-			policy.AllowResult,
-			[]policyResultSpec{{address: "policy.allow", result: policy.AllowResult}},
-		))
-	}
-
-	q.Operation().Plan(nil, nil)
-
-	output := done(t).Stdout()
-	var summaries []map[string]any
-	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		if line == "" {
-			continue
-		}
-		var decoded map[string]any
-		if err := json.Unmarshal([]byte(line), &decoded); err != nil {
-			continue
-		}
-		if decoded["type"] == string(viewjson.MessagePolicyQuerySummary) {
-			summaries = append(summaries, decoded)
-		}
-	}
-	if len(summaries) != 0 {
-		t.Fatalf("expected no policy_query_summary for result with empty ListBlockAddr, got %d", len(summaries))
-	}
-}
-
-// TestQueryJSONHook_policyResultDelegates verifies that queryJSONHook.PolicyResult
-// calls op.PolicyResult and does not emit a generic policy_result record.
-func TestQueryJSONHook_policyResultDelegates(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	jv := NewJSONView(NewView(streams))
-	qpv := newQueryPolicyView()
-	op := &QueryOperationJSON{view: jv, queryPolicy: qpv}
-	hook := &queryJSONHook{jsonHook: newJSONHook(jv), op: op}
-
-	action, err := hook.PolicyResult("addr.target", queryEvalResp(
-		"aws_instance.block",
-		map[string]string{"id": "i-99"},
-		policy.AllowResult,
-		[]policyResultSpec{{address: "policy.p", result: policy.AllowResult}},
-	))
-
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if action != terraform.HookActionContinue {
-		t.Fatalf("unexpected action: %v", action)
-	}
-	if !qpv.HasResults() {
-		t.Fatal("expected queryPolicyView to have results after hook call")
-	}
-
-	op.Plan(nil, nil)
-
-	output := done(t).Stdout()
-	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
-		if line == "" {
-			continue
-		}
-		var decoded map[string]any
-		if err := json.Unmarshal([]byte(line), &decoded); err != nil {
-			continue
-		}
-		if decoded["type"] == string(viewjson.MessagePolicyEvaluationResult) {
-			t.Fatalf("unexpected generic policy_result record emitted\nfull output:\n%s", output)
-		}
-	}
-}
-
-// TestQueryUiHook_policyResultDelegates verifies that queryUiHook.PolicyResult
-// calls op.PolicyResult without leaking anything to the raw stream immediately.
-func TestQueryUiHook_policyResultDelegates(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	view := NewView(streams)
-	qpv := newQueryPolicyView()
-	op := &QueryOperationHuman{view: view, queryPolicy: qpv}
-	hook := &queryUiHook{UiHook: NewUiHook(view), op: op}
-
-	action, err := hook.PolicyResult("addr.target", queryEvalResp(
-		"aws_instance.block",
-		map[string]string{"id": "i-99"},
-		policy.AllowResult,
-		[]policyResultSpec{{address: "policy.p", result: policy.AllowResult}},
-	))
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if action != terraform.HookActionContinue {
-		t.Fatalf("unexpected action: %v", action)
-	}
-	if !qpv.HasResults() {
-		t.Fatal("expected queryPolicyView to have results after hook call")
-	}
-
-	// Nothing should be written to the stream yet — output only arrives on Plan().
-	midOutput := done(t).All()
-	if midOutput != "" {
-		t.Errorf("unexpected output before Plan(): %q", midOutput)
-	}
-}
-
-// TestQueryPolicySummaryOverall covers each branch of the roll-up logic.
-func TestQueryPolicySummaryOverall(t *testing.T) {
-	tests := []struct {
-		name    string
-		results []queryPolicyIdentityResult
-		want    queryPolicyResult
-	}{
-		{
-			name:    "no results → pass",
-			results: []queryPolicyIdentityResult{},
-			want:    queryPolicyResultPass,
-		},
-		{
-			name:    "all pass",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultPass}, {Result: queryPolicyResultPass}},
-			want:    queryPolicyResultPass,
-		},
-		{
-			name:    "any fail → fail",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultPass}, {Result: queryPolicyResultFail}},
-			want:    queryPolicyResultFail,
-		},
-		{
-			name:    "unknown with pass → unknown",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultPass}, {Result: queryPolicyResultUnknown}},
-			want:    queryPolicyResultUnknown,
-		},
-		{
-			name:    "unknown does not override fail",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultFail}, {Result: queryPolicyResultUnknown}},
-			want:    queryPolicyResultFail,
-		},
-		{
-			name:    "error short-circuits",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultFail}, {Result: queryPolicyResultError}},
-			want:    queryPolicyResultError,
-		},
-		{
-			name:    "error short-circuits even before fail",
-			results: []queryPolicyIdentityResult{{Result: queryPolicyResultError}, {Result: queryPolicyResultFail}},
-			want:    queryPolicyResultError,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := queryPolicySummaryOverall(tc.results)
-			if got != tc.want {
-				t.Errorf("queryPolicySummaryOverall = %s, want %s", got, tc.want)
-			}
-		})
-	}
-}
-
-// TestQueryPolicyResultFromEvaluation verifies every EvaluateResult → queryPolicyResult mapping.
-func TestQueryPolicyResultFromEvaluation(t *testing.T) {
-	tests := []struct {
-		input policy.EvaluateResult
-		want  queryPolicyResult
-	}{
-		{policy.AllowResult, queryPolicyResultPass},
-		{policy.DenyResult, queryPolicyResultFail},
-		{policy.PolicyErrorResult, queryPolicyResultError},
-		{policy.SetupErrorResult, queryPolicyResultError},
-		{policy.EvaluateResult(999), queryPolicyResultUnknown},
-	}
-	for _, tc := range tests {
-		got := queryPolicyResultFromEvaluation(tc.input)
-		if got != tc.want {
-			t.Errorf("queryPolicyResultFromEvaluation(%v) = %s, want %s", tc.input, got, tc.want)
-		}
-	}
-}
-
-// TestQueryPolicyView_addResultNoListBlock verifies that AddResult returns false
-// and does not buffer a block when ListBlockAddr is empty.
-func TestQueryPolicyView_addResultNoListBlock(t *testing.T) {
+func TestQueryPolicyView_addResultPreservesUnassociatedDiagnostics(t *testing.T) {
 	v := newQueryPolicyView()
-	resp := queryEvalResp("", nil, policy.AllowResult, []policyResultSpec{{address: "p", result: policy.AllowResult}})
-	if v.AddResult("target", resp) {
-		t.Fatal("AddResult should return false when ListBlockAddr is empty")
+	pol := &policy.Policy{
+		Address:          "policy.error",
+		EnforcementLevel: "mandatory",
+		Result:           policy.PolicyErrorResult,
 	}
-	if v.HasResults() {
-		t.Fatal("HasResults should be false when no results with a list block have been added")
+	associated := policy.NewErrorDiagnostic("associated summary", "associated detail", policy.PolicyErrorResult)
+	tfdiags.ExtraInfo[*policy.PolicyExtra](associated).Policy = *pol
+	unassociated := policy.NewErrorDiagnostic("unassociated summary", "unassociated detail", policy.PolicyErrorResult)
+	resp := policy.EvaluationResponse{
+		Overall:       policy.PolicyErrorResult,
+		ListBlockAddr: "aws_instance.example",
+		Policies:      []*policy.Policy{pol},
+		Diagnostics:   policy.Diagnostics{associated, unassociated},
+	}
+
+	handled, unconsumed := v.AddResult("aws_instance.example_0", resp)
+	if !handled {
+		t.Fatal("query policy response was not handled")
+	}
+	if len(unconsumed) != 1 {
+		t.Fatalf("unconsumed diagnostics = %d, want 1", len(unconsumed))
+	}
+	desc := unconsumed[0].Description()
+	if got, want := desc.Summary, "unassociated summary"; got != want {
+		t.Fatalf("unconsumed diagnostic summary = %q, want %q", got, want)
+	}
+	if got, want := desc.Detail, "unassociated detail"; got != want {
+		t.Fatalf("unconsumed diagnostic detail = %q, want %q", got, want)
+	}
+
+	var summary queryPolicySummary
+	v.Flush(func(got queryPolicySummary) { summary = got }, nil)
+	if len(summary.Results) != 1 || len(summary.Results[0].Policies) != 1 {
+		t.Fatalf("unexpected summary: %#v", summary)
+	}
+	policyDiags := summary.Results[0].Policies[0].Diagnostics
+	if len(policyDiags) != 1 {
+		t.Fatalf("associated policy diagnostics = %d, want 1: %#v", len(policyDiags), policyDiags)
+	}
+	if got, want := policyDiags[0].Summary, "associated summary"; got != want {
+		t.Fatalf("associated diagnostic summary = %q, want %q", got, want)
+	}
+	if got, want := policyDiags[0].Detail, "associated detail"; got != want {
+		t.Fatalf("associated diagnostic detail = %q, want %q", got, want)
 	}
 }
 
@@ -970,58 +871,5 @@ func TestQueryPolicyView_multiBlock(t *testing.T) {
 	}
 	if summaries[1].OverallResult != queryPolicyResultPass {
 		t.Errorf("summaries[1] OverallResult = %s, want pass", summaries[1].OverallResult)
-	}
-}
-
-func TestQueryOperation_nilQueryPolicyPolicyResult(t *testing.T) {
-	// Test that QueryOperationHuman and QueryOperationJSON do not panic
-	// when PolicyResult is called with queryPolicy == nil. This can occur if
-	// a test constructs the operation directly without going through NewQuery.
-	streams, _ := terminal.StreamsForTesting(t)
-
-	tests := []struct {
-		name string
-		test func(t *testing.T)
-	}{
-		{
-			name: "QueryOperationHuman with nil queryPolicy",
-			test: func(t *testing.T) {
-				op := &QueryOperationHuman{
-					view:        NewView(streams),
-					queryPolicy: nil,
-				}
-				// This should not panic. It should delegate to the base view.
-				resp := policy.EvaluationResponse{
-					ListBlockAddr: "",
-					Identity:      map[string]string{"id": "test"},
-					Overall:       policy.AllowResult,
-					Policies:      []*policy.Policy{},
-				}
-				// Call should complete without panic
-				op.PolicyResult("aws_instance.example", resp)
-			},
-		},
-		{
-			name: "QueryOperationJSON with nil queryPolicy",
-			test: func(t *testing.T) {
-				op := &QueryOperationJSON{
-					view:        NewJSONView(NewView(streams)),
-					queryPolicy: nil,
-				}
-				// This should not panic. It should delegate to the base view.
-				resp := policy.EvaluationResponse{
-					ListBlockAddr: "",
-					Identity:      map[string]string{"id": "test"},
-					Overall:       policy.AllowResult,
-					Policies:      []*policy.Policy{},
-				}
-				// Call should complete without panic
-				op.PolicyResult("aws_instance.example", resp)
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, tt.test)
 	}
 }

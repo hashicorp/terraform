@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,12 +13,16 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -1042,4 +1047,198 @@ func TestQuery_JSON_Raw(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestQueryPolicyRPCErrorIsolation(t *testing.T) {
+	var calls atomic.Int32
+	client := &policy.MockClient{
+		EvaluateFn: func(_ context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			calls.Add(1)
+			switch id := req.Attrs.Raw.GetAttr("ami").AsString(); id {
+			case "test-instance-1":
+				return queryPolicyRPCError()
+			case "test-instance-2":
+				return queryPolicyAllowResponse()
+			default:
+				t.Errorf("unexpected policy request marker %q", id)
+				return queryPolicyAllowResponse()
+			}
+		},
+	}
+
+	records := runQueryPolicyCommandTest(t, 2, client)
+	if got := calls.Load(); got != 2 {
+		t.Fatalf("policy client calls = %d, want 2", got)
+	}
+
+	_, diagnostic := queryPolicyRecord(t, records, string(viewjson.MessagePolicyDiagnostic))
+	_, summary := queryPolicyRecord(t, records, string(viewjson.MessagePolicyQuerySummary))
+	if summary["overall_result"] != "error" {
+		t.Fatalf("summary overall_result = %v, want error", summary["overall_result"])
+	}
+	first := queryPolicyResultByIdentity(t, summary, "test-instance-1")
+	second := queryPolicyResultByIdentity(t, summary, "test-instance-2")
+	if first["result"] != "error" {
+		t.Fatalf("test-instance-1 result = %v, want error", first["result"])
+	}
+	if first["target_address"] != "test_instance.example_0" {
+		t.Fatalf("test-instance-1 target = %v, want test_instance.example_0", first["target_address"])
+	}
+	if second["result"] != "pass" {
+		t.Fatalf("test-instance-2 result = %v, want pass", second["result"])
+	}
+	if diagnostic["target_address"] != first["target_address"] {
+		t.Fatalf("diagnostic target = %v, want first-row target %v", diagnostic["target_address"], first["target_address"])
+	}
+	if diagnostic["result"] != policy.PolicyErrorResult.String() {
+		t.Fatalf("diagnostic result = %v, want %s", diagnostic["result"], policy.PolicyErrorResult)
+	}
+	rendered, ok := diagnostic[string(viewjson.MessagePolicyDiagnostic)].(map[string]any)
+	if !ok {
+		t.Fatalf("policy diagnostic payload has unexpected type: %#v", diagnostic[string(viewjson.MessagePolicyDiagnostic)])
+	}
+	if got, want := rendered["summary"], "Policy RPC failed"; got != want {
+		t.Fatalf("policy diagnostic summary = %q, want %q", got, want)
+	}
+	if got, want := rendered["detail"], "Policy RPC failed while evaluating resource."; got != want {
+		t.Fatalf("policy diagnostic detail = %q, want %q", got, want)
+	}
+}
+
+func runQueryPolicyCommandTest(t *testing.T, resourceCount int, client policy.Client) []map[string]any {
+	t.Helper()
+	t.Setenv("TF_POLICY_PARALLELISM", "1")
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("query", "basic")), td)
+	t.Chdir(td)
+
+	provider := queryPolicyFixtureProvider(resourceCount)
+	overrides := metaOverridesForProvider(provider)
+	overrides.PolicyClient = client
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	view, done := testView(t)
+	meta := Meta{
+		testingOverrides:          overrides,
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		ProviderSource:            providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("init failed with status %d:\n%s", code, done(t).All())
+	}
+	_ = done(t)
+
+	view, done = testView(t)
+	meta.View = view
+	cmd := &QueryCommand{Meta: meta}
+	args := []string{"-no-color", "-json", "-policies", td}
+	code := cmd.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("query failed with status %d:\n%s", code, output.All())
+	}
+
+	var records []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(output.Stdout()), "\n") {
+		if line == "" {
+			continue
+		}
+		var record map[string]any
+		if err := json.Unmarshal([]byte(line), &record); err != nil {
+			t.Fatalf("failed to decode JSON line %q: %s", line, err)
+		}
+		records = append(records, record)
+	}
+	return records
+}
+
+func queryPolicyFixtureProvider(resourceCount int) *testing_provider.MockProvider {
+	provider := queryFixtureProvider()
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		config := request.Config.AsValueMap()["config"]
+		resources := make([]cty.Value, resourceCount)
+		for idx := range resources {
+			id := fmt.Sprintf("test-instance-%d", idx+1)
+			resources[idx] = cty.ObjectVal(map[string]cty.Value{
+				"identity": cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal(id),
+				}),
+				"state": cty.ObjectVal(map[string]cty.Value{
+					"id":  cty.StringVal(id),
+					"ami": cty.StringVal(id),
+				}),
+				"display_name": cty.StringVal(fmt.Sprintf("Test Instance %d", idx+1)),
+			})
+		}
+		return providers.ListResourceResponse{
+			Result: cty.ObjectVal(map[string]cty.Value{
+				"data":   cty.ListVal(resources),
+				"config": config,
+			}),
+		}
+	}
+	return provider
+}
+
+func queryPolicyRPCError() policy.EvaluationResponse {
+	return policy.EvaluationResponse{
+		Overall: policy.PolicyErrorResult,
+		Diagnostics: policy.Diagnostics{policy.NewErrorDiagnostic(
+			"Policy RPC failed",
+			"Policy RPC failed while evaluating resource.",
+			policy.PolicyErrorResult,
+		)},
+	}
+}
+
+func queryPolicyAllowResponse() policy.EvaluationResponse {
+	return policy.EvaluationResponse{
+		Overall: policy.AllowResult,
+		Policies: []*policy.Policy{{
+			Address:          "policy.allow",
+			Filename:         "allow.policy.hcl",
+			EnforcementLevel: "mandatory",
+			Result:           policy.AllowResult,
+		}},
+	}
+}
+
+func queryPolicyRecord(t *testing.T, records []map[string]any, recordType string) (int, map[string]any) {
+	t.Helper()
+
+	foundIdx := -1
+	var found map[string]any
+	for idx, record := range records {
+		if record["type"] != recordType {
+			continue
+		}
+		if found != nil {
+			t.Fatalf("found multiple %s records", recordType)
+		}
+		foundIdx = idx
+		found = record
+	}
+	if found == nil {
+		t.Fatalf("no %s record found", recordType)
+	}
+	return foundIdx, found
+}
+
+func queryPolicyResultByIdentity(t *testing.T, summary map[string]any, id string) map[string]any {
+	t.Helper()
+
+	for _, raw := range summary["results"].([]any) {
+		result := raw.(map[string]any)
+		identity := result["identity"].(map[string]any)
+		if identity["id"] == id {
+			return result
+		}
+	}
+	t.Fatalf("no summary result found for identity %q", id)
+	return nil
 }

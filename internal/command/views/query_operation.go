@@ -114,7 +114,11 @@ func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationRe
 		v.view.PolicyResult(addr, resp)
 		return
 	}
-	if v.queryPolicy.AddResult(addr, resp) {
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
 		return
 	}
 	v.view.PolicyResult(addr, resp)
@@ -176,7 +180,11 @@ func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationRes
 		v.view.PolicyResult(addr, resp)
 		return
 	}
-	if v.queryPolicy.AddResult(addr, resp) {
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
 		return
 	}
 	v.view.PolicyResult(addr, resp)

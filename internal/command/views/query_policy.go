@@ -95,9 +95,9 @@ func (v *queryPolicyView) AddWarningDiags(diags tfdiags.Diagnostics) {
 	}
 }
 
-func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse) bool {
+func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse) (bool, policy.Diagnostics) {
 	if resp.ListBlockAddr == "" {
-		return false
+		return false, nil
 	}
 
 	v.mu.Lock()
@@ -121,29 +121,25 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 	// identity always reflects only the most-recent response.
 	identityResult.Policies = identityResult.Policies[:0]
 
-	diagsByPolicy := make(map[string][]viewjson.Diagnostic, len(resp.Policies))
-	unmatchedDiags := make([]viewjson.Diagnostic, 0)
-	for _, diag := range resp.Diagnostics {
-		jsonDiag := *viewjson.NewDiagnostic(diag, nil)
+	diagPolicyAddrs := make([]string, len(resp.Diagnostics))
+	for idx, diag := range resp.Diagnostics {
 		extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
-		if extra == nil || extra.Policy.Address == "" {
-			unmatchedDiags = append(unmatchedDiags, jsonDiag)
-			continue
+		if extra != nil {
+			diagPolicyAddrs[idx] = extra.Policy.Address
 		}
-		diagsByPolicy[extra.Policy.Address] = append(diagsByPolicy[extra.Policy.Address], jsonDiag)
 	}
+	consumedDiags := make([]bool, len(resp.Diagnostics))
 
 	for _, pol := range resp.Policies {
 		metadata := viewjson.MetadataFromPolicy(*pol)
 		block.PolicyMetadata[pol.Address] = metadata
-		policyDiags := diagsByPolicy[pol.Address]
-		// When there is exactly one policy and no diags matched its address
-		// (e.g. the diagnostic has no extra PolicyExtra metadata), fall back to
-		// the unmatched set so they are still associated with the sole policy.
-		// This handles policy plugins that may omit PolicyExtra from diagnostics
-		// in simpler scenarios, ensuring diagnostics are not lost or orphaned.
-		if len(policyDiags) == 0 && len(unmatchedDiags) > 0 && len(resp.Policies) == 1 {
-			policyDiags = unmatchedDiags
+		var policyDiags []viewjson.Diagnostic
+		for idx, policyAddr := range diagPolicyAddrs {
+			if consumedDiags[idx] || policyAddr != pol.Address {
+				continue
+			}
+			policyDiags = append(policyDiags, *viewjson.NewDiagnostic(resp.Diagnostics[idx], nil))
+			consumedDiags[idx] = true
 		}
 		identityResult.Policies = append(identityResult.Policies, queryPolicyEvalResult{
 			PolicyMetadata: metadata,
@@ -152,7 +148,13 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 		})
 	}
 
-	return true
+	var unconsumed policy.Diagnostics
+	for idx, diag := range resp.Diagnostics {
+		if !consumedDiags[idx] {
+			unconsumed = append(unconsumed, diag)
+		}
+	}
+	return true, unconsumed
 }
 
 func (v *queryPolicyView) Flush(flush func(summary queryPolicySummary), warn func(tfdiags.Diagnostics)) {
@@ -199,7 +201,7 @@ func (v *queryPolicyView) block(addr string) *queryPolicyBlock {
 func (b *queryPolicyBlock) summary() queryPolicySummary {
 	results := make([]queryPolicyIdentityResult, 0, len(b.ResultsByTarget))
 	for _, result := range b.ResultsByTarget {
-		policies := append([]queryPolicyEvalResult(nil), result.Policies...)
+		policies := append(make([]queryPolicyEvalResult, 0, len(result.Policies)), result.Policies...)
 		sort.Slice(policies, func(i, j int) bool {
 			return policies[i].PolicyMetadata.PolicyName < policies[j].PolicyMetadata.PolicyName
 		})
@@ -269,9 +271,13 @@ func renderQueryPolicySummaryHuman(summary queryPolicySummary) string {
 
 	fmt.Fprintf(&buf, "Policy results for %s (%s)\n", summary.ListBlockAddress, strings.ToUpper(string(summary.OverallResult)))
 	for _, result := range summary.Results {
-		fmt.Fprintf(&buf, "  %s: %s\n", formatQueryPolicyIdentity(result.Identity), strings.ToUpper(string(result.Result)))
+		label := strings.ToUpper(string(result.Result))
+		if result.Result == queryPolicyResultPass && len(result.Policies) == 0 {
+			label = "N/A"
+		}
+		fmt.Fprintf(&buf, "  %s: %s\n", formatQueryPolicyIdentity(result.Identity), label)
 		for _, pol := range result.Policies {
-			if pol.Result != queryPolicyResultFail {
+			if pol.Result != queryPolicyResultFail && pol.Result != queryPolicyResultError {
 				continue
 			}
 			for _, diag := range pol.Diagnostics {

@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -22,7 +24,7 @@ type stubPolicyClient struct {
 	proto.PolicyClient
 
 	setupFn            func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error)
-	evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
+	evaluateResourceFn func(context.Context, *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
 	evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 	evaluateModuleFn   func(*proto.PolicyEvaluateModuleRequest) (*proto.PolicyEvaluateModuleResponse, error)
 }
@@ -32,7 +34,7 @@ func (s *stubPolicyClient) Setup(ctx context.Context, req *proto.PolicySetupRequ
 }
 
 func (s *stubPolicyClient) EvaluateResource(ctx context.Context, req *proto.PolicyEvaluateResourceRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateResourceResponse, error) {
-	return s.evaluateResourceFn(req)
+	return s.evaluateResourceFn(ctx, req)
 }
 
 func (s *stubPolicyClient) EvaluateProvider(ctx context.Context, req *proto.PolicyEvaluateProviderRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateProviderResponse, error) {
@@ -163,7 +165,7 @@ func TestClientEvaluate(t *testing.T) {
 			registry := &callback.MockRegistry{NextIDValue: 23}
 			c := &client{
 				client: &stubPolicyClient{
-					evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+					evaluateResourceFn: func(_ context.Context, req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
 						gotReq = req
 
 						// assert that the evaluation id is registered with the callback registry
@@ -214,6 +216,60 @@ func TestClientEvaluate(t *testing.T) {
 				t.Fatalf("expected evaluation id %d to be unregistered", gotReq.EvaluationId)
 			}
 		})
+	}
+}
+
+func TestClientEvaluateResourceRPCError(t *testing.T) {
+	type contextKey struct{}
+	ctx := context.WithValue(t.Context(), contextKey{}, "rpc context")
+
+	registry := &callback.MockRegistry{NextIDValue: 23}
+	var evaluationID uint32
+	c := &client{
+		client: &stubPolicyClient{
+			evaluateResourceFn: func(ctx context.Context, req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+				if got := ctx.Value(contextKey{}); got != "rpc context" {
+					t.Fatalf("RPC context value = %q, want %q", got, "rpc context")
+				}
+				evaluationID = req.EvaluationId
+				if _, ok := registry.Get(evaluationID); !ok {
+					t.Fatalf("evaluation id %d was not registered during the RPC", evaluationID)
+				}
+				return nil, status.Error(codes.Unavailable, "connection reset by peer")
+			},
+		},
+		callbackRegistry: registry,
+	}
+
+	resp := c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+		Target:     "test_resource",
+		Attrs:      PolicyValue{Raw: cty.NilVal},
+		PriorAttrs: PolicyValue{Raw: cty.NilVal},
+	})
+
+	if resp.Overall != PolicyErrorResult {
+		t.Fatalf("overall result = %s, want %s", resp.Overall, PolicyErrorResult)
+	}
+	if len(resp.Diagnostics) != 1 {
+		t.Fatalf("got %d diagnostics, want 1", len(resp.Diagnostics))
+	}
+	diag := resp.Diagnostics[0]
+	if got := diag.Severity(); got != tfdiags.Error {
+		t.Fatalf("diagnostic severity = %s, want %s", got, tfdiags.Error)
+	}
+	extra := tfdiags.ExtraInfo[*PolicyExtra](diag)
+	if extra == nil || extra.Result != PolicyErrorResult {
+		t.Fatalf("diagnostic result metadata = %#v, want %s", extra, PolicyErrorResult)
+	}
+	desc := diag.Description()
+	if got, want := desc.Summary, "Failed to evaluate Terraform Policy"; got != want {
+		t.Fatalf("diagnostic summary = %q, want %q", got, want)
+	}
+	if got, want := desc.Detail, "Failed to evaluate Terraform Policy: rpc error: code = Unavailable desc = connection reset by peer."; got != want {
+		t.Fatalf("diagnostic detail = %q, want %q", got, want)
+	}
+	if _, ok := registry.Get(evaluationID); ok {
+		t.Fatalf("evaluation id %d was not unregistered", evaluationID)
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -55,6 +56,7 @@ func (n *nodeQueryResourcePolicy) Name() string {
 // gate used by nodeResourcePolicy is correct for plan/apply (where passing resources
 // carry no actionable information), but wrong here because query consumers need a
 // complete row for every discovered resource.
+
 func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -70,13 +72,18 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 		return nil
 	}
 
-	// Acquire the policy semaphore to limit concurrent policy evaluations.
-	// The nil-config guard above must remain before this acquire so that a
-	// missing config does not consume a semaphore slot for no work.
 	policySem := ctx.PolicySemaphore()
 	if policySem != nil {
 		policySem.Acquire()
 		defer policySem.Release()
+	}
+
+	emitResult := func(result policy.EvaluationResponse) tfdiags.Diagnostics {
+		result = result.WithQueryMetadata(ctyIdentityToStringMap(n.Identity), n.ListBlockAddr.String())
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.ResourceAddr.String(), result)
+		})
+		return diags.Append(hookErr)
 	}
 
 	providerAddr := n.ProviderAddr
@@ -84,8 +91,6 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	if err != nil {
 		return diags.Append(err)
 	}
-
-	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
 	// Query resources are always evaluated as CREATE operations since they
 	// represent discovered resources that don't exist in the configuration.
@@ -95,14 +100,6 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
-	// The resource config may be nil if the list block has been removed from
-	// the configuration. In that case we proceed without source information
-	// in diagnostics.
-	var resourceConfig *configs.Resource
-	if modCfg != nil {
-		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-	}
-
 	callbacks := callback.Functions{
 		GetResources:  getResourcesForPolicyCallback(ctx, op, provider, schema, config),
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
@@ -110,25 +107,8 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 
 	// Evaluate policies with the generated config as the "after" state
 	// and null as the "before" state (since these are discovered resources).
-	// evaluatePolicies already applies WithLocalRange internally; do not reapply.
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
-
-	// Annotate the result with query correlation metadata so that downstream
-	// consumers (UI, cloud backend) can identify which list-block row this
-	// result belongs to.
-	result = result.WithQueryMetadata(ctyIdentityToStringMap(n.Identity), n.ListBlockAddr.String())
-
-	// Always emit for query policy nodes. WithQueryMetadata always sets
-	// ListBlockAddr to a non-empty string, so every result has identity.
-	// Query nodes always emit so downstream aggregators can include passing
-	// resources in summary records; the !result.Empty() gate must not be
-	// applied here.
-	hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PolicyResult(n.ResourceAddr.String(), result)
-	})
-	diags = diags.Append(hookErr)
-
-	return diags
+	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+	return emitResult(result)
 }
 
 // ctyIdentityToStringMap converts a cty object value that represents a resource
