@@ -18,7 +18,6 @@ type nodePolicyEval struct {
 }
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
-var _ dag.AlwaysRunVertex = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
 	return "(evaluate policies)"
@@ -40,9 +39,10 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	return policyGraph.evalGraph(span), nil
 }
 
-// AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
-// can proceed even if some resource instance nodes evaluated with error diagnostics.
-func (n *nodePolicyEval) AlwaysRun() {}
+// Always run regardless of upstream signals
+func (n *nodePolicyEval) ContinueWithSignals(signals []any) bool {
+	return true
+}
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
 // runs after every policy node and ends the policy-execution phase span. It

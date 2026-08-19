@@ -28,6 +28,27 @@ var (
 	graphWalkDefer = errors.New("node deferred")
 )
 
+// graphWalkSignalConsumer is implemented by nodes which want to conditionally
+// be called based on upstream signals.
+type graphWalkSignalConsumer interface {
+	// ContinueWithSignals analyzes the received signals and return a bool indicating if
+	// the node should be executed.
+	ContinueWithSignals([]any) bool
+}
+
+// graphWalkSignalEmitter is implemented by nodes which was to produce a signal
+// for downstream consumers. If a node implements this, error diagnostics will
+// no longer automatically trigger a graphWalkError. This interface is split
+// from the consumer side so that most nodes can continue to make use of the
+// default behavior of returning graphWalkError along with error diagnostics.
+type graphWalkSignalEmitter interface {
+	// Signal is called before returning form the execution callback to retrieve
+	// any signals that should be sent downstream. Any node which implements
+	// this interface must ensure that all error return paths which can have
+	// downstream effects reports an appropriate signal value.
+	Signal() any
+}
+
 // Graph represents the graph that Terraform uses to represent resources
 // and their dependencies.
 type Graph struct {
@@ -52,22 +73,34 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 
 	signalWrapper := func(cb func(dag.Vertex) tfdiags.Diagnostics) dag.WalkFunc {
 		return func(ctx context.Context, v dag.Vertex) (any, tfdiags.Diagnostics) {
-			_, alwaysRun := v.(dag.AlwaysRunVertex)
+			signals := dag.Signals(ctx)
 
-			for _, sig := range dag.Signals(ctx) {
-				if sig == graphWalkError {
-					if !alwaysRun {
+			switch sc := v.(type) {
+			case graphWalkSignalConsumer:
+				if !sc.ContinueWithSignals(signals) {
+					return nil, nil
+				}
+			default:
+				// default handling of the "stop on error" behavior
+				for _, sig := range signals {
+					if sig == graphWalkError {
 						log.Printf("[DEBUG] Upstream node errored, skipping %s", v.Name())
 						return nil, nil
 					}
-					log.Printf("[DEBUG] Upstream node errored, but %s is always executed", v.Name())
 				}
 			}
 
 			diags := cb(v)
-			if diags.HasErrors() {
-				return graphWalkError, diags
+
+			switch se := v.(type) {
+			case graphWalkSignalEmitter:
+				return se.Signal(), diags
+			default:
+				if diags.HasErrors() {
+					return graphWalkError, diags
+				}
 			}
+
 			return nil, diags
 		}
 	}
