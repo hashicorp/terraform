@@ -559,6 +559,87 @@ func TestContext2Validate_orphans(t *testing.T) {
 	}
 }
 
+// make sure that providers are always closed even when upstream nodes fail
+func TestContext2Validate_closeProviderAfterError(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider aws {
+  foo = "bar"
+}
+
+resource "aws_instance" "foo" {
+    num = "2"
+    foo = "bar"
+}
+
+resource "aws_instance" "bar" {
+    foo = "bar"
+}
+`,
+	})
+
+	// create an entire new instance of the provider for each factory call, so
+	// that we can check for method calls on a specific instance, and not over
+	// the entire Validate lifecycle
+	providerClosed := false
+	pFactory := func() (providers.Interface, error) {
+		p := testProvider("aws")
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"aws_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"foo": {Type: cty.String, Optional: true},
+							"num": {Type: cty.String, Optional: true},
+						},
+					},
+				},
+			},
+		}
+
+		p.CloseFn = func() error {
+			// we'll use the call to Validate to indicate when this is the
+			// runtime provider for the graph walk, and not just being used for
+			// metadata.
+			if p.ValidateProviderConfigCalled {
+				providerClosed = true
+			}
+			return nil
+		}
+
+		p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
+			// this will cause the resource node to error out, but should not
+			// affect the closing of the provider.
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is not set"))
+			return resp
+		}
+
+		return p, nil
+	}
+
+	c := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): pFactory,
+		},
+	})
+
+	diags := c.Validate(m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected errors")
+	}
+
+	if !providerClosed {
+		t.Fatal("validated provider was never closed")
+	}
+}
+
 func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")

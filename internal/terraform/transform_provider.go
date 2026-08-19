@@ -487,6 +487,10 @@ var (
 	_ GraphNodeExecutable    = (*graphNodeCloseProvider)(nil)
 )
 
+func (n *graphNodeCloseProvider) ContinueWithSignals(signals []any) bool {
+	return true
+}
+
 func (n *graphNodeCloseProvider) Name() string {
 	return n.Addr.String() + " (close)"
 }

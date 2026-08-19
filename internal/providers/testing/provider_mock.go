@@ -202,6 +202,7 @@ type MockProvider struct {
 	ValidateActionConfigFn       func(providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse
 
 	CloseCalled bool
+	CloseFn     func() error
 	CloseError  error
 }
 
@@ -1170,8 +1171,12 @@ func (p *MockProvider) InvokeAction(r providers.InvokeActionRequest) providers.I
 
 func (p *MockProvider) Close() error {
 	defer p.beginWrite()()
-
 	p.CloseCalled = true
+
+	if p.CloseFn != nil {
+		return p.CloseFn()
+	}
+
 	return p.CloseError
 }
 
