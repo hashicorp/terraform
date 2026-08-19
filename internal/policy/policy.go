@@ -251,9 +251,13 @@ func (r EvaluationResponse) WithQueryMetadata(identity map[string]string, listBl
 }
 
 func ErrorEvalFromDiags(diags []*proto.Diagnostic) EvaluationResponse {
+	converted := DiagsFromProto(diags, nil)
+	for idx := range converted {
+		converted[idx].extra.Result = PolicyErrorResult
+	}
 	return EvaluationResponse{
 		Overall:     PolicyErrorResult,
-		Diagnostics: DiagsFromProto(diags, nil),
+		Diagnostics: converted,
 	}
 }
 

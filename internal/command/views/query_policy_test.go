@@ -5,6 +5,7 @@ package views
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -75,12 +77,42 @@ func TestQueryOperationJSON_policySummary(t *testing.T) {
 		{
 			name: "unknown",
 			responses: []policy.EvaluationResponse{
-				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.EvaluateResult(999), []policyResultSpec{{address: "policy.unknown", result: policy.EvaluateResult(999)}}),
+				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.UnknownResult, []policyResultSpec{{address: "policy.unknown", result: policy.UnknownResult}}),
 			},
 			targets:      []string{"aws_instance.example_0"},
 			wantOverall:  "unknown",
 			wantResults:  1,
 			wantPolicies: 1,
+		},
+		{
+			name: "no matching policies",
+			responses: []policy.EvaluationResponse{
+				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.AllowResult, nil),
+			},
+			targets:      []string{"aws_instance.example_0"},
+			wantOverall:  "n/a",
+			wantResults:  1,
+			wantPolicies: 0,
+		},
+		{
+			name: "unknown without policy details",
+			responses: []policy.EvaluationResponse{
+				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.UnknownResult, nil),
+			},
+			targets:      []string{"aws_instance.example_0"},
+			wantOverall:  "unknown",
+			wantResults:  1,
+			wantPolicies: 0,
+		},
+		{
+			name: "error without policy details",
+			responses: []policy.EvaluationResponse{
+				queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.PolicyErrorResult, nil),
+			},
+			targets:      []string{"aws_instance.example_0"},
+			wantOverall:  "error",
+			wantResults:  1,
+			wantPolicies: 0,
 		},
 		{
 			name: "error",
@@ -205,12 +237,13 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 	listBlockAddr := "aws_instance.example"
 
 	tests := []struct {
-		name    string
-		plan    *plans.Plan
-		schemas *terraform.Schemas
-		setup   func(v *QueryOperationHuman)
-		want    []string
-		notWant []string
+		name            string
+		plan            *plans.Plan
+		schemas         *terraform.Schemas
+		setup           func(v *QueryOperationHuman)
+		want            []string
+		notWant         []string
+		wantOccurrences map[string]int
 	}{
 		{
 			name: "mixed_pass_and_fail",
@@ -258,12 +291,58 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 		{
 			name: "unknown_result",
 			setup: func(v *QueryOperationHuman) {
-				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.EvaluateResult(999), []policyResultSpec{{address: "policy.unknown", result: policy.EvaluateResult(999)}}))
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.UnknownResult, nil))
 			},
 			want: []string{
-				"Evaluated 1 policies.",
+				"Evaluated 0 policies.",
 				"Policy results for aws_instance.example (UNKNOWN)",
 				"id=i-1: UNKNOWN",
+			},
+			notWant: []string{"id=i-1: N/A"},
+		},
+		{
+			name: "no_matching_policies",
+			setup: func(v *QueryOperationHuman) {
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.AllowResult, nil))
+			},
+			want: []string{
+				"Evaluated 0 policies.",
+				"Policy results for aws_instance.example (N/A)",
+				"id=i-1: N/A",
+			},
+			notWant: []string{"id=i-1: PASS"},
+		},
+		{
+			name: "policy_error",
+			setup: func(v *QueryOperationHuman) {
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-1"}, policy.PolicyErrorResult, []policyResultSpec{{address: "policy.error", result: policy.PolicyErrorResult, diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("error summary", "detail", policy.PolicyErrorResult)}}}))
+			},
+			want: []string{
+				"Policy results for aws_instance.example (ERROR)",
+				"id=i-1: ERROR",
+				"policy.error: error summary (mandatory)",
+			},
+		},
+		{
+			name: "policy_diagnostics_are_status_gated",
+			setup: func(v *QueryOperationHuman) {
+				v.PolicyResult("aws_instance.example_0", queryEvalResp(listBlockAddr, map[string]string{"id": "i-pass"}, policy.AllowResult, []policyResultSpec{{address: "policy.pass", result: policy.AllowResult, diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("pass diagnostic", "detail", policy.AllowResult)}}}))
+				v.PolicyResult("aws_instance.example_1", queryEvalResp(listBlockAddr, map[string]string{"id": "i-unknown"}, policy.UnknownResult, []policyResultSpec{{address: "policy.unknown", result: policy.UnknownResult, diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("unknown diagnostic", "detail", policy.UnknownResult)}}}))
+				v.PolicyResult("aws_instance.example_2", queryEvalResp(listBlockAddr, map[string]string{"id": "i-fail"}, policy.DenyResult, []policyResultSpec{{address: "policy.fail", result: policy.DenyResult, diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("fail diagnostic", "detail", policy.DenyResult)}}}))
+				v.PolicyResult("aws_instance.example_3", queryEvalResp(listBlockAddr, map[string]string{"id": "i-error"}, policy.PolicyErrorResult, []policyResultSpec{{address: "policy.error", result: policy.PolicyErrorResult, diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("error diagnostic", "detail", policy.PolicyErrorResult)}}}))
+			},
+			want: []string{
+				"Policy results for aws_instance.example (ERROR)",
+			},
+			wantOccurrences: map[string]int{
+				"id=i-pass: PASS":                                1,
+				"id=i-unknown: UNKNOWN":                          1,
+				"id=i-fail: FAIL":                                1,
+				"id=i-error: ERROR":                              1,
+				"policy.pass: pass diagnostic (mandatory)":       0,
+				"policy.unknown: unknown diagnostic (mandatory)": 0,
+				"policy.fail: fail diagnostic (mandatory)":       1,
+				"policy.error: error diagnostic (mandatory)":     1,
 			},
 		},
 		{
@@ -308,6 +387,11 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 			for _, notWant := range tc.notWant {
 				if strings.Contains(output, notWant) {
 					t.Errorf("expected output NOT to contain %q\nfull output:\n%s", notWant, output)
+				}
+			}
+			for text, want := range tc.wantOccurrences {
+				if got := strings.Count(output, text); got != want {
+					t.Errorf("output occurrence count for %q = %d, want %d\nfull output:\n%s", text, got, want, output)
 				}
 			}
 		})
@@ -365,6 +449,9 @@ func queryEvalResp(listBlockAddr string, identity map[string]string, overall pol
 		pol := &policy.Policy{Address: spec.address, Filename: "policy.tfpolicy.hcl", EnforcementLevel: "mandatory", Result: spec.result}
 		resp.Policies = append(resp.Policies, pol)
 		for _, diag := range spec.diagnostics {
+			if extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag); extra != nil {
+				extra.Policy = *pol
+			}
 			resp.Diagnostics = append(resp.Diagnostics, diag)
 		}
 	}
@@ -623,6 +710,44 @@ func TestQueryUiHook_policyResultDelegates(t *testing.T) {
 	}
 }
 
+func TestQueryUiHook_concurrentUnassociatedDiagnostics(t *testing.T) {
+	const goroutines = 20
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	op := &QueryOperationHuman{view: view, queryPolicy: newQueryPolicyView()}
+	hook := &queryUiHook{UiHook: NewUiHook(view), op: op}
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for idx := range goroutines {
+		go func(idx int) {
+			defer wg.Done()
+			resp := queryEvalResp(
+				"aws_instance.block",
+				map[string]string{"id": fmt.Sprintf("i-%d", idx)},
+				policy.PolicyErrorResult,
+				nil,
+			)
+			resp.Diagnostics = policy.Diagnostics{
+				policy.NewErrorDiagnostic("evaluation failed", "transport unavailable", policy.PolicyErrorResult),
+			}
+			if _, err := hook.PolicyResult(fmt.Sprintf("aws_instance.block_%d", idx), resp); err != nil {
+				t.Errorf("PolicyResult returned an error: %s", err)
+			}
+		}(idx)
+	}
+	wg.Wait()
+	op.Plan(nil, nil)
+
+	output := done(t).All()
+	if got := strings.Count(output, "evaluation failed"); got != goroutines {
+		t.Fatalf("rendered diagnostics = %d, want %d", got, goroutines)
+	}
+	if got := strings.Count(output, ": ERROR"); got != goroutines {
+		t.Fatalf("rendered Error rows = %d, want %d", got, goroutines)
+	}
+}
+
 // TestQueryPolicySummaryOverall covers each branch of the roll-up logic.
 func TestQueryPolicySummaryOverall(t *testing.T) {
 	tests := []struct {
@@ -634,6 +759,51 @@ func TestQueryPolicySummaryOverall(t *testing.T) {
 			name:    "no results → pass",
 			results: []queryPolicyIdentityResult{},
 			want:    queryPolicyResultPass,
+		},
+		{
+			name:    "all N/A → N/A",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultNA}, {Result: queryPolicyResultNA}},
+			want:    queryPolicyResultNA,
+		},
+		{
+			name:    "pass overrides N/A",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultNA}, {Result: queryPolicyResultPass}},
+			want:    queryPolicyResultPass,
+		},
+		{
+			name:    "N/A does not override pass",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultPass}, {Result: queryPolicyResultNA}},
+			want:    queryPolicyResultPass,
+		},
+		{
+			name:    "unknown overrides N/A",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultNA}, {Result: queryPolicyResultUnknown}},
+			want:    queryPolicyResultUnknown,
+		},
+		{
+			name:    "N/A does not override unknown",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultUnknown}, {Result: queryPolicyResultNA}},
+			want:    queryPolicyResultUnknown,
+		},
+		{
+			name:    "fail overrides N/A",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultNA}, {Result: queryPolicyResultFail}},
+			want:    queryPolicyResultFail,
+		},
+		{
+			name:    "N/A does not override fail",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultFail}, {Result: queryPolicyResultNA}},
+			want:    queryPolicyResultFail,
+		},
+		{
+			name:    "error overrides N/A",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultNA}, {Result: queryPolicyResultError}},
+			want:    queryPolicyResultError,
+		},
+		{
+			name:    "N/A does not override error",
+			results: []queryPolicyIdentityResult{{Result: queryPolicyResultError}, {Result: queryPolicyResultNA}},
+			want:    queryPolicyResultError,
 		},
 		{
 			name:    "all pass",
@@ -684,9 +854,11 @@ func TestQueryPolicyResultFromEvaluation(t *testing.T) {
 	}{
 		{policy.AllowResult, queryPolicyResultPass},
 		{policy.DenyResult, queryPolicyResultFail},
+		{policy.UnknownResult, queryPolicyResultUnknown},
 		{policy.PolicyErrorResult, queryPolicyResultError},
 		{policy.SetupErrorResult, queryPolicyResultError},
-		{policy.EvaluateResult(999), queryPolicyResultUnknown},
+		{policy.InvalidResult, queryPolicyResultError},
+		{policy.EvaluateResult(999), queryPolicyResultError},
 	}
 	for _, tc := range tests {
 		got := queryPolicyResultFromEvaluation(tc.input)
@@ -701,11 +873,204 @@ func TestQueryPolicyResultFromEvaluation(t *testing.T) {
 func TestQueryPolicyView_addResultNoListBlock(t *testing.T) {
 	v := newQueryPolicyView()
 	resp := queryEvalResp("", nil, policy.AllowResult, []policyResultSpec{{address: "p", result: policy.AllowResult}})
-	if v.AddResult("target", resp) {
+	handled, unconsumed := v.AddResult("target", resp)
+	if handled {
 		t.Fatal("AddResult should return false when ListBlockAddr is empty")
+	}
+	if len(unconsumed) != 0 {
+		t.Fatalf("AddResult returned %d unconsumed diagnostics for an unhandled response", len(unconsumed))
 	}
 	if v.HasResults() {
 		t.Fatal("HasResults should be false when no results with a list block have been added")
+	}
+}
+
+func TestQueryPolicyView_routesDiagnosticsByPolicyAddress(t *testing.T) {
+	associated := policy.NewErrorDiagnostic("same summary", "same detail", policy.PolicyErrorResult)
+	unassociated := policy.NewErrorDiagnostic("same summary", "same detail", policy.PolicyErrorResult)
+	resp := queryEvalResp("aws_instance.block", nil, policy.PolicyErrorResult, []policyResultSpec{{
+		address:     "policy.error",
+		result:      policy.PolicyErrorResult,
+		diagnostics: []policy.Diagnostic{associated},
+	}})
+	resp.Diagnostics = append(resp.Diagnostics, unassociated)
+
+	v := newQueryPolicyView()
+	handled, unconsumed := v.AddResult("aws_instance.block_0", resp)
+	if !handled {
+		t.Fatal("expected query response to be handled")
+	}
+	if len(unconsumed) != 1 {
+		t.Fatalf("unconsumed diagnostics count = %d, want 1", len(unconsumed))
+	}
+
+	var summary queryPolicySummary
+	v.Flush(func(got queryPolicySummary) { summary = got }, nil)
+	if len(summary.Results) != 1 || len(summary.Results[0].Policies) != 1 {
+		t.Fatalf("unexpected summary: %#v", summary)
+	}
+	if len(summary.Results[0].Policies[0].Diagnostics) != 1 {
+		t.Fatalf("associated diagnostic count = %d, want 1", len(summary.Results[0].Policies[0].Diagnostics))
+	}
+	if got := unconsumed[0].Description(); got.Summary != "same summary" || got.Detail != "same detail" {
+		t.Fatalf("unexpected unconsumed diagnostic: %#v", got)
+	}
+}
+
+func TestQueryPolicyView_routesSameAddressDiagnosticsByPolicyIdentity(t *testing.T) {
+	resp := policy.EvaluationFromProtoResponse(proto.EvaluateResult_DENY_EVALUATE_RESULT, []*proto.PolicyEvaluationDetail{
+		{
+			Address:       "policy.shared",
+			File:          "/policies/first/policy.tfpolicy.hcl",
+			PolicySetName: "first",
+			Result:        proto.EvaluateResult_DENY_EVALUATE_RESULT,
+			Diagnostics: []*proto.Diagnostic{{
+				Severity: proto.Severity_ERROR,
+				Summary:  "first diagnostic",
+				Detail:   "from the first policy set",
+				Result: &proto.DiagnosticResult{
+					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+			}},
+		},
+		{
+			Address:       "policy.shared",
+			File:          "/policies/second/policy.tfpolicy.hcl",
+			PolicySetName: "second",
+			Result:        proto.EvaluateResult_DENY_EVALUATE_RESULT,
+			Diagnostics: []*proto.Diagnostic{{
+				Severity: proto.Severity_ERROR,
+				Summary:  "second diagnostic",
+				Detail:   "from the second policy set",
+				Result: &proto.DiagnosticResult{
+					Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+			}},
+		},
+	}).WithQueryMetadata(nil, "aws_instance.block")
+
+	v := newQueryPolicyView()
+	handled, unconsumed := v.AddResult("aws_instance.block_0", resp)
+	if !handled {
+		t.Fatal("expected query response to be handled")
+	}
+	if len(unconsumed) != 0 {
+		t.Fatalf("unconsumed diagnostics count = %d, want 0", len(unconsumed))
+	}
+	if got := queryPolicyEvaluatedCount(v); got != 2 {
+		t.Fatalf("evaluated policy count = %d, want 2", got)
+	}
+
+	var summary queryPolicySummary
+	v.Flush(func(got queryPolicySummary) { summary = got }, nil)
+	if len(summary.Results) != 1 || len(summary.Results[0].Policies) != 2 {
+		t.Fatalf("unexpected row policy metadata: %#v", summary.Results)
+	}
+	if len(summary.PassedPolicies) != 2 {
+		t.Fatalf("passed policy metadata count = %d, want 2", len(summary.PassedPolicies))
+	}
+
+	wantDiagnostics := map[string]string{
+		"first":  "first diagnostic",
+		"second": "second diagnostic",
+	}
+	for _, result := range summary.Results[0].Policies {
+		if result.PolicyMetadata.PolicyName != "policy.shared" {
+			t.Fatalf("policy name = %q, want policy.shared", result.PolicyMetadata.PolicyName)
+		}
+		if len(result.Diagnostics) != 1 {
+			t.Fatalf("diagnostics for policy set %q = %d, want 1", result.PolicyMetadata.PolicySetName, len(result.Diagnostics))
+		}
+		if got, want := result.Diagnostics[0].Summary, wantDiagnostics[result.PolicyMetadata.PolicySetName]; got != want {
+			t.Fatalf("diagnostic for policy set %q = %q, want %q", result.PolicyMetadata.PolicySetName, got, want)
+		}
+	}
+}
+
+func TestQueryOperationJSON_unassociatedErrorDiagnostic(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	op := &QueryOperationJSON{view: NewJSONView(NewView(streams)), queryPolicy: newQueryPolicyView()}
+	resp := queryEvalResp("aws_instance.example", map[string]string{"id": "i-1"}, policy.PolicyErrorResult, nil)
+	resp.Diagnostics = policy.Diagnostics{
+		policy.NewErrorDiagnostic("evaluation failed", "transport unavailable", policy.PolicyErrorResult),
+	}
+	op.PolicyResult("aws_instance.example_0", resp)
+	op.Plan(nil, nil)
+
+	var summaries, diagnostics, genericResults []map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(done(t).Stdout()), "\n") {
+		var decoded map[string]any
+		if err := json.Unmarshal([]byte(line), &decoded); err != nil {
+			t.Fatalf("failed to decode JSON line %q: %s", line, err)
+		}
+		switch decoded["type"] {
+		case string(viewjson.MessagePolicyQuerySummary):
+			summaries = append(summaries, decoded)
+		case string(viewjson.MessagePolicyDiagnostic):
+			diagnostics = append(diagnostics, decoded)
+		case string(viewjson.MessagePolicyEvaluationResult):
+			genericResults = append(genericResults, decoded)
+		}
+	}
+
+	if len(summaries) != 1 || len(diagnostics) != 1 || len(genericResults) != 0 {
+		t.Fatalf("got %d summaries, %d diagnostics, and %d generic results", len(summaries), len(diagnostics), len(genericResults))
+	}
+	if diagnostics[0]["target_address"] != "aws_instance.example_0" {
+		t.Fatalf("diagnostic target = %v, want aws_instance.example_0", diagnostics[0]["target_address"])
+	}
+	if diagnostics[0]["result"] != policy.PolicyErrorResult.String() {
+		t.Fatalf("diagnostic result = %v, want %s", diagnostics[0]["result"], policy.PolicyErrorResult)
+	}
+	results := summaries[0]["results"].([]any)
+	row := results[0].(map[string]any)
+	if row["result"] != "error" {
+		t.Fatalf("summary row result = %v, want error", row["result"])
+	}
+	policies, ok := row["policies"].([]any)
+	if !ok || len(policies) != 0 {
+		t.Fatalf("summary policies = %#v, want []", row["policies"])
+	}
+}
+
+func TestQueryOperationJSON_noMatchingPoliciesUsesNAAndEmptyArrays(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	op := &QueryOperationJSON{view: NewJSONView(NewView(streams)), queryPolicy: newQueryPolicyView()}
+	op.PolicyResult("aws_instance.example_0", queryEvalResp(
+		"aws_instance.example",
+		map[string]string{"id": "i-1"},
+		policy.AllowResult,
+		nil,
+	))
+	op.Plan(nil, nil)
+
+	var summary map[string]any
+	for _, line := range strings.Split(strings.TrimSpace(done(t).Stdout()), "\n") {
+		var decoded map[string]any
+		if err := json.Unmarshal([]byte(line), &decoded); err != nil {
+			t.Fatalf("failed to decode JSON line %q: %s", line, err)
+		}
+		if decoded["type"] == string(viewjson.MessagePolicyQuerySummary) {
+			summary = decoded
+		}
+	}
+	if summary == nil {
+		t.Fatal("expected a policy query summary")
+	}
+	if summary["overall_result"] != "n/a" {
+		t.Fatalf("overall result = %v, want n/a", summary["overall_result"])
+	}
+	passedPolicies, ok := summary["passed_policies"].([]any)
+	if !ok || len(passedPolicies) != 0 {
+		t.Fatalf("passed_policies = %#v, want []", summary["passed_policies"])
+	}
+	row := summary["results"].([]any)[0].(map[string]any)
+	if row["result"] != "n/a" {
+		t.Fatalf("row result = %v, want n/a", row["result"])
+	}
+	policies, ok := row["policies"].([]any)
+	if !ok || len(policies) != 0 {
+		t.Fatalf("row policies = %#v, want []", row["policies"])
 	}
 }
 
@@ -756,7 +1121,7 @@ func TestQueryPolicyView_concurrentAddResult(t *testing.T) {
 }
 
 // TestQueryPolicyEvaluatedCount verifies that queryPolicyEvaluatedCount counts
-// unique policy addresses across all blocks.
+// unique policy identities across all blocks.
 func TestQueryPolicyEvaluatedCount(t *testing.T) {
 	tests := []struct {
 		name  string

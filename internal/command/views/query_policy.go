@@ -22,6 +22,7 @@ const (
 	queryPolicyResultFail    queryPolicyResult = "fail"
 	queryPolicyResultUnknown queryPolicyResult = "unknown"
 	queryPolicyResultError   queryPolicyResult = "error"
+	queryPolicyResultNA      queryPolicyResult = "n/a"
 )
 
 type queryPolicySummary struct {
@@ -46,10 +47,16 @@ type queryPolicyEvalResult struct {
 	Result         queryPolicyResult       `json:"result"`
 }
 
+type queryPolicyKey struct {
+	Address       string
+	PolicySetName string
+	SourcePath    string
+}
+
 type queryPolicyBlock struct {
 	ListBlockAddress string
 	ResultsByTarget  map[string]*queryPolicyIdentityResult
-	PolicyMetadata   map[string]viewjson.PolicyMetadata
+	PolicyMetadata   map[queryPolicyKey]viewjson.PolicyMetadata
 	WarningDiags     tfdiags.Diagnostics
 }
 
@@ -95,9 +102,9 @@ func (v *queryPolicyView) AddWarningDiags(diags tfdiags.Diagnostics) {
 	}
 }
 
-func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse) bool {
+func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse) (bool, policy.Diagnostics) {
 	if resp.ListBlockAddr == "" {
-		return false
+		return false, nil
 	}
 
 	v.mu.Lock()
@@ -117,33 +124,35 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 	}
 
 	identityResult.Result = queryPolicyResultFromEvaluation(resp.Overall)
+	if identityResult.Result == queryPolicyResultPass && len(resp.Policies) == 0 {
+		identityResult.Result = queryPolicyResultNA
+	}
 	// Reset the per-policy slice so that a re-evaluation of the same
 	// identity always reflects only the most-recent response.
 	identityResult.Policies = identityResult.Policies[:0]
 
-	diagsByPolicy := make(map[string][]viewjson.Diagnostic, len(resp.Policies))
-	unmatchedDiags := make([]viewjson.Diagnostic, 0)
-	for _, diag := range resp.Diagnostics {
-		jsonDiag := *viewjson.NewDiagnostic(diag, nil)
+	jsonDiags := make([]viewjson.Diagnostic, len(resp.Diagnostics))
+	diagPolicyKeys := make([]queryPolicyKey, len(resp.Diagnostics))
+	consumedDiags := make([]bool, len(resp.Diagnostics))
+	for idx, diag := range resp.Diagnostics {
+		jsonDiags[idx] = *viewjson.NewDiagnostic(diag, nil)
 		extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
-		if extra == nil || extra.Policy.Address == "" {
-			unmatchedDiags = append(unmatchedDiags, jsonDiag)
-			continue
+		if extra != nil {
+			diagPolicyKeys[idx] = queryPolicyKeyFromPolicy(extra.Policy)
 		}
-		diagsByPolicy[extra.Policy.Address] = append(diagsByPolicy[extra.Policy.Address], jsonDiag)
 	}
 
 	for _, pol := range resp.Policies {
+		policyKey := queryPolicyKeyFromPolicy(*pol)
 		metadata := viewjson.MetadataFromPolicy(*pol)
-		block.PolicyMetadata[pol.Address] = metadata
-		policyDiags := diagsByPolicy[pol.Address]
-		// When there is exactly one policy and no diags matched its address
-		// (e.g. the diagnostic has no extra PolicyExtra metadata), fall back to
-		// the unmatched set so they are still associated with the sole policy.
-		// This handles policy plugins that may omit PolicyExtra from diagnostics
-		// in simpler scenarios, ensuring diagnostics are not lost or orphaned.
-		if len(policyDiags) == 0 && len(unmatchedDiags) > 0 && len(resp.Policies) == 1 {
-			policyDiags = unmatchedDiags
+		block.PolicyMetadata[policyKey] = metadata
+		var policyDiags []viewjson.Diagnostic
+		for idx, diagPolicyKey := range diagPolicyKeys {
+			if consumedDiags[idx] || diagPolicyKey.Address == "" || diagPolicyKey != policyKey {
+				continue
+			}
+			policyDiags = append(policyDiags, jsonDiags[idx])
+			consumedDiags[idx] = true
 		}
 		identityResult.Policies = append(identityResult.Policies, queryPolicyEvalResult{
 			PolicyMetadata: metadata,
@@ -152,7 +161,14 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 		})
 	}
 
-	return true
+	unconsumed := make(policy.Diagnostics, 0)
+	for idx, diag := range resp.Diagnostics {
+		if !consumedDiags[idx] {
+			unconsumed = append(unconsumed, diag)
+		}
+	}
+
+	return true, unconsumed
 }
 
 func (v *queryPolicyView) Flush(flush func(summary queryPolicySummary), warn func(tfdiags.Diagnostics)) {
@@ -190,7 +206,7 @@ func (v *queryPolicyView) block(addr string) *queryPolicyBlock {
 	block = &queryPolicyBlock{
 		ListBlockAddress: addr,
 		ResultsByTarget:  make(map[string]*queryPolicyIdentityResult),
-		PolicyMetadata:   make(map[string]viewjson.PolicyMetadata),
+		PolicyMetadata:   make(map[queryPolicyKey]viewjson.PolicyMetadata),
 	}
 	v.blocks[addr] = block
 	return block
@@ -199,9 +215,9 @@ func (v *queryPolicyView) block(addr string) *queryPolicyBlock {
 func (b *queryPolicyBlock) summary() queryPolicySummary {
 	results := make([]queryPolicyIdentityResult, 0, len(b.ResultsByTarget))
 	for _, result := range b.ResultsByTarget {
-		policies := append([]queryPolicyEvalResult(nil), result.Policies...)
+		policies := append(make([]queryPolicyEvalResult, 0, len(result.Policies)), result.Policies...)
 		sort.Slice(policies, func(i, j int) bool {
-			return policies[i].PolicyMetadata.PolicyName < policies[j].PolicyMetadata.PolicyName
+			return queryPolicyMetadataLess(policies[i].PolicyMetadata, policies[j].PolicyMetadata)
 		})
 		results = append(results, queryPolicyIdentityResult{
 			Identity:      maps.Clone(result.Identity),
@@ -223,7 +239,7 @@ func (b *queryPolicyBlock) summary() queryPolicySummary {
 		passedPolicies = append(passedPolicies, metadata)
 	}
 	sort.Slice(passedPolicies, func(i, j int) bool {
-		return passedPolicies[i].PolicyName < passedPolicies[j].PolicyName
+		return queryPolicyMetadataLess(passedPolicies[i], passedPolicies[j])
 	})
 
 	return queryPolicySummary{
@@ -234,8 +250,30 @@ func (b *queryPolicyBlock) summary() queryPolicySummary {
 	}
 }
 
+func queryPolicyKeyFromPolicy(pol policy.Policy) queryPolicyKey {
+	return queryPolicyKey{
+		Address:       pol.Address,
+		PolicySetName: pol.PolicySetName,
+		SourcePath:    pol.Directory,
+	}
+}
+
+func queryPolicyMetadataLess(left, right viewjson.PolicyMetadata) bool {
+	if left.PolicyName != right.PolicyName {
+		return left.PolicyName < right.PolicyName
+	}
+	if left.PolicySetPath != right.PolicySetPath {
+		return left.PolicySetPath < right.PolicySetPath
+	}
+	return left.PolicySetName < right.PolicySetName
+}
+
 func queryPolicySummaryOverall(results []queryPolicyIdentityResult) queryPolicyResult {
-	overall := queryPolicyResultPass
+	if len(results) == 0 {
+		return queryPolicyResultPass
+	}
+
+	overall := queryPolicyResultNA
 	for _, result := range results {
 		switch result.Result {
 		case queryPolicyResultError:
@@ -243,8 +281,12 @@ func queryPolicySummaryOverall(results []queryPolicyIdentityResult) queryPolicyR
 		case queryPolicyResultFail:
 			overall = queryPolicyResultFail
 		case queryPolicyResultUnknown:
-			if overall == queryPolicyResultPass {
+			if overall == queryPolicyResultNA || overall == queryPolicyResultPass {
 				overall = queryPolicyResultUnknown
+			}
+		case queryPolicyResultPass:
+			if overall == queryPolicyResultNA {
+				overall = queryPolicyResultPass
 			}
 		}
 	}
@@ -257,10 +299,10 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 		return queryPolicyResultPass
 	case policy.DenyResult:
 		return queryPolicyResultFail
-	case policy.PolicyErrorResult, policy.SetupErrorResult:
-		return queryPolicyResultError
-	default:
+	case policy.UnknownResult:
 		return queryPolicyResultUnknown
+	default:
+		return queryPolicyResultError
 	}
 }
 
@@ -269,9 +311,10 @@ func renderQueryPolicySummaryHuman(summary queryPolicySummary) string {
 
 	fmt.Fprintf(&buf, "Policy results for %s (%s)\n", summary.ListBlockAddress, strings.ToUpper(string(summary.OverallResult)))
 	for _, result := range summary.Results {
-		fmt.Fprintf(&buf, "  %s: %s\n", formatQueryPolicyIdentity(result.Identity), strings.ToUpper(string(result.Result)))
+		label := strings.ToUpper(string(result.Result))
+		fmt.Fprintf(&buf, "  %s: %s\n", formatQueryPolicyIdentity(result.Identity), label)
 		for _, pol := range result.Policies {
-			if pol.Result != queryPolicyResultFail {
+			if pol.Result != queryPolicyResultFail && pol.Result != queryPolicyResultError {
 				continue
 			}
 			for _, diag := range pol.Diagnostics {
@@ -306,7 +349,7 @@ func queryPolicyEvaluatedCount(view *queryPolicyView) int {
 	view.mu.Lock()
 	defer view.mu.Unlock()
 
-	policies := make(map[string]struct{})
+	policies := make(map[queryPolicyKey]struct{})
 	for _, block := range view.blocks {
 		for key := range block.PolicyMetadata {
 			policies[key] = struct{}{}

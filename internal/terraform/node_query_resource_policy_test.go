@@ -5,10 +5,10 @@ package terraform
 
 import (
 	"context"
+	"errors"
 	"runtime"
+	"strings"
 	"testing"
-
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -22,6 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // insertQueryPolicyNodes test helper mirrors the insertion loop in listResourceExecute,
@@ -32,9 +34,6 @@ func insertQueryPolicyNodes(t *testing.T, inputs []listResourcePolicy, ctx *Mock
 		return
 	}
 	for _, input := range inputs {
-		if input.Unknown {
-			continue
-		}
 		ctx.PolicyGraph().AddQuery(&nodeQueryResourcePolicy{
 			ResourceAddr:    input.SyntheticAddr,
 			ProviderAddr:    n.ResolvedProvider,
@@ -42,6 +41,7 @@ func insertQueryPolicyNodes(t *testing.T, inputs []listResourcePolicy, ctx *Mock
 			Identity:        input.Identity,
 			ResourceConfig:  input.ResourceConfig,
 			ListBlockAddr:   input.ListBlockAddr,
+			Unknown:         input.Unknown,
 		})
 	}
 }
@@ -88,10 +88,9 @@ func TestQueryPolicyNodeInsertion_CountMatchesResources(t *testing.T) {
 	}
 }
 
-// TestQueryPolicyNodeInsertion_UnknownResourcesSkipped verifies that policy
-// inputs with Unknown == true do not produce a nodeQueryResourcePolicy in the
-// policy subgraph.
-func TestQueryPolicyNodeInsertion_UnknownResourcesSkipped(t *testing.T) {
+// TestQueryPolicyNodeInsertion_UnknownResourcesIncluded verifies that every
+// discovered row produces a policy node, including pre-evaluation Unknown rows.
+func TestQueryPolicyNodeInsertion_UnknownResourcesIncluded(t *testing.T) {
 	p := &testing_provider.MockProvider{}
 	schema := listPolicyTestProviderSchema(false)
 	n := listPolicyTestNode("test_resource", "mylist")
@@ -124,9 +123,21 @@ func TestQueryPolicyNodeInsertion_UnknownResourcesSkipped(t *testing.T) {
 
 	nodes := dag.SelectSeq[*nodeQueryResourcePolicy](ps.graph.VerticesSeq()).Collect()
 
-	// Verify N nodes in policy subgraph, accounting for skipped unknowns
-	if len(nodes) != 2 {
-		t.Errorf("expected 2 policy nodes (unknown skipped), got %d", len(nodes))
+	if len(nodes) != 3 {
+		t.Fatalf("expected 3 policy nodes, got %d", len(nodes))
+	}
+	var unknown *nodeQueryResourcePolicy
+	for _, node := range nodes {
+		if node.ResourceAddr.String() == "test_resource.mylist_1" {
+			unknown = node
+			break
+		}
+	}
+	if unknown == nil {
+		t.Fatal("expected a policy node for the Unknown row")
+	}
+	if !unknown.Unknown {
+		t.Fatal("expected the Unknown flag to be propagated to the policy node")
 	}
 }
 
@@ -452,6 +463,7 @@ func TestNodeQueryResourcePolicy_Fields(t *testing.T) {
 		GeneratedConfig: generatedConfig,
 		Identity:        identity,
 		ListBlockAddr:   listBlockAddr,
+		Unknown:         true,
 	}
 
 	// Verify all fields are accessible
@@ -470,9 +482,23 @@ func TestNodeQueryResourcePolicy_Fields(t *testing.T) {
 	if node.ListBlockAddr.String() != listBlockAddr.String() {
 		t.Error("ListBlockAddr not set correctly")
 	}
+	if !node.Unknown {
+		t.Error("Unknown not set correctly")
+	}
 }
 
 // --- Execute() tests ---
+
+type queryPolicySemaphoreHook struct {
+	testHook
+	sem      Semaphore
+	occupied bool
+}
+
+func (h *queryPolicySemaphoreHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
+	h.occupied = len(h.sem) > 0
+	return h.testHook.PolicyResult(addr, resp)
+}
 
 // executeTestCtx builds a minimal MockEvalContext suitable for nodeQueryResourcePolicy.Execute()
 // tests. It wires up a mock provider, schema, policy client, policy graph, and a
@@ -674,6 +700,65 @@ func TestNodeQueryResourcePolicy_Execute_UnknownResult(t *testing.T) {
 	}
 }
 
+func TestNodeQueryResourcePolicy_Execute_PreEvaluationUnknown(t *testing.T) {
+	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
+	mockClient := policy.NewTestMockClient(t)
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		t.Fatal("policy client must not be called for a pre-evaluation Unknown")
+		return policy.EvaluationResponse{}
+	}
+
+	sem := NewSemaphore(1)
+	hook := &queryPolicySemaphoreHook{sem: sem}
+	ctx := executeTestCtx(t, mockClient, hook)
+	ctx.ProviderProvider = nil
+	ctx.PolicySemaphoreValue = sem
+
+	n := makeExecuteNode(resourceAddr, cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("i-unknown"),
+	}))
+	n.Unknown = true
+
+	diags := n.Execute(ctx, walkPlan)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	resp, ok := hook.PolicyResults[resourceAddr.String()]
+	if !ok {
+		t.Fatal("expected an Unknown PolicyResult hook call")
+	}
+	if resp.Overall != policy.UnknownResult {
+		t.Fatalf("overall result = %s, want %s", resp.Overall, policy.UnknownResult)
+	}
+	if resp.Identity["id"] != "i-unknown" {
+		t.Fatalf("identity = %#v, want id=i-unknown", resp.Identity)
+	}
+	if resp.ListBlockAddr != n.ListBlockAddr.String() {
+		t.Fatalf("list block address = %q, want %q", resp.ListBlockAddr, n.ListBlockAddr)
+	}
+	if len(hook.Calls) != 1 {
+		t.Fatalf("hook calls = %d, want 1", len(hook.Calls))
+	}
+	if hook.Calls[0].Action != "PolicyResult" {
+		t.Fatalf("hook action = %q, want PolicyResult", hook.Calls[0].Action)
+	}
+	if hook.Calls[0].InstanceID != resourceAddr.String() {
+		t.Fatalf("hook target = %q, want %q", hook.Calls[0].InstanceID, resourceAddr)
+	}
+	if len(hook.PolicyResults) != 1 {
+		t.Fatalf("policy results = %d, want 1", len(hook.PolicyResults))
+	}
+	if len(sem) != 0 {
+		t.Fatal("pre-evaluation Unknown consumed a policy semaphore slot")
+	}
+	if hook.occupied {
+		t.Fatal("policy semaphore was occupied while emitting pre-evaluation Unknown")
+	}
+	if ctx.ProviderCalled || ctx.ProviderSchemaCalled {
+		t.Fatal("pre-evaluation Unknown attempted provider preparation")
+	}
+}
+
 // TestNodeQueryResourcePolicy_Execute_DenyNoEnforcements verifies that a DenyResult
 // with no enforcement details and no diagnostics is NOT dropped by the gate.
 // Previously the gate used len(Diagnostics)>0 || len(Enforcements)>0, which would
@@ -786,11 +871,14 @@ func TestNodeQueryResourcePolicy_Execute_ListBlockAddrAnnotation(t *testing.T) {
 	}
 }
 
-// TestNodeQueryResourcePolicy_Execute_ProviderError verifies that a getProvider error
-// is returned as a diagnostic (not a panic) and that the semaphore is correctly
-// released even when getProvider fails.
+// TestNodeQueryResourcePolicy_Execute_ProviderError verifies that a provider
+// preparation failure is emitted as a row-local policy Error.
 func TestNodeQueryResourcePolicy_Execute_ProviderError(t *testing.T) {
 	mockClient := policy.NewTestMockClient(t)
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		t.Fatal("policy client must not be called after provider preparation fails")
+		return policy.EvaluationResponse{}
+	}
 	hook := &testHook{}
 	ctx := executeTestCtx(t, mockClient, hook)
 
@@ -805,19 +893,88 @@ func TestNodeQueryResourcePolicy_Execute_ProviderError(t *testing.T) {
 	}))
 
 	diags := n.Execute(ctx, walkPlan)
-	if !diags.HasErrors() {
-		t.Fatal("expected an error diagnostic when provider is nil, got none")
+	if diags.HasErrors() {
+		t.Fatalf("provider preparation failure escaped as graph diagnostics: %s", diags.Err())
 	}
 
-	// Semaphore must be released even when getProvider fails.
-	if !sem.TryAcquire() {
-		t.Error("semaphore was not released after getProvider error; possible leak")
+	if len(sem) != 0 {
+		t.Fatal("provider preparation failure consumed a policy semaphore slot")
 	}
-	sem.Release()
+	resp, ok := hook.PolicyResults[n.ResourceAddr.String()]
+	if !ok {
+		t.Fatal("expected a PolicyResult hook call after provider preparation failure")
+	}
+	if resp.Overall != policy.PolicyErrorResult || len(resp.Diagnostics) != 1 {
+		t.Fatalf("unexpected policy response: %#v", resp)
+	}
+}
 
-	// No hook call should have been made.
-	if len(hook.Calls) != 0 {
-		t.Errorf("expected no hook calls after provider error, got %d", len(hook.Calls))
+func TestNodeQueryResourcePolicy_Execute_ProviderSchemaError(t *testing.T) {
+	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
+	schemaErr := errors.New("schema unavailable")
+	mockClient := policy.NewTestMockClient(t)
+	sem := NewSemaphore(1)
+	hook := &queryPolicySemaphoreHook{sem: sem}
+	ctx := executeTestCtx(t, mockClient, hook)
+	ctx.ProviderSchemaError = schemaErr
+	ctx.PolicySemaphoreValue = sem
+
+	listRange := hcl.Range{
+		Filename: "query.tfquery.hcl",
+		Start:    hcl.Pos{Line: 3, Column: 1, Byte: 20},
+		End:      hcl.Pos{Line: 5, Column: 2, Byte: 80},
+	}
+	n := makeExecuteNode(resourceAddr, cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("i-schema-error"),
+	}))
+	n.ResourceConfig = &configs.Resource{
+		Mode:      addrs.ListResourceMode,
+		Type:      "test_resource",
+		Name:      "mylist",
+		Config:    hcl.EmptyBody(),
+		DeclRange: listRange,
+	}
+
+	diags := n.Execute(ctx, walkPlan)
+	if diags.HasErrors() {
+		t.Fatalf("provider schema failure escaped as graph diagnostics: %s", diags.Err())
+	}
+	if mockClient.EvaluateCalled {
+		t.Fatal("policy client was called after provider schema lookup failed")
+	}
+	if len(sem) != 0 {
+		t.Fatal("provider schema failure consumed a policy semaphore slot")
+	}
+	if hook.occupied {
+		t.Fatal("policy semaphore was occupied while emitting the provider schema Error")
+	}
+	if len(hook.Calls) != 1 || hook.Calls[0].Action != "PolicyResult" || hook.Calls[0].InstanceID != resourceAddr.String() {
+		t.Fatalf("unexpected hook calls: %#v", hook.Calls)
+	}
+	if len(hook.PolicyResults) != 1 {
+		t.Fatalf("policy results = %d, want 1", len(hook.PolicyResults))
+	}
+	resp := hook.PolicyResults[resourceAddr.String()]
+	if resp.Overall != policy.PolicyErrorResult || len(resp.Diagnostics) != 1 {
+		t.Fatalf("unexpected policy response: %#v", resp)
+	}
+	diag := resp.Diagnostics[0]
+	if !strings.Contains(diag.Description().Detail, schemaErr.Error()) {
+		t.Fatalf("diagnostic detail = %q, want schema error", diag.Description().Detail)
+	}
+	extra, ok := diag.ExtraInfo().(*policy.PolicyExtra)
+	if !ok || extra.Result != policy.PolicyErrorResult {
+		t.Fatalf("diagnostic result metadata = %#v, want %s", extra, policy.PolicyErrorResult)
+	}
+	wantRange := tfdiags.SourceRangeFromHCL(listRange)
+	if got := diag.Source().Subject; got == nil || *got != wantRange {
+		t.Fatalf("diagnostic local range = %#v, want %#v", got, wantRange)
+	}
+	if resp.Identity["id"] != "i-schema-error" {
+		t.Fatalf("identity = %#v, want id=i-schema-error", resp.Identity)
+	}
+	if resp.ListBlockAddr != n.ListBlockAddr.String() {
+		t.Fatalf("list block address = %q, want %q", resp.ListBlockAddr, n.ListBlockAddr)
 	}
 }
 
@@ -828,6 +985,7 @@ func TestNodeQueryResourcePolicy_Execute_NilClient(t *testing.T) {
 	ctx := executeTestCtx(t, nil, hook)
 
 	n := makeExecuteNode(mustResourceInstanceAddr("test_resource.mylist_0"), cty.NilVal)
+	n.Unknown = true
 	diags := n.Execute(ctx, walkPlan)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors with nil client: %s", diags.Err())
@@ -837,10 +995,14 @@ func TestNodeQueryResourcePolicy_Execute_NilClient(t *testing.T) {
 	}
 }
 
-// TestNodeQueryResourcePolicy_Execute_NilConfig verifies that Execute() is a no-op
-// when no configuration is available.
+// TestNodeQueryResourcePolicy_Execute_NilConfig verifies that missing
+// configuration after a row exists is emitted as a row-local policy Error.
 func TestNodeQueryResourcePolicy_Execute_NilConfig(t *testing.T) {
 	mockClient := policy.NewTestMockClient(t)
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		t.Fatal("policy client must not be called without configuration")
+		return policy.EvaluationResponse{}
+	}
 	hook := &testHook{}
 	ctx := executeTestCtx(t, mockClient, hook)
 	ctx.ConfigValue = nil // override to nil
@@ -850,19 +1012,28 @@ func TestNodeQueryResourcePolicy_Execute_NilConfig(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors with nil config: %s", diags.Err())
 	}
-	if len(hook.Calls) != 0 {
-		t.Errorf("expected no hook calls with nil config, got %d", len(hook.Calls))
+	resp, ok := hook.PolicyResults[n.ResourceAddr.String()]
+	if !ok {
+		t.Fatal("expected a PolicyResult hook call with nil config")
+	}
+	if resp.Overall != policy.PolicyErrorResult || len(resp.Diagnostics) != 1 {
+		t.Fatalf("unexpected policy response: %#v", resp)
 	}
 }
 
 // TestNodeQueryResourcePolicy_Execute_SemaphoreAcquired verifies that Execute()
 // acquires and releases the policy semaphore exactly once per invocation.
 func TestNodeQueryResourcePolicy_Execute_SemaphoreAcquired(t *testing.T) {
+	sem := NewSemaphore(1)
 	mockClient := policy.NewTestMockClient(t)
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		if len(sem) != 1 {
+			t.Errorf("policy semaphore occupancy = %d, want 1 during evaluation", len(sem))
+		}
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
 	hook := &testHook{}
 	ctx := executeTestCtx(t, mockClient, hook)
-
-	sem := NewSemaphore(1)
 	ctx.PolicySemaphoreValue = sem
 
 	n := makeExecuteNode(mustResourceInstanceAddr("test_resource.mylist_0"), cty.NilVal)
@@ -871,12 +1042,9 @@ func TestNodeQueryResourcePolicy_Execute_SemaphoreAcquired(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// After Execute() the semaphore must be fully released — we should be
-	// able to acquire it again.
-	if !sem.TryAcquire() {
-		t.Error("semaphore was not released after Execute(); expected it to be available")
+	if len(sem) != 0 {
+		t.Error("semaphore was not released after Execute()")
 	}
-	sem.Release()
 }
 
 // TestNodeQueryResourcePolicy_Execute_NilPolicyGraph verifies that Execute() does not
@@ -913,17 +1081,17 @@ func TestNodeQueryResourcePolicy_Execute_ResourceConfigSetsRange(t *testing.T) {
 		}
 	}
 
-	declRange := hcl.Range{Filename: "main.tf", Start: hcl.Pos{Line: 10}, End: hcl.Pos{Line: 12}}
-	resourceCfg := &configs.Resource{
+	managedRange := hcl.Range{Filename: "main.tf", Start: hcl.Pos{Line: 10}, End: hcl.Pos{Line: 12}}
+	managedResourceCfg := &configs.Resource{
 		Mode:      addrs.ManagedResourceMode,
 		Type:      "test_resource",
-		Name:      "mylist",
+		Name:      "mylist_0",
 		Config:    hcl.EmptyBody(),
-		DeclRange: declRange,
+		DeclRange: managedRange,
 	}
 	rootModule := &configs.Module{
 		ManagedResources: map[string]*configs.Resource{
-			"test_resource.mylist_0": resourceCfg,
+			"test_resource.mylist_0": managedResourceCfg,
 		},
 	}
 	rootCfg := &configs.Config{
@@ -937,15 +1105,30 @@ func TestNodeQueryResourcePolicy_Execute_ResourceConfigSetsRange(t *testing.T) {
 	n := makeExecuteNode(resourceAddr, cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("i-abc"),
 	}))
+	listRange := hcl.Range{Filename: "query.tfquery.hcl", Start: hcl.Pos{Line: 3}, End: hcl.Pos{Line: 5}}
+	n.ResourceConfig = &configs.Resource{
+		Mode:      addrs.ListResourceMode,
+		Type:      "test_resource",
+		Name:      "mylist",
+		Config:    hcl.EmptyBody(),
+		DeclRange: listRange,
+	}
 
 	diags := n.Execute(ctx, walkPlan)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// Verify the hook was called — result propagation was not broken.
-	if _, ok := hook.PolicyResults[resourceAddr.String()]; !ok {
+	resp, ok := hook.PolicyResults[resourceAddr.String()]
+	if !ok {
 		t.Error("expected PolicyResult hook call, got none")
+		return
+	}
+	if len(resp.Enforcements) != 1 || resp.Enforcements[0].LocalRange == nil {
+		t.Fatalf("expected one enforcement with a local range, got %#v", resp.Enforcements)
+	}
+	if *resp.Enforcements[0].LocalRange != listRange {
+		t.Fatalf("local range = %#v, want list block range %#v", *resp.Enforcements[0].LocalRange, listRange)
 	}
 }
 
@@ -1057,6 +1240,7 @@ func executeTestCtxWithState(t *testing.T, policyClient policy.Client, hook Hook
 			},
 		},
 	}
+	ctx.InstanceExpanderExpander.SetResourceSingle(addrs.RootModuleInstance, resourceCfg.Addr())
 
 	return ctx
 }
@@ -1208,38 +1392,15 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Fail(t *testing.T) {
 	}
 }
 
-// TestNodeQueryResourcePolicy_Execute_GetResources_Unknown verifies that when the policy
-// plugin calls req.Callbacks.GetResources(...) and the callback returns partial=true
-// (because the resource address has a deferral), the plugin maps this to UnknownResult
-// and a hook event is emitted.
-//
-// This exercises the GetResources callback path within a query policy node's Execute()
-// under a deferral — the callback receives an empty-or-partial result set and the plugin
-// signals UnknownResult.
+// TestNodeQueryResourcePolicy_Execute_GetResources_Unknown verifies that a
+// successful zero-resource query callback is reported as partial and can be
+// classified as Unknown by the policy client.
 func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
-	// Set up a Deferred with deferral enabled so DependenciesDeferred returns true
-	// for our target resource, causing the callback to set isPartialResult=true.
-	deferred := deferring.NewDeferred(true)
-	targetAddr := mustResourceInstanceAddr("test_resource.target")
-	deferredChange := &plans.ResourceInstanceChange{
-		Addr:        targetAddr,
-		PrevRunAddr: targetAddr,
-		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
-			Module:   addrs.RootModule,
-		},
-		Change: plans.Change{
-			Action: plans.Create,
-			Before: cty.NullVal(cty.DynamicPseudoType),
-			After:  cty.DynamicVal,
-		},
-	}
-	deferred.ReportResourceInstanceDeferred(targetAddr, providers.DeferredReasonProviderConfigUnknown, deferredChange)
-
 	var callbackInvoked bool
 	var gotPartial bool
+	var gotResourceCount int
 	mockClient := &policy.MockClient{}
 	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		if req.Callbacks.GetResources == nil {
@@ -1247,10 +1408,11 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 			return policy.EvaluationResponse{Overall: policy.UnknownResult}
 		}
 
-		_, partial, err := req.Callbacks.GetResources(ctx, "test_resource", cty.NullVal(cty.DynamicPseudoType))
+		resources, partial, err := req.Callbacks.GetResources(ctx, "test_resource", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("GetResources returned unexpected error: %v", err)
 		}
+		gotResourceCount = len(resources)
 		gotPartial = partial
 		callbackInvoked = true
 
@@ -1268,7 +1430,7 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 	}
 
 	hook := &testHook{}
-	ctx := executeTestCtxWithState(t, mockClient, hook, nil, deferred)
+	ctx := executeTestCtxWithState(t, mockClient, hook, nil, nil)
 	ctx.StateState = states.NewState().SyncWrapper()
 	defer ctx.StateState.Close()
 
@@ -1282,8 +1444,11 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 	if !callbackInvoked {
 		t.Error("EvaluateFn never invoked GetResources callback")
 	}
+	if gotResourceCount != 0 {
+		t.Fatalf("GetResources returned %d resources, want zero", gotResourceCount)
+	}
 	if !gotPartial {
-		t.Error("expected partial=true from GetResources when resource is deferred, got false")
+		t.Error("expected partial=true for a successful zero-resource query callback")
 	}
 
 	resp, ok := hook.PolicyResults[resourceAddr.String()]
@@ -1292,5 +1457,212 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 	}
 	if resp.Overall != policy.UnknownResult {
 		t.Errorf("expected UnknownResult, got %v", resp.Overall)
+	}
+	if resp.Identity["id"] != "i-unknown" {
+		t.Fatalf("identity = %#v, want id=i-unknown", resp.Identity)
+	}
+	if resp.ListBlockAddr != n.ListBlockAddr.String() {
+		t.Fatalf("list block address = %q, want %q", resp.ListBlockAddr, n.ListBlockAddr)
+	}
+	if len(hook.Calls) != 1 || hook.Calls[0].Action != "PolicyResult" || hook.Calls[0].InstanceID != resourceAddr.String() {
+		t.Fatalf("unexpected hook calls: %#v", hook.Calls)
+	}
+	if len(hook.PolicyResults) != 1 {
+		t.Fatalf("policy results = %d, want 1", len(hook.PolicyResults))
+	}
+}
+
+func TestNodeQueryResourcePolicy_Execute_CallbackError(t *testing.T) {
+	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
+	var callbackInvoked bool
+	var callbackErr error
+	mockClient := policy.NewTestMockClient(t)
+	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		callbackInvoked = true
+		_, partial, err := req.Callbacks.GetDataSource(ctx, "missing_data_source", cty.EmptyObjectVal)
+		if partial {
+			t.Error("GetDataSource returned partial=true with an error")
+		}
+		callbackErr = err
+		if err == nil {
+			err = errors.New("GetDataSource unexpectedly returned no error")
+		}
+		return policy.EvaluationResponse{
+			Overall: policy.PolicyErrorResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic("Failed to evaluate Terraform Policy", err.Error(), policy.PolicyErrorResult),
+			},
+		}
+	}
+
+	sem := NewSemaphore(1)
+	hook := &queryPolicySemaphoreHook{sem: sem}
+	ctx := executeTestCtx(t, mockClient, hook)
+	ctx.PolicySemaphoreValue = sem
+	n := makeExecuteNode(resourceAddr, cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("i-callback-error"),
+	}))
+
+	diags := n.Execute(ctx, walkPlan)
+	if diags.HasErrors() {
+		t.Fatalf("callback error escaped as graph diagnostics: %s", diags.Err())
+	}
+	if !callbackInvoked {
+		t.Fatal("policy client did not invoke GetDataSource")
+	}
+	if callbackErr == nil || !strings.Contains(callbackErr.Error(), "no data source found for missing_data_source") {
+		t.Fatalf("callback error = %v, want missing data source error", callbackErr)
+	}
+	if len(sem) != 0 {
+		t.Fatal("policy semaphore was not released after callback error")
+	}
+	if len(hook.Calls) != 1 || hook.Calls[0].Action != "PolicyResult" || hook.Calls[0].InstanceID != resourceAddr.String() {
+		t.Fatalf("unexpected hook calls: %#v", hook.Calls)
+	}
+	if len(hook.PolicyResults) != 1 {
+		t.Fatalf("policy results = %d, want 1", len(hook.PolicyResults))
+	}
+	resp := hook.PolicyResults[resourceAddr.String()]
+	if resp.Overall != policy.PolicyErrorResult || resp.Overall == policy.UnknownResult {
+		t.Fatalf("overall result = %s, want %s", resp.Overall, policy.PolicyErrorResult)
+	}
+	if len(resp.Diagnostics) != 1 || resp.Diagnostics[0].Severity() != tfdiags.Error {
+		t.Fatalf("diagnostics = %#v, want one Error", resp.Diagnostics)
+	}
+	extra, ok := resp.Diagnostics[0].ExtraInfo().(*policy.PolicyExtra)
+	if !ok || extra.Result != policy.PolicyErrorResult {
+		t.Fatalf("diagnostic result metadata = %#v, want %s", extra, policy.PolicyErrorResult)
+	}
+	if resp.Identity["id"] != "i-callback-error" {
+		t.Fatalf("identity = %#v, want id=i-callback-error", resp.Identity)
+	}
+	if resp.ListBlockAddr != n.ListBlockAddr.String() {
+		t.Fatalf("list block address = %q, want %q", resp.ListBlockAddr, n.ListBlockAddr)
+	}
+}
+
+func TestNodeQueryResourcePolicy_Execute_PartialCallbackDoesNotRewriteResult(t *testing.T) {
+	tests := []struct {
+		name   string
+		result policy.EvaluateResult
+	}{
+		{name: "allow", result: policy.AllowResult},
+		{name: "deny", result: policy.DenyResult},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
+			var callbackInvoked bool
+			var gotPartial bool
+			mockClient := policy.NewTestMockClient(t)
+			mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				resources, partial, err := req.Callbacks.GetResources(ctx, "test_resource", cty.NullVal(cty.DynamicPseudoType))
+				if err != nil {
+					t.Errorf("GetResources returned unexpected error: %v", err)
+				}
+				if len(resources) != 0 {
+					t.Errorf("GetResources returned %d resources, want zero", len(resources))
+				}
+				callbackInvoked = true
+				gotPartial = partial
+				return policy.EvaluationResponse{Overall: test.result}
+			}
+
+			hook := &testHook{}
+			ctx := executeTestCtxWithState(t, mockClient, hook, nil, nil)
+			ctx.StateState = states.NewState().SyncWrapper()
+			defer ctx.StateState.Close()
+			n := makeExecuteNode(resourceAddr, cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-authoritative"),
+			}))
+
+			diags := n.Execute(ctx, walkPlan)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected errors: %s", diags.Err())
+			}
+			if !callbackInvoked || !gotPartial {
+				t.Fatalf("callback invoked = %t, partial = %t; want true, true", callbackInvoked, gotPartial)
+			}
+			if len(hook.Calls) != 1 || hook.Calls[0].Action != "PolicyResult" || hook.Calls[0].InstanceID != resourceAddr.String() {
+				t.Fatalf("unexpected hook calls: %#v", hook.Calls)
+			}
+			if len(hook.PolicyResults) != 1 {
+				t.Fatalf("policy results = %d, want 1", len(hook.PolicyResults))
+			}
+			resp := hook.PolicyResults[resourceAddr.String()]
+			if resp.Overall != test.result {
+				t.Fatalf("overall result = %s, want authoritative client result %s", resp.Overall, test.result)
+			}
+			if resp.Identity["id"] != "i-authoritative" {
+				t.Fatalf("identity = %#v, want id=i-authoritative", resp.Identity)
+			}
+			if resp.ListBlockAddr != n.ListBlockAddr.String() {
+				t.Fatalf("list block address = %q, want %q", resp.ListBlockAddr, n.ListBlockAddr)
+			}
+		})
+	}
+}
+
+func TestNodeQueryResourcePolicy_GetResourcesCallback(t *testing.T) {
+	oneResource := []cty.Value{cty.StringVal("resource")}
+	sentinelErr := errors.New("callback failed")
+
+	tests := []struct {
+		name        string
+		resources   []cty.Value
+		partial     bool
+		err         error
+		wantPartial bool
+	}{
+		{
+			name:        "zero resources becomes partial",
+			resources:   []cty.Value{},
+			wantPartial: true,
+		},
+		{
+			name:        "zero resources preserves partial",
+			resources:   []cty.Value{},
+			partial:     true,
+			wantPartial: true,
+		},
+		{
+			name:      "one resource remains complete",
+			resources: oneResource,
+		},
+		{
+			name:        "one resource preserves partial",
+			resources:   oneResource,
+			partial:     true,
+			wantPartial: true,
+		},
+		{
+			name:      "zero resources with error remains an error",
+			resources: []cty.Value{},
+			err:       sentinelErr,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			callback := queryGetResourcesCallback(func(context.Context, string, cty.Value) ([]cty.Value, bool, error) {
+				return test.resources, test.partial, test.err
+			})
+			resources, partial, err := callback(t.Context(), "test_resource", cty.NullVal(cty.DynamicPseudoType))
+			if err != test.err {
+				t.Fatalf("error = %v, want exact error %v", err, test.err)
+			}
+			if partial != test.wantPartial {
+				t.Fatalf("partial = %t, want %t", partial, test.wantPartial)
+			}
+			if len(resources) != len(test.resources) {
+				t.Fatalf("resources = %d, want %d", len(resources), len(test.resources))
+			}
+			for idx := range resources {
+				if !resources[idx].RawEquals(test.resources[idx]) {
+					t.Fatalf("resource %d = %#v, want %#v", idx, resources[idx], test.resources[idx])
+				}
+			}
+		})
 	}
 }

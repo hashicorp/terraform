@@ -5,6 +5,7 @@ package policy
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
@@ -47,9 +50,10 @@ func TestClientEvaluate(t *testing.T) {
 	ctx := t.Context()
 
 	tests := []struct {
-		name       string
-		attrs      PolicyValue
-		priorAttrs PolicyValue
+		name          string
+		attrs         PolicyValue
+		priorAttrs    PolicyValue
+		preRPCFailure bool
 
 		// an optional function to override the default evaluateResourceFn
 		evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
@@ -155,6 +159,109 @@ func TestClientEvaluate(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "current attribute serialization error",
+			attrs: PolicyValue{
+				Raw: cty.EmptyObjectVal,
+				RedactedPaths: []cty.Path{{
+					cty.IndexStep{Key: cty.BoolVal(true)},
+				}},
+			},
+			priorAttrs:    PolicyValue{Raw: cty.EmptyObjectVal},
+			preRPCFailure: true,
+			assertResponse: func(t *testing.T, _ *callback.MockRegistry, _ *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
+				t.Helper()
+				if resp.Overall != PolicyErrorResult {
+					t.Fatalf("overall result = %s, want %s", resp.Overall, PolicyErrorResult)
+				}
+				if len(resp.Diagnostics) != 1 {
+					t.Fatalf("diagnostics count = %d, want 1", len(resp.Diagnostics))
+				}
+				diag := resp.Diagnostics[0]
+				if diag.Severity() != tfdiags.Error {
+					t.Fatalf("diagnostic severity = %s, want error", diag.Severity())
+				}
+				desc := diag.Description()
+				wantSummary := "Failed to serialize attributes"
+				if desc.Summary != wantSummary {
+					t.Fatalf("diagnostic summary = %q, want %q", desc.Summary, wantSummary)
+				}
+				wantDetail := "Failed to serialize attributes: error serializing redacted paths: unsupported cty path step type cty.IndexStep."
+				if desc.Detail != wantDetail {
+					t.Fatalf("diagnostic detail = %q, want %q", desc.Detail, wantDetail)
+				}
+				extra := tfdiags.ExtraInfo[*PolicyExtra](diag)
+				if extra == nil || extra.Result != PolicyErrorResult {
+					t.Fatalf("diagnostic result metadata = %#v, want %s", extra, PolicyErrorResult)
+				}
+			},
+		},
+		{
+			name:  "prior attribute serialization error",
+			attrs: PolicyValue{Raw: cty.EmptyObjectVal},
+			priorAttrs: PolicyValue{
+				Raw: cty.EmptyObjectVal,
+				RedactedPaths: []cty.Path{{
+					cty.IndexStep{Key: cty.BoolVal(true)},
+				}},
+			},
+			preRPCFailure: true,
+			assertResponse: func(t *testing.T, _ *callback.MockRegistry, _ *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
+				t.Helper()
+				if resp.Overall != PolicyErrorResult {
+					t.Fatalf("overall result = %s, want %s", resp.Overall, PolicyErrorResult)
+				}
+				if len(resp.Diagnostics) != 1 {
+					t.Fatalf("diagnostics count = %d, want 1", len(resp.Diagnostics))
+				}
+				diag := resp.Diagnostics[0]
+				if diag.Severity() != tfdiags.Error {
+					t.Fatalf("diagnostic severity = %s, want error", diag.Severity())
+				}
+				desc := diag.Description()
+				wantSummary := "Failed to serialize prior attributes"
+				if desc.Summary != wantSummary {
+					t.Fatalf("diagnostic summary = %q, want %q", desc.Summary, wantSummary)
+				}
+				wantDetail := "Failed to serialize prior attributes: error serializing redacted paths: unsupported cty path step type cty.IndexStep."
+				if desc.Detail != wantDetail {
+					t.Fatalf("diagnostic detail = %q, want %q", desc.Detail, wantDetail)
+				}
+				extra := tfdiags.ExtraInfo[*PolicyExtra](diag)
+				if extra == nil || extra.Result != PolicyErrorResult {
+					t.Fatalf("diagnostic result metadata = %#v, want %s", extra, PolicyErrorResult)
+				}
+			},
+		},
+		{
+			name:       "resource RPC error",
+			attrs:      PolicyValue{Raw: cty.NilVal},
+			priorAttrs: PolicyValue{Raw: cty.NilVal},
+			evaluateResourceFn: func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+				return nil, status.Error(codes.Unavailable, "connection reset by peer")
+			},
+			assertResponse: func(t *testing.T, _ *callback.MockRegistry, _ *proto.PolicyEvaluateResourceRequest, resp EvaluationResponse) {
+				t.Helper()
+				if resp.Overall != PolicyErrorResult {
+					t.Fatalf("overall result = %s, want %s", resp.Overall, PolicyErrorResult)
+				}
+				if len(resp.Diagnostics) != 1 {
+					t.Fatalf("diagnostics count = %d, want 1", len(resp.Diagnostics))
+				}
+				diag := resp.Diagnostics[0]
+				if diag.Severity() != tfdiags.Error {
+					t.Fatalf("diagnostic severity = %s, want error", diag.Severity())
+				}
+				desc := diag.Description()
+				if desc.Summary != "Failed to evaluate Terraform Policy" || !strings.Contains(desc.Detail, "connection reset by peer") {
+					t.Fatalf("unexpected diagnostic: %#v", desc)
+				}
+				extra := tfdiags.ExtraInfo[*PolicyExtra](diag)
+				if extra == nil || extra.Result != PolicyErrorResult {
+					t.Fatalf("diagnostic result metadata = %#v, want %s", extra, PolicyErrorResult)
+				}
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -190,6 +297,21 @@ func TestClientEvaluate(t *testing.T) {
 			})
 
 			test.assertResponse(t, registry, gotReq, resp)
+			if test.preRPCFailure {
+				if gotReq != nil {
+					t.Fatal("expected EvaluateResource RPC not to be called")
+				}
+				if registry.NextIDCalled {
+					t.Fatal("expected callback registry NextID not to be called")
+				}
+				if registry.RegisterCalled {
+					t.Fatal("expected callback registry Register not to be called")
+				}
+				if registry.UnregisterCalled {
+					t.Fatal("expected callback registry Unregister not to be called")
+				}
+				return
+			}
 			if gotReq == nil {
 				t.Fatal("expected EvaluateResource RPC to be called")
 			}
