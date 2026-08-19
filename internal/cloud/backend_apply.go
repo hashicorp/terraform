@@ -76,6 +76,16 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 		))
 	}
 
+	// TODO:@austinvalle: This will eventually be added to HCPT / go-tfe and should be removed
+	if op.PlanMinimalRefresh {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Minimal refresh mode is currently not supported",
+			fmt.Sprintf("%s does not support -minimal-refresh mode for ", b.appName)+
+				"plans at this time.",
+		))
+	}
+
 	// Return if there are any errors.
 	if diags.HasErrors() {
 		return &RunResult{}, diags.Err()

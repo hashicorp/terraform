@@ -61,7 +61,7 @@ func (h *componentInstanceTerraformHook) resourceInstanceObjectAddr(riAddr addrs
 	}
 }
 
-func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, err error) (terraform.HookAction, error) {
 	status := hooks.ResourceInstancePlanning
 	if err != nil {
 		status = hooks.ResourceInstanceErrored
@@ -74,7 +74,7 @@ func (h *componentInstanceTerraformHook) PreDiff(id terraform.HookResourceIdenti
 	return terraform.HookActionContinue, nil
 }
 
-func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (terraform.HookAction, error) {
+func (h *componentInstanceTerraformHook) PostDiff(id terraform.HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (terraform.HookAction, error) {
 	status := hooks.ResourceInstancePlanned
 	if err != nil {
 		status = hooks.ResourceInstanceErrored
