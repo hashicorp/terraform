@@ -42,11 +42,11 @@ type Graph struct {
 // Walk walks the graph with the given walker for callbacks. The graph
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
-func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
-	return g.walk(walker)
+func (g *Graph) Walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostics {
+	return g.walk(ctx, walker)
 }
 
-func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
+func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
 	evalCtx := walker.EvalContext()
 
@@ -200,7 +200,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", v.Name())
-				subDiags := g.walk(walker)
+				subDiags := g.walk(ctx, walker)
 				diags = diags.Append(subDiags)
 				if subDiags.HasErrors() {
 					var errs []string
@@ -218,7 +218,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		return
 	}
 
-	return g.AcyclicGraph.Walk(context.TODO(), signalWrapper(walkFn))
+	return g.AcyclicGraph.Walk(ctx, signalWrapper(walkFn))
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the

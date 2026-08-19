@@ -100,7 +100,7 @@ func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpt
 	watchStop, watchWait := c.watchStop(walker)
 
 	// Walk the real graph, this will block until it completes
-	diags := graph.Walk(walker)
+	diags := graph.Walk(c.runContext, walker)
 
 	// Close the channel so the watcher stops, and wait for it to return.
 	close(watchStop)
