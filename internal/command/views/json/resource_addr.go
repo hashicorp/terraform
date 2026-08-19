@@ -4,8 +4,6 @@
 package json
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -34,15 +32,15 @@ func newResourceAddr(addr addrs.AbsResourceInstance) ResourceAddr {
 			resourceKeyUnknown = true
 		}
 	}
-	fmt.Println(resourceKeyUnknown)
+
 	return ResourceAddr{
-		Addr:            addr.String(),
-		Module:          addr.Module.String(),
-		Resource:        addr.Resource.String(),
-		ImpliedProvider: addr.Resource.Resource.ImpliedProvider(),
-		ResourceType:    addr.Resource.Resource.Type,
-		ResourceName:    addr.Resource.Resource.Name,
-		ResourceKey:     resourceKey,
-		// ResourceKeyUnknown: resourceKeyUnknown,
+		Addr:               addr.String(),
+		Module:             addr.Module.String(),
+		Resource:           addr.Resource.String(),
+		ImpliedProvider:    addr.Resource.Resource.ImpliedProvider(),
+		ResourceType:       addr.Resource.Resource.Type,
+		ResourceName:       addr.Resource.Resource.Name,
+		ResourceKey:        resourceKey,
+		ResourceKeyUnknown: resourceKeyUnknown,
 	}
 }
