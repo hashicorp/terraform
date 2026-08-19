@@ -14,6 +14,7 @@ const (
 	// Operation results
 	MessageResourceDrift           MessageType = "resource_drift"
 	MessagePlannedChange           MessageType = "planned_change"
+	MessageDeferredChange          MessageType = "deferred_change"
 	MessagePlannedActionInvocation MessageType = "planned_action_invocation"
 	MessageChangeSummary           MessageType = "change_summary"
 	MessageOutputs                 MessageType = "outputs"

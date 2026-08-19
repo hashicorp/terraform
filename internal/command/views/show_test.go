@@ -214,6 +214,76 @@ func TestShowJSON(t *testing.T) {
 	}
 }
 
+func TestShowHuman_planWithDeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	view.Configure(&arguments.View{NoColor: true})
+	v := NewShow(arguments.ViewHuman, view)
+
+	code := v.Display(nil, testPlanWithDeferredChanges(t), nil, nil, testSchemas())
+	if code != 0 {
+		t.Errorf("expected 0 return code, got %d", code)
+	}
+
+	want := `
+Note: This is a partial plan, parts can only be known in the next plan / apply cycle.
+
+
+  # test_resource.deferred was deferred
+  # (because the resource configuration is unknown)
+  + resource "test_resource" "deferred" {}
+
+─────────────────────────────────────────────────────────────────────────────
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestShowJSON_planWithDeferredChange(t *testing.T) {
+	config, _, configCleanup := tftesting.MustLoadConfigForTests(t, "./testdata/show", "tests")
+	defer configCleanup()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	view.Configure(&arguments.View{NoColor: true})
+	v := NewShow(arguments.ViewJSON, view)
+
+	code := v.Display(config, testPlanWithDeferredChanges(t), nil, nil, testSchemas())
+	if code != 0 {
+		t.Errorf("expected 0 return code, got %d", code)
+	}
+
+	var result map[string]interface{}
+	got := done(t).All()
+	if err := json.Unmarshal([]byte(got), &result); err != nil {
+		t.Fatal(err)
+	}
+	deferredChanges, ok := result["deferred_changes"]
+	if !ok {
+		t.Fatalf("expected JSON output to contain 'deferred_changes', got: %s", got)
+	}
+	deferredList, ok := deferredChanges.([]interface{})
+	if !ok || len(deferredList) == 0 {
+		t.Errorf("expected at least one deferred change in output, got: %v", deferredChanges)
+	}
+}
+
 // testState returns a test State structure.
 func testState() *states.State {
 	return states.BuildState(func(s *states.SyncState) {
