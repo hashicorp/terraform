@@ -23,10 +23,7 @@ func TestWalker_basic(t *testing.T) {
 	for range 50 {
 		var order []any
 		w := NewWalker(walkCbRecord(&order))
-		if diags := w.Walk(context.TODO(), &g); diags.HasErrors() {
-			t.Fatalf("err: %s", diags.ErrWithWarnings())
-
-		}
+		w.Walk(context.TODO(), &g)
 
 		// Check
 		expected := []any{testV(2), testV(1)}
@@ -50,26 +47,28 @@ func TestWalker_error(t *testing.T) {
 	var order []any
 	recordF := walkCbRecord(&order)
 
+	var diags tfdiags.Diagnostics
+
 	// Build a callback that delays until we close a channel
-	cb := func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	cb := func(ctx context.Context, v Vertex) any {
 		for _, sig := range Signals(ctx) {
 			if sig == errStopWalk {
 				// skipping
-				return nil, nil
+				return nil
 			}
 		}
 
 		if v == testV(2) {
-			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return errStopWalk, diags
+			return errStopWalk
 		}
 
 		return recordF(context.TODO(), v)
 	}
 
 	w := NewWalker(cb)
-	if diags := w.Walk(context.TODO(), &g); !diags.HasErrors() {
+	w.Walk(context.TODO(), &g)
+	if !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
@@ -98,25 +97,25 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 	g.Connect(resD, resC)
 
 	var order []any
+	var diags tfdiags.Diagnostics
 
-	w := NewWalker(func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	w := NewWalker(func(ctx context.Context, v Vertex) any {
 		_, alwaysRun := v.(AlwaysRunVertex)
 		for _, sig := range Signals(ctx) {
 			if sig == errStopWalk && !alwaysRun {
-				return nil, nil
+				return nil
 			}
 		}
 
 		if v == testNamedString("error") {
-			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return errStopWalk, diags
+			return errStopWalk
 		}
 
 		return walkCbRecord(&order)(context.TODO(), v)
 	})
-
-	if diags := w.Walk(context.TODO(), &g); !diags.HasErrors() {
+	w.Walk(context.TODO(), &g)
+	if !diags.HasErrors() {
 		t.Fatal("expect error")
 	}
 
@@ -129,10 +128,10 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 // walkCbRecord is a test helper callback that just records the order called.
 func walkCbRecord(order *[]any) WalkFunc {
 	var l sync.Mutex
-	return func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	return func(_ context.Context, v Vertex) any {
 		l.Lock()
 		defer l.Unlock()
 		*order = append(*order, v)
-		return nil, nil
+		return nil
 	}
 }

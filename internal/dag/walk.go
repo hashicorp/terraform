@@ -10,8 +10,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Walker is used to walk every vertex of a graph in parallel.
@@ -40,10 +38,6 @@ type Walker struct {
 
 	// wait is done when all vertices have executed.
 	wait sync.WaitGroup
-
-	// diagsMap contains the diagnostics recorded so far for execution.
-	diagsMap  map[Vertex]tfdiags.Diagnostics
-	diagsLock sync.Mutex
 }
 
 // WalkFunc is the callback used for the primary concurrent walk of the graph
@@ -56,7 +50,7 @@ type Walker struct {
 // pass them into the callback within the Context. Signals are extracted from
 // the context in the callback via the dag.Signals(ctx) function. The value and
 // meaning of signals are completely up to the calling package.
-type WalkFunc func(context.Context, Vertex) (any, tfdiags.Diagnostics)
+type WalkFunc func(context.Context, Vertex) any
 
 // NewWalker creates a new walker with the given callback function.
 func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
@@ -104,9 +98,9 @@ type walkerVertex struct {
 
 // Walk loads the graph and dispatches the concurrent walker. Walk can only be
 // called once for a single Walker.
-func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) tfdiags.Diagnostics {
+func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) {
 	if g == nil {
-		return nil
+		return
 	}
 
 	if w.started.Load() {
@@ -176,15 +170,6 @@ func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) tfdiags.Diagnostics 
 
 	// Wait for completion
 	w.wait.Wait()
-
-	var diags tfdiags.Diagnostics
-	w.diagsLock.Lock()
-	for _, vDiags := range w.diagsMap {
-		diags = diags.Append(vDiags)
-	}
-	w.diagsLock.Unlock()
-
-	return diags
 }
 
 // walkVertex walks a single vertex, waiting for any dependencies before
@@ -216,23 +201,10 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
 
 	ctx = context.WithValue(ctx, signalKey, info.Signals)
 
-	// Run our callback or note that our upstream failed
-	var diags tfdiags.Diagnostics
-
-	signal, cbDiags := w.Callback(ctx, info.V)
-	diags = diags.Append(cbDiags)
+	signal := w.Callback(ctx, info.V)
 	if signal != nil {
 		info.Signals = append(info.Signals, signal)
 	}
-
-	// Record the result (we must do this after execution because we mustn't
-	// hold diagsLock while visiting a vertex.)
-	w.diagsLock.Lock()
-	if w.diagsMap == nil {
-		w.diagsMap = make(map[Vertex]tfdiags.Diagnostics)
-	}
-	w.diagsMap[info.V] = diags
-	w.diagsLock.Unlock()
 }
 
 func (w *Walker) waitDeps(v *walkerVertex) {

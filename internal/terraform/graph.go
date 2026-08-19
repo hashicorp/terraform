@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -71,37 +72,46 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 	// The callbacks for enter/exiting a graph
 	evalCtx := walker.EvalContext()
 
+	var diagsLock sync.Mutex
+	var walkDiags tfdiags.Diagnostics
+
+	// Handle graph wlk signaling with changing the whole walkFn or all graph
+	// node implementations. This can be further integrated in the future if we
+	// want to pass the runtime context through to node Execute methods too.
 	signalWrapper := func(cb func(dag.Vertex) tfdiags.Diagnostics) dag.WalkFunc {
-		return func(ctx context.Context, v dag.Vertex) (any, tfdiags.Diagnostics) {
+		return func(ctx context.Context, v dag.Vertex) any {
 			signals := dag.Signals(ctx)
 
 			switch sc := v.(type) {
 			case graphWalkSignalConsumer:
 				if !sc.ContinueWithSignals(signals) {
-					return nil, nil
+					return nil
 				}
 			default:
 				// default handling of the "stop on error" behavior
 				for _, sig := range signals {
 					if sig == graphWalkError {
 						log.Printf("[DEBUG] Upstream node errored, skipping %s", v.Name())
-						return nil, nil
+						return nil
 					}
 				}
 			}
 
 			diags := cb(v)
+			diagsLock.Lock()
+			walkDiags = walkDiags.Append(diags)
+			diagsLock.Unlock()
 
 			switch se := v.(type) {
 			case graphWalkSignalEmitter:
-				return se.Signal(), diags
+				return se.Signal()
 			default:
 				if diags.HasErrors() {
-					return graphWalkError, diags
+					return graphWalkError
 				}
 			}
 
-			return nil, diags
+			return nil
 		}
 	}
 
@@ -251,7 +261,8 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 		return
 	}
 
-	return g.AcyclicGraph.Walk(ctx, signalWrapper(walkFn))
+	g.AcyclicGraph.Walk(ctx, signalWrapper(walkFn))
+	return walkDiags
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the

@@ -10,8 +10,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles.
@@ -265,9 +263,9 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // Walk walks the graph, calling your callback as each node is visited. This
 // will walk nodes in concurrently if it can. The resulting diagnostics contains
 // problems from all graphs visited, in no particular order.
-func (g *AcyclicGraph) Walk(ctx context.Context, cb WalkFunc) tfdiags.Diagnostics {
+func (g *AcyclicGraph) Walk(ctx context.Context, cb WalkFunc) {
 	w := NewWalker(cb)
-	return w.Walk(ctx, g)
+	w.Walk(ctx, g)
 }
 
 // TopologicalOrder returns a topological sort of the given graph, with source
