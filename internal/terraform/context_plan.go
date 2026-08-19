@@ -57,6 +57,10 @@ type PlanOpts struct {
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
 	// type for more information on how to correctly populate this.
+	// Variables that are declared but not set are also included here,
+	// but their values are set to nil, so that Terraform Core
+	// can later substitute a default if available, or generate an error
+	// if not.
 	SetVariables InputValues
 
 	// If Targets has a non-zero length then it activates targeted planning
