@@ -5,7 +5,6 @@ package dag
 
 import (
 	"context"
-	"errors"
 	"log"
 	"slices"
 	"sync"
@@ -42,15 +41,9 @@ type Walker struct {
 	// wait is done when all vertices have executed.
 	wait sync.WaitGroup
 
-	// diagsMap contains the diagnostics recorded so far for execution,
-	// and upstreamFailed contains all the vertices whose problems were
-	// caused by upstream failures, and thus whose diagnostics should be
-	// excluded from the final set.
-	//
-	// Readers and writers of either map must hold diagsLock.
-	diagsMap       map[Vertex]tfdiags.Diagnostics
-	upstreamFailed map[Vertex]struct{}
-	diagsLock      sync.Mutex
+	// diagsMap contains the diagnostics recorded so far for execution.
+	diagsMap  map[Vertex]tfdiags.Diagnostics
+	diagsLock sync.Mutex
 }
 
 // NewWalker creates a new walker with the given callback function.
@@ -79,19 +72,21 @@ func Signals(ctx context.Context) []any {
 type walkerVertex struct {
 	V Vertex
 
-	// Signals is the collection of all Signals that the walk has accumulated
-	// from dependencies to this point.
+	// Signals is the collection of all Signals that the walk has accumulated to
+	// this point. Signals will include this vertex's own callback after that
+	// has been called as well. We collect all signals at a single point for
+	// each vertex, because they need to be broadcast to all dependents, but
+	// broadcast is done via a channel closure and cannot simultaneously
+	// transmit the signals.
 	Signals []any
 
-	// SignalCh returns the signal emitted by the vertex, or nil.
-	SignalCh chan any
+	// DoneCh is closed to broadcast callback completion to all dependents.
+	DoneCh chan bool
 
-	// DepsCh is sent a single value that denotes whether the upstream deps
-	// were successful (no errors). Any value sent means that the upstream
-	// dependencies are complete. No other values will ever be sent again.
+	// DepsCh is closed to denotes that all dependents have completed.
 	DepsCh chan bool
 
-	// deps maps each vertex to its walker structure
+	// deps maps each dependency's vertex to its walker structure.
 	deps map[Vertex]*walkerVertex
 }
 
@@ -122,9 +117,9 @@ func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) tfdiags.Diagnostics 
 
 		// Initialize the vertex info
 		info := &walkerVertex{
-			V:        v,
-			SignalCh: make(chan any),
-			deps:     make(map[Vertex]*walkerVertex),
+			V:      v,
+			DoneCh: make(chan bool),
+			deps:   make(map[Vertex]*walkerVertex),
 		}
 
 		// Add it to the map and kick off the walk
@@ -172,16 +167,7 @@ func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) tfdiags.Diagnostics 
 
 	var diags tfdiags.Diagnostics
 	w.diagsLock.Lock()
-	for v, vDiags := range w.diagsMap {
-		if _, upstream := w.upstreamFailed[v]; upstream {
-			// Ignore diagnostics for nodes that had failed upstreams, since the
-			// downstream diagnostics are likely to be redundant.
-			//
-			// FIXME: we only need to ignore these because we add them here to
-			// skip vertices. Make make it so we don't have these unused
-			// diagnostics
-			continue
-		}
+	for _, vDiags := range w.diagsMap {
 		diags = diags.Append(vDiags)
 	}
 	w.diagsLock.Unlock()
@@ -197,7 +183,7 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
 
 	// The happy paths with return signals, but this prevents any unexpected
 	// blocking, and since a nil signal is ignored, a closed channel is fine.
-	defer close(info.SignalCh)
+	defer close(info.DoneCh)
 
 	// if there are no deps we have a nil chan, so we need to initialize
 	// something that won't block
@@ -209,36 +195,22 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
 	}
 
 	// wait for all deps
-	var depsSuccess bool
 	select {
-	case depsSuccess = <-depsCh:
+	case <-depsCh:
 	case <-ctx.Done():
 		// context was canceled, stop processing callbacks
 		return
 	}
 
+	ctx = context.WithValue(ctx, signalKey, info.Signals)
+
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
-	var upstreamFailed bool
 
-	if depsSuccess {
-		signal, cbDiags := w.Callback(ctx, info.V)
-		diags = diags.Append(cbDiags)
-		// ignoring for now
-		_ = signal
-
-		// FIXME: temp work to still halt on errors
-		if diags.HasErrors() {
-			info.SignalCh <- errStopWalk
-		}
-
-	} else {
-		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", info.V.Name())
-		// This won't be displayed to the user because we'll set upstreamFailed,
-		// but we need to ensure there's at least one error in here so that
-		// the failures will cascade downstream.
-		diags = diags.Append(errors.New("upstream dependencies failed"))
-		upstreamFailed = true
+	signal, cbDiags := w.Callback(ctx, info.V)
+	diags = diags.Append(cbDiags)
+	if signal != nil {
+		info.Signals = append(info.Signals, signal)
 	}
 
 	// Record the result (we must do this after execution because we mustn't
@@ -248,16 +220,12 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
 		w.diagsMap = make(map[Vertex]tfdiags.Diagnostics)
 	}
 	w.diagsMap[info.V] = diags
-	if w.upstreamFailed == nil {
-		w.upstreamFailed = make(map[Vertex]struct{})
-	}
-	if upstreamFailed {
-		w.upstreamFailed[info.V] = struct{}{}
-	}
 	w.diagsLock.Unlock()
 }
 
 func (w *Walker) waitDeps(v *walkerVertex) {
+	defer close(v.DepsCh)
+
 	signals := setMap[any]{make(map[any]bool)}
 
 	// For each dependency given to us, wait for it to complete
@@ -265,10 +233,8 @@ func (w *Walker) waitDeps(v *walkerVertex) {
 	DepSatisfied:
 		for {
 			select {
-			case signal := <-depInfo.SignalCh:
-				if signal != nil {
-					signals.Add(signal)
-				}
+			case <-depInfo.DoneCh:
+				// collect all upstream signals
 				for _, signal := range depInfo.Signals {
 					signals.Add(signal)
 				}
@@ -283,23 +249,4 @@ func (w *Walker) waitDeps(v *walkerVertex) {
 	}
 
 	v.Signals = slices.Collect(signals.All())
-
-	// If the vertex implements [AlwaysRunVertex], then
-	// return ignore the errored dependencies and return success.
-	if _, ok := v.V.(AlwaysRunVertex); ok {
-		// FIXME: this cancels out upstream errors for later nodes
-		v.DepsCh <- true
-		return
-	}
-
-	// FIXME: temp work to convert diags control to signal control
-	for signal := range signals.All() {
-		if signal == errStopWalk {
-			v.DepsCh <- false
-			return
-		}
-	}
-
-	// All dependencies satisfied and successful
-	v.DepsCh <- true
 }

@@ -51,11 +51,18 @@ func TestWalker_error(t *testing.T) {
 	recordF := walkCbRecord(&order)
 
 	// Build a callback that delays until we close a channel
-	cb := func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	cb := func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+		for _, sig := range Signals(ctx) {
+			if sig == errStopWalk {
+				// skipping
+				return nil, nil
+			}
+		}
+
 		if v == testV(2) {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return nil, diags
+			return errStopWalk, diags
 		}
 
 		return recordF(context.TODO(), v)

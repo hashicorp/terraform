@@ -417,7 +417,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	err := g.Walk(context.TODO(), func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	err := g.Walk(context.Background(), func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		lock.Lock()
 		defer lock.Unlock()
 
