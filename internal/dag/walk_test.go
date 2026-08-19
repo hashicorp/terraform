@@ -99,11 +99,18 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 
 	var order []any
 
-	w := NewWalker(func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+	w := NewWalker(func(ctx context.Context, v Vertex) (any, tfdiags.Diagnostics) {
+		_, alwaysRun := v.(AlwaysRunVertex)
+		for _, sig := range Signals(ctx) {
+			if sig == errStopWalk && !alwaysRun {
+				return nil, nil
+			}
+		}
+
 		if v == testNamedString("error") {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
-			return nil, diags
+			return errStopWalk, diags
 		}
 
 		return walkCbRecord(&order)(context.TODO(), v)
@@ -113,7 +120,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 		t.Fatal("expect error")
 	}
 
-	expected := []any{resA, resC, resD}
+	expected := []any{resA, resC}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}
