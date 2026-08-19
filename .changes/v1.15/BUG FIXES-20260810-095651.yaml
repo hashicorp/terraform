@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'validate: Child module validation has been fixed and will now raise errors or warning diagnostics for invalid blocks. (`list`, `import`, `backend`, and `cloud`)'
-time: 2026-08-10T09:56:51.193309-04:00
-custom:
-    Issue: "38994"
