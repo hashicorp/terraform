@@ -421,6 +421,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 		lock.Lock()
 		defer lock.Unlock()
 
+		// skip any upstream error signals
 		for _, sig := range Signals(ctx) {
 			if sig == errStopWalk {
 				// skipping

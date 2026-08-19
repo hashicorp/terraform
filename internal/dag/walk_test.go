@@ -120,7 +120,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 }
 
 // walkCbRecord is a test helper callback that just records the order called.
-func walkCbRecord(order *[]any) walkFunc {
+func walkCbRecord(order *[]any) WalkFunc {
 	var l sync.Mutex
 	return func(_ context.Context, v Vertex) (any, tfdiags.Diagnostics) {
 		l.Lock()

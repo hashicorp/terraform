@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -15,6 +16,16 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 
 	"github.com/hashicorp/terraform/internal/dag"
+)
+
+var (
+	// graphWalkError is the signal we use to indicate that an upstream node
+	// errored, and most node execution should be skipped.
+	graphWalkError = errors.New("node error")
+
+	// graphWalkDefer indicates that an upstream node has been deferred, and can
+	// be used to trigger deferral of dependencies.
+	graphWalkDefer = errors.New("node deferred")
 )
 
 // Graph represents the graph that Terraform uses to represent resources
@@ -37,10 +48,32 @@ func (g *Graph) Walk(walker GraphWalker) tfdiags.Diagnostics {
 
 func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EvalContext()
+	evalCtx := walker.EvalContext()
+
+	signalWrapper := func(cb func(dag.Vertex) tfdiags.Diagnostics) dag.WalkFunc {
+		return func(ctx context.Context, v dag.Vertex) (any, tfdiags.Diagnostics) {
+			_, alwaysRun := v.(dag.AlwaysRunVertex)
+
+			for _, sig := range dag.Signals(ctx) {
+				if sig == graphWalkError {
+					if !alwaysRun {
+						log.Printf("[DEBUG] Upstream node errored, skipping %s", v.Name())
+						return nil, nil
+					}
+					log.Printf("[DEBUG] Upstream node errored, but %s is always executed", v.Name())
+				}
+			}
+
+			diags := cb(v)
+			if diags.HasErrors() {
+				return graphWalkError, diags
+			}
+			return nil, diags
+		}
+	}
 
 	// Walk the graph.
-	walkFn := func(_ context.Context, v dag.Vertex) (walkSignal any, diags tfdiags.Diagnostics) {
+	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
@@ -69,7 +102,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			}
 		}()
 
-		haveOverrides := !ctx.Overrides().Empty()
+		haveOverrides := !evalCtx.Overrides().Empty()
 
 		// If the graph node is overridable, we'll check our overrides to see
 		// if we need to apply any overrides to the node.
@@ -82,7 +115,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			//
 			// See the output node for an example of providing the overrides
 			// directly to the node.
-			if override, ok := ctx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
+			if override, ok := evalCtx.Overrides().GetResourceOverride(overridable.ResourceInstanceAddr(), overridable.ConfigProvider()); ok {
 				overridable.SetOverride(override)
 			}
 		}
@@ -96,7 +129,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			// UnkeyedInstanceShim is used by legacy provider configs within a
 			// module to return an instance of that module, since they can never
 			// exist within an expanded instance.
-			if ctx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
+			if evalCtx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
 				log.Printf("[DEBUG] skipping provider %s found within overridden module", addr)
 				return
 			}
@@ -109,7 +142,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		// all intentionally mutually-exclusive by having the same method
 		// name but different signatures, since a node can only belong to
 		// one context at a time.)
-		vertexCtx := ctx
+		vertexCtx := evalCtx
 		if pn, ok := v.(graphNodeEvalContextScope); ok {
 			scope := pn.Path()
 			log.Printf("[TRACE] vertex %q: belongs to %s", v.Name(), scope)
@@ -185,7 +218,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		return
 	}
 
-	return g.AcyclicGraph.Walk(context.TODO(), walkFn)
+	return g.AcyclicGraph.Walk(context.TODO(), signalWrapper(walkFn))
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the

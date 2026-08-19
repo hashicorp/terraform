@@ -30,7 +30,7 @@ import (
 // deleted in case vertices or edges are changed.
 type Walker struct {
 	// Callback is what is called for each vertex
-	Callback walkFunc
+	Callback WalkFunc
 
 	// Only Start should modify these fields. Modifying them after the walk has
 	// started can cause serious problems.
@@ -46,8 +46,20 @@ type Walker struct {
 	diagsLock sync.Mutex
 }
 
+// WalkFunc is the callback used for the primary concurrent walk of the graph
+// via Walker. WalkFunc returns an optional signal value along with diagnostics.
+// The walker will execute the callback for every node in the graph unless the
+// context is canceled. It is up to the callback implementation to coordinate
+// any early returns via signals.
+//
+// Signals: The Walker will collect and deduplicate all upstream signals, and
+// pass them into the callback within the Context. Signals are extracted from
+// the context in the callback via the dag.Signals(ctx) function. The value and
+// meaning of signals are completely up to the calling package.
+type WalkFunc func(context.Context, Vertex) (any, tfdiags.Diagnostics)
+
 // NewWalker creates a new walker with the given callback function.
-func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
+func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
 	w := &Walker{
 		Callback: cb,
 		vertices: NewVertexSet(),

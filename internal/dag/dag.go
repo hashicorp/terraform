@@ -19,9 +19,6 @@ type AcyclicGraph struct {
 	Graph
 }
 
-// walkFunc is the callback used for the primary concurrent walk of the graph.
-type walkFunc func(context.Context, Vertex) (any, tfdiags.Diagnostics)
-
 // depthWalkFunc is a walk function that also receives the current depth of the
 // walk as an argument. This is used for the various synchronous walks of the
 // graph.
@@ -268,7 +265,7 @@ func (g *AcyclicGraph) Cycles() [][]Vertex {
 // Walk walks the graph, calling your callback as each node is visited. This
 // will walk nodes in concurrently if it can. The resulting diagnostics contains
 // problems from all graphs visited, in no particular order.
-func (g *AcyclicGraph) Walk(ctx context.Context, cb walkFunc) tfdiags.Diagnostics {
+func (g *AcyclicGraph) Walk(ctx context.Context, cb WalkFunc) tfdiags.Diagnostics {
 	w := NewWalker(cb)
 	return w.Walk(ctx, g)
 }
