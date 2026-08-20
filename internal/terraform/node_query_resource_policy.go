@@ -103,9 +103,11 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
 	}
 
+	callbackManager := NewPolicyCallbackManager(op, schema, config)
+
 	callbacks := callback.Functions{
-		GetResources:  getResourcesForPolicyCallback(ctx, op, provider, schema, config),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
+		GetResources:  callbackManager.GetResourcesCallback(ctx, provider),
+		GetDataSource: callbackManager.GetDataSourceCallback(ctx, provider),
 	}
 
 	// Evaluate policies with the generated config as the "after" state

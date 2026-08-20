@@ -19,15 +19,15 @@ type policySubgraph struct {
 	// when the policy evaluation is finished
 	span trace.Span
 
-	// resources is a map of resource addresses to their policy resources.
-	resources addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
+	// resourceMap is a map of resource addresses to their policy resourceMap.
+	resourceMap addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
 }
 
 func newPolicySubgraph() *policySubgraph {
 	var g Graph
 	return &policySubgraph{
-		graph:     g,
-		resources: addrs.MakeMap[addrs.AbsResourceInstance, *PolicyResource](),
+		graph:       g,
+		resourceMap: addrs.MakeMap[addrs.AbsResourceInstance, *PolicyResource](),
 	}
 }
 
@@ -68,5 +68,5 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 }
 
 func (ps *policySubgraph) GetResource(addr addrs.AbsResourceInstance) *PolicyResource {
-	return ps.resources.Get(addr)
+	return ps.resourceMap.Get(addr)
 }

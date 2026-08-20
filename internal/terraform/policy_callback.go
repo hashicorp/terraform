@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"context"
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
@@ -42,13 +43,19 @@ type PolicyResource struct {
 	Value  cty.Value
 }
 
+func (cb *PolicyCallbackManager) RelatedResourcesCallback(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, val cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
+	return func(_ context.Context, blk *callback.RelationshipBlock) (callback.RelatedResource, error) {
+		related, err := cb.GetRelatedResources(ctx, subjectAddr, blk, val)
+		return related, err
+	}
+}
+
 // GetRelatedResources returns the related resources for the given target resource type and connection.
 func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, blk *callback.RelationshipBlock, val cty.Value) (callback.RelatedResource, error) {
 	found := make([]callback.RelatedResource, 0)
 	partial := false
 	var err error
 	policyGraph := ctx.PolicyGraph()
-
 	subjectResource := policyGraph.GetResource(subjectAddr)
 
 	// Consider an example where the terraform config is:
@@ -61,13 +68,13 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAdd
 	// and the relationship block pair is
 	// { sourceAttribute: "id", relatedAttribute: "bucket" }
 
-	for addr, related := range policyGraph.resources.Iter() {
+	for addr, related := range policyGraph.resourceMap.Iter() {
 		relatedAddr := addr.ConfigResource()
 		if relatedAddr.Resource.Type != blk.RelatedType {
 			continue
 		}
 
-		// Skip the resource currently under evaluation, i.e aws_s3_bucket.example
+		// Skip the subject resource, i.e aws_s3_bucket.example
 		if relatedAddr.Equal(subjectAddr.ConfigResource()) {
 			continue
 		}

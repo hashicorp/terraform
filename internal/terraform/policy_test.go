@@ -92,7 +92,8 @@ resource "test_resource" "b" {
 		DeferralsState: deferring.NewDeferred(false),
 	}
 
-	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
+	callbackManager := NewPolicyCallbackManager(walkApply, providerSchema, config)
+	callback := callbackManager.GetResourcesCallback(ctx, nil)
 
 	tests := []struct {
 		name        string
@@ -259,7 +260,8 @@ resource "test_resource" "b" {
 		DeferralsState: deferring.NewDeferred(false),
 	}
 
-	callback := getResourcesForPolicyCallback(ctx, walkPlan, nil, providerSchema, config)
+	callbackManager := NewPolicyCallbackManager(walkPlan, providerSchema, config)
+	callback := callbackManager.GetResourcesCallback(ctx, nil)
 
 	tests := []struct {
 		name        string

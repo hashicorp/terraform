@@ -73,11 +73,12 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	if modCfg != nil {
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
 	}
+	callbackManager := NewPolicyCallbackManager(operation, schema, config)
 
 	callbacks := callback.Functions{
-		GetResources:     getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
-		RelatedResources: relatedResourcesForPolicyCallback(ctx, operation, schema, config, n.ResourceAddr, n.After),
-		GetDataSource:    getDataSourceForPolicyCallback(ctx, provider, schema),
+		GetResources:     callbackManager.GetResourcesCallback(ctx, provider),
+		RelatedResources: callbackManager.RelatedResourcesCallback(ctx, n.ResourceAddr, n.After),
+		GetDataSource:    callbackManager.GetDataSourceCallback(ctx, provider),
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)

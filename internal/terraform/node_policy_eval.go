@@ -67,7 +67,7 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 	config := ctx.Config()
 	changes := ctx.Changes()
 
-	// Now we read the state and plan changes to build the policy resource graph.
+	// Now we read the state and plan changes to build the policy resource map.
 	// These are the resources that will be available during the callback evaluation.
 	if walkOp == walkApply {
 		for _, resourceAddr := range state.Lock().AllManagedResourceInstanceObjectAddrs() {
@@ -91,7 +91,7 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 				continue
 			}
 
-			policyGraph.resources.Put(addr, &PolicyResource{
+			policyGraph.resourceMap.Put(addr, &PolicyResource{
 				Addr:   resourceAddr.ResourceInstance,
 				Body:   getResourceConfig(config, addr),
 				Schema: resourceSchema.Body,
@@ -110,7 +110,7 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 			}
 			resourceSchema := schema.SchemaForResourceAddr(change.Addr.Resource.Resource)
 
-			policyGraph.resources.Put(change.Addr, &PolicyResource{
+			policyGraph.resourceMap.Put(change.Addr, &PolicyResource{
 				Addr:   change.Addr,
 				Body:   getResourceConfig(config, change.Addr),
 				Schema: resourceSchema.Body,
