@@ -21,7 +21,17 @@ type PolicyCallbackManager struct {
 	WalkOperation walkOperation
 	Schema        providers.GetProviderSchemaResponse
 	Config        *configs.Config
-	Source        *PolicyResource
+
+	// resources is a map of resource addresses to their policy resources.
+	resources addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
+}
+
+func NewPolicyCallbackManager(walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config) *PolicyCallbackManager {
+	return &PolicyCallbackManager{
+		WalkOperation: walkOperation,
+		Schema:        schema,
+		Config:        config,
+	}
 }
 
 // PolicyResource co-locates the data required for the relationship analysis for a single resource
@@ -33,11 +43,13 @@ type PolicyResource struct {
 }
 
 // GetRelatedResources returns the related resources for the given target resource type and connection.
-func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callback.RelationshipBlock, val cty.Value) (callback.RelatedResource, error) {
+func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, blk *callback.RelationshipBlock, val cty.Value) (callback.RelatedResource, error) {
 	found := make([]callback.RelatedResource, 0)
 	partial := false
 	var err error
 	policyGraph := ctx.PolicyGraph()
+
+	subjectResource := policyGraph.GetResource(subjectAddr)
 
 	// Consider an example where the terraform config is:
 	// resource "aws_s3_bucket" "example" {
@@ -56,7 +68,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 		}
 
 		// Skip the resource currently under evaluation, i.e aws_s3_bucket.example
-		if relatedAddr.Equal(cb.Source.Addr.ConfigResource()) {
+		if relatedAddr.Equal(subjectAddr.ConfigResource()) {
 			continue
 		}
 
@@ -73,21 +85,15 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 		// If it is a literal value, we check if it matches relationship.QueryAttributes.
 		// If it is a traversal, we check if the traversal points to aws_s3_bucket.example.id.
 		resourceValue := related.Value
-		matched := cb.Match(ctx, cb.Source, related, blk)
+		matched := cb.Match(ctx, subjectResource, related, blk)
 		if matched.IsWhollyKnown() && matched.True() {
 			resourceValue, _ = related.Value.UnmarkDeep()
 
-			// If the resource matched, and the connected block has a block itself,
+			// If the resource matched, and the relationship block has a block itself,
 			// we recursively get the related resources
 			var relatedRes callback.RelatedResource
 			if blk.Nested != nil {
-				cbCtx := &PolicyCallbackManager{
-					WalkOperation: cb.WalkOperation,
-					Schema:        cb.Schema,
-					Config:        cb.Config,
-					Source:        related,
-				}
-				relatedRes, err = cbCtx.GetRelatedResources(ctx, blk.Nested, resourceValue)
+				relatedRes, err = cb.GetRelatedResources(ctx, related.Addr, blk.Nested, resourceValue)
 				if err != nil {
 					continue
 				}
@@ -173,9 +179,9 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyR
 		// Compare the resolved attribute reference to the source reference, including
 		// the module instance where both are resolved.
 		sourceRef := &globalref.Reference{
-			ContainerAddr: c.Source.Addr.Module,
+			ContainerAddr: subject.Addr.Module,
 			LocalRef: &addrs.Reference{
-				Subject:   c.Source.Addr.Resource,
+				Subject:   subject.Addr.Resource,
 				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SubjectAttribute}},
 			},
 		}

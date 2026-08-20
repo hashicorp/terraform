@@ -19,6 +19,7 @@ type policySubgraph struct {
 	// when the policy evaluation is finished
 	span trace.Span
 
+	// resources is a map of resource addresses to their policy resources.
 	resources addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
 }
 
@@ -64,4 +65,8 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 	}
 
 	return &ps.graph
+}
+
+func (ps *policySubgraph) GetResource(addr addrs.AbsResourceInstance) *PolicyResource {
+	return ps.resources.Get(addr)
 }

@@ -67,6 +67,8 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 	config := ctx.Config()
 	changes := ctx.Changes()
 
+	// Now we read the state and plan changes to build the policy resource graph.
+	// These are the resources that will be available during the callback evaluation.
 	if walkOp == walkApply {
 		for _, resourceAddr := range state.Lock().AllManagedResourceInstanceObjectAddrs() {
 			addr := resourceAddr.ResourceInstance
@@ -78,7 +80,6 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 			}
 			resourceSchema := schema.SchemaForResourceAddr(addr.Resource.Resource)
 
-			// During apply, read the matching objects from state.
 			resource := state.ResourceInstance(addr)
 			if resource.Current == nil {
 				// TODO: Should we return an error here instead?
@@ -100,7 +101,6 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 		state.Unlock()
 
 	} else {
-		// During plan, return the matching planned objects.
 		for change := range plans.AllInstances(changes) {
 
 			_, schema, err := getProvider(ctx, change.ProviderAddr)

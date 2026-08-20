@@ -188,16 +188,13 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 }
 
 func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, currentAddr addrs.AbsResourceInstance, currentAttrs cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
-	resource := ctx.PolicyGraph().resources.Get(currentAddr)
-
 	cb := &PolicyCallbackManager{
 		WalkOperation: walkOperation,
 		Schema:        schema,
 		Config:        config,
-		Source:        resource,
 	}
 	return func(_ context.Context, blk *callback.RelationshipBlock) (callback.RelatedResource, error) {
-		related, err := cb.GetRelatedResources(ctx, blk, cty.NilVal)
+		related, err := cb.GetRelatedResources(ctx, currentAddr, blk, cty.NilVal)
 		return related, err
 	}
 }
