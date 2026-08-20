@@ -4,7 +4,6 @@
 package terraform
 
 import (
-	"iter"
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
@@ -13,10 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -40,6 +37,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 	found := make([]callback.RelatedResource, 0)
 	partial := false
 	var err error
+	policyGraph := ctx.PolicyGraph()
 
 	// Consider an example where the terraform config is:
 	// resource "aws_s3_bucket" "example" {
@@ -48,98 +46,59 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, blk *callb
 	// resource "aws_s3_bucket_acl" "example" {
 	//   bucket = aws_s3_bucket.example.id
 	// }
-	// and the related attribute pair is
+	// and the relationship block pair is
 	// { sourceAttribute: "id", relatedAttribute: "bucket" }
-	cb.Config.DeepEach(func(cfg *configs.Config) {
-		for _, resource := range cfg.Module.ManagedResources {
-			if resource.Type != blk.RelatedType {
-				continue
-			}
-			relatedAddr := resource.Addr().InModule(cfg.Path)
 
-			// Skip the resource currently under evaluation, i.e aws_s3_bucket.example
-			if relatedAddr.Equal(cb.Source.Addr.ConfigResource()) {
-				continue
-			}
+	for addr, related := range policyGraph.resources.Iter() {
+		relatedAddr := addr.ConfigResource()
+		if relatedAddr.Resource.Type != blk.RelatedType {
+			continue
+		}
 
-			// Deferred candidates make the overall answer incomplete.
-			if ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{relatedAddr}) {
-				partial = true
-				continue
-			}
+		// Skip the resource currently under evaluation, i.e aws_s3_bucket.example
+		if relatedAddr.Equal(cb.Source.Addr.ConfigResource()) {
+			continue
+		}
 
-			var resourcesSeq iter.Seq2[addrs.AbsResourceInstance, cty.Value]
-			if cb.WalkOperation == walkApply {
-				state := ctx.State()
-				resourceSchema := cb.Schema.SchemaForResourceAddr(relatedAddr.Resource)
-				// During apply, read the matching objects from state.
-				seq := states.ReadEachConfigResourceInstance(state, relatedAddr, func(inst *states.ResourceInstance) (cty.Value, bool) {
-					if inst.Current == nil {
-						return cty.NilVal, false
-					}
-					decoded, err := inst.Current.Decode(resourceSchema)
-					if err != nil || decoded == nil {
-						return cty.NilVal, false
-					}
-					return decoded.Value, true
-				})
+		// Deferred candidates make the overall answer incomplete.
+		if ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{relatedAddr}) {
+			partial = true
+			continue
+		}
 
-				resourcesSeq = func(yield func(addrs.AbsResourceInstance, cty.Value) bool) {
-					for addr, value := range seq {
-						yield(addr, value)
-					}
+		// If the current iteration is for aws_s3_bucket_acl.example, we will
+		// check for the given related attribute pair to match aws_s3_bucket.example.
+		// We do that by checking if the related attribute (e.g. bucket) is a literal value
+		// or a simple traversal.
+		// If it is a literal value, we check if it matches relationship.QueryAttributes.
+		// If it is a traversal, we check if the traversal points to aws_s3_bucket.example.id.
+		resourceValue := related.Value
+		matched := cb.Match(ctx, cb.Source, related, blk)
+		if matched.IsWhollyKnown() && matched.True() {
+			resourceValue, _ = related.Value.UnmarkDeep()
+
+			// If the resource matched, and the connected block has a block itself,
+			// we recursively get the related resources
+			var relatedRes callback.RelatedResource
+			if blk.Nested != nil {
+				cbCtx := &PolicyCallbackManager{
+					WalkOperation: cb.WalkOperation,
+					Schema:        cb.Schema,
+					Config:        cb.Config,
+					Source:        related,
+				}
+				relatedRes, err = cbCtx.GetRelatedResources(ctx, blk.Nested, resourceValue)
+				if err != nil {
+					continue
 				}
 			} else {
-				// During plan, return the matching planned objects.
-				resourcesSeq = func(yield func(addrs.AbsResourceInstance, cty.Value) bool) {
-					for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), relatedAddr) {
-						yield(change.Addr, change.After)
-					}
-				}
+				relatedRes = callback.RelatedResource{Value: resourceValue}
 			}
 
-			// If the current iteration is for aws_s3_bucket_acl.example, we will
-			// check for the given related attribute pair to match aws_s3_bucket.example.
-			// We do that by checking if the related attribute (e.g. bucket) is a literal value
-			// or a simple traversal. If it is a literal value, we check if it matches the source attribute
-			// in aws_s3_bucket.example.
-			// If it is a traversal, we check if the traversal points to the source attribute.
-			for addr, resourceValue := range resourcesSeq {
-				resourceSchema := cb.Schema.SchemaForResourceAddr(relatedAddr.Resource)
-				related := &PolicyResource{
-					Addr:   addr,
-					Body:   resource.Config,
-					Schema: resourceSchema.Body,
-					Value:  resourceValue,
-				}
-				matched := cb.Match(ctx, cb.Source, related, blk)
-				if matched.IsWhollyKnown() && matched.True() {
-					resourceValue, _ = resourceValue.UnmarkDeep()
-
-					// If the resource matched, and the connected block has a block itself,
-					// we recursively get the related resources
-					var relatedRes callback.RelatedResource
-					if blk.Nested != nil {
-						cbCtx := &PolicyCallbackManager{
-							WalkOperation: cb.WalkOperation,
-							Schema:        cb.Schema,
-							Config:        cb.Config,
-							Source:        related,
-						}
-						relatedRes, err = cbCtx.GetRelatedResources(ctx, blk.Nested, resourceValue)
-						if err != nil {
-							return
-						}
-					} else {
-						relatedRes = callback.RelatedResource{Value: resourceValue}
-					}
-
-					found = append(found, relatedRes)
-				}
-				partial = partial || !matched.IsWhollyKnown()
-			}
+			found = append(found, relatedRes)
 		}
-	})
+		partial = partial || !matched.IsWhollyKnown()
+	}
 
 	return callback.RelatedResource{
 		Related: found,

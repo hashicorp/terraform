@@ -6,7 +6,11 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -37,12 +41,86 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.State().Close()
 
 	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
-	return policyGraph.evalGraph(span), nil
+	g := policyGraph.evalGraph(span)
+	return g, nil
 }
 
 // AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
 // can proceed even if some resource instance nodes evaluated with error diagnostics.
 func (n *nodePolicyEval) AlwaysRun() {}
+
+func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.Diagnostics {
+	policyGraph := ctx.PolicyGraph()
+	if policyGraph == nil {
+		log.Printf("[DEBUG] policyGraph is nil")
+		return nil
+	}
+
+	// Close the changes/state objects to prevent writes during policy evaluation.
+	// This is safe to do because policy evaluation is the final step in the plan/apply process.
+	// If any future nodes attempt to write to these states, they will panic.
+	ctx.Changes().Close()
+	ctx.State().Close()
+
+	var diags tfdiags.Diagnostics
+	state := ctx.State()
+	config := ctx.Config()
+	changes := ctx.Changes()
+
+	if walkOp == walkApply {
+		for _, resourceAddr := range state.Lock().AllManagedResourceInstanceObjectAddrs() {
+			addr := resourceAddr.ResourceInstance
+			change := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
+			_, schema, err := getProvider(ctx, change.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+			resourceSchema := schema.SchemaForResourceAddr(addr.Resource.Resource)
+
+			// During apply, read the matching objects from state.
+			resource := state.ResourceInstance(addr)
+			if resource.Current == nil {
+				// TODO: Should we return an error here instead?
+				continue
+			}
+			decoded, err := resource.Current.Decode(resourceSchema)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+
+			policyGraph.resources.Put(addr, &PolicyResource{
+				Addr:   resourceAddr.ResourceInstance,
+				Body:   getResourceConfig(config, addr),
+				Schema: resourceSchema.Body,
+				Value:  decoded.Value,
+			})
+		}
+		state.Unlock()
+
+	} else {
+		// During plan, return the matching planned objects.
+		for change := range plans.AllInstances(changes) {
+
+			_, schema, err := getProvider(ctx, change.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+			resourceSchema := schema.SchemaForResourceAddr(change.Addr.Resource.Resource)
+
+			policyGraph.resources.Put(change.Addr, &PolicyResource{
+				Addr:   change.Addr,
+				Body:   getResourceConfig(config, change.Addr),
+				Schema: resourceSchema.Body,
+				Value:  change.After,
+			})
+		}
+	}
+
+	return diags
+}
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
 // runs after every policy node and ends the policy-execution phase span. It
@@ -67,3 +145,16 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 // AlwaysRun implements [dag.AlwaysRunVertex] so that this node still executes
 // even if dependencies errored
 func (n *nodePolicyEvalFinish) AlwaysRun() {}
+
+func getResourceConfig(config *configs.Config, addr addrs.AbsResourceInstance) hcl.Body {
+	var rscConfig hcl.Body
+	for config := range config.AllModules() {
+		if rsc := config.Module.ResourceByAddr(addr.Resource.Resource); rsc != nil {
+			if rsc.Config != nil {
+				rscConfig = rsc.Config
+			}
+			break
+		}
+	}
+	return rscConfig
+}

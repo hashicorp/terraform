@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -189,26 +188,13 @@ func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interfac
 }
 
 func relatedResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, currentAddr addrs.AbsResourceInstance, currentAttrs cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
-	var rscConfig hcl.Body
-	for config := range config.AllModules() {
-		if rsc := config.Module.ResourceByAddr(currentAddr.Resource.Resource); rsc != nil {
-			if rsc.Config != nil {
-				rscConfig = rsc.Config
-			}
-			break
-		}
-	}
+	resource := ctx.PolicyGraph().resources.Get(currentAddr)
 
 	cb := &PolicyCallbackManager{
 		WalkOperation: walkOperation,
 		Schema:        schema,
 		Config:        config,
-		Source: &PolicyResource{
-			Addr:   currentAddr,
-			Body:   rscConfig,
-			Schema: schema.SchemaForResourceAddr(currentAddr.Resource.Resource).Body,
-			Value:  currentAttrs,
-		},
+		Source:        resource,
 	}
 	return func(_ context.Context, blk *callback.RelationshipBlock) (callback.RelatedResource, error) {
 		related, err := cb.GetRelatedResources(ctx, blk, cty.NilVal)

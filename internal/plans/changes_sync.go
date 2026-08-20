@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // ChangesSync is a wrapper around a Changes that provides a concurrency-safe
@@ -111,6 +112,25 @@ func ReadInstancesForConfigResource(changesSync *ChangesSync, addr addrs.ConfigR
 	}
 
 	return changesSync.changes.InstancesForConfigResource(addr)
+}
+
+func AllInstances(changesSync *ChangesSync) iter.Seq[*ResourceInstanceChange] {
+	if changesSync == nil {
+		panic("AllInstances on nil ChangesSync")
+	}
+	if !changesSync.closed.Load() {
+		panic("AllInstances requires closed ChangesSync")
+	}
+
+	return func(yield func(*ResourceInstanceChange) bool) {
+		for _, rc := range changesSync.changes.Resources {
+			if rc.DeposedKey == states.NotDeposed {
+				if !yield(rc) {
+					return
+				}
+			}
+		}
+	}
 }
 
 // GetChangesForAbsResource searches the set of resource instance
