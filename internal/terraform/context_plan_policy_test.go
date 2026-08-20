@@ -1949,7 +1949,7 @@ func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
 				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
 			}
 
-			if diff := cmp.Diff(evaluatedPolicyValues, testCase.expected); diff != "" {
+			if diff := cmp.Diff(testCase.expected, evaluatedPolicyValues); diff != "" {
 				t.Errorf("unexpected evaluated policy values: %s", diff)
 			}
 			if len(policyDiags) != 0 {

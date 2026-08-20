@@ -77,18 +77,6 @@ var (
 	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
 )
 
-func (n *NodeAbstractResourceInstance) Continue(signals []any) bool {
-	for _, sig := range signals {
-		if sig == graphWalkDefer {
-			// n.upstreamDeferred = true
-		}
-		if sig == graphWalkError {
-			return false
-		}
-	}
-	return true
-}
-
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
 // node for the given absolute resource instance address.
 func NewNodeAbstractResourceInstance(addr addrs.AbsResourceInstance) *NodeAbstractResourceInstance {

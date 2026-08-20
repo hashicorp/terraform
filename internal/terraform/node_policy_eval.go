@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -53,17 +52,16 @@ type nodePolicyEvalFinish struct {
 }
 
 var _ GraphNodeExecutable = (*nodePolicyEvalFinish)(nil)
-var _ dag.AlwaysRunVertex = (*nodePolicyEvalFinish)(nil)
 
 func (n *nodePolicyEvalFinish) Name() string {
 	return "(policy evaluation complete)"
+}
+
+func (n *nodePolicyEvalFinish) ContinueWithSignals() bool {
+	return true
 }
 
 func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	n.span.End()
 	return nil
 }
-
-// AlwaysRun implements [dag.AlwaysRunVertex] so that this node still executes
-// even if dependencies errored
-func (n *nodePolicyEvalFinish) AlwaysRun() {}

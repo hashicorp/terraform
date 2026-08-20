@@ -28,6 +28,10 @@ type nodeResourcePolicy struct {
 
 var _ GraphNodeExecutable = (*nodeResourcePolicy)(nil)
 
+func (n *nodeResourcePolicy) ContinueWithSignals([]any) bool {
+	return true
+}
+
 func (n *nodeResourcePolicy) Name() string {
 	return n.ResourceAddr.String() + " (policy evaluation)"
 }

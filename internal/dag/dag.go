@@ -270,9 +270,9 @@ func (g *AcyclicGraph) Walk(ctx context.Context, cb WalkFunc) {
 
 // WalkWithSignals starts a concurrent walk via Walk, but injects pre-known
 // signals into the walk for when Terraform is using nested graphs.
-func (g *AcyclicGraph) WalkWithSignals(ctx context.Context, cb WalkFunc, signals []any) {
+func (g *AcyclicGraph) WalkWithSignals(ctx context.Context, cb WalkFunc, signals []any) []any {
 	w := NewWalker(cb)
-	w.WalkWithSignals(ctx, g, signals)
+	return w.WalkWithSignals(ctx, g, signals)
 }
 
 // TopologicalOrder returns a topological sort of the given graph, with source

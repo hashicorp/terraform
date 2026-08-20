@@ -65,22 +65,24 @@ type Graph struct {
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
 func (g *Graph) Walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostics {
-	return g.walk(ctx, walker)
+	_, diags := g.walk(ctx, walker, nil)
+	return diags
 }
 
-func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostics {
+func (g *Graph) walk(ctx context.Context, walker GraphWalker, injectedSignals []any) ([]any, tfdiags.Diagnostics) {
 	// The callbacks for enter/exiting a graph
 	evalCtx := walker.EvalContext()
 
 	var diagsLock sync.Mutex
 	var walkDiags tfdiags.Diagnostics
 
-	// Handle graph wlk signaling with changing the whole walkFn or all graph
+	// Handle graph walk signaling without changing the whole walkFn or all graph
 	// node implementations. This can be further integrated in the future if we
 	// want to pass the runtime context through to node Execute methods too.
-	signalWrapper := func(cb func(dag.Vertex) tfdiags.Diagnostics) dag.WalkFunc {
-		return func(ctx context.Context, v dag.Vertex) any {
-			signals := dag.Signals(ctx)
+	signalWrapper := func(cb func(dag.Vertex, []any) ([]any, tfdiags.Diagnostics)) dag.WalkFunc {
+		return func(ctx context.Context, v dag.Vertex) []any {
+			// TODO: dedupe?
+			signals := append(dag.Signals(ctx), injectedSignals...)
 
 			switch sc := v.(type) {
 			case graphWalkSignalConsumer:
@@ -91,32 +93,35 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 				// default handling of the "stop on error" behavior
 				for _, sig := range signals {
 					if sig == graphWalkError {
-						log.Printf("[DEBUG] Upstream node errored, skipping %s", v.Name())
+						log.Printf("[DEBUG] Upstream node errored, skipping %s(%T)", v.Name(), v)
 						return nil
 					}
 				}
 			}
 
-			diags := cb(v)
+			cbSignals, diags := cb(v, signals)
+			signals = append(signals, cbSignals...)
 			diagsLock.Lock()
 			walkDiags = walkDiags.Append(diags)
 			diagsLock.Unlock()
 
 			switch se := v.(type) {
 			case graphWalkSignalEmitter:
-				return se.Signal()
+				signals = append(signals, se.Signal())
 			default:
 				if diags.HasErrors() {
-					return graphWalkError
+					signals = append(signals, graphWalkError)
 				}
 			}
 
-			return nil
+			return signals
 		}
 	}
 
 	// Walk the graph.
-	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+	walkFn := func(v dag.Vertex, signals []any) ([]any, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
+
 		// the walkFn is called asynchronously, and needs to be recovered
 		// separately in the case of a panic.
 		defer logging.PanicHandler()
@@ -174,7 +179,7 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 			// exist within an expanded instance.
 			if evalCtx.Overrides().IsOverridden(addr.Module.UnkeyedInstanceShim()) {
 				log.Printf("[DEBUG] skipping provider %s found within overridden module", addr)
-				return
+				return signals, diags
 			}
 		}
 
@@ -215,7 +220,7 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 		if ev, ok := v.(GraphNodeExecutable); ok {
 			diags = diags.Append(walker.Execute(vertexCtx, ev))
 			if diags.HasErrors() {
-				return
+				return signals, diags
 			}
 		}
 
@@ -227,7 +232,7 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 			diags = diags.Append(moreDiags)
 			if diags.HasErrors() {
 				log.Printf("[TRACE] vertex %q: failed expanding dynamic subgraph: %s", v.Name(), diags.Err())
-				return
+				return signals, diags
 			}
 			if g != nil {
 				// The subgraph should always be valid, per our normal acyclic
@@ -238,31 +243,33 @@ func (g *Graph) walk(ctx context.Context, walker GraphWalker) tfdiags.Diagnostic
 						"Graph node has invalid dynamic subgraph",
 						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: %s.\n\nThis is a bug in Terraform. Please report it!", v.Name(), err),
 					))
-					return
+					return signals, diags
 				}
 
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", v.Name())
-				subDiags := g.walk(ctx, walker)
+				subSignals, subDiags := g.walk(ctx, walker, signals)
 				diags = diags.Append(subDiags)
+				signals = append(signals, subSignals...)
+
 				if subDiags.HasErrors() {
 					var errs []string
 					for _, d := range subDiags {
 						errs = append(errs, d.Description().Summary)
 					}
 					log.Printf("[TRACE] vertex %q: dynamic subgraph encountered errors: %s", v.Name(), strings.Join(errs, ","))
-					return
+					return signals, diags
 				}
 				log.Printf("[TRACE] vertex %q: dynamic subgraph completed successfully", v.Name())
 			} else {
 				log.Printf("[TRACE] vertex %q: produced no dynamic subgraph", v.Name())
 			}
 		}
-		return
+		return signals, diags
 	}
 
-	g.AcyclicGraph.Walk(ctx, signalWrapper(walkFn))
-	return walkDiags
+	signals := g.AcyclicGraph.WalkWithSignals(ctx, signalWrapper(walkFn), injectedSignals)
+	return signals, walkDiags
 }
 
 // ResourceGraph derives a graph containing addresses of only the nodes in the
