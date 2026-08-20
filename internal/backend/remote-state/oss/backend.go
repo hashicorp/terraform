@@ -670,7 +670,7 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 		err = fmt.Errorf("get Ecs sts token err, httpStatus: %d, message = %s", response.GetHttpStatus(), response.GetHttpContentString())
 		return
 	}
-	var data interface{}
+	var data map[string]interface{}
 	err = json.Unmarshal(response.GetHttpContentBytes(), &data)
 	if err != nil {
 		err = fmt.Errorf("refresh Ecs sts token err, json.Unmarshal fail: %s", err.Error())
