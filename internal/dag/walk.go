@@ -84,7 +84,7 @@ type walkerVertex struct {
 	// each vertex, because they need to be broadcast to all dependents, but
 	// broadcast is done via a channel closure and cannot simultaneously
 	// transmit the signals.
-	Signals []any
+	Signals SignalSet
 
 	// DoneCh is closed to broadcast callback completion to all dependents.
 	DoneCh chan bool
@@ -97,10 +97,25 @@ type walkerVertex struct {
 }
 
 // Walk loads the graph and dispatches the concurrent walker. Walk can only be
-// called once for a single Walker.
+// called once for a single Walker. Context is used to pass collected signals
+// into each callback function. Closing the context will cancel the walk. The
+// signals argument is used to preload any signals into the graph walk.
+// Terraform requires this because it performs recursive walks within the
+// callback function, and must insert and collect signals from those walks.
 func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) {
+	w.walk(ctx, g, nil)
+}
+
+// WalkWithSignals initiates a recursive walk via Walk, but injects pre-known
+// signals into the walk, for when Terraform is using nested graphs.
+// WalkWithSignals also returns all signals collected from the graph walk.
+func (w *Walker) WalkWithSignals(ctx context.Context, g *AcyclicGraph, signals []any) []any {
+	return w.walk(ctx, g, signals)
+}
+
+func (w *Walker) walk(ctx context.Context, g *AcyclicGraph, injectedSignals []any) []any {
 	if g == nil {
-		return
+		return nil
 	}
 
 	if w.started.Load() {
@@ -123,9 +138,10 @@ func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) {
 
 		// Initialize the vertex info
 		info := &walkerVertex{
-			V:      v,
-			DoneCh: make(chan bool),
-			deps:   make(map[Vertex]*walkerVertex),
+			V:       v,
+			Signals: NewSignalSet(),
+			DoneCh:  make(chan bool),
+			deps:    make(map[Vertex]*walkerVertex),
 		}
 
 		// Add it to the map and kick off the walk
@@ -165,16 +181,23 @@ func (w *Walker) Walk(ctx context.Context, g *AcyclicGraph) {
 	// Start all the new vertices. We do this at the end so that all
 	// the edge waiters and changes are set up above.
 	for _, info := range w.vertexMap {
-		go w.walkVertex(ctx, info)
+		go w.walkVertex(ctx, info, injectedSignals)
 	}
 
 	// Wait for completion
 	w.wait.Wait()
+
+	collectedSignals := NewSignalSet()
+	for _, info := range w.vertexMap {
+		collectedSignals.UnionWith(info.Signals)
+	}
+
+	return slices.Collect(collectedSignals.All())
 }
 
 // walkVertex walks a single vertex, waiting for any dependencies before
 // executing the callback.
-func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
+func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex, injectedSignals []any) {
 	// When we're done executing, lower the waitgroup count
 	defer w.wait.Done()
 
@@ -199,18 +222,15 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex) {
 		return
 	}
 
-	ctx = context.WithValue(ctx, signalKey, info.Signals)
+	info.Signals.AddAll(slices.Values(injectedSignals))
+	ctx = context.WithValue(ctx, signalKey, slices.Collect(info.Signals.All()))
 
 	signal := w.Callback(ctx, info.V)
-	if signal != nil {
-		info.Signals = append(info.Signals, signal)
-	}
+	info.Signals.Add(signal)
 }
 
 func (w *Walker) waitDeps(v *walkerVertex) {
 	defer close(v.DepsCh)
-
-	signals := setMap[any]{make(map[any]bool)}
 
 	// For each dependency given to us, wait for it to complete
 	for depV, depInfo := range v.deps {
@@ -219,9 +239,7 @@ func (w *Walker) waitDeps(v *walkerVertex) {
 			select {
 			case <-depInfo.DoneCh:
 				// collect all upstream signals
-				for _, signal := range depInfo.Signals {
-					signals.Add(signal)
-				}
+				v.Signals.UnionWith(depInfo.Signals)
 				// Dependency satisfied!
 				break DepSatisfied
 
@@ -231,6 +249,4 @@ func (w *Walker) waitDeps(v *walkerVertex) {
 			}
 		}
 	}
-
-	v.Signals = slices.Collect(signals.All())
 }

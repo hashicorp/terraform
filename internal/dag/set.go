@@ -8,11 +8,17 @@ import (
 	"maps"
 )
 
+type VertexSet = setMap[Vertex]
+
 func NewVertexSet() VertexSet {
 	return setMap[Vertex]{make(map[Vertex]bool)}
 }
 
-type VertexSet = setMap[Vertex]
+type SignalSet = setMap[any]
+
+func NewSignalSet() SignalSet {
+	return setMap[any]{make(map[any]bool)}
+}
 
 // setMap is a set data structure, used to hold
 type setMap[T comparable] struct {
@@ -59,6 +65,19 @@ func (s setMap[T]) Union(other setMap[T]) setMap[T] {
 		result.Add(v)
 	}
 	return result
+}
+
+// Union updates s to the union of both sets
+func (s setMap[T]) UnionWith(other setMap[T]) {
+	for v := range other.All() {
+		s.Add(v)
+	}
+}
+
+func (s setMap[T]) AddAll(addenda iter.Seq[T]) {
+	for v := range addenda {
+		s.Add(v)
+	}
 }
 
 // Difference returns a set with the elements that s has but
