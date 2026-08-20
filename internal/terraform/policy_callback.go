@@ -37,10 +37,10 @@ func NewPolicyCallbackManager(walkOperation walkOperation, schema providers.GetP
 
 // PolicyResource co-locates the data required for the relationship analysis for a single resource
 type PolicyResource struct {
-	Addr   addrs.AbsResourceInstance
-	Body   hcl.Body
-	Schema *configschema.Block
-	Value  cty.Value
+	Addr       addrs.AbsResourceInstance
+	ConfigBody hcl.Body
+	Schema     *configschema.Block
+	Value      cty.Value
 }
 
 func (cb *PolicyCallbackManager) RelatedResourcesCallback(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, val cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
@@ -127,7 +127,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyR
 	currentValue := subject.Value
 
 	// if there is no related body. What to do?
-	if related.Body == nil {
+	if related.ConfigBody == nil {
 		return unknown
 	}
 
@@ -142,7 +142,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyR
 
 	// Parse the resource config as a simple body that contains only attributes that are either
 	// simple traversals or literal values.
-	relatedBody, diags := hclsyntax.ParseSimpleBody(related.Body)
+	relatedBody, diags := hclsyntax.ParseSimpleBody(related.ConfigBody)
 	if diags.HasErrors() {
 		return unknown
 	}

@@ -67,38 +67,57 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 	config := ctx.Config()
 	changes := ctx.Changes()
 
+	resourceConfigMap := n.resourceConfigMap(config)
+	getResourceConfig := func(config *configs.Config, addr addrs.ConfigResource) hcl.Body {
+		mod, ok := resourceConfigMap.GetOk(addr.Module)
+		if !ok {
+			return nil
+		}
+		resource, ok := mod.GetOk(addr)
+		if !ok {
+			return nil
+		}
+		return resource
+	}
+
 	// Now we read the state and plan changes to build the policy resource map.
 	// These are the resources that will be available during the callback evaluation.
 	if walkOp == walkApply {
-		for _, resourceAddr := range state.Lock().AllManagedResourceInstanceObjectAddrs() {
+		resourceAddrs := state.Lock().AllManagedResourceInstanceObjectAddrs()
+		state.Unlock()
+		for _, resourceAddr := range resourceAddrs {
 			addr := resourceAddr.ResourceInstance
-			change := changes.GetResourceInstanceChange(addr, addrs.NotDeposed)
-			_, schema, err := getProvider(ctx, change.ProviderAddr)
+			resource := state.Resource(addr.AffectedAbsResource())
+			if resource == nil {
+				// TODO: Should we return an error here instead?
+				continue
+			}
+			resourceInstance := resource.Instance(addr.Resource.Key)
+			if resourceInstance == nil {
+				// TODO: Should we return an error here instead?
+				continue
+			}
+
+			_, schema, err := getProvider(ctx, resource.ProviderConfig)
 			if err != nil {
 				diags = diags.Append(err)
 				continue
 			}
 			resourceSchema := schema.SchemaForResourceAddr(addr.Resource.Resource)
 
-			resource := state.ResourceInstance(addr)
-			if resource.Current == nil {
-				// TODO: Should we return an error here instead?
-				continue
-			}
-			decoded, err := resource.Current.Decode(resourceSchema)
+			decoded, err := resourceInstance.Current.Decode(resourceSchema)
 			if err != nil {
 				diags = diags.Append(err)
 				continue
 			}
 
 			policyGraph.resourceMap.Put(addr, &PolicyResource{
-				Addr:   resourceAddr.ResourceInstance,
-				Body:   getResourceConfig(config, addr),
-				Schema: resourceSchema.Body,
-				Value:  decoded.Value,
+				Addr:       resourceAddr.ResourceInstance,
+				ConfigBody: getResourceConfig(config, addr.ConfigResource()),
+				Schema:     resourceSchema.Body,
+				Value:      decoded.Value,
 			})
 		}
-		state.Unlock()
 
 	} else {
 		for change := range plans.AllInstances(changes) {
@@ -111,15 +130,31 @@ func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.
 			resourceSchema := schema.SchemaForResourceAddr(change.Addr.Resource.Resource)
 
 			policyGraph.resourceMap.Put(change.Addr, &PolicyResource{
-				Addr:   change.Addr,
-				Body:   getResourceConfig(config, change.Addr),
-				Schema: resourceSchema.Body,
-				Value:  change.After,
+				Addr:       change.Addr,
+				ConfigBody: getResourceConfig(config, change.Addr.ConfigResource()),
+				Schema:     resourceSchema.Body,
+				Value:      change.After,
 			})
 		}
 	}
 
 	return diags
+}
+
+// resourceConfigMap returns a map of resource configurations for each module,
+// so that resource configs can be looked up at constant time.
+func (n *nodePolicyEval) resourceConfigMap(config *configs.Config) addrs.Map[addrs.Module, addrs.Map[addrs.ConfigResource, hcl.Body]] {
+	ret := addrs.MakeMap[addrs.Module, addrs.Map[addrs.ConfigResource, hcl.Body]]()
+	for addr, config := range config.AllResources() {
+		if moduleMap, ok := ret.GetOk(addr.Module); ok {
+			moduleMap.Put(addr, config.Config)
+		} else {
+			moduleMap := addrs.MakeMap[addrs.ConfigResource, hcl.Body]()
+			moduleMap.Put(addr, config.Config)
+			ret.Put(addr.Module, moduleMap)
+		}
+	}
+	return ret
 }
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
@@ -145,16 +180,3 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 // AlwaysRun implements [dag.AlwaysRunVertex] so that this node still executes
 // even if dependencies errored
 func (n *nodePolicyEvalFinish) AlwaysRun() {}
-
-func getResourceConfig(config *configs.Config, addr addrs.AbsResourceInstance) hcl.Body {
-	var rscConfig hcl.Body
-	for config := range config.AllModules() {
-		if rsc := config.Module.ResourceByAddr(addr.Resource.Resource); rsc != nil {
-			if rsc.Config != nil {
-				rscConfig = rsc.Config
-			}
-			break
-		}
-	}
-	return rscConfig
-}
