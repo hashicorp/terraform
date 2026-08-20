@@ -50,7 +50,7 @@ func TestWalker_error(t *testing.T) {
 	var diags tfdiags.Diagnostics
 
 	// Build a callback that delays until we close a channel
-	cb := func(ctx context.Context, v Vertex) any {
+	cb := func(ctx context.Context, v Vertex) []any {
 		for _, sig := range Signals(ctx) {
 			if sig == errStopWalk {
 				// skipping
@@ -60,7 +60,7 @@ func TestWalker_error(t *testing.T) {
 
 		if v == testV(2) {
 			diags = diags.Append(fmt.Errorf("error"))
-			return errStopWalk
+			return []any{errStopWalk}
 		}
 
 		return recordF(context.TODO(), v)
@@ -99,7 +99,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 	var order []any
 	var diags tfdiags.Diagnostics
 
-	w := NewWalker(func(ctx context.Context, v Vertex) any {
+	w := NewWalker(func(ctx context.Context, v Vertex) []any {
 		_, alwaysRun := v.(AlwaysRunVertex)
 		for _, sig := range Signals(ctx) {
 			if sig == errStopWalk && !alwaysRun {
@@ -109,7 +109,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 
 		if v == testNamedString("error") {
 			diags = diags.Append(fmt.Errorf("error"))
-			return errStopWalk
+			return []any{errStopWalk}
 		}
 
 		return walkCbRecord(&order)(context.TODO(), v)
@@ -128,7 +128,7 @@ func TestWalker_alwaysRunVertex(t *testing.T) {
 // walkCbRecord is a test helper callback that just records the order called.
 func walkCbRecord(order *[]any) WalkFunc {
 	var l sync.Mutex
-	return func(_ context.Context, v Vertex) any {
+	return func(_ context.Context, v Vertex) []any {
 		l.Lock()
 		defer l.Unlock()
 		*order = append(*order, v)

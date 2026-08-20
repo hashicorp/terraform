@@ -50,7 +50,7 @@ type Walker struct {
 // pass them into the callback within the Context. Signals are extracted from
 // the context in the callback via the dag.Signals(ctx) function. The value and
 // meaning of signals are completely up to the calling package.
-type WalkFunc func(context.Context, Vertex) any
+type WalkFunc func(context.Context, Vertex) []any
 
 // NewWalker creates a new walker with the given callback function.
 func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
@@ -71,6 +71,8 @@ var signalKey ctxSignalKey = "signals"
 
 // Signals is used to extract any upstream signals from the context sent by
 // prior vertex callbacks when using dag.Walker (or AcyclicGraph.Walk).
+//
+// TODO: maybe return a set, since most usage will be checking `Contains`?
 func Signals(ctx context.Context) []any {
 	return ctx.Value(signalKey).([]any)
 }
@@ -225,8 +227,8 @@ func (w *Walker) walkVertex(ctx context.Context, info *walkerVertex, injectedSig
 	info.Signals.AddAll(slices.Values(injectedSignals))
 	ctx = context.WithValue(ctx, signalKey, slices.Collect(info.Signals.All()))
 
-	signal := w.Callback(ctx, info.V)
-	info.Signals.Add(signal)
+	cbSignals := w.Callback(ctx, info.V)
+	info.Signals.AddAll(slices.Values(cbSignals))
 }
 
 func (w *Walker) waitDeps(v *walkerVertex) {

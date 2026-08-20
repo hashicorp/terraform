@@ -382,7 +382,7 @@ func TestAcyclicGraphWalk(t *testing.T) {
 
 	var visits []Vertex
 	var lock sync.Mutex
-	g.Walk(context.TODO(), func(_ context.Context, v Vertex) any {
+	g.Walk(context.TODO(), func(_ context.Context, v Vertex) []any {
 		lock.Lock()
 		defer lock.Unlock()
 		visits = append(visits, v)
@@ -416,7 +416,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 	var lock sync.Mutex
 	var diags tfdiags.Diagnostics
 
-	g.Walk(context.Background(), func(ctx context.Context, v Vertex) any {
+	g.Walk(context.Background(), func(ctx context.Context, v Vertex) []any {
 		lock.Lock()
 		defer lock.Unlock()
 
@@ -431,7 +431,7 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 		if v == testV(2) {
 			diags = diags.Append(fmt.Errorf("error"))
 			// return errStopWalk as our signal to not proceed
-			return errStopWalk
+			return []any{errStopWalk}
 		}
 
 		visits = append(visits, v)
