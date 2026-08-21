@@ -88,7 +88,7 @@ type ActionInvocation struct {
 
 func (c *ActionInvocation) String() string {
 	if c.LifecycleTrigger != nil {
-		return fmt.Sprintf("%s: triggered by %s trigger on %s", c.Action.Addr, c.LifecycleTrigger.TriggeringEvent, c.LifecycleTrigger.TriggeringResource)
+		return fmt.Sprintf("%s: triggered by %s trigger on %s", c.Action.Addr, c.LifecycleTrigger.TriggeringEvent, c.LifecycleTrigger.TriggeringResource.Addr)
 	}
 	return c.Action.Addr
 }
