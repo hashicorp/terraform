@@ -21,10 +21,17 @@ type Subgrapher interface {
 	isSubGrapher()
 }
 
+type RunNode interface {
+	dag.Vertex
+	Run() *moduletest.Run
+}
+
 // TeardownSubgraph is a subgraph for cleaning up the state of
-// resources defined in the state files created by the test runs.
+// resources defined in the state files created by test runs.
 type TeardownSubgraph struct {
-	opts     *graphOptions
+	opts *graphOptions
+
+	// runGraph is the execution graph containing the test runs.
 	runGraph *terraform.Graph
 	mode     moduletest.CommandMode
 }
@@ -40,24 +47,12 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 
 	// Build a map of run nodes to other run nodes they depend on.
 	// In cleanup mode, the run node is the NodeTestRunCleanup struct.
-	if b.mode == moduletest.CleanupMode {
-		for runNode := range dag.SelectSeq[*NodeTestRunCleanup](b.runGraph.VerticesSeq()) {
-			addr := runNode.run.Addr()
-			refs := b.runGraph.Ancestors(runNode)
-			for ref := range refs.All() {
-				if ref, ok := ref.(*NodeTestRunCleanup); ok {
-					runRefs[addr] = append(runRefs[addr], ref.run)
-				}
-			}
-		}
-	} else {
-		for runNode := range dag.SelectSeq[*NodeTestRun](b.runGraph.VerticesSeq()) {
-			addr := runNode.run.Addr()
-			refs := b.runGraph.Ancestors(runNode)
-			for ref := range refs.All() {
-				if ref, ok := ref.(*NodeTestRun); ok {
-					runRefs[addr] = append(runRefs[addr], ref.run)
-				}
+	for runNode := range dag.SelectSeq[RunNode](b.runGraph.VerticesSeq()) {
+		addr := runNode.Run().Addr()
+		refs := b.runGraph.Ancestors(runNode)
+		for ref := range refs.All() {
+			if ref, ok := ref.(RunNode); ok {
+				runRefs[addr] = append(runRefs[addr], ref.Run())
 			}
 		}
 	}

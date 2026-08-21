@@ -73,6 +73,10 @@ func (n *NodeTestRunCleanup) Referenceable() addrs.Referenceable {
 	return n.run.Addr()
 }
 
+func (n *NodeTestRunCleanup) Run() *moduletest.Run {
+	return n.run
+}
+
 func (n *NodeTestRunCleanup) Execute(ctx *EvalContext) {
 	log.Printf("[TRACE] TestFileRunner: executing run block %s/%s", n.opts.File.Name, n.run.Name)
 
