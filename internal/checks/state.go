@@ -260,6 +260,12 @@ func (c *State) ObjectCheckStatus(addr addrs.Checkable) Status {
 func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
 	var ret []string
 
+	// We must hold the mutex here, like the other methods that access our
+	// internals, because concurrent graph walk goroutines can be updating
+	// statuses and failure messages while we read them.
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	configAddr := addr.ConfigCheckable()
 
 	st, ok := c.statuses.GetOk(configAddr)

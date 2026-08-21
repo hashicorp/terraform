@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix a data race in checks.State.ObjectFailureMessages by holding the state mutex while reading check statuses and failure messages.
+time: 2026-08-21T19:58:00Z
+custom:
+    Issue: "38578"
