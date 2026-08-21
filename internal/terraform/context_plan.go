@@ -999,6 +999,10 @@ func (c *Context) deferredResources(schemas *Schemas, deferrals []*plans.Deferre
 	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
 
 	for _, deferral := range deferrals {
+		if deferral.Change == nil {
+			// we only need to report deferrals with planned changes.
+			continue
+		}
 		schema := schemas.ResourceTypeConfig(
 			deferral.Change.ProviderAddr.Provider,
 			deferral.Change.Addr.Resource.Resource.Mode,
