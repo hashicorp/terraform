@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Close the plugin manifest cache file after writing to avoid leaking file descriptors.
+time: 2026-08-21T19:30:21Z
+custom:
+    Issue: "38302"

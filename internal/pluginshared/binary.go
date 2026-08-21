@@ -238,13 +238,7 @@ func (v BinaryManager) latestManifest(ctx context.Context) (*Release, error) {
 			return nil, fmt.Errorf("failed to create %s manifest cache directory: %w", v.pluginName, err)
 		}
 
-		output, err := os.Create(manifestCacheLocation)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create %s manifest cache: %w", v.pluginName, err)
-		}
-
-		_, err = output.Write(data)
-		if err != nil {
+		if err := os.WriteFile(manifestCacheLocation, data, 0666); err != nil {
 			return nil, fmt.Errorf("failed to write %s manifest cache: %w", v.pluginName, err)
 		}
 		log.Printf("[TRACE] wrote %s manifest cache to %q", v.pluginName, manifestCacheLocation)
