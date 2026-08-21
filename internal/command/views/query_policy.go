@@ -4,6 +4,8 @@
 package views
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"sort"
@@ -24,7 +26,7 @@ const (
 	queryPolicyResultError   queryPolicyResult = "error"
 )
 
-type queryPolicySummary struct {
+type PolicyQuerySummary struct {
 	ListBlockAddress string                      `json:"list_block_address"`
 	OverallResult    queryPolicyResult           `json:"overall_result"`
 	Results          []queryPolicyIdentityResult `json:"results"`
@@ -46,11 +48,105 @@ type queryPolicyEvalResult struct {
 	Result         queryPolicyResult       `json:"result"`
 }
 
+// ParsePolicyQuerySummary parses and validates a policy_query_summary record.
+func ParsePolicyQuerySummary(line []byte) (PolicyQuerySummary, error) {
+	var summary PolicyQuerySummary
+	if err := json.Unmarshal(line, &summary); err != nil {
+		return PolicyQuerySummary{}, err
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(line, &fields); err != nil {
+		return PolicyQuerySummary{}, err
+	}
+	for _, name := range []string{"results", "passed_policies"} {
+		raw, ok := fields[name]
+		trimmed := bytes.TrimSpace(raw)
+		if !ok || len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || trimmed[0] != '[' {
+			return PolicyQuerySummary{}, fmt.Errorf("policy query summary %q must be an array", name)
+		}
+	}
+
+	if strings.TrimSpace(summary.ListBlockAddress) == "" {
+		return PolicyQuerySummary{}, fmt.Errorf("policy query summary has no list block address")
+	}
+	if !validQueryPolicyResult(summary.OverallResult) {
+		return PolicyQuerySummary{}, fmt.Errorf("policy query summary has invalid overall result %q", summary.OverallResult)
+	}
+	for i, result := range summary.Results {
+		if strings.TrimSpace(result.TargetAddress) == "" {
+			return PolicyQuerySummary{}, fmt.Errorf("policy query summary result %d has no target address", i)
+		}
+		if !validQueryPolicyResult(result.Result) {
+			return PolicyQuerySummary{}, fmt.Errorf("policy query summary result %d has invalid result %q", i, result.Result)
+		}
+		if result.Policies == nil {
+			return PolicyQuerySummary{}, fmt.Errorf("policy query summary result %d has no policies array", i)
+		}
+		for j, pol := range result.Policies {
+			if strings.TrimSpace(pol.PolicyMetadata.PolicyName) == "" {
+				return PolicyQuerySummary{}, fmt.Errorf("policy query summary result %d policy %d has no policy name", i, j)
+			}
+			if !validQueryPolicyResult(pol.Result) {
+				return PolicyQuerySummary{}, fmt.Errorf("policy query summary result %d policy %d has invalid result %q", i, j, pol.Result)
+			}
+		}
+	}
+	for i, metadata := range summary.PassedPolicies {
+		if strings.TrimSpace(metadata.PolicyName) == "" {
+			return PolicyQuerySummary{}, fmt.Errorf("policy query summary passed policy %d has no policy name", i)
+		}
+	}
+
+	return summary, nil
+}
+
+// RenderPolicyQuerySummariesHuman renders a complete human-readable policy
+// section for one or more list blocks.
+func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
+	if len(summaries) == 0 {
+		return ""
+	}
+
+	ordered := append([]PolicyQuerySummary(nil), summaries...)
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i].ListBlockAddress < ordered[j].ListBlockAddress
+	})
+
+	policies := make(map[string]struct{})
+	for _, summary := range ordered {
+		for _, metadata := range summary.PassedPolicies {
+			policies[metadata.PolicyName] = struct{}{}
+		}
+		for _, result := range summary.Results {
+			for _, pol := range result.Policies {
+				policies[pol.PolicyMetadata.PolicyName] = struct{}{}
+			}
+		}
+	}
+
+	var buf strings.Builder
+	fmt.Fprintf(&buf, "Evaluated %d policies.", len(policies))
+	for _, summary := range ordered {
+		buf.WriteString("\n\n")
+		buf.WriteString(renderQueryPolicySummaryHuman(summary))
+	}
+	return buf.String()
+}
+
+func validQueryPolicyResult(result queryPolicyResult) bool {
+	switch result {
+	case queryPolicyResultPass, queryPolicyResultFail, queryPolicyResultUnknown, queryPolicyResultError:
+		return true
+	default:
+		return false
+	}
+}
+
 type queryPolicyBlock struct {
 	ListBlockAddress string
 	ResultsByTarget  map[string]*queryPolicyIdentityResult
 	PolicyMetadata   map[string]viewjson.PolicyMetadata
-	WarningDiags     tfdiags.Diagnostics
 }
 
 type queryPolicyView struct {
@@ -61,37 +157,6 @@ type queryPolicyView struct {
 func newQueryPolicyView() *queryPolicyView {
 	return &queryPolicyView{
 		blocks: make(map[string]*queryPolicyBlock),
-	}
-}
-
-// AddWarningDiags routes warning diagnostics that carry a ListBlockAddrExtra
-// into the matching queryPolicyBlock so they are emitted together with the
-// policy summary at flush time. Diagnostics without that extra are silently
-// ignored by this function; callers are responsible for emitting them via the
-// normal diagnostic path.
-//
-// Only warning diagnostics are processed here. This is intentional: policy
-// query warnings (e.g., "policy was skipped for this identity") belong in the
-// query summary block output. Other severity levels are handled by standard
-// diagnostic paths.
-func (v *queryPolicyView) AddWarningDiags(diags tfdiags.Diagnostics) {
-	if len(diags) == 0 {
-		return
-	}
-
-	v.mu.Lock()
-	defer v.mu.Unlock()
-
-	for _, diag := range diags {
-		if diag.Severity() != tfdiags.Warning {
-			continue
-		}
-		extra := tfdiags.ExtraInfo[*tfdiags.ListBlockAddrExtra](diag)
-		if extra == nil || extra.ListBlockAddr == "" {
-			continue
-		}
-		block := v.block(extra.ListBlockAddr)
-		block.WarningDiags = append(block.WarningDiags, diag)
 	}
 }
 
@@ -155,7 +220,7 @@ func (v *queryPolicyView) AddResult(addr string, resp policy.EvaluationResponse)
 	return true
 }
 
-func (v *queryPolicyView) Flush(flush func(summary queryPolicySummary), warn func(tfdiags.Diagnostics)) {
+func (v *queryPolicyView) Flush(flush func(summary PolicyQuerySummary)) {
 	v.mu.Lock()
 	blocks := make([]*queryPolicyBlock, 0, len(v.blocks))
 	for _, block := range v.blocks {
@@ -169,9 +234,6 @@ func (v *queryPolicyView) Flush(flush func(summary queryPolicySummary), warn fun
 	})
 
 	for _, block := range blocks {
-		if warn != nil && len(block.WarningDiags) > 0 {
-			warn(block.WarningDiags)
-		}
 		flush(block.summary())
 	}
 }
@@ -196,10 +258,10 @@ func (v *queryPolicyView) block(addr string) *queryPolicyBlock {
 	return block
 }
 
-func (b *queryPolicyBlock) summary() queryPolicySummary {
+func (b *queryPolicyBlock) summary() PolicyQuerySummary {
 	results := make([]queryPolicyIdentityResult, 0, len(b.ResultsByTarget))
 	for _, result := range b.ResultsByTarget {
-		policies := append([]queryPolicyEvalResult(nil), result.Policies...)
+		policies := append(make([]queryPolicyEvalResult, 0, len(result.Policies)), result.Policies...)
 		sort.Slice(policies, func(i, j int) bool {
 			return policies[i].PolicyMetadata.PolicyName < policies[j].PolicyMetadata.PolicyName
 		})
@@ -214,10 +276,8 @@ func (b *queryPolicyBlock) summary() queryPolicySummary {
 		return results[i].TargetAddress < results[j].TargetAddress
 	})
 
-	// passed_policies contains all policies evaluated against any identity in
-	// this block, regardless of whether they passed or failed. The field name
-	// is intentionally kept as "passed_policies" to match the RFC wire contract
-	// (the UI uses it for column-header counts, not to filter by pass status).
+	// passed_policies contains all distinct policies evaluated against any
+	// identity in this block, as required by the query summary wire contract.
 	passedPolicies := make([]viewjson.PolicyMetadata, 0, len(b.PolicyMetadata))
 	for _, metadata := range b.PolicyMetadata {
 		passedPolicies = append(passedPolicies, metadata)
@@ -226,7 +286,7 @@ func (b *queryPolicyBlock) summary() queryPolicySummary {
 		return passedPolicies[i].PolicyName < passedPolicies[j].PolicyName
 	})
 
-	return queryPolicySummary{
+	return PolicyQuerySummary{
 		ListBlockAddress: b.ListBlockAddress,
 		OverallResult:    queryPolicySummaryOverall(results),
 		Results:          results,
@@ -264,14 +324,27 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 	}
 }
 
-func renderQueryPolicySummaryHuman(summary queryPolicySummary) string {
+func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
 	var buf strings.Builder
 
-	fmt.Fprintf(&buf, "Policy results for %s (%s)\n", summary.ListBlockAddress, strings.ToUpper(string(summary.OverallResult)))
+	fmt.Fprintf(&buf, "Policy results for %s - %s\n", summary.ListBlockAddress, toPolicyResultLabel(summary.OverallResult))
+
+	maxLen := 0
+	for _, r := range summary.Results {
+		if l := len(formatQueryPolicyIdentity(r.Identity)); l > maxLen {
+			maxLen = l
+		}
+	}
+
 	for _, result := range summary.Results {
-		fmt.Fprintf(&buf, "  %s: %s\n", formatQueryPolicyIdentity(result.Identity), strings.ToUpper(string(result.Result)))
+		identity := formatQueryPolicyIdentity(result.Identity)
+		label := toPolicyResultLabel(result.Result)
+		if result.Result == queryPolicyResultPass && len(result.Policies) == 0 {
+			label = "N/A"
+		}
+		fmt.Fprintf(&buf, "  %-*s  %s\n", maxLen, identity, label)
 		for _, pol := range result.Policies {
-			if pol.Result != queryPolicyResultFail {
+			if pol.Result != queryPolicyResultFail && pol.Result != queryPolicyResultError {
 				continue
 			}
 			for _, diag := range pol.Diagnostics {
@@ -281,6 +354,19 @@ func renderQueryPolicySummaryHuman(summary queryPolicySummary) string {
 	}
 
 	return strings.TrimRight(buf.String(), "\n")
+}
+
+func toPolicyResultLabel(r queryPolicyResult) string {
+	switch r {
+	case queryPolicyResultPass:
+		return "Passed"
+	case queryPolicyResultFail:
+		return "Failed"
+	case queryPolicyResultError:
+		return "Error"
+	default:
+		return "Unknown"
+	}
 }
 
 func formatQueryPolicyIdentity(identity map[string]string) string {
@@ -297,20 +383,4 @@ func formatQueryPolicyIdentity(identity map[string]string) string {
 		parts = append(parts, fmt.Sprintf("%s=%s", key, identity[key]))
 	}
 	return strings.Join(parts, ", ")
-}
-
-func queryPolicyEvaluatedCount(view *queryPolicyView) int {
-	if view == nil {
-		return 0
-	}
-	view.mu.Lock()
-	defer view.mu.Unlock()
-
-	policies := make(map[string]struct{})
-	for _, block := range view.blocks {
-		for key := range block.PolicyMetadata {
-			policies[key] = struct{}{}
-		}
-	}
-	return len(policies)
 }
