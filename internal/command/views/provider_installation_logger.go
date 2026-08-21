@@ -43,7 +43,7 @@ type ProviderInstallationLogger interface {
 	// Log that a provider successfully fetched in this operation is maintained by third-parties and describe how these are signed
 	LogPartnerAndCommunityProviders()
 
-	// LogInstallStateStoreProviderStart indicates progress during installation provider(s)
+	// LogInstallProvidersStart indicates progress during installation provider(s)
 	LogInstallProvidersStart()
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines

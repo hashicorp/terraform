@@ -17,6 +17,13 @@ import (
 
 // Message text used in human or machine-readable outputs.
 const (
+
+	// JSON only - log the start and end of initializing the source and destination for the migration
+	logMigrationSourceInitializationStartJSON         = "Initializing source..."
+	logMigrationSourceInitializationCompleteJSON      = "Initialized source."
+	logMigrationDestinationInitializationStartJSON    = "Initializing destination..."
+	logMigrationDestinationInitializationCompleteJSON = "Initialized destination."
+
 	// Notify the user that any preparation steps are over and the migration is starting.
 	logStateMigrationStartHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
 	logStateMigrationStartJSON  = "Migrating state from %s to %s..."
@@ -310,11 +317,16 @@ type StateMigrateJSON struct {
 }
 
 var (
+	_ StateMigrate                  = (*StateMigrateJSON)(nil)
 	_ ProviderInstallationLogger    = (*StateMigrateJSON)(nil)
 	_ ProviderLockingLogger         = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
 )
+
+func (s *StateMigrateJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	s.view.Diagnostics(diags)
+}
 
 // Implements Spacer
 func (s *StateMigrateJSON) Spacer() {
@@ -509,5 +521,33 @@ func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
 	s.view.log.Info(
 		logPartnerAndCommunityProviders,
 		"type", json.LogPartnerAndCommunityProviders,
+	)
+}
+
+func (s *StateMigrateJSON) LogMigrationSourceInitializationStart() {
+	s.view.log.Info(
+		logMigrationSourceInitializationStartJSON,
+		"type", json.LogMigrationSourceInitializationStart,
+	)
+}
+
+func (s *StateMigrateJSON) LogMigrationSourceInitializationComplete() {
+	s.view.log.Info(
+		logMigrationSourceInitializationCompleteJSON,
+		"type", json.LogMigrationSourceInitializationComplete,
+	)
+}
+
+func (s *StateMigrateJSON) LogMigrationDestinationInitializationStart() {
+	s.view.log.Info(
+		logMigrationDestinationInitializationStartJSON,
+		"type", json.LogMigrationDestinationInitializationStart,
+	)
+}
+
+func (s *StateMigrateJSON) LogMigrationDestinationInitializationComplete() {
+	s.view.log.Info(
+		logMigrationDestinationInitializationCompleteJSON,
+		"type", json.LogMigrationDestinationInitializationComplete,
 	)
 }
