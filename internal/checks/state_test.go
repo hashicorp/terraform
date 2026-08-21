@@ -4,6 +4,7 @@
 package checks_test
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -210,4 +211,53 @@ func TestChecksHappyPath(t *testing.T) {
 			}
 		}
 	}
+}
+
+// TestObjectFailureMessagesConcurrent is a regression test for
+// https://github.com/hashicorp/terraform/issues/38578: ObjectFailureMessages
+// previously read the shared state without holding the mutex, so concurrent
+// reporters (as during a graph walk) raced with readers.
+func TestObjectFailureMessagesConcurrent(t *testing.T) {
+	const fixtureDir = "testdata/happypath"
+
+	cfg, _, configCleanup := tftesting.MustLoadConfigForTests(t, fixtureDir, "tests")
+	t.Cleanup(configCleanup)
+
+	state := checks.NewState(cfg)
+
+	resourceInstA := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "null_resource",
+		Name: "a",
+	}.InModule(addrs.RootModule).Resource.Absolute(addrs.RootModuleInstance).Instance(addrs.NoKey)
+	resourceA := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "null_resource",
+		Name: "a",
+	}.InModule(addrs.RootModule)
+
+	state.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
+
+	var wg sync.WaitGroup
+	// One reporter, simulating a graph walk goroutine. Each check for this
+	// object may only be reported once, and a failure report also writes to
+	// the shared failure message map.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		state.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, checks.StatusPass)
+		state.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 1, checks.StatusPass)
+		state.ReportCheckFailure(resourceInstA, addrs.ResourcePostcondition, 0, "boom")
+	}()
+	// Readers, calling the method that previously did not hold the mutex.
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 200; j++ {
+				_ = state.ObjectFailureMessages(resourceInstA)
+			}
+		}()
+	}
+	wg.Wait()
 }
