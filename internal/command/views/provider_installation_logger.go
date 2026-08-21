@@ -13,8 +13,6 @@ import (
 //
 // The `Output` method is a constraint from the Init view interface, which will be refactored away soon.
 type ProviderInstallationLogger interface {
-	Output(messageCode InitMessageCode, params ...any)
-
 	// LogInstallProviderVersionComplete describes a successfully installed provider along with its version
 	LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 
@@ -48,8 +46,6 @@ type ProviderInstallationLogger interface {
 	// LogInstallStateStoreProviderStart indicates progress during installation provider(s)
 	LogInstallProvidersStart()
 
-	prepareMessage(messageCode InitMessageCode, params ...any) string
-
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
 
@@ -57,6 +53,10 @@ const (
 	// LogInstallProvidersStart
 	logInstallProvidersStartMessageHuman = "[reset][bold]Installing providers..."
 	logInstallProvidersStartMessageJSON  = "Installing providers..."
+
+	// LogBuiltInProviderAvailable
+	logBuiltInProviderAvailableHuman = "- %s is built in to Terraform"
+	logBuiltInProviderAvailableJSON  = "%s is built in to Terraform"
 
 	// LogFindingLatestVersion
 	logFindingLatestVersionHuman = "- Finding latest version of %s..."
@@ -85,4 +85,9 @@ const (
 	// LogInstallProviderVersionComplete
 	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
 	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
+
+	// LogPartnerAndCommunityProviders
+	logPartnerAndCommunityProviders = "Partner and community providers are signed by their developers.\n" +
+		"If you'd like to know more about provider signing, you can read about it here:\n" +
+		"https://developer.hashicorp.com/terraform/cli/plugins/signing"
 )

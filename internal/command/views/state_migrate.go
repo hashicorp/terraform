@@ -91,6 +91,7 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 var (
 	_ StateMigrate                  = (*StateMigrateHuman)(nil)
 	_ ProviderInstallationLogger    = (*StateMigrateHuman)(nil)
+	_ ProviderLockingLogger         = (*StateMigrateHuman)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateHuman)(nil)
 	_ Spacer                        = (*StateMigrateHuman)(nil)
 )
@@ -307,6 +308,7 @@ type StateMigrateJSON struct {
 }
 
 var (
+	_ ProviderInstallationLogger    = (*StateMigrateJSON)(nil)
 	_ ProviderLockingLogger         = (*StateMigrateJSON)(nil)
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
@@ -364,6 +366,15 @@ func (s *StateMigrateJSON) LogInstallProvidersStart() {
 	s.view.log.Info(
 		logInstallProvidersStartMessageJSON,
 		"type", json.InstallProvidersStart,
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
+	msg := fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay())
+	s.view.log.Info(
+		msg,
+		"type", json.BuiltInProviderAvailable,
 	)
 }
 
@@ -438,5 +449,13 @@ func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAd
 	s.view.log.Info(
 		msg,
 		"type", json.LogInstallProviderVersionComplete,
+	)
+}
+
+// Implements ProviderInstallationLogger interface.
+func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
+	s.view.log.Info(
+		logPartnerAndCommunityProviders,
+		"type", json.LogPartnerAndCommunityProviders,
 	)
 }

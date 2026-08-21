@@ -421,3 +421,48 @@ func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID_json(t *test
 		}
 	}
 }
+
+func TestNewStateMigrate_LogBuiltInProviderAvailable_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	p := addrs.MustParseProviderSourceString("hashicorp/test")
+	smView.LogBuiltInProviderAvailable(p)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"hashicorp/test is built in to Terraform"`,
+		`"@module":"terraform.ui"`,
+		`"type":"built_in_provider_available"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewStateMigrate_LogPartnerAndCommunityProviders_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	smView := StateMigrateJSON{view: NewJSONView(view)}
+
+	smView.LogPartnerAndCommunityProviders()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Partner and community providers are`, // incomplete but sufficient for asserting message
+		`"@module":"terraform.ui"`,
+		`"type":"third_party_providers_installed"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}

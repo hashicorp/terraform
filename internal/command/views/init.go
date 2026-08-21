@@ -569,8 +569,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logProviderVersionAlreadyInstalledJSON,
 	},
 	"built_in_provider_available_message": {
-		HumanValue: "- %s is built in to Terraform",
-		JSONValue:  "%s is built in to Terraform",
+		HumanValue: logBuiltInProviderAvailableHuman,
+		JSONValue:  logBuiltInProviderAvailableJSON,
 	},
 	"reusing_previous_version_info": {
 		HumanValue: logReusingPreviousProviderVersionHuman,
@@ -597,8 +597,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logInstallProviderVersionCompleteJSON,
 	},
 	"partner_and_community_providers_message": {
-		HumanValue: partnerAndCommunityProvidersInfo,
-		JSONValue:  partnerAndCommunityProvidersInfo,
+		HumanValue: logPartnerAndCommunityProviders,
+		JSONValue:  logPartnerAndCommunityProviders,
 	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
@@ -772,10 +772,6 @@ see any changes that are required for your infrastructure.
 If you ever set or change modules or Terraform Settings, run "terraform init"
 again to reinitialize your working directory.
 `
-
-const partnerAndCommunityProvidersInfo = "\nPartner and community providers are signed by their developers.\n" +
-	"If you'd like to know more about provider signing, you can read about it here:\n" +
-	"https://developer.hashicorp.com/terraform/cli/plugins/signing"
 
 const backendConfiguredSuccessHuman = `[reset][green]
 Successfully configured the backend %q! Terraform will automatically
