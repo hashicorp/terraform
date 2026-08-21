@@ -22,7 +22,7 @@ const (
 	logStateMigrationStartJSON  = "Migrating state from %s to %s..."
 
 	// JSON-only - log when Terraform has copied state from source to destination
-	logStateMigrationCompleteJSON = "The migration process has copied state from the source %s to the destination %s"
+	logStateMigrationCompleteJSON = "The migration process has copied state from the %s to the %s"
 
 	// Notify the user that everything has finished successfully; migration and lockfile+backend state file updates.
 	logStateMigrationFinalizedHuman = "[reset][bold]Finished migrating state from %s to %s.[reset]"
