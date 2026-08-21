@@ -222,6 +222,14 @@ func (c *LoginCommand) Run(args []string) int {
 		))
 	}
 
+	if c.orgsHaveMaxTTLEnabled(host, tfeservice, token) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Token TTL policy",
+			"If the user token TTL exceeds organization policy, it will be rejected from accessing that organization.",
+		))
+	}
+
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 1
@@ -300,6 +308,51 @@ authenticated requests to %s.
 	}
 
 	return 0
+}
+
+// orgsHaveMaxTTLEnabled reports whether the logged-in user belongs to an
+// organization with max TTL enforcement enabled. It returns false if
+// organizations cannot be listed, ensuring lookup failures never block login.
+func (c *LoginCommand) orgsHaveMaxTTLEnabled(host *disco.Host, tfeservice *url.URL, token svcauth.HostCredentialsToken) bool {
+	service := tfeservice
+	if service == nil {
+		var err error
+		service, err = host.ServiceURL("tfe.v2")
+		if err != nil {
+			return false
+		}
+	}
+
+	client, err := tfe.NewClient(&tfe.Config{
+		Address:  service.String(),
+		BasePath: service.Path,
+		Token:    token.Token(),
+		Headers:  make(http.Header),
+	})
+	if err != nil {
+		return false
+	}
+
+	listOpts := &tfe.OrganizationListOptions{
+		ListOptions: tfe.ListOptions{PageSize: 100},
+	}
+	for {
+		orgList, err := client.Organizations.List(context.Background(), listOpts)
+		if err != nil {
+			return false
+		}
+		for _, org := range orgList.Items {
+			if org.MaxTTLEnabled {
+				return true
+			}
+		}
+		if orgList.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = orgList.NextPage
+	}
+
+	return false
 }
 
 func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
