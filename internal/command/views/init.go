@@ -565,8 +565,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  previousLockInfoJSON,
 	},
 	"provider_already_installed_message": {
-		HumanValue: "- Using previously-installed %s v%s",
-		JSONValue:  "%s v%s: Using previously-installed provider version",
+		HumanValue: logProviderVersionAlreadyInstalledHuman,
+		JSONValue:  logProviderVersionAlreadyInstalledJSON,
 	},
 	"built_in_provider_available_message": {
 		HumanValue: "- %s is built in to Terraform",
@@ -585,16 +585,16 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  logFindingLatestVersionJSON,
 	},
 	"using_provider_from_cache_dir_info": {
-		HumanValue: "- Using %s v%s from the shared cache directory",
-		JSONValue:  "%s v%s: Using from the shared cache directory",
+		HumanValue: logUsingProviderVersionFromCacheDirHuman,
+		JSONValue:  logUsingProviderVersionFromCacheDirJSON,
 	},
 	"installing_provider_message": {
-		HumanValue: "- Installing %s v%s...",
-		JSONValue:  "Installing provider version: %s v%s...",
+		HumanValue: logInstallProviderVersionStartHuman,
+		JSONValue:  logInstallProviderVersionStartJSON,
 	},
 	"installed_provider_version_info": {
-		HumanValue: "- Installed %s v%s (%s%s)",
-		JSONValue:  "Installed provider version: %s v%s (%s%s)",
+		HumanValue: logInstallProviderVersionCompleteHuman,
+		JSONValue:  logInstallProviderVersionCompleteJSON,
 	},
 	"partner_and_community_providers_message": {
 		HumanValue: partnerAndCommunityProvidersInfo,

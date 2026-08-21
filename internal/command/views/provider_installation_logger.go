@@ -69,4 +69,20 @@ const (
 	// LogReusingPreviousProviderVersion
 	logReusingPreviousProviderVersionHuman = "- Reusing version %s of %s from the dependency lock file"
 	logReusingPreviousProviderVersionJSON  = "%s: Reusing version %s from the dependency lock file"
+
+	// LogProviderVersionAlreadyInstalled
+	logProviderVersionAlreadyInstalledHuman = "- Using previously-installed %s v%s"
+	logProviderVersionAlreadyInstalledJSON  = "%s v%s: Using previously-installed provider version"
+
+	// LogUsingProviderVersionFromCacheDir
+	logUsingProviderVersionFromCacheDirHuman = "- Using %s v%s from the shared cache directory"
+	logUsingProviderVersionFromCacheDirJSON  = "%s v%s: Using from the shared cache directory"
+
+	// LogInstallProviderVersionStart
+	logInstallProviderVersionStartHuman = "- Installing %s v%s..."
+	logInstallProviderVersionStartJSON  = "Installing provider version: %s v%s..."
+
+	// LogInstallProviderVersionComplete
+	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
+	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
 )
