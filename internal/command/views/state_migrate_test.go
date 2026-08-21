@@ -504,7 +504,7 @@ func TestNewStateMigrate_LogStateMigrationComplete_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"The migration process has copied state from the source backend \"s3\" to the destination state store \"test_store\""`,
+		`"@message":"The migration process has copied state from the backend \"s3\" to the state store \"test_store\""`,
 		`"@module":"terraform.ui"`,
 		`"type":"migration_complete"`,
 	}
