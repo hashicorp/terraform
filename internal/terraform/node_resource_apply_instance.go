@@ -108,6 +108,7 @@ func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 		addr:           n.Addr,
 		config:         n.Config,
 		providerConfig: n.ResolvedProvider,
+		override:       n.override,
 	})
 
 	return diags
