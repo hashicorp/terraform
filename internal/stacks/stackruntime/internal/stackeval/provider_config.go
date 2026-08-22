@@ -13,8 +13,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/promising"
@@ -76,12 +78,13 @@ func (p *ProviderConfig) ProviderArgs(ctx context.Context, phase EvalPhase) cty.
 	return v
 }
 
-func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, declRange *hcl.Range) (diags tfdiags.Diagnostics) {
+func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, versionConstraints constraints.IntersectionSpec, declRange *hcl.Range) (diags tfdiags.Diagnostics) {
 	if !depsfile.ProviderIsLockable(providerType.Addr()) {
 		return diags
 	}
 
-	if p := locks.Provider(providerType.Addr()); p == nil {
+	lock := locks.Provider(providerType.Addr())
+	if lock == nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Provider missing from lockfile",
@@ -91,7 +94,26 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, d
 			),
 			Subject: declRange,
 		})
+		return diags
 	}
+
+	if len(versionConstraints) > 0 {
+		selectedVersion := lock.Version()
+		allowedVersions := providerreqs.MeetingConstraints(versionConstraints)
+		if !allowedVersions.Has(selectedVersion) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider version doesn't match the lockfile",
+				Detail: fmt.Sprintf(
+					"Provider %q is locked at version %s in the dependency lockfile, but the configuration's version constraints (%s) do not allow that version. This usually means the version constraints were changed after the lockfile was generated. Please run `terraform stacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+					providerType.Addr(), selectedVersion.String(),
+					providerreqs.VersionConstraintsString(versionConstraints),
+				),
+				Subject: declRange,
+			})
+		}
+	}
+
 	return diags
 }
 
@@ -106,9 +128,11 @@ func (p *ProviderConfig) CheckProviderArgs(ctx context.Context, phase EvalPhase)
 
 			depLocks := p.main.DependencyLocks(phase)
 			if depLocks != nil {
-				// Check if the provider is in the lockfile,
-				// if it is not we can not read the provider schema
-				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, decl.DeclRange.ToHCL().Ptr())
+				// Check that the provider is in the lockfile (we can't read
+				// the provider schema otherwise) and that the version recorded
+				// there still satisfies the configuration's version constraints.
+				versionConstraints, _ := p.stack.config.Stack.RequiredProviders.VersionConstraintsForProvider(providerType.Addr())
+				lockfileDiags := CheckProviderInLockfile(*depLocks, providerType, versionConstraints, decl.DeclRange.ToHCL().Ptr())
 				if lockfileDiags.HasErrors() {
 					return cty.DynamicVal, lockfileDiags
 				}
