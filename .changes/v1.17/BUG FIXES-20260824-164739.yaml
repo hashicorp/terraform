@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: init no longer hangs when reusing a cached git:: module with no manifest Version
+time: 2026-08-24T16:47:39.000000+00:00
+custom:
+  Issue: "39047"
