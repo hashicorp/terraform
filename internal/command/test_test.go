@@ -1553,14 +1553,13 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 					resource "test_resource" "foo" {
 						value = var.foo
-						// destroy_wait_seconds = 5
 					}
 
 					output "value" {
 						value = test_resource.foo.value
 					}
 					`,
-				// c2 => a2, b1 => a1, a2 => b1, b2 => c2
+				// c2 => a2, b1 => a1, a2 => b1, b2 => c1
 				"parallel.tftest.hcl": `
 					test {
 						parallel = true
@@ -1603,7 +1602,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "a2" {
 						state_key = "a"
 						variables {
-							foo = run.b2.value
+							foo = run.b1.value
 						}
 
 						providers = {
@@ -1633,7 +1632,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					run "c2" {
 						state_key = "c"
 						variables {
-							foo = run.a2.value
+							foo = run.a1.value
 						}
 					}
 					`,
@@ -1660,7 +1659,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 				}
 
 				if cIdx > aIdx || aIdx > bIdx { // c => a => b
-					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)", cIdx, aIdx, bIdx)
+					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)\n %s", cIdx, aIdx, bIdx, "")
 				}
 			},
 		},
