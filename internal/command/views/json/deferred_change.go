@@ -37,6 +37,7 @@ const (
 	DeferredReasonProviderConfigUnknown DeferredReason = "provider_config_unknown"
 	DeferredReasonAbsentPrereq          DeferredReason = "absent_prereq"
 	DeferredReasonDeferredPrereq        DeferredReason = "deferred_prereq"
+	DeferredReasonExcluded              DeferredReason = "excluded"
 )
 
 func deferredReason(reason providers.DeferredReason) DeferredReason {
@@ -53,6 +54,8 @@ func deferredReason(reason providers.DeferredReason) DeferredReason {
 		return DeferredReasonAbsentPrereq
 	case providers.DeferredReasonDeferredPrereq:
 		return DeferredReasonDeferredPrereq
+	case providers.DeferredReasonExcluded:
+		return DeferredReasonExcluded
 	default:
 		// This should never happen, but there's no good way to guarantee
 		// exhaustive handling of the enum, so a generic fall back is better

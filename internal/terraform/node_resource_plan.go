@@ -54,6 +54,8 @@ type nodeExpandPlannableResource struct {
 	// structure in the future, as we need to compare for equality and take the
 	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
+
+	excludes []addrs.Targetable
 }
 
 var (
@@ -75,6 +77,11 @@ func (n *nodeExpandPlannableResource) Name() string {
 // GraphNodeAttachDependencies
 func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigResource) {
 	n.dependencies = deps
+}
+
+// GraphNodeAttachExcludes
+func (n *nodeExpandPlannableResource) AttachExcludes(excludes []addrs.Targetable) {
+	n.excludes = excludes
 }
 
 // GraphNodeDestroyerCBD
@@ -360,6 +367,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			// to force on CreateBeforeDestroy due to dependencies on other
 			// nodes that have it.
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
+			excludes:                 n.excludes,
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
 			minimalRefresh:           n.minimalRefresh,
@@ -412,6 +420,7 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 		// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 		skipRefresh:     n.skipRefresh || n.minimalRefresh,
 		skipPlanChanges: n.skipPlanChanges,
+		excludes:        n.excludes,
 	}
 }
 

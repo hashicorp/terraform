@@ -144,6 +144,9 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
+
+		// -exclude uses deferred changes, so it must be combined with -allow-deferral (so they must both be experimental)
+		opReq.Excludes = args.Excludes
 	} else if args.DeferralAllowed {
 		// Belated flag parse error, since we don't know about experiments
 		// support at actual parse time.
@@ -197,6 +200,9 @@ Options:
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used
                       multiple times.
+
+  -exclude=resource   Exclude a resource from the operation. This flag can be
+                      used multiple times.
 
   -var 'foo=bar'      Set a variable in the Terraform configuration. This
                       flag can be set multiple times.

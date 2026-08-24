@@ -753,6 +753,7 @@ message Deferred {
     PROVIDER_CONFIG_UNKNOWN = 3;
     ABSENT_PREREQ = 4;
     DEFERRED_PREREQ = 5;
+    EXCLUDED = 6;
   }
   Reason reason = 1;
 }

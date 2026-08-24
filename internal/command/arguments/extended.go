@@ -79,6 +79,11 @@ type Operation struct {
 	// and this should only be set for plan and apply operations.
 	ActionTargets []addrs.Targetable
 
+	// Excludes allows deferring a set of resource addresses and their
+	// dependents in an operation. Can only be provided with DeferralAllowed
+	// set to true.
+	Excludes []addrs.Targetable
+
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
 	// would normally have generated "no-op" or "update" actions.
@@ -108,6 +113,7 @@ type Operation struct {
 	// the raw values in the process.
 	targetsRaw       []string
 	actionTargetsRaw []string
+	excludesRaw      []string
 	forceReplaceRaw  []string
 	destroyRaw       bool
 	refreshOnlyRaw   bool
@@ -120,6 +126,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	o.Targets = nil
+	o.Excludes = nil
 
 	for _, tr := range o.targetsRaw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
@@ -167,6 +174,30 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 
 		o.ActionTargets = append(o.ActionTargets, target.Subject)
+	}
+
+	for _, tr := range o.excludesRaw {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid exclude %q", tr),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		excludeTarget, excludeTargetDiags := addrs.ParseTarget(traversal)
+		if excludeTargetDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid exclude %q", tr),
+				excludeTargetDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		o.Excludes = append(o.Excludes, excludeTarget.Subject)
 	}
 
 	if len(o.ActionTargets) > 1 {
@@ -253,6 +284,24 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		))
 	}
 
+	if len(o.Excludes) > 0 {
+		if len(o.Targets) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan mode options",
+				"The resource targeting options -target and -exclude cannot be combined as they are mutually exclusive.",
+			))
+		}
+
+		if !o.DeferralAllowed {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan mode options",
+				"The resource targeting option -exclude must be combined with -allow-deferral as excluding resources will create a partial plan.",
+			))
+		}
+	}
+
 	return diags
 }
 
@@ -283,6 +332,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.MinimalRefresh, "minimal-refresh", false, "minimal-refresh")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
+		f.Var((*FlagStringSlice)(&operation.excludesRaw), "exclude", "exclude")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 

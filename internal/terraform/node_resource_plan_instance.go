@@ -57,6 +57,8 @@ type NodePlannableResourceInstance struct {
 	// importTarget, if populated, contains the information necessary to plan
 	// an import of this resource.
 	importTarget importTarget
+
+	excludes []addrs.Targetable
 }
 
 type importTarget struct {
@@ -215,19 +217,34 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var deferred *providers.Deferred
 
+	for _, excludeAddr := range n.excludes {
+		// Check if this resource will be deferred directly via excluded
+		if excludeAddr.TargetContains(addr) {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			}
+			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
+			// remove the node from the graph, which means it will still refresh + plan...
+			//
+			// Talking with James, I should ensure refresh / planning doesn't happen here since we aren't sure
+			// why the resource is being deferred (just that the practitioner wants it deferred)
+		}
+	}
+
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
+	var importDeferred *providers.Deferred
 	schemaVersionUpgraded := false
 	if importing {
 		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
-			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, provider, providerSchema)
+			instanceRefreshState, importDeferred, importDiags = n.importState(ctx, addr, provider, providerSchema)
 			diags = diags.Append(importDiags)
 		} else {
 			// Otherwise, just mark the resource as deferred without trying to
 			// import it.
-			deferred = &providers.Deferred{
+			importDeferred = &providers.Deferred{
 				Reason: providers.DeferredReasonResourceConfigUnknown,
 			}
 			if n.Config == nil && len(n.generateConfigPath) > 0 {
@@ -274,6 +291,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}))
 			return diags
 		}
+	}
+
+	if deferred == nil && importDeferred != nil {
+		deferred = importDeferred
 	}
 
 	if deferred == nil {

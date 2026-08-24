@@ -57,6 +57,9 @@ type PlanGraphBuilder struct {
 	// ActionTargets are actions that should be triggered.
 	ActionTargets []addrs.Targetable
 
+	// Excludes are the resources to exclude (defer) in the plan graph.
+	Excludes []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -298,6 +301,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
+		&AttachExcludesTransformer{Excludes: b.Excludes},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},

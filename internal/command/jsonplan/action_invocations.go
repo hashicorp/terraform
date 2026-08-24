@@ -231,6 +231,8 @@ func MarshalDeferredActionInvocations(dais []*plans.DeferredActionInvocationSrc,
 			dai.Reason = DeferredReasonAbsentPrereq
 		case providers.DeferredReasonDeferredPrereq:
 			dai.Reason = DeferredReasonDeferredPrereq
+		case providers.DeferredReasonExcluded:
+			dai.Reason = DeferredReasonExcluded
 		default:
 			// If we find a reason we don't know about, we'll just mark it as
 			// unknown. This is a bit of a safety net to ensure that we don't

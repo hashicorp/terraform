@@ -33,6 +33,9 @@ type NodePlannableResourceInstanceOrphan struct {
 	// forgetModules lists modules that should not be destroyed, only removed
 	// from state.
 	forgetModules []addrs.Module
+
+	// TODO:@austinvalle: Should you even be able to exclude an orphaned object? :P
+	excludes []addrs.Targetable
 }
 
 var (
@@ -132,6 +135,21 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
+	var deferred *providers.Deferred
+	for _, excludeAddr := range n.excludes {
+		// Check if this resource will be deferred directly via excluded
+		if excludeAddr.TargetContains(addr) {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonExcluded,
+			}
+			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
+			// remove the node from the graph, which means it will still refresh + plan...
+			//
+			// Talking with James, I should ensure refresh / planning doesn't happen here since we aren't sure
+			// why the resource is being deferred (just that the practitioner wants it deferred)
+		}
+	}
+
 	var forget bool
 	for _, ft := range n.forgetResources {
 		if ft.Equal(n.ResourceAddr()) {
@@ -178,16 +196,20 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
-	var deferred *providers.Deferred
+	var planDeferred *providers.Deferred
 	if forget {
 		change, pDiags = n.planForget(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	} else {
-		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
+		change, planDeferred, pDiags = n.planDestroy(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	}
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if deferred == nil && planDeferred != nil {
+		deferred = planDeferred
 	}
 
 	// We might be able to offer an approximate reason for why we are

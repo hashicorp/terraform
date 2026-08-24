@@ -86,6 +86,14 @@ type PlanOpts struct {
 	// TEMP: For now, only support a single entry in this slice.
 	ActionTargets []addrs.Targetable
 
+	// Excludes allows deferring a set of resource addresses and their
+	// dependents in an operation. Can only be provided with DeferralAllowed
+	// set to true.
+	//
+	// Any resources in the graph that match one of the excluded addresses or are dependent on an
+	// excluded resource will be deferred, which will result in a partial plan being created.
+	Excludes []addrs.Targetable
+
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
 	// plan would otherwise have been to either update the object in-place or
@@ -321,6 +329,29 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 				tfdiags.Error,
 				"Incompatible plan options",
 				"The -minimal-refresh planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
+
+	if len(opts.Excludes) > 0 {
+		if len(opts.Targets) > 0 {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The resource targeting options -target and -exclude cannot be combined as they are mutually exclusive. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+
+		if !opts.DeferralAllowed {
+			// The CLI layer (and other similar callers) should prevent this.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The resource targeting option -exclude must be combined with -allow-deferral as excluding resources will create a partial plan. This is a bug in Terraform.",
 			))
 			return nil, nil, diags
 		}
@@ -1067,6 +1098,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
+			Excludes:                  opts.Excludes,
 			ForceReplace:              opts.ForceReplace,
 			skipRefresh:               opts.SkipRefresh,
 			preDestroyRefresh:         opts.PreDestroyRefresh,
@@ -1094,6 +1126,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
 			ActionTargets:             opts.ActionTargets,
+			Excludes:                  opts.Excludes,
 			skipRefresh:               opts.SkipRefresh,
 			skipPlanChanges:           true, // this activates "refresh only" mode.
 			minimalRefresh:            opts.MinimalRefresh,
@@ -1113,6 +1146,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalProviderConfigs:   externalProviderConfigs,
 			Plugins:                   c.plugins,
 			Targets:                   opts.Targets,
+			Excludes:                  opts.Excludes,
 			skipRefresh:               opts.SkipRefresh,
 			minimalRefresh:            opts.MinimalRefresh,
 			Operation:                 walkPlanDestroy,
