@@ -76,6 +76,11 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
+	// minimalRefresh indicates that we should run an initial plan for each resource prior to refreshing:
+	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
+	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
+	minimalRefresh bool
+
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
 	ConcreteDestroyResourceInstance ConcreteResourceInstanceNodeFunc
@@ -342,6 +347,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
+			minimalRefresh:       b.minimalRefresh,
 		}
 	}
 
@@ -349,10 +355,11 @@ func (b *PlanGraphBuilder) initPlan() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
-			skipPlanChanges:              b.skipPlanChanges,
-			forgetResources:              b.forgetResources,
-			forgetModules:                b.forgetModules,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.minimalRefresh,
+			skipPlanChanges: b.skipPlanChanges,
+			forgetResources: b.forgetResources,
+			forgetModules:   b.forgetModules,
 		}
 	}
 
@@ -362,7 +369,8 @@ func (b *PlanGraphBuilder) initPlan() {
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
 
-			skipRefresh:     b.skipRefresh,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
@@ -377,7 +385,8 @@ func (b *PlanGraphBuilder) initDestroy() {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh: b.skipRefresh || b.minimalRefresh,
 		}
 	}
 }

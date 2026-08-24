@@ -98,9 +98,9 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	defer span.End()
 
 	if upgrade {
-		view.Output(views.UpgradingModulesMessage)
+		view.LogModuleUpgrade()
 	} else {
-		view.Output(views.InitializingModulesMessage)
+		view.LogModuleInitialization()
 	}
 
 	uiHook := uiModuleInstallHooks{
@@ -382,7 +382,7 @@ the backend configuration is present and valid.
 // to only download a single provider, and the method will only return a single lock.
 //
 // Calling code is responsible for validating inputs to this method, e.g. mutually exclusive flags.
-func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, safeInstallAction SafeStateStoreProviderInstallAction, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarly *configs.Module, previousLocks *depsfile.Locks, upgrade bool, pluginDirs []string, flagLockfile string, view views.Init) (output bool, resultingLocks *depsfile.Locks, trust ProviderTrust, authResult *getproviders.PackageAuthenticationResult, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install providers for state store")
 	defer span.End()
 
@@ -477,7 +477,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			// which will be surfaced as diagnostic during installation
 			if !pAddr.IsZero() {
 				cons := reqs[pAddr]
-				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, rootModEarly.StateStore.Type)
+				view.LogInstallStateStoreProviderStart(pAddr, cons, rootModEarly.StateStore.Type)
 			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
@@ -554,9 +554,9 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 	}
 
 	// Return advice to the calling code about what to do regarding safe state store provider installation
-	safeInstallAction = c.determineSafeProviderInstallAction(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
+	trust = c.determineIfProviderTrusted(rootModEarly.StateStore.ProviderAddr, providerLocations, previousLocks)
 
-	return true, lock, safeInstallAction, stateStoreProviderAuthResult, diags
+	return true, lock, trust, stateStoreProviderAuthResult, diags
 }
 
 // getProviders determines what providers are required by the config and state
@@ -633,7 +633,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginMessage)
+			view.LogInstallProvidersStart()
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
@@ -963,7 +963,7 @@ func linkFromCacheBeginCallback(view views.ProviderInstallationLogger) func(prov
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInstallingProviderVersion(provider, version)
+		view.LogInstallProviderVersionStart(provider, version)
 	}
 }
 
@@ -1209,11 +1209,11 @@ func fetchPackageSuccessCallback(view views.ProviderInstallationLogger) func(pro
 			keyID = authResult.KeyID
 		}
 		if keyID != "" {
-			view.LogProviderVersionSuccessWithKeyID(provider, version, authResult, keyID)
+			view.LogInstallProviderVersionCompleteWithKeyID(provider, version, authResult, keyID)
 			return
 		}
 
-		view.LogProviderVersionSuccess(provider, version, authResult)
+		view.LogInstallProviderVersionComplete(provider, version, authResult)
 	}
 }
 

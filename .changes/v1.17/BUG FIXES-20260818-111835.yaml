@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix panic when import identity references sensitive value
+time: 2026-08-18T11:18:35.405953+02:00
+custom:
+    Issue: "39013"

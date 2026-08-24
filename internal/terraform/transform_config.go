@@ -247,13 +247,13 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	// generating configuration. Add them to the graph for validation.
 	for _, i := range importTargets {
 
-		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.Config.ToResource)
+		log.Printf("[DEBUG] ConfigTransformer: adding config generation node for %s", i.AbsToConfigResource)
 
 		// TODO: if config generation is ever supported for for_each
 		// resources, this will add multiple nodes for the same
 		// resource
 		abstract := &NodeAbstractResource{
-			Addr:               i.Config.ToResource,
+			Addr:               i.AbsToConfigResource,
 			importTargets:      []*ImportTarget{i},
 			generateConfigPath: t.generateConfigPathForImportTargets,
 		}
@@ -281,7 +281,7 @@ func (t *ConfigTransformer) validateImportTargets() error {
 		var toResource addrs.ConfigResource
 		switch {
 		case i.Config != nil:
-			toResource = i.Config.ToResource
+			toResource = i.AbsToConfigResource
 		default:
 			toResource = i.LegacyAddr.ConfigResource()
 		}

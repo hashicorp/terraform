@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
 )
 
@@ -39,7 +38,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		// policy engine callbacks can still use them. For example, policies may need to access data
 		// sources of a provider.
 		if _, ok := v.(GraphNodeCloseProvider); ok {
-			g.Connect(dag.BasicEdge(v, policyNode))
+			g.Connect(v, policyNode)
 			continue
 		}
 
@@ -49,7 +48,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		if t.QueryPlan {
 			if res, ok := v.(GraphNodeConfigResource); ok {
 				if res.ResourceAddr().Resource.Mode == addrs.ListResourceMode {
-					g.Connect(dag.BasicEdge(policyNode, v))
+					g.Connect(policyNode, v)
 				}
 			}
 			continue
@@ -58,7 +57,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		// Connect the policy node to every non-provider closer node so that it
 		// executes only after all remaining graph work that can still mutate state
 		// or changes has completed.
-		g.Connect(dag.BasicEdge(policyNode, v))
+		g.Connect(policyNode, v)
 	}
 
 	return nil

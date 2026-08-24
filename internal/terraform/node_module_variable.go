@@ -87,7 +87,6 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 		}
 		g.Add(o)
 	})
-	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
 		ctx.Checks().ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)
@@ -366,6 +365,10 @@ type nodeModuleVariableInPartialModule struct {
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
 	DestroyApply bool
+}
+
+func (n *nodeModuleVariableInPartialModule) Name() string {
+	return n.Addr.String()
 }
 
 func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {

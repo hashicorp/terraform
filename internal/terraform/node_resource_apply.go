@@ -80,8 +80,6 @@ func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*
 		diags = diags.Append(expDiags)
 	}
 
-	addRootNodeToGraph(&g)
-
 	return &g, diags
 }
 
@@ -142,9 +140,6 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
-
-		// Make sure there is a single root
-		&RootTransformer{},
 	}
 
 	// Build the graph

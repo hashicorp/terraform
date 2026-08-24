@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -87,7 +86,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 		}
 
 		// make sure the provider is only closed after the provider starts.
-		g.Connect(dag.BasicEdge(close, configure))
+		g.Connect(close, configure)
 	}
 
 	for vertex := range g.VerticesSeq() {
@@ -98,14 +97,14 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			if len(vertex.Run().Config.Providers) > 0 {
 				for _, ref := range vertex.run.Config.Providers {
 					if node, ok := nodes[ref.InParent.Name][ref.InParent.Alias]; ok {
-						g.Connect(dag.BasicEdge(vertex, node.configure))
+						g.Connect(vertex, node.configure)
 					}
 				}
 			} else {
 				for provider := range requiredProviders(vertex.run.ModuleConfig) {
 					name := t.Config.Module.LocalNameForProvider(provider.Provider)
 					if node, ok := nodes[name][provider.Alias]; ok {
-						g.Connect(dag.BasicEdge(vertex, node.configure))
+						g.Connect(vertex, node.configure)
 					}
 				}
 			}
@@ -116,7 +115,7 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 				for _, node := range node {
 					// close all the providers after the states have been
 					// cleaned up.
-					g.Connect(dag.BasicEdge(node.close, vertex))
+					g.Connect(node.close, vertex)
 				}
 			}
 		}

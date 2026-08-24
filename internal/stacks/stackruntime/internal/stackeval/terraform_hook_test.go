@@ -72,7 +72,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PreDiff", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PreDiff(resourceIdentity, addrs.NotDeposed, cty.NilVal, cty.NilVal, nil)
+		action, err := hook.PreDiff(resourceIdentity, addrs.NotDeposed, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -95,7 +95,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PostDiff - success", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal, nil)
+		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}
@@ -118,7 +118,7 @@ func TestTerraformHook(t *testing.T) {
 
 	t.Run("PostDiff - error", func(t *testing.T) {
 		hook := makeHook()
-		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, cty.NilVal, cty.NilVal, errors.New("oh no"))
+		action, err := hook.PostDiff(resourceIdentity, addrs.NotDeposed, plans.Create, errors.New("oh no"))
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
 		}

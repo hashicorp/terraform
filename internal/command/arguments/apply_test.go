@@ -324,6 +324,48 @@ func TestParseApply_vars(t *testing.T) {
 	}
 }
 
+func TestParseApply_minimal_refresh(t *testing.T) {
+	testCases := map[string]struct {
+		args    []string
+		wantErr string
+	}{
+		"minimal-refresh": {
+			args:    []string{"-minimal-refresh"},
+			wantErr: "",
+		},
+		"minimal-refresh with refresh-only": {
+			args:    []string{"-minimal-refresh", "-refresh-only"},
+			wantErr: "Incompatible plan mode options",
+		},
+		"minimal-refresh with refresh=false": {
+			args:    []string{"-minimal-refresh", "-refresh=false"},
+			wantErr: "Incompatible refresh options",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseApply(tc.args)
+			switch {
+			case tc.wantErr == "":
+				if diags.HasErrors() {
+					t.Fatalf("unexpected diags: %v", diags)
+				}
+				if !got.Operation.MinimalRefresh {
+					t.Fatal("expected MinimalRefresh to be set")
+				}
+			default:
+				if !diags.HasErrors() {
+					t.Fatal("expected diags but got none")
+				}
+				if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
+					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
+				}
+			}
+		})
+	}
+}
+
 func TestParseApplyDestroy_basicValid(t *testing.T) {
 	testCases := map[string]struct {
 		args []string

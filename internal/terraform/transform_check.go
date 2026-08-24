@@ -22,7 +22,7 @@ type checkTransformer struct {
 var _ GraphTransformer = (*checkTransformer)(nil)
 
 func (t *checkTransformer) Transform(graph *Graph) error {
-	return t.transform(graph, t.Config, graph.Vertices())
+	return t.transform(graph, t.Config, graph.VerticesSeq().Collect())
 }
 
 func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []dag.Vertex) error {
@@ -71,7 +71,7 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 
 			// Make sure we report our checks before we start executing the
 			// actual checks.
-			g.Connect(dag.BasicEdge(expand, report))
+			g.Connect(expand, report)
 
 			if check.DataResource != nil {
 				// If we have a nested data source, we need to make sure we
@@ -92,7 +92,7 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 						if resourceCfg != nil && resourceCfg.Container != nil && resourceCfg.Container.Accessible(check.Addr()) {
 							// Make sure we report our checks before we execute any
 							// embedded data resource.
-							g.Connect(dag.BasicEdge(other, report))
+							g.Connect(other, report)
 
 							// There's at most one embedded data source, and
 							// we've found it so stop looking.

@@ -23,6 +23,7 @@ import (
 // The type of operation cannot be assumed, only that this node represents
 // the given resource.
 type GraphNodeConfigAction interface {
+	dag.Vertex
 	ActionAddr() addrs.ConfigAction
 }
 

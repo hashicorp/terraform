@@ -38,6 +38,11 @@ type nodeExpandPlannableResource struct {
 	// for any instances.
 	skipPlanChanges bool
 
+	// minimalRefresh indicates that we should run an initial plan for each instance prior to refreshing:
+	//   - If the plan returns a no-op, then the instance won't be refreshed.
+	//   - If the plan returns a change (anything but no-op), the instance will be refreshed and another plan will be run.
+	minimalRefresh bool
+
 	// forceReplace are resource instance addresses where the user wants to
 	// force generating a replace action. This set isn't pre-filtered, so
 	// it might contain addresses that have nothing to do with the resource
@@ -151,10 +156,6 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 	if len(n.importTargets) == 0 {
 		return knownImports, unknownImports, diags
 	}
-
-	// Import blocks are only valid within the root module, and must be
-	// evaluated within that context
-	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	state := ctx.State()
 
@@ -432,8 +433,6 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, moduleInsta
 		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, expandedInstances)
 	}
 
-	addRootNodeToGraph(&g)
-
 	return &g, diags
 }
 
@@ -543,9 +542,6 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
-
-		// Make sure there is a single root
-		&RootTransformer{},
 	}
 
 	// Build the graph
@@ -602,6 +598,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          skipPlanChanges,
+			minimalRefresh:           n.minimalRefresh,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
 		}
 
@@ -648,8 +645,9 @@ func (n *nodeExpandPlannableResource) concreteResourceOrphan(a *NodeAbstractReso
 
 	return &NodePlannableResourceInstanceOrphan{
 		NodeAbstractResourceInstance: a,
-		skipRefresh:                  n.skipRefresh,
-		skipPlanChanges:              n.skipPlanChanges,
+		// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+		skipRefresh:     n.skipRefresh || n.minimalRefresh,
+		skipPlanChanges: n.skipPlanChanges,
 	}
 }
 

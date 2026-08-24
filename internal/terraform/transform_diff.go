@@ -66,7 +66,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// dependency edges, so we'll do some prep work here to ensure we'll only
 	// create connections to nodes that existed before we started here.
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
-	for _, node := range g.Vertices() {
+	for node := range g.VerticesSeq() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -190,14 +190,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				if dn, ok := node.(GraphNodeDeposer); ok {
 					dn.SetPreallocatedDeposedKey(dk)
 				}
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, dag.VertexName(node), dk)
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, node.Name(), dk)
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, node.Name())
 			}
 
 			g.Add(node)
 			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
-				g.Connect(dag.BasicEdge(node, rsrcNode))
+				g.Connect(node, rsrcNode)
 			}
 		}
 
@@ -218,9 +218,9 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 			if dk == states.NotDeposed {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, node.Name())
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, node.Name())
 			}
 			g.Add(node)
 		}
@@ -239,7 +239,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 
-			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
+			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, node.Name())
 			g.Add(node)
 		}
 

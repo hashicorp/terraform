@@ -142,15 +142,22 @@ func apply(tfCtx *terraform.Context, run *configs.TestRun, module *configs.Confi
 		created = append(created, change)
 	}
 
-	// We only need to pass ephemeral variables to the apply operation, as the
+	// We only need to pass ephemeral variables that are needed to the apply operation, as the
 	// plan has already been evaluated with the full set of variables.
 	ephemeralVariables := make(terraform.InputValues)
 	for k, v := range module.Root.Module.Variables {
-		if v.EphemeralSet {
+		// [plan.ApplyTimeVariables] only contains ephemeral variables whose value are non-null.
+		// These are the only ones we need to set during the apply operation.
+		// The only way for such a variable to obtain values beyond this point
+		// is via defaults, and for that, we can count on the defaults being
+		// resolved in the core graph later on, so we do not need to include
+		// them here.
+		if v.EphemeralSet && plan.ApplyTimeVariables.Has(k) {
 			if value, ok := variables[k]; ok {
 				ephemeralVariables[k] = value
 			}
 		}
+
 	}
 
 	applyOpts := &terraform.ApplyOpts{

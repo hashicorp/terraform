@@ -193,7 +193,7 @@ func TestApplyGraphBuilder_depCbd(t *testing.T) {
 	// We're going to go hunting for our deposed instance node here, so we
 	// can find out its key to use in the assertions below.
 	var dk states.DeposedKey
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		tv, ok := v.(*NodeDestroyDeposedResourceInstanceObject)
 		if !ok {
 			continue
@@ -265,7 +265,7 @@ func TestApplyGraphBuilder_doubleCBD(t *testing.T) {
 	// We're going to go hunting for our deposed instance node here, so we
 	// can find out its key to use in the assertions below.
 	var destroyA, destroyB string
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		tv, ok := v.(*NodeDestroyDeposedResourceInstanceObject)
 		if !ok {
 			continue
