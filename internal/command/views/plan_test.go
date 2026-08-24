@@ -134,6 +134,37 @@ func testPlanWithDatasource(t *testing.T) *plans.Plan {
 	return plan
 }
 
+func testPlanWithDeferredChanges(t *testing.T) *plans.Plan {
+	t.Helper()
+
+	plan := testPlan(t)
+
+	deferredAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_resource",
+		Name: "deferred",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	plan.DeferredResources = []*plans.DeferredResourceInstanceChangeSrc{
+		{
+			DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+			ChangeSrc: &plans.ResourceInstanceChangeSrc{
+				Addr:        deferredAddr,
+				PrevRunAddr: deferredAddr,
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+		},
+	}
+
+	return plan
+}
+
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
