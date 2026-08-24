@@ -277,20 +277,25 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 	return result
 }
 
-func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
-	var result []*addrs.Reference
+func (n *NodeAbstractResource) ImportReferences() []ImportReference {
+	var result []ImportReference
 	for _, importTarget := range n.importTargets {
 		// legacy import won't have any config
 		if importTarget.Config == nil {
 			continue
 		}
 
-		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
-		result = append(result, refs...)
-		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
-		result = append(result, refs...)
-		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
-		result = append(result, refs...)
+		var refs []*addrs.Reference
+		idRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
+		refs = append(refs, idRefs...)
+		identityRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
+		refs = append(refs, identityRefs...)
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
+		refs = append(refs, forEachRefs...)
+
+		for _, ref := range refs {
+			result = append(result, ImportReference{RelModule: importTarget.RelModule, Ref: ref})
+		}
 	}
 	return result
 }
@@ -545,12 +550,12 @@ func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.Ab
 
 // readResourceInstanceState reads the current object for a specific instance in
 // the state.
-func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		diags = diags.Append(err)
-		return nil, diags
+		return nil, false, diags
 	}
 
 	log.Printf("[TRACE] readResourceInstanceState: reading state for %s", addr)
@@ -559,27 +564,27 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	if src == nil {
 		// Presumably we only have deposed objects, then.
 		log.Printf("[TRACE] readResourceInstanceState: no state present for %s", addr)
-		return nil, nil
+		return nil, false, nil
 	}
 
 	schema := providerSchema.SchemaForResourceAddr(addr.Resource.ContainingResource())
 	if schema.Body == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
-		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
+		return nil, false, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
+	src, schemaVersionUpgraded, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}
 	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	src, upgradeDiags = upgradeResourceIdentity(addr, provider, src, schema)
 	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	obj, err := src.Decode(schema)
@@ -587,7 +592,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		diags = diags.Append(err)
 	}
 
-	return obj, diags
+	return obj, schemaVersionUpgraded, diags
 }
 
 // readResourceInstanceStateDeposed reads the deposed object for a specific
@@ -620,7 +625,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 
 	}
 
-	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
+	src, _, upgradeDiags := upgradeResourceState(addr, provider, src, schema)
 	if n.Config != nil {
 		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
 	}

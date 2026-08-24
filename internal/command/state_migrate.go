@@ -99,6 +99,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
 	// Load the source backend
+	view.LogMigrationSourceInitializationStart()
 	var source string
 	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
 	if smi.Backend != nil {
@@ -160,8 +161,10 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.Source = srcB
 		}
 	}
+	view.LogMigrationSourceInitializationComplete()
 
 	// Load the destination backend
+	view.LogMigrationDestinationInitializationStart()
 	rootMod := cfg.Module
 	var destination string
 	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
@@ -327,17 +330,20 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.Diagnostics(diags)
 		return 1
 	}
+	view.LogMigrationDestinationInitializationComplete()
 
-	view.Log(views.StateMigrationStartMessage, source, destination)
+	view.LogStateMigrationStart(source, destination)
 
 	// Perform the migration from source to destination
 	err := c.Meta.backendMigrateState(migrateOpts)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
 		view.Diagnostics(diags)
-		view.Log(views.StateMigrationFailureMessage, source, destination)
+		view.LogStateMigrationErrored(views.DuringMigration, source, destination)
 		return 1
 	}
+
+	view.LogStateMigrationComplete(source, destination)
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
 	// details of the destination state store provider.
@@ -346,6 +352,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
 			view.Diagnostics(diags)
+			view.LogStateMigrationErrored(views.DuringLockfile, source, destination)
 			return 1
 		}
 
@@ -360,7 +367,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		diags = diags.Append(depLockFileDiags)
 		if depLockFileDiags.HasErrors() {
 			view.Diagnostics(diags)
-			view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+			view.LogStateMigrationErrored(views.DuringLockfile, source, destination)
 			return 1
 		}
 		if output {
@@ -374,13 +381,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	diags = diags.Append(bsfDiags)
 	if bsfDiags.HasErrors() {
 		view.Diagnostics(diags)
-		view.Log(views.StateMigrationPostStepsInterruptedMessage, source, destination)
+		view.LogStateMigrationErrored(views.DuringWorkDirStateUpdate, source, destination)
 		return 1
 	}
 
 	view.Diagnostics(diags) // Log any warnings
 
-	view.Log(views.StateMigrationCompletedMessage, source, destination)
+	view.LogStateMigrationFinalized(source, destination)
 
 	return 0
 }
@@ -474,7 +481,7 @@ func (c *StateMigrateCommand) getDestinationStateStoreProviderRequirements(provi
 }
 
 // saveDependencyLockFile overwrites the contents of the dependency lock file.
-func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.DependencyLockingLogger) (output bool, diags tfdiags.Diagnostics) {
+func (c *StateMigrateCommand) saveDependencyLockFile(previousLocks, newLocks *depsfile.Locks, view views.ProviderLockingLogger) (output bool, diags tfdiags.Diagnostics) {
 	// The state migrate command does not support the -lockfile=readonly flag
 	// This flag is specific to the init command, and can only take "" or "readonly" as values.
 	// As state migrate doesn't take this flag, we can safely set it to "" here.
@@ -531,14 +538,7 @@ func (c *StateMigrateCommand) getSingleProvider(ctx context.Context, stateStore 
 	var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			pAddr := stateStore.ProviderAddr
-			// empty address would indicate wrong configuration
-			// such as missing or mismatching provider requirement
-			// which will be surfaced as diagnostic during installation
-			if !pAddr.IsZero() {
-				cons := reqs[pAddr]
-				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, stateStore.Type)
-			}
+			view.LogInstallProvidersStart()
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),

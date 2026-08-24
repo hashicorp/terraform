@@ -3,12 +3,10 @@ variable "input" {
   type = number
 }
 
-variable "input2" {
-  type = number
-  ephemeral = true
-  default = 0
+resource "test_resource" "my_resource" {
+  apply_fail = true
 }
 
 output "output" {
-  value = var.input > 5 ? var.input : null
+  value = var.input
 }

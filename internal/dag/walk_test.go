@@ -72,30 +72,27 @@ func TestWalker_error(t *testing.T) {
 	}
 }
 
-type tolerantTestVertex string
-
-func (v tolerantTestVertex) Name() string {
-	return string(v)
-}
-
-func (v tolerantTestVertex) AllowUpstreamFailure(dep Vertex) bool {
-	return dep == testV(2)
-}
-
-func TestWalker_tolerantVertex(t *testing.T) {
+func TestWalker_alwaysRunVertex(t *testing.T) {
+	// This tests that an [AlwaysRun] vertex whose dependencies fail still executes.
+	// The graph is a > error > c > d.
+	// When error is a failure, c executes
 	var g AcyclicGraph
-	g.Add(testV(1))
-	g.Add(testV(2))
-	g.Add(tolerantTestVertex("t"))
-	g.Add(testV(4))
-	g.Connect(testV(2), testV(1))
-	g.Connect(tolerantTestVertex("t"), testV(2))
-	g.Connect(testV(4), tolerantTestVertex("t"))
+	resA := testNamedString("a")
+	resErr := testNamedString("error")
+	resC := testAlwaysRunVertex("c")
+	resD := testNamedString("d")
+	g.Add(resA)
+	g.Add(resErr)
+	g.Add(resC)
+	g.Add(resD)
+	g.Connect(resErr, resA)
+	g.Connect(resC, resErr)
+	g.Connect(resD, resC)
 
 	var order []any
 
 	w := NewWalker(func(v Vertex) tfdiags.Diagnostics {
-		if v == testV(2) {
+		if v == testNamedString("error") {
 			var diags tfdiags.Diagnostics
 			diags = diags.Append(fmt.Errorf("error"))
 			return diags
@@ -108,7 +105,7 @@ func TestWalker_tolerantVertex(t *testing.T) {
 		t.Fatal("expect error")
 	}
 
-	expected := []any{testV(1), tolerantTestVertex("t")}
+	expected := []any{resA, resC, resD}
 	if !reflect.DeepEqual(order, expected) {
 		t.Errorf("wrong order\ngot:  %#v\nwant: %#v", order, expected)
 	}

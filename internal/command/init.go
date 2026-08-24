@@ -477,7 +477,7 @@ func (c *InitCommand) getProvidersFromPSSConfig(ctx context.Context, rootModEarl
 			// which will be surfaced as diagnostic during installation
 			if !pAddr.IsZero() {
 				cons := reqs[pAddr]
-				view.LogInitializingStateStoreProviderPlugin(pAddr, cons, rootModEarly.StateStore.Type)
+				view.LogInstallStateStoreProviderStart(pAddr, cons, rootModEarly.StateStore.Type)
 			}
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
@@ -633,7 +633,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	}
 	evts := &providercache.InstallerEvents{
 		PendingProviders: func(reqs map[addrs.Provider]getproviders.VersionConstraints) {
-			view.Output(views.InitializingProviderPluginMessage)
+			view.LogInstallProvidersStart()
 		},
 		ProviderAlreadyInstalled: providerAlreadyInstalledCallback(view),
 		BuiltInProviderAvailable: builtInProviderAvailableCallback(view),
@@ -963,7 +963,7 @@ func linkFromCacheBeginCallback(view views.ProviderInstallationLogger) func(prov
 // Returns a reused callback function for the FetchPackageBegin event in a providercache.InstallerEvents struct.
 func fetchPackageBeginCallback(view views.ProviderInstallationLogger) func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
 	return func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation) {
-		view.LogInstallingProviderVersion(provider, version)
+		view.LogInstallProviderVersionStart(provider, version)
 	}
 }
 
@@ -1209,11 +1209,11 @@ func fetchPackageSuccessCallback(view views.ProviderInstallationLogger) func(pro
 			keyID = authResult.KeyID
 		}
 		if keyID != "" {
-			view.LogProviderVersionSuccessWithKeyID(provider, version, authResult, keyID)
+			view.LogInstallProviderVersionCompleteWithKeyID(provider, version, authResult, keyID)
 			return
 		}
 
-		view.LogProviderVersionSuccess(provider, version, authResult)
+		view.LogInstallProviderVersionComplete(provider, version, authResult)
 	}
 }
 

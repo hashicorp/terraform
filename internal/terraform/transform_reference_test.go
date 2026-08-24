@@ -408,3 +408,82 @@ resource "test_resource" "in_modc" {
 	}
 
 }
+
+// This test verifies that edges are created for import references, both in root and child modules.
+func TestReferenceTransformer_import_references(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" { source = "./child" }
+resource "test_object" "root_foo" {}
+
+locals {
+  root_foo_id = "foo-123"
+  root_bar_id = "bar-123"
+}
+import {
+  to  = test_object.root_foo
+  id  = local.root_foo_id
+}
+import {
+  to  = module.child.test_object.child_bar
+  id  = local.root_bar_id
+}
+`,
+		"child/main.tf": `
+resource "test_object" "child_foo" {}
+resource "test_object" "child_bar" {}
+
+locals {
+  child_foo_id = "foo-456"
+}
+import {
+  to  = test_object.child_foo
+  id  = local.child_foo_id
+}
+`,
+	})
+
+	p := testProvider("test_object")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	g, _, diags := ctx.planGraph(cfg, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	tfdiags.AssertNoErrors(t, diags)
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+local.root_bar_id (expand)
+local.root_foo_id (expand)
+module.child (close)
+  module.child.test_object.child_bar (expand)
+  module.child.test_object.child_foo (expand)
+module.child (expand)
+module.child.local.child_foo_id (expand)
+  module.child (expand)
+module.child.test_object.child_bar (expand)
+  local.root_bar_id (expand)
+  module.child (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+module.child.test_object.child_foo (expand)
+  module.child.local.child_foo_id (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  module.child.test_object.child_bar (expand)
+  module.child.test_object.child_foo (expand)
+  test_object.root_foo (expand)
+root
+  module.child (close)
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_object.root_foo (expand)
+  local.root_foo_id (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+`)
+
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}

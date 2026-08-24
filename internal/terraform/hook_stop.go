@@ -33,11 +33,11 @@ func (h *stopHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.hook()
 }
 
-func (h *stopHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value, err error) (HookAction, error) {
+func (h *stopHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value, err error) (HookAction, error) {
+func (h *stopHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error) {
 	return h.hook()
 }
 
