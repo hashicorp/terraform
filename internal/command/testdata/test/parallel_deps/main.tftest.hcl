@@ -2,10 +2,21 @@ test {
   parallel = true
 }
 
-run "test" {
+run "test_one_a" {
+  state_key = "state1"
   variables {
-    id = "test"
+    id = "test_one"
     unused = "unused"
+  }
+}
+
+run "test_one_b" {
+  state_key = "state1"
+  variables {
+    id = "test_one"
+    // even though this references test_three, test_three already has a state
+    // dependency via test_one_b, so test_three's state will be destroyed before this run's
+    unused = run.test_three.unused  
   }
 }
 
@@ -14,10 +25,6 @@ run "test_two" {
   variables {
     // This dependency is a later run, but that should be fine because we are in parallel mode.
     id = run.test_three.id
-
-    // The output state data for this dependency will also be left behind, but the actual
-    // resource will have been destroyed by the cleanup step of test_three.
-    unused = run.test.unused
   }
 }
 
@@ -25,6 +32,6 @@ run "test_three" {
   state_key = "state3"
   variables {
     id = "test_three"
-    unused = run.test.unused
+    unused = run.test_one_a.unused
   }
 }
