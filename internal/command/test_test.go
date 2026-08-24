@@ -41,11 +41,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type jsonLine struct {
-	Type    string                   `json:"type"`
-	TestRun *viewsJson.TestRunStatus `json:"test_run,omitempty"`
-}
-
 func TestTest_Runs(t *testing.T) {
 	tcs := map[string]struct {
 		override              string
@@ -6068,6 +6063,11 @@ func TestTest_ParallelDeps(t *testing.T) {
 	if provider.ResourceCount() != 0 {
 		t.Errorf("should have deleted all resources")
 	}
+}
+
+type jsonLine struct {
+	Type    string                   `json:"type"`
+	TestRun *viewsJson.TestRunStatus `json:"test_run,omitempty"`
 }
 
 func parseJSONLines(t *testing.T, actual string) ([]jsonLine, error) {

@@ -21,6 +21,10 @@ type Subgrapher interface {
 	isSubGrapher()
 }
 
+// RunNode is an interface for nodes that represent test runs.
+// As of now, there are mainly two types of run nodes:
+// - NodeTestRun: represents a test run that is executed as part of a module test.
+// - NodeTestRunCleanup: represents a node for cleaning up a test run's state.
 type RunNode interface {
 	dag.Vertex
 	Run() *moduletest.Run
@@ -120,14 +124,16 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// is not used by a cleanup node, it will not be connected.
 	for _, obj := range cleanupMap {
 		for _, dep := range obj.dependencies {
-			if _, exists := runNodesUsedForCleanup[dep.Addr()]; exists {
-				depCleanupNode := cleanupMap[dep.Config.StateKey].node
-				objCleanupNode := obj.node
-				if depCleanupNode == objCleanupNode {
-					continue
-				}
-				g.Connect(depCleanupNode, objCleanupNode)
+			if _, exists := runNodesUsedForCleanup[dep.Addr()]; !exists {
+				continue
 			}
+
+			depCleanupNode := cleanupMap[dep.Config.StateKey].node
+			objCleanupNode := obj.node
+			if depCleanupNode == objCleanupNode {
+				continue
+			}
+			g.Connect(depCleanupNode, objCleanupNode)
 		}
 	}
 	return nil
