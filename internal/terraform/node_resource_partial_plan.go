@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -61,7 +62,6 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 	}
 
 	func() {
-
 		ss := ctx.PrevRunState()
 		if ss == nil {
 			return // No previous state, so nothing to do here.
@@ -103,10 +103,13 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 				abs.AttachResourceState(res)
 				g.Add(n.concreteResourceOrphan(abs))
 			}
-
 		}
-
 	}()
+
+	// We might expect an address because it's in an import block, but have no
+	// config and aren't generating any. This isn't caught during validation
+	// because generateConfigPath is only a plan option.
+	missingImportConfig := false
 
 	// We need to ensure that all of the expanded import targets are actually
 	// present in the configuration, because we can't import something that
@@ -114,12 +117,10 @@ func (n *nodeExpandPlannableResource) dynamicExpandPartial(ctx EvalContext, know
 	//
 	// See the validateExpandedImportTargets function for the equivalent of
 	// this for the known resources path.
-ImportValidationKnown:
 	for _, addr := range knownImports.Keys() {
+		expectedAddr := false
 		if knownResources.Has(addr) {
-			// Simple case, this is known to be in the configuration so we
-			// skip it.
-			continue
+			expectedAddr = true
 		}
 
 		for _, partialAddr := range partialResources {
@@ -127,38 +128,39 @@ ImportValidationKnown:
 				// This is a partial-expanded address, so we can't yet know
 				// whether it's in the configuration or not, and so we'll
 				// defer dealing with it to a future round.
-				continue ImportValidationKnown
+				expectedAddr = true
+				break
 			}
 		}
 
-		if maybeOrphanResources.Has(addr) {
-			// This is in the previous state but we can't yet know whether
-			// it's still desired, so we'll defer dealing with it to a future
-			// round.
+		if expectedAddr && n.Config == nil && n.generateConfigPath == "" {
+			missingImportConfig = true
 			continue
 		}
 
-		// If we get here then the import target is not in the configuration
-		// at all, and so we'll report an error.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Configuration for import target does not exist",
-			fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", addr),
-		))
+		if !expectedAddr {
+			// If we get here then the import target is not in the configuration
+			// at all, and so we'll report an error.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Configuration for import target does not exist",
+				fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", addr),
+			))
+		}
 	}
 
 	// We'll also perform the same kind of validation on our unknown imports.
 	// This will be less precise because we don't have the full state to
 	// compare against, but we can at least check that the import targets are
 	// in the configuration.
-ImportValidationUnknown:
 	for _, elem := range unknownImports.Elems {
 		unknownImport := elem.Key
+		expectedAddr := false
 
 		for _, resource := range knownResources {
 			if unknownImport.MatchesInstance(resource) {
 				// This is in the configuration so we can skip it.
-				continue ImportValidationUnknown
+				expectedAddr = true
 			}
 		}
 
@@ -167,31 +169,41 @@ ImportValidationUnknown:
 			// vice versa, then it *might* match up one day once everything
 			// is resolved so we'll allow it for now.
 			if partialResource.MatchesPartial(unknownImport) {
-				continue ImportValidationUnknown
+				expectedAddr = true
 			}
 			if unknownImport.MatchesPartial(partialResource) {
-				continue ImportValidationUnknown
+				expectedAddr = true
 			}
 		}
 
-		for _, maybeOrphan := range maybeOrphanResources {
-			if unknownImport.MatchesInstance(maybeOrphan) {
-				// This is in the previous state but we can't yet know whether
-				// it's still desired, so we'll defer dealing with it to a
-				// future round.
-				continue ImportValidationUnknown
-			}
-
+		if expectedAddr && n.Config == nil && n.generateConfigPath == "" {
+			missingImportConfig = true
+			continue
 		}
 
-		// If we get here then the import target is not in the configuration
-		// at all, and so we'll report an error.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Configuration for import target does not exist",
-			fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", unknownImport),
-		))
+		if !expectedAddr {
+			// If we get here then the import target is not in the configuration
+			// at all, and so we'll report an error.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Configuration for import target does not exist",
+				fmt.Sprintf("The configuration for the given import %s does not exist. All target instances must have an associated configuration to be imported.", unknownImport),
+			))
+		}
+	}
 
+	if missingImportConfig {
+		// We expect the address because it's in an import block, but we
+		// have no config and aren't generating any. This isn't caught
+		// during validation because generateConfigPath is only a plan
+		// option. If we got this far however, it means this node is
+		// eligible for config generation, so suggest it to the user.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Configuration for import target does not exist",
+			Detail:   fmt.Sprintf("The configuration for the given import target %s does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf", n.Addr),
+			Subject:  n.importTargets[0].Config.To.Range().Ptr(),
+		})
 	}
 
 	// If this is a resource that participates in custom condition checks
