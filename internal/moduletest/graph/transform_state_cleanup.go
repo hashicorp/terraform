@@ -47,7 +47,7 @@ func (g *TeardownSubgraph) Name() string {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	runRefs := make(map[addrs.Run][]*moduletest.Run)
+	stateDepMap := make(map[addrs.Run][]string)
 
 	// Build a map of run nodes to other run nodes they depend on.
 	// In cleanup mode, the run node is the NodeTestRunCleanup struct.
@@ -55,8 +55,8 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 		addr := runNode.Run().Addr()
 		refs := b.runGraph.Ancestors(runNode)
 		for ref := range refs.All() {
-			if ref, ok := ref.(RunNode); ok {
-				runRefs[addr] = append(runRefs[addr], ref.Run())
+			if ref, ok := ref.(RunNode); ok && ref.Run().Config.StateKey != runNode.Run().Config.StateKey {
+				stateDepMap[addr] = append(stateDepMap[addr], ref.Run().Config.StateKey)
 			}
 		}
 	}
@@ -64,7 +64,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestStateCleanupTransformer{opts: b.opts, runDependencyMap: runRefs},
+			&TestStateCleanupTransformer{opts: b.opts, stateDependencyMap: stateDepMap},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -85,21 +85,20 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts             *graphOptions
-	runDependencyMap map[addrs.Run][]*moduletest.Run
+	opts               *graphOptions
+	stateDependencyMap map[addrs.Run][]string
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
-	type cleanupObj struct {
-		node         *NodeStateCleanup
-		dependencies []*moduletest.Run
-	}
+	cleanupMap := make(map[string]*NodeStateCleanup)
+	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
 
-	cleanupMap := make(map[string]cleanupObj)
-	runNodesUsedForCleanup := make(map[addrs.Run]bool)
+	// dependency map for state keys, which will be used to traverse
+	// the cleanup nodes in a depth-first manner.
+	depStateKeys := make(map[string][]string)
 
-	// iterate in reverse order of the run index, so that the dependency map of the last
-	// run for each state key is used for the cleanup node.
+	// iterate in reverse order of the run index, so that the last run for each state key
+	// is attached to the cleanup node.
 	for _, run := range slices.Backward(t.opts.File.Runs) {
 		key := run.Config.StateKey
 
@@ -108,33 +107,41 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 				stateKey: key,
 				opts:     t.opts,
 			}
-			cleanupMap[key] = cleanupObj{
-				node:         node,
-				dependencies: t.runDependencyMap[run.Addr()],
-			}
+			cleanupMap[key] = node
+			arr = append(arr, node)
 			g.Add(node)
-			runNodesUsedForCleanup[run.Addr()] = true
-			continue
+
+			// The dependency map for the state's last run will be used for the cleanup node.
+			depStateKeys[key] = t.stateDependencyMap[run.Addr()]
 		}
 	}
 
-	// We connect the cleanup nodes to their dependencies in reverse order,
-	// i.e a cleanup node for a run will evaluate before its references.
-	// We only connect references that are also cleanup nodes. If a referenced run
-	// is not used by a cleanup node, it will not be connected.
-	for _, obj := range cleanupMap {
-		for _, dep := range obj.dependencies {
-			if _, exists := runNodesUsedForCleanup[dep.Addr()]; !exists {
-				continue
-			}
-
-			depCleanupNode := cleanupMap[dep.Config.StateKey].node
-			objCleanupNode := obj.node
-			if depCleanupNode == objCleanupNode {
-				continue
-			}
-			g.Connect(depCleanupNode, objCleanupNode)
-		}
+	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
+	// If an edge would create a cycle, we skip it.
+	visited := make(map[string]bool)
+	for _, node := range arr {
+		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
 	}
 	return nil
+}
+
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
+	if visited[node.stateKey] {
+		return
+	}
+	// don't mark the node as visited if it's a leaf node, this ensures that other dependencies are still added to it
+	if len(depStateKeys[node.stateKey]) == 0 {
+		return
+	}
+	visited[node.stateKey] = true
+
+	for _, refStateKey := range depStateKeys[node.stateKey] {
+		// If the reference node has already been visited, skip it.
+		if visited[refStateKey] {
+			continue
+		}
+		refNode := cleanupNodes[refStateKey]
+		g.Connect(refNode, node)
+		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
+	}
 }
