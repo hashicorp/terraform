@@ -281,20 +281,25 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 						diags = diags.Extend(mDiags)
 					}
 
+					var versionStr string
+					if record.Version != nil {
+						versionStr = record.Version.String()
+					}
+
 					if !diags.HasErrors() {
 						// inform the hooks that the module source has been resolved
 						hookDiags := i.CallHooks(hooks, func(hook ModuleInstallHook) tfdiags.Diagnostics {
-							var versionStr string
-							if record.Version != nil {
-								versionStr = record.Version.String()
-							}
 							inDiags := hook.ModuleSourceResolved(ctx, req, versionStr)
 							return inDiags
 						})
 						diags = diags.Extend(hookDiags.ToHCL())
 					}
 
-					log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, record.Version, record.Dir)
+					if record.Version != nil {
+						log.Printf("[TRACE] ModuleInstaller: Module installer: %s %s already installed in %s", key, versionStr, record.Dir)
+					} else {
+						log.Printf("[TRACE] ModuleInstaller: Module installer: %s already installed in %s", key, record.Dir)
+					}
 					return mod, record.Version, diags
 				}
 			}

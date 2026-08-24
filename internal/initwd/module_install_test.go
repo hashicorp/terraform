@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
@@ -1074,6 +1076,78 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
 		t.Fatalf("should have loaded config into the relevant run block but did not")
+	}
+}
+
+
+func TestModuleInstaller_reinstallCachedGitModuleNilVersion(t *testing.T) {
+	// Regression for https://github.com/hashicorp/terraform/issues/39047
+	// A second install of a cached git:: module (no Version in the manifest)
+	// used to hang while formatting a nil *version.Version in a TRACE log.
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git is required for this test")
+	}
+
+	work := t.TempDir()
+	repo := filepath.Join(work, "fixture-module.git")
+	module := filepath.Join(work, "module")
+	root := filepath.Join(work, "root")
+	for _, d := range []string{module, root} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	run := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=fixture",
+			"GIT_AUTHOR_EMAIL=fixture@example.invalid",
+			"GIT_COMMITTER_NAME=fixture",
+			"GIT_COMMITTER_EMAIL=fixture@example.invalid",
+		)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%v in %s: %s\n%s", args, dir, err, out)
+		}
+	}
+
+	run(work, "git", "init", "--bare", repo)
+	run(module, "git", "init")
+	if err := os.WriteFile(filepath.Join(module, "main.tf"), []byte("terraform {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(module, "git", "add", "main.tf")
+	run(module, "git", "commit", "-m", "fixture")
+	run(module, "git", "remote", "add", "origin", "file://"+repo)
+	run(module, "git", "push", "origin", "HEAD:main")
+
+	mainTF := fmt.Sprintf("module \"fixture\" {\n  source = \"git::file://%s\"\n}\n", repo)
+	if err := os.WriteFile(filepath.Join(root, "main.tf"), []byte(mainTF), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	modulesDir := filepath.Join(root, ".terraform/modules")
+	loader, closeLoader := configload.NewLoaderForTests(t)
+	defer closeLoader()
+	inst := NewModuleInstaller(modulesDir, loader, nil, nil)
+
+	_, diags := inst.InstallModules(context.Background(), root, "tests", false, false)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	// Second install must reuse the cached git module (nil Version) without hanging.
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_, diags = inst.InstallModules(context.Background(), root, "tests", false, false)
+	}()
+	select {
+	case <-done:
+		tfdiags.AssertNoDiagnostics(t, diags)
+	case <-time.After(30 * time.Second):
+		t.Fatal("second InstallModules hung reusing cached git:: module with nil Version")
 	}
 }
 
