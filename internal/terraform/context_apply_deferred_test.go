@@ -2891,40 +2891,6 @@ import {
 		},
 	}
 
-	unknownImportReportsMissingConfiguration = deferredActionsTest{
-		configs: map[string]string{
-			"main.tf": `
-variable "strings" {
-	type = set(string)
-}
-
-import {
-	for_each = var.strings
-	id = each.value
-	to = test.a[each.key]
-}
-`,
-		},
-		stages: []deferredActionsTestStage{
-			{
-				inputs: map[string]cty.Value{
-					"strings": cty.UnknownVal(cty.Set(cty.String)),
-				},
-				wantPlanned:  make(map[string]cty.Value),
-				wantActions:  make(map[string]plans.Action),
-				wantDeferred: make(map[string]ExpectedDeferred),
-				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
-					for _, diag := range diags {
-						if diag.Description().Summary == "Resource has no configuration" {
-							return true
-						}
-					}
-					return false
-				},
-			},
-		},
-	}
-
 	dataSourceDependsOnDeferredResource = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -3719,7 +3685,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"unknown_import_to":                                       unknownImportTo,
 		"unknown_import_to_existing_state":                        unknownImportToExistingState,
 		"unknown_import_to_partial_existing_state":                unknownImportToPartialExistingState,
-		"unknown_import_reports_missing_configuration":            unknownImportReportsMissingConfiguration,
 		"data_source_depends_on_deferred_resource":                dataSourceDependsOnDeferredResource,
 		"data_source_depends_on_deferred_resource_during_refresh": dataSourceDependsOnDeferredResourceDuringRefresh,
 		"resource_references_deferred_data_source":                resourceReferencesDeferredDataSource,

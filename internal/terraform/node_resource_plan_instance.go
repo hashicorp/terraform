@@ -132,7 +132,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// refreshing the data source. We maintain that behaviour here.
 	if change != nil && deferred != nil {
 		// Then this data source got deferred by the provider during planning.
-		deferrals.ReportDataSourceInstanceDeferred(addr, deferred.Reason, change)
+		deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
 	} else {
 		// Not deferred; business as usual.
 
@@ -169,7 +169,7 @@ func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 	deferrals := ctx.Deferrals()
 	// For deferred ephemeral resources, we don't need to do anything here.
 	if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
-		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq)
+		deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, nil)
 		return nil
 	}
 
@@ -181,7 +181,7 @@ func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 
 	if deferred != nil {
 		// Then this ephemeral resource has been deferred while opening.
-		deferrals.ReportEphemeralResourceInstanceDeferred(n.Addr, deferred.Reason)
+		deferrals.ReportResourceInstanceDeferred(n.Addr, deferred.Reason, nil)
 	}
 
 	return diags

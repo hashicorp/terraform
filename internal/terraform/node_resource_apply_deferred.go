@@ -39,12 +39,7 @@ func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
-	switch n.Addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
-	case addrs.DataResourceMode:
-		ctx.Deferrals().ReportDataSourceInstanceDeferred(n.Addr, n.Reason, change)
-	}
+	ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
 	return diags
 }
 
@@ -70,11 +65,7 @@ func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOp
 		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
-	switch n.Addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
-	case addrs.DataResourceMode:
-		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.PartialAddr, change)
-	}
+	ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
+
 	return diags
 }
