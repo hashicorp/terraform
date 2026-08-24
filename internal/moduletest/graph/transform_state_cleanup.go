@@ -4,9 +4,12 @@
 package graph
 
 import (
+	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -47,16 +50,17 @@ func (g *TeardownSubgraph) Name() string {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	stateDepMap := make(map[addrs.Run][]string)
+	stateDepMap := make(map[addrs.Run]collections.Set[string])
 
 	// Build a map of run nodes to other run nodes they depend on.
 	// In cleanup mode, the run node is the NodeTestRunCleanup struct.
 	for runNode := range dag.SelectSeq[RunNode](b.runGraph.VerticesSeq()) {
 		addr := runNode.Run().Addr()
+		stateDepMap[addr] = collections.NewSetCmp[string]()
 		refs := b.runGraph.Ancestors(runNode)
 		for ref := range refs.All() {
 			if ref, ok := ref.(RunNode); ok && ref.Run().Config.StateKey != runNode.Run().Config.StateKey {
-				stateDepMap[addr] = append(stateDepMap[addr], ref.Run().Config.StateKey)
+				stateDepMap[addr].Add(ref.Run().Config.StateKey)
 			}
 		}
 	}
@@ -86,16 +90,17 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
 	opts               *graphOptions
-	stateDependencyMap map[addrs.Run][]string
+	stateDependencyMap map[addrs.Run]collections.Set[string]
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
-	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
+	cleanupNodes := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
 
 	// dependency map for state keys, which will be used to traverse
 	// the cleanup nodes in a depth-first manner.
-	depStateKeys := make(map[string][]string)
+	depStateKeys := make(map[string]collections.Set[string])
+	collections.NewSetCmp[string]()
 
 	// iterate in reverse order of the run index, so that the last run for each state key
 	// is attached to the cleanup node.
@@ -108,7 +113,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 				opts:     t.opts,
 			}
 			cleanupMap[key] = node
-			arr = append(arr, node)
+			cleanupNodes = append(cleanupNodes, node)
 			g.Add(node)
 
 			// The dependency map for the state's last run will be used for the cleanup node.
@@ -117,30 +122,47 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	}
 
 	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
-	// If an edge would create a cycle, we skip it.
+	// This traversal ensures that nodes are only visited once.
+	// Each visited node processes its dependencies and connects cleanup nodes as needed, so if
+	// another path leads to the same node, it will not be processed again.
 	visited := make(map[string]bool)
-	for _, node := range arr {
-		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
+	for _, node := range cleanupNodes {
+		if visited[node.stateKey] {
+			continue
+		}
+
+		// The processed map tracks nodes encountered along this node's path.
+		processed := make(map[string]bool)
+		t.depthFirstTraverse(g, node, processed, cleanupMap, depStateKeys)
+
+		// Mark the node and its dependencies as visited to avoid processing them again.
+		maps.Copy(visited, processed)
+	}
+	if cy := g.Cycles(); len(cy) > 0 {
+		return fmt.Errorf("cleanup graph contains cycles")
 	}
 	return nil
 }
 
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	if visited[node.stateKey] {
-		return
-	}
-	// don't mark the node as visited if it's a leaf node, this ensures that other dependencies are still added to it
-	if len(depStateKeys[node.stateKey]) == 0 {
-		return
-	}
+// depthFirstTraverse is a recursive helper function that traverses the cleanup graph depth-first.
+// The cleanup graph must preserve reverse run order, but references between runs can introduce edges that
+// conflict with this order, especially when multiple runs use the same state key. When an edge would introduce
+// a cycle, it is skipped to avoid invalidating the graph.
+//
+// For example: Given the order
+// test_one (S) -> test_two (T) -> test_three (S), where S and T are state keys
+// In this case, the cleanup graph must be "S -> T".
+// If test_two were to reference test_one, an edge like "T -> S" is requested, but that would introduce a cycle.
+// Therefore, the edge is skipped, and no cycle is introduced.
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string]collections.Set[string]) {
 	visited[node.stateKey] = true
 
-	for _, refStateKey := range depStateKeys[node.stateKey] {
-		// If the reference node has already been visited, skip it.
-		if visited[refStateKey] {
+	for depStateKey := range depStateKeys[node.stateKey].All() {
+		// If the reference node has already been visited along the current path, skip it.
+		if visited[depStateKey] {
 			continue
 		}
-		refNode := cleanupNodes[refStateKey]
+		refNode := cleanupNodes[depStateKey]
 		g.Connect(refNode, node)
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}
