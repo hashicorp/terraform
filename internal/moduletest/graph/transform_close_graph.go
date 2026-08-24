@@ -20,8 +20,8 @@ func (t *CloseTestGraphTransformer) Transform(g *terraform.Graph) error {
 		// the graph that does not have a parent. Such nodes are the real roots
 		// of the graph, and since they are now siblings of the closing root node,
 		// they are allowed to run in parallel.
-		if g.UpEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(closeRoot, v))
+		if g.EdgesTo(v).Len() == 0 {
+			g.Connect(closeRoot, v)
 		}
 	}
 

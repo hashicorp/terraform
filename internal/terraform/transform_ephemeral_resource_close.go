@@ -26,8 +26,8 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	verts := g.Vertices()
-	for _, v := range verts {
+	verts := g.VerticesSeq()
+	for v := range verts {
 		// find any ephemeral resource nodes
 		v, ok := v.(GraphNodeConfigResource)
 		if !ok {
@@ -45,7 +45,7 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 		}
 		log.Printf("[TRACE] ephemeralResourceCloseTransformer: adding close node for %s", addr)
 		g.Add(closeNode)
-		g.Connect(dag.BasicEdge(closeNode, v))
+		g.Connect(closeNode, v)
 
 		// Now we have an ephemeral resource, and we need to depend on all
 		// dependents of that resource. Rather than connect directly to them all
@@ -65,19 +65,19 @@ func (t *ephemeralResourceCloseTransformer) Transform(g *Graph) error {
 				return false
 			}
 
-			up := g.UpEdges(v)
-			up = up.Filter(func(v any) bool {
+			up := g.EdgesTo(v)
+			up = up.Filter(func(v dag.Vertex) bool {
 				_, ok := v.(GraphNodeReferencer)
 				return ok
 			})
 
 			// if there are no references connected to this node, then we can be
 			// sure it's the last referencer in the chain.
-			return len(up) == 0
+			return up.Len() == 0
 		})
 
-		for last := range lastReferences.List() {
-			g.Connect(dag.BasicEdge(closeNode, last))
+		for last := range lastReferences.All() {
+			g.Connect(closeNode, last)
 		}
 	}
 	return nil

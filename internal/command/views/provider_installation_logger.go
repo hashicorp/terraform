@@ -13,13 +13,11 @@ import (
 //
 // The `Output` method is a constraint from the Init view interface, which will be refactored away soon.
 type ProviderInstallationLogger interface {
-	Output(messageCode InitMessageCode, params ...any)
+	// LogInstallProviderVersionComplete describes a successfully installed provider along with its version
+	LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
 
-	// LogProviderVersionSuccess describes a successfully installed provider along with its version
-	LogProviderVersionSuccess(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult)
-
-	// LogProviderVersionSuccessWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
-	LogProviderVersionSuccessWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
+	// LogInstallProviderVersionCompleteWithKeyID describes a successfully installed provider along with its version and the key ID used to verify the provider's authenticity
+	LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string)
 
 	// LogProviderVersionAlreadyInstalled indicates a provider that is already installed during installation
 	LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version)
@@ -33,8 +31,8 @@ type ProviderInstallationLogger interface {
 	// FindingLatestVersion indicates that Terraform is looking for the latest version of a provider during installation (no constraint nor prior lock was supplied)
 	LogFindingLatestVersion(providerAddr addrs.Provider)
 
-	// LogInstallingProviderVersion indicates that a provider is being installed (from a remote location)
-	LogInstallingProviderVersion(providerAddr addrs.Provider, version getproviders.Version)
+	// LogInstallProviderVersionStart indicates that a provider is being installed (from a remote location)
+	LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version)
 
 	// LogBuiltInProviderAvailable indicates a built-in provider is available in the current Terraform core binary and is in use during installation
 	LogBuiltInProviderAvailable(providerAddr addrs.Provider)
@@ -45,10 +43,51 @@ type ProviderInstallationLogger interface {
 	// Log that a provider successfully fetched in this operation is maintained by third-parties and describe how these are signed
 	LogPartnerAndCommunityProviders()
 
-	// LogInitializingStateStoreProviderPlugin indicates progress during installation of a state store provider plugin
-	LogInitializingStateStoreProviderPlugin(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
-
-	prepareMessage(messageCode InitMessageCode, params ...any) string
+	// LogInstallProvidersStart indicates progress during installation provider(s)
+	LogInstallProvidersStart()
 
 	Spacer // output from provider installation is spaced out from following human-readable output log lines
 }
+
+const (
+	// LogInstallProvidersStart
+	logInstallProvidersStartMessageHuman = "[reset][bold]Installing providers..."
+	logInstallProvidersStartMessageJSON  = "Installing providers..."
+
+	// LogBuiltInProviderAvailable
+	logBuiltInProviderAvailableHuman = "- %s is built in to Terraform"
+	logBuiltInProviderAvailableJSON  = "%s is built in to Terraform"
+
+	// LogFindingLatestVersion
+	logFindingLatestVersionHuman = "- Finding latest version of %s..."
+	logFindingLatestVersionJSON  = "%s: Finding latest version..."
+
+	// LogFindingMatchingVersion
+	logFindingMatchingVersionHuman = "- Finding %s versions matching %q..."
+	logFindingMatchingVersionJSON  = "Finding matching versions for provider: %s, version_constraint: %q"
+
+	// LogReusingPreviousProviderVersion
+	logReusingPreviousProviderVersionHuman = "- Reusing version %s of %s from the dependency lock file"
+	logReusingPreviousProviderVersionJSON  = "%s: Reusing version %s from the dependency lock file"
+
+	// LogProviderVersionAlreadyInstalled
+	logProviderVersionAlreadyInstalledHuman = "- Using previously-installed %s v%s"
+	logProviderVersionAlreadyInstalledJSON  = "%s v%s: Using previously-installed provider version"
+
+	// LogUsingProviderVersionFromCacheDir
+	logUsingProviderVersionFromCacheDirHuman = "- Using %s v%s from the shared cache directory"
+	logUsingProviderVersionFromCacheDirJSON  = "%s v%s: Using from the shared cache directory"
+
+	// LogInstallProviderVersionStart
+	logInstallProviderVersionStartHuman = "- Installing %s v%s..."
+	logInstallProviderVersionStartJSON  = "Installing provider version: %s v%s..."
+
+	// LogInstallProviderVersionComplete
+	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
+	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
+
+	// LogPartnerAndCommunityProviders
+	logPartnerAndCommunityProviders = "Partner and community providers are signed by their developers.\n" +
+		"If you'd like to know more about provider signing, you can read about it here:\n" +
+		"https://developer.hashicorp.com/terraform/cli/plugins/signing"
+)

@@ -80,8 +80,6 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 			operation: walkInit,
 		},
 
-		&RootTransformer{},
-
 		&TransitiveReductionTransformer{},
 	}...)
 

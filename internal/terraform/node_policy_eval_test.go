@@ -7,68 +7,11 @@ import (
 	"context"
 	"testing"
 
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 )
-
-// TestNodePolicyEvalFinish_AllowUpstreamFailure verifies that only
-// nodeResourcePolicy and nodeQueryResourcePolicy return true; all other vertex
-// types return false.
-func TestNodePolicyEvalFinish_AllowUpstreamFailure(t *testing.T) {
-	finish := &nodePolicyEvalFinish{span: trace.SpanFromContext(context.Background())}
-
-	cases := []struct {
-		name string
-		dep  dag.Vertex
-		want bool
-	}{
-		{
-			name: "nodeResourcePolicy",
-			dep: &nodeResourcePolicy{
-				ResourceAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "aws_instance",
-					Name: "foo",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			},
-			want: true,
-		},
-		{
-			name: "nodeQueryResourcePolicy",
-			dep: &nodeQueryResourcePolicy{
-				ResourceAddr: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "aws_instance",
-					Name: "bar",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			},
-			want: true,
-		},
-		{
-			name: "nodePolicyEvalFinish",
-			dep:  &nodePolicyEvalFinish{},
-			want: false,
-		},
-		{
-			name: "nodePolicyEval",
-			dep:  &nodePolicyEval{},
-			want: false,
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := finish.AllowUpstreamFailure(tc.dep)
-			if got != tc.want {
-				t.Errorf("AllowUpstreamFailure(%T) = %v, want %v", tc.dep, got, tc.want)
-			}
-		})
-	}
-}
 
 // TestNodePolicyEval_DynamicExpand_FinishWiring verifies that DynamicExpand
 // appends a nodePolicyEvalFinish node to the policy subgraph and wires it to
@@ -120,10 +63,6 @@ func TestNodePolicyEval_DynamicExpand_FinishWiring(t *testing.T) {
 	testGraphHappensBefore(t, g, rp.Name(), "(policy evaluation complete)")
 	testGraphHappensBefore(t, g, qrp.Name(), "(policy evaluation complete)")
 
-	// Dynamic expansion returns a walk graph, but must not mutate the accumulated
-	// policy subgraph while doing finish/root wiring.
-	testGraphNotContains(t, &ps.graph, "(policy evaluation complete)")
-	testGraphNotContains(t, &ps.graph, rootNodeName)
 }
 
 // TestNodePolicyEval_DynamicExpand_ConcurrentExecution verifies that when
@@ -175,8 +114,7 @@ func TestNodePolicyEval_DynamicExpand_ConcurrentExecution(t *testing.T) {
 	// walker to execute all policy nodes in parallel.
 	for _, node := range policyNodes {
 		// Check upstream edges (what this node depends on)
-		upEdges := g.UpEdges(node)
-		for _, dep := range upEdges {
+		for dep := range g.EdgesTo(node).All() {
 			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("policy node %s has upstream dependency on another policy node %s; nodes must be independent for concurrent execution",
 					node.Name(), otherPolicy.Name())
@@ -184,8 +122,7 @@ func TestNodePolicyEval_DynamicExpand_ConcurrentExecution(t *testing.T) {
 		}
 
 		// Check downstream edges (what depends on this node)
-		downEdges := g.DownEdges(node)
-		for _, dep := range downEdges {
+		for dep := range g.EdgesFrom(node).All() {
 			if otherPolicy, ok := dep.(*nodeQueryResourcePolicy); ok {
 				t.Errorf("policy node %s has downstream dependency on another policy node %s; nodes must be independent for concurrent execution",
 					node.Name(), otherPolicy.Name())

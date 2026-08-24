@@ -6,7 +6,6 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/dag"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -45,10 +44,9 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 
 	ps.span = span
 
-	g := ps.graphCopyLocked()
 	finish := &nodePolicyEvalFinish{span: span}
-	g.Add(finish)
-	for pn := range g.VerticesSeq() {
+	ps.graph.Add(finish)
+	for pn := range ps.graph.VerticesSeq() {
 		// Wire finish only to policy node types; all other vertices are skipped.
 		switch pn.(type) {
 		case *nodeResourcePolicy, *nodeQueryResourcePolicy:
@@ -56,21 +54,8 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 			continue
 		}
 		// finish depends on pn, so pn runs first and finish runs after.
-		g.Connect(dag.BasicEdge(finish, pn))
+		ps.graph.Connect(finish, pn)
 	}
 
-	// ensure the graph has a single root
-	addRootNodeToGraph(&g)
-	return &g
-}
-
-func (ps *policySubgraph) graphCopyLocked() Graph {
-	var g Graph
-	for _, v := range ps.graph.Vertices() {
-		g.Add(v)
-	}
-	for _, e := range ps.graph.Edges() {
-		g.Connect(e)
-	}
-	return g
+	return &ps.graph
 }

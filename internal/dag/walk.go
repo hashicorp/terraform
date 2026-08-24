@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -17,43 +18,26 @@ import (
 // A vertex will only be walked when the dependencies of that vertex have
 // been walked. If two vertices can be walked at the same time, they will be.
 //
-// Update can be called to update the graph. This can be called even during
-// a walk, changing vertices/edges mid-walk. This should be done carefully.
-// If a vertex is removed but has already been executed, the result of that
-// execution (any error) is still returned by Wait. Changing or re-adding
-// a vertex that has already executed has no effect. Changing edges of
-// a vertex that has already executed has no effect.
-//
 // Non-parallelism can be enforced by introducing a lock in your callback
 // function. However, the goroutine overhead of a walk will remain.
 // Walker will create V*2 goroutines (one for each vertex, and dependency
 // waiter for each vertex). In general this should be of no concern unless
 // there are a huge number of vertices.
 //
-// The walk is depth first by default. This can be changed with the Reverse
-// option.
-//
 // A single walker is only valid for one graph walk. After the walk is complete
 // you must construct a new walker to walk again. State for the walk is never
 // deleted in case vertices or edges are changed.
 type Walker struct {
 	// Callback is what is called for each vertex
-	Callback WalkFunc
+	Callback walkFunc
 
-	// Reverse, if true, causes the source of an edge to depend on a target.
-	// When false (default), the target depends on the source.
-	Reverse bool
+	// Only Start should modify these fields. Modifying them after the walk has
+	// started can cause serious problems.
+	started   atomic.Bool
+	vertices  VertexSet
+	vertexMap map[Vertex]*walkerVertex
 
-	// changeLock must be held to modify any of the fields below. Only Update
-	// should modify these fields. Modifying them outside of Update can cause
-	// serious problems.
-	changeLock sync.Mutex
-	vertices   Set
-	edges      Set
-	vertexMap  map[Vertex]*walkerVertex
-
-	// wait is done when all vertices have executed. It may become "undone"
-	// if new vertices are added.
+	// wait is done when all vertices have executed.
 	wait sync.WaitGroup
 
 	// diagsMap contains the diagnostics recorded so far for execution,
@@ -67,36 +51,16 @@ type Walker struct {
 	diagsLock      sync.Mutex
 }
 
-// DependencyResult indicates if a dependency check resulted in success, failure, or tolerance.
-type DependencyResult string
-
-const (
-	// DependencyResultSuccess indicates that all dependencies were satisfied.
-	DependencyResultSuccess DependencyResult = "success"
-
-	// DependencyResultHardFailure indicates that one or more dependencies were not satisfied.
-	DependencyResultHardFailure DependencyResult = "hard-failure"
-
-	// DependencyResultSoftFailure indicates that there exists a dependency that could not be satisfied,
-	// but the current vertex should still be evaluated.
-	DependencyResultSoftFailure DependencyResult = "soft-failure"
-)
-
-func (w *Walker) init() {
-	if w.vertices == nil {
-		w.vertices = make(Set)
-	}
-	if w.edges == nil {
-		w.edges = make(Set)
-	}
-}
-
 // NewWalker creates a new walker with the given callback function.
-func NewWalker(cb WalkFunc, opts ...func(*Walker)) *Walker {
-	w := &Walker{Callback: cb}
+func NewWalker(cb walkFunc, opts ...func(*Walker)) *Walker {
+	w := &Walker{
+		Callback: cb,
+		vertices: NewVertexSet(),
+	}
 	for _, opt := range opts {
 		opt(w)
 	}
+
 	return w
 }
 
@@ -122,9 +86,7 @@ type walkerVertex struct {
 	// dependencies are complete. No other values will ever be sent again.
 	//
 	// DepsUpdateCh is closed when there is a new DepsCh set.
-	DepsCh       chan DependencyResult
-	DepsUpdateCh chan struct{}
-	DepsLock     sync.Mutex
+	DepsCh chan bool
 
 	// Below is not safe to read/write in parallel. This behavior is
 	// enforced by changes only happening in Update. Nothing else should
@@ -133,14 +95,103 @@ type walkerVertex struct {
 	depsCancelCh chan struct{}
 }
 
-// Wait waits for the completion of the walk and returns diagnostics describing
-// any problems that arose. Update should be called to populate the walk with
-// vertices and edges prior to calling this.
-//
-// Wait will return as soon as all currently known vertices are complete.
-// If you plan on calling Update with more vertices in the future, you
-// should not call Wait until after this is done.
-func (w *Walker) Wait() tfdiags.Diagnostics {
+// Walk loads the graph and dispatches the concurrent walker. Walk can only be
+// called once for a single Walker.
+func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
+	if g == nil {
+		return nil
+	}
+
+	if w.started.Load() {
+		panic("graph walker already started")
+	}
+	w.started.Store(true)
+
+	// Initialize fields
+	if w.vertexMap == nil {
+		w.vertexMap = make(map[Vertex]*walkerVertex)
+	}
+
+	// Add the new vertices
+	for v := range g.vertices.All() {
+		// Add to the waitgroup so our walk is not done until everything finishes
+		w.wait.Add(1)
+
+		// Add to our own set so we know about it already
+		w.vertices.Add(v)
+
+		// Initialize the vertex info
+		info := &walkerVertex{
+			DoneCh:   make(chan struct{}),
+			CancelCh: make(chan struct{}),
+			deps:     make(map[Vertex]chan struct{}),
+		}
+
+		// Add it to the map and kick off the walk
+		w.vertexMap[v] = info
+	}
+
+	// Iterate over all edges so we can connect the waiters to their
+	// dependencies channels.
+	for waiter, deps := range g.edgesFrom {
+		for dep := range deps.All() {
+			// Get the info for the waiter
+			waiterInfo, ok := w.vertexMap[waiter]
+			if !ok {
+				// Vertex doesn't exist... shouldn't be possible but ignore.
+				continue
+			}
+
+			// Get the info for the dep
+			depInfo, ok := w.vertexMap[dep]
+			if !ok {
+				// Vertex doesn't exist... shouldn't be possible but ignore.
+				continue
+			}
+
+			// Add the dependency to our waiter
+			waiterInfo.deps[dep] = depInfo.DoneCh
+		}
+	}
+
+	// kick off a new waiter and notify the vertex of the changes.
+	for v := range g.edgesFrom {
+		info, ok := w.vertexMap[v]
+		if !ok {
+			// Vertex doesn't exist... shouldn't be possible but ignore.
+			continue
+		}
+
+		// Create a new done channel
+		doneCh := make(chan bool, 1)
+
+		// Create the channel we close for cancellation
+		cancelCh := make(chan struct{})
+
+		// Build a new deps copy
+		deps := make(map[Vertex]<-chan struct{})
+		for k, v := range info.deps {
+			deps[k] = v
+		}
+
+		info.DepsCh = doneCh
+
+		// Cancel the older waiter
+		if info.depsCancelCh != nil {
+			close(info.depsCancelCh)
+		}
+		info.depsCancelCh = cancelCh
+
+		// Start the waiter
+		go w.waitDeps(v, deps, doneCh, cancelCh)
+	}
+
+	// Start all the new vertices. We do this at the end so that all
+	// the edge waiters and changes are set up above.
+	for v, info := range w.vertexMap {
+		go w.walkVertex(v, info)
+	}
+
 	// Wait for completion
 	w.wait.Wait()
 
@@ -159,189 +210,6 @@ func (w *Walker) Wait() tfdiags.Diagnostics {
 	return diags
 }
 
-// Update updates the currently executing walk with the given graph.
-// This will perform a diff of the vertices and edges and update the walker.
-// Already completed vertices remain completed (including any errors during
-// their execution).
-//
-// This returns immediately once the walker is updated; it does not wait
-// for completion of the walk.
-//
-// Multiple Updates can be called in parallel. Update can be called at any
-// time during a walk.
-func (w *Walker) Update(g *AcyclicGraph) {
-	w.init()
-	v := make(Set)
-	e := make(Set)
-	if g != nil {
-		v, e = g.vertices, g.edges
-	}
-
-	// Grab the change lock so no more updates happen but also so that
-	// no new vertices are executed during this time since we may be
-	// removing them.
-	w.changeLock.Lock()
-	defer w.changeLock.Unlock()
-
-	// Initialize fields
-	if w.vertexMap == nil {
-		w.vertexMap = make(map[Vertex]*walkerVertex)
-	}
-
-	// Calculate all our sets
-	newEdges := e.Difference(w.edges)
-	oldEdges := w.edges.Difference(e)
-	newVerts := v.Difference(w.vertices)
-	oldVerts := w.vertices.Difference(v)
-
-	// Add the new vertices
-	for _, raw := range newVerts {
-		v := raw.(Vertex)
-
-		// Add to the waitgroup so our walk is not done until everything finishes
-		w.wait.Add(1)
-
-		// Add to our own set so we know about it already
-		w.vertices.Add(raw)
-
-		// Initialize the vertex info
-		info := &walkerVertex{
-			DoneCh:   make(chan struct{}),
-			CancelCh: make(chan struct{}),
-			deps:     make(map[Vertex]chan struct{}),
-		}
-
-		// Add it to the map and kick off the walk
-		w.vertexMap[v] = info
-	}
-
-	// Remove the old vertices
-	for _, raw := range oldVerts {
-		v := raw.(Vertex)
-
-		// Get the vertex info so we can cancel it
-		info, ok := w.vertexMap[v]
-		if !ok {
-			// This vertex for some reason was never in our map. This
-			// shouldn't be possible.
-			continue
-		}
-
-		// Cancel the vertex
-		close(info.CancelCh)
-
-		// Delete it out of the map
-		delete(w.vertexMap, v)
-		w.vertices.Delete(raw)
-	}
-
-	// Add the new edges
-	changedDeps := make(Set)
-	for _, raw := range newEdges {
-		edge := raw.(Edge)
-		waiter, dep := w.edgeParts(edge)
-
-		// Get the info for the waiter
-		waiterInfo, ok := w.vertexMap[waiter]
-		if !ok {
-			// Vertex doesn't exist... shouldn't be possible but ignore.
-			continue
-		}
-
-		// Get the info for the dep
-		depInfo, ok := w.vertexMap[dep]
-		if !ok {
-			// Vertex doesn't exist... shouldn't be possible but ignore.
-			continue
-		}
-
-		// Add the dependency to our waiter
-		waiterInfo.deps[dep] = depInfo.DoneCh
-
-		// Record that the deps changed for this waiter
-		changedDeps.Add(waiter)
-		w.edges.Add(raw)
-	}
-
-	// Process removed edges
-	for _, raw := range oldEdges {
-		edge := raw.(Edge)
-		waiter, dep := w.edgeParts(edge)
-
-		// Get the info for the waiter
-		waiterInfo, ok := w.vertexMap[waiter]
-		if !ok {
-			// Vertex doesn't exist... shouldn't be possible but ignore.
-			continue
-		}
-
-		// Delete the dependency from the waiter
-		delete(waiterInfo.deps, dep)
-
-		// Record that the deps changed for this waiter
-		changedDeps.Add(waiter)
-		w.edges.Delete(raw)
-	}
-
-	// For each vertex with changed dependencies, we need to kick off
-	// a new waiter and notify the vertex of the changes.
-	for _, raw := range changedDeps {
-		v := raw.(Vertex)
-		info, ok := w.vertexMap[v]
-		if !ok {
-			// Vertex doesn't exist... shouldn't be possible but ignore.
-			continue
-		}
-
-		// Create a new done channel
-		doneCh := make(chan DependencyResult, 1)
-
-		// Create the channel we close for cancellation
-		cancelCh := make(chan struct{})
-
-		// Build a new deps copy
-		deps := make(map[Vertex]<-chan struct{})
-		for k, v := range info.deps {
-			deps[k] = v
-		}
-
-		// Update the update channel
-		info.DepsLock.Lock()
-		if info.DepsUpdateCh != nil {
-			close(info.DepsUpdateCh)
-		}
-		info.DepsCh = doneCh
-		info.DepsUpdateCh = make(chan struct{})
-		info.DepsLock.Unlock()
-
-		// Cancel the older waiter
-		if info.depsCancelCh != nil {
-			close(info.depsCancelCh)
-		}
-		info.depsCancelCh = cancelCh
-
-		// Start the waiter
-		go w.waitDeps(v, deps, doneCh, cancelCh)
-	}
-
-	// Start all the new vertices. We do this at the end so that all
-	// the edge waiters and changes are set up above.
-	for _, raw := range newVerts {
-		v := raw.(Vertex)
-		go w.walkVertex(v, w.vertexMap[v])
-	}
-}
-
-// edgeParts returns the waiter and the dependency, in that order.
-// The waiter is waiting on the dependency.
-func (w *Walker) edgeParts(e Edge) (Vertex, Vertex) {
-	if w.Reverse {
-		return e.Source(), e.Target()
-	}
-
-	return e.Target(), e.Source()
-}
-
 // walkVertex walks a single vertex, waiting for any dependencies before
 // executing the callback.
 func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
@@ -353,43 +221,25 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 
 	// Wait for our dependencies. We create a [closed] deps channel so
 	// that we can immediately fall through to load our actual DepsCh.
-	var depsSuccess DependencyResult
-	var depsUpdateCh chan struct{}
-	depsCh := make(chan DependencyResult, 1)
-	depsCh <- DependencyResultSuccess
+	var depsSuccess bool
+
+	// if there are no deps we have a nil chan, so we need to initialize
+	// something that won't block
+	depsCh := make(chan bool, 1)
+	depsCh <- true
 	close(depsCh)
-	for {
-		select {
-		case <-info.CancelCh:
-			// Cancel
-			return
 
-		case depsSuccess = <-depsCh:
-			// Deps complete! Mark as nil to trigger completion handling.
-			depsCh = nil
+	if info.DepsCh != nil {
+		depsCh = info.DepsCh
+	}
 
-		case <-depsUpdateCh:
-			// New deps, reloop
-		}
+	select {
+	case <-info.CancelCh:
+		// Cancel
+		return
 
-		// Check if we have updated dependencies. This can happen if the
-		// dependencies were satisfied exactly prior to an Update occurring.
-		// In that case, we'd like to take into account new dependencies
-		// if possible.
-		info.DepsLock.Lock()
-		if info.DepsCh != nil {
-			depsCh = info.DepsCh
-			info.DepsCh = nil
-		}
-		if info.DepsUpdateCh != nil {
-			depsUpdateCh = info.DepsUpdateCh
-		}
-		info.DepsLock.Unlock()
-
-		// If we still have no deps channel set, then we're done!
-		if depsCh == nil {
-			break
-		}
+	case depsSuccess = <-depsCh:
+		// New deps, reloop
 	}
 
 	// If we passed dependencies, we just want to check once more that
@@ -404,17 +254,10 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// Run our callback or note that our upstream failed
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
-	// We go through a three-way boolean logic here to handle the three possible
-	// dependency results: success, soft failure, and hard failure.
-
-	// We run the callback if the result is success or soft failure.
-	if depsSuccess == DependencyResultSuccess || depsSuccess == DependencyResultSoftFailure {
+	if depsSuccess {
 		diags = w.Callback(v)
-	}
-
-	// We note that our upstream failed if the result is hard failure or soft failure.
-	if depsSuccess == DependencyResultHardFailure || depsSuccess == DependencyResultSoftFailure {
-		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))
+	} else {
+		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", v.Name())
 		// This won't be displayed to the user because we'll set upstreamFailed,
 		// but we need to ensure there's at least one error in here so that
 		// the failures will cascade downstream.
@@ -441,7 +284,7 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 func (w *Walker) waitDeps(
 	v Vertex,
 	deps map[Vertex]<-chan struct{},
-	doneCh chan<- DependencyResult,
+	doneCh chan<- bool,
 	cancelCh <-chan struct{}) {
 
 	// For each dependency given to us, wait for it to complete
@@ -456,44 +299,34 @@ func (w *Walker) waitDeps(
 			case <-cancelCh:
 				// Wait cancelled. Note that we didn't satisfy dependencies
 				// so that anything waiting on us also doesn't run.
-				doneCh <- DependencyResultHardFailure
+				doneCh <- false
 				return
 
 			case <-time.After(time.Second * 5):
 				log.Printf("[TRACE] dag/walk: vertex %q is waiting for %q",
-					VertexName(v), VertexName(dep))
+					v.Name(), dep.Name())
 			}
 		}
+	}
+
+	// If the vertex implements [AlwaysRunVertex], then
+	// return ignore the errored dependecies and return success.
+	if _, ok := v.(AlwaysRunVertex); ok {
+		doneCh <- true
+		return
 	}
 
 	// Dependencies satisfied! We need to check if any errored
 	w.diagsLock.Lock()
 	defer w.diagsLock.Unlock()
-
-	var allowUpstreamFailure bool
 	for dep := range deps {
 		if w.diagsMap[dep].HasErrors() {
-
-			// If the vertex allows upstream failures, we can tolerate this error
-			if fv, ok := v.(TolerantVertex); ok && fv.AllowUpstreamFailure(dep) {
-				allowUpstreamFailure = true
-				continue
-			}
-
-			// One of our dependencies failed, so return a hard failure result
-			doneCh <- DependencyResultHardFailure
+			// One of our dependencies failed, so return false
+			doneCh <- false
 			return
 		}
 	}
 
-	// If we have an error from a dependency that we can tolerate, return a soft failure result
-	// This allows us to treat such vertices specially, while still maintaining the flow
-	// of errors to dependencies further down the DAG.
-	if allowUpstreamFailure {
-		doneCh <- DependencyResultSoftFailure
-		return
-	}
-
 	// All dependencies satisfied and successful
-	doneCh <- DependencyResultSuccess
+	doneCh <- true
 }

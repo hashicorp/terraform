@@ -210,7 +210,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
-	state, readDiags := n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, _, readDiags := n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
@@ -230,7 +230,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData)
+	diffApply, _, deferred, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, repData, false)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags

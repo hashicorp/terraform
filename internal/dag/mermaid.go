@@ -6,6 +6,7 @@ package dag
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 )
@@ -119,9 +120,7 @@ func (mg *marshalGraph) writeNodes(b *bytes.Buffer, opts *DotOpts) {
 
 		// obtain DOT-style node info if available and merge attributes
 		attrs := map[string]string{}
-		for k, vv := range v.Attrs {
-			attrs[k] = vv
-		}
+		maps.Copy(attrs, v.Attrs)
 
 		// label preference: attrs.label then name
 		if l, ok := attrs["label"]; ok && strings.TrimSpace(l) != "" {

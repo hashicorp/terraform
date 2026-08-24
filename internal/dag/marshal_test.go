@@ -10,9 +10,9 @@ import (
 
 func TestGraphDot_empty(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
 
 	actual := strings.TrimSpace(string(g.Dot(nil)))
 	expected := strings.TrimSpace(testGraphDotEmptyStr)
@@ -23,10 +23,10 @@ func TestGraphDot_empty(t *testing.T) {
 
 func TestGraphDot_basic(t *testing.T) {
 	var g Graph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(1, 3))
+	g.Add(testV(1))
+	g.Add(testV(2))
+	g.Add(testV(3))
+	g.Connect(testV(1), testV(3))
 
 	actual := strings.TrimSpace(string(g.Dot(nil)))
 	expected := strings.TrimSpace(testGraphDotBasicStr)
@@ -37,11 +37,11 @@ func TestGraphDot_basic(t *testing.T) {
 
 func TestGraphDot_quoted(t *testing.T) {
 	var g Graph
-	quoted := `name["with-quotes"]`
-	other := `other`
+	quoted := testNamedString(`name["with-quotes"]`)
+	other := testNamedString(`other`)
 	g.Add(quoted)
 	g.Add(other)
-	g.Connect(BasicEdge(quoted, other))
+	g.Connect(quoted, other)
 
 	actual := strings.TrimSpace(string(g.Dot(nil)))
 	expected := strings.TrimSpace(testGraphDotQuotedStr)

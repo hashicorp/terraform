@@ -63,6 +63,13 @@ type Operation struct {
 	// state before proceeding. Default is true.
 	Refresh bool
 
+	// MinimalRefresh will run an initial plan for each resource prior to refreshing:
+	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
+	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
+	//
+	// Default is false.
+	MinimalRefresh bool
+
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
 	Targets []addrs.Targetable
@@ -230,6 +237,22 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 	}
 
+	if o.MinimalRefresh && o.PlanMode != plans.NormalMode && o.PlanMode != plans.DestroyMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan mode options",
+			fmt.Sprintf("The -minimal-refresh option can only be used in normal or destroy planning modes, but the current mode is %s.", o.PlanMode),
+		))
+	}
+
+	if o.MinimalRefresh && !o.Refresh {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible refresh options",
+			"The -minimal-refresh and -refresh=false options are mutually-exclusive, because -minimal-refresh only affects whether Terraform refreshes.",
+		))
+	}
+
 	return diags
 }
 
@@ -257,6 +280,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
+		f.BoolVar(&operation.MinimalRefresh, "minimal-refresh", false, "minimal-refresh")
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")

@@ -10,6 +10,12 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
+type stringV string
+
+func (v stringV) Name() string {
+	return string(v)
+}
+
 func TestGraphDot(t *testing.T) {
 	cases := []struct {
 		Name   string
@@ -36,15 +42,15 @@ digraph {
 				root := &testDrawableOrigin{"root"}
 				g.Add(root)
 
-				levelOne := []interface{}{"foo", "bar"}
+				levelOne := []dag.Vertex{stringV("foo"), stringV("bar")}
 				for i, s := range levelOne {
 					levelOne[i] = &testDrawable{
-						VertexName: s.(string),
+						VertexName: s.Name(),
 					}
 					v := levelOne[i]
 
 					g.Add(v)
-					g.Connect(dag.BasicEdge(v, root))
+					g.Connect(v, root)
 				}
 
 				levelTwo := []string{"baz", "qux"}
@@ -54,7 +60,7 @@ digraph {
 					}
 
 					g.Add(v)
-					g.Connect(dag.BasicEdge(v, levelOne[i]))
+					g.Connect(v, levelOne[i])
 				}
 
 				return &g
@@ -100,10 +106,10 @@ digraph {
 					VertexName: "C",
 				})
 
-				g.Connect(dag.BasicEdge(vA, root))
-				g.Connect(dag.BasicEdge(vA, vC))
-				g.Connect(dag.BasicEdge(vB, vA))
-				g.Connect(dag.BasicEdge(vC, vB))
+				g.Connect(vA, root)
+				g.Connect(vA, vC)
+				g.Connect(vB, vA)
+				g.Connect(vC, vB)
 
 				return &g
 			},
@@ -127,109 +133,7 @@ digraph {
 }
 					`,
 		},
-
-		{
-			Name: "subgraphs, no depth restriction",
-			Opts: dag.DotOpts{
-				MaxDepth: -1,
-			},
-			Graph: func() *Graph {
-				var g Graph
-				root := &testDrawableOrigin{"root"}
-				g.Add(root)
-
-				var sub Graph
-				vSubRoot := sub.Add(&testDrawableOrigin{"sub_root"})
-
-				var subsub Graph
-				subsub.Add(&testDrawableOrigin{"subsub_root"})
-				vSubV := sub.Add(&testDrawableSubgraph{
-					VertexName:   "subsub",
-					SubgraphMock: &subsub,
-				})
-
-				vSub := g.Add(&testDrawableSubgraph{
-					VertexName:   "sub",
-					SubgraphMock: &sub,
-				})
-
-				g.Connect(dag.BasicEdge(vSub, root))
-				sub.Connect(dag.BasicEdge(vSubV, vSubRoot))
-
-				return &g
-			},
-			Expect: `
-digraph {
-	compound = "true"
-	newrank = "true"
-	subgraph "root" {
-		"[root] root"
-		"[root] sub"
-		"[root] sub" -> "[root] root"
 	}
-	subgraph "cluster_sub" {
-		label = "sub"
-		"[sub] sub_root"
-		"[sub] subsub"
-		"[sub] subsub" -> "[sub] sub_root"
-	}
-	subgraph "cluster_subsub" {
-		label = "subsub"
-		"[subsub] subsub_root"
-	}
-}
-						`,
-		},
-
-		{
-			Name: "subgraphs, with depth restriction",
-			Opts: dag.DotOpts{
-				MaxDepth: 1,
-			},
-			Graph: func() *Graph {
-				var g Graph
-				root := &testDrawableOrigin{"root"}
-				g.Add(root)
-
-				var sub Graph
-				rootSub := sub.Add(&testDrawableOrigin{"sub_root"})
-
-				var subsub Graph
-				subsub.Add(&testDrawableOrigin{"subsub_root"})
-
-				subV := sub.Add(&testDrawableSubgraph{
-					VertexName:   "subsub",
-					SubgraphMock: &subsub,
-				})
-				vSub := g.Add(&testDrawableSubgraph{
-					VertexName:   "sub",
-					SubgraphMock: &sub,
-				})
-
-				g.Connect(dag.BasicEdge(vSub, root))
-				sub.Connect(dag.BasicEdge(subV, rootSub))
-				return &g
-			},
-			Expect: `
-digraph {
-	compound = "true"
-	newrank = "true"
-	subgraph "root" {
-		"[root] root"
-		"[root] sub"
-		"[root] sub" -> "[root] root"
-	}
-	subgraph "cluster_sub" {
-		label = "sub"
-		"[sub] sub_root"
-		"[sub] subsub"
-		"[sub] subsub" -> "[sub] sub_root"
-	}
-}
-						`,
-		},
-	}
-
 	for _, tc := range cases {
 		tn := tc.Name
 		t.Run(tn, func(t *testing.T) {
@@ -294,23 +198,4 @@ func (node *testDrawableOrigin) DotOrigin() bool {
 }
 func (node *testDrawableOrigin) DependableName() []string {
 	return []string{node.VertexName}
-}
-
-type testDrawableSubgraph struct {
-	VertexName      string
-	SubgraphMock    *Graph
-	DependentOnMock []string
-}
-
-func (node *testDrawableSubgraph) Name() string {
-	return node.VertexName
-}
-func (node *testDrawableSubgraph) Subgraph() dag.Grapher {
-	return node.SubgraphMock
-}
-func (node *testDrawableSubgraph) DotNode(n string, opts *dag.DotOpts) *dag.DotNode {
-	return &dag.DotNode{Name: n, Attrs: map[string]string{}}
-}
-func (node *testDrawableSubgraph) DependentOn() []string {
-	return node.DependentOnMock
 }
