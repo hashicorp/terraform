@@ -152,8 +152,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 // For example: Given the order
 // test_one (S) -> test_two (T) -> test_three (S), where S and T are state keys
 // In this case, the cleanup graph must be "S -> T".
-// If test_two were to reference test_one, an edge like "T -> S" is requested, but that would introduce a cycle.
-// Therefore, the edge is skipped, and no cycle is introduced.
+// If test_two were to reference test_one, an edge like "T -> S" is also requested,
+// but that would introduce a cycle and is therefore skipped.
 func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string]collections.Set[string]) {
 	visited[node.stateKey] = true
 
@@ -163,6 +163,11 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 			continue
 		}
 		refNode := cleanupNodes[depStateKey]
+
+		// If the edge already exists, skip it to avoid redundant traversal.
+		if g.HasEdge(refNode, node) {
+			continue
+		}
 		g.Connect(refNode, node)
 		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
 	}

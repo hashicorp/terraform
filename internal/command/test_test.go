@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -6014,6 +6015,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 	actual := output.All()
 
 	var teardownOrder []string
+	expectedTeardownOrder := []string{"test_two", "test_three", "test_one_b"}
 	lines, err := parseJSONLines(t, actual)
 	if err != nil {
 		t.Fatal(err)
@@ -6037,26 +6039,9 @@ func TestTest_ParallelDeps(t *testing.T) {
 	// test_two depends on test_three (via run.test_three.id), so during
 	// teardown the dependency order should be reversed, i.e test_two must
 	// be torn down before test_three.
-	testThreeIdx := -1
-	testTwoIdx := -1
-	for i, name := range teardownOrder {
-		switch name {
-		case "test_three":
-			testThreeIdx = i
-		case "test_two":
-			testTwoIdx = i
-		}
-	}
-
-	if testThreeIdx == -1 {
-		t.Fatalf("expected test_three teardown (elapsed=0) in output but did not find it.\nteardown order: %v\nfull output:\n%s", teardownOrder, actual)
-	}
-	if testTwoIdx == -1 {
-		t.Fatalf("expected test_two teardown (elapsed=0) in output but did not find it.\nteardown order: %v\nfull output:\n%s", teardownOrder, actual)
-	}
-	if testThreeIdx <= testTwoIdx {
-		t.Errorf("expected test_two teardown to come before test_three teardown, but got test_three at index %d and test_two at index %d.\nteardown order: %v\nfull output:\n%s",
-			testThreeIdx, testTwoIdx, teardownOrder, actual)
+	if !slices.Equal(teardownOrder, expectedTeardownOrder) {
+		t.Errorf("expected teardown order %v but got %v.\nteardown order: %v\nfull output:\n%s",
+			expectedTeardownOrder, teardownOrder, teardownOrder, actual)
 	}
 
 	if provider.ResourceCount() != 0 {
