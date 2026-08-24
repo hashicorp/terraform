@@ -14,10 +14,11 @@ import (
 // nodePolicyEval is a node that completes the building of the policy graph,
 // with incoming edges from the resource graph so that policy evaluation
 // is performed only when the resource graph is complete.
-type nodePolicyEval struct{}
+type nodePolicyEval struct {
+}
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
-var _ dag.TolerantVertex = (*nodePolicyEval)(nil)
+var _ dag.AlwaysRunVertex = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
 	return "(evaluate policies)"
@@ -39,13 +40,9 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	return policyGraph.evalGraph(span), nil
 }
 
-// AllowUpstreamFailure allows failures from upstream nodes to be tolerated
-// so that the policy evaluation can proceed even if some resource instance nodes
-// evaluated with error diagnostics.
-func (n *nodePolicyEval) AllowUpstreamFailure(dep dag.Vertex) bool {
-	_, ok := dep.(GraphNodeConfigResource)
-	return ok
-}
+// AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
+// can proceed even if some resource instance nodes evaluated with error diagnostics.
+func (n *nodePolicyEval) AlwaysRun() {}
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
 // runs after every policy node and ends the policy-execution phase span. It
@@ -56,7 +53,7 @@ type nodePolicyEvalFinish struct {
 }
 
 var _ GraphNodeExecutable = (*nodePolicyEvalFinish)(nil)
-var _ dag.TolerantVertex = (*nodePolicyEvalFinish)(nil)
+var _ dag.AlwaysRunVertex = (*nodePolicyEvalFinish)(nil)
 
 func (n *nodePolicyEvalFinish) Name() string {
 	return "(policy evaluation complete)"
@@ -67,12 +64,6 @@ func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiag
 	return nil
 }
 
-// AllowUpstreamFailure tolerates failures from the policy nodes so the phase
-// span is always ended.
-func (n *nodePolicyEvalFinish) AllowUpstreamFailure(dep dag.Vertex) bool {
-	switch dep.(type) {
-	case *nodeResourcePolicy, *nodeQueryResourcePolicy:
-		return true
-	}
-	return false
-}
+// AlwaysRun implements [dag.AlwaysRunVertex] so that this node still executes
+// even if dependencies errored
+func (n *nodePolicyEvalFinish) AlwaysRun() {}

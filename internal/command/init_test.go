@@ -4538,6 +4538,263 @@ Initializing provider plugins...
 	})
 }
 
+// Partial configuration allows users to override values in the config for:
+// - Top level attributes (via file path or key-value pair string value for -backend-config)
+// - Nested attributes (via file path value for -backend-config only, cannot be done via key-value pair)
+// Reference: https://github.com/hashicorp/terraform/issues/36911
+//
+// It is not possible to override blocks using partial configuration, including the `provider` block
+// inside the `state_store` block.
+//
+// The test cases below demonstrate what's possible and also what is not possible when combining
+// the PSS feature with partial configuration. Only top-level attributes in the schema for the store
+// implementation are overridable.
+func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
+	// Reused in tests that successfully override config using -backend-config CLI flag.
+	v1_2_3, _ := version.NewVersion("1.2.3")
+	expectedState := &workdir.StateStoreConfigState{
+		Type:               "test_store",
+		ConfigRaw:          []byte("{\n      \"value\": \"OVERRIDDEN\"\n    }"), // impacted by use of -backend-config CLI flag
+		Hash:               uint64(4158988729),
+		ProviderSupplyMode: getproviders.ManagedByTerraform,
+		Provider: &workdir.ProviderConfigState{
+			Version: v1_2_3,
+			Source: &tfaddr.Provider{
+				Hostname:  tfaddr.DefaultProviderRegistryHost,
+				Namespace: "hashicorp",
+				Type:      "test",
+			},
+			ConfigRaw: []byte("{\n        \"region\": null\n      }"),
+		},
+	}
+
+	t.Run("state store attribute - key-value pair supplied via CLI flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			`-backend-config=value=OVERRIDDEN`, // override the `value` attr in the mock hashcorp/test's test_store store
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
+	t.Run("state store attribute - file path supplied via CLI flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Create file with partial configuration
+		partialConfigPath := filepath.Join(td, "overrides.test_store.tfbackend")
+		cfg := `value = "OVERRIDDEN"`
+		if err := os.WriteFile(partialConfigPath, []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			fmt.Sprintf(`-backend-config=%s`, partialConfigPath), // override the `value` attr in the mock hashcorp/test's test_store store
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Assert contents of the backend state file
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil {
+			t.Fatal("expected backend state file to be created, but there isn't one")
+		}
+
+		if diff := cmp.Diff(s.StateStore, expectedState); diff != "" {
+			t.Fatalf("unexpected diff in backend state file's description of state store:\n%s", diff)
+		}
+	})
+
+	t.Run("cannot impact provider configuration - key-value pair supplied via CLI flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Using CLI flags to supply key-value pairs
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			`-backend-config=provider.region=OVERRIDDEN`, // attempting to change the `region` attr in the nested provider block
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.Stderr(), "Invalid backend configuration argument") {
+			t.Fatalf("expected error output to report the config argument was invalid, got:\n %s", testOutput.All())
+		}
+	})
+
+	t.Run("cannot impact provider configuration - file path supplied via CLI flag", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-with-state-store"), td)
+		t.Chdir(td)
+
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+
+		providerSource := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+		}
+		c := &InitCommand{
+			Meta: meta,
+		}
+
+		// Create file with partial configuration
+		partialConfigPath := filepath.Join(td, "overrides.test_store.tfbackend")
+		cfg := `provider {
+  value = "OVERRIDDEN"
+}`
+		if err := os.WriteFile(partialConfigPath, []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		args := []string{
+			"-enable-pluggable-state-storage-experiment=true",
+			fmt.Sprintf(`-backend-config=%s`, partialConfigPath), // override the `value` attr in the mock hashcorp/test's test_store store
+		}
+		code := c.Run(args)
+		testOutput := done(t)
+		if code != 1 {
+			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		if !strings.Contains(testOutput.Stderr(), "Error: Unsupported block type") {
+			t.Fatalf("expected error output to report the config argument was invalid, got:\n %s", testOutput.All())
+		}
+	})
+}
+
 // Testing init's behaviors when approving a new state store provider when a workspace is initialized for the first time.
 func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T) {
 	t.Run("users do not need to approve trusting a state store provider if it's installed from local archive", func(t *testing.T) {

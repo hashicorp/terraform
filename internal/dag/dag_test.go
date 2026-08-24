@@ -37,6 +37,14 @@ func (s testNamedString) Name() string {
 	return string(s)
 }
 
+type testAlwaysRunVertex string
+
+func (v testAlwaysRunVertex) Name() string {
+	return string(v)
+}
+
+func (v testAlwaysRunVertex) AlwaysRun() {}
+
 func TestAyclicGraphTransReduction(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(testV(1))

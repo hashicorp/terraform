@@ -1782,85 +1782,184 @@ resource_policy "test_resource" "policy_name" {
 }
 
 func TestContext2Plan_PolicyEvaluation_PartialPlan(t *testing.T) {
-	mainConfig := `
-		terraform {
-			required_providers {
-				test = {
-					source = "hashicorp/test"
-					version = "1.0.0"
+	// This test asserts how policy evaluations work in partial plans.
+	// Policy evaluations still need to run when some resource nodes fail,
+	// and the way we do that is by tolerating failures from the policy eval node's
+	// dependencies.
+	// The policy eval node depends on all resource nodes.
+	// However, due to transitive dependencies, there may be no dependency edges between
+	// a resource node and the policy node, making the graph dependency failure tolerance insufficient.
+	type testCase struct {
+		config   string
+		expected map[string]struct{}
+	}
+	configMap := map[string]testCase{
+
+		// Here, policy node depends on both resource nodes.
+		"simple config, one fails": {
+			config: `terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
 				}
 			}
-		}
-
-		resource "test_resource" "ok" {
-			value = "ok"
-		}
-
-		resource "test_resource" "fail" {
-			value = "fail"
-		}
-		`
-
-	mod := testModuleInline(t, map[string]string{
-		"main.tf":           mainConfig,
-		"main.tfpolicy.hcl": samplePolicyConfig,
-	})
-
-	providerAddr := addrs.NewDefaultProvider("test")
-	provider := testProvider("test")
-	provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-		planned := req.ProposedNewState.AsValueMap()
-		if planned["value"].AsString() == "fail" {
-			resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"plan failed",
-				"simulated provider plan failure",
-			))
-			return resp
-		}
-		planned["id"] = cty.UnknownVal(cty.String)
-		resp.PlannedState = cty.ObjectVal(planned)
-		return resp
-	}
-
-	policyClient := policy.NewTestMockClient(t)
-	evaluatedPolicyValues := map[string]struct{}{}
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-		evaluatedPolicyValues[req.Attrs.Raw.GetAttr("value").AsString()] = struct{}{}
-		return policy.EvaluationResponse{Overall: policy.AllowResult}
-	}
-
-	h := &testHook{}
-	ctx, diags := NewContext(&ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			providerAddr: testProviderFuncFixed(provider),
+	
+			resource "test_resource" "ok" {
+				value = "ok"
+			}
+	
+			resource "test_resource" "fail" {
+				value = "fail"
+			}
+			`,
+			expected: map[string]struct{}{"ok": {}},
 		},
-		Hooks: []Hook{h},
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
 
-	_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
-		Mode:         plans.NormalMode,
-		SetVariables: testInputValuesUnset(mod.Module.Variables),
-		PolicyClient: policyClient,
-	})
-	if !diags.HasErrors() {
-		t.Fatal("expected plan to fail")
+		// In this scenario, the policy dependency on the "ok"
+		// resource is omitted in the graph due to the transitivity
+		// via the "fail" resource.
+		"failed resource depends on other resource": {
+			config: `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+	
+			resource "test_resource" "ok" {
+				value = "ok"
+			}
+	
+			resource "test_resource" "fail" {
+				value = "fail"
+				depends_on = [test_resource.ok]
+			}
+			`,
+			expected: map[string]struct{}{"ok": {}},
+		},
+		// This is similar to the above case, but the dependency
+		// goes through an intermediate object.
+		"failed dependency through intermediate object": {
+			config: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+		
+				locals {
+					intermediate = test_resource.ok.value
+				}
+		
+				resource "test_resource" "ok" {
+					value = "ok"
+				}
+		
+				resource "test_resource" "fail" {
+					value = "fail"
+					defer = local.intermediate == "not_ok"
+					
+				}
+				`,
+			expected: map[string]struct{}{"ok": {}},
+		},
+		"failed resource is depended on by other resource": {
+			config: `
+					terraform {
+						required_providers {
+							test = {
+								source = "hashicorp/test"
+								version = "1.0.0"
+							}
+						}
+					}
+			
+					resource "test_resource" "ok" {
+						value = "ok"
+						depends_on = [test_resource.fail]
+					}
+			
+					resource "test_resource" "fail" {
+						value = "fail"
+					}
+					`,
+			expected: map[string]struct{}{},
+		},
 	}
 
-	var policyDiags tfdiags.Diagnostics
-	for _, result := range h.PolicyResults {
-		policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
-	}
+	for key, testCase := range configMap {
+		t.Run(key, func(t *testing.T) {
+			mod := testModuleInline(t, map[string]string{
+				"main.tf":           testCase.config,
+				"main.tfpolicy.hcl": samplePolicyConfig,
+			})
 
-	// now check that the policy evaluation results match our expectations
-	// we only expect evaluation for the "ok" resource, not the "fail" resource
-	expectedValues := map[string]struct{}{"ok": {}}
-	if diff := cmp.Diff(evaluatedPolicyValues, expectedValues); diff != "" {
-		t.Errorf("unexpected evaluated policy values: %s", diff)
-	}
-	if len(policyDiags) != 0 {
-		t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+				planned := req.ProposedNewState.AsValueMap()
+				if planned["value"].AsString() == "fail" {
+					resp.Diagnostics = resp.Diagnostics.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"plan failed",
+						"simulated provider plan failure",
+					))
+					return resp
+				}
+				planned["id"] = cty.UnknownVal(cty.String)
+				resp.PlannedState = cty.ObjectVal(planned)
+				return resp
+			}
+
+			policyClient := policy.NewTestMockClient(t)
+			evaluatedPolicyValues := map[string]struct{}{}
+			policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				evaluatedPolicyValues[req.Attrs.Raw.GetAttr("value").AsString()] = struct{}{}
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+
+			h := &testHook{}
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+				Hooks: []Hook{h},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: testInputValuesUnset(mod.Module.Variables),
+				PolicyClient: policyClient,
+			})
+			if !diags.HasErrors() {
+				t.Fatal("expected plan to fail")
+			}
+
+			var policyDiags tfdiags.Diagnostics
+			for _, result := range h.PolicyResults {
+				policyDiags = policyDiags.Append(result.Diagnostics.AsTerraformDiags())
+			}
+
+			if diff := cmp.Diff(evaluatedPolicyValues, testCase.expected); diff != "" {
+				t.Errorf("unexpected evaluated policy values: %s", diff)
+			}
+			if len(policyDiags) != 0 {
+				t.Fatalf("expected no policy diagnostics, got %d", len(policyDiags))
+			}
+
+			if !provider.CloseCalled {
+				t.Fatal("Expected provider to be closed, but it was not")
+			}
+		})
 	}
 }
 

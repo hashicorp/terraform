@@ -278,6 +278,8 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return newState, evalScope, diags
 }
 
+// checkApplyTimeVariables checks that the ephemeral variables needed in the configuration
+// are also set during apply. Variables that are not needed should not be set at all.
 func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValues, config *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for name := range needed.All() {
@@ -294,16 +296,21 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 			))
 		}
 	}
-	for name := range gotValues {
+	for name, value := range gotValues {
 		if !needed.Has(name) {
 			// We'll treat this a little differently depending on whether
 			// the variable is declared as ephemeral or not.
 			if vc, ok := config.Module.Variables[name]; ok && vc.Ephemeral {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"No value for required variable",
-					fmt.Sprintf("The ephemeral input variable %q was not set during the plan phase, and so must remain unset during the apply phase.", name),
-				))
+
+				// Only non-null ephemeral variables are recorded in the plan as needed,
+				// therefore we can treat a supplied null value here as if it was not set
+				if !value.Value.IsNull() {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"No value for required variable",
+						fmt.Sprintf("The ephemeral input variable %q was not set during the plan phase, and so must remain unset during the apply phase.", name),
+					))
+				}
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

@@ -66,8 +66,17 @@ const (
 	MessagePolicyQuerySummary     MessageType = "policy_query_summary"
 
 	// Provider installation messages
-	InstallProvidersStart          MessageType = "provider_installation_start"
-	InstallStateStoreProviderStart MessageType = "state_store_provider_installation_start"
+	InstallProvidersStart               MessageType = "provider_installation_start"
+	InstallStateStoreProviderStart      MessageType = "state_store_provider_installation_start"
+	LogReusingPreviousProviderVersion   MessageType = "provider_query_use_previous_version"
+	LogFindingMatchingVersion           MessageType = "provider_query_use_constraints"
+	LogFindingLatestVersion             MessageType = "provider_query_use_latest"
+	LogProviderVersionAlreadyInstalled  MessageType = "provider_version_already_installed"
+	LogUsingProviderVersionFromCacheDir MessageType = "provider_version_found_in_cache_dir"
+	LogInstallProviderVersionStart      MessageType = "provider_version_installation_start"
+	LogInstallProviderVersionComplete   MessageType = "provider_version_installation_complete"
+	BuiltInProviderAvailable            MessageType = "built_in_provider_available"
+	LogPartnerAndCommunityProviders     MessageType = "third_party_providers_installed"
 
 	// Dependency lock file messages
 	// Uses provider-oriented language in case we add a module lock file in future.
@@ -78,4 +87,14 @@ const (
 	ProviderInteractiveApproval  MessageType = "provider_interactive_approval"
 	ProviderInteractiveRejection MessageType = "provider_interactive_rejection"
 	ProviderAutomaticApproval    MessageType = "provider_automatic_approval"
+
+	// State migration-related messages
+	LogStateMigrationStart                        MessageType = "migration_start"
+	LogStateMigrationComplete                     MessageType = "migration_complete"
+	LogStateMigrationErrored                      MessageType = "migration_errored"
+	LogStateMigrationFinalized                    MessageType = "migration_finalized"
+	LogMigrationSourceInitializationStart         MessageType = "migration_source_initialization_start"
+	LogMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
+	LogMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
+	LogMigrationDestinationInitializationComplete MessageType = "migration_destination_initialization_complete"
 )
