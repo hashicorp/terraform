@@ -14,8 +14,10 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	tfev2models "github.com/hashicorp/go-tfe/v2/api/models"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/views"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -71,7 +73,19 @@ func (b *Cloud) query(stopCtx, cancelCtx context.Context, op *backendrun.Operati
 	}
 	queryRunOptions.Variables = runVariables
 
-	r, err := b.client.QueryRuns.Create(stopCtx, queryRunOptions)
+	var r *tfe.QueryRun
+	if len(op.PolicyPaths) > 0 {
+		if b.clientV2 == nil {
+			return &QueryRunResult{}, fmt.Errorf(
+				"cannot forward -policies to the server: the v2 API client failed to " +
+					"initialize. Check that your HCP Terraform / Terraform Enterprise " +
+					"version supports the /api/v2/queries endpoint",
+			)
+		}
+		r, err = b.createQueryRunV2(stopCtx, queryRunOptions, op.PolicyPaths)
+	} else {
+		r, err = b.client.QueryRuns.Create(stopCtx, queryRunOptions)
+	}
 	if err != nil {
 		return &QueryRunResult{}, b.generalError("Failed to create query run", err)
 	}
@@ -106,6 +120,7 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 	if b.CLI != nil {
 		reader := bufio.NewReaderSize(logs, 64*1024)
 		results := map[string][]*viewsjson.QueryResult{}
+		var policySummaries []views.PolicyQuerySummary
 
 		for next := true; next; {
 			var l, line []byte
@@ -124,8 +139,8 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 			}
 
 			if next || len(line) > 0 {
-				log := &jsonformat.JSONLog{}
-				if err := json.Unmarshal(line, log); err != nil {
+				jsonLog := &jsonformat.JSONLog{}
+				if err := json.Unmarshal(line, jsonLog); err != nil {
 					// If we can not parse the line as JSON, we will simply
 					// print the line. This maintains backwards compatibility for
 					// users who do not wish to enable structured output in their
@@ -139,17 +154,25 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 					// we collect all logs of a list block and output them at once.
 					// This allows us to ensure all messages of a list block are grouped
 					// and indented as in the PostListQuery hook.
-					switch log.Type {
+					switch jsonLog.Type {
+					case jsonformat.LogPolicyQuerySummary:
+						summary, parseErr := views.ParsePolicyQuerySummary(line)
+						if parseErr != nil {
+							// Malformed record: skip gracefully.
+							log.Printf("[TRACE] cloud: skipping malformed policy_query_summary record: %v", parseErr)
+							continue
+						}
+						policySummaries = append(policySummaries, summary)
 					case jsonformat.LogListStart:
-						results[log.ListQueryStart.Address] = make([]*viewsjson.QueryResult, 0)
+						results[jsonLog.ListQueryStart.Address] = make([]*viewsjson.QueryResult, 0)
 					case jsonformat.LogListResourceFound:
-						results[log.ListQueryResult.Address] = append(results[log.ListQueryResult.Address], log.ListQueryResult)
+						results[jsonLog.ListQueryResult.Address] = append(results[jsonLog.ListQueryResult.Address], jsonLog.ListQueryResult)
 						if wantConfig {
-							configs[log.ListQueryResult.Address] +=
-								fmt.Sprintf("%s\n%s\n\n", log.ListQueryResult.Config, log.ListQueryResult.ImportConfig)
+							configs[jsonLog.ListQueryResult.Address] +=
+								fmt.Sprintf("%s\n%s\n\n", jsonLog.ListQueryResult.Config, jsonLog.ListQueryResult.ImportConfig)
 						}
 					case jsonformat.LogListComplete:
-						addr := log.ListQueryComplete.Address
+						addr := jsonLog.ListQueryComplete.Address
 
 						identities := make([]string, 0, len(results[addr]))
 						displayNames := make([]string, 0, len(results[addr]))
@@ -173,13 +196,17 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 							b.renderer.Streams.Println(result.String())
 						}
 					default:
-						err := b.renderer.RenderLog(log)
+						err := b.renderer.RenderLog(jsonLog)
 						if err != nil {
 							return err
 						}
 					}
 				}
 			}
+		}
+
+		if len(policySummaries) > 0 {
+			b.renderer.Streams.Println(views.RenderPolicyQuerySummariesHuman(policySummaries))
 		}
 	}
 
@@ -204,6 +231,105 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 	}
 
 	return nil
+}
+
+// createQueryRunV2 creates a query run via the go-tfe v2 SDK so that
+// PolicyPaths can be forwarded to the server. It posts to POST /queries
+// using the generated QueriesRequestBuilder and maps the response back into
+// the tfe.QueryRun that the rest of the cloud backend uses.
+//
+// Variables are not a first-class attribute in the v2 schema, so they are
+// forwarded via additionalData under the "variables" key, which the Kiota
+// serializer writes into the JSON:API attributes object verbatim — matching
+// the wire format used by the v1 path.
+func (b *Cloud) createQueryRunV2(ctx context.Context, opts tfe.QueryRunCreateOptions, policyPaths []string) (*tfe.QueryRun, error) {
+	workspaceID := opts.Workspace.ID
+
+	// Build attributes.
+	attrs := tfev2models.NewQueries_attributes()
+	if opts.GenerateConfigOut != nil {
+		attrs.SetGenerateConfigOut(opts.GenerateConfigOut)
+	}
+	sourceVal := tfev2models.TFEAPI_QUERIES_ATTRIBUTES_SOURCE
+	attrs.SetSource(&sourceVal)
+	attrs.SetPolicyPaths(policyPaths)
+
+	// Serialize run variables via additionalData so they reach the server
+	// even though the v2 schema has no dedicated variables attribute.
+	if len(opts.Variables) > 0 {
+		type wireVar struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}
+		wvars := make([]wireVar, 0, len(opts.Variables))
+		for _, v := range opts.Variables {
+			if v != nil {
+				wvars = append(wvars, wireVar{Key: v.Key, Value: v.Value})
+			}
+		}
+		if len(wvars) > 0 {
+			additional := attrs.GetAdditionalData()
+			additional["variables"] = wvars
+			attrs.SetAdditionalData(additional)
+		}
+	}
+
+	// Configuration-version relationship.
+	cvData := tfev2models.NewConfigurationVersionsHasOne_data()
+	cvID := opts.ConfigurationVersion.ID
+	cvData.SetId(&cvID)
+	cvType := tfev2models.CONFIGURATIONVERSIONS_CONFIGURATIONVERSIONSIDENTIFIER_TYPE
+	cvData.SetTypeEscaped(&cvType)
+	cvRef := tfev2models.NewConfigurationVersionsHasOne()
+	cvRef.SetData(cvData)
+
+	// Workspace relationship.
+	wsData := tfev2models.NewWorkspacesHasOne_data()
+	wsData.SetId(&workspaceID)
+	wsType := tfev2models.WORKSPACES_WORKSPACESIDENTIFIER_TYPE
+	wsData.SetTypeEscaped(&wsType)
+	wsRef := tfev2models.NewWorkspacesHasOne()
+	wsRef.SetData(wsData)
+
+	rels := tfev2models.NewQueries_relationships()
+	rels.SetConfigurationVersion(cvRef)
+	rels.SetWorkspace(wsRef)
+
+	data := tfev2models.NewQueries()
+	queryType := tfev2models.QUERIES_QUERIES_TYPE
+	data.SetTypeEscaped(&queryType)
+	data.SetAttributes(attrs)
+	data.SetRelationships(rels)
+
+	envelope := tfev2models.NewQueriesEnvelope()
+	envelope.SetData(data)
+
+	resp, err := b.clientV2.API.Queries().Post(ctx, envelope, nil)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil || resp.GetData() == nil || resp.GetData().GetId() == nil || *resp.GetData().GetId() == "" {
+		return nil, fmt.Errorf("empty response from query run create")
+	}
+
+	qry := resp.GetData()
+
+	// Map the v2 response back into the tfe.QueryRun the rest of the
+	// cloud backend already knows how to handle.
+	run := &tfe.QueryRun{ID: *qry.GetId()}
+	if qry.GetAttributes() != nil {
+		a := qry.GetAttributes()
+		if a.GetLogReadUrl() != nil {
+			run.LogReadURL = *a.GetLogReadUrl()
+		}
+		if a.GetStatus() != nil {
+			run.Status = tfe.QueryRunStatus(a.GetStatus().String())
+		}
+	}
+	if run.Status == "" {
+		run.Status = tfe.QueryRunPending
+	}
+	return run, nil
 }
 
 func (b *Cloud) waitForQueryRun(stopCtx, cancelCtx context.Context, r *tfe.QueryRun) (*tfe.QueryRun, error) {

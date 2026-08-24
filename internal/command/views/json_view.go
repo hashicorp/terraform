@@ -178,7 +178,7 @@ func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse) 
 	}
 }
 
-func (v *JSONView) logPolicyQuerySummary(summary queryPolicySummary) {
+func (v *JSONView) logPolicyQuerySummary(summary PolicyQuerySummary) {
 	v.log.Info(
 		"Policy query summary",
 		"type", json.MessagePolicyQuerySummary,
