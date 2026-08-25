@@ -258,6 +258,9 @@ func (c *State) ObjectCheckStatus(addr addrs.Checkable) Status {
 // ObjectCheckStatus's result because errors are defined as "stronger"
 // than failures.
 func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	var ret []string
 
 	configAddr := addr.ConfigCheckable()
