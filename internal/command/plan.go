@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -88,7 +89,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	if len(args.PolicyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be, policy.PlanEvaluationStage))
 		// if there has been any errors when setting up the policy client, we log them but
 		// we still proceed with the operation, as a failure to set up the policy client
 		// should not prevent the plan operation from running

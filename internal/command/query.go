@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -168,7 +169,7 @@ func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBacken
 		return func() {}
 	}
 
-	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be))
+	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be, policy.PlanEvaluationStage))
 	if opReq.View != nil && policyDiags != nil {
 		opReq.View.PolicyDiagnostics(policyDiags)
 	}

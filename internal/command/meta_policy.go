@@ -61,12 +61,17 @@ var _ initwd.ModuleInstallHook = &policyModuleInstallHook{}
 // backendPolicyEntitlement returns the entitlement from the backend if it
 // implements policy.EntitlementProvider, or nil otherwise (e.g. a local
 // backend).
-func backendPolicyEntitlement(be backend.Backend) *policy.Entitlement {
+func backendPolicyEntitlement(be backend.Backend, stage policy.EvaluationStage) *policy.Entitlement {
 	provider, ok := be.(policy.EntitlementProvider)
 	if !ok {
 		return nil
 	}
-	return provider.PolicyEntitlement()
+	ent := provider.PolicyEntitlement()
+	if ent == nil {
+		return nil
+	}
+	ent.EvaluationStage = stage
+	return ent
 }
 
 // policyModuleInstallHook enables policy evaluation during module installation.
