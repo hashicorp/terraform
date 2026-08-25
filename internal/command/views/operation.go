@@ -96,7 +96,7 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	outputs, changed, drift, attrs, actions, deferredChanges, err := jsonplan.MarshalForRenderer(plan, schemas)
+	jsonPlan, err := jsonplan.MarshalForRenderer(plan, schemas)
 	if err != nil {
 		v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 		return
@@ -111,13 +111,13 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	jplan := jsonformat.Plan{
 		PlanFormatVersion:     jsonplan.FormatVersion,
 		ProviderFormatVersion: jsonprovider.FormatVersion,
-		OutputChanges:         outputs,
-		ResourceChanges:       changed,
-		ResourceDrift:         drift,
+		OutputChanges:         jsonPlan.OutputChanges,
+		ResourceChanges:       jsonPlan.ResourceChanges,
+		ResourceDrift:         jsonPlan.ResourceDrift,
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-		RelevantAttributes:    attrs,
-		ActionInvocations:     actions,
-		DeferredChanges:       deferredChanges,
+		RelevantAttributes:    jsonPlan.RelevantAttributes,
+		ActionInvocations:     jsonPlan.ActionInvocations,
+		DeferredChanges:       jsonPlan.DeferredChanges,
 	}
 
 	// Side load some data that we can't extract from the JSON plan.
