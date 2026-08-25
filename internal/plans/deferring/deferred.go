@@ -285,7 +285,7 @@ func (d *Deferred) GetDeferredPartialExpandedResource(addr addrs.PartialExpanded
 // It's invalid to call this method for an address that was already reported
 // as deferred using [Deferred.ReportResourceInstanceDeferred], and so this
 // method will panic in that case.
-func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance, deps []addrs.ConfigResource) bool {
+func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInstance, deps []addrs.ConfigResource, matchingReasons ...providers.DeferredReason) bool {
 	if !d.deferralAllowed {
 		return false
 	}
@@ -304,7 +304,7 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 	}
 	d.mu.Unlock()
 
-	return d.DependenciesDeferred(deps)
+	return d.DependenciesDeferred(deps, matchingReasons...)
 }
 
 // DependenciesDeferred returns true if any of the given configuration
@@ -312,8 +312,9 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 // themselves were deferred or because they depend on something that was
 // deferred.
 //
-// As
-func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
+// Optionally, matchingReasons can be provided to find if dependencies are
+// deferred that match at least one of these reasons.
+func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource, matchingReasons ...providers.DeferredReason) bool {
 	if !d.deferralAllowed {
 		return false
 	}
@@ -322,6 +323,11 @@ func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
 	defer d.mu.Unlock()
 
 	if d.externalDependencyDeferred {
+		// If we're looking for a specific reason the dependency was deferred,
+		// this external dependency deferral doesn't match any.
+		if len(matchingReasons) > 0 {
+			return false
+		}
 		return true
 	}
 
@@ -356,13 +362,30 @@ func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
 	// any additional logic here is well-reasoned to avoid violating dependency
 	// invariants.)
 	for _, configDep := range deps {
-		if d.resourceInstancesDeferred.Has(configDep) {
+		if defers, ok := d.resourceInstancesDeferred.GetOk(configDep); ok {
+			if len(matchingReasons) > 0 {
+				for _, d := range defers.Iter() {
+					if slices.Contains(matchingReasons, d.DeferredReason) {
+						return true
+					}
+				}
+				return false
+			}
 			// For now we don't consider exactly which instances of that
 			// configuration block were deferred; there being at least
 			// one is enough.
 			return true
 		}
-		if d.partialExpandedResourcesDeferred.Has(configDep) {
+		if defers, ok := d.partialExpandedResourcesDeferred.GetOk(configDep); ok {
+			if len(matchingReasons) > 0 {
+				for _, d := range defers.Iter() {
+					if slices.Contains(matchingReasons, d.DeferredReason) {
+						return true
+					}
+				}
+				return false
+			}
+
 			return true
 		}
 

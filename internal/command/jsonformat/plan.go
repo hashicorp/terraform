@@ -472,10 +472,14 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	// blocks however don't have the replace type of actions, so we can trust
 	// the computed actions of these.
 	action := jsonplan.UnmarshalActions(deferred.diff.change.Change.Actions)
-	if action == plans.NoOp && !deferred.diff.Moved() && !deferred.diff.Importing() {
-		// Skip resource changes that have nothing interesting to say.
-		return "", false
-	}
+
+	// TODO:@austinvalle: This is commented out mostly just for testing, although we'll
+	// need to decide what action exclude deferred changes should be under (currently no-op)
+	//
+	// if action == plans.NoOp && !deferred.diff.Moved() && !deferred.diff.Importing() {
+	// 	// Skip resource changes that have nothing interesting to say.
+	// 	return "", false
+	// }
 
 	var buf bytes.Buffer
 	var explanation string
@@ -493,6 +497,8 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 		explanation = "because a prerequisite for this resource has not yet been created"
 	case jsonplan.DeferredReasonExcluded:
 		explanation = "because the resource was excluded"
+	case jsonplan.DeferredReasonExcludedPrereq:
+		explanation = "because a prerequisite for this resource was excluded"
 	default:
 		explanation = "for an unknown reason"
 	}

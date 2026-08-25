@@ -215,36 +215,71 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	importing := n.importTarget.target != cty.NilVal && !n.preDestroyRefresh
 
-	var deferred *providers.Deferred
+	if len(n.excludes) > 0 {
+		var deferredReason providers.DeferredReason
+		excluded := false
+		deferrals := ctx.Deferrals()
 
-	for _, excludeAddr := range n.excludes {
-		// Check if this resource will be deferred directly via excluded
-		if excludeAddr.TargetContains(addr) {
-			deferred = &providers.Deferred{
-				Reason: providers.DeferredReasonExcluded,
+		// If a dependency of this resource was excluded, then exclude this resource. If this
+		// resource is deferred by a dependency for a different reason, then that will be detected
+		// and reported after planning.
+		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, providers.DeferredReasonExcluded) {
+			excluded = true
+			deferredReason = providers.DeferredReasonExcludedPrereq
+		}
+
+		// Check if this resource would be deferred directly via the provided exclude addresses
+		for _, excludeAddr := range n.excludes {
+			if excludeAddr.TargetContains(addr) {
+				excluded = true
+				deferredReason = providers.DeferredReasonExcluded
+				break
 			}
-			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
-			// remove the node from the graph, which means it will still refresh + plan...
-			//
-			// Talking with James, I should ensure refresh / planning doesn't happen here since we aren't sure
-			// why the resource is being deferred (just that the practitioner wants it deferred)
+		}
+
+		// If the practitioner is excluding this resource (or a resource this resource depends on),
+		// we don't know why, so we assume that refreshing/planning should not be performed when
+		// producing a deferred change.
+		if excluded {
+			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
+				Addr:         addr,
+				PrevRunAddr:  addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.NoOp,
+
+					// TODO:@austinvalle: What data can/should I populate here? What about when importing? Should we read/upgrade state?
+					//
+					// Current output looks like (with removed no-op supression in the deferred change renderer :P):
+					//
+					//   # module.child_unknown[0].random_integer.child_test was deferred
+					//   # (because the resource was excluded)
+					//     resource "random_integer" "child_test" {}
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+					// Importing: &plans.Importing{},
+				},
+			})
+			n.reportDeferredActionTriggers(ctx, deferredReason)
+
+			return diags
 		}
 	}
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 
-	var importDeferred *providers.Deferred
+	var deferred *providers.Deferred
 	schemaVersionUpgraded := false
 	if importing {
 		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
-			instanceRefreshState, importDeferred, importDiags = n.importState(ctx, addr, provider, providerSchema)
+			instanceRefreshState, deferred, importDiags = n.importState(ctx, addr, provider, providerSchema)
 			diags = diags.Append(importDiags)
 		} else {
 			// Otherwise, just mark the resource as deferred without trying to
 			// import it.
-			importDeferred = &providers.Deferred{
+			deferred = &providers.Deferred{
 				Reason: providers.DeferredReasonResourceConfigUnknown,
 			}
 			if n.Config == nil && len(n.generateConfigPath) > 0 {
@@ -291,10 +326,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}))
 			return diags
 		}
-	}
-
-	if deferred == nil && importDeferred != nil {
-		deferred = importDeferred
 	}
 
 	if deferred == nil {

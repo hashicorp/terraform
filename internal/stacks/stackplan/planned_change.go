@@ -638,6 +638,8 @@ func EncodeDeferred(reason providers.DeferredReason) *stacks.Deferred {
 		deferred.Reason = stacks.Deferred_DEFERRED_PREREQ
 	case providers.DeferredReasonExcluded:
 		deferred.Reason = stacks.Deferred_EXCLUDED
+	case providers.DeferredReasonExcludedPrereq:
+		deferred.Reason = stacks.Deferred_EXCLUDED_PREREQ
 	default:
 		deferred.Reason = stacks.Deferred_INVALID
 	}

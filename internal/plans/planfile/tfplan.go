@@ -601,6 +601,8 @@ func DeferredReasonFromProto(reason planproto.DeferredReason) (providers.Deferre
 		return providers.DeferredReasonDeferredPrereq, nil
 	case planproto.DeferredReason_EXCLUDED:
 		return providers.DeferredReasonExcluded, nil
+	case planproto.DeferredReason_EXCLUDED_PREREQ:
+		return providers.DeferredReasonExcludedPrereq, nil
 	default:
 		return providers.DeferredReasonInvalid, fmt.Errorf("invalid deferred reason %s", reason)
 	}
@@ -1141,6 +1143,8 @@ func DeferredReasonToProto(reason providers.DeferredReason) (planproto.DeferredR
 		return planproto.DeferredReason_DEFERRED_PREREQ, nil
 	case providers.DeferredReasonExcluded:
 		return planproto.DeferredReason_EXCLUDED, nil
+	case providers.DeferredReasonExcludedPrereq:
+		return planproto.DeferredReason_EXCLUDED_PREREQ, nil
 	default:
 		return planproto.DeferredReason_INVALID, fmt.Errorf("invalid deferred reason %s", reason)
 	}

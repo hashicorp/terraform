@@ -54,6 +54,7 @@ const (
 	DeferredReasonDeferredPrereq        = "deferred_prereq"
 	DeferredReasonAbsentPrereq          = "absent_prereq"
 	DeferredReasonExcluded              = "excluded"
+	DeferredReasonExcludedPrereq        = "excluded_prereq"
 )
 
 // Plan is the top-level representation of the json format of a plan. It includes
@@ -695,6 +696,8 @@ func MarshalDeferredResourceChanges(resources []*plans.DeferredResourceInstanceC
 			deferredChange.Reason = DeferredReasonDeferredPrereq
 		case providers.DeferredReasonExcluded:
 			deferredChange.Reason = DeferredReasonExcluded
+		case providers.DeferredReasonExcludedPrereq:
+			deferredChange.Reason = DeferredReasonExcludedPrereq
 		default:
 			// If we find a reason we don't know about, we'll just mark it as
 			// unknown. This is a bit of a safety net to ensure that we don't

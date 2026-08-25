@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstanceOrphan represents a resource that is "applyable":
@@ -34,7 +35,6 @@ type NodePlannableResourceInstanceOrphan struct {
 	// from state.
 	forgetModules []addrs.Module
 
-	// TODO:@austinvalle: Should you even be able to exclude an orphaned object? :P
 	excludes []addrs.Targetable
 }
 
@@ -135,18 +135,55 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	var deferred *providers.Deferred
-	for _, excludeAddr := range n.excludes {
-		// Check if this resource will be deferred directly via excluded
-		if excludeAddr.TargetContains(addr) {
-			deferred = &providers.Deferred{
-				Reason: providers.DeferredReasonExcluded,
+	if len(n.excludes) > 0 {
+		var deferredReason providers.DeferredReason
+		excluded := false
+		deferrals := ctx.Deferrals()
+
+		// If a dependency of this resource was excluded, then exclude this resource. If this
+		// resource is deferred by a dependency for a different reason, then that will be detected
+		// and reported after planning.
+		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, providers.DeferredReasonExcluded) {
+			excluded = true
+			deferredReason = providers.DeferredReasonExcludedPrereq
+		}
+
+		// Check if this resource would be deferred directly via the provided exclude addresses
+		for _, excludeAddr := range n.excludes {
+			if excludeAddr.TargetContains(addr) {
+				excluded = true
+				deferredReason = providers.DeferredReasonExcluded
+				break
 			}
-			// TODO:@austinvalle: This is a little different from a transformer-level exclude, as it won't
-			// remove the node from the graph, which means it will still refresh + plan...
-			//
-			// Talking with James, I should ensure refresh / planning doesn't happen here since we aren't sure
-			// why the resource is being deferred (just that the practitioner wants it deferred)
+		}
+
+		// If the practitioner is excluding this resource (or a resource this resource depends on),
+		// we don't know why, so we assume that refreshing/planning should not be performed when
+		// producing a deferred change.
+		if excluded {
+			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
+				Addr:         addr,
+				PrevRunAddr:  addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					// TODO:@austinvalle: We know we need to delete this, so feels safe to assume this action?
+					Action: plans.Delete,
+
+					// TODO:@austinvalle: What data can/should I populate here? What about when importing? Should we read/upgrade state?
+					//
+					// Current output looks like (with removed no-op supression in the deferred change renderer :P):
+					//
+					//   # module.child_unknown[0].random_integer.child_test was deferred
+					//   # (because the resource was excluded)
+					//     resource "random_integer" "child_test" {}
+					Before: cty.NullVal(cty.DynamicPseudoType),
+					After:  cty.NullVal(cty.DynamicPseudoType),
+					// Importing: &plans.Importing{},
+				},
+			})
+			n.reportDeferredActionTriggers(ctx, deferredReason)
+
+			return diags
 		}
 	}
 
@@ -196,20 +233,16 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
-	var planDeferred *providers.Deferred
+	var deferred *providers.Deferred
 	if forget {
 		change, pDiags = n.planForget(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	} else {
-		change, planDeferred, pDiags = n.planDestroy(ctx, oldState, "")
+		change, deferred, pDiags = n.planDestroy(ctx, oldState, "")
 		diags = diags.Append(pDiags)
 	}
 	if diags.HasErrors() {
 		return diags
-	}
-
-	if deferred == nil && planDeferred != nil {
-		deferred = planDeferred
 	}
 
 	// We might be able to offer an approximate reason for why we are

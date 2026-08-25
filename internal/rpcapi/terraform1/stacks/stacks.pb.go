@@ -367,6 +367,7 @@ const (
 	Deferred_ABSENT_PREREQ           Deferred_Reason = 4
 	Deferred_DEFERRED_PREREQ         Deferred_Reason = 5
 	Deferred_EXCLUDED                Deferred_Reason = 6
+	Deferred_EXCLUDED_PREREQ         Deferred_Reason = 7
 )
 
 // Enum value maps for Deferred_Reason.
@@ -379,6 +380,7 @@ var (
 		4: "ABSENT_PREREQ",
 		5: "DEFERRED_PREREQ",
 		6: "EXCLUDED",
+		7: "EXCLUDED_PREREQ",
 	}
 	Deferred_Reason_value = map[string]int32{
 		"INVALID":                 0,
@@ -388,6 +390,7 @@ var (
 		"ABSENT_PREREQ":           4,
 		"DEFERRED_PREREQ":         5,
 		"EXCLUDED":                6,
+		"EXCLUDED_PREREQ":         7,
 	}
 )
 
@@ -8811,9 +8814,9 @@ const file_stacks_proto_rawDesc = "" +
 	"\x0eBEFORE_DESTROY\x10\x05\x12\x11\n" +
 	"\rAFTER_DESTROY\x10\x06\x12\n" +
 	"\n" +
-	"\x06INVOKE\x10\aJ\x04\b\x03\x10\a\"\xea\x01\n" +
+	"\x06INVOKE\x10\aJ\x04\b\x03\x10\a\"\xff\x01\n" +
 	"\bDeferred\x12:\n" +
-	"\x06reason\x18\x01 \x01(\x0e2\".terraform1.stacks.Deferred.ReasonR\x06reason\"\xa1\x01\n" +
+	"\x06reason\x18\x01 \x01(\x0e2\".terraform1.stacks.Deferred.ReasonR\x06reason\"\xb6\x01\n" +
 	"\x06Reason\x12\v\n" +
 	"\aINVALID\x10\x00\x12\x1a\n" +
 	"\x16INSTANCE_COUNT_UNKNOWN\x10\x01\x12\x1b\n" +
@@ -8821,7 +8824,8 @@ const file_stacks_proto_rawDesc = "" +
 	"\x17PROVIDER_CONFIG_UNKNOWN\x10\x03\x12\x11\n" +
 	"\rABSENT_PREREQ\x10\x04\x12\x13\n" +
 	"\x0fDEFERRED_PREREQ\x10\x05\x12\f\n" +
-	"\bEXCLUDED\x10\x06\"\x84\r\n" +
+	"\bEXCLUDED\x10\x06\x12\x13\n" +
+	"\x0fEXCLUDED_PREREQ\x10\a\"\x84\r\n" +
 	"\rAppliedChange\x12<\n" +
 	"\x03raw\x18\x01 \x03(\v2*.terraform1.stacks.AppliedChange.RawChangeR\x03raw\x12V\n" +
 	"\fdescriptions\x18\x02 \x03(\v22.terraform1.stacks.AppliedChange.ChangeDescriptionR\fdescriptions\x1aI\n" +
