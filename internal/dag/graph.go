@@ -155,13 +155,6 @@ func (g *Graph) Connect(source, target Vertex) {
 	s.Add(source)
 }
 
-func (g *Graph) HasEdge(source, target Vertex) bool {
-	if s, ok := g.edgesFrom[source]; ok {
-		return s.Contains(target)
-	}
-	return false
-}
-
 // Subsume imports all of the nodes and edges from the given graph into the
 // receiver, leaving the given graph unchanged.
 //

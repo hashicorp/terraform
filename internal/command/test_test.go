@@ -5964,10 +5964,6 @@ func TestTest_TeardownOrder(t *testing.T) {
 
 func TestTest_ParallelDeps(t *testing.T) {
 	// This tests that parallel dependencies are handled correctly during teardown.
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps")), td)
-	t.Chdir(td)
-
 	provider := testing_command.NewProvider(nil)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
@@ -5996,57 +5992,136 @@ func TestTest_ParallelDeps(t *testing.T) {
 		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
 	}
 
-	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
-
-	c := &TestCommand{
-		Meta: meta,
-	}
-
-	code := c.Run([]string{"-no-color", "-json"})
-	output = done(t)
-
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
-	}
-
-	actual := output.All()
-
-	var teardownOrder []string
-	expectedTeardownOrder := []string{"test_two", "test_three", "test_one_b"}
-	lines, err := parseJSONLines(t, actual)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, parsed := range lines {
-		if parsed.Type != "test_run" || parsed.TestRun == nil {
-			continue
+	// helper to parse a single line of test output, returning the teardown run name if it matches
+	parseTeardownLine := func(line jsonLine) string {
+		if line.Type != "test_run" || line.TestRun == nil {
+			return ""
 		}
-		if parsed.TestRun.Progress != "teardown" {
-			continue
+		if line.TestRun.Progress != "teardown" {
+			return ""
 		}
 
 		// We only care about teardowns with elapsed time of 0, indicating the start
 		// of the teardown phase.
-		if parsed.TestRun.Elapsed == nil || *parsed.TestRun.Elapsed != 0 {
-			continue
+		if line.TestRun.Elapsed == nil || *line.TestRun.Elapsed != 0 {
+			return ""
 		}
-		teardownOrder = append(teardownOrder, parsed.TestRun.Run)
+		return line.TestRun.Run
 	}
 
-	// test_two depends on test_three (via run.test_three.id), so during
-	// teardown the dependency order should be reversed, i.e test_two must
-	// be torn down before test_three.
-	if !slices.Equal(teardownOrder, expectedTeardownOrder) {
-		t.Errorf("expected teardown order %v but got %v.\nteardown order: %v\nfull output:\n%s",
-			expectedTeardownOrder, teardownOrder, teardownOrder, actual)
-	}
+	/*
 
-	if provider.ResourceCount() != 0 {
-		t.Errorf("should have deleted all resources")
-	}
+			       1A
+					|
+					3
+				  /   \
+				 2     1B
+
+		1A and 1B have the same state key, so during teardown, they are only
+		represented by a single node in the graph. We have to take care not to
+		build a cyclic reference in the teardown graph.
+	*/
+	t.Run("potential cyclic reference via state dependency", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps")), td)
+		t.Chdir(td)
+
+		// Reset the streams for the next command.
+		streams, done = terminal.StreamsForTesting(t)
+		meta.Streams = streams
+		meta.View = views.NewView(streams)
+
+		c := &TestCommand{
+			Meta: meta,
+		}
+
+		code := c.Run([]string{"-no-color", "-json"})
+		output = done(t)
+
+		if code != 0 {
+			t.Errorf("expected status code 0 but got %d", code)
+		}
+
+		actual := output.All()
+
+		var teardownOrder []string
+		// teardown order should be reverse of creation
+		expectedTeardownOrder := []string{"test_two", "test_three", "test_one_b"}
+		lines, err := parseJSONLines(t, actual)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, parsed := range lines {
+			if run := parseTeardownLine(parsed); run != "" {
+				teardownOrder = append(teardownOrder, run)
+			}
+		}
+
+		if !slices.Equal(teardownOrder, expectedTeardownOrder) {
+			t.Errorf("expected teardown order %v but got %v.\nteardown order: %v\nfull output:\n%s",
+				expectedTeardownOrder, teardownOrder, teardownOrder, actual)
+		}
+
+		if provider.ResourceCount() != 0 {
+			t.Errorf("should have deleted all resources")
+		}
+	})
+
+	/*
+					D
+				  /   \
+			 	 A     B
+				  \   /
+				    C
+
+		What matters here is that A and B are between C and D.
+	*/
+	t.Run("diamond graph with sibling dependencies", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps", "diamond")), td)
+		t.Chdir(td)
+
+		// Reset the streams for the next command.
+		streams, done = terminal.StreamsForTesting(t)
+		meta.Streams = streams
+		meta.View = views.NewView(streams)
+
+		c := &TestCommand{
+			Meta: meta,
+		}
+
+		code := c.Run([]string{"-no-color", "-json"})
+		output = done(t)
+
+		if code != 0 {
+			t.Errorf("expected status code 0 but got %d", code)
+		}
+
+		actual := output.All()
+
+		var teardownOrder []string
+		lines, err := parseJSONLines(t, actual)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, parsed := range lines {
+			if run := parseTeardownLine(parsed); run != "" {
+				teardownOrder = append(teardownOrder, run)
+			}
+		}
+
+		if len(teardownOrder) != 4 {
+			t.Errorf("expected 4 teardown runs but got %d", len(teardownOrder))
+		}
+
+		if teardownOrder[0] != "state_c" && teardownOrder[len(teardownOrder)-1] != "state_d" {
+			t.Errorf("expected state_c and state_d to be the first and last teardown runs but got %v", teardownOrder)
+		}
+
+		if provider.ResourceCount() != 0 {
+			t.Errorf("should have deleted all resources")
+		}
+	})
 }
 
 type jsonLine struct {
