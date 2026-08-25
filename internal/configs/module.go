@@ -417,21 +417,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	// Data sources can either be defined at the module root level, or within a
@@ -463,21 +448,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.EphemeralResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	for _, c := range file.Checks {
@@ -505,24 +475,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.Checks[c.Name] = c
-	}
-
-	// Handle the provider associations for all data resources together.
-	for _, r := range m.DataResources {
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid data source name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	// "Moved" blocks just append, because they are all independent of one
@@ -578,20 +530,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 		m.Actions[key] = a
 
-		// set the provider FQN for the action
-		if a.ProviderConfigRef != nil {
-			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
-			if err == nil {
-				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	return diags
@@ -660,7 +598,7 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		}
 		// set the provider FQN for the resource
 		m.ListResources[key] = ql
-		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
+		//ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
 	}
 
 	return diags

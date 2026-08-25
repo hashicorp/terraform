@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -673,6 +673,48 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 			}
 		}
 	}
+
+	// Add provider name resolution
+	assignResourceProviders := func(resources map[string]*Resource) {
+		for _, r := range resources {
+			// set the provider FQN for the resource
+			if r.ProviderConfigRef != nil {
+				r.Provider = c.Module.ProviderForLocalConfig(r.ProviderConfigAddr())
+			} else {
+				implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+				if err == nil {
+					r.Provider = c.Module.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
+	assignActionProviders := func(actions map[string]*Action) {
+		for _, a := range actions {
+			// set the provider FQN for the action
+			if a.ProviderConfigRef != nil {
+				a.Provider = c.Module.ProviderForLocalConfig(a.ProviderConfigAddr())
+			} else {
+				// an invalid resource name (for e.g. "null resource" instead of
+				// "null_resource") can cause a panic down the line in addrs:
+				// https://github.com/hashicorp/terraform/issues/25560
+				implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+				if err == nil {
+					a.Provider = c.Module.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
+	assignResourceProviders(c.Module.ManagedResources)
+	assignResourceProviders(c.Module.DataResources)
+	assignResourceProviders(c.Module.EphemeralResources)
+	assignResourceProviders(c.Module.ListResources)
+	assignActionProviders(c.Module.Actions)
 
 	return providers
 }

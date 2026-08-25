@@ -725,7 +725,7 @@ func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
 				"hashicorp/test": {"1.0.0"},
 			})
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
@@ -816,7 +816,7 @@ func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
 			}
 			providerSource := newMockProviderSource(t, providers)
 
-			ui := new(cli.MockUi)
+			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
