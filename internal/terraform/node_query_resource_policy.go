@@ -4,10 +4,13 @@
 package terraform
 
 import (
+	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -34,6 +37,9 @@ type nodeQueryResourcePolicy struct {
 	// ListBlockAddr is the AbsResourceInstance address of the originating list
 	// block. It is attached to every EvaluationResponse to group results.
 	ListBlockAddr addrs.AbsResourceInstance
+	// Unknown is true when Terraform could not produce the configuration needed
+	// to evaluate this resource.
+	Unknown bool
 }
 
 var _ GraphNodeExecutable = (*nodeQueryResourcePolicy)(nil)
@@ -59,33 +65,58 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	var diags tfdiags.Diagnostics
 
 	client := ctx.PolicyClient()
-	config := ctx.Config()
-
 	if client == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping query policy evaluation")
 		return nil
 	}
-	if config == nil {
-		log.Printf("[DEBUG] No configuration available, skipping query policy evaluation")
-		return nil
+
+	emitResult := func(result policy.EvaluationResponse) tfdiags.Diagnostics {
+		result = result.WithQueryMetadata(
+			ctyIdentityToStringMap(n.Identity),
+			n.ListBlockAddr.String(),
+		)
+		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyResult(n.ResourceAddr.String(), result)
+		})
+		return diags.Append(hookErr)
+	}
+	emitError := func(detail string) tfdiags.Diagnostics {
+		result := policy.EvaluationResponse{
+			Overall: policy.PolicyErrorResult,
+			Diagnostics: policy.Diagnostics{
+				policy.NewErrorDiagnostic(
+					"Failed to evaluate Terraform Policy",
+					detail,
+					policy.PolicyErrorResult,
+				),
+			},
+		}
+		if n.ResourceConfig != nil {
+			result = result.WithLocalRange(n.ResourceConfig.DeclRange.Ptr())
+		}
+		return emitResult(result)
 	}
 
-	// Acquire the policy semaphore to limit concurrent policy evaluations.
-	// The nil-config guard above must remain before this acquire so that a
-	// missing config does not consume a semaphore slot for no work.
-	policySem := ctx.PolicySemaphore()
-	if policySem != nil {
-		policySem.Acquire()
-		defer policySem.Release()
+	if n.Unknown || n.GeneratedConfig == cty.NilVal || n.GeneratedConfig.IsNull() {
+		return emitResult(policy.EvaluationResponse{Overall: policy.UnknownResult})
+	}
+
+	config := ctx.Config()
+	if config == nil {
+		return emitError(fmt.Sprintf(
+			"Terraform could not prepare policy evaluation for %s because the configuration is unavailable.",
+			n.ResourceAddr,
+		))
 	}
 
 	providerAddr := n.ProviderAddr
 	provider, schema, err := getProvider(ctx, providerAddr)
 	if err != nil {
-		return diags.Append(err)
+		return emitError(fmt.Sprintf(
+			"Terraform could not prepare policy evaluation for %s: %s.",
+			n.ResourceAddr, err,
+		))
 	}
-
-	modCfg := config.DescendantForInstance(n.ResourceAddr.Module)
 
 	// Query resources are always evaluated as CREATE operations since they
 	// represent discovered resources that don't exist in the configuration.
@@ -95,40 +126,39 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
-	// The resource config may be nil if the list block has been removed from
-	// the configuration. In that case we proceed without source information
-	// in diagnostics.
-	var resourceConfig *configs.Resource
-	if modCfg != nil {
-		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
-	}
+	getResources := getResourcesForPolicyCallback(ctx, op, provider, schema, config)
 
 	callbacks := callback.Functions{
-		GetResources:  getResourcesForPolicyCallback(ctx, op, provider, schema, config),
+		GetResources:  queryGetResourcesCallback(getResources),
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
+	}
+
+	// Only actual policy evaluations consume the policy semaphore.
+	policySem := ctx.PolicySemaphore()
+	if policySem != nil {
+		policySem.Acquire()
+		defer policySem.Release()
 	}
 
 	// Evaluate policies with the generated config as the "after" state
 	// and null as the "before" state (since these are discovered resources).
 	// evaluatePolicies already applies WithLocalRange internally; do not reapply.
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+	return emitResult(result)
+}
 
-	// Annotate the result with query correlation metadata so that downstream
-	// consumers (UI, cloud backend) can identify which list-block row this
-	// result belongs to.
-	result = result.WithQueryMetadata(ctyIdentityToStringMap(n.Identity), n.ListBlockAddr.String())
-
-	// Always emit for query policy nodes. WithQueryMetadata always sets
-	// ListBlockAddr to a non-empty string, so every result has identity.
-	// Query nodes always emit so downstream aggregators can include passing
-	// resources in summary records; the !result.Empty() gate must not be
-	// applied here.
-	hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PolicyResult(n.ResourceAddr.String(), result)
-	})
-	diags = diags.Append(hookErr)
-
-	return diags
+func queryGetResourcesCallback(getResources func(context.Context, string, cty.Value) ([]cty.Value, bool, error)) func(context.Context, string, cty.Value) ([]cty.Value, bool, error) {
+	return func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+		resources, partial, err := getResources(callbackCtx, target, attrs)
+		// The shared callback only inspects objects represented in Terraform's
+		// configuration and state or plan. During a query, an empty result cannot
+		// prove that no unmanaged matching objects exist, so report it as partial;
+		// the policy plugin treats an incomplete relationship set as unknown.
+		if err == nil && len(resources) == 0 {
+			partial = true
+		}
+		return resources, partial, err
+	}
 }
 
 // ctyIdentityToStringMap converts a cty object value that represents a resource
