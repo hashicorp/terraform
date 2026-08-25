@@ -41,9 +41,15 @@ func ParseStateList(args []string) (*StateList, tfdiags.Diagnostics) {
 		))
 	}
 
+	args = cmdFlags.Args()
+	if moreDiags := checkStateMisplacedOptions(cmdFlags, "state list", "[ADDRESS...]", args); moreDiags.HasErrors() {
+		diags = diags.Append(moreDiags)
+		return list, diags
+	}
+
 	list.StatePath = statePath
 	list.ID = id
-	list.Addrs = cmdFlags.Args()
+	list.Addrs = args
 
 	return list, diags
 }

@@ -76,6 +76,17 @@ func TestParseStateList_invalid(t *testing.T) {
 		want      *StateList
 		wantDiags tfdiags.Diagnostics
 	}{
+		"option after arguments": {
+			[]string{"test_instance.foo", "-id=bar"},
+			&StateList{},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Option specified after arguments",
+					"Terraform stops interpreting command-line options at the first argument, so \"-id=bar\" was treated as an argument to \"terraform state list\" rather than as an option.\n\nSpecify options before the arguments, like this:\n    terraform state list -id=bar [ADDRESS...]",
+				),
+			},
+		},
 		"unknown flag": {
 			[]string{"-boop"},
 			&StateList{},

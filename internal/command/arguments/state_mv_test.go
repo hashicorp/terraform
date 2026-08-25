@@ -137,6 +137,22 @@ func TestParseStateMv_invalid(t *testing.T) {
 		want      *StateMv
 		wantDiags tfdiags.Diagnostics
 	}{
+		"option after arguments": {
+			[]string{"test_instance.foo", "test_instance.bar", "-dry-run"},
+			&StateMv{
+				Vars:          &Vars{},
+				BackupPath:    "-",
+				BackupOutPath: "-",
+				StateLock:     true,
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Option specified after arguments",
+					"Terraform stops interpreting command-line options at the first argument, so \"-dry-run\" was treated as an argument to \"terraform state mv\" rather than as an option.\n\nSpecify options before the arguments, like this:\n    terraform state mv -dry-run SOURCE DESTINATION",
+				),
+			},
+		},
 		"no arguments": {
 			nil,
 			&StateMv{

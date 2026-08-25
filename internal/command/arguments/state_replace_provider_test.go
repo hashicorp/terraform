@@ -130,6 +130,21 @@ func TestParseStateReplaceProvider_invalid(t *testing.T) {
 		want      *StateReplaceProvider
 		wantDiags tfdiags.Diagnostics
 	}{
+		"option after arguments": {
+			[]string{"hashicorp/google", "acmecorp/google", "-auto-approve"},
+			&StateReplaceProvider{
+				Vars:       &Vars{},
+				BackupPath: "-",
+				StateLock:  true,
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Option specified after arguments",
+					"Terraform stops interpreting command-line options at the first argument, so \"-auto-approve\" was treated as an argument to \"terraform state replace-provider\" rather than as an option.\n\nSpecify options before the arguments, like this:\n    terraform state replace-provider -auto-approve FROM_PROVIDER_FQN TO_PROVIDER_FQN",
+				),
+			},
+		},
 		"no arguments": {
 			nil,
 			&StateReplaceProvider{

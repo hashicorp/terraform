@@ -1,0 +1,7 @@
+kind: BUG FIXES
+body: 'command/state: The state subcommands now explain that an option was specified
+    after the address arguments, instead of failing with a confusing address parse
+    error such as "Variable name required"'
+time: 2026-08-25T14:00:00.000000-04:00
+custom:
+    Issue: "29524"

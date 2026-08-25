@@ -69,6 +69,11 @@ func ParseStateReplaceProvider(args []string) (*StateReplaceProvider, tfdiags.Di
 	}
 
 	args = cmdFlags.Args()
+	if moreDiags := checkStateMisplacedOptions(cmdFlags, "state replace-provider", "FROM_PROVIDER_FQN TO_PROVIDER_FQN", args); moreDiags.HasErrors() {
+		diags = diags.Append(moreDiags)
+		return rp, diags
+	}
+
 	if len(args) != 2 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

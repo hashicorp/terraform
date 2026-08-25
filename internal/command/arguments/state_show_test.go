@@ -50,6 +50,17 @@ func TestParseStateShow_invalid(t *testing.T) {
 		want      *StateShow
 		wantDiags tfdiags.Diagnostics
 	}{
+		"option after arguments": {
+			[]string{"test_instance.foo", "-json"},
+			&StateShow{ViewType: ViewHuman},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Option specified after arguments",
+					"Terraform stops interpreting command-line options at the first argument, so \"-json\" was treated as an argument to \"terraform state show\" rather than as an option.\n\nSpecify options before the arguments, like this:\n    terraform state show -json ADDRESS",
+				),
+			},
+		},
 		"no arguments": {
 			nil,
 			&StateShow{ViewType: ViewHuman},

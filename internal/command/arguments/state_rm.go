@@ -65,6 +65,11 @@ func ParseStateRm(args []string) (*StateRm, tfdiags.Diagnostics) {
 	}
 
 	args = cmdFlags.Args()
+	if moreDiags := checkStateMisplacedOptions(cmdFlags, "state rm", "ADDRESS...", args); moreDiags.HasErrors() {
+		diags = diags.Append(moreDiags)
+		return rm, diags
+	}
+
 	if len(args) < 1 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

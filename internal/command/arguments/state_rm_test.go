@@ -120,6 +120,21 @@ func TestParseStateRm_invalid(t *testing.T) {
 		want      *StateRm
 		wantDiags tfdiags.Diagnostics
 	}{
+		"option after arguments": {
+			[]string{"module.eks", "--dry-run"},
+			&StateRm{
+				Vars:       &Vars{},
+				BackupPath: "-",
+				StateLock:  true,
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Option specified after arguments",
+					"Terraform stops interpreting command-line options at the first argument, so \"--dry-run\" was treated as an argument to \"terraform state rm\" rather than as an option.\n\nSpecify options before the arguments, like this:\n    terraform state rm --dry-run ADDRESS...",
+				),
+			},
+		},
 		"no arguments": {
 			nil,
 			&StateRm{

@@ -77,6 +77,11 @@ func ParseStateMv(args []string) (*StateMv, tfdiags.Diagnostics) {
 	}
 
 	args = cmdFlags.Args()
+	if moreDiags := checkStateMisplacedOptions(cmdFlags, "state mv", "SOURCE DESTINATION", args); moreDiags.HasErrors() {
+		diags = diags.Append(moreDiags)
+		return mv, diags
+	}
+
 	if len(args) != 2 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
