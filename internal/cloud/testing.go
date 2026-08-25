@@ -155,6 +155,11 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 }
 
 func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+	b, _, c := testBackendAndMocksWithHandlers(t, handlers)
+	return b, c
+}
+
+func testBackendAndMocksWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, *MockClient, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -165,8 +170,7 @@ func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.Respons
 			"project": cty.NullVal(cty.String),
 		}),
 	})
-	b, _, c := testBackend(t, obj, handlers)
-	return b, c
+	return testBackend(t, obj, handlers)
 }
 
 func testCloudState(t *testing.T) *State {
@@ -635,4 +639,150 @@ func testVariables(s terraform.ValueSourceType, vs ...string) map[string]argumen
 		}
 	}
 	return vars
+}
+
+type queryV2Variable struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type queryV2Request struct {
+	WorkspaceID            string
+	ConfigurationVersionID string
+	GenerateConfigOut      bool
+	PolicyPaths            []string
+	Variables              []queryV2Variable
+}
+
+// mockQueryV2Handler returns an HTTP handler for POST /api/v2/queries. It
+// validates the request contract and inserts a matching QueryRun so that
+// subsequent Read and Logs calls work. If requests is non-nil, it must be
+// buffered sufficiently for the expected number of requests.
+func mockQueryV2Handler(t *testing.T, mc *MockClient, logFile string, requests chan<- queryV2Request) func(http.ResponseWriter, *http.Request) {
+	t.Helper()
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		// The Kiota serializer wraps the body in a "data" envelope.
+		var body struct {
+			Data struct {
+				Type       string `json:"type"`
+				Attributes struct {
+					Source            string            `json:"source"`
+					GenerateConfigOut *bool             `json:"generate-config-out"`
+					PolicyPaths       []string          `json:"policy-paths"`
+					Variables         []queryV2Variable `json:"variables"`
+				} `json:"attributes"`
+				Relationships struct {
+					Workspace struct {
+						Data struct {
+							Type string `json:"type"`
+							ID   string `json:"id"`
+						} `json:"data"`
+					} `json:"workspace"`
+					ConfigurationVersion struct {
+						Data struct {
+							Type string `json:"type"`
+							ID   string `json:"id"`
+						} `json:"data"`
+					} `json:"configuration-version"`
+				} `json:"relationships"`
+			} `json:"data"`
+		}
+		rawBody, readErr := io.ReadAll(r.Body)
+		if readErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if err := json.Unmarshal(rawBody, &body); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		valid := true
+		if got, want := r.Header.Get("Authorization"), "Bearer "+testCred; got != want {
+			t.Errorf("Authorization header = %q, want %q", got, want)
+			valid = false
+		}
+		if got, want := r.Header.Get("Content-Type"), "application/vnd.api+json"; got != want {
+			t.Errorf("Content-Type header = %q, want %q", got, want)
+			valid = false
+		}
+		if got, want := r.Header.Get(version.Header), version.Version; got != want {
+			t.Errorf("%s header = %q, want %q", version.Header, got, want)
+			valid = false
+		}
+		if got := r.Header.Get(headerSourceKey); got != headerSourceValue {
+			t.Errorf("%s header = %q, want %q", headerSourceKey, got, headerSourceValue)
+			valid = false
+		}
+		if body.Data.Type != "queries" {
+			t.Errorf("query resource type = %q, want %q", body.Data.Type, "queries")
+			valid = false
+		}
+		if body.Data.Attributes.Source != "tfe-api" {
+			t.Errorf("query source = %q, want %q", body.Data.Attributes.Source, "tfe-api")
+			valid = false
+		}
+		if body.Data.Attributes.GenerateConfigOut == nil {
+			t.Error("generate-config-out is absent from request body")
+			valid = false
+		}
+		if body.Data.Relationships.Workspace.Data.Type != "workspaces" || body.Data.Relationships.Workspace.Data.ID == "" {
+			t.Errorf("workspace relationship = %#v, want type and id", body.Data.Relationships.Workspace.Data)
+			valid = false
+		}
+		if body.Data.Relationships.ConfigurationVersion.Data.Type != "configuration-versions" || body.Data.Relationships.ConfigurationVersion.Data.ID == "" {
+			t.Errorf("configuration-version relationship = %#v, want type and id", body.Data.Relationships.ConfigurationVersion.Data)
+			valid = false
+		}
+
+		// A missing or empty policy-paths list means the Kiota serializer
+		// changed the key name or envelope shape. Calling t.Fatalf here makes
+		// the failure show up as a test assertion rather than an opaque 400
+		// that would surface in the operation error log.
+		//
+		// Any test that wants to exercise the v2 path without policy-paths must
+		// use a dedicated handler that omits this guard.
+		if len(body.Data.Attributes.PolicyPaths) == 0 {
+			t.Errorf("mockQueryV2Handler: policy-paths absent from request body; Kiota serializer may have changed the key or envelope shape")
+			valid = false
+		}
+		if !valid {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if requests != nil {
+			requests <- queryV2Request{
+				WorkspaceID:            body.Data.Relationships.Workspace.Data.ID,
+				ConfigurationVersionID: body.Data.Relationships.ConfigurationVersion.Data.ID,
+				GenerateConfigOut:      *body.Data.Attributes.GenerateConfigOut,
+				PolicyPaths:            append([]string(nil), body.Data.Attributes.PolicyPaths...),
+				Variables:              append([]queryV2Variable(nil), body.Data.Attributes.Variables...),
+			}
+		}
+
+		mc.QueryRuns.Lock()
+		// Synthesise a QueryRun so that Read + Logs work normally.
+		id := GenerateID("qry-")
+		logURL := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+		run := &tfe.QueryRun{
+			ID:         id,
+			LogReadURL: logURL,
+			Status:     tfe.QueryRunPending,
+		}
+		workspaceID := body.Data.Relationships.Workspace.Data.ID
+		mc.QueryRuns.logs[logURL] = logFile
+		mc.QueryRuns.Runs[run.ID] = run
+		mc.QueryRuns.workspaces[workspaceID] = append(mc.QueryRuns.workspaces[workspaceID], run)
+		mc.QueryRuns.Unlock()
+
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		w.WriteHeader(http.StatusCreated)
+		// Wrap in a "data" object matching the QueriesEnvelope the SDK deserializes.
+		fmt.Fprintf(w, `{"data":{"id":%q,"type":"queries","attributes":{"status":"pending","log-read-url":%q}}}`, id, logURL)
+	}
 }

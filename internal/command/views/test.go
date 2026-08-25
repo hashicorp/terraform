@@ -212,7 +212,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 			}
 		} else {
 			// We'll print the plan.
-			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			outputs, changed, drift, attrs, actions, deferredChanges, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -228,6 +228,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 					RelevantAttributes:    attrs,
 					ActionInvocations:     actions,
+					DeferredChanges:       deferredChanges,
 				}
 
 				var opts []plans.Quality
@@ -590,7 +591,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					"@testrun", run.Name)
 			}
 		} else {
-			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			outputs, changed, drift, attrs, actions, deferredChanges, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -606,6 +607,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 					RelevantAttributes:    attrs,
 					ActionInvocations:     actions,
+					DeferredChanges:       deferredChanges,
 				}
 
 				t.view.log.Info(
