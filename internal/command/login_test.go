@@ -27,7 +27,12 @@ import (
 // to an organization with max TTL enforcement enabled. We assert against
 // the title rather than the body, since diagnostic rendering wraps long
 // lines and makes body substring matches unreliable.
-const ttlWarning = "Warning: Token TTL policy"
+const ttlWarning = "Warning: Token is subject to TTL policy"
+
+// ttlWarningOrg is the organization name the mock TFE server returns from
+// its /organizations endpoint, used to assert that the TTL warning message
+// names the affected organization(s).
+const ttlWarningOrg = "hashicorp"
 
 // setOrgsMaxTTLEnabled sets whether the mock TFE server's /organizations
 // endpoint reports max TTL enforcement, restoring the previous value when
@@ -150,6 +155,9 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
+		}
+		if got, want := ui.OutputWriter.String(), ttlWarningOrg; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning to name the affected organization\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
@@ -286,6 +294,9 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
+		}
+		if got, want := ui.OutputWriter.String(), ttlWarningOrg; !strings.Contains(got, want) {
+			t.Errorf("expected TTL warning to name the affected organization\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
