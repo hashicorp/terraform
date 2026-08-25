@@ -6020,6 +6020,9 @@ func TestTest_ParallelDeps(t *testing.T) {
 		1A and 1B have the same state key, so during teardown, they are only
 		represented by a single node in the graph. We have to take care not to
 		build a cyclic reference in the teardown graph.
+		We do that by resolving the first reference (1A) encountered in the reverse run
+		order. Following that reference, we mark the state as visited so that
+		we do not visit it again when we encounter it elsewhere (1B)
 	*/
 	t.Run("potential cyclic reference via state dependency", func(t *testing.T) {
 		td := t.TempDir()
@@ -6075,6 +6078,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 				    C
 
 		What matters here is that A and B are between C and D.
+		A and B are siblings, so they can be planned and torn down in parallel.
 	*/
 	t.Run("diamond graph with sibling dependencies", func(t *testing.T) {
 		td := t.TempDir()
