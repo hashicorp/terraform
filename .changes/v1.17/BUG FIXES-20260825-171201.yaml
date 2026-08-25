@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'checks: fix data race in ObjectFailureMessages by adding mutex protection'
+time: 2026-08-25T22:12:01.000000+00:00
+custom:
+    Issue: "39060"
