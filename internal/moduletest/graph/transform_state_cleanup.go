@@ -5,7 +5,6 @@ package graph
 
 import (
 	"fmt"
-	"maps"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -100,7 +99,6 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// dependency map for state keys, which will be used to traverse
 	// the cleanup nodes in a depth-first manner.
 	depStateKeys := make(map[string]collections.Set[string])
-	collections.NewSetCmp[string]()
 
 	// iterate in reverse order of the run index, so that the last run for each state key
 	// is attached to the cleanup node.
@@ -121,25 +119,20 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
-	// This traversal ensures that nodes are only visited once.
-	// Each visited node processes its dependencies and connects cleanup nodes as needed, so if
-	// another path leads to the same node, it will not be processed again.
-	visited := make(map[string]bool)
+	// This depth-first traversal ensures that cleanup nodes are only visited once.
+	// Each visited node processes its dependencies and connects the nodes along its path.
+
+	// Track nodes that have already been traversed, so that their dependencies
+	// are not processed again.
+	traversed := make(map[string]bool)
 	for _, node := range cleanupNodes {
-		if visited[node.stateKey] {
-			continue
-		}
-
-		// The processed map tracks nodes encountered along this node's path.
-		processed := make(map[string]bool)
-		t.depthFirstTraverse(g, node, processed, cleanupMap, depStateKeys)
-
-		// Mark the node and its dependencies as visited to avoid processing them again.
-		maps.Copy(visited, processed)
+		// Also track nodes encountered along this traversal path so that
+		// we do not create cycles.
+		seen := make(map[string]bool)
+		t.depthFirstTraverse(g, node, traversed, seen, cleanupMap, depStateKeys)
 	}
-	if cy := g.Cycles(); len(cy) > 0 {
-		return fmt.Errorf("cleanup graph contains cycles")
+	if err := g.Validate(); err != nil {
+		return fmt.Errorf("Invalid cleanup graph: %w", err)
 	}
 	return nil
 }
@@ -154,21 +147,26 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 // In this case, the cleanup graph must be "S -> T".
 // If test_two were to reference test_one, an edge like "T -> S" is also requested,
 // but that would introduce a cycle and is therefore skipped.
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string]collections.Set[string]) {
-	visited[node.stateKey] = true
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, traversed, seen map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string]collections.Set[string]) {
+	// If the node has already been traversed, don't process its dependencies again.
+	if traversed[node.stateKey] {
+		return
+	}
+	seen[node.stateKey] = true
+	traversed[node.stateKey] = true
 
 	for depStateKey := range depStateKeys[node.stateKey].All() {
-		// If the reference node has already been visited along the current path, skip it.
-		if visited[depStateKey] {
+		if seen[depStateKey] {
+			// If the dependency node has already been seen along the current path,
+			// then it is already an ancestor on this path, so we skip it to avoid cycles.
 			continue
 		}
 		refNode := cleanupNodes[depStateKey]
 
-		// If the edge already exists, skip it to avoid redundant traversal.
-		if g.HasEdge(refNode, node) {
-			continue
-		}
 		g.Connect(refNode, node)
-		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
+		t.depthFirstTraverse(g, refNode, traversed, seen, cleanupNodes, depStateKeys)
 	}
+
+	// Remove the node from the seen map so it does not affect sibling traversals.
+	delete(seen, node.stateKey)
 }
