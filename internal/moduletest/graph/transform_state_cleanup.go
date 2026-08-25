@@ -98,7 +98,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 
 	// dependency map for state keys, which will be used to traverse
 	// the cleanup nodes in a depth-first manner.
-	depStateKeys := make(map[string]collections.Set[string])
+	depStateKeys := make(map[string][]string)
 
 	// iterate in reverse order of the run index, so that the last run for each state key
 	// is attached to the cleanup node.
@@ -115,7 +115,8 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			g.Add(node)
 
 			// The dependency map for the state's last run will be used for the cleanup node.
-			depStateKeys[key] = t.stateDependencyMap[run.Addr()]
+			// We sort the state keys to ensure deterministic traversal order.
+			depStateKeys[key] = slices.Sorted(t.stateDependencyMap[run.Addr()].All())
 		}
 	}
 
@@ -147,7 +148,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 // In this case, the cleanup graph must be "S -> T".
 // If test_two were to reference test_one, an edge like "T -> S" is also requested,
 // but that would introduce a cycle and is therefore skipped.
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, traversed, seen map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string]collections.Set[string]) {
+func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, traversed, seen map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
 	// If the node has already been traversed, don't process its dependencies again.
 	if traversed[node.stateKey] {
 		return
@@ -155,7 +156,7 @@ func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, nod
 	seen[node.stateKey] = true
 	traversed[node.stateKey] = true
 
-	for depStateKey := range depStateKeys[node.stateKey].All() {
+	for _, depStateKey := range depStateKeys[node.stateKey] {
 		if seen[depStateKey] {
 			// If the dependency node has already been seen along the current path,
 			// then it is already an ancestor on this path, so we skip it to avoid cycles.
