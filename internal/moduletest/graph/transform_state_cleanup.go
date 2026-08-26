@@ -56,7 +56,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	for runNode := range dag.SelectSeq[RunNode](b.runGraph.VerticesSeq()) {
 		addr := runNode.Run().Addr()
 		stateDepMap[addr] = collections.NewSetCmp[string]()
-		refs := b.runGraph.Ancestors(runNode)
+		refs := b.runGraph.EdgesFrom(runNode)
 		for ref := range refs.All() {
 			if ref, ok := ref.(RunNode); ok && ref.Run().Config.StateKey != runNode.Run().Config.StateKey {
 				stateDepMap[addr].Add(ref.Run().Config.StateKey)
@@ -67,7 +67,7 @@ func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestStateCleanupTransformer{opts: b.opts, stateDependencyMap: stateDepMap},
+			&TestStateCleanupTransformer{opts: b.opts, stateDependencyMap: stateDepMap, runGraph: b.runGraph},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -90,6 +90,7 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 type TestStateCleanupTransformer struct {
 	opts               *graphOptions
 	stateDependencyMap map[addrs.Run]collections.Set[string]
+	runGraph           *terraform.Graph
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
@@ -100,9 +101,14 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	// the cleanup nodes in a depth-first manner.
 	depStateKeys := make(map[string][]string)
 
-	// iterate in reverse order of the run index, so that the last run for each state key
+	// iterate in topological order of the run graph, so that the last run for each state key
 	// is attached to the cleanup node.
-	for _, run := range slices.Backward(t.opts.File.Runs) {
+	for _, node := range t.runGraph.TopologicalOrder() {
+		runNode, ok := node.(RunNode)
+		if !ok {
+			continue
+		}
+		run := runNode.Run()
 		key := run.Config.StateKey
 
 		if _, exists := cleanupMap[key]; !exists {
@@ -120,54 +126,23 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		}
 	}
 
-	// This depth-first traversal ensures that cleanup nodes are only visited once.
-	// Each visited node processes its dependencies and connects the nodes along its path.
-
-	// Track nodes that have already been traversed, so that their dependencies
-	// are not processed again.
-	traversed := make(map[string]bool)
+	seen := make(map[string]bool)
 	for _, node := range cleanupNodes {
+		seen[node.stateKey] = true
 		// Also track nodes encountered along this traversal path so that
 		// we do not create cycles.
-		seen := make(map[string]bool)
-		t.depthFirstTraverse(g, node, traversed, seen, cleanupMap, depStateKeys)
+		for _, depStateKey := range depStateKeys[node.stateKey] {
+			if seen[depStateKey] {
+				// If the dependency node has already been seen along the current path,
+				// then it is already an ancestor on this path, so we skip it to avoid cycles.
+				continue
+			}
+			refNode := cleanupMap[depStateKey]
+			g.Connect(refNode, node)
+		}
 	}
 	if err := g.Validate(); err != nil {
 		return fmt.Errorf("Invalid cleanup graph: %w", err)
 	}
 	return nil
-}
-
-// depthFirstTraverse is a recursive helper function that traverses the cleanup graph depth-first.
-// The cleanup graph must preserve reverse run order, but references between runs can introduce edges that
-// conflict with this order, especially when multiple runs use the same state key. When an edge would introduce
-// a cycle, it is skipped to avoid invalidating the graph.
-//
-// For example: Given the order
-// test_one (S) -> test_two (T) -> test_three (S), where S and T are state keys
-// In this case, the cleanup graph must be "S -> T".
-// If test_two were to reference test_one, an edge like "T -> S" is also requested,
-// but that would introduce a cycle and is therefore skipped.
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, traversed, seen map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	// If the node has already been traversed, don't process its dependencies again.
-	if traversed[node.stateKey] {
-		return
-	}
-	seen[node.stateKey] = true
-	traversed[node.stateKey] = true
-
-	for _, depStateKey := range depStateKeys[node.stateKey] {
-		if seen[depStateKey] {
-			// If the dependency node has already been seen along the current path,
-			// then it is already an ancestor on this path, so we skip it to avoid cycles.
-			continue
-		}
-		refNode := cleanupNodes[depStateKey]
-
-		g.Connect(refNode, node)
-		t.depthFirstTraverse(g, refNode, traversed, seen, cleanupNodes, depStateKeys)
-	}
-
-	// Remove the node from the seen map so it does not affect sibling traversals.
-	delete(seen, node.stateKey)
 }

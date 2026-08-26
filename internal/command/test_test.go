@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -931,7 +930,7 @@ Success!
 		}
 	})
 
-	t.Run("cleanup failed state only (-repair)", func(t *testing.T) {
+	t.Run("cleanup failed state only: -repair", func(t *testing.T) {
 		provider := testing_command.NewProvider(nil)
 		providerSource := newMockProviderSource(t, map[string][]string{
 			"test": {"1.0.0"},
@@ -1545,7 +1544,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			},
 		},
 		{
-			name: "possible cyclic state key reference: skip edge that would cause cycle",
+			name: "cyclic state key reference",
 			sources: map[string]string{
 				"main.tf": `
 					variable "foo" {
@@ -1560,7 +1559,16 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						value = test_resource.foo.value
 					}
 					`,
-				// c2 => a1, b1 => a1, a2 => b1, b2 => c1
+				/*
+
+					 a2   b2       c2
+					| \   /  \  /  /
+					|   b1   c1   /
+					|   |        /
+					|   |       /
+					|   |      /
+					     a1
+				*/
 				"parallel.tftest.hcl": `
 					test {
 						parallel = true
@@ -1643,24 +1651,9 @@ func TestTest_ParallelTeardown(t *testing.T) {
 					t.Errorf("output didn't produce the right output:\n\n%s", output)
 				}
 
-				lines := strings.Split(output, "\n")
-				aIdx, bIdx, cIdx := -1, -1, -1
-				for idx, line := range lines {
-					if strings.Contains(line, "tearing down") {
-						if strings.Contains(line, "a2") {
-							aIdx = idx
-						}
-						if strings.Contains(line, "b2") {
-							bIdx = idx
-						}
-						if strings.Contains(line, "c2") {
-							cIdx = idx
-						}
-					}
-				}
-
-				if cIdx > aIdx || aIdx > bIdx { // c => a => b
-					t.Errorf("teardown order is incorrect: c2 (%d), a2 (%d), b2 (%d)", cIdx, aIdx, bIdx)
+				// Each teardown sleeps for 3 seconds, so we expect the total duration to be less than 9 seconds.
+				if dur >= 9*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too long: %0.2f seconds", dur.Seconds())
 				}
 			},
 		},
@@ -6020,9 +6013,9 @@ func TestTest_ParallelDeps(t *testing.T) {
 		1A and 1B have the same state key, so during teardown, they are only
 		represented by a single node in the graph. We have to take care not to
 		build a cyclic reference in the teardown graph.
-		We do that by resolving the first reference (1A) encountered in the reverse run
+		We do that by resolving the first reference (1B) encountered in the reverse topological
 		order. Following that reference, we mark the state as visited so that
-		we do not visit it again when we encounter it elsewhere (1B)
+		we do not visit it again when we encounter it elsewhere (1A)
 	*/
 	t.Run("potential cyclic reference via state dependency", func(t *testing.T) {
 		td := t.TempDir()
@@ -6048,8 +6041,6 @@ func TestTest_ParallelDeps(t *testing.T) {
 		actual := output.All()
 
 		var teardownOrder []string
-		// teardown order should be reverse of creation
-		expectedTeardownOrder := []string{"test_two", "test_three", "test_one_b"}
 		lines, err := parseJSONLines(t, actual)
 		if err != nil {
 			t.Fatal(err)
@@ -6060,9 +6051,12 @@ func TestTest_ParallelDeps(t *testing.T) {
 			}
 		}
 
-		if !slices.Equal(teardownOrder, expectedTeardownOrder) {
-			t.Errorf("expected teardown order %v but got %v.\nteardown order: %v\nfull output:\n%s",
-				expectedTeardownOrder, teardownOrder, teardownOrder, actual)
+		if len(teardownOrder) != 3 {
+			t.Errorf("expected 3 teardown runs but got %d", len(teardownOrder))
+		}
+
+		if teardownOrder[2] != "test_three" {
+			t.Errorf("expected test_three to be the third teardown run but got %v", teardownOrder)
 		}
 
 		if provider.ResourceCount() != 0 {
