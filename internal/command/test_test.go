@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -1544,6 +1545,81 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			},
 		},
 		{
+			name: "transitive reference prevents parallel teardown",
+			sources: map[string]string{
+				"main.tf": `
+					variable "input" {
+						type = string
+					}
+
+					resource "test_resource" "foo" {
+						value = var.input
+						destroy_wait_seconds = 5
+					}
+
+					output "value" {
+						value = test_resource.foo.value
+					}
+					`,
+				"parallel.tftest.hcl": `
+					test {
+						parallel = true
+					}
+
+					variables {
+						foo = run.test_a.value
+					}
+
+					provider "test" {
+					}
+
+					provider "test" {
+						alias = "start"
+					}
+
+					run "test_a" {
+						state_key = "state_foo"
+						variables {
+							input = "foo"
+						}
+						providers = {
+							test = test
+						}
+
+						assert {
+							condition     = output.value == "foo"
+							error_message = "error in test_a"
+						}
+					}
+
+					run "test_b" {
+						state_key = "state_bar"
+						variables {
+							input = "bar"
+						}
+
+						providers = {
+							test = test.start
+						}
+
+						assert {
+							condition     = output.value != var.foo
+							error_message = "error in test_b"
+						}
+					}
+					`,
+			},
+			assertFunc: func(t *testing.T, output string, dur time.Duration) {
+				if !strings.Contains(output, "2 passed, 0 failed") {
+					t.Errorf("output didn't produce the right output:\n\n%s", output)
+				}
+				// Each teardown sleeps for 5 seconds, so we expect the total duration to be at least 10 seconds.
+				if dur < 10*time.Second {
+					t.Fatalf("parallel.tftest.hcl duration took too short: %0.2f seconds", dur.Seconds())
+				}
+			},
+		},
+		{
 			name: "cyclic state key reference",
 			sources: map[string]string{
 				"main.tf": `
@@ -1661,85 +1737,87 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, td, closer := testModuleInline(t, tt.sources)
-			defer closer()
-			t.Chdir(td)
+			syncTest, streams, done := streamableSyncTest(t)
+			syncTest(t, func(t *testing.T) {
+				_, td, closer := testModuleInline(t, tt.sources)
+				defer closer()
+				t.Chdir(td)
 
-			providerSource := newMockProviderSource(t, map[string][]string{
-				"test": {"1.0.0"},
-			})
+				providerSource := newMockProviderSource(t, map[string][]string{
+					"test": {"1.0.0"},
+				})
 
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := testUiWrapped(t)
+				view := views.NewView(streams)
+				ui := testUiWrapped(t)
 
-			// create a new provider instance for each test run, so that we can
-			// ensure that the test provider locks do not interfere between runs.
-			pInst := func() providers.Interface {
-				return testing_command.NewProvider(nil).Provider
-			}
-			meta := Meta{
-				testingOverrides: &testingOverrides{
-					Providers: map[addrs.Provider]providers.Factory{
-						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
-							return pInst(), nil
-						},
-					}},
-				Ui:             ui,
-				View:           view,
-				Streams:        streams,
-				ProviderSource: providerSource,
-			}
+				// create a new provider instance for each test run, so that we can
+				// ensure that the test provider locks do not interfere between runs.
+				pInst := func() providers.Interface {
+					return testing_command.NewProvider(nil).Provider
+				}
+				meta := Meta{
+					testingOverrides: &testingOverrides{
+						Providers: map[addrs.Provider]providers.Factory{
+							addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+								return pInst(), nil
+							},
+						}},
+					Ui:             ui,
+					View:           view,
+					Streams:        streams,
+					ProviderSource: providerSource,
+				}
 
-			init := &InitCommand{Meta: meta}
-			if code := init.Run(nil); code != 0 {
-				output := done(t)
-				t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
-			}
+				init := &InitCommand{Meta: meta}
+				if code := init.Run(nil); code != 0 {
+					output := done(t)
+					t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+				}
 
-			c := &TestCommand{Meta: meta}
-			c.Run([]string{"-json", "-no-color"})
-			output := done(t).All()
+				c := &TestCommand{Meta: meta}
+				c.Run([]string{"-json", "-no-color"})
+				output := done(t).All()
 
-			// Split the log into lines
-			lines := strings.Split(output, "\n")
+				// Split the log into lines
+				lines := strings.Split(output, "\n")
 
-			// Find the start of the teardown and complete timestamps
-			var startTimestamp, completeTimestamp string
-			for _, line := range lines {
-				if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
-					var obj map[string]interface{}
-					if err := json.Unmarshal([]byte(line), &obj); err == nil {
-						if ts, ok := obj["@timestamp"].(string); ok {
-							startTimestamp = ts
+				// Find the start of the teardown and complete timestamps
+				var startTimestamp, completeTimestamp string
+				for _, line := range lines {
+					if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+						var obj map[string]interface{}
+						if err := json.Unmarshal([]byte(line), &obj); err == nil {
+							if ts, ok := obj["@timestamp"].(string); ok {
+								startTimestamp = ts
+							}
 						}
-					}
-				} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
-					var obj map[string]interface{}
-					if err := json.Unmarshal([]byte(line), &obj); err == nil {
-						if ts, ok := obj["@timestamp"].(string); ok {
-							completeTimestamp = ts
+					} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+						var obj map[string]interface{}
+						if err := json.Unmarshal([]byte(line), &obj); err == nil {
+							if ts, ok := obj["@timestamp"].(string); ok {
+								completeTimestamp = ts
+							}
 						}
 					}
 				}
-			}
 
-			if startTimestamp == "" || completeTimestamp == "" {
-				t.Fatalf("could not find start or complete timestamp in log output")
-			}
+				if startTimestamp == "" || completeTimestamp == "" {
+					t.Fatalf("could not find start or complete timestamp in log output")
+				}
 
-			startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
-			if err != nil {
-				t.Fatalf("failed to parse start timestamp: %v", err)
-			}
-			completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
-			if err != nil {
-				t.Fatalf("failed to parse complete timestamp: %v", err)
-			}
-			dur := completeTime.Sub(startTime)
-			if tt.assertFunc != nil {
-				tt.assertFunc(t, output, dur)
-			}
+				startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+				if err != nil {
+					t.Fatalf("failed to parse start timestamp: %v", err)
+				}
+				completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+				if err != nil {
+					t.Fatalf("failed to parse complete timestamp: %v", err)
+				}
+				dur := completeTime.Sub(startTime)
+				if tt.assertFunc != nil {
+					tt.assertFunc(t, output, dur)
+				}
+			})
 		})
 	}
 }
@@ -4619,7 +4697,6 @@ func TestTest_LongRunningTest(t *testing.T) {
 	if code != 0 {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
-
 	actual := output.All()
 	expected := `main.tftest.hcl... in progress
   run "test"... pass
@@ -6271,4 +6348,11 @@ func removeOutputs(states map[string][]string) map[string][]string {
 	}
 
 	return states
+}
+
+// streamableSyncTest is a helper to ensure that the long-running streaming goroutines are started outside of the synctest bubble.
+// Otherwise, the sync bubble will be unable to advance time, and the main goroutine will become infinitely paused on any time.Sleep operation.
+func streamableSyncTest(t *testing.T) (func(t *testing.T, f func(*testing.T)), *terminal.Streams, func(*testing.T) *terminal.TestOutput) {
+	streams, done := terminal.StreamsForTesting(t)
+	return synctest.Test, streams, done
 }
