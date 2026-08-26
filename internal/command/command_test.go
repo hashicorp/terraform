@@ -1365,6 +1365,30 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	checkGoldenReferenceStr(t, output, want)
 }
 
+// checkParameterizedGoldenReference compares the given test output with a known "golden" output JSON log
+// with the name "output-parameterized.jsonlog" located under the specified fixture path.
+//
+// This method is just like checkGoldenReference but it additionally accepts parameter values. These values can
+// be used to create the final formatted string(s) for comparison against JSON log output. E.g. This enables
+// references to the architecture and OS of the machine used to run automated tests.
+func checkParameterizedGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string, params ...interface{}) {
+	t.Helper()
+
+	// Load the golden reference fixture
+	wantFile, err := os.Open(path.Join(testFixturePath(fixturePathName), "output-parameterized.jsonlog"))
+	if err != nil {
+		t.Fatalf("failed to open output file: %s", err)
+	}
+	defer wantFile.Close()
+	wantBytes, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("failed to read output file: %s", err)
+	}
+	want := fmt.Sprintf(string(wantBytes), params...)
+
+	checkGoldenReferenceStr(t, output, want)
+}
+
 // checkGoldenReferenceStr allows comparison of a test's output with a string provided by the caller.
 // If you want to compare against a known "golden" output JSON log, use checkGoldenReference instead.
 func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want string) {
