@@ -2178,4 +2178,72 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 		// Assert expected JSON output is made
 		checkGoldenReference(t, out, fixture)
 	})
+
+	t.Run("state store to state store in another provider", func(t *testing.T) {
+		fixture := "state-store-changed/provider-used"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// hashicorp/test
+		sourcePssSchema := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		sourceProvider := mockPluggableStateStorageProvider(sourcePssSchema)
+		sourceProvider.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+		}
+		// hashicorp/test2
+		destinationPssSchema := map[string]providers.Schema{
+			"test2_dst": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
+		destinationProvider.MockStates = testing_provider.MockStateBytes{
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
+		}
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"},
+			"hashicorp/test2": {"3.2.1"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected JSON output is made
+		checkParameterizedGoldenReference(t, out, fixture, getproviders.CurrentPlatform.String())
+	})
+
 }
