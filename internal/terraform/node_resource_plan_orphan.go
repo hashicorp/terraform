@@ -143,7 +143,11 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// If a dependency of this resource was excluded, then exclude this resource. If this
 		// resource is deferred by a dependency for a different reason, then that will be detected
 		// and reported after planning.
-		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, providers.DeferredReasonExcluded) {
+		excludedReasons := []providers.DeferredReason{
+			providers.DeferredReasonExcluded,
+			providers.DeferredReasonExcludedPrereq,
+		}
+		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, excludedReasons...) {
 			excluded = true
 			deferredReason = providers.DeferredReasonExcludedPrereq
 		}
@@ -176,6 +180,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 					//   # module.child_unknown[0].random_integer.child_test was deferred
 					//   # (because the resource was excluded)
 					//     resource "random_integer" "child_test" {}
+					//
+					// I probably should do something as it seems that deferral data is still used in evaluation.... so setting a null object seems
+					// like a bad idea by default.
 					Before: cty.NullVal(cty.DynamicPseudoType),
 					After:  cty.NullVal(cty.DynamicPseudoType),
 					// Importing: &plans.Importing{},
