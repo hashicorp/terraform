@@ -1,5 +1,0 @@
-kind: NEW FEATURES
-body: "Resource action triggers can now use `on_failure` modes of `halt`, `taint`, or `continue`."
-time: 2026-06-12T11:49:56.096388-04:00
-custom:
-    Issue: "38722"
