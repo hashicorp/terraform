@@ -5,7 +5,6 @@ package graph
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
@@ -49,25 +48,10 @@ func (g *TeardownSubgraph) Name() string {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	stateDepMap := make(map[addrs.Run]collections.Set[string])
-
-	// Build a map of run nodes to other run nodes they depend on.
-	// In cleanup mode, the run node is the NodeTestRunCleanup struct.
-	for runNode := range dag.SelectSeq[RunNode](b.runGraph.VerticesSeq()) {
-		addr := runNode.Run().Addr()
-		stateDepMap[addr] = collections.NewSetCmp[string]()
-		refs := b.runGraph.EdgesFrom(runNode)
-		for ref := range refs.All() {
-			if ref, ok := ref.(RunNode); ok && ref.Run().Config.StateKey != runNode.Run().Config.StateKey {
-				stateDepMap[addr].Add(ref.Run().Config.StateKey)
-			}
-		}
-	}
-
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestStateCleanupTransformer{opts: b.opts, stateDependencyMap: stateDepMap, runGraph: b.runGraph},
+			&TestStateCleanupTransformer{opts: b.opts, runGraph: b.runGraph},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -88,18 +72,13 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts               *graphOptions
-	stateDependencyMap map[addrs.Run]collections.Set[string]
-	runGraph           *terraform.Graph
+	opts     *graphOptions
+	runGraph *terraform.Graph
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	cleanupMap := make(map[string]*NodeStateCleanup)
-	cleanupNodes := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
-
-	// dependency map for state keys, which will be used to traverse
-	// the cleanup nodes in a depth-first manner.
-	depStateKeys := make(map[string][]string)
+	cleanupNodes := collections.NewSetCmp[dag.Vertex]()
 
 	// iterate in topological order of the run graph, so that the last run for each state key
 	// is attached to the cleanup node.
@@ -112,35 +91,34 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		key := run.Config.StateKey
 
 		if _, exists := cleanupMap[key]; !exists {
-			node := &NodeStateCleanup{
-				stateKey: key,
-				opts:     t.opts,
-			}
+			node := &NodeStateCleanup{stateKey: key, opts: t.opts}
 			cleanupMap[key] = node
-			cleanupNodes = append(cleanupNodes, node)
+			cleanupNodes.Add(runNode)
 			g.Add(node)
-
-			// The dependency map for the state's last run will be used for the cleanup node.
-			// We sort the state keys to ensure deterministic traversal order.
-			depStateKeys[key] = slices.Sorted(t.stateDependencyMap[run.Addr()].All())
 		}
 	}
 
-	seen := make(map[string]bool)
-	for _, node := range cleanupNodes {
-		seen[node.stateKey] = true
-		// Also track nodes encountered along this traversal path so that
-		// we do not create cycles.
-		for _, depStateKey := range depStateKeys[node.stateKey] {
-			if seen[depStateKey] {
-				// If the dependency node has already been seen along the current path,
-				// then it is already an ancestor on this path, so we skip it to avoid cycles.
-				continue
-			}
-			refNode := cleanupMap[depStateKey]
-			g.Connect(refNode, node)
+	// Traverse the run graph in topological order and build the cleanup edges
+	// in reverse order of the run graph.
+	t.runGraph.TopologicalTraversal(func(v dag.Vertex, dep dag.Vertex) {
+		// filter non cleanup nodes
+		if !cleanupNodes.Has(v) || !cleanupNodes.Has(dep) {
+			return
 		}
-	}
+
+		// No type assertion needed here, the cleanupNodes set ensures we only process cleanup nodes.
+		node := v.(RunNode)
+		depNode := dep.(RunNode)
+
+		stateKey := node.Run().Config.StateKey
+		depStateKey := depNode.Run().Config.StateKey
+
+		cleanupNode := cleanupMap[stateKey]
+		depCleanupNode := cleanupMap[depStateKey]
+
+		// connect the edges in reverse order of the run graph
+		g.Connect(cleanupNode, depCleanupNode)
+	})
 	if err := g.Validate(); err != nil {
 		return fmt.Errorf("Invalid cleanup graph: %w", err)
 	}

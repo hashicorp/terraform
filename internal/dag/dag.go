@@ -289,52 +289,72 @@ func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 }
 
 func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
-	// Use a dfs-based sorting algorithm, similar to that used in
-	// TransitiveReduction.
 	sorted := make([]Vertex, 0, g.vertices.Len())
 
-	// tmp track the current working node to check for cycles
-	tmp := map[Vertex]bool{}
+	g.topologicalTraversal(order, nil, func(v Vertex) {
+		sorted = append(sorted, v)
+	})
 
-	// perm tracks completed nodes to end the recursion
-	perm := map[Vertex]bool{}
+	return sorted
+}
+
+// topologicalTraversal performs a topological traversal of the graph, calling
+// onEdge for each edge and onVisit for each vertex post-order.
+func (g *AcyclicGraph) topologicalTraversal(order walkType, onEdge func(v Vertex, dep Vertex), onVisit func(v Vertex)) {
+	// Use a dfs-based sorting algorithm, similar to that used in
+	// TransitiveReduction.
+
+	// seen track the current working node to check for cycles
+	seen := map[Vertex]bool{}
+
+	// visited tracks completed nodes to end the recursion
+	visited := map[Vertex]bool{}
+
+	var edges map[Vertex]VertexSet
+	switch {
+	case order&downOrder != 0:
+		edges = g.edgesFrom
+	case order&upOrder != 0:
+		edges = g.edgesTo
+	default:
+		panic(fmt.Sprintln("invalid order", order))
+	}
 
 	var visit func(v Vertex)
 
 	visit = func(v Vertex) {
-		if perm[v] {
+		if visited[v] {
 			return
 		}
 
-		if tmp[v] {
+		if seen[v] {
 			panic("cycle found in dag")
 		}
 
-		tmp[v] = true
-		var next VertexSet
-		switch {
-		case order&downOrder != 0:
-			next = g.edgesFrom[v]
-		case order&upOrder != 0:
-			next = g.edgesTo[v]
-		default:
-			panic(fmt.Sprintln("invalid order", order))
-		}
+		seen[v] = true
 
+		next := edges[v]
 		for u := range next.All() {
 			visit(u)
+			if onEdge != nil {
+				onEdge(v, u)
+			}
 		}
 
-		tmp[v] = false
-		perm[v] = true
-		sorted = append(sorted, v)
+		seen[v] = false
+		visited[v] = true
+		if onVisit != nil {
+			onVisit(v)
+		}
 	}
 
 	for v := range g.VerticesSeq() {
 		visit(v)
 	}
+}
 
-	return sorted
+func (g *AcyclicGraph) TopologicalTraversal(onEdge func(v Vertex, dep Vertex)) {
+	g.topologicalTraversal(upOrder, onEdge, nil)
 }
 
 type walkType uint64
