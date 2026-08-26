@@ -102,6 +102,8 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		return diags
 	}
 
+	// Test configurations can have synthetic manifest paths. Prepending a prefix
+	// enables correct installation/loading of these modules.
 	requestPath := n.Addr.Module()
 	requestParent := n.Parent
 	if len(n.ModulePathPrefix) != 0 {
