@@ -290,17 +290,29 @@ func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 
 func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 	sorted := make([]Vertex, 0, g.vertices.Len())
-
-	g.topologicalTraversal(order, nil, func(v Vertex) {
+	edges := g.edgesByOrder(order)
+	g.topologicalTraversal(edges, nil, func(v Vertex) {
 		sorted = append(sorted, v)
 	})
 
 	return sorted
 }
 
+func (g *AcyclicGraph) edgesByOrder(order walkType) map[Vertex]VertexSet {
+	switch {
+	case order&downOrder != 0:
+		return g.edgesFrom
+	case order&upOrder != 0:
+		return g.edgesTo
+	default:
+		panic(fmt.Sprintln("invalid order", order))
+	}
+}
+
 // topologicalTraversal performs a topological traversal of the graph, calling
 // onEdge for each edge and onVisit for each vertex post-order.
-func (g *AcyclicGraph) topologicalTraversal(order walkType, onEdge func(v Vertex, dep Vertex), onVisit func(v Vertex)) {
+// edges is a map of vertex to its set of descendants (down-order) or ancestors (up-order).
+func (g *AcyclicGraph) topologicalTraversal(edges map[Vertex]VertexSet, onEdge func(v Vertex, dep Vertex), onVisit func(v Vertex)) {
 	// Use a dfs-based sorting algorithm, similar to that used in
 	// TransitiveReduction.
 
@@ -309,16 +321,6 @@ func (g *AcyclicGraph) topologicalTraversal(order walkType, onEdge func(v Vertex
 
 	// visited tracks completed nodes to end the recursion
 	visited := map[Vertex]bool{}
-
-	var edges map[Vertex]VertexSet
-	switch {
-	case order&downOrder != 0:
-		edges = g.edgesFrom
-	case order&upOrder != 0:
-		edges = g.edgesTo
-	default:
-		panic(fmt.Sprintln("invalid order", order))
-	}
 
 	var visit func(v Vertex)
 
@@ -354,7 +356,14 @@ func (g *AcyclicGraph) topologicalTraversal(order walkType, onEdge func(v Vertex
 }
 
 func (g *AcyclicGraph) TopologicalTraversal(onEdge func(v Vertex, dep Vertex)) {
-	g.topologicalTraversal(upOrder, onEdge, nil)
+
+	// to get the full set of descendants for each vertex, we need to traverse
+	// the graph and collect them into a map
+	edges := make(map[Vertex]VertexSet)
+	for v := range g.VerticesSeq() {
+		edges[v] = g.Descendants(v)
+	}
+	g.topologicalTraversal(edges, onEdge, nil)
 }
 
 type walkType uint64
