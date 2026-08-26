@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "Actions can now use `before_destroy` and `after_destroy` events."
-time: 2026-06-10T16:37:09.502275-04:00
-custom:
-    Issue: "38668"

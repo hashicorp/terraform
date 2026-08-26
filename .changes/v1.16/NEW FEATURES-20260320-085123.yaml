@@ -1,5 +1,0 @@
-kind: NEW FEATURES
-body: "`terraform_data`: The new `store` block can hold ephemeral and sensitive values across plan and apply."
-time: 2026-03-20T08:51:23.141458-04:00
-custom:
-    Issue: "38298"
