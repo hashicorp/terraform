@@ -23,6 +23,12 @@ func initialStatuses(cfg *configs.Config) addrs.Map[addrs.ConfigCheckable, *conf
 }
 
 func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckableState], cfg *configs.Config) {
+	if cfg == nil || cfg.Module == nil {
+		// Can happen if a module failed to load without producing any
+		// error diagnostics, in which case there's nothing to collect.
+		return
+	}
+
 	moduleAddr := cfg.Path
 
 	for _, rc := range cfg.Module.ManagedResources {

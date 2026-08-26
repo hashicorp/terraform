@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs"
 	tftesting "github.com/hashicorp/terraform/internal/terraform/testing"
 )
 
@@ -210,4 +211,20 @@ func TestChecksHappyPath(t *testing.T) {
 			}
 		}
 	}
+}
+
+// During module installation, Terraform Core registers each newly-loaded
+// module's config incrementally via RegisterModule. If a module fails to
+// load without producing any error diagnostics, the resulting *configs.Config
+// can have a nil Module field, and RegisterModule must not panic in that
+// case.
+func TestRegisterModuleWithNilModule(t *testing.T) {
+	state := checks.NewState(nil)
+
+	cfg := &configs.Config{
+		Path:   addrs.Module{"child"},
+		Module: nil,
+	}
+
+	state.RegisterModule(cfg)
 }

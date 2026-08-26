@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed a crash during module installation when a module fails to load without producing any error diagnostics
+time: 2026-08-26T19:32:25.000000-00:00
+custom:
+    Issue: "1"
