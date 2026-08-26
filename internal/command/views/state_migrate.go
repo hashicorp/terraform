@@ -96,6 +96,10 @@ func NewStateMigrate(viewType arguments.ViewType, view *View) StateMigrate {
 	switch viewType {
 	case arguments.ViewHuman:
 		return &StateMigrateHuman{view: view}
+	case arguments.ViewJSON:
+		return &StateMigrateJSON{
+			view: NewJSONView(view),
+		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
 	}
