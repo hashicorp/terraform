@@ -500,20 +500,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			}
 		}
 
-		if i.ProviderConfigRef != nil {
-			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
-				LocalName: i.ProviderConfigRef.Name,
-				Alias:     i.ProviderConfigRef.Alias,
-			})
-		} else {
-			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
-			if err == nil {
-				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
-
 		m.Import = append(m.Import, i)
 	}
 

@@ -710,11 +710,31 @@ func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 		}
 	}
 
+	assignImportProviders := func(imports []*Import) {
+		for _, i := range imports {
+			// set the provider FQN for an import
+			if i.ProviderConfigRef != nil {
+				i.Provider = c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{
+					LocalName: i.ProviderConfigRef.Name,
+					Alias:     i.ProviderConfigRef.Alias,
+				})
+			} else {
+				implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
+				if err == nil {
+					i.Provider = c.Module.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
 	assignResourceProviders(c.Module.ManagedResources)
 	assignResourceProviders(c.Module.DataResources)
 	assignResourceProviders(c.Module.EphemeralResources)
 	assignResourceProviders(c.Module.ListResources)
 	assignActionProviders(c.Module.Actions)
+	assignImportProviders(c.Module.Import)
 
 	return providers
 }
