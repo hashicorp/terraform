@@ -201,6 +201,15 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 					return knownImports, unknownImports, diags
 				}
 
+				// If we already have an import statement for this resource instance, it
+				// must have come from a parent module, because duplicate import blocks in
+				// the same module result in an error.
+				//
+				// The import block in the parent module overrides the block in the child module.
+				if knownImports.Has(to) {
+					continue
+				}
+
 				knownImports.Put(to, importID)
 
 				log.Printf("[TRACE] expandResourceImports: found single import target %s", to)
