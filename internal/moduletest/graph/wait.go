@@ -11,39 +11,24 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// operationWaiter waits for an operation within
+// operationWaiter waits for a Terraform operation within
 // a test run execution to complete.
 type operationWaiter struct {
 	ctx        *terraform.Context
-	runningCtx context.Context
 	run        *moduletest.Run
 	file       *moduletest.File
 	created    []*plans.ResourceInstanceChangeSrc
-	progress   atomicProgress[moduletest.Progress]
+	progress   atomic.Pointer[moduletest.Progress]
 	start      int64
 	identifier string
-	finished   bool
 	evalCtx    *EvalContext
 	renderer   views.Test
-}
-
-type atomicProgress[T moduletest.Progress] struct {
-	internal atomic.Value
-}
-
-func (a *atomicProgress[T]) Load() T {
-	return a.internal.Load().(T)
-}
-
-func (a *atomicProgress[T]) Store(progress T) {
-	a.internal.Store(progress)
 }
 
 // NewOperationWaiter creates a new operation waiter.
@@ -57,8 +42,8 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, file *modu
 		}
 	}
 
-	p := atomicProgress[moduletest.Progress]{}
-	p.Store(progress)
+	p := atomic.Pointer[moduletest.Progress]{}
+	p.Store(&progress)
 
 	return &operationWaiter{
 		ctx:        ctx,
@@ -77,87 +62,74 @@ func NewOperationWaiter(ctx *terraform.Context, evalCtx *EvalContext, file *modu
 // interrupted, it returns true.
 func (w *operationWaiter) Run(fn func()) bool {
 	runningCtx, doneRunning := context.WithCancel(context.Background())
-	w.runningCtx = runningCtx
-
 	go func() {
 		fn()
 		doneRunning()
 	}()
 
 	// either the function finishes or a cancel/stop signal is received
-	return w.wait()
+	return w.wait(runningCtx)
 }
 
-func (w *operationWaiter) wait() bool {
+// wait waits for the operation to finish or be cancelled. It returns true if the operation is cancelled.
+func (w *operationWaiter) wait(runningCtx context.Context) (cancelled bool) {
 	log.Printf("[TRACE] TestFileRunner: waiting for execution during %s", w.identifier)
 
-	for !w.finished {
+	// We wait for the operation to finish or be cancelled.
+	for {
 		select {
 		case <-time.After(2 * time.Second):
+			// Update progress every 2 seconds
 			w.updateProgress()
 		case <-w.evalCtx.stopContext.Done():
 			// Soft cancel - wait for completion or hard cancel
-			for !w.finished {
+			for {
 				select {
 				case <-time.After(2 * time.Second):
 					w.updateProgress()
 				case <-w.evalCtx.cancelContext.Done():
-					return w.handleCancelled()
-				case <-w.runningCtx.Done():
-					w.finished = true
+					// hard cancel. We can stop now
+					w.handleCancelled()
+					return true
+				case <-runningCtx.Done():
+					return false
 				}
 			}
 		case <-w.evalCtx.cancelContext.Done():
-			return w.handleCancelled()
-		case <-w.runningCtx.Done():
-			w.finished = true
+			// hard cancel. We can stop now
+			w.handleCancelled()
+			return true
+		case <-runningCtx.Done():
+			return false
 		}
 	}
-
-	return false
 }
 
 // update refreshes the operationWaiter with the latest terraform context, progress, and any newly created resources.
 // This should be called before starting a new Terraform operation.
 func (w *operationWaiter) update(ctx *terraform.Context, progress moduletest.Progress, created []*plans.ResourceInstanceChangeSrc) {
 	w.ctx = ctx
-	w.progress.Store(progress)
+	w.progress.Store(&progress)
 	w.created = created
 }
 
 func (w *operationWaiter) updateProgress() {
 	now := time.Now().UTC().UnixMilli()
 	progress := w.progress.Load()
-	w.renderer.Run(w.run, w.file, progress, now-w.start)
+	w.renderer.Run(w.run, w.file, *progress, now-w.start)
 }
 
 // handleCancelled is called when the test execution is hard cancelled.
-func (w *operationWaiter) handleCancelled() bool {
+func (w *operationWaiter) handleCancelled() {
 	log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", w.identifier)
 	states := make(map[string]*states.State)
-	states[configs.TestMainStateIdentifier] = w.evalCtx.GetState(configs.TestMainStateIdentifier).State
 	for key, module := range w.evalCtx.FileStates {
-		if key == configs.TestMainStateIdentifier {
-			continue
-		}
 		states[key] = module.State
 	}
 	w.renderer.FatalInterruptSummary(w.run, w.file, states, w.created)
 
-	go func() {
-		if w.ctx != nil {
-			w.ctx.Stop()
-		}
-	}()
-
-	for !w.finished {
-		select {
-		case <-time.After(2 * time.Second):
-			w.updateProgress()
-		case <-w.runningCtx.Done():
-			w.finished = true
-		}
+	// inform the terraform context to stop
+	if w.ctx != nil {
+		w.ctx.Stop()
 	}
-
-	return true
 }

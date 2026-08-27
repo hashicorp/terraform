@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -351,17 +353,9 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 	}
 
 	p := planFixtureProvider()
-	view, done := testView(t)
 	overrides := metaOverridesForProvider(p)
 	policyClient := policy.NewTestMockClient(t)
 	overrides.PolicyClient = policyClient
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides:          overrides,
-			View:                      view,
-			AllowExperimentalFeatures: true,
-		},
-	}
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		s := req.ProposedNewState.AsValueMap()
 		s["id"] = cty.UnknownVal(cty.String)
@@ -466,17 +460,31 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 		},
 	}
 
-	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color", "-json", "-auto-approve"))
-	output := done(t)
-	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
-	}
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	streams, done := terminal.StreamsForTesting(t)
 
-	// The resulting json only contains the policy result, because the object that
-	// had a failed policy evaluation during the plan succeeded during apply.
-	// This can occur when more references become known.
-	expected := `{"@level":"info","@message":"Terraform 1.16.0-dev","@module":"terraform.ui","terraform":"1.16.0-dev","type":"version","ui":"1.3"}
+	runSynctest(t, func(t *testing.T) {
+		view := views.NewView(streams)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides:          overrides,
+				View:                      view,
+				Streams:                   streams,
+				AllowExperimentalFeatures: true,
+			},
+		}
+		args := []string{"-policies", td}
+		code := c.Run(append(args, "-no-color", "-json", "-auto-approve"))
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
+		}
+
+		// The resulting json only contains the policy result, because the object that
+		// had a failed policy evaluation during the plan succeeded during apply.
+		// This can occur when more references become known.
+		expected := `{"@level":"info","@message":"Terraform 1.16.0-dev","@module":"terraform.ui","terraform":"1.16.0-dev","type":"version","ui":"1.3"}
 {"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
 {"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
 {"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
@@ -486,5 +494,7 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 {"@level":"info","@message":"Policy Result","@module":"terraform.ui","@policy":"true","policy_address":"resource_policy.foo","policy_metadata":{"policy_set_path":"policy_file.tfpolicy.hcl","policy_name":"resource_policy.foo","file_name":"policy_file.tfpolicy.hcl","enforcement_level":"mandatory"},"result":"AllowResult","target_address":"test_instance.foo","type":"policy_result"}
 {"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"action_fail":0,"operation":"apply"},"type":"change_summary"}
 {"@level":"info","@message":"Outputs: 0","@module":"terraform.ui","outputs":{},"type":"outputs"}`
-	checkGoldenReferenceStr(t, output, expected)
+		checkGoldenReferenceStr(t, output, expected)
+	})
+
 }

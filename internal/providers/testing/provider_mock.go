@@ -27,7 +27,8 @@ var (
 // configuration and test authors. This type is only for use in internal testing
 // of Terraform itself.
 type MockProvider struct {
-	sync.Mutex
+	lock chan struct{}
+	once sync.Once
 
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
@@ -743,7 +744,6 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 	defer p.beginWrite()()
-
 	p.ApplyResourceChangeCalled = true
 	p.ApplyResourceChangeRequest = r
 
@@ -1176,8 +1176,24 @@ func (p *MockProvider) Close() error {
 }
 
 func (p *MockProvider) beginWrite() func() {
-	p.Lock()
-	return p.Unlock
+	// This lock is backed by a channel to facilitate compatibility with
+	// synctest, which does not support mutexes.
+	p.once.Do(func() {
+		p.lock = make(chan struct{}, 1)
+		p.lock <- struct{}{}
+	})
+	<-p.lock
+	return func() {
+		p.lock <- struct{}{}
+	}
+}
+
+func (p *MockProvider) Lock() {
+	<-p.lock
+}
+
+func (p *MockProvider) Unlock() {
+	p.lock <- struct{}{}
 }
 
 func (p *MockProvider) ValidateActionConfig(r providers.ValidateActionConfigRequest) (resp providers.ValidateActionConfigResponse) {

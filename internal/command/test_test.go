@@ -608,20 +608,24 @@ func TestTest_Interrupt(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
+
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
 	view, done := testView(t)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	runSynctest(t, func(t *testing.T) {
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
-
-	c.Run(nil)
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
+		c.Run(nil)
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "Interrupt received") {
@@ -1234,38 +1238,46 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel_divided")), td)
 	t.Chdir(td)
 
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	initStreams, initDone := terminal.StreamsForTesting(t)
+	testStreams, testDone := terminal.StreamsForTesting(t)
 	provider := testing_command.NewProvider(nil)
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
+
+	runSynctest(t, func(t *testing.T) {
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
+		view := views.NewView(initStreams)
+		ui := testUiWrapped(t)
+
+		meta := Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			Ui:               ui,
+			View:             view,
+			Streams:          initStreams,
+			ProviderSource:   providerSource,
+		}
+
+		init := &InitCommand{
+			Meta: meta,
+		}
+
+		if code := init.Run(nil); code != 0 {
+			output := initDone(t)
+			t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
+		}
+
+		// Reset the view and streams for the next command
+		view = views.NewView(testStreams)
+		meta.View = view
+		meta.Streams = testStreams
+		c := &TestCommand{
+			Meta: meta,
+		}
+		c.Run(nil)
 	})
-
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
-	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
-	}
-
-	init := &InitCommand{
-		Meta: meta,
-	}
-
-	if code := init.Run(nil); code != 0 {
-		output := done(t)
-		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
-	}
-
-	c := &TestCommand{
-		Meta: meta,
-	}
-
-	c.Run(nil)
-	output := done(t).All()
+	output := testDone(t).All()
 
 	// Split the log into lines
 	lines := strings.Split(output, "\n")
@@ -1310,38 +1322,45 @@ func TestTest_Parallel(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "parallel")), td)
 	t.Chdir(td)
 
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	initStreams, initDone := terminal.StreamsForTesting(t)
+	testStreams, testDone := terminal.StreamsForTesting(t)
 	provider := testing_command.NewProvider(nil)
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
+
+	runSynctest(t, func(t *testing.T) {
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
+		view := views.NewView(initStreams)
+		ui := testUiWrapped(t)
+
+		meta := Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			Ui:               ui,
+			View:             view,
+			Streams:          initStreams,
+			ProviderSource:   providerSource,
+		}
+
+		init := &InitCommand{
+			Meta: meta,
+		}
+
+		if code := init.Run(nil); code != 0 {
+			t.Fatalf("expected status code %d but got %d: %s", 9, code, initDone(t).All())
+		}
+
+		// Reset the view and streams for the next command
+		view = views.NewView(testStreams)
+		meta.View = view
+		meta.Streams = testStreams
+		c := &TestCommand{
+			Meta: meta,
+		}
+		c.Run(nil)
 	})
-
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
-	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
-	}
-
-	init := &InitCommand{
-		Meta: meta,
-	}
-
-	if code := init.Run(nil); code != 0 {
-		output := done(t)
-		t.Fatalf("expected status code %d but got %d: %s", 9, code, output.All())
-	}
-
-	c := &TestCommand{
-		Meta: meta,
-	}
-
-	c.Run(nil)
-	output := done(t).All()
+	output := testDone(t).All()
 
 	if !strings.Contains(output, "40 passed, 0 failed") {
 		t.Errorf("output didn't produce the right output:\n\n%s", output)
@@ -1737,24 +1756,28 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			syncTest, streams, done := streamableSyncTest(t)
-			syncTest(t, func(t *testing.T) {
-				_, td, closer := testModuleInline(t, tt.sources)
-				defer closer()
-				t.Chdir(td)
 
+			_, td, closer := testModuleInline(t, tt.sources)
+			defer closer()
+			t.Chdir(td)
+			// Setup streams for testing outside of the synctest bubble because they contain
+			// unsupported io primitives.
+			initStreams, initDone := terminal.StreamsForTesting(t)
+			testStreams, testDone := terminal.StreamsForTesting(t)
+
+			runSynctest(t, func(t *testing.T) {
 				providerSource := newMockProviderSource(t, map[string][]string{
 					"test": {"1.0.0"},
 				})
-
-				view := views.NewView(streams)
-				ui := testUiWrapped(t)
 
 				// create a new provider instance for each test run, so that we can
 				// ensure that the test provider locks do not interfere between runs.
 				pInst := func() providers.Interface {
 					return testing_command.NewProvider(nil).Provider
 				}
+
+				view := views.NewView(initStreams)
+				ui := testUiWrapped(t)
 				meta := Meta{
 					testingOverrides: &testingOverrides{
 						Providers: map[addrs.Provider]providers.Factory{
@@ -1764,23 +1787,28 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						}},
 					Ui:             ui,
 					View:           view,
-					Streams:        streams,
+					Streams:        initStreams,
 					ProviderSource: providerSource,
 				}
 
 				init := &InitCommand{Meta: meta}
 				if code := init.Run(nil); code != 0 {
-					output := done(t)
+					output := initDone(t)
 					t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
 				}
-
+				// Reset the view and streams for the next command
+				view = views.NewView(testStreams)
+				meta.View = view
+				meta.Streams = testStreams
 				c := &TestCommand{Meta: meta}
-				c.Run([]string{"-json", "-no-color"})
-				output := done(t).All()
+				code := c.Run([]string{"-json", "-no-color"})
+				output := testDone(t).All()
+				if code != 0 {
+					t.Fatalf("expected status code %d but got %d: %s", 0, code, output)
+				}
 
 				// Split the log into lines
 				lines := strings.Split(output, "\n")
-
 				// Find the start of the teardown and complete timestamps
 				var startTimestamp, completeTimestamp string
 				for _, line := range lines {
@@ -1819,6 +1847,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 				}
 			})
 		})
+
 	}
 }
 
@@ -1827,21 +1856,24 @@ func TestTest_InterruptSkipsRemaining(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt_and_additional_file")), td)
 	t.Chdir(td)
 
-	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
+	provider := testing_command.NewProvider(nil)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	runSynctest(t, func(t *testing.T) {
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c.Run([]string{"-no-color"})
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
+
+		c.Run([]string{"-no-color"})
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "skip_me.tftest.hcl... skip") {
@@ -1859,21 +1891,23 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "with_double_interrupt")), td)
 	t.Chdir(td)
 
-	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
+	provider := testing_command.NewProvider(nil)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	runSynctest(t, func(t *testing.T) {
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
 
-	c.Run(nil)
+		c.Run(nil)
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "Two interrupts received") {
@@ -4682,22 +4716,26 @@ func TestTest_LongRunningTest(t *testing.T) {
 	t.Chdir(td)
 
 	provider := testing_command.NewProvider(nil)
-	view, done := testView(t)
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-		},
-	}
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	streams, done := terminal.StreamsForTesting(t)
 
-	code := c.Run([]string{"-no-color"})
-	output := done(t)
-
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
-	}
-	actual := output.All()
+	runSynctest(t, func(t *testing.T) {
+		view := views.NewView(streams)
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				Streams:          streams,
+			},
+		}
+		code := c.Run([]string{"-no-color"})
+		if code != 0 {
+			t.Errorf("expected status code 0 but got %d", code)
+		}
+	})
+	actual := done(t).All()
 	expected := `main.tftest.hcl... in progress
   run "test"... pass
 main.tftest.hcl... tearing down
@@ -4705,10 +4743,6 @@ main.tftest.hcl... pass
 
 Success! 1 passed, 0 failed.
 `
-
-	if code != 0 {
-		t.Errorf("expected return code %d but got %d", 0, code)
-	}
 
 	if diff := cmp.Diff(expected, actual); len(diff) > 0 {
 		t.Errorf("unexpected output\n\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
@@ -4722,24 +4756,26 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
 	t.Chdir(td)
 
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	streams, done := terminal.StreamsForTesting(t)
 	provider := testing_command.NewProvider(nil)
-	view, done := testView(t)
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-		},
-	}
+	runSynctest(t, func(t *testing.T) {
+		view := views.NewView(streams)
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+			},
+		}
+		code := c.Run([]string{"-json"})
 
-	code := c.Run([]string{"-json"})
-	output := done(t)
-
-	if code != 0 {
-		t.Errorf("expected status code 0 but got %d", code)
-	}
-
-	actual := output.All()
+		if code != 0 {
+			t.Errorf("expected status code 0 but got %d", code)
+		}
+	})
+	actual := done(t).All()
 	var messages []string
 	for ix, line := range strings.Split(actual, "\n") {
 		if len(line) == 0 {
@@ -4793,10 +4829,6 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 		`{"@level":"info","@message":"  \"test\"... tearing down","@module":"terraform.ui","@testfile":"main.tftest.hcl","@testrun":"test","test_run":{"path":"main.tftest.hcl","progress":"teardown","run":"test"},"type":"test_run"}`,
 		`{"@level":"info","@message":"main.tftest.hcl... pass","@module":"terraform.ui","@testfile":"main.tftest.hcl","test_file":{"path":"main.tftest.hcl","progress":"complete","status":"pass"},"type":"test_file"}`,
 		`{"@level":"info","@message":"Success! 1 passed, 0 failed.","@module":"terraform.ui","test_summary":{"errored":0,"failed":0,"passed":1,"skipped":0,"status":"pass"},"type":"test_summary"}`,
-	}
-
-	if code != 0 {
-		t.Errorf("expected return code %d but got %d", 0, code)
 	}
 
 	if diff := cmp.Diff(expected, messages); len(diff) > 0 {
@@ -5955,42 +5987,55 @@ func TestTest_TeardownOrder(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "rds_shared_subnet")), td)
 	t.Chdir(td)
 
+	// Setup streams for testing outside of the synctest bubble because they contain
+	// unsupported io primitives.
+	initStreams, initDone := terminal.StreamsForTesting(t)
+	testStreams, testDone := terminal.StreamsForTesting(t)
 	provider := testing_command.NewProvider(nil)
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
+
+	runSynctest(t, func(t *testing.T) {
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
+		view := views.NewView(initStreams)
+		ui := testUiWrapped(t)
+
+		meta := Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			Ui:               ui,
+			View:             view,
+			Streams:          initStreams,
+			ProviderSource:   providerSource,
+		}
+
+		init := &InitCommand{
+			Meta: meta,
+		}
+
+		if code := init.Run(nil); code != 0 {
+			output := initDone(t)
+			t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+		}
+
+		view = views.NewView(testStreams)
+		// Reset the streams for the next command.
+		meta = Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			Streams:          testStreams,
+			View:             view,
+			Ui:               testUiWrapped(t),
+			ProviderSource:   providerSource,
+		}
+		c := &TestCommand{
+			Meta: meta,
+		}
+		code := c.Run([]string{"-no-color", "-json"})
+		if code != 0 {
+			t.Errorf("expected status code %d but got %d", 0, code)
+		}
+
 	})
-
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
-	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
-	}
-
-	init := &InitCommand{
-		Meta: meta,
-	}
-
-	if code := init.Run(nil); code != 0 {
-		output := done(t)
-		t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
-	}
-
-	c := &TestCommand{
-		Meta: meta,
-	}
-
-	code := c.Run([]string{"-no-color", "-json"})
-	if code != 0 {
-		t.Errorf("expected status code %d but got %d", 0, code)
-	}
-	output := done(t).All()
-
+	output := testDone(t).All()
 	// Parse the JSON output to check teardown order
 	var setupTeardownStart time.Time
 	var lastRunTeardownStart time.Time
@@ -6350,9 +6395,16 @@ func removeOutputs(states map[string][]string) map[string][]string {
 	return states
 }
 
-// streamableSyncTest is a helper to ensure that the long-running streaming goroutines are started outside of the synctest bubble.
-// Otherwise, the sync bubble will be unable to advance time, and the main goroutine will become infinitely paused on any time.Sleep operation.
-func streamableSyncTest(t *testing.T) (func(t *testing.T, f func(*testing.T)), *terminal.Streams, func(*testing.T) *terminal.TestOutput) {
-	streams, done := terminal.StreamsForTesting(t)
-	return synctest.Test, streams, done
+// runSynctest runs the given function in a synctest bubble.
+// synctest significantly improves test execution times by using deterministic virtual-time execution,
+// but it is not compatible with some primitives (mutexes, i/o),
+// and as such should only be used with care in tests that utilize
+// these primitives lest they are infinitely blocked.
+func runSynctest(t *testing.T, f func(t *testing.T)) {
+	t.Helper()
+
+	synctest.Test(t, func(t *testing.T) {
+		f(t)
+		synctest.Wait()
+	})
 }
