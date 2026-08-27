@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	tfe "github.com/hashicorp/go-tfe"
+	tfev2 "github.com/hashicorp/go-tfe/v2"
 	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -65,6 +66,11 @@ type Cloud struct {
 
 	// client is the HCP Terraform or Terraform Enterprise API client.
 	client *tfe.Client
+
+	// clientV2 is the go-tfe v2 (Kiota-generated) client, used when features
+	// such as PolicyPaths require fields not yet in the v1 SDK. It is nil when
+	// the v2 client cannot be initialised; callers must check before use.
+	clientV2 *tfev2.Client
 
 	// viewHooks implements functions integrating the tfe.Client with the CLI
 	// output.
@@ -354,6 +360,36 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 				),
 			))
 			return diags
+		}
+
+		// Initialise the v2 Kiota client. Failure is non-fatal during backend
+		// configuration, but operations that require the v2 API will fail.
+		//
+		// Split the service URL into scheme+host and path so that Enterprise
+		// servers with a non-standard base path (e.g. /tfe/api/v2/) are
+		// routed correctly. Passing the full URL as Address causes tfev2 to
+		// overwrite the path with its default /api/v2, losing the prefix.
+		//
+		// The Kiota URL template uses {+baseurl}/resource, so the base path
+		// must not have a trailing slash or the request URL will gain a double
+		// slash (e.g. /tfe/api/v2//queries). Strip it here.
+		v2Headers := cfg.Headers.Clone()
+		v2cfg := &tfev2.Config{
+			Address:           tfcService.Scheme + "://" + tfcService.Host,
+			BasePath:          strings.TrimRight(tfcService.Path, "/"),
+			Token:             token,
+			Headers:           v2Headers,
+			RetryRateLimited:  true,
+			RetryServerErrors: true,
+			// go-tfe/v2 caps retries at 10. Use the full supported budget to
+			// approach the existing v1 client's retry behavior.
+			RetryMaxRetries: 10,
+			RetryHook:       b.retryLogHook,
+		}
+		if v2client, v2err := tfev2.NewClient(v2cfg); v2err == nil {
+			b.clientV2 = v2client
+		} else {
+			log.Printf("[WARN] cloud: failed to create go-tfe v2 client: %s", v2err)
 		}
 	}
 
@@ -901,6 +937,11 @@ func (b *Cloud) Operation(ctx context.Context, op *backendrun.Operation) (*backe
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
+
+		if op.Query && len(op.PolicyPaths) > 0 && op.PolicyClient == nil {
+			return nil, errors.New("cannot run a local query with -policies because the policy engine is unavailable")
+		}
+
 		return b.local.Operation(ctx, op)
 	}
 

@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -435,6 +436,99 @@ func TestJSONView_Outputs(t *testing.T) {
 					"sensitive": true,
 					"value":     "horse-battery",
 					"type":      "string",
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_DeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	foo, diags := addrs.ParseModuleInstanceStr("module.foo")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr:        managed.Instance(addrs.NoKey).Absolute(foo),
+		PrevRunAddr: managed.Instance(addrs.NoKey).Absolute(foo),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+		},
+	}
+	dc := &plans.DeferredResourceInstanceChangeSrc{
+		DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+		ChangeSrc:      cs,
+	}
+	jv.DeferredChange(viewsjson.NewDeferredResourceInstanceChange(dc))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "module.foo.test_instance.bar: deferred change, reason: resource_config_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "resource_config_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":             "module.foo.test_instance.bar",
+						"implied_provider": "test",
+						"module":           "module.foo",
+						"resource":         "test_instance.bar",
+						"resource_key":     nil,
+						"resource_name":    "bar",
+						"resource_type":    "test_instance",
+					},
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_DeferredChange_UnknownKey(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr:        managed.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+		PrevRunAddr: managed.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+		},
+	}
+	dc := &plans.DeferredResourceInstanceChangeSrc{
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+		ChangeSrc:      cs,
+	}
+	jv.DeferredChange(viewsjson.NewDeferredResourceInstanceChange(dc))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "test_instance.bar[*]: deferred change, reason: instance_count_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "instance_count_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":                 "test_instance.bar[*]",
+						"implied_provider":     "test",
+						"module":               "",
+						"resource":             "test_instance.bar[*]",
+						"resource_key":         nil,
+						"resource_key_unknown": true,
+						"resource_name":        "bar",
+						"resource_type":        "test_instance",
+					},
 				},
 			},
 		},

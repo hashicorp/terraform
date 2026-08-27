@@ -12,6 +12,11 @@ import (
 type InitOpts struct {
 	Walker configs.ModuleWalker
 
+	// ModulePathPrefix is prepended to module request paths without changing
+	// their addresses in the resulting configuration. This is used for test
+	// configurations installed under synthetic manifest paths.
+	ModulePathPrefix addrs.Module
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
@@ -54,6 +59,7 @@ func (c *Context) initGraph(config *configs.Config, initOpts InitOpts) (*Graph, 
 		Config:             config,
 		RootVariableValues: initOpts.SetVariables,
 		Walker:             initOpts.Walker,
+		ModulePathPrefix:   initOpts.ModulePathPrefix,
 	}).Build(addrs.RootModuleInstance)
 
 	return graph, diags

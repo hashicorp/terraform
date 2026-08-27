@@ -34,16 +34,18 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
-	diags = append(diags, FinalizeConfig(cfg, walker, loader)...)
+	diags = append(diags, LegacyFinalizeConfig(cfg, walker, loader)...)
 
 	return cfg, diags
 }
 
-// FinalizeConfig performs the post-load validation and setup steps that are
-// shared by different configuration loaders.
+// LegacyFinalizeConfig performs the post-load validation and setup steps that are
+// shared by different configuration loaders. It should be replaced with
+// FinalizeConfig in the long term, but is kept around for now to support
+// BuildConfig.
 //
 // Callers must ensure cfg.Root is set correctly before calling this function.
-func FinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoader) hcl.Diagnostics {
+func LegacyFinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoader) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 	if cfg == nil {
 		return diags
@@ -62,6 +64,35 @@ func FinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoader) hcl
 			stateProviderDiags := cfg.resolveStateStoreProviderType()
 			diags = append(diags, stateProviderDiags...)
 		}
+	}
+
+	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
+	diags = append(diags, validateProviderConfigsForTests(cfg)...)
+
+	// Final step, let's side load any external mock data into our test files.
+	diags = append(diags, installMockDataFiles(cfg, loader)...)
+
+	return diags
+}
+
+// FinalizeConfig performs the post-load validation and setup steps that are
+// shared by different configuration loaders.
+//
+// Callers must ensure cfg.Root is set correctly before calling this function.
+func FinalizeConfig(cfg *Config, loader MockDataLoader) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+	if cfg == nil {
+		return diags
+	}
+
+	// Now that the config is built, we can connect the provider names to all
+	// the known types for validation.
+	providers := cfg.resolveProviderTypes()
+	cfg.resolveProviderTypesForTests(providers)
+
+	if cfg.Module != nil && cfg.Module.StateStore != nil {
+		stateProviderDiags := cfg.resolveStateStoreProviderType()
+		diags = append(diags, stateProviderDiags...)
 	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)

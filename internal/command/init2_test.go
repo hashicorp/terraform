@@ -8,6 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/modsdir"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
@@ -204,6 +208,76 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			testOutput := done(t)
 			if code != 0 {
 				t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+		})
+	}
+}
+
+func TestInit2_dynamicSourceInTestModule(t *testing.T) {
+	tests := map[string]struct {
+		fixture     string
+		args        []string
+		manifestKey string
+	}{
+		"required variable": {
+			fixture:     "test-module-required-variable",
+			args:        []string{"-var", "module_src=../modules/simple"},
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"module in same directory": {
+			fixture:     "test-module-same-directory",
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"local value": {
+			fixture:     "test-module-local-value",
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"nested test file": {
+			fixture:     "test-module-nested-test-file",
+			manifestKey: "test.tests.dynamic.dynamic_source.const_var_source",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			streams, done := terminal.StreamsForTesting(t)
+			meta := Meta{
+				Ui:      testUiWrapped(t),
+				View:    views.NewView(streams),
+				Streams: streams,
+			}
+
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(tc.args); code != 0 {
+				output := done(t)
+				t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+			}
+			done(t)
+
+			manifest, err := modsdir.ReadManifestSnapshotForDir(filepath.Join(td, ".terraform", "modules"))
+			if err != nil {
+				t.Fatalf("failed to read module manifest: %s", err)
+			}
+			if _, exists := manifest[tc.manifestKey]; !exists {
+				t.Errorf("module manifest does not contain %q", tc.manifestKey)
+			}
+
+			streams, done = terminal.StreamsForTesting(t)
+			meta.Streams = streams
+			meta.View = views.NewView(streams)
+
+			test := &TestCommand{Meta: meta}
+			code := test.Run(append(tc.args, "-no-color"))
+			output := done(t)
+			if code != 0 {
+				t.Fatalf("test failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+			}
+			if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+				t.Fatalf("expected test to pass, got:\n%s", output.Stdout())
 			}
 		})
 	}
