@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -617,4 +618,27 @@ func providerFunctionHashArgs(provider addrs.Provider, name string, args ...cty.
 func providerFunctionHashResult(value cty.Value) []byte {
 	bytes := sha256.Sum256([]byte(value.GoString()))
 	return bytes[:]
+}
+
+// buildVersionMismatchLock returns a Locks value with provider "testing"
+// locked at 0.2.0, used to exercise version-mismatch diagnostics in tests.
+func buildVersionMismatchLock() depsfile.Locks {
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.2.0"),
+		providerreqs.MustParseVersionConstraints("0.2.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	return *lock
+}
+
+// hasDiagSummary reports whether any diagnostic in diags has the given summary.
+func hasDiagSummary(diags tfdiags.Diagnostics, summary string) bool {
+	for _, diag := range diags {
+		if diag.Description().Summary == summary {
+			return true
+		}
+	}
+	return false
 }
