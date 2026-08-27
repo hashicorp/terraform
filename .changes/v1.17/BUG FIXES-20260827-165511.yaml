@@ -1,0 +1,6 @@
+kind: BUG FIXES
+body: 'import: Fixed a bug where import blocks would be ignored when multiple imports targeted different instances of a 
+    resource config using `for_each` or `count`.'
+time: 2026-08-27T16:55:11.038482-04:00
+custom:
+    Issue: "39068"
