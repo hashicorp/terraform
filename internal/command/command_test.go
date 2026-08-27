@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -89,7 +88,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
 // the test and all its subtests complete.
@@ -1433,5 +1431,83 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 		t.Errorf("wrong output lines\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
 			"Please communicate with HCP Terraform team before resolving", diff)
+	}
+}
+
+// stealing from internal/terraform
+func simpleMockProvider() *testing_provider.MockProvider {
+	return &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {Body: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": {Body: simpleTestSchema()},
+			},
+			EphemeralResourceTypes: map[string]providers.Schema{
+				"test_object": {Body: simpleTestSchema()},
+			},
+			ListResourceTypes: map[string]providers.Schema{
+				"test_object": {Body: listTestSchema()},
+			},
+			Actions: map[string]providers.ActionSchema{
+				"test_action": {ConfigSchema: simpleTestSchema()},
+			},
+		},
+	}
+}
+
+func simpleTestSchema() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"test_number": {
+				Type:     cty.Number,
+				Optional: true,
+			},
+			"test_bool": {
+				Type:     cty.Bool,
+				Optional: true,
+			},
+			"test_list": {
+				Type:     cty.List(cty.String),
+				Optional: true,
+			},
+			"test_map": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
+		},
+	}
+}
+
+// list needs a config attr or we get panics in odd places
+func listTestSchema() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"data": {
+				Type:     cty.DynamicPseudoType,
+				Computed: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"config": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Nesting:  configschema.NestingSingle,
+				MinItems: 1,
+				MaxItems: 1,
+			},
+		},
 	}
 }
