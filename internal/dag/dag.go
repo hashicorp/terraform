@@ -311,8 +311,8 @@ func (g *AcyclicGraph) edgesByOrder(order walkType) map[Vertex]VertexSet {
 
 // topologicalTraversal performs a topological traversal of the graph, calling
 // onEdge for each edge and onVisit for each vertex post-order.
-// edges is a map of vertex to its set of descendants (down-order) or ancestors (up-order).
-func (g *AcyclicGraph) topologicalTraversal(edges map[Vertex]VertexSet, onEdge func(v Vertex, dep Vertex), onVisit func(v Vertex)) {
+// edges is a map of source vertex to its set of targets
+func (g *AcyclicGraph) topologicalTraversal(edges map[Vertex]VertexSet, onEdge func(source Vertex, target Vertex), onVisit func(v Vertex)) {
 	// Use a dfs-based sorting algorithm, similar to that used in
 	// TransitiveReduction.
 
@@ -355,13 +355,13 @@ func (g *AcyclicGraph) topologicalTraversal(edges map[Vertex]VertexSet, onEdge f
 	}
 }
 
-func (g *AcyclicGraph) TopologicalTraversal(onEdge func(v Vertex, dep Vertex)) {
+func (g *AcyclicGraph) TopologicalTraversal(onEdge func(source Vertex, target Vertex)) {
 
-	// to get the full set of descendants for each vertex, we need to traverse
+	// to get the full set of dependencies for each vertex, we need to traverse
 	// the graph and collect them into a map
 	edges := make(map[Vertex]VertexSet)
 	for v := range g.VerticesSeq() {
-		edges[v] = g.Descendants(v)
+		edges[v] = g.Ancestors(v)
 	}
 	g.topologicalTraversal(edges, onEdge, nil)
 }

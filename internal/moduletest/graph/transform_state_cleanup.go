@@ -116,8 +116,9 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		cleanupNode := cleanupMap[stateKey]
 		depCleanupNode := cleanupMap[depStateKey]
 
-		// connect the edges in reverse order of the run graph
-		g.Connect(cleanupNode, depCleanupNode)
+		// connect the edges in reverse order of the run graph so that the dependency
+		// is cleaned up before the node that depends on it.
+		g.Connect(depCleanupNode, cleanupNode)
 	})
 	if err := g.Validate(); err != nil {
 		return fmt.Errorf("Invalid cleanup graph: %w", err)

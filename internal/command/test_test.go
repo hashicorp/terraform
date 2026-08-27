@@ -1737,17 +1737,20 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			syncTest, streams, done := streamableSyncTest(t)
-			syncTest(t, func(t *testing.T) {
-				_, td, closer := testModuleInline(t, tt.sources)
-				defer closer()
-				t.Chdir(td)
+			_, td, closer := testModuleInline(t, tt.sources)
+			defer closer()
+			t.Chdir(td)
+			// Setup streams for testing outside of the synctest bubble because they contain
+			// unsupported io primitives.
+			initStreams, initDone := terminal.StreamsForTesting(t)
+			testStreams, testDone := terminal.StreamsForTesting(t)
 
+			runSynctest(t, func(t *testing.T) {
 				providerSource := newMockProviderSource(t, map[string][]string{
 					"test": {"1.0.0"},
 				})
 
-				view := views.NewView(streams)
+				view := views.NewView(initStreams)
 				ui := testUiWrapped(t)
 
 				// create a new provider instance for each test run, so that we can
@@ -1764,19 +1767,22 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						}},
 					Ui:             ui,
 					View:           view,
-					Streams:        streams,
+					Streams:        initStreams,
 					ProviderSource: providerSource,
 				}
 
 				init := &InitCommand{Meta: meta}
 				if code := init.Run(nil); code != 0 {
-					output := done(t)
+					output := initDone(t)
 					t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
 				}
 
+				meta.Streams = testStreams
+				view = views.NewView(testStreams)
+				meta.View = view
 				c := &TestCommand{Meta: meta}
 				c.Run([]string{"-json", "-no-color"})
-				output := done(t).All()
+				output := testDone(t).All()
 
 				// Split the log into lines
 				lines := strings.Split(output, "\n")
@@ -6091,7 +6097,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		represented by a single node in the graph. We have to take care not to
 		build a cyclic reference in the teardown graph.
 		We do that by resolving the first reference (1B) encountered in the reverse topological
-		order. Following that reference, we mark the state as visited so that
+		order. Following that reference, we mark the state 1 as visited so that
 		we do not visit it again when we encounter it elsewhere (1A)
 	*/
 	t.Run("potential cyclic reference via state dependency", func(t *testing.T) {
@@ -6350,9 +6356,16 @@ func removeOutputs(states map[string][]string) map[string][]string {
 	return states
 }
 
-// streamableSyncTest is a helper to ensure that the long-running streaming goroutines are started outside of the synctest bubble.
-// Otherwise, the sync bubble will be unable to advance time, and the main goroutine will become infinitely paused on any time.Sleep operation.
-func streamableSyncTest(t *testing.T) (func(t *testing.T, f func(*testing.T)), *terminal.Streams, func(*testing.T) *terminal.TestOutput) {
-	streams, done := terminal.StreamsForTesting(t)
-	return synctest.Test, streams, done
+// runSynctest runs the given function in a synctest bubble.
+// synctest significantly improves test execution times by using deterministic virtual-time execution,
+// but it is not compatible with some primitives (mutexes, i/o),
+// and as such should only be used with care in tests that utilize
+// these primitives lest they are infinitely blocked.
+func runSynctest(t *testing.T, f func(t *testing.T)) {
+	t.Helper()
+
+	synctest.Test(t, func(t *testing.T) {
+		f(t)
+		synctest.Wait()
+	})
 }
