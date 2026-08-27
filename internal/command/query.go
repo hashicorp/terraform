@@ -126,17 +126,8 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	if len(args.PolicyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
-		// if there has been any errors when setting up the policy client, we log them but
-		// we still proceed with the operation, as a failure to set up the policy client
-		// should not prevent the query operation from running
-		if opReq.View != nil && policyDiags != nil {
-			opReq.View.PolicyDiagnostics(policyDiags)
-		}
-		opReq.PolicyClient = client
-		defer stopClient()
-	}
+	stopPolicyClient := c.configureQueryPolicyClient(be, opReq)
+	defer stopPolicyClient()
 
 	// Collect variable value and add them to the operation request
 	var varDiags tfdiags.Diagnostics
@@ -167,6 +158,22 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	}
 
 	return op.Result.ExitStatus()
+}
+
+func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBackend, opReq *backendrun.Operation) func() {
+	remote, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
+	// Remote execution forwards policy paths to the server; only local
+	// execution needs an in-process policy client.
+	if len(opReq.PolicyPaths) == 0 || (isRemoteBackend && !remote.IsLocalOperations()) {
+		return func() {}
+	}
+
+	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be))
+	if opReq.View != nil && policyDiags != nil {
+		opReq.View.PolicyDiagnostics(policyDiags)
+	}
+	opReq.PolicyClient = client
+	return stopClient
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {

@@ -212,7 +212,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 			}
 		} else {
 			// We'll print the plan.
-			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			jsonPlan, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -222,12 +222,13 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 				plan := jsonformat.Plan{
 					PlanFormatVersion:     jsonplan.FormatVersion,
 					ProviderFormatVersion: jsonprovider.FormatVersion,
-					OutputChanges:         outputs,
-					ResourceChanges:       changed,
-					ResourceDrift:         drift,
+					OutputChanges:         jsonPlan.OutputChanges,
+					ResourceChanges:       jsonPlan.ResourceChanges,
+					ResourceDrift:         jsonPlan.ResourceDrift,
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-					RelevantAttributes:    attrs,
-					ActionInvocations:     actions,
+					RelevantAttributes:    jsonPlan.RelevantAttributes,
+					ActionInvocations:     jsonPlan.ActionInvocations,
+					DeferredChanges:       jsonPlan.DeferredChanges,
 				}
 
 				var opts []plans.Quality
@@ -590,7 +591,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					"@testrun", run.Name)
 			}
 		} else {
-			outputs, changed, drift, attrs, actions, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			jsonPlan, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -600,12 +601,13 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 				plan := jsonformat.Plan{
 					PlanFormatVersion:     jsonplan.FormatVersion,
 					ProviderFormatVersion: jsonprovider.FormatVersion,
-					OutputChanges:         outputs,
-					ResourceChanges:       changed,
-					ResourceDrift:         drift,
+					OutputChanges:         jsonPlan.OutputChanges,
+					ResourceChanges:       jsonPlan.ResourceChanges,
+					ResourceDrift:         jsonPlan.ResourceDrift,
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-					RelevantAttributes:    attrs,
-					ActionInvocations:     actions,
+					RelevantAttributes:    jsonPlan.RelevantAttributes,
+					ActionInvocations:     jsonPlan.ActionInvocations,
+					DeferredChanges:       jsonPlan.DeferredChanges,
 				}
 
 				t.view.log.Info(

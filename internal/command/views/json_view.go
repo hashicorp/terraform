@@ -97,6 +97,14 @@ func (v *JSONView) PlannedChange(c *json.ResourceInstanceChange) {
 	)
 }
 
+func (v *JSONView) DeferredChange(dc *json.DeferredResourceInstanceChange) {
+	v.log.Info(
+		dc.String(),
+		"type", json.MessageDeferredChange,
+		"deferred_change", dc,
+	)
+}
+
 func (v *JSONView) PlannedActionInvocation(action *json.ActionInvocation) {
 	v.log.Info(
 		fmt.Sprintf("planned action invocation: %s", action.Action.Action),
@@ -178,7 +186,7 @@ func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse) 
 	}
 }
 
-func (v *JSONView) logPolicyQuerySummary(summary queryPolicySummary) {
+func (v *JSONView) logPolicyQuerySummary(summary PolicyQuerySummary) {
 	v.log.Info(
 		"Policy query summary",
 		"type", json.MessagePolicyQuerySummary,

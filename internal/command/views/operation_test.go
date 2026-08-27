@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -470,6 +471,44 @@ func TestOperation_planNextStepInAutomation(t *testing.T) {
 
 	if got := done(t).Stdout(); got != "" {
 		t.Errorf("unexpected output\ngot: %q", got)
+	}
+}
+
+func TestOperation_planWithDeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDeferredChanges(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Note: This is a partial plan, parts can only be known in the next plan / apply cycle.
+
+
+  # test_resource.deferred was deferred
+  # (because the resource configuration is unknown)
+  + resource "test_resource" "deferred" {}
+
+─────────────────────────────────────────────────────────────────────────────
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
 
@@ -1556,6 +1595,138 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 					"resource_key":     float64(1),
 					"resource_name":    "boop",
 					"resource_type":    "test_instance",
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planWithDeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
+			{
+				DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr:        boop.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: boop.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+			},
+		},
+	}
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: deferred change, reason: resource_config_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "resource_config_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":             "test_instance.boop",
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planWithDeferredChange_unknownKey(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
+
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr:        boop.Instance(addrs.WildcardKey).Absolute(root),
+					PrevRunAddr: boop.Instance(addrs.WildcardKey).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop[*]: deferred change, reason: instance_count_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "instance_count_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":                 "test_instance.boop[*]",
+						"implied_provider":     "test",
+						"module":               "",
+						"resource":             "test_instance.boop[*]",
+						"resource_key":         nil,
+						"resource_key_unknown": true,
+						"resource_name":        "boop",
+						"resource_type":        "test_instance",
+					},
 				},
 			},
 		},

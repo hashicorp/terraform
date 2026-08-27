@@ -19,6 +19,8 @@ type InitGraphBuilder struct {
 	RootVariableValues InputValues
 
 	Walker configs.ModuleWalker
+
+	ModulePathPrefix addrs.Module
 }
 
 // See GraphBuilder
@@ -50,8 +52,9 @@ func (b *InitGraphBuilder) Steps() []GraphTransformer {
 
 	steps = append(steps, []GraphTransformer{
 		&ModuleTransformer{
-			Config: b.Config,
-			Walker: b.Walker,
+			Config:           b.Config,
+			Walker:           b.Walker,
+			ModulePathPrefix: b.ModulePathPrefix,
 		},
 
 		&ProviderRequirementExprTransformer{
