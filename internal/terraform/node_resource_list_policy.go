@@ -38,8 +38,8 @@ type listResourcePolicy struct {
 	// ListBlockAddr is the AbsResourceInstance address of the originating list block.
 	ListBlockAddr addrs.AbsResourceInstance
 
-	// Unknown is true when the resource had no "state" attribute in the list
-	// response (include_resource = false), preventing config generation.
+	// Unknown is true when resource state is unavailable or configuration
+	// generation failed, preventing policy evaluation.
 	Unknown bool
 }
 

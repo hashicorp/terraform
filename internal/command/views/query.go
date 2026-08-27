@@ -94,6 +94,8 @@ type queryUiHook struct {
 }
 
 func (h *queryUiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	h.viewLock.Lock()
+	defer h.viewLock.Unlock()
 	h.op.PolicyResult(addr, resp)
 	return terraform.HookActionContinue, nil
 }
