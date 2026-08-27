@@ -274,20 +274,25 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 	return result
 }
 
-func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
-	var result []*addrs.Reference
+func (n *NodeAbstractResource) ImportReferences() []ImportReference {
+	var result []ImportReference
 	for _, importTarget := range n.importTargets {
 		// legacy import won't have any config
 		if importTarget.Config == nil {
 			continue
 		}
 
-		refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
-		result = append(result, refs...)
-		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
-		result = append(result, refs...)
-		refs, _ = langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
-		result = append(result, refs...)
+		var refs []*addrs.Reference
+		idRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ID)
+		refs = append(refs, idRefs...)
+		identityRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.Identity)
+		refs = append(refs, identityRefs...)
+		forEachRefs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, importTarget.Config.ForEach)
+		refs = append(refs, forEachRefs...)
+
+		for _, ref := range refs {
+			result = append(result, ImportReference{RelModule: importTarget.RelModule, Ref: ref})
+		}
 	}
 	return result
 }

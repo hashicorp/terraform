@@ -1,4 +1,6 @@
-## 1.16.0 (Unreleased)
+## 1.16.1 (Unreleased)
+
+## 1.16.0 (August 26, 2026)
 
 
 NEW FEATURES:
@@ -69,6 +71,8 @@ BUG FIXES:
 
 * Allow underscores in provider source address namespaces, so private registry provider addresses are no longer rejected as invalid ([#38894](https://github.com/hashicorp/terraform/issues/38894))
 
+* test: Optional ephemeral values do not have to be set at plan time ([#38974](https://github.com/hashicorp/terraform/issues/38974))
+
 
 NOTES:
 
@@ -78,8 +82,6 @@ NOTES:
 UPGRADE NOTES:
 
 * `bastion_host_key` is now correctly applied by provisioners. Review your provisioner configurations to verify the configured key is correct before upgrading. ([#38318](https://github.com/hashicorp/terraform/issues/38318))
-
-
 EXPERIMENTS:
 
 Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.

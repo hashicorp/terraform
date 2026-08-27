@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "stacks: Action configurations now have access to a `caller` symbol containing the object value of the calling resource."
-time: 2026-06-02T09:04:23.077822-04:00
-custom:
-    Issue: "38668"

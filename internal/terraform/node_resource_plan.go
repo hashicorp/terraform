@@ -152,10 +152,6 @@ func (n *nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, all
 		return knownImports, unknownImports, diags
 	}
 
-	// Import blocks are only valid within the root module, and must be
-	// evaluated within that context
-	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
-
 	state := ctx.State()
 
 	for _, imp := range n.importTargets {
