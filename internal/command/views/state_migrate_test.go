@@ -103,7 +103,7 @@ func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID(t *testing.T
 func TestNewStateMigrate_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.Spacer()
 
@@ -121,7 +121,7 @@ func TestNewStateMigrate_Spacer_json(t *testing.T) {
 func TestNewStateMigrate_LogInteractiveApproval_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogInteractiveApproval()
 
@@ -143,7 +143,7 @@ func TestNewStateMigrate_LogInteractiveApproval_json(t *testing.T) {
 func TestNewStateMigrate_LogInteractiveRejection_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogInteractiveRejection()
 
@@ -165,7 +165,7 @@ func TestNewStateMigrate_LogInteractiveRejection_json(t *testing.T) {
 func TestNewStateMigrate_LogAutomaticApproval_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogAutomaticApproval()
 
@@ -187,7 +187,7 @@ func TestNewStateMigrate_LogAutomaticApproval_json(t *testing.T) {
 func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogProviderLockfileCreated()
 
@@ -209,7 +209,7 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 func TestNewStateMigrate_LogDependencyLockfileUpdated_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogProviderLockfileUpdated()
 
@@ -231,7 +231,7 @@ func TestNewStateMigrate_LogDependencyLockfileUpdated_json(t *testing.T) {
 func TestNewStateMigrate_LogInstallProvidersStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogInstallProvidersStart()
 
@@ -253,7 +253,7 @@ func TestNewStateMigrate_LogInstallProvidersStart_json(t *testing.T) {
 func TestNewStateMigrate_LogReusingPreviousProviderVersion_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	version := getproviders.MustParseVersion("1.0.0")
@@ -277,7 +277,7 @@ func TestNewStateMigrate_LogReusingPreviousProviderVersion_json(t *testing.T) {
 func TestNewStateMigrate_LogFindingMatchingVersion_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	constraint, _ := getproviders.ParseVersionConstraints("1.0.0")
@@ -301,7 +301,7 @@ func TestNewStateMigrate_LogFindingMatchingVersion_json(t *testing.T) {
 func TestNewStateMigrate_LogFindingLatestVersion_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	smView.LogFindingLatestVersion(p)
@@ -324,7 +324,7 @@ func TestNewStateMigrate_LogFindingLatestVersion_json(t *testing.T) {
 func TestNewStateMigrate_LogProviderVersionAlreadyInstalled_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	version := getproviders.MustParseVersion("1.0.0")
@@ -348,7 +348,7 @@ func TestNewStateMigrate_LogProviderVersionAlreadyInstalled_json(t *testing.T) {
 func TestNewStateMigrate_LogUsingProviderVersionFromCacheDir_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	version := getproviders.MustParseVersion("1.0.0")
@@ -372,7 +372,7 @@ func TestNewStateMigrate_LogUsingProviderVersionFromCacheDir_json(t *testing.T) 
 func TestNewStateMigrate_LogInstallProviderVersionComplete_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
@@ -398,7 +398,7 @@ func TestNewStateMigrate_LogInstallProviderVersionComplete_json(t *testing.T) {
 func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	v := versions.MustParseVersion("1.0.0")
@@ -425,7 +425,7 @@ func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID_json(t *test
 func TestNewStateMigrate_LogBuiltInProviderAvailable_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	p := addrs.MustParseProviderSourceString("hashicorp/test")
 	smView.LogBuiltInProviderAvailable(p)
@@ -448,7 +448,7 @@ func TestNewStateMigrate_LogBuiltInProviderAvailable_json(t *testing.T) {
 func TestNewStateMigrate_LogPartnerAndCommunityProviders_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogPartnerAndCommunityProviders()
 
@@ -470,7 +470,7 @@ func TestNewStateMigrate_LogPartnerAndCommunityProviders_json(t *testing.T) {
 func TestNewStateMigrate_LogStateMigrationStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	source := "backend \"s3\""
 	destination := "state store \"test_store\""
@@ -494,7 +494,7 @@ func TestNewStateMigrate_LogStateMigrationStart_json(t *testing.T) {
 func TestNewStateMigrate_LogStateMigrationComplete_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	source := "backend \"s3\""
 	destination := "state store \"test_store\""
@@ -518,7 +518,7 @@ func TestNewStateMigrate_LogStateMigrationComplete_json(t *testing.T) {
 func TestNewStateMigrate_LogStateMigrationFinalized_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	source := "backend \"s3\""
 	destination := "state store \"test_store\""
@@ -543,7 +543,7 @@ func TestNewStateMigrate_LogStateMigrationErrored_json(t *testing.T) {
 	t.Run("migration itself fails", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 		view := NewView(streams)
-		smView := StateMigrateJSON{view: NewJSONView(view)}
+		smView := NewStateMigrate(arguments.ViewJSON, view)
 
 		source := "backend \"s3\""
 		destination := "state store \"test_store\""
@@ -568,7 +568,7 @@ func TestNewStateMigrate_LogStateMigrationErrored_json(t *testing.T) {
 	t.Run("provider lockfile update fails", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 		view := NewView(streams)
-		smView := StateMigrateJSON{view: NewJSONView(view)}
+		smView := NewStateMigrate(arguments.ViewJSON, view)
 
 		source := "backend \"s3\""
 		destination := "state store \"test_store\""
@@ -592,7 +592,7 @@ func TestNewStateMigrate_LogStateMigrationErrored_json(t *testing.T) {
 	t.Run("backend state file update fails", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)
 		view := NewView(streams)
-		smView := StateMigrateJSON{view: NewJSONView(view)}
+		smView := NewStateMigrate(arguments.ViewJSON, view)
 
 		source := "backend \"s3\""
 		destination := "state store \"test_store\""
@@ -617,7 +617,7 @@ func TestNewStateMigrate_LogStateMigrationErrored_json(t *testing.T) {
 func TestNewStateMigrate_LogMigrationSourceInitializationStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogMigrationSourceInitializationStart()
 
@@ -639,7 +639,7 @@ func TestNewStateMigrate_LogMigrationSourceInitializationStart_json(t *testing.T
 func TestNewStateMigrate_LogMigrationSourceInitializationComplete_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogMigrationSourceInitializationComplete()
 
@@ -661,7 +661,7 @@ func TestNewStateMigrate_LogMigrationSourceInitializationComplete_json(t *testin
 func TestNewStateMigrate_LogMigrationDestinationInitializationStart_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogMigrationDestinationInitializationStart()
 
@@ -683,7 +683,7 @@ func TestNewStateMigrate_LogMigrationDestinationInitializationStart_json(t *test
 func TestNewStateMigrate_LogMigrationDestinationInitializationComplete_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	smView := StateMigrateJSON{view: NewJSONView(view)}
+	smView := NewStateMigrate(arguments.ViewJSON, view)
 
 	smView.LogMigrationDestinationInitializationComplete()
 
