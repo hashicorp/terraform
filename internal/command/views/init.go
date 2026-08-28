@@ -180,8 +180,8 @@ func (v *InitHuman) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileUpdated() {
-	params := []any{}
-	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.print(msg)
 }
 
 // Implements ModuleInstallationLogger
@@ -447,10 +447,8 @@ func (v *InitJSON) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(DependenciesLockChangesInfo, params...)
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.initOutputLog(msg, json.DependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -535,10 +533,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
 		JSONValue:  "Initializing the state store %q...",
-	},
-	"dependencies_lock_changes_info": {
-		HumanValue: dependenciesLockChangesInfo,
-		JSONValue:  dependenciesLockChangesInfo,
 	},
 	"provider_already_installed_message": {
 		HumanValue: logProviderVersionAlreadyInstalledHuman,
@@ -636,7 +630,6 @@ const (
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
-	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
