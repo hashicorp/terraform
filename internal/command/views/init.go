@@ -30,6 +30,9 @@ type Init interface {
 	// This is signposted as distinct from general provider download, which may happen later in init.
 	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
 
+	// LogInitializingStateStoreStart indicates progress initializing a state store.
+	LogInitializingStateStoreStart(storeType string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -91,6 +94,11 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	template := "[reset][bold]Copying configuration[reset] from %q..."
 	v.print(fmt.Sprintf(template, moduleSource))
+}
+
+func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
+	template := "\n[reset][bold]Initializing the state store %q..."
+	v.print(fmt.Sprintf(template, storeType))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -295,6 +303,11 @@ func (v *InitJSON) initOutputLog(preppedMessage string, messageCode any) {
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
 	template := "Copying configuration from %q..."
 	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.CopyingConfigurationMessage)
+}
+
+func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
+	template := "Initializing the state store %q..."
+	v.initOutputLog(fmt.Sprintf(template, storeType), json.InitializingStateStoreMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -530,10 +543,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the backend...",
 		JSONValue:  "Initializing the backend...",
 	},
-	"initializing_state_store_message": {
-		HumanValue: "\n[reset][bold]Initializing the state store %q...",
-		JSONValue:  "Initializing the state store %q...",
-	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -633,7 +642,6 @@ const (
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)

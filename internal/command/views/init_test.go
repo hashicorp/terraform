@@ -888,6 +888,30 @@ func TestNewInit_LogConfigurationCopyingStart_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInitializingStateStoreStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	storeType := "aws_s3"
+	initView.LogInitializingStateStoreStart(storeType)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing the state store \"aws_s3\"..."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"initializing_state_store_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
