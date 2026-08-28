@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'provider installation: Correctly delimit signing key ID details in JSON log messages'
+time: 2026-08-28T22:14:28.941581+08:00
+custom:
+    Issue: "39078"
