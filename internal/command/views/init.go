@@ -94,7 +94,8 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
-	v.print(v.prepareMessage(InitializingProviderPluginMessage))
+	msg := "\n[reset][bold]Initializing provider plugins..."
+	v.print(msg)
 }
 
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -318,10 +319,8 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) LogInstallProvidersStart() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(InitializingProviderPluginMessage, params...)
+	msg := "Initializing provider plugins..."
+	v.initOutputLog(msg, json.InitializingProviderPluginMessage)
 }
 
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -536,10 +535,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the backend...",
 		JSONValue:  "Initializing the backend...",
 	},
-	"initializing_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins...",
-		JSONValue:  "Initializing provider plugins...",
-	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
 		JSONValue:  "Initializing the state store %q...",
@@ -648,7 +643,6 @@ const (
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                          InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 

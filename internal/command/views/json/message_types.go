@@ -110,4 +110,5 @@ const (
 	CopyingConfigurationMessage       MessageType = "copying_configuration_message"
 	UpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	InitializingModulesMessage        MessageType = "initializing_modules_message"
+	InitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
 )
