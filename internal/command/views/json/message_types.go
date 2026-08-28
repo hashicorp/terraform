@@ -112,4 +112,5 @@ const (
 	InitializingModulesMessage        MessageType = "initializing_modules_message"
 	InitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
 	LockInfo                          MessageType = "lock_info"
+	DependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
 )

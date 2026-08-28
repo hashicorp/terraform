@@ -180,8 +180,8 @@ func (v *InitHuman) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileUpdated() {
-	params := []any{}
-	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.print(msg)
 }
 
 // Implements ModuleInstallationLogger
@@ -447,10 +447,8 @@ func (v *InitJSON) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(DependenciesLockChangesInfo, params...)
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.initOutputLog(msg, json.DependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
