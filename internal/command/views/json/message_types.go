@@ -111,4 +111,5 @@ const (
 	UpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	InitializingModulesMessage        MessageType = "initializing_modules_message"
 	InitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
+	LockInfo                          MessageType = "lock_info"
 )
