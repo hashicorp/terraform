@@ -109,4 +109,5 @@ const (
 	// and changes are potentially breaking.
 	CopyingConfigurationMessage       MessageType = "copying_configuration_message"
 	UpgradingModulesMessage           MessageType = "upgrading_modules_message"
+	InitializingModulesMessage        MessageType = "initializing_modules_message"
 )
