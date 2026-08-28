@@ -108,6 +108,7 @@ const (
 	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
 	// and changes are potentially breaking.
 	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	MessageOutputInitSuccessMessage          MessageType = "output_init_success_message"
 	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	MessageInitializingTerraformCloudMessage MessageType = "initializing_terraform_cloud_message"
 	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
