@@ -109,6 +109,7 @@ const (
 	// and changes are potentially breaking.
 	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
 	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
+	MessageInitializingTerraformCloudMessage MessageType = "initializing_terraform_cloud_message"
 	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
 	MessageInitializingStateStoreMessage     MessageType = "initializing_state_store_message"
 	MessageInitializingBackendMessage        MessageType = "initializing_backend_message"

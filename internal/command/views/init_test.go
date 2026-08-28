@@ -935,6 +935,29 @@ func TestNewInit_LogInitializingBackendStart_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInitializingHCPTerraformStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitializingHCPTerraformStart()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing HCP Terraform..."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"initializing_terraform_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
