@@ -283,9 +283,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	}
 	view.LogMigrationDestinationInitializationComplete(destinationStorageMethod)
 
-	view.LogStateMigrationStart(source, destination)
-
 	// Perform the migration from source to destination
+	view.LogStateMigrationStart(source, destination)
 	err := c.Meta.backendMigrateState(migrateOpts)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
@@ -293,7 +292,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.LogStateMigrationErrored(views.DuringMigration, source, destination)
 		return 1
 	}
-
 	view.LogStateMigrationComplete(source, destination)
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
