@@ -118,7 +118,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	view.LogMigrationSourceInitializationStart(sourceStorageMethod)
 	var source string
 	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
-	if sourceStorageMethod == Backend {
+	switch sourceStorageMethod {
+	case Backend:
 		source = fmt.Sprintf("backend %q", smi.Backend.Type)
 
 		srcB, _, srcDiags := c.Meta.backendInitFromConfig(smi.Backend)
@@ -127,8 +128,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.SourceType = smi.Backend.Type
 			migrateOpts.Source = srcB
 		}
-	} else if sourceStorageMethod == StateStore {
-		// Load any pre-existing source provider lock file.
+	case StateStore:
 		var lockfilePath string
 		if args.SourceLockFilePath != "" {
 			lockfilePath = args.SourceLockFilePath
@@ -176,6 +176,12 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
 		}
+	default:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unknown migration source",
+			"No configuration was provided for where to migrate the state from. Please ensure that a file with a .tfmigrate.hcl extension is present and contains valid state_store or backend configuration inside the from block.",
+		))
 	}
 	view.LogMigrationSourceInitializationComplete(sourceStorageMethod)
 
@@ -184,7 +190,8 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	var destination string
 	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
 	var bsf *workdir.BackendStateFile = workdir.NewBackendStateFile() // Collect data below for updating the backend state file.
-	if destinationStorageMethod == Backend {
+	switch destinationStorageMethod {
+	case Backend:
 		destination = fmt.Sprintf("backend %q", rootMod.Backend.Type)
 
 		dstB, dstConfig, dstDiags := c.Meta.backendInitFromConfig(rootMod.Backend)
@@ -214,7 +221,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				return 1
 			}
 		}
-	} else if destinationStorageMethod == StateStore {
+	case StateStore:
 		// Get single required_providers entry for state store provider.
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
@@ -331,15 +338,13 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			view.Diagnostics(diags)
 			return 1
 		}
-
-	} else {
+	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unknown migration destination",
 			"No configuration was provided for where to migrate the state to. Please ensure that a file with a .tf extension is present and contains valid state_store or backend configuration inside the terraform block.",
 		))
 	}
-
 	// present all errors from above together so user can fix them all at once
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
