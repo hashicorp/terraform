@@ -338,7 +338,7 @@ func (s *StateMigrateJSON) LogStateMigrationStart(source string, destination str
 	msg := fmt.Sprintf(logStateMigrationStartJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogStateMigrationStart,
+		"type", json.LogMigrationStart,
 	)
 }
 
@@ -347,7 +347,7 @@ func (s *StateMigrateJSON) LogStateMigrationComplete(source string, destination 
 	msg := fmt.Sprintf(logStateMigrationCompleteJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogStateMigrationComplete,
+		"type", json.LogMigrationComplete,
 	)
 }
 
@@ -356,7 +356,7 @@ func (s *StateMigrateJSON) LogStateMigrationFinalized(source string, destination
 	msg := fmt.Sprintf(logStateMigrationFinalizedJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogStateMigrationFinalized,
+		"type", json.LogMigrationFinalized,
 	)
 }
 
@@ -378,7 +378,7 @@ func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailu
 
 	s.view.log.Info(
 		msg,
-		"type", json.LogStateMigrationErrored,
+		"type", json.LogMigrationErrored,
 		"failure_mode", failMode,
 	)
 }
