@@ -95,6 +95,7 @@ const (
 
 	// Backend/state store initialization messages
 	MessageStateStoreInitializationStart MessageType = "state_store_initialization_start"
+	MessageInitializingBackendMessage    MessageType = "initializing_backend_message"
 
 	// State migration-related messages
 	MessageMigrationStart                             MessageType = "migration_start"
