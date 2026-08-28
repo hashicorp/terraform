@@ -283,7 +283,7 @@ func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
 
 // Implements DependencyLockLogger interface.
 func (s *StateMigrateHuman) LogProviderLockfileCreated() {
-	s.log(previousLockInfoHuman)
+	s.log(createdLockInfoHuman)
 }
 
 // Implements DependencyLockLogger interface.
@@ -406,7 +406,7 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 // Implements ProviderLockingLogger interface.
 func (s *StateMigrateJSON) LogProviderLockfileCreated() {
 	s.view.log.Info(
-		strings.TrimSpace(previousLockInfoJSON),
+		strings.TrimSpace(createdLockInfoJSON),
 		"type", json.MessageProviderLockfileCreated,
 	)
 }
