@@ -39,6 +39,9 @@ type Init interface {
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
+	// LogInitSuccess reports a successful init command completing
+	LogInitSuccess()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -115,6 +118,10 @@ func (v *InitHuman) LogInitializingBackendStart() {
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
 	msg := "\n[reset][bold]Initializing HCP Terraform..."
 	v.print(msg)
+}
+
+func (v *InitHuman) LogInitSuccess() {
+	v.print(outputInitSuccess)
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -336,6 +343,11 @@ func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog(msg, json.InitializingTerraformCloudMessage)
 }
 
+func (v *InitJSON) LogInitSuccess() {
+	msg := strings.TrimSpace(outputInitSuccessJSON)
+	v.initOutputLog(msg, json.OutputInitSuccessMessage)
+}
+
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
 // New methods have since been added that replace the old `LogInitMessage` method,
 // but to ensure that the same JSON output is produced we keep `logInitMessage` to
@@ -545,10 +557,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: outputInitEmpty,
 		JSONValue:  outputInitEmptyJSON,
 	},
-	"output_init_success_message": {
-		HumanValue: outputInitSuccess,
-		JSONValue:  outputInitSuccessJSON,
-	},
 	"output_init_success_cloud_message": {
 		HumanValue: outputInitSuccessCloud,
 		JSONValue:  outputInitSuccessCloudJSON,
@@ -654,7 +662,6 @@ const (
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
 	OutputInitEmptyMessage           InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage         InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage    InitMessageCode = "output_init_success_cloud_message"
 	OutputInitSuccessCLIMessage      InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage InitMessageCode = "output_init_success_cli_cloud_message"
