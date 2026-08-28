@@ -42,6 +42,18 @@ type Init interface {
 	// LogInitSuccess reports a successful init command completing
 	LogInitSuccess()
 
+	// // LogInitSuccessCloud is just like LogInitSuccess but uses HCP Terraform-specific language
+	// LogInitSuccessCloud()
+
+	// // LogInitSuccessEmpty reports a successful init command completing, but notes that the config was empty
+	// LogInitSuccessEmpty()
+
+	// // LogCallToActionCLI is used when Terraform is not running in automation and prompt users about using the primary workflow
+	// LogCallToActionCLI()
+
+	// // LogCallToActionCLICloud is just like LogCallToActionCLI but uses HCP Terraform-specific language
+	// LogCallToActionCLICloud()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
