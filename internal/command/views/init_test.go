@@ -628,7 +628,7 @@ func TestNewInit_LogInstallProviderVersionCompleteWithKeyID(t *testing.T) {
 
 		// Assert output - human
 		output := done(t)
-		expectedOutput := `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partnerkey_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		expectedOutput := `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partner, key_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
 		if !strings.Contains(output.Stdout(), expectedOutput) {
 			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
 		}
@@ -705,7 +705,7 @@ func TestNewInit_LogInstallProviderVersionCompleteWithKeyID_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partner, key_id: key-id-123)"`,
 		`"@module":"terraform.ui"`,
 		`"type":"log"`,
 	}

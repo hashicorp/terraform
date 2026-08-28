@@ -411,7 +411,7 @@ func TestNewStateMigrate_LogInstallProviderVersionCompleteWithKeyID_json(t *test
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partnerkey_id: key-id-123)"`,
+		`"@message":"Installed provider version: hashicorp/test v1.0.0 (signed by a HashiCorp partner, key_id: key-id-123)"`,
 		`"@module":"terraform.ui"`,
 		`"type":"provider_version_installation_complete"`,
 	}

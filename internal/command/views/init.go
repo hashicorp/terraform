@@ -423,7 +423,7 @@ func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider
 }
 
 func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
-	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
+	keyDetails := fmt.Sprintf(", key_id: %s", keyID) // key id needs to be formatted for JSON output
 	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
 
 	// This was previously logged via LogInitMessage, so we need to match implementation of that method

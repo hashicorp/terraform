@@ -8943,7 +8943,7 @@ func Test_fetchPackageSuccessCallback(t *testing.T) {
 		}
 		// Assert output - json
 		output = doneJ(t)
-		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partnerkey_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
+		expectedOutput = `{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (signed by a HashiCorp partner, key_id: key-id-123)","@module":"terraform.ui","@timestamp":` // Stop comparison before timestamp
 		if !strings.Contains(output.Stdout(), expectedOutput) {
 			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", expectedOutput, output.Stdout())
 		}

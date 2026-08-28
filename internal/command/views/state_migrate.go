@@ -512,7 +512,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionComplete(providerAddr addrs.
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
-	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
+	keyDetails := fmt.Sprintf(", key_id: %s", keyID) // key id needs to be formatted for JSON output
 	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
 	s.view.log.Info(
 		msg,
