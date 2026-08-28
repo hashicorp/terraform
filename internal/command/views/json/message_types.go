@@ -108,4 +108,5 @@ const (
 	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
 	// and changes are potentially breaking.
 	CopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	UpgradingModulesMessage           MessageType = "upgrading_modules_message"
 )

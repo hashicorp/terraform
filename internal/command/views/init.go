@@ -200,10 +200,8 @@ func (v *InitHuman) LogModuleInstallation(message string) {
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleUpgrade() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.print(v.prepareMessage(UpgradingModulesMessage, params...))
+	msg := "[reset][bold]Upgrading modules..."
+	v.print(msg)
 }
 
 // Implements ModuleInstallationLogger
@@ -477,10 +475,8 @@ func (v *InitJSON) LogModuleInstallation(message string) {
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleUpgrade() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(UpgradingModulesMessage, params...)
+	msg := "Upgrading modules..."
+	v.initOutputLog(msg, json.UpgradingModulesMessage)
 }
 
 // Implements ModuleInstallationLogger
@@ -535,10 +531,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"output_init_success_cli_cloud_message": {
 		HumanValue: outputInitSuccessCLICloud,
 		JSONValue:  outputInitSuccessCLICloudJSON,
-	},
-	"upgrading_modules_message": {
-		HumanValue: "[reset][bold]Upgrading modules...",
-		JSONValue:  "Upgrading modules...",
 	},
 	"initializing_modules_message": {
 		HumanValue: "[reset][bold]Initializing modules...",
@@ -661,7 +653,6 @@ const (
 	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
 	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
