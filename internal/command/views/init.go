@@ -89,7 +89,8 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
-	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
+	template := "[reset][bold]Copying configuration[reset] from %q..."
+	v.print(fmt.Sprintf(template, moduleSource))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -296,11 +297,8 @@ func (v *InitJSON) initOutputLog(preppedMessage string, messageCode any) {
 }
 
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
-	params := []any{moduleSource}
-
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.Output(CopyingConfigurationMessage, params...)
+	template := "Copying configuration from %q..."
+	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.CopyingConfigurationMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -518,10 +516,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"copying_configuration_message": {
-		HumanValue: "[reset][bold]Copying configuration[reset] from %q...",
-		JSONValue:  "Copying configuration from %q...",
-	},
 	"output_init_empty_message": {
 		HumanValue: outputInitEmpty,
 		JSONValue:  outputInitEmptyJSON,
@@ -662,7 +656,6 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
 	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
