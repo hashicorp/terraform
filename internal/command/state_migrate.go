@@ -98,11 +98,27 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	}
 	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
+	// Get info about the state storage methods used in the source and destination
+	// This is used as an argument to the view and to control which logic is used for initialization.
+	var sourceStorageMethod string
+	var destinationStorageMethod string
+	if smi.Backend != nil {
+		sourceStorageMethod = Backend
+	} else if smi.StateStore != nil {
+		sourceStorageMethod = StateStore
+	}
+	rootMod := cfg.Module
+	if rootMod.Backend != nil {
+		destinationStorageMethod = Backend
+	} else if rootMod.StateStore != nil {
+		destinationStorageMethod = StateStore
+	}
+
 	// Load the source backend
-	view.LogMigrationSourceInitializationStart()
+	view.LogMigrationSourceInitializationStart(sourceStorageMethod)
 	var source string
 	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
-	if smi.Backend != nil {
+	if sourceStorageMethod == Backend {
 		source = fmt.Sprintf("backend %q", smi.Backend.Type)
 
 		srcB, _, srcDiags := c.Meta.backendInitFromConfig(smi.Backend)
@@ -111,7 +127,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.SourceType = smi.Backend.Type
 			migrateOpts.Source = srcB
 		}
-	} else if smi.StateStore != nil {
+	} else if sourceStorageMethod == StateStore {
 		// Load any pre-existing source provider lock file.
 		var lockfilePath string
 		if args.SourceLockFilePath != "" {
@@ -161,15 +177,14 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.Source = srcB
 		}
 	}
-	view.LogMigrationSourceInitializationComplete()
+	view.LogMigrationSourceInitializationComplete(sourceStorageMethod)
 
 	// Load the destination backend
-	view.LogMigrationDestinationInitializationStart()
-	rootMod := cfg.Module
+	view.LogMigrationDestinationInitializationStart(destinationStorageMethod)
 	var destination string
 	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
 	var bsf *workdir.BackendStateFile = workdir.NewBackendStateFile() // Collect data below for updating the backend state file.
-	if rootMod.Backend != nil {
+	if destinationStorageMethod == Backend {
 		destination = fmt.Sprintf("backend %q", rootMod.Backend.Type)
 
 		dstB, dstConfig, dstDiags := c.Meta.backendInitFromConfig(rootMod.Backend)
@@ -199,7 +214,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				return 1
 			}
 		}
-	} else if rootMod.StateStore != nil {
+	} else if destinationStorageMethod == StateStore {
 		// Get single required_providers entry for state store provider.
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
@@ -330,7 +345,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.Diagnostics(diags)
 		return 1
 	}
-	view.LogMigrationDestinationInitializationComplete()
+	view.LogMigrationDestinationInitializationComplete(destinationStorageMethod)
 
 	view.LogStateMigrationStart(source, destination)
 
@@ -347,7 +362,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
 	// details of the destination state store provider.
-	if rootMod.StateStore != nil {
+	if destinationStorageMethod == StateStore {
 		originalLocks, originalLockDiags := c.lockedDependencies()
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
@@ -422,6 +437,8 @@ func (c *StateMigrateCommand) Synopsis() string {
 }
 
 const (
+	Backend              = "backend"
+	StateStore           = "state store"
 	MigrationSource      = "source"
 	MigrationDestination = "destination"
 )
