@@ -272,7 +272,11 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"No configuration was provided for where to migrate the state to. Please ensure that a file with a .tf extension is present and contains valid state_store or backend configuration inside the terraform block.",
 		))
 	}
-	// present all errors from above together so user can fix them all at once
+
+	// Present errors raised when initializing the source and destination
+	// together, so user can fix them all at once.
+	// Not all error scenarios are handled here in a delayed fashion, just
+	// those coming from invalid configuration.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
