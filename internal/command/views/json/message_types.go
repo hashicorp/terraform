@@ -90,10 +90,10 @@ const (
 	ProviderAutomaticApproval    MessageType = "provider_automatic_approval"
 
 	// State migration-related messages
-	LogStateMigrationStart                        MessageType = "migration_start"
-	LogStateMigrationComplete                     MessageType = "migration_complete"
-	LogStateMigrationErrored                      MessageType = "migration_errored"
-	LogStateMigrationFinalized                    MessageType = "migration_finalized"
+	LogMigrationStart                             MessageType = "migration_start"
+	LogMigrationComplete                          MessageType = "migration_complete"
+	LogMigrationErrored                           MessageType = "migration_errored"
+	LogMigrationFinalized                         MessageType = "migration_finalized"
 	LogMigrationSourceInitializationStart         MessageType = "migration_source_initialization_start"
 	LogMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
 	LogMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
