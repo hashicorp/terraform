@@ -36,6 +36,9 @@ type Init interface {
 	// LogInitializingBackendStart indicates progress initializing a backend.
 	LogInitializingBackendStart()
 
+	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
+	LogInitializingHCPTerraformStart()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -106,6 +109,11 @@ func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
 
 func (v *InitHuman) LogInitializingBackendStart() {
 	msg := "\n[reset][bold]Initializing the backend..."
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitializingHCPTerraformStart() {
+	msg := "\n[reset][bold]Initializing HCP Terraform..."
 	v.print(msg)
 }
 
@@ -321,6 +329,11 @@ func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
 func (v *InitJSON) LogInitializingBackendStart() {
 	msg := "Initializing the backend..."
 	v.initOutputLog(msg, json.InitializingBackendMessage)
+}
+
+func (v *InitJSON) LogInitializingHCPTerraformStart() {
+	msg := "Initializing HCP Terraform..."
+	v.initOutputLog(msg, json.InitializingTerraformCloudMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -548,10 +561,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: outputInitSuccessCLICloud,
 		JSONValue:  outputInitSuccessCLICloudJSON,
 	},
-	"initializing_terraform_cloud_message": {
-		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
-		JSONValue:  "Initializing HCP Terraform...",
-	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -644,13 +653,12 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
-	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
+	OutputInitEmptyMessage           InitMessageCode = "output_init_empty_message"
+	OutputInitSuccessMessage         InitMessageCode = "output_init_success_message"
+	OutputInitSuccessCloudMessage    InitMessageCode = "output_init_success_cloud_message"
+	OutputInitSuccessCLIMessage      InitMessageCode = "output_init_success_cli_message"
+	OutputInitSuccessCLICloudMessage InitMessageCode = "output_init_success_cli_cloud_message"
+	DependenciesLockChangesInfo      InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
