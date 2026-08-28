@@ -36,6 +36,9 @@ type Init interface {
 	// LogInitializingStateStoreStart indicates progress during initialization of a state store.
 	LogInitializingStateStoreStart(storeType string)
 
+	// LogInitializingBackendStart indicates progress initializing a backend.
+	LogInitializingBackendStart()
+
 	// LogModuleUpgrade describes the start of upgrading a module during init.
 	LogModuleUpgrade()
 
@@ -104,6 +107,10 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 	v.print(fmt.Sprintf("[reset][bold]Copying configuration[reset] from %q...", moduleSource))
+}
+
+func (v *InitHuman) LogInitializingBackendStart() {
+	v.print("\n[reset][bold]Initializing the backend...")
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -331,6 +338,10 @@ func (v *InitJSON) initOutputLog(preppedMessage string, messageCode json.Message
 
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
 	v.initOutputLog(fmt.Sprintf("Copying configuration from %q...", moduleSource), json.MessageCopyingConfigurationMessage)
+}
+
+func (v *InitJSON) LogInitializingBackendStart() {
+	v.initOutputLog("Initializing the backend...", json.MessageInitializingBackendMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -577,10 +588,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
 		JSONValue:  "Initializing HCP Terraform...",
 	},
-	"initializing_backend_message": {
-		HumanValue: "\n[reset][bold]Initializing the backend...",
-		JSONValue:  "Initializing the backend...",
-	},
 	"provider_already_installed_message": {
 		HumanValue: logProviderVersionAlreadyInstalledHuman,
 		JSONValue:  logProviderVersionAlreadyInstalledJSON,
@@ -675,7 +682,6 @@ const (
 	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
