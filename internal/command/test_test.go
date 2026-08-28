@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"sort"
@@ -1756,8 +1757,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			_, td, closer := testModuleInline(t, tt.sources)
 			defer closer()
 			t.Chdir(td)
-			// Setup streams for testing outside of the synctest bubble because they contain
-			// unsupported io primitives.
 			initStreams, initDone := terminal.StreamsForTesting(t)
 			testStreams, testDone := terminal.StreamsForTesting(t)
 
@@ -6162,6 +6161,61 @@ func TestTest_ParallelDeps(t *testing.T) {
 	})
 
 	/*
+
+			       1A (SkipCleanup=true)
+					|
+					3
+				  /   \
+				 2     1B
+
+		1A and 1B have the same state key, so during teardown, they are only
+		represented by a single node in the graph. We have to take care not to
+		build a cyclic reference in the teardown graph.
+		1B is the most recent run in the graph for state 1,
+		but skip_cleanup=true on 1A means 1A owns the cleanup node,
+		and so we have to resolve state 1 through 1A.
+	*/
+	t.Run("skip_cleanup=true on first run owns cleanup node", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps", "with_skip_cleanup")), td)
+		t.Chdir(td)
+
+		// Reset the streams for the next command.
+		streams, done = terminal.StreamsForTesting(t)
+		meta.Streams = streams
+		meta.View = views.NewView(streams)
+
+		c := &TestCommand{
+			Meta: meta,
+		}
+
+		code := c.Run([]string{"-no-color", "-json"})
+		output = done(t)
+
+		if code != 0 {
+			t.Errorf("expected status code 0 but got %d", code)
+		}
+
+		actual := output.All()
+
+		var teardownOrder []string
+		lines, err := parseJSONLines(t, actual)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, parsed := range lines {
+			if run := parseTeardownLine(parsed); run != "" {
+				teardownOrder = append(teardownOrder, run)
+			}
+		}
+
+		expected := []string{"test_two", "test_three", "test_one_a"}
+		if !reflect.DeepEqual(teardownOrder, expected) {
+			t.Errorf("expected teardown order %v but got %v", expected, teardownOrder)
+		}
+	})
+
+	/*
 					D
 				  /   \
 			 	 A     B
@@ -6368,18 +6422,4 @@ func removeOutputs(states map[string][]string) map[string][]string {
 	}
 
 	return states
-}
-
-// runSynctest runs the given function in a synctest bubble.
-// synctest significantly improves test execution times by using deterministic virtual-time execution,
-// but it is not compatible with some primitives (mutexes, i/o),
-// and as such should only be used with care in tests that utilize
-// these primitives lest they are infinitely blocked.
-func runSynctest(t *testing.T, f func(t *testing.T)) {
-	t.Helper()
-
-	f(t)
-	// synctest.Wait()
-	// synctest.Test(t, func(t *testing.T) {
-	// })
 }

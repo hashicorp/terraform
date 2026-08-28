@@ -46,10 +46,19 @@ func (g *TeardownSubgraph) Name() string {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
+	// stateOwners maps state keys to the names of the runs that own them.
+	stateOwners := make(map[string]string)
+	for _, run := range b.opts.File.Runs {
+		state := ctx.getState(run.Config.StateKey)
+		if state.Run.Name == run.Name {
+			stateOwners[run.Config.StateKey] = run.Name
+		}
+	}
+
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestStateCleanupTransformer{opts: b.opts, runGraph: b.runGraph},
+			&TestStateCleanupTransformer{opts: b.opts, runGraph: b.runGraph, stateOwners: stateOwners},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -70,68 +79,64 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts     *graphOptions
-	runGraph *terraform.Graph
+	opts        *graphOptions
+	runGraph    *terraform.Graph
+	stateOwners map[string]string
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
-	cleanupRuns := collections.NewMapCmp[string, string]()
 	cleanupNodes := collections.NewMapCmp[string, *NodeStateCleanup]()
 
-	// iterate in topological order of the run graph, so that the most re run for each state key
-	// is attached to the cleanup node.
-	for _, node := range t.runGraph.TopologicalOrder() {
-		runNode, ok := node.(RunNode)
-		if !ok {
+	// create cleanup nodes for each state key. The state is either owned by
+	// the most recent run or the first run with skip_cleanup=true.
+	for _, run := range t.opts.File.Runs {
+		key := run.Config.StateKey
+		runName := t.stateOwners[key]
+		if runName != run.Name {
 			continue
 		}
-		run := runNode.Run()
-		key := run.Config.StateKey
 
-		if _, ok := cleanupRuns.GetOk(key); !ok {
-			cleanupRuns.Put(key, runNode.Run().Name)
-			cleanupNode := &NodeStateCleanup{stateKey: key, opts: t.opts}
-			g.Add(cleanupNode)
-			cleanupNodes.Put(key, cleanupNode)
-		}
+		cleanupNode := &NodeStateCleanup{stateKey: key, opts: t.opts}
+		g.Add(cleanupNode)
+		cleanupNodes.Put(key, cleanupNode)
 	}
 
-	isCleanupRun := func(v dag.Vertex) (RunNode, bool) {
+	// helper function to determine if a node owns the state it is associated with.
+	stateOwner := func(v dag.Vertex) (RunNode, bool) {
 		node, ok := v.(RunNode)
 		if !ok {
 			return nil, false
 		}
-		nodeName, ok := cleanupRuns.GetOk(node.Run().Config.StateKey)
-		if !ok {
-			return nil, false
-		}
 
-		// return true if the node is the last run with the given state key
-		return node, nodeName == node.Run().Name
+		runName := t.stateOwners[node.Run().Config.StateKey]
+
+		// return true if the node owns the state.
+		return node, runName == node.Run().Name
 	}
 
 	// Traverse the run graph in topological order and build the cleanup edges
 	// in reverse order of the run graph.
 	for _, node := range t.runGraph.TopologicalOrder() {
-		sourceNode, ok := isCleanupRun(node)
+		// is this node a test run and a state owner?
+		sourceNode, ok := stateOwner(node)
 		if !ok {
 			continue
 		}
 		sourceKey := sourceNode.Run().Config.StateKey
 		cleanupNode := cleanupNodes.Get(sourceKey)
 
-		// For each cleanup node, connect it to the cleanup nodes found in
-		// its transitive dependencies. Intermediate nodes are intentionally
-		// omitted from the cleanup graph.
-		deps := t.runGraph.Ancestors(node)
-		for dep := range deps.All() {
-			targetNode, ok := isCleanupRun(dep)
+		// For each cleanup node, we use its corresponding run node dependencies
+		// for ordering. The cleanup nodes are connected to their dependencies
+		// in reverse order, i.e each cleanup node is executed before its dependencies.
+		dependencies := t.runGraph.Ancestors(node)
+		for dependency := range dependencies.All() {
+			targetNode, ok := stateOwner(dependency)
 			if !ok {
 				continue
 			}
 			targetKey := targetNode.Run().Config.StateKey
 
-			// The source and one of its dependencies share the same state key,
+			// The source and this dependency share the same state key,
 			// so we do not need to connect them directly.
 			if sourceKey == targetKey {
 				continue
