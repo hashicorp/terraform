@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -135,44 +136,19 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		} else {
 			lockfilePath = dependencyLockFilename // default
 		}
-		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
-		diags = diags.Append(srcLockDiags)
-		if srcLockDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
 
 		upgrade := false // The source provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
-		var srcProviderDiags tfdiags.Diagnostics
-		var trust ProviderTrust
-		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var output bool
-		output, sourceLock, trust, stateStoreProviderAuthResult, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
-		diags = diags.Append(srcProviderDiags)
-		if srcProviderDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if output {
-			// Space out provider download output from the migration output below.
-			view.Spacer()
-		}
 
-		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
-		trustDiags := c.confirmProviderIsTrusted(trust, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, args.SourceLockFilePath, c, view)
-		diags = diags.Append(trustDiags)
-		if trustDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
-		source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
-			smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
-
-		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
+		var srcB *pluggable.Pluggable
+		var srcDiags tfdiags.Diagnostics
+		srcB, sourceLock, srcDiags = c.initializeSourceStateStore(ctx, smi, lockfilePath, args.SourceLockFilePath, upgrade, view)
 		diags = diags.Append(srcDiags)
+
 		if !diags.HasErrors() {
+			pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
+			source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
+				smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
 		}
@@ -447,6 +423,40 @@ const (
 	MigrationSource      = "source"
 	MigrationDestination = "destination"
 )
+
+func (c *StateMigrateCommand) initializeSourceStateStore(ctx context.Context, smi *configs.StateMigrationInstructions, lockfilePath string, lockfilePathArg string, upgrade bool, view views.StateMigrate) (*pluggable.Pluggable, *depsfile.Locks, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Load any pre-existing source provider lock file.
+	srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
+	diags = diags.Append(srcLockDiags)
+	if srcLockDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	output, sourceLock, trust, stateStoreProviderAuthResult, srcProviderDiags := c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
+	diags = diags.Append(srcProviderDiags)
+	if srcProviderDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	if output {
+		// Space out provider download output from the migration output below.
+		view.Spacer()
+	}
+
+	// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+	trustDiags := c.confirmProviderIsTrusted(trust, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, lockfilePathArg, c, view)
+	diags = diags.Append(trustDiags)
+	if trustDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
+	diags = diags.Append(srcDiags)
+
+	return srcB, sourceLock, diags
+}
+
 
 func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
