@@ -267,6 +267,16 @@ func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.prepareMessage(messageCode, params...)
+	v.initOutputLog(preppedMessage, messageCode)
+}
+
+func (v *InitJSON) initOutputLog(preppedMessage string, messageCode any) {
+	switch messageCode.(type) {
+	case InitMessageCode, json.MessageType:
+		// ok, tolerated custom string types
+	default:
+		panic(fmt.Sprintf("initOutputLog: unexpected argument type %T", messageCode))
+	}
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -281,7 +291,7 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	v.view.log.Info(
 		preppedMessage,
 		"type", "init_output",
-		"message_code", string(messageCode),
+		"message_code", messageCode,
 	)
 }
 
