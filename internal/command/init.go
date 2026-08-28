@@ -176,7 +176,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	defer span.End()
 
 	if root.StateStore != nil {
-		view.Output(views.InitializingStateStoreMessage, root.StateStore.Type)
+		view.LogInitializingStateStoreStart(root.StateStore.Type)
 	} else {
 		view.Output(views.InitializingBackendMessage)
 	}
