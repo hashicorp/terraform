@@ -206,10 +206,8 @@ func (v *InitHuman) LogModuleUpgrade() {
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleInitialization() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.print(v.prepareMessage(InitializingModulesMessage, params...))
+	msg := "[reset][bold]Initializing modules..."
+	v.print(msg)
 }
 
 // print formats (trims whitespace & applies colour) and
@@ -481,10 +479,8 @@ func (v *InitJSON) LogModuleUpgrade() {
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleInitialization() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(InitializingModulesMessage, params...)
+	msg := "Initializing modules..."
+	v.initOutputLog(msg, json.InitializingModulesMessage)
 }
 
 // prepareMessage retrieves a message template matching the InitMessageCode and
@@ -531,10 +527,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"output_init_success_cli_cloud_message": {
 		HumanValue: outputInitSuccessCLICloud,
 		JSONValue:  outputInitSuccessCLICloudJSON,
-	},
-	"initializing_modules_message": {
-		HumanValue: "[reset][bold]Initializing modules...",
-		JSONValue:  "Initializing modules...",
 	},
 	"initializing_terraform_cloud_message": {
 		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
@@ -654,7 +646,6 @@ const (
 	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
 	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
