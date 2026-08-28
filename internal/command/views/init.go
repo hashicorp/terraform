@@ -33,6 +33,9 @@ type Init interface {
 	// LogInitializingStateStoreStart indicates progress initializing a state store.
 	LogInitializingStateStoreStart(storeType string)
 
+	// LogInitializingBackendStart indicates progress initializing a backend.
+	LogInitializingBackendStart()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -99,6 +102,11 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
 	template := "\n[reset][bold]Initializing the state store %q..."
 	v.print(fmt.Sprintf(template, storeType))
+}
+
+func (v *InitHuman) LogInitializingBackendStart() {
+	msg := "\n[reset][bold]Initializing the backend..."
+	v.print(msg)
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -308,6 +316,11 @@ func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
 func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
 	template := "Initializing the state store %q..."
 	v.initOutputLog(fmt.Sprintf(template, storeType), json.InitializingStateStoreMessage)
+}
+
+func (v *InitJSON) LogInitializingBackendStart() {
+	msg := "Initializing the backend..."
+	v.initOutputLog(msg, json.InitializingBackendMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -539,10 +552,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
 		JSONValue:  "Initializing HCP Terraform...",
 	},
-	"initializing_backend_message": {
-		HumanValue: "\n[reset][bold]Initializing the backend...",
-		JSONValue:  "Initializing the backend...",
-	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -641,7 +650,6 @@ const (
 	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
