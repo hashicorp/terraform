@@ -123,7 +123,7 @@ func TestInit_only_test_files(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
-	exp := views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue
+	exp := "You may now begin working with Terraform"
 	actual := cleanString(done(t).All())
 	if !strings.Contains(actual, cleanString(exp)) {
 		t.Fatalf("expected output to be %q\n, got %q", exp, actual)
@@ -139,7 +139,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 		"providers required by only the state file": {
 			workDirPath: "init-provider-download/state-file-only",
 			expectedDownloadMsgs: []string{
-				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				"You may now begin working with Terraform",
 				`Initializing the backend...
 				Successfully configured the backend "local"!`, // No providers found in the configuration so next output is backend-related
 				`Initializing provider plugins...
@@ -150,7 +150,7 @@ func TestInit_two_source_provider_download(t *testing.T) {
 		"different providers required by config and state": {
 			workDirPath: "init-provider-download/config-and-state-different-providers",
 			expectedDownloadMsgs: []string{
-				views.MessageRegistry[views.OutputInitSuccessCLIMessage].JSONValue,
+				"You may now begin working with Terraform",
 				"Initializing provider plugins...",
 				// Config - null provider is affected by a version constraint
 				`- Finding hashicorp/null versions matching "< 9.0.0"...`,
