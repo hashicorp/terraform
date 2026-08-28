@@ -21,6 +21,7 @@ var (
 	_ GraphNodeExecutable    = (*NodeTestRunCleanup)(nil)
 	_ GraphNodeReferenceable = (*NodeTestRunCleanup)(nil)
 	_ GraphNodeReferencer    = (*NodeTestRunCleanup)(nil)
+	_ RunNode                = (*NodeTestRunCleanup)(nil)
 )
 
 type NodeTestRunCleanup struct {

@@ -1568,7 +1568,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 					variables {
 						foo = run.test_a.value
-						bar = run.test_b.value
 					}
 
 					provider "test" {
@@ -1592,22 +1591,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 							error_message = "error in test_a"
 						}
 					}
-
-					
-					// run "test_a2" {
-					// 	state_key = "state_foo"
-					// 	variables {
-					// 		input = "foo"
-					// 	}
-					// 	providers = {
-					// 		test = test
-					// 	}
-
-					// 	assert {
-					// 		condition     = output.value == var.bar
-					// 		error_message = "error in test_a2"
-					// 	}
-					// }
 
 					run "test_b" {
 						state_key = "state_bar"
@@ -6052,33 +6035,36 @@ func TestTest_TeardownOrder(t *testing.T) {
 }
 
 func TestTest_ParallelDeps(t *testing.T) {
-	// This tests that parallel dependencies are handled correctly during teardown.
-	provider := testing_command.NewProvider(nil)
-	providerSource := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
-	})
+	// These are sets of tests asserting that parallel dependencies are handled correctly during teardown.
+	runInitCommand := func() (Meta, *testing_command.TestProvider) {
+		provider := testing_command.NewProvider(nil)
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"test": {"1.0.0"},
+		})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+		streams, done := terminal.StreamsForTesting(t)
+		view := views.NewView(streams)
+		ui := testUiWrapped(t)
 
-	meta := Meta{
-		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
-		View:                      view,
-		Streams:                   streams,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
-	}
+		meta := Meta{
+			testingOverrides:          metaOverridesForProvider(provider.Provider),
+			Ui:                        ui,
+			View:                      view,
+			Streams:                   streams,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		}
 
-	init := &InitCommand{
-		Meta: meta,
-	}
+		init := &InitCommand{
+			Meta: meta,
+		}
 
-	output := done(t)
+		if code := init.Run(nil); code != 0 {
+			output := done(t)
+			t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+		}
 
-	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+		return meta, provider
 	}
 
 	// helper to parse a single line of test output, returning the teardown run name if it matches
@@ -6117,9 +6103,10 @@ func TestTest_ParallelDeps(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps")), td)
 		t.Chdir(td)
+		meta, provider := runInitCommand()
 
 		// Reset the streams for the next command.
-		streams, done = terminal.StreamsForTesting(t)
+		streams, done := terminal.StreamsForTesting(t)
 		meta.Streams = streams
 		meta.View = views.NewView(streams)
 
@@ -6128,7 +6115,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		}
 
 		code := c.Run([]string{"-no-color", "-json"})
-		output = done(t)
+		output := done(t)
 
 		if code != 0 {
 			t.Errorf("expected status code 0 but got %d", code)
@@ -6156,7 +6143,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		}
 
 		if provider.ResourceCount() != 0 {
-			t.Errorf("should have deleted all resources")
+			t.Errorf("should have deleted all resources: got %v", provider.Resources())
 		}
 	})
 
@@ -6179,9 +6166,10 @@ func TestTest_ParallelDeps(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps", "with_skip_cleanup")), td)
 		t.Chdir(td)
+		meta, _ := runInitCommand()
 
 		// Reset the streams for the next command.
-		streams, done = terminal.StreamsForTesting(t)
+		streams, done := terminal.StreamsForTesting(t)
 		meta.Streams = streams
 		meta.View = views.NewView(streams)
 
@@ -6190,7 +6178,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		}
 
 		code := c.Run([]string{"-no-color", "-json"})
-		output = done(t)
+		output := done(t)
 
 		if code != 0 {
 			t.Errorf("expected status code 0 but got %d", code)
@@ -6229,9 +6217,10 @@ func TestTest_ParallelDeps(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath(path.Join("test", "parallel_deps", "diamond")), td)
 		t.Chdir(td)
+		meta, provider := runInitCommand()
 
 		// Reset the streams for the next command.
-		streams, done = terminal.StreamsForTesting(t)
+		streams, done := terminal.StreamsForTesting(t)
 		meta.Streams = streams
 		meta.View = views.NewView(streams)
 
@@ -6240,7 +6229,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		}
 
 		code := c.Run([]string{"-no-color", "-json"})
-		output = done(t)
+		output := done(t)
 
 		if code != 0 {
 			t.Errorf("expected status code 0 but got %d", code)
@@ -6268,7 +6257,7 @@ func TestTest_ParallelDeps(t *testing.T) {
 		}
 
 		if provider.ResourceCount() != 0 {
-			t.Errorf("should have deleted all resources")
+			t.Errorf("should have deleted all resources: got %v", provider.Resources())
 		}
 	})
 }

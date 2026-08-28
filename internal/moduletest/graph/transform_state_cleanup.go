@@ -102,7 +102,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 	}
 
 	// helper function to determine if a node owns the state it is associated with.
-	stateOwner := func(v dag.Vertex) (RunNode, bool) {
+	stateOwner := func(v dag.Vertex) (*moduletest.Run, bool) {
 		node, ok := v.(RunNode)
 		if !ok {
 			return nil, false
@@ -111,18 +111,18 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		runName := t.stateOwners[node.Run().Config.StateKey]
 
 		// return true if the node owns the state.
-		return node, runName == node.Run().Name
+		return node.Run(), runName == node.Run().Name
 	}
 
 	// Traverse the run graph in topological order and build the cleanup edges
 	// in reverse order of the run graph.
 	for _, node := range t.runGraph.TopologicalOrder() {
 		// is this node a test run and a state owner?
-		sourceNode, ok := stateOwner(node)
+		sourceRun, ok := stateOwner(node)
 		if !ok {
 			continue
 		}
-		sourceKey := sourceNode.Run().Config.StateKey
+		sourceKey := sourceRun.Config.StateKey
 		cleanupNode := cleanupNodes.Get(sourceKey)
 
 		// For each cleanup node, we use its corresponding run node dependencies
@@ -130,11 +130,11 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		// in reverse order, i.e each cleanup node is executed before its dependencies.
 		dependencies := t.runGraph.Ancestors(node)
 		for dependency := range dependencies.All() {
-			targetNode, ok := stateOwner(dependency)
+			targetRun, ok := stateOwner(dependency)
 			if !ok {
 				continue
 			}
-			targetKey := targetNode.Run().Config.StateKey
+			targetKey := targetRun.Config.StateKey
 
 			// The source and this dependency share the same state key,
 			// so we do not need to connect them directly.

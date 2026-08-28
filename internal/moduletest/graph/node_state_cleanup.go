@@ -20,7 +20,6 @@ import (
 
 var (
 	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
-	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
 )
 
 // NodeStateCleanup is responsible for cleaning up the state of resources

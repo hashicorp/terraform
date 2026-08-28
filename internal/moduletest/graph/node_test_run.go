@@ -24,6 +24,7 @@ var (
 	_ GraphNodeExecutable    = (*NodeTestRun)(nil)
 	_ GraphNodeReferenceable = (*NodeTestRun)(nil)
 	_ GraphNodeReferencer    = (*NodeTestRun)(nil)
+	_ RunNode                = (*NodeTestRun)(nil)
 )
 
 type NodeTestRun struct {
