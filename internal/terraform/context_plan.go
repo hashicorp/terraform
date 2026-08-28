@@ -750,7 +750,7 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
 	importStatements := refactoring.FindImportStatements(config)
-	for _, ic := range importStatements.Values() {
+	for _, ic := range importStatements {
 		importTargets = append(importTargets, &ImportTarget{
 			Config:              ic.Import,
 			RelModule:           ic.ContainingModule,
