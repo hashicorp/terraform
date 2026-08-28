@@ -94,8 +94,9 @@ const (
 	MessageProviderAutomaticApproval    MessageType = "provider_automatic_approval"
 
 	// Backend/state store initialization messages
-	MessageStateStoreInitializationStart MessageType = "state_store_initialization_start"
-	MessageInitializingBackendMessage    MessageType = "initializing_backend_message"
+	MessageStateStoreInitializationStart     MessageType = "state_store_initialization_start"
+	MessageInitializingBackendMessage        MessageType = "initializing_backend_message"
+	MessageInitializingTerraformCloudMessage MessageType = "initializing_terraform_cloud_message"
 
 	// State migration-related messages
 	MessageMigrationStart                             MessageType = "migration_start"
