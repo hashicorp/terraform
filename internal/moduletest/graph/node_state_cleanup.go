@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	teststates "github.com/hashicorp/terraform/internal/moduletest/states"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -20,6 +21,8 @@ import (
 
 var (
 	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
+	_ GraphNodeExecutable = (*NodeStateCleanup)(nil)
+	_ GraphNodeExecutable = (*VestigialNode)(nil)
 )
 
 // NodeStateCleanup is responsible for cleaning up the state of resources
@@ -28,6 +31,18 @@ var (
 type NodeStateCleanup struct {
 	stateKey string
 	opts     *graphOptions
+}
+
+type VestigialNode struct {
+	originalNode dag.Vertex
+}
+
+func (n *VestigialNode) Name() string {
+	return fmt.Sprintf("vestigial.%s", n.originalNode.Name())
+}
+
+func (n *VestigialNode) Execute(evalCtx *EvalContext) {
+	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", n.Name())
 }
 
 func (n *NodeStateCleanup) Name() string {

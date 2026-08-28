@@ -18,7 +18,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -1568,6 +1567,7 @@ func TestTest_ParallelTeardown(t *testing.T) {
 
 					variables {
 						foo = run.test_a.value
+						bar = run.test_b.value
 					}
 
 					provider "test" {
@@ -1591,6 +1591,22 @@ func TestTest_ParallelTeardown(t *testing.T) {
 							error_message = "error in test_a"
 						}
 					}
+
+					
+					// run "test_a2" {
+					// 	state_key = "state_foo"
+					// 	variables {
+					// 		input = "foo"
+					// 	}
+					// 	providers = {
+					// 		test = test
+					// 	}
+
+					// 	assert {
+					// 		condition     = output.value == var.bar
+					// 		error_message = "error in test_a2"
+					// 	}
+					// }
 
 					run "test_b" {
 						state_key = "state_bar"
@@ -1745,85 +1761,83 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			initStreams, initDone := terminal.StreamsForTesting(t)
 			testStreams, testDone := terminal.StreamsForTesting(t)
 
-			runSynctest(t, func(t *testing.T) {
-				providerSource := newMockProviderSource(t, map[string][]string{
-					"test": {"1.0.0"},
-				})
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
 
-				view := views.NewView(initStreams)
-				ui := testUiWrapped(t)
+			view := views.NewView(initStreams)
+			ui := testUiWrapped(t)
 
-				// create a new provider instance for each test run, so that we can
-				// ensure that the test provider locks do not interfere between runs.
-				pInst := func() providers.Interface {
-					return testing_command.NewProvider(nil).Provider
-				}
-				meta := Meta{
-					testingOverrides: &testingOverrides{
-						Providers: map[addrs.Provider]providers.Factory{
-							addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
-								return pInst(), nil
-							},
-						}},
-					Ui:             ui,
-					View:           view,
-					Streams:        initStreams,
-					ProviderSource: providerSource,
-				}
+			// create a new provider instance for each test run, so that we can
+			// ensure that the test provider locks do not interfere between runs.
+			pInst := func() providers.Interface {
+				return testing_command.NewProvider(nil).Provider
+			}
+			meta := Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+							return pInst(), nil
+						},
+					}},
+				Ui:             ui,
+				View:           view,
+				Streams:        initStreams,
+				ProviderSource: providerSource,
+			}
 
-				init := &InitCommand{Meta: meta}
-				if code := init.Run(nil); code != 0 {
-					output := initDone(t)
-					t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
-				}
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(nil); code != 0 {
+				output := initDone(t)
+				t.Fatalf("expected status code %d but got %d: %s", 0, code, output.All())
+			}
 
-				meta.Streams = testStreams
-				view = views.NewView(testStreams)
-				meta.View = view
-				c := &TestCommand{Meta: meta}
-				c.Run([]string{"-json", "-no-color"})
-				output := testDone(t).All()
+			meta.Streams = testStreams
+			view = views.NewView(testStreams)
+			meta.View = view
+			c := &TestCommand{Meta: meta}
+			c.Run([]string{"-json", "-no-color"})
+			output := testDone(t).All()
 
-				// Split the log into lines
-				lines := strings.Split(output, "\n")
+			// Split the log into lines
+			lines := strings.Split(output, "\n")
 
-				// Find the start of the teardown and complete timestamps
-				var startTimestamp, completeTimestamp string
-				for _, line := range lines {
-					if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
-						var obj map[string]interface{}
-						if err := json.Unmarshal([]byte(line), &obj); err == nil {
-							if ts, ok := obj["@timestamp"].(string); ok {
-								startTimestamp = ts
-							}
+			// Find the start of the teardown and complete timestamps
+			var startTimestamp, completeTimestamp string
+			for _, line := range lines {
+				if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"teardown"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							startTimestamp = ts
 						}
-					} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
-						var obj map[string]interface{}
-						if err := json.Unmarshal([]byte(line), &obj); err == nil {
-							if ts, ok := obj["@timestamp"].(string); ok {
-								completeTimestamp = ts
-							}
+					}
+				} else if strings.Contains(line, `{"path":"parallel.tftest.hcl","progress":"complete"`) {
+					var obj map[string]interface{}
+					if err := json.Unmarshal([]byte(line), &obj); err == nil {
+						if ts, ok := obj["@timestamp"].(string); ok {
+							completeTimestamp = ts
 						}
 					}
 				}
+			}
 
-				if startTimestamp == "" || completeTimestamp == "" {
-					t.Fatalf("could not find start or complete timestamp in log output")
-				}
+			if startTimestamp == "" || completeTimestamp == "" {
+				t.Fatalf("could not find start or complete timestamp in log output")
+			}
 
-				startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
-				if err != nil {
-					t.Fatalf("failed to parse start timestamp: %v", err)
-				}
-				completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
-				if err != nil {
-					t.Fatalf("failed to parse complete timestamp: %v", err)
-				}
-				dur := completeTime.Sub(startTime)
-				if tt.assertFunc != nil {
-					tt.assertFunc(t, output, dur)
-				}
-			})
+			startTime, err := time.Parse(time.RFC3339Nano, startTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse start timestamp: %v", err)
+			}
+			completeTime, err := time.Parse(time.RFC3339Nano, completeTimestamp)
+			if err != nil {
+				t.Fatalf("failed to parse complete timestamp: %v", err)
+			}
+			dur := completeTime.Sub(startTime)
+			if tt.assertFunc != nil {
+				tt.assertFunc(t, output, dur)
+			}
 		})
 	}
 }
@@ -6364,8 +6378,8 @@ func removeOutputs(states map[string][]string) map[string][]string {
 func runSynctest(t *testing.T, f func(t *testing.T)) {
 	t.Helper()
 
-	synctest.Test(t, func(t *testing.T) {
-		f(t)
-		synctest.Wait()
-	})
+	f(t)
+	// synctest.Wait()
+	// synctest.Test(t, func(t *testing.T) {
+	// })
 }

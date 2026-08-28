@@ -289,81 +289,54 @@ func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
 }
 
 func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
+	// Use a dfs-based sorting algorithm, similar to that used in
+	// TransitiveReduction.
 	sorted := make([]Vertex, 0, g.vertices.Len())
-	edges := g.edgesByOrder(order)
-	g.topologicalTraversal(edges, nil, func(v Vertex) {
-		sorted = append(sorted, v)
-	})
 
-	return sorted
-}
+	// tmp track the current working node to check for cycles
+	tmp := map[Vertex]bool{}
 
-func (g *AcyclicGraph) edgesByOrder(order walkType) map[Vertex]VertexSet {
+	// perm tracks completed nodes to end the recursion
+	perm := map[Vertex]bool{}
+
+	var edges map[Vertex]VertexSet
 	switch {
 	case order&downOrder != 0:
-		return g.edgesFrom
+		edges = g.edgesFrom
 	case order&upOrder != 0:
-		return g.edgesTo
+		edges = g.edgesTo
 	default:
 		panic(fmt.Sprintln("invalid order", order))
 	}
-}
-
-// topologicalTraversal performs a topological traversal of the graph, calling
-// onEdge for each edge and onVisit for each vertex post-order.
-// edges is a map of source vertex to its set of targets
-func (g *AcyclicGraph) topologicalTraversal(edges map[Vertex]VertexSet, onEdge func(source Vertex, target Vertex), onVisit func(v Vertex)) {
-	// Use a dfs-based sorting algorithm, similar to that used in
-	// TransitiveReduction.
-
-	// seen track the current working node to check for cycles
-	seen := map[Vertex]bool{}
-
-	// visited tracks completed nodes to end the recursion
-	visited := map[Vertex]bool{}
 
 	var visit func(v Vertex)
 
 	visit = func(v Vertex) {
-		if visited[v] {
+		if perm[v] {
 			return
 		}
 
-		if seen[v] {
+		if tmp[v] {
 			panic("cycle found in dag")
 		}
 
-		seen[v] = true
+		tmp[v] = true
 
 		next := edges[v]
 		for u := range next.All() {
 			visit(u)
-			if onEdge != nil {
-				onEdge(v, u)
-			}
 		}
 
-		seen[v] = false
-		visited[v] = true
-		if onVisit != nil {
-			onVisit(v)
-		}
+		tmp[v] = false
+		perm[v] = true
+		sorted = append(sorted, v)
 	}
 
 	for v := range g.VerticesSeq() {
 		visit(v)
 	}
-}
 
-func (g *AcyclicGraph) TopologicalTraversal(onEdge func(source Vertex, target Vertex)) {
-
-	// to get the full set of dependencies for each vertex, we need to traverse
-	// the graph and collect them into a map
-	edges := make(map[Vertex]VertexSet)
-	for v := range g.VerticesSeq() {
-		edges[v] = g.Ancestors(v)
-	}
-	g.topologicalTraversal(edges, onEdge, nil)
+	return sorted
 }
 
 type walkType uint64

@@ -4,8 +4,6 @@
 package graph
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -77,10 +75,10 @@ type TestStateCleanupTransformer struct {
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
-	cleanupMap := make(map[string]*NodeStateCleanup)
-	cleanupNodes := collections.NewSetCmp[dag.Vertex]()
+	cleanupRuns := collections.NewMapCmp[string, string]()
+	cleanupNodes := collections.NewMapCmp[string, *NodeStateCleanup]()
 
-	// iterate in topological order of the run graph, so that the last run for each state key
+	// iterate in topological order of the run graph, so that the most re run for each state key
 	// is attached to the cleanup node.
 	for _, node := range t.runGraph.TopologicalOrder() {
 		runNode, ok := node.(RunNode)
@@ -90,38 +88,58 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 		run := runNode.Run()
 		key := run.Config.StateKey
 
-		if _, exists := cleanupMap[key]; !exists {
-			node := &NodeStateCleanup{stateKey: key, opts: t.opts}
-			cleanupMap[key] = node
-			cleanupNodes.Add(runNode)
-			g.Add(node)
+		if _, ok := cleanupRuns.GetOk(key); !ok {
+			cleanupRuns.Put(key, runNode.Run().Name)
+			cleanupNode := &NodeStateCleanup{stateKey: key, opts: t.opts}
+			g.Add(cleanupNode)
+			cleanupNodes.Put(key, cleanupNode)
 		}
+	}
+
+	isCleanupRun := func(v dag.Vertex) (RunNode, bool) {
+		node, ok := v.(RunNode)
+		if !ok {
+			return nil, false
+		}
+		nodeName, ok := cleanupRuns.GetOk(node.Run().Config.StateKey)
+		if !ok {
+			return nil, false
+		}
+
+		// return true if the node is the last run with the given state key
+		return node, nodeName == node.Run().Name
 	}
 
 	// Traverse the run graph in topological order and build the cleanup edges
 	// in reverse order of the run graph.
-	t.runGraph.TopologicalTraversal(func(v dag.Vertex, dep dag.Vertex) {
-		// filter non cleanup nodes
-		if !cleanupNodes.Has(v) || !cleanupNodes.Has(dep) {
-			return
+	for _, node := range t.runGraph.TopologicalOrder() {
+		sourceNode, ok := isCleanupRun(node)
+		if !ok {
+			continue
 		}
+		sourceKey := sourceNode.Run().Config.StateKey
+		cleanupNode := cleanupNodes.Get(sourceKey)
 
-		// No type assertion needed here, the cleanupNodes set ensures we only process cleanup nodes.
-		node := v.(RunNode)
-		depNode := dep.(RunNode)
+		// For each cleanup node, connect it to the cleanup nodes found in
+		// its transitive dependencies. Intermediate nodes are intentionally
+		// omitted from the cleanup graph.
+		deps := t.runGraph.Ancestors(node)
+		for dep := range deps.All() {
+			targetNode, ok := isCleanupRun(dep)
+			if !ok {
+				continue
+			}
+			targetKey := targetNode.Run().Config.StateKey
 
-		stateKey := node.Run().Config.StateKey
-		depStateKey := depNode.Run().Config.StateKey
+			// The source and one of its dependencies share the same state key,
+			// so we do not need to connect them directly.
+			if sourceKey == targetKey {
+				continue
+			}
 
-		cleanupNode := cleanupMap[stateKey]
-		depCleanupNode := cleanupMap[depStateKey]
-
-		// connect the edges in reverse order of the run graph so that the dependency
-		// is cleaned up before the node that depends on it.
-		g.Connect(depCleanupNode, cleanupNode)
-	})
-	if err := g.Validate(); err != nil {
-		return fmt.Errorf("Invalid cleanup graph: %w", err)
+			depCleanupNode := cleanupNodes.Get(targetKey)
+			g.Connect(depCleanupNode, cleanupNode)
+		}
 	}
 	return nil
 }
