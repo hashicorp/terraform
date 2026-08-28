@@ -111,6 +111,7 @@ const (
 	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
 	MessageInitializingStateStoreMessage     MessageType = "initializing_state_store_message"
+	MessageInitializingBackendMessage        MessageType = "initializing_backend_message"
 	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
 	MessageLockInfo                          MessageType = "lock_info"
 	MessageDependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
