@@ -70,7 +70,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Check if the address can be parsed
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
-		diags = diags.Append(fmt.Sprintf(errParsingAddress, parsedArgs.Address))
+		diags = diags.Append(fmt.Errorf(errParsingAddress, parsedArgs.Address))
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
