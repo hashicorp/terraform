@@ -247,6 +247,27 @@ func TestStateShow_noState(t *testing.T) {
 	}
 }
 
+func TestStateShow_invalidAddress(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	if code := c.Run([]string{"a.b.c"}); code != 1 {
+		t.Fatalf("bad: %d", code)
+	}
+	output := done(t)
+	if !strings.Contains(output.Stderr(), "Error parsing instance address: a.b.c") {
+		t.Fatalf("expected an invalid address error, got: %s", output.Stderr())
+	}
+}
+
 func TestStateShow_emptyState(t *testing.T) {
 	state := states.NewState()
 	statePath := testStateFile(t, state)
