@@ -245,26 +245,37 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// we don't know why, so we assume that refreshing/planning should not be performed when
 		// producing a deferred change.
 		if excluded {
+			var importVal *plans.Importing
+			beforeVal := cty.NullVal(cty.DynamicPseudoType)
+			afterVal := cty.DynamicVal
+			if importing {
+				importVal = &plans.Importing{
+					Target: n.importTarget.target,
+				}
+			} else {
+				// Read the current state to use as the deferred resource before/after value, as we won't
+				// be refreshing or planning the resource.
+				currentState, _, readDiags := n.readResourceInstanceState(ctx, addr)
+				diags = diags.Append(readDiags)
+				if diags.HasErrors() {
+					return diags
+				}
+
+				if currentState != nil {
+					beforeVal = currentState.Value
+					afterVal = currentState.Value
+				}
+			}
+
 			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
 				Addr:         addr,
 				PrevRunAddr:  addr,
 				ProviderAddr: n.ResolvedProvider,
 				Change: plans.Change{
-					Action: plans.NoOp,
-
-					// TODO:@austinvalle: What data can/should I populate here? What about when importing? Should we read/upgrade state?
-					//
-					// Current output looks like (with removed no-op supression in the deferred change renderer :P):
-					//
-					//   # module.child_unknown[0].random_integer.child_test was deferred
-					//   # (because the resource was excluded)
-					//     resource "random_integer" "child_test" {}
-					//
-					// I probably should do something as it seems that deferral data is still used in evaluation.... so setting a null object seems
-					// like a bad idea by default.
-					Before: cty.NullVal(cty.DynamicPseudoType),
-					After:  cty.NullVal(cty.DynamicPseudoType),
-					// Importing: &plans.Importing{},
+					Action:    plans.NoOp,
+					Before:    beforeVal,
+					After:     afterVal,
+					Importing: importVal,
 				},
 			})
 			n.reportDeferredActionTriggers(ctx, deferredReason)

@@ -671,10 +671,7 @@ resource "test_object" "a" {
 	}
 }
 
-func TestContext2Plan_excludes_outputs(t *testing.T) {
-	// TODO:@austinvalle: Need to fix outputs referencing deferrals before this test will work
-	t.Skip("TODO: currently outputs evaluate when dependent on deferred resources, which causes this test to fail.")
-
+func TestContext2Plan_excludes_output_evaluation(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "excluded" {
@@ -734,12 +731,62 @@ output "from_foo" {
 	assertDeferredResource(t, plan, "test_object.excluded", providers.DeferredReasonExcluded)
 	assertPlannedChange(t, plan, "test_object.foo", plans.Update)
 
-	if plan.Changes.OutputValue(mustAbsOutputValue(`output.from_foo`)) == nil {
-		t.Error("output.from_foo should have a planned change")
+	fooOutput := plan.Changes.OutputValue(mustAbsOutputValue(`output.from_foo`))
+	excludedOutput := plan.Changes.OutputValue(mustAbsOutputValue(`output.from_excluded`))
+	if fooOutput.Action != plans.Update {
+		t.Errorf("output.from_foo should have a planned change (update), got, %s", fooOutput.Action)
 	}
-	if plan.Changes.OutputValue(mustAbsOutputValue(`output.from_excluded`)) != nil {
-		t.Error("output.from_excluded should not have a planned change")
+	if excludedOutput.Action != plans.NoOp {
+		t.Errorf("output.from_foo should have a planned change (no-op), got, %s", excludedOutput.Action)
 	}
+}
+
+func TestContext2Plan_excludes_orphan(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "foo" {
+  arg = "bar"
+}
+`,
+	})
+
+	p := excludePlanTestProvider()
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.orphan_excluded"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"exc-id","arg":"orphan-excluded","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.foo"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo-id","arg":"changeme","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	excludeAddr := mustResourceInstanceAddr("test_object.orphan_excluded")
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		Excludes:        []addrs.Targetable{excludeAddr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	assertDeferredResource(t, plan, "test_object.orphan_excluded", providers.DeferredReasonExcluded)
+	assertPlannedChange(t, plan, "test_object.foo", plans.Update)
 }
 
 func excludePlanTestProvider() *testing_provider.MockProvider {

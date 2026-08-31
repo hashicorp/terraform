@@ -79,11 +79,6 @@ func (n *nodeExpandPlannableResource) AttachDependencies(deps []addrs.ConfigReso
 	n.dependencies = deps
 }
 
-// GraphNodeAttachExcludes
-func (n *nodeExpandPlannableResource) AttachExcludes(excludes []addrs.Targetable) {
-	n.excludes = excludes
-}
-
 // GraphNodeDestroyerCBD
 func (n *nodeExpandPlannableResource) CreateBeforeDestroy() bool {
 	if n.forceCreateBeforeDestroy {

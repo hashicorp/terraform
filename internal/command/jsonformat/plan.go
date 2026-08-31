@@ -473,18 +473,9 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	// the computed actions of these.
 	action := jsonplan.UnmarshalActions(deferred.diff.change.Change.Actions)
 
-	// TODO:@austinvalle: This is commented out mostly just for testing, although we'll
-	// need to decide what action exclude deferred changes should be under (currently no-op)
-	//
-	// if action == plans.NoOp && !deferred.diff.Moved() && !deferred.diff.Importing() {
-	// 	// Skip resource changes that have nothing interesting to say.
-	// 	return "", false
-	// }
-
 	var buf bytes.Buffer
 	var explanation string
 	switch deferred.reason {
-	// TODO: Add other cases
 	case jsonplan.DeferredReasonInstanceCountUnknown:
 		explanation = "because the number of resource instances is unknown"
 	case jsonplan.DeferredReasonResourceConfigUnknown:
@@ -504,12 +495,17 @@ func renderHumanDeferredDiff(renderer Renderer, deferred deferredDiff) (string, 
 	}
 
 	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("[bold]  # %s[reset] was deferred\n", deferred.diff.change.Address)))
-	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] (%s)\n", explanation)))
+	buf.WriteString(renderer.Colorize.Color(fmt.Sprintf("  #[reset] (%s)", explanation)))
+
+	if action == plans.NoOp {
+		// We only display the reason if the deferred change is a no-op
+		return buf.String(), true
+	}
 
 	opts := computed.NewRenderHumanOpts(renderer.Colorize)
 	opts.ShowUnchangedChildren = deferred.diff.Importing()
 
-	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
+	buf.WriteString(fmt.Sprintf("\n%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(deferred.diff.change), deferred.diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
 }
 

@@ -301,7 +301,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
-		&AttachExcludesTransformer{Excludes: b.Excludes},
 
 		// Filter the graph to only include nodes that are relevant to the query operation.
 		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
@@ -346,6 +345,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
 			minimalRefresh:       b.minimalRefresh,
+			excludes:             b.Excludes,
 		}
 	}
 
@@ -358,6 +358,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
+			excludes:        b.Excludes,
 		}
 	}
 

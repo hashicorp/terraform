@@ -122,19 +122,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	// Note any upgrades that readResourceInstanceState might've done in the
-	// prevRunState, so that it'll conform to current schema.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, prevRunState))
-	if diags.HasErrors() {
-		return diags
-	}
-	// Also the refreshState, because that should still reflect schema upgrades
-	// even if not refreshing.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, refreshState))
-	if diags.HasErrors() {
-		return diags
-	}
-
 	if len(n.excludes) > 0 {
 		var deferredReason providers.DeferredReason
 		excluded := false
@@ -165,33 +152,38 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// we don't know why, so we assume that refreshing/planning should not be performed when
 		// producing a deferred change.
 		if excluded {
+			beforeVal := cty.NullVal(cty.DynamicPseudoType)
+			if oldState != nil {
+				beforeVal = oldState.Value
+			}
+
 			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
 				Addr:         addr,
 				PrevRunAddr:  addr,
 				ProviderAddr: n.ResolvedProvider,
 				Change: plans.Change{
-					// TODO:@austinvalle: We know we need to delete this, so feels safe to assume this action?
 					Action: plans.Delete,
-
-					// TODO:@austinvalle: What data can/should I populate here? What about when importing? Should we read/upgrade state?
-					//
-					// Current output looks like (with removed no-op supression in the deferred change renderer :P):
-					//
-					//   # module.child_unknown[0].random_integer.child_test was deferred
-					//   # (because the resource was excluded)
-					//     resource "random_integer" "child_test" {}
-					//
-					// I probably should do something as it seems that deferral data is still used in evaluation.... so setting a null object seems
-					// like a bad idea by default.
-					Before: cty.NullVal(cty.DynamicPseudoType),
+					Before: beforeVal,
 					After:  cty.NullVal(cty.DynamicPseudoType),
-					// Importing: &plans.Importing{},
 				},
 			})
 			n.reportDeferredActionTriggers(ctx, deferredReason)
 
 			return diags
 		}
+	}
+
+	// Note any upgrades that readResourceInstanceState might've done in the
+	// prevRunState, so that it'll conform to current schema.
+	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, prevRunState))
+	if diags.HasErrors() {
+		return diags
+	}
+	// Also the refreshState, because that should still reflect schema upgrades
+	// even if not refreshing.
+	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, refreshState))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	var forget bool
