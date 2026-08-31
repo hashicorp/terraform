@@ -223,12 +223,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// done its thing.
 		&checkStartTransformer{Config: b.Config, Operation: b.Operation},
 
-		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Changes:   b.Changes,
-			Operation: b.Operation,
-		},
-
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		//
@@ -237,6 +231,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// information is lost for newly created instances because it contains
 		// no state value, and we end up recalculating CBD for all nodes.
 		&ForcedCBDTransformer{},
+
+		// Destruction ordering
+		&DestroyEdgeTransformer{
+			Changes:   b.Changes,
+			Operation: b.Operation,
+		},
 
 		&CBDEdgeTransformer{
 			Config: b.Config,
