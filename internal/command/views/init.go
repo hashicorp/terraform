@@ -557,8 +557,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		JSONValue:  "Initializing the state store %q...",
 	},
 	"dependencies_lock_changes_info": {
-		HumanValue: dependenciesLockChangesInfo,
-		JSONValue:  dependenciesLockChangesInfo,
+		HumanValue: dependenciesLockChangesInfoHuman,
+		JSONValue:  dependenciesLockChangesInfoJSON,
 	},
 	"lock_info": {
 		HumanValue: previousLockInfoHuman,

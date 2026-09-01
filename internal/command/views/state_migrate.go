@@ -297,7 +297,7 @@ func (s *StateMigrateHuman) LogProviderLockfileCreated() {
 
 // Implements DependencyLockLogger interface.
 func (s *StateMigrateHuman) LogProviderLockfileUpdated() {
-	s.log(dependenciesLockChangesInfo)
+	s.log(dependenciesLockChangesInfoHuman)
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -422,7 +422,7 @@ func (s *StateMigrateJSON) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger interface.
 func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
-	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	msg := strings.TrimSpace(dependenciesLockChangesInfoJSON)
 	s.view.log.Info(
 		msg,
 		"type", json.LogProviderLockfileUpdated,
