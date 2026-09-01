@@ -5,6 +5,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -266,5 +267,50 @@ func TestTFPolicyStageLabel(t *testing.T) {
 		if got := tfPolicyStageLabel(stage); got != want {
 			t.Errorf("stage %q: got %q, want %q", stage, got, want)
 		}
+	}
+}
+
+type runsWithReadError struct {
+	*MockRuns
+	err error
+}
+
+func (r *runsWithReadError) ReadWithOptions(_ context.Context, _ string, _ *tfe.RunReadOptions) (*tfe.Run, error) {
+	return nil, r.err
+}
+
+func TestCloud_renderTFPolicyEvaluations_invalidInclude(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	t.Cleanup(bCleanup)
+
+	stream, _ := terminal.StreamsForTesting(t)
+	b.renderer = &jsonformat.Renderer{Streams: stream, Colorize: mockColorize()}
+
+	b.client.Runs = &runsWithReadError{
+		MockRuns: b.client.Runs.(*MockRuns),
+		err:      tfe.ErrInvalidIncludeValue,
+	}
+
+	run := &tfe.Run{ID: "run-invalid-include"}
+	if err := b.renderTFPolicyEvaluations(context.Background(), run); err != nil {
+		t.Errorf("expected nil error for invalid include value, got: %v", err)
+	}
+}
+
+func TestCloud_renderTFPolicyEvaluations_error(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	t.Cleanup(bCleanup)
+
+	stream, _ := terminal.StreamsForTesting(t)
+	b.renderer = &jsonformat.Renderer{Streams: stream, Colorize: mockColorize()}
+
+	b.client.Runs = &runsWithReadError{
+		MockRuns: b.client.Runs.(*MockRuns),
+		err:      errors.New("error"),
+	}
+
+	run := &tfe.Run{ID: "run-error"}
+	if err := b.renderTFPolicyEvaluations(context.Background(), run); err == nil {
+		t.Error("expected an error, got nil")
 	}
 }
