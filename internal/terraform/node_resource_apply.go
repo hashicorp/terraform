@@ -82,7 +82,7 @@ func (n *nodeExpandApplyableResource) checkForPartialExpansion(ctx EvalContext, 
 			case n.Config != nil && n.Config.Count != nil:
 				expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
 			case n.Config != nil && n.Config.ForEach != nil:
-				expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
+				expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
 			default:
 				continue
 			}
