@@ -70,7 +70,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Check if the address can be parsed
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
-		diags = diags.Append(fmt.Sprintf(errParsingAddress, parsedArgs.Address))
+		diags = diags.Append(fmt.Errorf(errParsingAddress, parsedArgs.Address))
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
@@ -84,7 +84,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		diags = diags.Append(fmt.Sprintf("Error initializing config loader: %s\n", err))
+		diags = diags.Append(fmt.Errorf("Error initializing config loader: %s\n", err))
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
@@ -105,7 +105,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		diags = diags.Append(fmt.Sprintf("Error selecting workspace: %s\n", err))
+		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s\n", err))
 		view.Diagnostics(diags)
 		return 1
 	}
