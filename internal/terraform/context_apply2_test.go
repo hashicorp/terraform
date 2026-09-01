@@ -5286,3 +5286,121 @@ resource "test_object" "forget_too" {
 		t.Fatal("unexpected resources in state")
 	}
 }
+
+// the addition of the CBD resource should not interfere with the existing resource replacement
+func TestContext2Apply_replaceWithAddedCBD(t *testing.T) {
+	t.Run("example1", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r3"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old_r3"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "test_object" "r1" {}
+
+resource "test_object" "r2" {
+  lifecycle { create_before_destroy = true }
+  depends_on = [test_object.r1]
+}
+
+resource "test_object" "r3" {
+  test_string = test_object.r1.test_string
+}
+`})
+
+		p := simpleMockProvider()
+		oldR3destroyed := false
+
+		p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+			// we need to check for the destroy request for the old r3 instance
+			if !req.PriorState.IsNull() {
+				if arg := req.PriorState.GetAttr("test_string"); !arg.IsNull() && arg.AsString() == "old_r3" && req.PlannedState.IsNull() {
+					oldR3destroyed = true
+				}
+
+			}
+			resp.NewState = req.PlannedState
+			return resp
+		}
+
+		hook := new(MockHook)
+		ctx := testContext2(t, &ContextOpts{
+			Hooks: []Hook{hook},
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.NormalMode})
+		if assertNoDiagnostics(t, diags) {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		for _, ch := range plan.Changes.Resources {
+			if ch.Addr.Equal(mustResourceInstanceAddr("test_object.r3")) && ch.Action != plans.DeleteThenCreate {
+				t.Fatal("wrong change for r3:", ch.Action, ch.ActionReason)
+			}
+		}
+
+		_, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+
+		if !oldR3destroyed {
+			t.Fatal("the original r3 was not destroyed")
+		}
+	})
+
+	t.Run("example2", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r2"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"r2"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r3"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"r3"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "test_object" "r1" {
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "test_object" "r2" {
+  lifecycle {
+    replace_triggered_by = [test_object.r3]
+  }
+  depends_on = [test_object.r1]
+}
+
+resource "test_object" "r3" {
+  test_string = null
+}
+`})
+
+		p := simpleMockProvider()
+
+		hook := new(MockHook)
+		ctx := testContext2(t, &ContextOpts{
+			Hooks: []Hook{hook},
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.NormalMode})
+		if assertNoDiagnostics(t, diags) {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		_, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+	})
+}
