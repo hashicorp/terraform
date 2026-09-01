@@ -35,7 +35,7 @@ func (b *Cloud) renderTFPolicyEvaluations(stopCtx context.Context, r *tfe.Run, s
 	})
 	if err != nil {
 		// Older TFE versions don't know this include; nothing to render.
-		if strings.HasSuffix(err.Error(), "Invalid include parameter") {
+		if err == tfe.ErrInvalidIncludeValue {
 			return nil
 		}
 		return b.generalError("Failed to retrieve Terraform policy evaluations", err)
