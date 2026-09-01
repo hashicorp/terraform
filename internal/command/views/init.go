@@ -565,6 +565,8 @@ func (v *InitJSON) LogProviderLockfileCreated() {
 }
 
 func (v *InitJSON) LogProviderLockfileUpdated() {
+	// Uses the long version of this message due to backwards compatibility.
+	// TODO: Replace @message contents with shorter summary with no calls to action.
 	v.initOutputLog(strings.TrimSpace(dependenciesLockChangesInfo), json.MessageDependenciesLockChangesInfo)
 }
 
