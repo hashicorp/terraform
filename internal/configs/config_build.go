@@ -10,7 +10,7 @@ import (
 	"slices"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 
@@ -57,8 +57,8 @@ func LegacyFinalizeConfig(cfg *Config, walker ModuleWalker, loader MockDataLoade
 	if !diags.HasErrors() {
 		// Now that the config is built, we can connect the provider names to all
 		// the known types for validation.
-		providers := cfg.resolveProviderTypes()
-		cfg.resolveProviderTypesForTests(providers)
+		providers := cfg.ResolveProviderTypes()
+		cfg.ResolveProviderTypesForTests(providers)
 
 		if cfg.Module != nil && cfg.Module.StateStore != nil {
 			stateProviderDiags := cfg.resolveStateStoreProviderType()
@@ -87,9 +87,11 @@ func FinalizeConfig(cfg *Config, loader MockDataLoader) hcl.Diagnostics {
 
 	// Now that the config is built, we can connect the provider names to all
 	// the known types for validation.
-	providers := cfg.resolveProviderTypes()
-	cfg.resolveProviderTypesForTests(providers)
+	providers := cfg.ResolveProviderTypes()
+	cfg.ResolveProviderTypesForTests(providers)
 
+	// TODO: revisit whether we need this block since we have the exact same
+	//  logic under LoadSingleModuleWithTest and LoadSingleModule.
 	if cfg.Module != nil && cfg.Module.StateStore != nil {
 		stateProviderDiags := cfg.resolveStateStoreProviderType()
 		diags = append(diags, stateProviderDiags...)

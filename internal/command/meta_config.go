@@ -49,7 +49,17 @@ func (m *Meta) normalizePath(path string) string {
 // If no const variables are unsatisfied, or if the backend does not support
 // supplying variables, this method is a no-op.
 func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
-	rootMod, diags := m.loadSingleModule(rootDir)
+	var diags tfdiags.Diagnostics
+	dir := m.normalizePath(rootDir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	rootMod, hclDiags := loader.Parser().LoadConfigDir(dir)
+	diags = diags.Append(hclDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -58,7 +68,21 @@ func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType
 		return nil
 	}
 
-	b, backendDiags := m.backend(rootDir, viewType)
+	if rootMod.CloudConfig == nil {
+		return nil
+	}
+	locks, lDiags := m.lockedDependencies()
+	diags = diags.Append(lDiags)
+	if lDiags.HasErrors() {
+		return diags
+	}
+	backendConfig := rootMod.CloudConfig.ToBackendConfig()
+	opts := &BackendOpts{
+		BackendConfig: &backendConfig,
+		Locks:         locks,
+		ViewType:      viewType,
+	}
+	b, backendDiags := m.Backend(opts)
 	if backendDiags.HasErrors() {
 		// Don't report backend init errors here; they'll surface later.
 		return nil
@@ -188,7 +212,24 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
-	return module, diags
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		return nil, diags
+	}
+
+	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
+	diags = diags.Append(buildDiags)
+
+	if mod.StateStore != nil {
+		diags = diags.Append(mod.ResolveStateStoreProviderType())
+	}
+
+	return mod, diags
 }
 
 // loadSingleModuleWithTests matches loadSingleModule except it also loads any
@@ -205,7 +246,24 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 
 	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
 	diags = diags.Append(hclDiags)
-	return module, diags
+	if diags.HasErrors() {
+		return module, diags
+	}
+
+	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		return nil, diags
+	}
+
+	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
+	diags = diags.Append(buildDiags)
+
+	if mod.StateStore != nil {
+		diags = diags.Append(mod.ResolveStateStoreProviderType())
+	}
+
+	return mod, diags
 }
 
 // dirIsConfigPath checks if the given path is a directory that contains at

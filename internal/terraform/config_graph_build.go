@@ -108,3 +108,27 @@ func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, v
 		ModulePathPrefix: modulePathPrefix,
 	})
 }
+
+func BuildModuleWithGraph(mod *configs.Module, vars InputValues) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ctx, ctxDiags := NewContext(&ContextOpts{
+		Parallelism: 1,
+	})
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return nil, diags
+	}
+
+	cfg, initDiags := ctx.Init(mod, InitOpts{
+		SetVariables: vars,
+	})
+	diags = diags.Append(initDiags)
+	if diags.HasErrors() {
+		return mod, diags
+	}
+
+	providers := cfg.ResolveProviderTypes()
+	cfg.ResolveProviderTypesForTests(providers)
+
+	return cfg.Module, diags
+}

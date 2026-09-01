@@ -205,9 +205,9 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	// Generate the FQN -> LocalProviderName map
 	mod.GatherProviderLocalNames()
 
-	if mod.StateStore != nil {
-		diags = append(diags, mod.resolveStateStoreProviderType()...)
-	}
+	//if mod.StateStore != nil {
+	//	diags = append(diags, mod.resolveStateStoreProviderType()...)
+	//}
 
 	return mod, diags
 }
@@ -887,12 +887,12 @@ func (m *Module) GatherProviderLocalNames() {
 	m.ProviderLocalNames = providers
 }
 
-// resolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
+// ResolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
 // used for pluggable state storage, and assigns it to the ProviderAddr field in the module's state store data.
 //
 // See the reused function resolveStateStoreProviderType for details about logic.
 // If no match is found, an error diagnostic is returned.
-func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
+func (m *Module) ResolveStateStoreProviderType() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	providerType, typeDiags := resolveStateStoreProviderType(m.ProviderRequirements.RequiredProviders,
@@ -993,4 +993,97 @@ func (m *Module) CheckCoreVersionRequirements(path addrs.Module, sourceAddr addr
 	}
 
 	return diags
+}
+
+func (m *Module) ResolveProviderTypes() map[string]addrs.Provider {
+	// collect the required_providers, and then add any missing default providers
+	providers := map[string]addrs.Provider{}
+	for name, p := range m.ProviderRequirements.RequiredProviders {
+		providers[name] = p.Type
+	}
+
+	// ensure all provider configs know their correct type
+	for _, p := range m.ProviderConfigs {
+		addr, required := providers[p.Name]
+		if required {
+			p.providerType = addr
+		} else {
+			addr := addrs.NewDefaultProvider(p.Name)
+			p.providerType = addr
+			providers[p.Name] = addr
+		}
+	}
+
+	// connect module call providers to the correct type
+	for _, mod := range m.ModuleCalls {
+		for _, p := range mod.Providers {
+			if addr, known := providers[p.InParent.Name]; known {
+				p.InParent.providerType = addr
+			}
+		}
+	}
+
+	// Add provider name resolution
+	assignResourceProviders := func(resources map[string]*Resource) {
+		for _, r := range resources {
+			// set the provider FQN for the resource
+			if r.ProviderConfigRef != nil {
+				r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+			} else {
+				implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
+				if err == nil {
+					r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
+	assignActionProviders := func(actions map[string]*Action) {
+		for _, a := range actions {
+			// set the provider FQN for the action
+			if a.ProviderConfigRef != nil {
+				a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
+			} else {
+				// an invalid resource name (for e.g. "null resource" instead of
+				// "null_resource") can cause a panic down the line in addrs:
+				// https://github.com/hashicorp/terraform/issues/25560
+				implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
+				if err == nil {
+					a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
+	assignImportProviders := func(imports []*Import) {
+		for _, i := range imports {
+			// set the provider FQN for an import
+			if i.ProviderConfigRef != nil {
+				i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
+					LocalName: i.ProviderConfigRef.Name,
+					Alias:     i.ProviderConfigRef.Alias,
+				})
+			} else {
+				implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
+				if err == nil {
+					i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+				}
+				// We don't return a diagnostic because the invalid resource name
+				// will already have been caught.
+			}
+		}
+	}
+
+	assignResourceProviders(m.ManagedResources)
+	assignResourceProviders(m.DataResources)
+	assignResourceProviders(m.EphemeralResources)
+	assignResourceProviders(m.ListResources)
+	assignActionProviders(m.Actions)
+	assignImportProviders(m.Import)
+
+	return providers
 }
