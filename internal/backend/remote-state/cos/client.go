@@ -14,7 +14,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	sdkErrors "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
@@ -375,19 +374,10 @@ func (c *remoteClient) cosUnlock(bucket, cosFile string) error {
 	cosPath := fmt.Sprintf("%s:%s", bucket, cosFile)
 	lockTagValue := fmt.Sprintf("%x", md5.Sum([]byte(cosPath)))
 
-	var err error
-	for i := 0; i < 30; i++ {
-		err = c.DeleteTag(lockTagKey, lockTagValue)
-		if err == nil {
-			return nil
-		}
-
+	err := c.DeleteTag(lockTagKey, lockTagValue)
+	if err != nil && isTagNotExistError(err) {
 		// The tag does not exist, which means the lock has been released.
-		if isTagNotExistError(err) {
-			return nil
-		}
-
-		time.Sleep(1 * time.Second)
+		return nil
 	}
 
 	return err
@@ -397,9 +387,9 @@ func (c *remoteClient) cosUnlock(bucket, cosFile string) error {
 // DeleteTag returns ResourceNotFound.TagNonExist when the
 // target tag is already absent, which should be treated as a successful unlock.
 func isTagNotExistError(err error) bool {
-	if e, ok := err.(*sdkErrors.TencentCloudSDKError); ok {
-		code := e.GetCode()
-		return code == ignoreDelTagErrorCode
+	var sdkErr *sdkErrors.TencentCloudSDKError
+	if errors.As(err, &sdkErr) {
+		return sdkErr.GetCode() == ignoreDelTagErrorCode
 	}
 
 	return false
@@ -429,7 +419,7 @@ func (c *remoteClient) DeleteTag(key, value string) error {
 	_, err := c.tagClient.DeleteTag(request)
 	log.Printf("[DEBUG] delete tag %s:%s: error: %v", key, value, err)
 	if err != nil {
-		return fmt.Errorf("failed to delete tag: %s -> %s: %s", key, value, err)
+		return fmt.Errorf("failed to delete tag: %s -> %s: %w", key, value, err)
 	}
 
 	return nil
