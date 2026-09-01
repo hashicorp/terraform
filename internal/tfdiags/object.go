@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -62,6 +63,10 @@ func ObjectToString(obj cty.Value) string {
 func ValueToString(val cty.Value) string {
 	if val.IsNull() {
 		return "<null>"
+	}
+
+	if val.HasMark(marks.Sensitive) {
+		return "<sensitive>"
 	}
 
 	switch val.Type() {
