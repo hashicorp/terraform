@@ -361,7 +361,7 @@ func (s *StateMigrateJSON) LogAutomaticApproval() {
 // Implements ProviderLockingLogger interface.
 func (s *StateMigrateJSON) LogProviderLockfileCreated() {
 	s.view.log.Info(
-		strings.TrimSpace(createdLockInfoJSON),
+		`Terraform has created a lock file .terraform.lock.hcl to record the provider selections made during this command.`,
 		"type", json.MessageProviderLockfileCreated,
 	)
 }
