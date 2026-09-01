@@ -14,8 +14,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
+	sdkErrors "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/errors"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
 
@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	lockTagKey = "tencentcloud-terraform-lock"
+	lockTagKey            = "tencentcloud-terraform-lock"
+	ignoreDelTagErrorCode = "ResourceNotFound.TagNonExist"
 )
 
 // RemoteClient implements the client of remote state
@@ -373,50 +374,25 @@ func (c *remoteClient) cosUnlock(bucket, cosFile string) error {
 	cosPath := fmt.Sprintf("%s:%s", bucket, cosFile)
 	lockTagValue := fmt.Sprintf("%x", md5.Sum([]byte(cosPath)))
 
-	var err error
-	for i := 0; i < 30; i++ {
-		tagExists, err := c.CheckTag(lockTagKey, lockTagValue)
-
-		if err != nil {
-			return err
-		}
-
-		if !tagExists {
-			return nil
-		}
-
-		err = c.DeleteTag(lockTagKey, lockTagValue)
-		if err == nil {
-			return nil
-		}
-		time.Sleep(1 * time.Second)
+	err := c.DeleteTag(lockTagKey, lockTagValue)
+	if err != nil && isTagNotExistError(err) {
+		// The tag does not exist, which means the lock has been released.
+		return nil
 	}
 
 	return err
 }
 
-// CheckTag checks if tag key:value exists
-func (c *remoteClient) CheckTag(key, value string) (exists bool, err error) {
-	request := tag.NewDescribeTagsRequest()
-	request.TagKey = &key
-	request.TagValue = &value
-
-	response, err := c.tagClient.DescribeTags(request)
-	log.Printf("[DEBUG] create tag %s:%s: error: %v", key, value, err)
-	if err != nil {
-		return
+// isTagNotExistError returns true if err indicates the tag does not exist.
+// DeleteTag returns ResourceNotFound.TagNonExist when the
+// target tag is already absent, which should be treated as a successful unlock.
+func isTagNotExistError(err error) bool {
+	var sdkErr *sdkErrors.TencentCloudSDKError
+	if errors.As(err, &sdkErr) {
+		return sdkErr.GetCode() == ignoreDelTagErrorCode
 	}
 
-	if len(response.Response.Tags) == 0 {
-		return
-	}
-
-	tagKey := response.Response.Tags[0].TagKey
-	tagValue := response.Response.Tags[0].TagValue
-
-	exists = key == *tagKey && value == *tagValue
-
-	return
+	return false
 }
 
 // CreateTag create tag by key and value
@@ -443,7 +419,7 @@ func (c *remoteClient) DeleteTag(key, value string) error {
 	_, err := c.tagClient.DeleteTag(request)
 	log.Printf("[DEBUG] delete tag %s:%s: error: %v", key, value, err)
 	if err != nil {
-		return fmt.Errorf("failed to delete tag: %s -> %s: %s", key, value, err)
+		return fmt.Errorf("failed to delete tag: %s -> %s: %w", key, value, err)
 	}
 
 	return nil
