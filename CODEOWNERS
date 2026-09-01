@@ -15,7 +15,7 @@
 # Remote-state backend                           # Maintainer
 /internal/backend/remote-state/azure             @hashicorp/terraform-core @hashicorp/terraform-azure
 #/internal/backend/remote-state/consul           Unmaintained
-#/internal/backend/remote-state/cos              @likexian
+#/internal/backend/remote-state/cos              @likexian @SevenEarth
 /internal/backend/remote-state/gcs               @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 /internal/backend/remote-state/http              @hashicorp/terraform-core
 #/internal/backend/remote-state/oss              @xiaozhu36
