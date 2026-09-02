@@ -21,6 +21,7 @@ var (
 	_ GraphNodeExecutable    = (*NodeTestRunCleanup)(nil)
 	_ GraphNodeReferenceable = (*NodeTestRunCleanup)(nil)
 	_ GraphNodeReferencer    = (*NodeTestRunCleanup)(nil)
+	_ RunNode                = (*NodeTestRunCleanup)(nil)
 )
 
 type NodeTestRunCleanup struct {
@@ -71,6 +72,10 @@ func (n *NodeTestRunCleanup) References() []*addrs.Reference {
 
 func (n *NodeTestRunCleanup) Referenceable() addrs.Referenceable {
 	return n.run.Addr()
+}
+
+func (n *NodeTestRunCleanup) TestRun() *moduletest.Run {
+	return n.run
 }
 
 func (n *NodeTestRunCleanup) Execute(ctx *EvalContext) {

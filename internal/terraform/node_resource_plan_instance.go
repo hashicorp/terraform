@@ -286,9 +286,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
-
 	var deferred *providers.Deferred
-	schemaVersionUpgraded := false
+	resourceDataUpgraded := false
 	if importing {
 		if n.importTarget.target.IsWhollyKnown() {
 			var importDiags tfdiags.Diagnostics
@@ -335,7 +334,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	} else {
 		var readDiags tfdiags.Diagnostics
-		instanceRefreshState, schemaVersionUpgraded, readDiags = n.readResourceInstanceState(ctx, addr)
+		instanceRefreshState, resourceDataUpgraded, readDiags = n.readResourceInstanceState(ctx, addr)
 		diags = diags.Append(readDiags)
 		if diags.HasErrors() {
 			// Pre-Diff error hook
@@ -413,7 +412,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// The practitioner indicated that they don't want to refresh the instance if the configuration
 	// provided doesn't produce a change on it's own, which we will confirm by running an initial plan.
 	// If that plan is a no-op we report the changes and return without refreshing the state.
-	if n.minimalRefresh && !schemaVersionUpgraded && !importing && instanceRefreshState != nil {
+	if n.minimalRefresh && !resourceDataUpgraded && !importing && instanceRefreshState != nil {
 		// We'll keep all the diagnostics separated in this block until we return
 		var initialPlanDiags tfdiags.Diagnostics
 
@@ -485,8 +484,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	if n.minimalRefresh && schemaVersionUpgraded {
-		log.Printf("[DEBUG] Minimal refresh mode: refreshing resource as the schema version has been updated for %s", addr)
+	if n.minimalRefresh && resourceDataUpgraded {
+		log.Printf("[DEBUG] Minimal refresh mode: refreshing resource as the schema version for either the state or identity has been updated for %s", addr)
 	}
 
 	// Refresh, maybe
