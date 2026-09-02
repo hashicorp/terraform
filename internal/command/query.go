@@ -169,7 +169,7 @@ func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBacken
 		return func() {}
 	}
 
-	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be, policy.PlanEvaluationStage))
+	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be, policy.QueryEvaluationStage))
 	if opReq.View != nil && policyDiags != nil {
 		opReq.View.PolicyDiagnostics(policyDiags)
 	}
