@@ -413,3 +413,23 @@ func TestParseAbsActionInstance(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigActionTargetContains(t *testing.T) {
+	addr := ConfigAction{
+		Module: RootModule,
+		Action: Action{Type: "mock", Name: "example"},
+	}
+
+	if !addr.TargetContains(addr) {
+		t.Fatalf("expected ConfigAction to contain itself")
+	}
+
+	// Test it if it does not contain a completely different action
+	otherAddr := ConfigAction{
+		Module: RootModule,
+		Action: Action{Type: "mock", Name: "different"},
+	}
+	if addr.TargetContains(otherAddr) {
+		t.Fatalf("expected ConfigAction not to contain a different action")
+	}
+}

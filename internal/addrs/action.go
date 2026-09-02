@@ -360,6 +360,8 @@ func (a ConfigAction) Equal(o ConfigAction) bool {
 
 func (a ConfigAction) TargetContains(other Targetable) bool {
 	switch other := other.(type) {
+	case ConfigAction:
+		return a.Equal(other)
 	case AbsAction:
 		return other.ConfigAction().Equal(a)
 	case AbsActionInstance:
