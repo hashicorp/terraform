@@ -74,7 +74,7 @@ func (n *NodeTestRunCleanup) Referenceable() addrs.Referenceable {
 	return n.run.Addr()
 }
 
-func (n *NodeTestRunCleanup) Run() *moduletest.Run {
+func (n *NodeTestRunCleanup) TestRun() *moduletest.Run {
 	return n.run
 }
 

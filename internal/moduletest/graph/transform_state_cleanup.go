@@ -26,7 +26,7 @@ type Subgrapher interface {
 // - NodeTestRunCleanup: represents a node for cleaning up a test run's state.
 type RunNode interface {
 	dag.Vertex
-	Run() *moduletest.Run
+	TestRun() *moduletest.Run
 }
 
 // TeardownSubgraph is a subgraph for cleaning up the state of
@@ -108,15 +108,15 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 			return nil, false
 		}
 
-		runName := t.stateOwners[node.Run().Config.StateKey]
+		runName := t.stateOwners[node.TestRun().Config.StateKey]
 
 		// return true if the node owns the state.
-		return node.Run(), runName == node.Run().Name
+		return node.TestRun(), runName == node.TestRun().Name
 	}
 
-	// Traverse the run graph in topological order and build the cleanup edges
+	// Traverse the run graph and build the cleanup edges
 	// in reverse order of the run graph.
-	for _, node := range t.runGraph.TopologicalOrder() {
+	for node := range t.runGraph.VerticesSeq() {
 		// is this node a test run and a state owner?
 		sourceRun, ok := stateOwner(node)
 		if !ok {
@@ -127,7 +127,7 @@ func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
 
 		// For each cleanup node, we use its corresponding run node dependencies
 		// for ordering. The cleanup nodes are connected to their dependencies
-		// in reverse order, i.e each cleanup node is executed before its dependencies.
+		// in reverse order, i.e each run cleanup node is executed before the run's dependencies.
 		dependencies := t.runGraph.Ancestors(node)
 		for dependency := range dependencies.All() {
 			targetRun, ok := stateOwner(dependency)

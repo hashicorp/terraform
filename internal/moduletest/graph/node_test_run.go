@@ -33,7 +33,7 @@ type NodeTestRun struct {
 	opts      *graphOptions
 }
 
-func (n *NodeTestRun) Run() *moduletest.Run {
+func (n *NodeTestRun) TestRun() *moduletest.Run {
 	return n.run
 }
 
