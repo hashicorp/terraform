@@ -377,6 +377,14 @@ func TestTest_Runs(t *testing.T) {
 			expectedErr: []string{"Ephemeral resource instance has expired", "Ephemeral resources cannot be asserted"},
 			code:        1,
 		},
+		"mock_ephemeral_resource": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
+		"override_ephemeral_resource": {
+			expectedOut: []string{"1 passed, 0 failed."},
+			code:        0,
+		},
 		"with_state_key": {
 			expectedOut: []string{"3 passed, 1 failed."},
 			expectedErr: []string{"Test assertion failed", "resource renamed without moved block"},
