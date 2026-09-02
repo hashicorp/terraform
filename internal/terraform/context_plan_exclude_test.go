@@ -789,6 +789,265 @@ resource "test_object" "foo" {
 	assertPlannedChange(t, plan, "test_object.foo", plans.Update)
 }
 
+// TODO:@austinvalle: For CBD, you can't exclude a deposed node ATM and we actually can't defer it
+// because the deferral tracker can't differentiate between a primary instance and a deposed
+// instance as they have the same AbsResourceInstance address.
+func TestContext2Plan_excludes_deposed_cbd(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "cbd" {
+  arg = "new-value"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := excludePlanTestProvider()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+
+	deposedKey := states.DeposedKey("deposed1")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.cbd"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:           []byte(`{"id":"cbd-id","arg":"old-value","computed":"c"}`),
+				Status:              states.ObjectReady,
+				CreateBeforeDestroy: true,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceDeposed(
+			mustResourceInstanceAddr("test_object.cbd"),
+			deposedKey,
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:           []byte(`{"id":"cbd-deposed-id","arg":"deposed-value","computed":"c"}`),
+				Status:              states.ObjectReady,
+				CreateBeforeDestroy: true,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	excludeAddr := mustResourceInstanceAddr("test_object.cbd")
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		Excludes:        []addrs.Targetable{excludeAddr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	// The primary (current) instance is deferred
+	assertDeferredResource(t, plan, "test_object.cbd", providers.DeferredReasonExcluded)
+
+	// The deposed instance is not deferred
+	deposedAddr := mustResourceInstanceAddr("test_object.cbd")
+	foundDeposedChange := false
+	for _, rc := range plan.Changes.Resources {
+		if rc.Addr.Equal(deposedAddr) && rc.DeposedKey == deposedKey {
+			foundDeposedChange = true
+			if rc.Action != plans.Delete {
+				t.Errorf("deposed object: expected Delete action, got %s", rc.Action)
+			}
+		}
+	}
+	if !foundDeposedChange {
+		t.Errorf("expected a Delete change for the deposed object %s", deposedAddr)
+	}
+}
+
+// TODO:@austinvalle: Despite the pre-existing code in NodePlannableResourceInstanceOrphan using Dependencies
+// to detect deferral, there actually is no hook-up for that field to be populated. So the only way that an orphan
+// can be deferred today is if [Deferred.externalDependencyDeferred] is set.
+//
+// We could use StateDependencies() to attempt to do the deferral, but it's not immediately clear to me how useful that would be.
+func TestContext2Plan_excludes_orphan_with_dependencies(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": ``,
+	})
+
+	p := excludePlanTestProvider()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.orphan_excluded"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"exc-id","arg":"orphan-excluded","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.orphan_dependent"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"dep-id","arg":"orphan-dependent","computed":"c"}`),
+				Status:    states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{
+					mustAbsResourceAddr("test_object.orphan_excluded").Config(),
+				},
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	excludeAddr := mustResourceInstanceAddr("test_object.orphan_excluded")
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		Excludes:        []addrs.Targetable{excludeAddr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	// The directly-excluded orphan is deferred
+	assertDeferredResource(t, plan, "test_object.orphan_excluded", providers.DeferredReasonExcluded)
+
+	// The dependant orphan is not deferred
+	assertPlannedChange(t, plan, "test_object.orphan_dependent", plans.Delete)
+}
+
+// TODO:@austinvalle: Exclude works for destroy when addressing the resource directly. Dependencies
+// are not set for destroy nodes (similar to orphan), and even if they were, the detection would
+// not be in the right order as dependency node edges are inverted.
+func TestContext2Plan_excludes_destroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "excluded" {
+  arg = "excluded"
+}
+
+resource "test_object" "excluded_dep" {
+  arg = "${test_object.excluded.arg}-dep"
+}
+`,
+	})
+
+	p := excludePlanTestProvider()
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.excluded"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"excluded-id","arg":"excluded","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.excluded_dep"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"excluded-dep-id","arg":"excluded-dep","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	excludeAddr := mustResourceInstanceAddr("test_object.excluded")
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.DestroyMode,
+		DeferralAllowed: true,
+		Excludes:        []addrs.Targetable{excludeAddr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	assertDeferredResource(t, plan, "test_object.excluded", providers.DeferredReasonExcluded)
+	assertPlannedChange(t, plan, "test_object.excluded_dep", plans.Delete)
+}
+
+// TODO:@austinvalle: This just documents known behavior about provider configuring, as
+// even if we exclude all nodes related to a single provider, that provider is still configured.
+//
+// The solution to this is not directly related to deferred resources, but rather to move
+// provider instances to configure on first-use, rather than during NodeApplyableProvider. Doing
+// this would allow a practitioner to exclude all resources from a provider to avoid service outages for example.
+func TestContext2Plan_excludes_all_resources_for_provider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  arg = "a"
+}
+
+resource "test_object" "b" {
+  arg = "b"
+}
+`,
+	})
+
+	p := excludePlanTestProvider()
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"a-id","arg":"a","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.b"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"b-id","arg":"b","computed":"c"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		Excludes: []addrs.Targetable{
+			mustResourceInstanceAddr("test_object.a"),
+			mustResourceInstanceAddr("test_object.b"),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	assertDeferredResource(t, plan, "test_object.a", providers.DeferredReasonExcluded)
+	assertDeferredResource(t, plan, "test_object.b", providers.DeferredReasonExcluded)
+
+	if !p.ConfigureProviderCalled {
+		t.Error("expected ConfigureProvider to be called even when all resources are excluded, but it was not")
+	}
+}
+
 func excludePlanTestProvider() *testing_provider.MockProvider {
 	p := &testing_provider.MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{

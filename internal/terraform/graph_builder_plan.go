@@ -386,6 +386,7 @@ func (b *PlanGraphBuilder) initDestroy() {
 			NodeAbstractResourceInstance: a,
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh: b.skipRefresh || b.minimalRefresh,
+			excludes:    b.Excludes,
 		}
 	}
 }
