@@ -16,17 +16,14 @@ type ImportStatement struct {
 }
 
 // FindImportStatements recurses through the modules of the given configuration
-// and returns a set of all "import" blocks defined within after deduplication
-// on the To address.
-//
-// An "import" block in a parent module overrides an import block in a child
-// module when both target the same configuration object.
-func FindImportStatements(rootCfg *configs.Config) addrs.Map[addrs.ConfigResource, ImportStatement] {
-	imports := findImportStatements(rootCfg, addrs.MakeMap[addrs.ConfigResource, ImportStatement]())
+// and returns a set of all "import" blocks. These import targets are not deduplicated
+// as we must wait until expansion occurs since we don't know the exact resource instance yet.
+func FindImportStatements(rootCfg *configs.Config) []ImportStatement {
+	imports := findImportStatements(rootCfg, make([]ImportStatement, 0))
 	return imports
 }
 
-func findImportStatements(cfg *configs.Config, into addrs.Map[addrs.ConfigResource, ImportStatement]) addrs.Map[addrs.ConfigResource, ImportStatement] {
+func findImportStatements(cfg *configs.Config, into []ImportStatement) []ImportStatement {
 	for _, mi := range cfg.Module.Import {
 		// First, stitch together the module path and the RelSubject to form
 		// the absolute address of the config resource being removed.
@@ -36,19 +33,7 @@ func findImportStatements(cfg *configs.Config, into addrs.Map[addrs.ConfigResour
 			Resource: res.Resource,
 		}
 
-		// If we already have an import statement for this ConfigResource, it
-		// must have come from a parent module, because duplicate import
-		// blocks in the same module result in an error.
-		// The import block in the parent module overrides the block in the
-		// child module.
-		existingResource, ok := into.GetOk(toAddr)
-		if ok {
-			if existingResource.AbsToResource.Equal(toAddr) {
-				continue
-			}
-		}
-
-		into.Put(toAddr, ImportStatement{
+		into = append(into, ImportStatement{
 			AbsToResource:    toAddr,
 			ContainingModule: cfg.Path,
 			Import:           mi,

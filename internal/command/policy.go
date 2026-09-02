@@ -10,15 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func validatePolicyPaths(policyPaths []string, experimental bool) (diags tfdiags.Diagnostics) {
-	if !experimental && len(policyPaths) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to parse command-line flags",
-			"The -policies flag is only valid in experimental builds of Terraform.",
-		))
-	}
-
+func validatePolicyPaths(policyPaths []string) (diags tfdiags.Diagnostics) {
 	for _, path := range policyPaths {
 		if _, err := os.Stat(path); err != nil {
 			if os.IsNotExist(err) {

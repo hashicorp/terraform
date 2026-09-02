@@ -320,6 +320,14 @@ func renderQueryRunLogsForTest(t *testing.T, logContent string) string {
 
 const policySummaryPassLog = `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.a","overall_result":"pass","results":[{"identity":{"id":"a"},"target_address":"test.a","result":"pass","policies":[{"policy_metadata":{"policy_name":"policy.a","enforcement_level":"mandatory"},"diagnostics":[],"result":"pass"}]}],"passed_policies":[{"policy_name":"policy.a","enforcement_level":"mandatory"}]}`
 
+// policySummaryAllNALog is a wire record where every identity produced n/a
+// (i.e. no policies matched any resource in the list block).
+const policySummaryAllNALog = `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.b","overall_result":"n/a","results":[{"identity":{"id":"x"},"target_address":"test.b_0","result":"n/a","policies":[]},{"identity":{"id":"y"},"target_address":"test.b_1","result":"n/a","policies":[]}],"passed_policies":[]}`
+
+// policySummaryMixedNALog is a wire record where one identity passed and one
+// produced n/a.
+const policySummaryMixedNALog = `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.c","overall_result":"pass","results":[{"identity":{"id":"p"},"target_address":"test.c_0","result":"pass","policies":[{"policy_metadata":{"policy_name":"policy.p","enforcement_level":"mandatory"},"diagnostics":[],"result":"pass"}]},{"identity":{"id":"n"},"target_address":"test.c_1","result":"n/a","policies":[]}],"passed_policies":[{"policy_name":"policy.p","enforcement_level":"mandatory"}]}`
+
 func TestCloud_queryWithPolicyPaths(t *testing.T) {
 	var innerFn func(http.ResponseWriter, *http.Request)
 	ih := &indirectHandler{fn: &innerFn}
@@ -600,6 +608,19 @@ Policy results for list.test.a - Passed
 {"@level":"info","@message":"Result found","type":"list_resource_found","list_resource_found":{"address":"list.test.a","display_name":"Alpha","identity":{"id":"a"}}}
 {"@level":"info","@message":"List complete","type":"list_complete","list_complete":{"address":"list.test.a"}}`
 
+	allNAOutput := `Evaluated 0 policies.
+
+Policy results for list.test.b - N/A
+  id=x  N/A
+  id=y  N/A
+`
+	mixedNAOutput := `Evaluated 1 policies.
+
+Policy results for list.test.c - Passed
+  id=p  Passed
+  id=n  N/A
+`
+
 	for _, tc := range []struct {
 		name    string
 		records string
@@ -607,6 +628,8 @@ Policy results for list.test.a - Passed
 	}{
 		{name: "query and summary", records: plainQuery + "\n" + policySummaryPassLog, want: "list.test.a   id=a   Alpha\n\n" + passOutput},
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
+		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
+		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := renderQueryRunLogsForTest(t, tc.records); got != tc.want {

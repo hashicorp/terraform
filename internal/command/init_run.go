@@ -286,7 +286,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	if len(initArgs.PolicyPaths) > 0 {
 		var policyDiags policy.Diagnostics
 		var stopClient func()
-		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back))
+		policyClient, policyDiags, stopClient = c.PolicyClient(ctx, initArgs.PolicyPaths, backendPolicyEntitlement(back, policy.InitEvaluationStage))
 		defer stopClient()
 		// Stream any policy setup diagnostics (e.g. a failure to connect to the
 		// policy engine).

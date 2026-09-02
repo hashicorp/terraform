@@ -77,3 +77,10 @@ message AttributePath {
     }
     repeated Step steps = 1;
 }
+
+enum EvaluationStage {
+    INVALID_EVALUATION_STAGE = 0;
+    INIT_EVALUATION_STAGE = 1;
+    PLAN_EVALUATION_STAGE = 2;
+    APPLY_EVALUATION_STAGE = 3;
+}

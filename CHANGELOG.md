@@ -1,9 +1,16 @@
 ## 1.17.0 (Unreleased)
 
 
+NEW FEATURES:
+
+* A new `-minimal-refresh` planning option has been added, which will only refresh resources that have proposed changes. ([#35290](https://github.com/hashicorp/terraform/issues/35290))
+
+
 ENHANCEMENTS:
 
 * command/init: Enrich log messages with provider versions ([#38918](https://github.com/hashicorp/terraform/issues/38918))
+
+* command/login: display warning after successful login if user is subject to an organization's TTL policy
 
 
 BUG FIXES:
@@ -11,6 +18,8 @@ BUG FIXES:
 * funcs: pow and log no longer panic when result is not a number ([#38912](https://github.com/hashicorp/terraform/issues/38912))
 
 * ephemeral: Terraform will now use and display diagnostics raised when _renewing_ an ephemeral resource. This may cause warnings to appear that previously were lost. We expect that any error diagnostics that were previously lost would have caused confusing downstream errors, so we do not anticipate this change to be breaking. ([#38989](https://github.com/hashicorp/terraform/issues/38989))
+
+* Fix panic when import identity references sensitive value ([#39013](https://github.com/hashicorp/terraform/issues/39013))
 
 
 NOTES:

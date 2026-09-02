@@ -299,7 +299,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 }
 
 func (c *InitCommand) Validate(args *arguments.Init) (diags tfdiags.Diagnostics) {
-	diags = diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	diags = diags.Append(validatePolicyPaths(args.PolicyPaths))
 	return diags
 }
 

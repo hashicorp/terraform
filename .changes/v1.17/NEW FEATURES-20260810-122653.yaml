@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: 'policy: Terraform Policy is now generally available. The `-policies` flag for `plan`, `apply`, and `init` no longer requires the `-allow-experimental-features` flag. See https://developer.hashicorp.com/terraform/policy for more information.'
+time: 2026-08-10T12:26:53.000000+00:00
+custom:
+    Issue: "38970"
