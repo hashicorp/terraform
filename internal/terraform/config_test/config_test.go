@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"context"
 	"reflect"
 	"testing"
 
@@ -9,6 +10,9 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -138,6 +142,35 @@ func testModuleFromDirWithInitGraph(path string) (*configs.Module, hcl.Diagnosti
 		return nil, diagnostics.ToHCL()
 	}
 	return mod, nil
+}
+
+func testConfigFromDirWithInitGraph(t *testing.T, path string) (*configs.Config, hcl.Diagnostics) {
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	_, instDiags := inst.InstallModules(context.Background(), path, "tests", true, false)
+	if instDiags.HasErrors() {
+		t.Fatalf("unexpected module installation errors: %s", instDiags.Err().Error())
+	}
+	if err := loader.RefreshModules(); err != nil {
+		t.Fatalf("failed to refresh modules after install: %s", err)
+	}
+
+	mod, loadDiags := loader.LoadRootModule(path)
+	if loadDiags.HasErrors() {
+		t.Fatalf("invalid root module: %s", loadDiags.Error())
+	}
+
+	config, diagnostics := terraform.BuildConfigWithGraph(
+		mod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	if diagnostics != nil {
+		return nil, diagnostics.ToHCL()
+	}
+	return config, nil
 }
 
 func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
