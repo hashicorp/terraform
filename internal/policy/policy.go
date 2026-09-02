@@ -77,9 +77,10 @@ type (
 	// Entitlement is the credential triple the plugin needs to call the
 	// TFC/TFE entitlement-set endpoint during Setup.
 	Entitlement struct {
-		Host  string
-		Token string
-		Org   string
+		Host            string
+		Token           string
+		Org             string
+		EvaluationStage EvaluationStage
 	}
 
 	// EntitlementProvider is implemented by backends that can supply a policy

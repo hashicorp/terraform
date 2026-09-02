@@ -168,9 +168,6 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 	}
 	if ctx.PolicyGraph() != nil {
 		for _, input := range policyInputs {
-			if input.Unknown {
-				continue
-			}
 			ctx.PolicyGraph().AddQuery(&nodeQueryResourcePolicy{
 				ResourceAddr:    input.SyntheticAddr,
 				ProviderAddr:    n.ResolvedProvider,
@@ -178,6 +175,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 				Identity:        input.Identity,
 				ResourceConfig:  input.ResourceConfig,
 				ListBlockAddr:   input.ListBlockAddr,
+				Unknown:         input.Unknown,
 			})
 		}
 	}

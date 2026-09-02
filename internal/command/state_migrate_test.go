@@ -2114,3 +2114,68 @@ func TestStateMigrate_nonExistentLockFiles(t *testing.T) {
 		t.Fatalf("expected output %q, got %q", expectedMsg, out.All())
 	}
 }
+
+func TestStateMigrate_JSONOutput(t *testing.T) {
+	// All test scenarios use the same args to make assertions about JSON output
+	args := []string{"-input=false", "-json", "-force-copy"}
+
+	t.Run("backend to backend", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-backend"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("expected exit code 1, got %d:\n %q", code, out.All())
+		}
+
+		// Assert expected JSON output is made
+		checkGoldenReference(t, out, fixture)
+	})
+
+	t.Run("backend to state-store", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-state-store"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		p := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		p.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides:          metaOverridesForProvider(p),
+				ProviderSource:            providerSource,
+			},
+		}
+
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected JSON output is made
+		checkGoldenReference(t, out, fixture)
+	})
+}

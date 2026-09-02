@@ -1,0 +1,8 @@
+{"@level":"info","@message":"Terraform 1.17.0-dev","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","terraform":"1.17.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"Initializing source...","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_source_initialization_start"}
+{"@level":"info","@message":"Initialized source.","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_source_initialization_complete"}
+{"@level":"info","@message":"Initializing destination...","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_destination_initialization_start"}
+{"@level":"info","@message":"Initialized destination.","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_destination_initialization_complete"}
+{"@level":"info","@message":"Migrating state from backend \"local\" to backend \"local\"...","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_start"}
+{"@level":"info","@message":"The migration process has copied state from the backend \"local\" to the backend \"local\"","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_complete"}
+{"@level":"info","@message":"Finished migrating state from backend \"local\" to backend \"local\".","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","type":"migration_finalized"}
