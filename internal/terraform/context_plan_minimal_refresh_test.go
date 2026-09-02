@@ -643,7 +643,7 @@ resource "test_object" "a" {
 `,
 	})
 
-	// Provider schema is at version 1, but the stored state is at version 0, so
+	// Resource schema is at version 1, but the stored state is at version 0, so
 	// reading the state performs a schema version upgrade, which will prompt a refresh
 	p := minimalRefreshPlanTestProvider(1)
 	state := minimalRefreshPlanTestState(t, `{"id":"a","arg":"foo","computed":"boop"}`, 0, false)
@@ -662,6 +662,86 @@ resource "test_object" "a" {
 
 	if !p.UpgradeResourceStateCalled {
 		t.Fatal(`Expected a call to UpgradeResourceState but received none.`)
+	}
+	if !p.ReadResourceCalled {
+		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
+			`the -minimal-refresh flag as the provider schema version was upgraded.`)
+	}
+
+	change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
+	if got, want := change.Action, plans.NoOp; got != want {
+		t.Fatalf("wrong plan action - got: %s, want: %s", got, want)
+	}
+}
+
+func TestContext2Plan_minimal_refresh_identity_upgrade_will_refresh(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  arg = "foo"
+}
+`,
+	})
+
+	// Resource identity schema is at version 1, but the stored identity is at version 0, so
+	// reading the state performs an identity upgrade, which will prompt a refresh
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					IdentityVersion: 1,
+					Identity: &configschema.Object{
+						Attributes: map[string]*configschema.Attribute{
+							"id":       {Type: cty.String, Required: true},
+							"newfield": {Type: cty.String, Optional: true},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id":       {Type: cty.String, Computed: true},
+							"arg":      {Type: cty.String, Optional: true},
+							"computed": {Type: cty.String, Computed: true},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+		},
+		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			return providers.ApplyResourceChangeResponse{NewState: req.PlannedState}
+		},
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:             []byte(`{"id":"a","arg":"foo","computed":"boop"}`),
+				IdentityJSON:          []byte(`{"id":"a"}`),
+				IdentitySchemaVersion: 0,
+				Status:                states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:           plans.NormalMode,
+		MinimalRefresh: true,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	if !p.UpgradeResourceIdentityCalled {
+		t.Fatal(`Expected a call to UpgradeResourceIdentityCalled but received none.`)
 	}
 	if !p.ReadResourceCalled {
 		t.Fatal(`Expected a call to ReadResource but received none. The resource in this test should be refreshed with ` +
