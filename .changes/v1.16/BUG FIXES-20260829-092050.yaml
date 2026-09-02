@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'state show: Fix a panic when given an attribute path instead of a resource instance address'
-time: 2026-08-27T16:55:11.038482-04:00
-custom:
-    Issue: "39087"
