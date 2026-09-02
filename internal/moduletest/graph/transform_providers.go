@@ -94,8 +94,8 @@ func (t *TestProvidersTransformer) Transform(g *terraform.Graph) error {
 			// providers aren't referenceable so the automatic reference
 			// transformer won't do this.
 
-			if len(vertex.Run().Config.Providers) > 0 {
-				for _, ref := range vertex.run.Config.Providers {
+			if len(vertex.TestRun().Config.Providers) > 0 {
+				for _, ref := range vertex.TestRun().Config.Providers {
 					if node, ok := nodes[ref.InParent.Name][ref.InParent.Alias]; ok {
 						g.Connect(vertex, node.configure)
 					}

@@ -299,6 +299,16 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 	// perm tracks completed nodes to end the recursion
 	perm := map[Vertex]bool{}
 
+	var edges map[Vertex]VertexSet
+	switch {
+	case order&downOrder != 0:
+		edges = g.edgesFrom
+	case order&upOrder != 0:
+		edges = g.edgesTo
+	default:
+		panic(fmt.Sprintln("invalid order", order))
+	}
+
 	var visit func(v Vertex)
 
 	visit = func(v Vertex) {
@@ -311,16 +321,8 @@ func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
 		}
 
 		tmp[v] = true
-		var next VertexSet
-		switch {
-		case order&downOrder != 0:
-			next = g.edgesFrom[v]
-		case order&upOrder != 0:
-			next = g.edgesTo[v]
-		default:
-			panic(fmt.Sprintln("invalid order", order))
-		}
 
+		next := edges[v]
 		for u := range next.All() {
 			visit(u)
 		}
