@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'addrs: Fix ConfigAction.TargetContains to return true for itself- #39120'
+time: 2026-09-03T03:20:45.686821+05:30
+custom:
+    Issue: "39120"
