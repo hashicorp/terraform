@@ -731,6 +731,8 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 		if eq == -1 {
 			// The value is interpreted as a filename.
+			//
+			// Overrides via file support overriding Attributes and Blocks.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
 			if fileDiags.HasErrors() {
@@ -776,6 +778,9 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
+			// The value is interpreted as a key-value pair.
+			//
+			// Overrides via key-value pair only support overriding Attributes.
 			name := item.Value[:eq]
 			rawValue := item.Value[eq+1:]
 			attrS := schema.Attributes[name]
