@@ -495,7 +495,7 @@ func (m *Meta) getProviderSupplyModeForStateStore(config *configs.Module) getpro
 // context in the CLI where only strings can be provided, such as on the
 // command line or in an environment variable, and returns the resulting
 // value.
-func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
+func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type, stateStorageMode string) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	switch {
@@ -507,8 +507,8 @@ func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid backend configuration value",
-				fmt.Sprintf("Invalid backend configuration argument %s: %s", synthFilename, err),
+				fmt.Sprintf("Invalid %s configuration value", stateStorageMode),
+				fmt.Sprintf("Invalid %s configuration argument %s: %s", stateStorageMode, synthFilename, err),
 			))
 			val = cty.DynamicVal // just so we return something valid-ish
 		}

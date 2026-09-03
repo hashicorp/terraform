@@ -242,7 +242,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 			// Handle any overrides supplied via -backend-config CLI flags
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body, StateStore)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -269,7 +269,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		var configOverride hcl.Body
 		if !initArgs.BackendConfig.Empty() {
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema, Backend)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -694,7 +694,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 //
 // If the returned diagnostics contains errors then the returned body may be
 // incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block, stateStorageMode string) (hcl.Body, tfdiags.Diagnostics) {
 	items := flags.AllItems()
 	if len(items) == 0 {
 		return nil, nil
@@ -772,12 +772,12 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			if attrS == nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid backend configuration argument",
-					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+					fmt.Sprintf("Invalid %s configuration argument", stateStorageMode),
+					fmt.Sprintf("The %s configuration argument %q given on the command line is not expected for the selected %s type.", stateStorageMode, name, stateStorageMode),
 				))
 				continue
 			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
+			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type, stateStorageMode)
 			diags = diags.Append(valueDiags)
 			if valueDiags.HasErrors() {
 				continue
