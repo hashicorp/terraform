@@ -757,6 +757,16 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					LabelNames: labelNames,
 				})
 			}
+
+			if stateStorageMode == StateStore {
+				// Raise an error if the user is attempting to override a provider block in a state_store block.
+				diags = diags.Append(checkIfConfigOverrideIncludesProviderBlock(newBody))
+
+				// Allow to fall through to next check, which will also raise an "Unsupported block type" error
+				// related to the unexpected "provider" block, too. This is alongside any other errors the user
+				// should be notified about.
+			}
+
 			// Verify that the file body matches the expected backend schema.
 			_, schemaDiags := newBody.Content(&bodySchema)
 			diags = diags.Append(schemaDiags)
@@ -789,6 +799,30 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 	flushVals()
 
 	return ret, diags
+}
+
+// checkIfConfigOverrideIncludesProviderBlock checks if the HCL body created from a file
+// used to supply override configuration for a state store is attempting to override the provider block.
+// We do this by seeing if the HCL body contains any "provider" blocks.
+func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	var s hcl.BodySchema
+	s.Blocks = append(s.Blocks, hcl.BlockHeaderSchema{
+		Type:       "provider",
+		LabelNames: []string{"name"},
+	})
+	bc, _, _ := newBody.PartialContent(&s)
+	for _, b := range bc.Blocks {
+		if b.Type == "provider" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot partially override provider configuration in a state store block.",
+				"The configuration arguments supplied by the override file attempts to override provider configuration, which is not allowed when using a state store.",
+			))
+			break
+		}
+	}
+	return diags
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
