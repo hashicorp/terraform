@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -2070,7 +2070,7 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 
 	// Only return error diagnostics at this point. Any warnings will be caught
 	// again later and duplicated in the output.
-	root, mDiags := m.loadSingleModule(configPath)
+	root, mDiags := m.loadSingleModule(configPath, false)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
 		return nil, diags
@@ -2103,6 +2103,11 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		//
 		// Remember, the (Meta).backend method is used for non-init commands, so we expect dependency locks
 		// to be present or for the provider to be otherwise available, e.g. via reattach config.
+		root, mDiags = m.loadSingleModule(configPath, true)
+		if mDiags.HasErrors() {
+			diags = diags.Append(mDiags)
+			return nil, diags
+		}
 		root.StateStore.ProviderSupplyMode = m.getProviderSupplyModeForStateStore(root)
 		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.ProviderRequirements, root.StateStore.ProviderSupplyMode)
 		diags = diags.Append(depsDiags)

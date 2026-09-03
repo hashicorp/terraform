@@ -347,6 +347,7 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		view.Diagnostics(nil, nil, diags)
 		return
 	}
+	m.VariableValues = preparation.Variables
 
 	// Only populate m.VariableValues with variables that are declared
 	// as const in the root module. loadConfigWithTests uses

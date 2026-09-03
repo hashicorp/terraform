@@ -16,7 +16,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -2316,7 +2316,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			m.AllowExperimentalFeatures = true
 
 			// Get the state store's config
-			mod, loadDiags := m.loadSingleModule(td)
+			mod, loadDiags := m.loadSingleModule(td, true)
 			if loadDiags.HasErrors() {
 				t.Fatalf("unexpected error when loading test config: %s", loadDiags.Err())
 			}

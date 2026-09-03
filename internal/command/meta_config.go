@@ -68,21 +68,7 @@ func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType
 		return nil
 	}
 
-	if rootMod.CloudConfig == nil {
-		return nil
-	}
-	locks, lDiags := m.lockedDependencies()
-	diags = diags.Append(lDiags)
-	if lDiags.HasErrors() {
-		return diags
-	}
-	backendConfig := rootMod.CloudConfig.ToBackendConfig()
-	opts := &BackendOpts{
-		BackendConfig: &backendConfig,
-		Locks:         locks,
-		ViewType:      viewType,
-	}
-	b, backendDiags := m.Backend(opts)
+	b, backendDiags := m.backend(rootDir, viewType)
 	if backendDiags.HasErrors() {
 		// Don't report backend init errors here; they'll surface later.
 		return nil
@@ -200,7 +186,7 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 // initialization use-cases where the root module must be inspected in order
 // to determine what else needs to be installed before the full configuration
 // can be used.
-func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostics) {
+func (m *Meta) loadSingleModule(dir string, resolveConsts bool) (*configs.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	dir = m.normalizePath(dir)
 
@@ -216,20 +202,23 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 		return nil, diags
 	}
 
-	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
-	diags = diags.Append(varDiags)
-	if varDiags.HasErrors() {
-		return nil, diags
+	if resolveConsts {
+		vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+		diags = diags.Append(varDiags)
+		if varDiags.HasErrors() {
+			return nil, diags
+		}
+
+		var buildDiags tfdiags.Diagnostics
+		module, buildDiags = terraform.BuildModuleWithGraph(module, vars)
+		diags = diags.Append(buildDiags)
+
+		if module.StateStore != nil {
+			diags = diags.Append(module.ResolveStateStoreProviderType())
+		}
 	}
 
-	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
-	diags = diags.Append(buildDiags)
-
-	if mod.StateStore != nil {
-		diags = diags.Append(mod.ResolveStateStoreProviderType())
-	}
-
-	return mod, diags
+	return module, diags
 }
 
 // loadSingleModuleWithTests matches loadSingleModule except it also loads any
@@ -298,7 +287,7 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // that a call to loadSingleModule or loadConfig could fail on the same
 // directory even if loadBackendConfig succeeded.)
 func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
-	mod, diags := m.loadSingleModule(rootDir)
+	mod, diags := m.loadSingleModule(rootDir, false)
 
 	// Only return error diagnostics at this point. Any warnings will be caught
 	// again later and duplicated in the output.
