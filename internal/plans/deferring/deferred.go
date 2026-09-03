@@ -304,16 +304,16 @@ func (d *Deferred) ShouldDeferResourceInstanceChanges(addr addrs.AbsResourceInst
 	}
 	d.mu.Unlock()
 
-	return d.DependenciesDeferred(deps)
+	return d.DependenciesDeferred(addr.Module, deps)
 }
 
-// DependenciesDeferred returns true if any of the given configuration
-// resources have had their planned actions deferred, either because they
-// themselves were deferred or because they depend on something that was
-// deferred.
-//
-// As
-func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
+// DependenciesDeferred returns true if any of the given configuration resources
+// have had their planned actions deferred, either because they themselves were
+// deferred or because they depend on something that was deferred. The srcMod
+// argument is used to check for the case where a dependency might be deferred
+// from a module instance outside of the src module path, which indicates that
+// there could be no data flow between the two.
+func (d *Deferred) DependenciesDeferred(srcMod addrs.ModuleInstance, deps []addrs.ConfigResource) bool {
 	if !d.deferralAllowed {
 		return false
 	}
@@ -325,45 +325,42 @@ func (d *Deferred) DependenciesDeferred(deps []addrs.ConfigResource) bool {
 		return true
 	}
 
-	// If neither of our resource-deferral-tracking collections have anything
-	// in them then we definitely don't need to defer. This special case is
-	// here primarily to minimize the amount of code from here that will run
-	// when the deferred-actions-related experiments are inactive, so we can
-	// minimize the risk of impacting non-participants.
-	// (Maybe we'll remove this check once this stuff is non-experimental.)
 	if d.resourceInstancesDeferred.Len() == 0 && d.partialExpandedResourcesDeferred.Len() == 0 {
 		return false
 	}
 
-	// For this initial implementation we're taking the shortcut of assuming
-	// that all of the configDeps are required. It would be better to do a
-	// more precise analysis that takes into account how data could possibly
-	// flow between instances of resources across different module paths,
-	// but that may have some subtlety due to dynamic data flow, so we'll
-	// need to do some more theory work to figure out what kind of analysis
-	// we'd need to do to get this to be more precise.
-	//
-	// This conservative approach is a starting point so we can focus on
-	// developing the workflow around deferred changes before making its
-	// analyses more precise. This will defer more changes than strictly
-	// necessary, but that's better than not deferring changes that should
-	// have been deferred.
-	//
-	// (FWIW, it does seem like we _should_ be able to eliminate some
-	// dynamic instances from consideration by relying on constraints such as
-	// how a multi-instance module call can't have an object in one instance
-	// depending on an object for another instance, but we'll need to make sure
-	// any additional logic here is well-reasoned to avoid violating dependency
-	// invariants.)
 	for _, configDep := range deps {
-		if d.resourceInstancesDeferred.Has(configDep) {
-			// For now we don't consider exactly which instances of that
-			// configuration block were deferred; there being at least
-			// one is enough.
-			return true
+		if defers, ok := d.resourceInstancesDeferred.GetOk(configDep); ok {
+			// fast path for module which can't have instances
+			if srcMod.IsRoot() {
+				return true
+			}
+
+			for def := range defers.Keys().Iter() {
+				if reachableDependencyPath(srcMod, def.Module) {
+					return true
+				}
+			}
 		}
-		if d.partialExpandedResourcesDeferred.Has(configDep) {
-			return true
+		if defers, ok := d.partialExpandedResourcesDeferred.GetOk(configDep); ok {
+			// fast path for module which can't have instances
+			if srcMod.IsRoot() {
+				return true
+			}
+
+			// in the case of a partially expanded resource, we can only compare
+			// the known portion of the module path
+			for def := range defers.Keys().Iter() {
+				defMod, ok := def.ModuleInstance()
+				if !ok {
+					partial, _ := def.PartialExpandedModule()
+					defMod = partial.KnownPrefix()
+				}
+
+				if reachableDependencyPath(srcMod, defMod) {
+					return true
+				}
+			}
 		}
 
 		// We don't check d.partialExpandedModulesDeferred here because
@@ -389,7 +386,7 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 		// null change. Note, if we don't make this check here, then we'll
 		// just crash later anyway. This way the stack trace points to the
 		// source of the problem.
-		panic("change must not be nil")
+		panic("managed resource change must not be nil")
 	}
 
 	d.mu.Lock()
@@ -441,7 +438,7 @@ func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance
 		// null change. Note, if we don't make this check here, then we'll
 		// just crash later anyway. This way the stack trace points to the
 		// source of the problem.
-		panic("managed resoursce change must not be nil")
+		panic("managed resource change must not be nil")
 	}
 
 	d.mu.Lock()
@@ -556,6 +553,36 @@ func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstanc
 		}
 	}
 	return false
+}
+
+// reachableDependencyPath returns true if a resource instance within src can
+// have a functional dependency with a resource instance within dep. If the dep
+// Module path has a matching subpath of the src Module path, but the subpath
+// instance keys don't match, then there is no way a data could flow from one to
+// the other because instances cannot reference one another.
+func reachableDependencyPath(src, dep addrs.ModuleInstance) bool {
+	// We slice off the first step, which is the root module, because they will
+	// always match.
+	srcAnc := src.Ancestors()[1:]
+	depAnc := dep.Ancestors()[1:]
+
+	for i := 0; i < min(len(srcAnc), len(depAnc)); i++ {
+		// if the configured modules don't match, we can return early since we're
+		// not in the same module path.
+		if !srcAnc[i].Module().Equal(depAnc[i].Module()) {
+			return true
+		}
+
+		// We share a module ancestor, but if the ancestor instance doesn't
+		// match then we can be sure that src cannot see any data from dep.
+		if !srcAnc[i].Equal(depAnc[i]) {
+			return false
+		}
+	}
+
+	// we either originate from the same module instance, or have divergent
+	// paths which means there's a chance that data could flow from dep to src
+	return true
 }
 
 // UnexpectedProviderDeferralDiagnostic is a diagnostic that indicates that a
