@@ -53,6 +53,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -140,26 +141,6 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
 
-func testPolicyFixtureDir(t *testing.T) string {
-	t.Helper()
-
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("plan"), td)
-	t.Chdir(td)
-
-	policyCode := `		resource_policy "resource_type" "policy_name" {
-		  enforce_attrs {
-		    key = attr.value == "foo"
-		  }
-		}
-	`
-	if err := os.WriteFile(filepath.Join(td, "policy.hcl"), []byte(policyCode), 0644); err != nil {
-		t.Fatal(err)
-	}
-
-	return td
-}
-
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -181,7 +162,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), nil)
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false)
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -209,6 +190,12 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	}
 
 	return config, snap
+}
+
+func testModuleInstallerInitializer(loader *configload.Loader) initwd.Initializer {
+	return func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
 }
 
 // testPlan returns a non-nil noop plan.
@@ -247,102 +234,6 @@ func testPlan(t *testing.T) *plans.Plan {
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
 	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
-}
-
-func TestPlan_PoliciesRequireExperimentalFeatures(t *testing.T) {
-	td := testPolicyFixtureDir(t)
-
-	p := planFixtureProvider()
-	view, done := testView(t)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	code := c.Run([]string{"-policies", td, "-no-color"})
-	output := done(t)
-	if code != 1 {
-		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
-	}
-	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
-		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
-	}
-	if strings.Contains(output.All(), "Failed to connect to policy engine") {
-		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
-	}
-}
-
-func TestApply_PoliciesRequireExperimentalFeatures(t *testing.T) {
-	td := testPolicyFixtureDir(t)
-
-	p := planFixtureProvider()
-	view, done := testView(t)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	code := c.Run([]string{"-policies", td, "-no-color", "-auto-approve"})
-	output := done(t)
-	if code != 1 {
-		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
-	}
-	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
-		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
-	}
-	if strings.Contains(output.All(), "Failed to connect to policy engine") {
-		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
-	}
-}
-
-func TestInit_PoliciesRequireExperimentalFeatures(t *testing.T) {
-	td := testPolicyFixtureDir(t)
-
-	view, done := testView(t)
-	c := &InitCommand{
-		Meta: Meta{
-			Ui:   new(cli.MockUi),
-			View: view,
-		},
-	}
-
-	code := c.Run([]string{"-policies", td, "-no-color"})
-	output := done(t)
-	if code != 1 {
-		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
-	}
-	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
-		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
-	}
-}
-
-func TestQuery_PoliciesRequireExperimentalFeatures(t *testing.T) {
-	td := testPolicyFixtureDir(t)
-
-	p := queryFixtureProvider()
-	view, done := testView(t)
-	c := &QueryCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	code := c.Run([]string{"-policies", td, "-no-color"})
-	output := done(t)
-	if code != 1 {
-		t.Fatalf("expected exit code 1, got %d\n\n%s", code, output.All())
-	}
-	if got := output.Stderr(); !strings.Contains(got, "The -policies flag is only valid in experimental builds of Terraform.") {
-		t.Fatalf("expected policy experiment gating diagnostic, got: %s", got)
-	}
-	if strings.Contains(output.All(), "Failed to connect to policy engine") {
-		t.Fatalf("policy engine should not be initialized when experiments are disabled: %s", output.All())
-	}
 }
 
 func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {

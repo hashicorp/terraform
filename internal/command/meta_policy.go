@@ -29,10 +29,6 @@ func (c *Meta) PolicyClient(ctx context.Context, policyPaths []string, ent *poli
 			client.Stop()
 		}
 	}
-	if !c.AllowExperimentalFeatures {
-		log.Printf("[DEBUG] Policies are not supported without experiments enabled, skipping policy client setup")
-		return client, nil, closer
-	}
 	if len(policyPaths) == 0 {
 		log.Printf("[DEBUG] No policy paths configured, skipping policy client setup")
 		return client, nil, closer
@@ -61,12 +57,17 @@ var _ initwd.ModuleInstallHook = &policyModuleInstallHook{}
 // backendPolicyEntitlement returns the entitlement from the backend if it
 // implements policy.EntitlementProvider, or nil otherwise (e.g. a local
 // backend).
-func backendPolicyEntitlement(be backend.Backend) *policy.Entitlement {
+func backendPolicyEntitlement(be backend.Backend, stage policy.EvaluationStage) *policy.Entitlement {
 	provider, ok := be.(policy.EntitlementProvider)
 	if !ok {
 		return nil
 	}
-	return provider.PolicyEntitlement()
+	ent := provider.PolicyEntitlement()
+	if ent == nil {
+		return nil
+	}
+	ent.EvaluationStage = stage
+	return ent
 }
 
 // policyModuleInstallHook enables policy evaluation during module installation.

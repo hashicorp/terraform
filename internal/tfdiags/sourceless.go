@@ -26,9 +26,7 @@ func SourcelessWithExtra(severity Severity, summary, detail string, extra interf
 	}
 }
 
-// ListBlockAddrExtra is the extra value attached to warning diagnostics that
-// are produced for a specific list block. AddWarningDiags reads this field to
-// route the diagnostic into the correct queryPolicyBlock without string parsing.
+// ListBlockAddrExtra identifies the list block associated with a diagnostic.
 type ListBlockAddrExtra struct {
 	ListBlockAddr string
 }

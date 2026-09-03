@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -38,62 +37,31 @@ type ForcedCBDTransformer struct {
 
 func (t *ForcedCBDTransformer) Transform(g *Graph) error {
 	for v := range g.VerticesSeq() {
+		// first look for any node reporting itself as CreateBeforeDestroy
 		dn, ok := v.(GraphNodeCreateBeforeDestroy)
-		if !ok {
+		if !ok || !dn.CreateBeforeDestroy() {
 			continue
 		}
 
-		if !dn.CreateBeforeDestroy() {
-			// If there are no CBD decendant (dependent nodes), then we
-			// do nothing here.
-			if !t.hasCBDDescendant(g, v) {
-				log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) has no CBD descendant, so skipping", v.Name(), v)
+		// We now have a node v which is CreateBeforeDestroy, so we have to make
+		// sure all its ancestors have the same ordering. This direction of
+		// propagation can only work on the apply graph if the destroy nodes are
+		// not yet connected to the expansion nodes, because the destroy nodes
+		// cascade CBD in the opposite direction.
+		for anc := range g.Ancestors(v).All() {
+			ancCBD, ok := anc.(GraphNodeCreateBeforeDestroy)
+			if !ok {
 				continue
 			}
 
-			// If this isn't naturally a CBD node, this means that an descendant is
-			// and we need to auto-upgrade this node to CBD. We do this because
-			// a CBD node depending on non-CBD will result in cycles. To avoid this,
-			// we always attempt to upgrade it.
-			log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q (%T)", v.Name(), v)
-			dn.ForceCreateBeforeDestroy()
-		} else {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q (%T) already has create_before_destroy set", v.Name(), v)
+			if !ancCBD.CreateBeforeDestroy() {
+				log.Printf("[TRACE] ForcedCBDTransformer: forcing create_before_destroy for %q(%T) due to %q(%T)", anc.Name(), anc, v.Name(), v)
+				ancCBD.ForceCreateBeforeDestroy()
+			}
 		}
 	}
+
 	return nil
-}
-
-// hasCBDDescendant returns true if any descendant (node that depends on this)
-// has CBD set.
-func (t *ForcedCBDTransformer) hasCBDDescendant(g *Graph, v dag.Vertex) bool {
-	// in the normal case, we have a descendent config node somewhere that reports CBD
-	if g.MatchDescendant(v, func(ov dag.Vertex) bool {
-		dn, ok := ov.(GraphNodeCreateBeforeDestroy)
-		if ok && dn.CreateBeforeDestroy() {
-			// some descendant is CreateBeforeDestroy, so we need to follow suit
-			log.Printf("[TRACE] ForcedCBDTransformer: %q has CBD descendant %q", v.Name(), ov.Name())
-			return true
-		}
-		return false
-	}) {
-		return true
-	}
-
-	// It's also possible that there are some orphaned CBD nodes from dependents
-	// that no longer exist. These will be directly connected destroy nodes.
-	for dep := range g.EdgesFrom(v).All() {
-		if _, destroyer := dep.(GraphNodeDestroyer); !destroyer {
-			continue
-		}
-
-		dn, ok := dep.(GraphNodeCreateBeforeDestroy)
-		if ok && dn.CreateBeforeDestroy() {
-			log.Printf("[TRACE] ForcedCBDTransformer: %q depends on CBD destroy node %q", v.Name(), dep.Name())
-			return true
-		}
-	}
-	return false
 }
 
 // CBDEdgeTransformer modifies the edges of create-before-destroy ("CBD") nodes

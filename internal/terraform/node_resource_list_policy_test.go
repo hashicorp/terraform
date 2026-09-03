@@ -164,6 +164,54 @@ func TestGenerateListResourcePolicyData_ProviderRPCPath(t *testing.T) {
 	}
 }
 
+func TestGenerateListResourcePolicyData_ConfigGenerationFailureIsUnknown(t *testing.T) {
+	p := &testing_provider.MockProvider{}
+	p.GenerateResourceConfigFn = func(_ providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+		return providers.GenerateResourceConfigResponse{
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "config generation failed", "provider could not generate config"),
+			},
+		}
+	}
+
+	n := listPolicyTestNode("test_resource", "mylist")
+	listBlockAddr := n.Addr
+	ctx := listPolicyTestContext(listBlockAddr, p, listPolicyTestProviderSchema(true))
+	data := cty.TupleVal([]cty.Value{listPolicyTestElement(
+		cty.ObjectVal(map[string]cty.Value{
+			"instance_type": cty.StringVal("t2.micro"),
+			"ami":           cty.StringVal("ami-12345"),
+		}),
+		cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("i-123")}),
+	)})
+
+	results, diags := n.generateListResourcePolicyData(ctx, listBlockAddr, data)
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if !results[0].Unknown {
+		t.Fatal("expected config generation failure to produce an Unknown result")
+	}
+	if results[0].GeneratedConfig != cty.NilVal {
+		t.Fatalf("expected no generated config, got %#v", results[0].GeneratedConfig)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("expected one consolidated warning, got %d", len(diags))
+	}
+	diag := diags[0]
+	if diag.Severity() != tfdiags.Warning || diag.Description().Summary != "Policy evaluation skipped" {
+		t.Fatalf("unexpected diagnostic: %#v", diag.Description())
+	}
+	extra := tfdiags.ExtraInfo[*tfdiags.ListBlockAddrExtra](diag)
+	if extra == nil || extra.ListBlockAddr != listBlockAddr.String() {
+		t.Fatalf("unexpected list block diagnostic metadata: %#v", extra)
+	}
+}
+
 // TestGenerateListResourcePolicyData_LegacyFallbackPath verifies that when the
 // provider does not advertise GenerateResourceConfig, config is derived via
 // genconfig.ExtractLegacyConfigFromState without calling the RPC.

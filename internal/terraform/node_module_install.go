@@ -29,6 +29,8 @@ type nodeInstallModule struct {
 	Parent     *configs.Config
 	Walker     configs.ModuleWalker
 
+	ModulePathPrefix addrs.Module
+
 	// Stores the configuration of the installed module
 	Config *configs.Config
 	// Stores the version of the installed module
@@ -100,13 +102,25 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 		return diags
 	}
 
+	// Test configurations can have synthetic manifest paths. Prepending a prefix
+	// enables correct installation/loading of these modules.
+	requestPath := n.Addr.Module()
+	requestParent := n.Parent
+	if len(n.ModulePathPrefix) != 0 {
+		requestPath = append(slices.Clone(n.ModulePathPrefix), requestPath...)
+
+		parent := *n.Parent
+		parent.Path = append(slices.Clone(n.ModulePathPrefix), n.Parent.Path...)
+		requestParent = &parent
+	}
+
 	req := &configs.ModuleRequest{
 		Name:              n.ModuleCall.Name,
-		Path:              n.Addr.Module(),
+		Path:              requestPath,
 		SourceAddr:        source,
 		SourceAddrRange:   n.ModuleCall.SourceExpr.Range(),
 		VersionConstraint: version,
-		Parent:            n.Parent,
+		Parent:            requestParent,
 		CallRange:         n.ModuleCall.DeclRange,
 	}
 
@@ -196,8 +210,9 @@ func (n *nodeInstallModule) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diag
 	expander.SetModuleSingle(n.Path(), call)
 
 	graph, graphDiags := (&InitGraphBuilder{
-		Config: n.Config,
-		Walker: n.Walker,
+		Config:           n.Config,
+		Walker:           n.Walker,
+		ModulePathPrefix: n.ModulePathPrefix,
 	}).Build(n.Addr)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {

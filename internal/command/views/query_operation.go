@@ -83,13 +83,11 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 		return
 	}
 
-	v.view.streams.Println(format.WordWrap(fmt.Sprintf("Evaluated %d policies.", queryPolicyEvaluatedCount(v.queryPolicy)), v.view.outputColumns()))
-	v.queryPolicy.Flush(func(summary queryPolicySummary) {
-		v.view.streams.Println()
-		v.view.streams.Println(renderQueryPolicySummaryHuman(summary))
-	}, func(diags tfdiags.Diagnostics) {
-		v.view.Diagnostics(diags)
+	var summaries []PolicyQuerySummary
+	v.queryPolicy.Flush(func(summary PolicyQuerySummary) {
+		summaries = append(summaries, summary)
 	})
+	v.view.streams.Println(RenderPolicyQuerySummariesHuman(summaries))
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -99,9 +97,6 @@ func (v *QueryOperationHuman) PlanNextStep(planPath string, genConfigPath string
 }
 
 func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
-	if v.queryPolicy != nil {
-		v.queryPolicy.AddWarningDiags(diags)
-	}
 	v.view.Diagnostics(diags)
 }
 
@@ -114,7 +109,11 @@ func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationRe
 		v.view.PolicyResult(addr, resp)
 		return
 	}
-	if v.queryPolicy.AddResult(addr, resp) {
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
 		return
 	}
 	v.view.PolicyResult(addr, resp)
@@ -151,7 +150,7 @@ func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) 
 	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
 		return
 	}
-	v.queryPolicy.Flush(v.view.logPolicyQuerySummary, nil)
+	v.queryPolicy.Flush(v.view.logPolicyQuerySummary)
 }
 
 func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -161,9 +160,6 @@ func (v *QueryOperationJSON) PlanNextStep(planPath string, genConfigPath string)
 }
 
 func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	if v.queryPolicy != nil {
-		v.queryPolicy.AddWarningDiags(diags)
-	}
 	v.view.Diagnostics(diags)
 }
 
@@ -176,7 +172,11 @@ func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationRes
 		v.view.PolicyResult(addr, resp)
 		return
 	}
-	if v.queryPolicy.AddResult(addr, resp) {
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
 		return
 	}
 	v.view.PolicyResult(addr, resp)

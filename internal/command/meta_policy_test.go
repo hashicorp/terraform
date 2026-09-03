@@ -26,7 +26,7 @@ type plainBackend struct {
 }
 
 func TestBackendPolicyEntitlement(t *testing.T) {
-	ent := &policy.Entitlement{Host: "app.terraform.io", Token: "secret", Org: "hashicorp"}
+	ent := &policy.Entitlement{Host: "app.terraform.io", Token: "secret", Org: "hashicorp", EvaluationStage: policy.PlanEvaluationStage}
 
 	tests := []struct {
 		name string
@@ -52,7 +52,7 @@ func TestBackendPolicyEntitlement(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := backendPolicyEntitlement(tt.be)
+			got := backendPolicyEntitlement(tt.be, policy.PlanEvaluationStage)
 			if got != tt.want {
 				t.Fatalf("unexpected entitlement: got %+v, want %+v", got, tt.want)
 			}

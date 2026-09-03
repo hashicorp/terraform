@@ -2891,40 +2891,6 @@ import {
 		},
 	}
 
-	unknownImportReportsMissingConfiguration = deferredActionsTest{
-		configs: map[string]string{
-			"main.tf": `
-variable "strings" {
-	type = set(string)
-}
-
-import {
-	for_each = var.strings
-	id = each.value
-	to = test.a[each.key]
-}
-`,
-		},
-		stages: []deferredActionsTestStage{
-			{
-				inputs: map[string]cty.Value{
-					"strings": cty.UnknownVal(cty.Set(cty.String)),
-				},
-				wantPlanned:  make(map[string]cty.Value),
-				wantActions:  make(map[string]plans.Action),
-				wantDeferred: make(map[string]ExpectedDeferred),
-				wantDiagnostic: func(diags tfdiags.Diagnostics) bool {
-					for _, diag := range diags {
-						if diag.Description().Summary == "Resource has no configuration" {
-							return true
-						}
-					}
-					return false
-				},
-			},
-		},
-	}
-
 	dataSourceDependsOnDeferredResource = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -3680,6 +3646,194 @@ import {
 			},
 		},
 	}
+	unknownCountOutputEvaluation = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "1"
+}
+
+resource "test" "b" {
+	count = tonumber(test.a.output)
+	name = "test-b-${count.index}"
+}
+
+output "test" {
+	value = test.b[0].output
+	type = string
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.NormalMode
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.Create,
+				},
+				wantPlanned: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("test-b-").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantApplied: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("1"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b[*]": ExpectedDeferred{
+						Action: plans.Create,
+						Reason: providers.DeferredReasonInstanceCountUnknown,
+					},
+				},
+				wantOutputs: map[string]cty.Value{
+					"test": cty.NullVal(cty.String),
+				},
+				complete: false,
+			},
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.NormalMode
+				},
+				wantActions: map[string]plans.Action{
+					"test.a":    plans.NoOp,
+					"test.b[0]": plans.Create,
+				},
+				wantPlanned: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("1"),
+					}),
+					"test-b-0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("test-b-0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantApplied: map[string]cty.Value{
+					"test-b-0": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("test-b-0"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("test-b-0"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantOutputs: map[string]cty.Value{
+					"test": cty.StringVal("test-b-0"),
+				},
+				complete: true,
+			},
+		},
+	}
+	unknownForEachOutputEvaluation = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+resource "test" "a" {
+	name = "1"
+}
+
+resource "test" "b" {
+	for_each = toset(["key${test.a.output}"])
+	name = "test-b-${test.a.output}"
+}
+
+output "test" {
+	value = test.b["key1"].output
+	type = string
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.NormalMode
+				},
+				wantActions: map[string]plans.Action{
+					"test.a": plans.Create,
+				},
+				wantPlanned: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+					"<unknown>": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.UnknownVal(cty.String).Refine().
+							StringPrefixFull("test-b-").
+							NotNull().
+							NewValue(),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantApplied: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("1"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{
+					"test.b[*]": ExpectedDeferred{
+						Action: plans.Create,
+						Reason: providers.DeferredReasonInstanceCountUnknown,
+					},
+				},
+				wantOutputs: map[string]cty.Value{
+					"test": cty.NullVal(cty.String),
+				},
+				complete: false,
+			},
+			{
+				buildOpts: func(opts *PlanOpts) {
+					opts.Mode = plans.NormalMode
+				},
+				wantActions: map[string]plans.Action{
+					"test.a":           plans.NoOp,
+					"test.b[\"key1\"]": plans.Create,
+				},
+				wantPlanned: map[string]cty.Value{
+					"1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("1"),
+					}),
+					"test-b-1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("test-b-1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.UnknownVal(cty.String),
+					}),
+				},
+				wantApplied: map[string]cty.Value{
+					"test-b-1": cty.ObjectVal(map[string]cty.Value{
+						"name":           cty.StringVal("test-b-1"),
+						"upstream_names": cty.NullVal(cty.Set(cty.String)),
+						"output":         cty.StringVal("test-b-1"),
+					}),
+				},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantOutputs: map[string]cty.Value{
+					"test": cty.StringVal("test-b-1"),
+				},
+				complete: true,
+			},
+		},
+	}
 )
 
 func TestContextApply_deferredActions(t *testing.T) {
@@ -3719,7 +3873,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"unknown_import_to":                                       unknownImportTo,
 		"unknown_import_to_existing_state":                        unknownImportToExistingState,
 		"unknown_import_to_partial_existing_state":                unknownImportToPartialExistingState,
-		"unknown_import_reports_missing_configuration":            unknownImportReportsMissingConfiguration,
 		"data_source_depends_on_deferred_resource":                dataSourceDependsOnDeferredResource,
 		"data_source_depends_on_deferred_resource_during_refresh": dataSourceDependsOnDeferredResourceDuringRefresh,
 		"resource_references_deferred_data_source":                resourceReferencesDeferredDataSource,
@@ -3739,6 +3892,8 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"unknown_foreach_during_destroy":                          unknownForEachDuringDestroy,
 		"unknown_foreach_during_refresh_with_import":              unknownForEachDuringRefreshWithImport,
 		"unknown_foreach_during_destroy_with_import":              unknownForEachDuringDestroyWithImport,
+		"unknown_count_output_evaluation":                         unknownCountOutputEvaluation,
+		"unknown_foreach_output_evaluation":                       unknownForEachOutputEvaluation,
 	}
 
 	for name, test := range tests {

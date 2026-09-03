@@ -754,7 +754,7 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
 	importStatements := refactoring.FindImportStatements(config)
-	for _, ic := range importStatements.Values() {
+	for _, ic := range importStatements {
 		importTargets = append(importTargets, &ImportTarget{
 			Config:              ic.Import,
 			RelModule:           ic.ContainingModule,
@@ -1003,6 +1003,10 @@ func (c *Context) deferredResources(schemas *Schemas, deferrals []*plans.Deferre
 	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
 
 	for _, deferral := range deferrals {
+		if deferral.Change == nil {
+			// we only need to report deferrals with planned changes.
+			continue
+		}
 		schema := schemas.ResourceTypeConfig(
 			deferral.Change.ProviderAddr.Provider,
 			deferral.Change.Addr.Resource.Resource.Mode,

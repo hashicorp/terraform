@@ -115,9 +115,9 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	case addrs.DataResourceMode:
 		change, changeDiags := n.dataResourceExecute(ctx)
 		diags = diags.Append(changeDiags)
-		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.addr, change)
+		ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, change)
 	case addrs.EphemeralResourceMode:
-		ctx.Deferrals().ReportEphemeralResourceExpansionDeferred(n.addr)
+		ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, nil)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.config.Mode))
 	}
