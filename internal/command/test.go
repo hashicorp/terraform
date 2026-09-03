@@ -347,7 +347,6 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		view.Diagnostics(nil, nil, diags)
 		return
 	}
-	m.VariableValues = preparation.Variables
 
 	// Only populate m.VariableValues with variables that are declared
 	// as const in the root module. loadConfigWithTests uses
@@ -359,7 +358,7 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	// We do an early load of just the root module to discover which
 	// variables are const. We discard non-error diagnostics from this
 	// early load since loadConfigWithTests will re-parse and report them.
-	earlyMod, earlyDiags := m.loadSingleModuleWithTests(".", preparation.Args.TestDirectory)
+	earlyMod, earlyDiags := m.loadSingleModuleWithTests(".", preparation.Args.TestDirectory, false)
 	if earlyDiags.HasErrors() {
 		diags = diags.Append(earlyDiags)
 		view.Diagnostics(nil, nil, diags)

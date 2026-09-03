@@ -223,7 +223,11 @@ func (m *Meta) loadSingleModule(dir string, resolveConsts bool) (*configs.Module
 
 // loadSingleModuleWithTests matches loadSingleModule except it also loads any
 // tests for the target module.
-func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
+//
+// TODO: Remove resolveConsts from this and the upper method and replace them
+// with a new helper method that doesn't resolve variables. And replace all
+// callers that call this (and the above) method with the false argument.
+func (m *Meta) loadSingleModuleWithTests(dir string, testDir string, resolveConsts bool) (*configs.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	dir = m.normalizePath(dir)
 
@@ -239,20 +243,23 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 		return module, diags
 	}
 
-	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
-	diags = diags.Append(varDiags)
-	if varDiags.HasErrors() {
-		return nil, diags
+	if resolveConsts {
+		vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+		diags = diags.Append(varDiags)
+		if varDiags.HasErrors() {
+			return nil, diags
+		}
+
+		var buildDiags tfdiags.Diagnostics
+		module, buildDiags = terraform.BuildModuleWithGraph(module, vars)
+		diags = diags.Append(buildDiags)
+
+		if module.StateStore != nil {
+			diags = diags.Append(module.ResolveStateStoreProviderType())
+		}
 	}
 
-	mod, buildDiags := terraform.BuildModuleWithGraph(module, vars)
-	diags = diags.Append(buildDiags)
-
-	if mod.StateStore != nil {
-		diags = diags.Append(mod.ResolveStateStoreProviderType())
-	}
-
-	return mod, diags
+	return module, diags
 }
 
 // dirIsConfigPath checks if the given path is a directory that contains at
