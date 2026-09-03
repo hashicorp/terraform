@@ -619,13 +619,13 @@ func TestNewStateMigrate_LogMigrationSourceInitializationStart_json(t *testing.T
 	view := NewView(streams)
 	smView := NewStateMigrate(arguments.ViewJSON, view)
 
-	smView.LogMigrationSourceInitializationStart()
+	smView.LogMigrationSourceInitializationStart("backend")
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initializing source..."`,
+		`"@message":"Initializing source backend..."`,
 		`"@module":"terraform.ui"`,
 		`"type":"migration_source_initialization_start"`,
 	}
@@ -641,13 +641,13 @@ func TestNewStateMigrate_LogMigrationSourceInitializationComplete_json(t *testin
 	view := NewView(streams)
 	smView := NewStateMigrate(arguments.ViewJSON, view)
 
-	smView.LogMigrationSourceInitializationComplete()
+	smView.LogMigrationSourceInitializationComplete("state store")
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initialized source."`,
+		`"@message":"Initialized source state store."`,
 		`"@module":"terraform.ui"`,
 		`"type":"migration_source_initialization_complete"`,
 	}
@@ -663,13 +663,13 @@ func TestNewStateMigrate_LogMigrationDestinationInitializationStart_json(t *test
 	view := NewView(streams)
 	smView := NewStateMigrate(arguments.ViewJSON, view)
 
-	smView.LogMigrationDestinationInitializationStart()
+	smView.LogMigrationDestinationInitializationStart("state store")
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initializing destination..."`,
+		`"@message":"Initializing destination state store..."`,
 		`"@module":"terraform.ui"`,
 		`"type":"migration_destination_initialization_start"`,
 	}
@@ -685,13 +685,13 @@ func TestNewStateMigrate_LogMigrationDestinationInitializationComplete_json(t *t
 	view := NewView(streams)
 	smView := NewStateMigrate(arguments.ViewJSON, view)
 
-	smView.LogMigrationDestinationInitializationComplete()
+	smView.LogMigrationDestinationInitializationComplete("backend")
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`"@message":"Initialized destination."`,
+		`"@message":"Initialized destination backend."`,
 		`"@module":"terraform.ui"`,
 		`"type":"migration_destination_initialization_complete"`,
 	}

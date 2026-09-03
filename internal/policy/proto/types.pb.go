@@ -160,6 +160,58 @@ func (Operation) EnumDescriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{1}
 }
 
+type EvaluationStage int32
+
+const (
+	EvaluationStage_INVALID_EVALUATION_STAGE EvaluationStage = 0
+	EvaluationStage_INIT_EVALUATION_STAGE    EvaluationStage = 1
+	EvaluationStage_PLAN_EVALUATION_STAGE    EvaluationStage = 2
+	EvaluationStage_APPLY_EVALUATION_STAGE   EvaluationStage = 3
+)
+
+// Enum value maps for EvaluationStage.
+var (
+	EvaluationStage_name = map[int32]string{
+		0: "INVALID_EVALUATION_STAGE",
+		1: "INIT_EVALUATION_STAGE",
+		2: "PLAN_EVALUATION_STAGE",
+		3: "APPLY_EVALUATION_STAGE",
+	}
+	EvaluationStage_value = map[string]int32{
+		"INVALID_EVALUATION_STAGE": 0,
+		"INIT_EVALUATION_STAGE":    1,
+		"PLAN_EVALUATION_STAGE":    2,
+		"APPLY_EVALUATION_STAGE":   3,
+	}
+)
+
+func (x EvaluationStage) Enum() *EvaluationStage {
+	p := new(EvaluationStage)
+	*p = x
+	return p
+}
+
+func (x EvaluationStage) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (EvaluationStage) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[2].Descriptor()
+}
+
+func (EvaluationStage) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[2]
+}
+
+func (x EvaluationStage) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use EvaluationStage.Descriptor instead.
+func (EvaluationStage) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{2}
+}
+
 type ResourceAttributes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Raw           []byte                 `protobuf:"bytes,1,opt,name=raw,proto3" json:"raw,omitempty"`
@@ -391,7 +443,12 @@ const file_types_proto_rawDesc = "" +
 	"\x06UPDATE\x10\x01\x12\n" +
 	"\n" +
 	"\x06DELETE\x10\x02\x12\t\n" +
-	"\x05NO_OP\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\x05NO_OP\x10\x03*\x81\x01\n" +
+	"\x0fEvaluationStage\x12\x1c\n" +
+	"\x18INVALID_EVALUATION_STAGE\x10\x00\x12\x19\n" +
+	"\x15INIT_EVALUATION_STAGE\x10\x01\x12\x19\n" +
+	"\x15PLAN_EVALUATION_STAGE\x10\x02\x12\x1a\n" +
+	"\x16APPLY_EVALUATION_STAGE\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_types_proto_rawDescOnce sync.Once
@@ -405,18 +462,19 @@ func file_types_proto_rawDescGZIP() []byte {
 	return file_types_proto_rawDescData
 }
 
-var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_types_proto_goTypes = []any{
 	(EvaluateResult)(0),        // 0: proto.EvaluateResult
 	(Operation)(0),             // 1: proto.Operation
-	(*ResourceAttributes)(nil), // 2: proto.ResourceAttributes
-	(*AttributePath)(nil),      // 3: proto.AttributePath
-	(*AttributePath_Step)(nil), // 4: proto.AttributePath.Step
+	(EvaluationStage)(0),       // 2: proto.EvaluationStage
+	(*ResourceAttributes)(nil), // 3: proto.ResourceAttributes
+	(*AttributePath)(nil),      // 4: proto.AttributePath
+	(*AttributePath_Step)(nil), // 5: proto.AttributePath.Step
 }
 var file_types_proto_depIdxs = []int32{
-	3, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
-	4, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
+	4, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
+	5, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
 	2, // [2:2] is the sub-list for method output_type
 	2, // [2:2] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -439,7 +497,7 @@ func file_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,

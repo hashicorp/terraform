@@ -4,9 +4,8 @@
 package graph
 
 import (
-	"slices"
-
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -21,12 +20,23 @@ type Subgrapher interface {
 	isSubGrapher()
 }
 
+// RunNode is an interface for nodes that represent test runs.
+// As of now, there are mainly two types of run nodes:
+// - NodeTestRun: represents a test run that is executed as part of a module test.
+// - NodeTestRunCleanup: represents a node for cleaning up a test run's state.
+type RunNode interface {
+	dag.Vertex
+	TestRun() *moduletest.Run
+}
+
 // TeardownSubgraph is a subgraph for cleaning up the state of
-// resources defined in the state files created by the test runs.
+// resources defined in the state files created by test runs.
 type TeardownSubgraph struct {
-	opts   *graphOptions
-	parent *terraform.Graph
-	mode   moduletest.CommandMode
+	opts *graphOptions
+
+	// runGraph is the execution graph containing the test runs.
+	runGraph *terraform.Graph
+	mode     moduletest.CommandMode
 }
 
 func (g *TeardownSubgraph) Name() string {
@@ -36,32 +46,19 @@ func (g *TeardownSubgraph) Name() string {
 func (b *TeardownSubgraph) Execute(ctx *EvalContext) {
 	ctx.Renderer().File(b.opts.File, moduletest.TearDown)
 
-	runRefMap := make(map[addrs.Run][]string)
-
-	if b.mode == moduletest.CleanupMode {
-		for runNode := range dag.SelectSeq[*NodeTestRunCleanup](b.parent.VerticesSeq()) {
-			refs := b.parent.Ancestors(runNode)
-			for ref := range refs.All() {
-				if ref, ok := ref.(*NodeTestRunCleanup); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
-					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
-				}
-			}
-		}
-	} else {
-		for runNode := range dag.SelectSeq[*NodeTestRun](b.parent.VerticesSeq()) {
-			refs := b.parent.Ancestors(runNode)
-			for ref := range refs.All() {
-				if ref, ok := ref.(*NodeTestRun); ok && ref.run.Config.StateKey != runNode.run.Config.StateKey {
-					runRefMap[runNode.run.Addr()] = append(runRefMap[runNode.run.Addr()], ref.run.Config.StateKey)
-				}
-			}
+	// stateOwners maps state keys to the names of the runs that own them.
+	stateOwners := make(map[string]string)
+	for _, run := range b.opts.File.Runs {
+		state := ctx.getState(run.Config.StateKey)
+		if state.Run.Name == run.Name {
+			stateOwners[run.Config.StateKey] = run.Name
 		}
 	}
 
 	// Create a new graph for the cleanup nodes
 	g, diags := (&terraform.BasicGraphBuilder{
 		Steps: []terraform.GraphTransformer{
-			&TestStateCleanupTransformer{opts: b.opts, runStateRefs: runRefMap},
+			&TestStateCleanupTransformer{opts: b.opts, runGraph: b.runGraph, stateOwners: stateOwners},
 			&CloseTestGraphTransformer{},
 			&terraform.TransitiveReductionTransformer{},
 		},
@@ -82,64 +79,72 @@ func (b *TeardownSubgraph) isSubGrapher() {}
 // TestStateCleanupTransformer is a GraphTransformer that adds a cleanup node
 // for each state that is created by the test runs.
 type TestStateCleanupTransformer struct {
-	opts         *graphOptions
-	runStateRefs map[addrs.Run][]string
+	opts        *graphOptions
+	runGraph    *terraform.Graph
+	stateOwners map[string]string
 }
 
 func (t *TestStateCleanupTransformer) Transform(g *terraform.Graph) error {
-	cleanupMap := make(map[string]*NodeStateCleanup)
-	arr := make([]*NodeStateCleanup, 0, len(t.opts.File.Runs))
+	cleanupNodes := collections.NewMapCmp[string, *NodeStateCleanup]()
 
-	// dependency map for state keys, which will be used to traverse
-	// the cleanup nodes in a depth-first manner.
-	depStateKeys := make(map[string][]string)
-
-	// iterate in reverse order of the run index, so that the last run for each state key
-	// is attached to the cleanup node.
-	for _, run := range slices.Backward(t.opts.File.Runs) {
+	// create cleanup nodes for each state key. The state is either owned by
+	// the most recent run or the first run with skip_cleanup=true.
+	for _, run := range t.opts.File.Runs {
 		key := run.Config.StateKey
-
-		if _, exists := cleanupMap[key]; !exists {
-			node := &NodeStateCleanup{
-				stateKey: key,
-				opts:     t.opts,
-			}
-			cleanupMap[key] = node
-			arr = append(arr, node)
-			g.Add(node)
-
-			// The dependency map for the state's last run will be used for the cleanup node.
-			depStateKeys[key] = t.runStateRefs[run.Addr()]
+		runName := t.stateOwners[key]
+		if runName != run.Name {
 			continue
 		}
+
+		cleanupNode := &NodeStateCleanup{stateKey: key, opts: t.opts}
+		g.Add(cleanupNode)
+		cleanupNodes.Put(key, cleanupNode)
 	}
 
-	// Depth-first traversal to connect the cleanup nodes based on their dependencies.
-	// If an edge would create a cycle, we skip it.
-	visited := make(map[string]bool)
-	for _, node := range arr {
-		t.depthFirstTraverse(g, node, visited, cleanupMap, depStateKeys)
+	// helper function to determine if a node owns the state it is associated with.
+	stateOwner := func(v dag.Vertex) (*moduletest.Run, bool) {
+		node, ok := v.(RunNode)
+		if !ok {
+			return nil, false
+		}
+
+		runName := t.stateOwners[node.TestRun().Config.StateKey]
+
+		// return true if the node owns the state.
+		return node.TestRun(), runName == node.TestRun().Name
+	}
+
+	// Traverse the run graph and build the cleanup edges
+	// in reverse order of the run graph.
+	for node := range t.runGraph.VerticesSeq() {
+		// is this node a test run and a state owner?
+		sourceRun, ok := stateOwner(node)
+		if !ok {
+			continue
+		}
+		sourceKey := sourceRun.Config.StateKey
+		cleanupNode := cleanupNodes.Get(sourceKey)
+
+		// For each cleanup node, we use its corresponding run node dependencies
+		// for ordering. The cleanup nodes are connected to their dependencies
+		// in reverse order, i.e each run cleanup node is executed before the run's dependencies.
+		dependencies := t.runGraph.Ancestors(node)
+		for dependency := range dependencies.All() {
+			targetRun, ok := stateOwner(dependency)
+			if !ok {
+				continue
+			}
+			targetKey := targetRun.Config.StateKey
+
+			// The source and this dependency share the same state key,
+			// so we do not need to connect them directly.
+			if sourceKey == targetKey {
+				continue
+			}
+
+			depCleanupNode := cleanupNodes.Get(targetKey)
+			g.Connect(depCleanupNode, cleanupNode)
+		}
 	}
 	return nil
-}
-
-func (t *TestStateCleanupTransformer) depthFirstTraverse(g *terraform.Graph, node *NodeStateCleanup, visited map[string]bool, cleanupNodes map[string]*NodeStateCleanup, depStateKeys map[string][]string) {
-	if visited[node.stateKey] {
-		return
-	}
-	// don't mark the node as visited if it's a leaf node, this ensures that other dependencies are still added to it
-	if len(depStateKeys[node.stateKey]) == 0 {
-		return
-	}
-	visited[node.stateKey] = true
-
-	for _, refStateKey := range depStateKeys[node.stateKey] {
-		// If the reference node has already been visited, skip it.
-		if visited[refStateKey] {
-			continue
-		}
-		refNode := cleanupNodes[refStateKey]
-		g.Connect(refNode, node)
-		t.depthFirstTraverse(g, refNode, visited, cleanupNodes, depStateKeys)
-	}
 }

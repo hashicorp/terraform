@@ -98,11 +98,28 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 	}
 	c.Meta.forceInitCopy = args.ForceCopy // backendMigrateOpts.force is overwritten with this value, so we also need to set it.
 
+	// Get info about the state storage methods used in the source and destination
+	// This is used as an argument to the view and to control which logic is used for initialization.
+	var sourceStorageMethod string
+	var destinationStorageMethod string
+	if smi.Backend != nil {
+		sourceStorageMethod = Backend
+	} else if smi.StateStore != nil {
+		sourceStorageMethod = StateStore
+	}
+	rootMod := cfg.Module
+	if rootMod.Backend != nil {
+		destinationStorageMethod = Backend
+	} else if rootMod.StateStore != nil {
+		destinationStorageMethod = StateStore
+	}
+
 	// Load the source backend
-	view.LogMigrationSourceInitializationStart()
+	view.LogMigrationSourceInitializationStart(sourceStorageMethod)
 	var source string
 	var sourceLock *depsfile.Locks // This should only contain a single lock, if non nil. Used to avoid re-download if destination provider is the same.
-	if smi.Backend != nil {
+	switch sourceStorageMethod {
+	case Backend:
 		source = fmt.Sprintf("backend %q", smi.Backend.Type)
 
 		srcB, _, srcDiags := c.Meta.backendInitFromConfig(smi.Backend)
@@ -111,8 +128,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.SourceType = smi.Backend.Type
 			migrateOpts.Source = srcB
 		}
-	} else if smi.StateStore != nil {
-		// Load any pre-existing source provider lock file.
+	case StateStore:
 		var lockfilePath string
 		if args.SourceLockFilePath != "" {
 			lockfilePath = args.SourceLockFilePath
@@ -160,16 +176,22 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
 		}
+	default:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unknown migration source",
+			"No configuration was provided for where to migrate the state from. Please ensure that a file with a .tfmigrate.hcl extension is present and contains valid state_store or backend configuration inside the from block.",
+		))
 	}
-	view.LogMigrationSourceInitializationComplete()
+	view.LogMigrationSourceInitializationComplete(sourceStorageMethod)
 
 	// Load the destination backend
-	view.LogMigrationDestinationInitializationStart()
-	rootMod := cfg.Module
+	view.LogMigrationDestinationInitializationStart(destinationStorageMethod)
 	var destination string
 	var destinationLock *depsfile.Locks                               // This should only contain a single lock, if non nil. Used to update the dependency lock file on disk.
 	var bsf *workdir.BackendStateFile = workdir.NewBackendStateFile() // Collect data below for updating the backend state file.
-	if rootMod.Backend != nil {
+	switch destinationStorageMethod {
+	case Backend:
 		destination = fmt.Sprintf("backend %q", rootMod.Backend.Type)
 
 		dstB, dstConfig, dstDiags := c.Meta.backendInitFromConfig(rootMod.Backend)
@@ -199,7 +221,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				return 1
 			}
 		}
-	} else if rootMod.StateStore != nil {
+	case StateStore:
 		// Get single required_providers entry for state store provider.
 		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
 		diags = diags.Append(dstReqDiags)
@@ -316,21 +338,19 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			view.Diagnostics(diags)
 			return 1
 		}
-
-	} else {
+	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unknown migration destination",
 			"No configuration was provided for where to migrate the state to. Please ensure that a file with a .tf extension is present and contains valid state_store or backend configuration inside the terraform block.",
 		))
 	}
-
 	// present all errors from above together so user can fix them all at once
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
-	view.LogMigrationDestinationInitializationComplete()
+	view.LogMigrationDestinationInitializationComplete(destinationStorageMethod)
 
 	view.LogStateMigrationStart(source, destination)
 
@@ -347,7 +367,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
 	// details of the destination state store provider.
-	if rootMod.StateStore != nil {
+	if destinationStorageMethod == StateStore {
 		originalLocks, originalLockDiags := c.lockedDependencies()
 		diags = diags.Append(originalLockDiags)
 		if originalLockDiags.HasErrors() {
@@ -422,6 +442,8 @@ func (c *StateMigrateCommand) Synopsis() string {
 }
 
 const (
+	Backend              = "backend"
+	StateStore           = "state store"
 	MigrationSource      = "source"
 	MigrationDestination = "destination"
 )

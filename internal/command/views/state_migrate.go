@@ -19,10 +19,10 @@ import (
 const (
 
 	// JSON only - log the start and end of initializing the source and destination for the migration
-	logMigrationSourceInitializationStartJSON         = "Initializing source..."
-	logMigrationSourceInitializationCompleteJSON      = "Initialized source."
-	logMigrationDestinationInitializationStartJSON    = "Initializing destination..."
-	logMigrationDestinationInitializationCompleteJSON = "Initialized destination."
+	logMigrationSourceInitializationStartJSON         = "Initializing source %s..."
+	logMigrationSourceInitializationCompleteJSON      = "Initialized source %s."
+	logMigrationDestinationInitializationStartJSON    = "Initializing destination %s..."
+	logMigrationDestinationInitializationCompleteJSON = "Initialized destination %s."
 
 	// Notify the user that any preparation steps are over and the migration is starting.
 	logStateMigrationStartHuman = "[reset][bold]Migrating state from %s to %s...[reset]"
@@ -79,10 +79,10 @@ type StateMigrate interface {
 	LogStateMigrationErrored(failMode stateMigrationFailureMode, source, destination string)
 	LogStateMigrationFinalized(source, destination string)
 
-	LogMigrationSourceInitializationStart()
-	LogMigrationSourceInitializationComplete()
-	LogMigrationDestinationInitializationStart()
-	LogMigrationDestinationInitializationComplete()
+	LogMigrationSourceInitializationStart(storageMethod string)
+	LogMigrationSourceInitializationComplete(storageMethod string)
+	LogMigrationDestinationInitializationStart(storageMethod string)
+	LogMigrationDestinationInitializationComplete(storageMethod string)
 
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -148,19 +148,19 @@ func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFail
 	s.log(msg)
 }
 
-func (s *StateMigrateHuman) LogMigrationSourceInitializationStart() {
+func (s *StateMigrateHuman) LogMigrationSourceInitializationStart(_ string) {
 	// no-op in human view
 }
 
-func (s *StateMigrateHuman) LogMigrationSourceInitializationComplete() {
+func (s *StateMigrateHuman) LogMigrationSourceInitializationComplete(_ string) {
 	// no-op in human view
 }
 
-func (s *StateMigrateHuman) LogMigrationDestinationInitializationStart() {
+func (s *StateMigrateHuman) LogMigrationDestinationInitializationStart(_ string) {
 	// no-op in human view
 }
 
-func (s *StateMigrateHuman) LogMigrationDestinationInitializationComplete() {
+func (s *StateMigrateHuman) LogMigrationDestinationInitializationComplete(_ string) {
 	// no-op in human view
 }
 
@@ -528,30 +528,34 @@ func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
 	)
 }
 
-func (s *StateMigrateJSON) LogMigrationSourceInitializationStart() {
+func (s *StateMigrateJSON) LogMigrationSourceInitializationStart(storageMethod string) {
+	msg := fmt.Sprintf(logMigrationSourceInitializationStartJSON, storageMethod)
 	s.view.log.Info(
-		logMigrationSourceInitializationStartJSON,
+		msg,
 		"type", json.LogMigrationSourceInitializationStart,
 	)
 }
 
-func (s *StateMigrateJSON) LogMigrationSourceInitializationComplete() {
+func (s *StateMigrateJSON) LogMigrationSourceInitializationComplete(storageMethod string) {
+	msg := fmt.Sprintf(logMigrationSourceInitializationCompleteJSON, storageMethod)
 	s.view.log.Info(
-		logMigrationSourceInitializationCompleteJSON,
+		msg,
 		"type", json.LogMigrationSourceInitializationComplete,
 	)
 }
 
-func (s *StateMigrateJSON) LogMigrationDestinationInitializationStart() {
+func (s *StateMigrateJSON) LogMigrationDestinationInitializationStart(storageMethod string) {
+	msg := fmt.Sprintf(logMigrationDestinationInitializationStartJSON, storageMethod)
 	s.view.log.Info(
-		logMigrationDestinationInitializationStartJSON,
+		msg,
 		"type", json.LogMigrationDestinationInitializationStart,
 	)
 }
 
-func (s *StateMigrateJSON) LogMigrationDestinationInitializationComplete() {
+func (s *StateMigrateJSON) LogMigrationDestinationInitializationComplete(storageMethod string) {
+	msg := fmt.Sprintf(logMigrationDestinationInitializationCompleteJSON, storageMethod)
 	s.view.log.Info(
-		logMigrationDestinationInitializationCompleteJSON,
+		msg,
 		"type", json.LogMigrationDestinationInitializationComplete,
 	)
 }

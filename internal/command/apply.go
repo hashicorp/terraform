@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -104,7 +105,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	if len(args.PolicyPaths) > 0 {
-		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be))
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be, policy.ApplyEvaluationStage))
 		// if there has been any errors when setting up the policy client, we log them but
 		// we still proceed with the operation, as a failure to set up the policy client
 		// should not prevent the apply operation from running
@@ -162,7 +163,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 }
 
 func (c *ApplyCommand) Validate(args *arguments.Apply) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyPaths(args.PolicyPaths, c.AllowExperimentalFeatures))
+	return diags.Append(validatePolicyPaths(args.PolicyPaths))
 }
 
 func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
