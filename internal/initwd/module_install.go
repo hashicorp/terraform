@@ -142,19 +142,8 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, fetcher, hooks...)
 
-	var cfg *configs.Config
-	var instDiags tfdiags.Diagnostics
-	if i.initializer != nil {
-		cfg, instDiags = i.initializer(rootMod, walker)
-		diags = diags.Append(instDiags)
-	} else {
-		cfg, instDiags = i.installDescendantModules(rootMod, walker, installErrsOnly)
-		diags = diags.Append(instDiags)
-
-		finalDiags := configs.LegacyFinalizeConfig(cfg, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-		diags = diags.Append(finalDiags)
-	}
-
+	cfg, instDiags := i.initializer(rootMod, walker)
+	diags = diags.Append(instDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}
