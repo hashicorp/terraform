@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 
 	// set the correct global logger for tests
@@ -157,6 +158,23 @@ func TestFunctionCache(t *testing.T) {
 			},
 			// OK because args changed from unknown to known
 		},
+		{
+			first: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.StringVal("ok").Mark(marks.Sensitive)},
+				result:   cty.StringVal("a"),
+			},
+			second: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.StringVal("ok").Mark(marks.Ephemeral)},
+				result:   cty.StringVal("b"),
+			},
+			// The marks differ but the underlying arguments do not, so this is
+			// still the same call and the differing result is inconsistent.
+			expectErr: true,
+		},
 	}
 
 	for i, test := range tests {
@@ -184,6 +202,54 @@ func TestFunctionCache(t *testing.T) {
 
 			if originalErr != reloadedErr {
 				t.Fatalf("original check returned err:%t, reloaded check returned err:%t", originalErr, reloadedErr)
+			}
+		})
+	}
+}
+
+// A value carrying two or more marks must hash consistently. cty renders a
+// single mark deterministically, but falls back to ValueMarks.GoString for two
+// or more, which iterates a Go map without sorting. Since Go randomizes map
+// iteration order, hashing the marked value directly gave a different result
+// from one call to the next and reported spurious inconsistencies.
+//
+// Every combination of mark types is covered, because the defect is in how the
+// set of marks is rendered and so is indifferent to which marks are present.
+// Each case is repeated often enough that an unstable hash is certain to be
+// caught.
+func TestFunctionCacheMarkedValues(t *testing.T) {
+	deprecated := marks.NewDeprecation("deprecated", "test")
+	alsoDeprecated := marks.NewDeprecation("deprecated by something else", "test")
+
+	tests := map[string]cty.ValueMarks{
+		"sensitive and ephemeral":   cty.NewValueMarks(marks.Sensitive, marks.Ephemeral),
+		"sensitive and type":        cty.NewValueMarks(marks.Sensitive, marks.TypeType),
+		"sensitive and deprecated":  cty.NewValueMarks(marks.Sensitive, deprecated),
+		"ephemeral and deprecated":  cty.NewValueMarks(marks.Ephemeral, deprecated),
+		"two distinct deprecations": cty.NewValueMarks(deprecated, alsoDeprecated),
+		"three marks": cty.NewValueMarks(
+			marks.Sensitive, marks.Ephemeral, deprecated,
+		),
+	}
+
+	for name, valMarks := range tests {
+		t.Run(name, func(t *testing.T) {
+			args := []cty.Value{cty.StringVal("template").WithMarks(valMarks)}
+			result := cty.StringVal("rendered").WithMarks(valMarks)
+
+			results := NewFunctionResultsTable(nil)
+			for i := 0; i < 100; i++ {
+				if err := results.CheckPrior("fun", args, result); err != nil {
+					t.Fatalf("call %d returned an unexpected error: %s", i, err)
+				}
+			}
+
+			// Results reloaded from a plan must agree with the in-memory table.
+			reloaded := NewFunctionResultsTable(results.GetHashes())
+			for i := 0; i < 100; i++ {
+				if err := reloaded.CheckPrior("fun", args, result); err != nil {
+					t.Fatalf("reloaded call %d returned an unexpected error: %s", i, err)
+				}
 			}
 		})
 	}

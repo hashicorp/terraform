@@ -72,14 +72,25 @@ func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name strin
 		// cty.Values have a Hash method, but it is not collision resistant. We
 		// are going to rely on the GoString formatting instead, which gives
 		// detailed results for all values.
-		io.WriteString(argSum, "|"+arg.GoString())
+		//
+		// Marks are removed before hashing. They describe how a caller may use
+		// a value rather than the data the function was given, so they have no
+		// bearing on whether the function behaved consistently. Retaining them
+		// would also make the hash unstable, because cty.ValueMarks.GoString
+		// iterates a Go map without sorting and so can render the same set of
+		// two or more marks in a different order from one call to the next.
+		unmarkedArg, _ := arg.UnmarkDeep()
+		io.WriteString(argSum, "|"+unmarkedArg.GoString())
 	}
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	// Hash the unmarked result, for the same reasons as the arguments above.
+	unmarkedResult, _ := result.UnmarkDeep()
+
 	argHash := [sha256.Size]byte(argSum.Sum(nil))
-	resHash := sha256.Sum256([]byte(result.GoString()))
+	resHash := sha256.Sum256([]byte(unmarkedResult.GoString()))
 
 	res, ok := f.results[argHash]
 	if !ok {

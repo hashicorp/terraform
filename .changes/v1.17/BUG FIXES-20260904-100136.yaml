@@ -1,0 +1,8 @@
+kind: BUG FIXES
+body: 'Filesystem functions such as `templatefile` and `file` no longer intermittently
+    fail with "function returned an inconsistent result" when a value they receive
+    carries more than one mark, such as a sensitive value combined with a deprecated
+    provider attribute or module output'
+time: 2026-09-04T10:01:36.000000-07:00
+custom:
+    Issue: "39137"
