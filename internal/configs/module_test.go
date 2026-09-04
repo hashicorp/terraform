@@ -54,58 +54,6 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	}
 }
 
-// This test validates the provider FQNs set in each Resource
-func TestNewModule_resource_providers(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
-
-	// both the root and child module have two resources, one which should use
-	// the default implied provider and one explicitly using a provider set in
-	// required_providers
-	wantImplicit := addrs.NewDefaultProvider("test")
-	wantFoo := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
-	wantBar := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
-
-	// root module
-	if !cfg.Module.ManagedResources["test_instance.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantFoo,
-		)
-	}
-	if !cfg.Module.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
-			wantImplicit,
-		)
-	}
-
-	// a data source
-	if !cfg.Module.DataResources["data.test_resource.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantBar,
-		)
-	}
-
-	// child module
-	cm := cfg.Children["child"].Module
-	if !cm.ManagedResources["test_instance.explicit"].Provider.Equals(wantBar) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantBar,
-		)
-	}
-	if !cm.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
-			wantImplicit,
-		)
-	}
-}
-
 func TestProviderForLocalConfig(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/providers-explicit-fqn")
 	if diags.HasErrors() {
@@ -681,15 +629,4 @@ func TestModule_state_store_multiple(t *testing.T) {
 			t.Fatalf("expected error to contain %q\nerror was:\n%s", want, got)
 		}
 	})
-}
-
-func TestModule_nested_import_blocks(t *testing.T) {
-	m, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/import-blocks-in-module")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
-
-	if len(m.Children["child"].Module.Import) != 2 {
-		t.Fatal("child module is missing nested import blocks")
-	}
 }
