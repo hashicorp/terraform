@@ -5,4 +5,4 @@ body: 'Filesystem functions such as `templatefile` and `file` no longer intermit
     provider attribute or module output'
 time: 2026-09-04T10:01:36.000000-07:00
 custom:
-    Issue: "REPLACE_WITH_PR_NUMBER"
+    Issue: "39137"
