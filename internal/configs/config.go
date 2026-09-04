@@ -334,7 +334,7 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 // may be incomplete.
 func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnostics) {
 	reqs := make(providerreqs.Requirements)
-	diags := c.addProviderRequirements(reqs, true, true)
+	diags := c.AddProviderRequirements(reqs, true, true)
 
 	return reqs, diags
 }
@@ -343,7 +343,7 @@ func (c *Config) ProviderRequirements() (providerreqs.Requirements, hcl.Diagnost
 // files for all providers. This function does not consider any test files.
 func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hcl.Diagnostics) {
 	reqs := make(providerreqs.Requirements)
-	diags := c.addProviderRequirements(reqs, true, false)
+	diags := c.AddProviderRequirements(reqs, true, false)
 
 	return reqs, diags
 }
@@ -355,7 +355,7 @@ func (c *Config) ProviderRequirementsConfigOnly() (providerreqs.Requirements, hc
 // may be incomplete.
 func (c *Config) ProviderRequirementsShallow() (providerreqs.Requirements, hcl.Diagnostics) {
 	reqs := make(providerreqs.Requirements)
-	diags := c.addProviderRequirements(reqs, false, true)
+	diags := c.AddProviderRequirements(reqs, false, true)
 
 	return reqs, diags
 }
@@ -368,7 +368,7 @@ func (c *Config) ProviderRequirementsShallow() (providerreqs.Requirements, hcl.D
 // may be incomplete.
 func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagnostics) {
 	reqs := make(providerreqs.Requirements)
-	diags := c.addProviderRequirements(reqs, false, false)
+	diags := c.AddProviderRequirements(reqs, false, false)
 
 	children := make(map[string]*ModuleRequirements)
 	for name, child := range c.Children {
@@ -410,11 +410,11 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 	return ret, diags
 }
 
-// addProviderRequirements is the main part of the ProviderRequirements
+// AddProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
 // eventually return. If the recurse argument is true, the requirements will
 // include all descendant modules; otherwise, only the specified module.
-func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse, tests bool) hcl.Diagnostics {
+func (c *Config) AddProviderRequirements(reqs providerreqs.Requirements, recurse, tests bool) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	// First we'll deal with the requirements directly in _our_ module...
@@ -577,7 +577,7 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 			// Then we'll also look for requirements in testing modules.
 			for _, run := range file.Runs {
 				if run.ConfigUnderTest != nil {
-					moreDiags := run.ConfigUnderTest.addProviderRequirements(reqs, true, false)
+					moreDiags := run.ConfigUnderTest.AddProviderRequirements(reqs, true, false)
 					diags = append(diags, moreDiags...)
 				}
 			}
@@ -586,7 +586,7 @@ func (c *Config) addProviderRequirements(reqs providerreqs.Requirements, recurse
 
 	if recurse {
 		for _, childConfig := range c.Children {
-			moreDiags := childConfig.addProviderRequirements(reqs, true, false)
+			moreDiags := childConfig.AddProviderRequirements(reqs, true, false)
 			diags = append(diags, moreDiags...)
 		}
 	}
