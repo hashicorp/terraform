@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed an issue where Terraform fails when rendering policy evaluation outcomes for older versions of Terraform Enterprise
+time: 2026-09-01T11:56:02.703071+10:00
+custom:
+    Issue: "39095"
