@@ -48,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, initializer Initializer, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg, nil)
+	inst := NewModuleInstaller(instDir, loader, reg, initializer)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -139,6 +139,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
 				SourceExpr: hcl.StaticExpr(cty.StringVal(sourceAddrStr), fakeRange),
+				Config:     hcl.EmptyBody(),
 				DeclRange:  fakeRange,
 			},
 		},
@@ -159,11 +160,37 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
+	// When attempting to initialize the current directory with a module
+	// source, some use cases may want to ignore configuration errors from the
+	// building of the entire configuration structure, but we still need to
+	// capture installation errors. Because the actual module installation
+	// happens in the ModuleWalkFunc callback while building the config, we
+	// need to create a closure to capture the installation diagnostics
+	// separately.
 	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher, wrapHooks)
-	_, cDiags := inst.installDescendantModules(fakeRootModule, walker, true)
-	if cDiags.HasErrors() {
-		return diags.Append(cDiags)
+	var installDiags hcl.Diagnostics
+	initWalker := configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+		mod, version, moreDiags := walker.LoadModule(req)
+		installDiags = installDiags.Extend(moreDiags)
+		return mod, version, moreDiags
+	})
+	_, initDiags := initializer(fakeRootModule, initWalker)
+	diags = diags.Append(initDiags)
+	if installDiags.HasErrors() {
+		// We can't continue if there was an error during installation, but
+		// return all diagnostics in case there happens to be anything else
+		// useful when debugging the problem. Any instDiags will be included in
+		// diags already.
+		return diags
 	}
+
+	// If there are any errors here, they must be only from building the
+	// config structures. We don't want to block initialization at this
+	// point, so convert these into warnings. Any actual errors in the
+	// configuration will be raised as soon as the config is loaded again.
+	// We continue below because writing the manifest is required to finish
+	// module installation.
+	diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
 
 	err = instManifest.WriteSnapshotToDir(instDir)
 	if err != nil {

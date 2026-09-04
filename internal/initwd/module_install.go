@@ -322,49 +322,6 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendantModules(rootMod *configs.Module, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// When attempting to initialize the current directory with a module
-	// source, some use cases may want to ignore configuration errors from the
-	// building of the entire configuration structure, but we still need to
-	// capture installation errors. Because the actual module installation
-	// happens in the ModuleWalkFunc callback while building the config, we
-	// need to create a closure to capture the installation diagnostics
-	// separately.
-	var instDiags hcl.Diagnostics
-	walker := installWalker
-	if installErrsOnly {
-		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
-			mod, version, diags := installWalker.LoadModule(req)
-			instDiags = instDiags.Extend(diags)
-			return mod, version, diags
-		})
-	}
-
-	cfg, cDiags := configs.BuildConfig(rootMod, walker, configs.MockDataLoaderFunc(i.loader.LoadExternalMockData))
-	diags = diags.Append(cDiags)
-	if installErrsOnly {
-		// We can't continue if there was an error during installation, but
-		// return all diagnostics in case there happens to be anything else
-		// useful when debugging the problem. Any instDiags will be included in
-		// diags already.
-		if instDiags.HasErrors() {
-			return cfg, diags
-		}
-
-		// If there are any errors here, they must be only from building the
-		// config structures. We don't want to block initialization at this
-		// point, so convert these into warnings. Any actual errors in the
-		// configuration will be raised as soon as the config is loaded again.
-		// We continue below because writing the manifest is required to finish
-		// module installation.
-		diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
-	}
-
-	return cfg, diags
-}
-
 func (i *ModuleInstaller) installLocalModule(ctx context.Context, req *configs.ModuleRequest, key string, manifest modsdir.Manifest, hooks ...ModuleInstallHook) (*configs.Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
