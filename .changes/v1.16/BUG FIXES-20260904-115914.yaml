@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix panic in module installation when encoutering invalid module calls
+time: 2026-09-04T11:59:14.121905+02:00
+custom:
+    Issue: "39129"
