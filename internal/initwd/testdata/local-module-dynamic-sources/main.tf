@@ -5,4 +5,5 @@ module "name" {
 variable "path" {
   type    = string
   default = "child"
+  const   = true
 }
