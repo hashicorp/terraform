@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'apply: Added warnings that alert users if plan options (-target, -destroy or -refresh-only flags) passed to the apply command disagree with the saved plan file, if one is supplied. Prior to this fix the flags would be silently ignored, which could be misleading.'
+time: 2026-06-08T11:57:07.186819+01:00
+custom:
+    Issue: "38698"

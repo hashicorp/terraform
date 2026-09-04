@@ -91,6 +91,11 @@ func (n *NodeProviderConfigure) Execute(ctx *EvalContext) {
 			moreDiags = moreDiags.Append(exprHclDiags)
 			res.Defaults = values
 		}
+		for _, res := range mock.Data.MockEphemeralResources {
+			values, exprHclDiags := res.RawExpr.Value(hclContext)
+			moreDiags = moreDiags.Append(exprHclDiags)
+			res.Defaults = values
+		}
 	}
 
 	body, decHclDiags := hcldec.Decode(n.Config.Config, spec, hclContext)

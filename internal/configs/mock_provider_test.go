@@ -232,6 +232,87 @@ func TestMockData_Merge(t *testing.T) {
 				),
 			},
 		},
+		"ephemeral_no_collisions": {
+			current: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral",
+						Defaults: cty.StringVal("current"),
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+			target: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral_two": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral_two",
+						Defaults: cty.StringVal("target"),
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+			result: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral",
+						Defaults: cty.StringVal("current"),
+					},
+					"test_ephemeral_two": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral_two",
+						Defaults: cty.StringVal("target"),
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+		},
+		"ephemeral_collision_skipped": {
+			current: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral",
+						Defaults: cty.StringVal("current"),
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+			target: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral",
+						Defaults: cty.StringVal("target"),
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+			result: &MockData{
+				MockResources:   map[string]*MockResource{},
+				MockDataSources: map[string]*MockResource{},
+				MockEphemeralResources: map[string]*MockResource{
+					"test_ephemeral": {
+						Mode:     addrs.EphemeralResourceMode,
+						Type:     "test_ephemeral",
+						Defaults: cty.StringVal("current"), // current wins when skipCollisions=true
+					},
+				},
+				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+			},
+		},
 	}
 
 	for name, tc := range tcs {
@@ -535,6 +616,25 @@ func validateMockData(t *testing.T, actual, expected *MockData) {
 		_, exists := actual.MockDataSources[key]
 		if !exists {
 			t.Errorf("expected mock data sources contained %s but actual mock data sources did not", key)
+		}
+	}
+
+	// Validate mock ephemeral resources.
+
+	for key, actual := range actual.MockEphemeralResources {
+		expected, exists := expected.MockEphemeralResources[key]
+		if !exists {
+			t.Errorf("actual mock ephemeral resources contained %s but expected mock ephemeral resources did not", key)
+			continue
+		}
+
+		validateValues(t, key, actual.Defaults, expected.Defaults)
+	}
+
+	for key := range expected.MockEphemeralResources {
+		_, exists := actual.MockEphemeralResources[key]
+		if !exists {
+			t.Errorf("expected mock ephemeral resources contained %s but actual mock ephemeral resources did not", key)
 		}
 	}
 

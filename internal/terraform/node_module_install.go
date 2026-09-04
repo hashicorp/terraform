@@ -126,7 +126,10 @@ func (n *nodeInstallModule) Execute(ctx EvalContext, walkOp walkOperation) tfdia
 
 	modCfg, v, modDiags := n.Walker.LoadModule(req)
 	diags = diags.Append(modDiags)
-	if diags.HasErrors() {
+	if diags.HasErrors() || modCfg == nil {
+		// nil can be returned if the source address was invalid and so
+		// nothing could be loaded whatsoever. LoadModule should've
+		// returned at least one error diagnostic in that case.
 		return diags
 	}
 
