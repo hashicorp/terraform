@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // StateMigrateCommand is a Command implementation that migrates
@@ -135,44 +137,19 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		} else {
 			lockfilePath = dependencyLockFilename // default
 		}
-		srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
-		diags = diags.Append(srcLockDiags)
-		if srcLockDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
 
 		upgrade := false // The source provider download step will never be an upgrade. Either it's constrained by a preexisting lock or there is no lock.
-		var srcProviderDiags tfdiags.Diagnostics
-		var trust ProviderTrust
-		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var output bool
-		output, sourceLock, trust, stateStoreProviderAuthResult, srcProviderDiags = c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
-		diags = diags.Append(srcProviderDiags)
-		if srcProviderDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if output {
-			// Space out provider download output from the migration output below.
-			view.Spacer()
-		}
 
-		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
-		trustDiags := c.confirmProviderIsTrusted(trust, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, args.SourceLockFilePath, c, view)
-		diags = diags.Append(trustDiags)
-		if trustDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
-		source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
-			smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
-
-		srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
+		var srcB *pluggable.Pluggable
+		var srcDiags tfdiags.Diagnostics
+		srcB, sourceLock, srcDiags = c.initializeSourceStateStore(ctx, smi, lockfilePath, args.SourceLockFilePath, upgrade, view)
 		diags = diags.Append(srcDiags)
+
 		if !diags.HasErrors() {
+			pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
+			source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
+				smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
 		}
@@ -222,121 +199,71 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			}
 		}
 	case StateStore:
-		// Get single required_providers entry for state store provider.
-		dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
-		diags = diags.Append(dstReqDiags)
-		if dstReqDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
 
-		// Load any pre-existing destination provider lock file.
 		var lockfilePath string
 		if args.DestinationLockFilePath != "" {
 			lockfilePath = args.DestinationLockFilePath
 		} else {
 			lockfilePath = dependencyLockFilename // default
 		}
-		dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
-		diags = diags.Append(dstLockDiags)
-		if dstLockDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
 
-		// The source provider download step may have introduced a new lock that can be re-used here.
-		// Else, this download step could re-download the same provider if the migration is between stores
-		// in the same provider.
-		//
-		// TODO: Make this conditional based on whether we're doing an upgrade or not?
-		//       Or is use of upgrade flag in second download sufficient?
-		var mergedLocks *depsfile.Locks
-		if sourceLock != nil {
-			mergedLocks = c.mergeLockedDependencies(dstLocks, sourceLock)
-		} else {
-			mergedLocks = dstLocks
-		}
-
-		// Perform download of the destination provider.
-		// This may be controlled by a pre-existing lock from above or not, therefore the returned
-		// lock for the destination state store may not already be in the lock file.
-		//
-		// We only pass in a single required provider, so we expect a single lock to be
-		// returned. This will be added the dependency lock file after a successful migration.
 		upgrade := args.Upgrade
-		var dstProviderDiags tfdiags.Diagnostics
-		var trust ProviderTrust
-		var stateStoreProviderAuthResult *getproviders.PackageAuthenticationResult
-		var output bool
-		output, destinationLock, trust, stateStoreProviderAuthResult, dstProviderDiags = c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
-		diags = diags.Append(dstProviderDiags)
-		if dstProviderDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		if output {
-			// Space out provider download output from the migration output below.
-			view.Spacer()
-		}
 
-		// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
-		trustDiags := c.confirmProviderIsTrusted(trust, rootMod.StateStore.ProviderAddr, stateStoreProviderAuthResult, destinationLock, mergedLocks, args.DestinationLockFilePath, c, view)
-		diags = diags.Append(trustDiags)
-		if trustDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-
-		pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
-		destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
-			rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
-
-		dstB, stateStoreConfigVal, providerConfigVal, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
+		var dstB *pluggable.Pluggable
+		var stateStoreConfigVal cty.Value
+		var providerConfigVal cty.Value
+		var dstDiags tfdiags.Diagnostics
+		dstB, stateStoreConfigVal, providerConfigVal, destinationLock, dstDiags = c.initializeDestinationStateStore(ctx, rootMod, sourceLock, lockfilePath, args.DestinationLockFilePath, upgrade, view)
 		diags = diags.Append(dstDiags)
+
 		if !diags.HasErrors() {
+			pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
+			destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
+				rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+
 			migrateOpts.DestinationType = rootMod.StateStore.Type
 			migrateOpts.Destination = dstB
-		}
 
-		// Capture details of the destination state store for updating the backend state file after a successful migration.
-		_, cHash, sscDiags := c.stateStoreConfig(&BackendOpts{
-			StateStoreConfig: rootMod.StateStore,
-			Locks:            destinationLock,
-		})
-		diags = diags.Append(sscDiags)
-		if sscDiags.HasErrors() {
-			view.Diagnostics(diags)
-			return 1
-		}
-		v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
-		version, err := providerreqs.GoVersionFromVersion(v)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
-			view.Diagnostics(diags)
-			return 1
-		}
+			// Capture details of the destination state store for updating the backend state file after a successful migration.
+			_, cHash, sscDiags := c.stateStoreConfig(&BackendOpts{
+				StateStoreConfig: rootMod.StateStore,
+				Locks:            destinationLock,
+			})
+			diags = diags.Append(sscDiags)
+			if sscDiags.HasErrors() {
+				view.Diagnostics(diags)
+				return 1
+			}
+			v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
+			version, err := providerreqs.GoVersionFromVersion(v)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
+				view.Diagnostics(diags)
+				return 1
+			}
 
-		bsf.StateStore = &workdir.StateStoreConfigState{
-			Type: rootMod.StateStore.Type,
-			Hash: uint64(cHash),
-			Provider: &workdir.ProviderConfigState{
-				Source:  &rootMod.StateStore.ProviderAddr,
-				Version: version,
-			},
-			ProviderSupplyMode: rootMod.StateStore.ProviderSupplyMode,
-		}
-		err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
-			view.Diagnostics(diags)
-			return 1
-		}
+			bsf.StateStore = &workdir.StateStoreConfigState{
+				Type: rootMod.StateStore.Type,
+				Hash: uint64(cHash),
+				Provider: &workdir.ProviderConfigState{
+					Source:  &rootMod.StateStore.ProviderAddr,
+					Version: version,
+				},
+				ProviderSupplyMode: rootMod.StateStore.ProviderSupplyMode,
+			}
+			err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
+				view.Diagnostics(diags)
+				return 1
+			}
 
-		err = bsf.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
-			view.Diagnostics(diags)
-			return 1
+			err = bsf.StateStore.Provider.SetConfig(providerConfigVal, dstB.ProviderSchema())
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to set state store provider configuration: %w", err))
+				view.Diagnostics(diags)
+				return 1
+			}
 		}
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
@@ -345,16 +272,19 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 			"No configuration was provided for where to migrate the state to. Please ensure that a file with a .tf extension is present and contains valid state_store or backend configuration inside the terraform block.",
 		))
 	}
-	// present all errors from above together so user can fix them all at once
+
+	// Present errors raised when initializing the source and destination
+	// together, so user can fix them all at once.
+	// Not all error scenarios are handled here in a delayed fashion, just
+	// those coming from invalid configuration.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
 	view.LogMigrationDestinationInitializationComplete(destinationStorageMethod)
 
-	view.LogStateMigrationStart(source, destination)
-
 	// Perform the migration from source to destination
+	view.LogStateMigrationStart(source, destination)
 	err := c.Meta.backendMigrateState(migrateOpts)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("State migration failed: %w", err))
@@ -362,7 +292,6 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		view.LogStateMigrationErrored(views.DuringMigration, source, destination)
 		return 1
 	}
-
 	view.LogStateMigrationComplete(source, destination)
 
 	// After a successful migration to a state store, we must make sure the dependency lock file contains the
@@ -447,6 +376,98 @@ const (
 	MigrationSource      = "source"
 	MigrationDestination = "destination"
 )
+
+func (c *StateMigrateCommand) initializeSourceStateStore(ctx context.Context, smi *configs.StateMigrationInstructions, lockfilePath string, lockfilePathArg string, upgrade bool, view views.StateMigrate) (*pluggable.Pluggable, *depsfile.Locks, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Load any pre-existing source provider lock file.
+	srcLocks, srcLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
+	diags = diags.Append(srcLockDiags)
+	if srcLockDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	output, sourceLock, trust, stateStoreProviderAuthResult, srcProviderDiags := c.getSingleProvider(ctx, smi.StateStore, smi.StateStoreProvider.Requirement, srcLocks, upgrade, MigrationSource, view)
+	diags = diags.Append(srcProviderDiags)
+	if srcProviderDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	if output {
+		// Space out provider download output from the migration output below.
+		view.Spacer()
+	}
+
+	// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+	trustDiags := c.confirmProviderIsTrusted(trust, smi.StateStore.ProviderAddr, stateStoreProviderAuthResult, sourceLock, srcLocks, lockfilePathArg, c, view)
+	diags = diags.Append(trustDiags)
+	if trustDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
+	srcB, _, _, srcDiags := c.Meta.stateStoreInitFromConfig(smi.StateStore, sourceLock)
+	diags = diags.Append(srcDiags)
+
+	return srcB, sourceLock, diags
+}
+
+func (c *StateMigrateCommand) initializeDestinationStateStore(ctx context.Context, rootMod *configs.Module, sourceLock *depsfile.Locks, lockfilePath string, lockfilePathArg string, upgrade bool, view views.StateMigrate) (*pluggable.Pluggable, cty.Value, cty.Value, *depsfile.Locks, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Get single required_providers entry for state store provider.
+	dstReq, dstReqDiags := c.getDestinationStateStoreProviderRequirements(rootMod.StateStore.ProviderAddr, rootMod.ProviderRequirements)
+	diags = diags.Append(dstReqDiags)
+	if dstReqDiags.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, nil, diags
+	}
+
+	// Load any pre-existing destination provider lock file.
+	dstLocks, dstLockDiags := c.readLockedDependenciesFromPath(lockfilePath)
+	diags = diags.Append(dstLockDiags)
+	if dstLockDiags.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, nil, diags
+	}
+
+	// The source provider download step may have introduced a new lock that can be re-used here.
+	// Else, this download step could re-download the same provider if the migration is between stores
+	// in the same provider.
+	//
+	// TODO: Make this conditional based on whether we're doing an upgrade or not?
+	//       Or is use of upgrade flag in second download sufficient?
+	var mergedLocks *depsfile.Locks
+	if sourceLock != nil {
+		mergedLocks = c.mergeLockedDependencies(dstLocks, sourceLock)
+	} else {
+		mergedLocks = dstLocks
+	}
+
+	// Perform download of the destination provider.
+	// This may be controlled by a pre-existing lock from above or not, therefore the returned
+	// lock for the destination state store may not already be in the lock file.
+	//
+	// We only pass in a single required provider, so we expect a single lock to be
+	// returned. This will be added the dependency lock file after a successful migration.
+	needSpacer, destinationLock, trust, stateStoreProviderAuthResult, dstProviderDiags := c.getSingleProvider(ctx, rootMod.StateStore, dstReq, mergedLocks, upgrade, MigrationDestination, view)
+	diags = diags.Append(dstProviderDiags)
+	if dstProviderDiags.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, nil, diags
+	}
+	if needSpacer {
+		// Space out provider download output from the migration output below.
+		view.Spacer()
+	}
+
+	// The provider needs to be trusted to use it immediately after download. If the provider is not yet trusted we either prompt or raise an error.
+	trustDiags := c.confirmProviderIsTrusted(trust, rootMod.StateStore.ProviderAddr, stateStoreProviderAuthResult, destinationLock, mergedLocks, lockfilePathArg, c, view)
+	diags = diags.Append(trustDiags)
+	if trustDiags.HasErrors() {
+		return nil, cty.NilVal, cty.NilVal, nil, diags
+	}
+
+	dstB, stateStoreConfig, providerConfig, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
+	diags = diags.Append(dstDiags)
+
+	return dstB, stateStoreConfig, providerConfig, destinationLock, diags
+}
 
 func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
