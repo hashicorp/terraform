@@ -863,7 +863,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 		// not serialized.
 		if n.Addr.Module.IsRoot() {
 			val, _ = val.UnmarkDeep()
-			if deferred.DependenciesDeferred(n.Dependencies) {
+			if deferred.DependenciesDeferred(n.Path(), n.Dependencies) {
 				// If the output is from deferred resources then we return a
 				// simple null value representing that the value is really
 				// unknown as the dependencies were not properly computed.

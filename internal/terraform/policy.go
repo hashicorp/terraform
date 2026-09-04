@@ -73,11 +73,15 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				addr := resource.Addr().InModule(c.Path)
 				schema := schema.SchemaForResourceAddr(addr.Resource)
 
-				// Before checking the data to see if there is a match, check if there is a deferral for this address.
+				// Before checking the data to see if there is a match, check if
+				// there is a deferral for this address.
 				//
-				// If there is a deferral, we can't use the data to determine if there is a match so we'll indicate
-				// the callback return is a partial result.
-				deferred := ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{addr})
+				// If there is a deferral, we can't use the data to determine if
+				// there is a match so we'll indicate the callback return is a
+				// partial result. Since we don't have a module instance, check
+				// deferrals from the root instance scope indicating we can
+				// depend on anything.
+				deferred := ctx.Deferrals().DependenciesDeferred(addrs.RootModuleInstance, []addrs.ConfigResource{addr})
 				if deferred {
 					isPartialResult = true
 					continue
