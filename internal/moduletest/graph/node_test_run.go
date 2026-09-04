@@ -24,6 +24,7 @@ var (
 	_ GraphNodeExecutable    = (*NodeTestRun)(nil)
 	_ GraphNodeReferenceable = (*NodeTestRun)(nil)
 	_ GraphNodeReferencer    = (*NodeTestRun)(nil)
+	_ RunNode                = (*NodeTestRun)(nil)
 )
 
 type NodeTestRun struct {
@@ -32,7 +33,7 @@ type NodeTestRun struct {
 	opts      *graphOptions
 }
 
-func (n *NodeTestRun) Run() *moduletest.Run {
+func (n *NodeTestRun) TestRun() *moduletest.Run {
 	return n.run
 }
 

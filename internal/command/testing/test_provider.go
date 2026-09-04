@@ -211,6 +211,16 @@ func (provider *TestProvider) count(prefix string) int {
 	return count
 }
 
+func (provider *TestProvider) Resources() []string {
+	var keys []string
+	for key := range provider.Store.Data {
+		if strings.HasPrefix(key, provider.ResourcePrefix()) {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
 func (provider *TestProvider) string(prefix string) string {
 	defer provider.Store.beginRead()()
 
