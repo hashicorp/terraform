@@ -1,21 +1,27 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package configs
+package terraform
 
 import (
+	"fmt"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/spf13/afero"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -23,12 +29,12 @@ import (
 
 func TestConfigProviderTypes(t *testing.T) {
 	// nil cfg should return an empty map
-	got := NewEmptyConfig().ProviderTypes()
+	got := configs.NewEmptyConfig().ProviderTypes()
 	if len(got) != 0 {
 		t.Fatal("expected empty result from empty config")
 	}
 
-	cfg, diags := testModuleCfgFromFileWithExperiments("testdata/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleCfgFromFileWithExperiments("testdata/config-graph/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -49,14 +55,14 @@ func TestConfigProviderTypes(t *testing.T) {
 
 func TestConfigProviderTypes_nested(t *testing.T) {
 	// basic test with a nil config
-	c := NewEmptyConfig()
+	c := configs.NewEmptyConfig()
 	got := c.ProviderTypes()
 	if len(got) != 0 {
 		t.Fatalf("wrong result!\ngot: %#v\nwant: nil\n", got)
 	}
 
 	// config with two provider sources, and one implicit (default) provider
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/valid-modules/nested-providers-fqns")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -74,7 +80,7 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 }
 
 func TestConfigResolveAbsProviderAddr(t *testing.T) {
-	cfg, diags := testModuleConfigFromDir("testdata/providers-explicit-fqn")
+	cfg, diags := testModuleConfigFromDir("testdata/config-graph/providers-explicit-fqn")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -123,7 +129,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 }
 
 func TestConfigProviderRequirements(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/provider-reqs")
 	// TODO: Version Constraint Deprecation.
 	// Once we've removed the version argument from provider configuration
 	// blocks, this can go back to expected 0 diagnostics.
@@ -166,7 +172,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 }
 
 func TestConfigProviderRequirementsInclTests(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/config-graph/provider-reqs-with-tests")
 	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
@@ -197,13 +203,13 @@ func TestConfigProviderRequirementsInclTests(t *testing.T) {
 }
 
 func TestConfigProviderRequirementsDuplicate(t *testing.T) {
-	_, diags := testNestedModuleConfigFromDir(t, "testdata/duplicate-local-name")
+	_, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/duplicate-local-name")
 	assertDiagnosticCount(t, diags, 3)
 	assertDiagnosticSummary(t, diags, "Duplicate required provider")
 }
 
 func TestConfigProviderRequirementsShallow(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/provider-reqs")
 	// TODO: Version Constraint Deprecation.
 	// Once we've removed the version argument from provider configuration
 	// blocks, this can go back to expected 0 diagnostics.
@@ -239,7 +245,7 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 }
 
 func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/config-graph/provider-reqs-with-tests")
 	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
@@ -263,7 +269,7 @@ func TestConfigProviderRequirementsShallowInclTests(t *testing.T) {
 }
 
 func TestConfigProviderRequirementsByModule(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/provider-reqs")
 	// TODO: Version Constraint Deprecation.
 	// Once we've removed the version argument from provider configuration
 	// blocks, this can go back to expected 0 diagnostics.
@@ -288,10 +294,10 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirementsByModule()
 	assertNoDiagnostics(t, diags)
-	want := &ModuleRequirements{
+	want := &configs.ModuleRequirements{
 		Name:       "",
 		SourceAddr: nil,
-		SourceDir:  "testdata/provider-reqs",
+		SourceDir:  "testdata/config-graph/provider-reqs",
 		Requirements: providerreqs.Requirements{
 			// Only the root module's version is present here
 			nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
@@ -301,31 +307,31 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 			impliedProvider:    nil,
 			terraformProvider:  nil,
 		},
-		Children: map[string]*ModuleRequirements{
+		Children: map[string]*configs.ModuleRequirements{
 			"kinder": {
 				Name:       "kinder",
 				SourceAddr: addrs.ModuleSourceLocal("./child"),
-				SourceDir:  "testdata/provider-reqs/child",
+				SourceDir:  "testdata/config-graph/provider-reqs/child",
 				Requirements: providerreqs.Requirements{
 					nullProvider:       providerreqs.MustParseVersionConstraints("= 2.0.1"),
 					happycloudProvider: nil,
 				},
-				Children: map[string]*ModuleRequirements{
+				Children: map[string]*configs.ModuleRequirements{
 					"nested": {
 						Name:       "nested",
 						SourceAddr: addrs.ModuleSourceLocal("./grandchild"),
-						SourceDir:  "testdata/provider-reqs/child/grandchild",
+						SourceDir:  "testdata/config-graph/provider-reqs/child/grandchild",
 						Requirements: providerreqs.Requirements{
 							grandchildProvider: nil,
 						},
-						Children: map[string]*ModuleRequirements{},
-						Tests:    make(map[string]*TestFileModuleRequirements),
+						Children: map[string]*configs.ModuleRequirements{},
+						Tests:    make(map[string]*configs.TestFileModuleRequirements),
 					},
 				},
-				Tests: make(map[string]*TestFileModuleRequirements),
+				Tests: make(map[string]*configs.TestFileModuleRequirements),
 			},
 		},
-		Tests: make(map[string]*TestFileModuleRequirements),
+		Tests: make(map[string]*configs.TestFileModuleRequirements),
 	}
 
 	ignore := cmpopts.IgnoreUnexported(version.Constraint{}, cty.Value{}, hclsyntax.Body{})
@@ -335,7 +341,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 }
 
 func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/provider-reqs-with-tests")
+	cfg, diags := testNestedModuleConfigFromDirWithTests(t, "testdata/config-graph/provider-reqs-with-tests")
 	assertDiagnosticCount(t, diags, 0)
 
 	tlsProvider := addrs.NewProvider(
@@ -350,32 +356,32 @@ func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 
 	got, diags := cfg.ProviderRequirementsByModule()
 	assertNoDiagnostics(t, diags)
-	want := &ModuleRequirements{
+	want := &configs.ModuleRequirements{
 		Name:       "",
 		SourceAddr: nil,
-		SourceDir:  "testdata/provider-reqs-with-tests",
+		SourceDir:  "testdata/config-graph/provider-reqs-with-tests",
 		Requirements: providerreqs.Requirements{
 			// Only the root module's version is present here
 			tlsProvider:       providerreqs.MustParseVersionConstraints("~> 3.0"),
 			impliedProvider:   nil,
 			terraformProvider: nil,
 		},
-		Children: make(map[string]*ModuleRequirements),
-		Tests: map[string]*TestFileModuleRequirements{
+		Children: make(map[string]*configs.ModuleRequirements),
+		Tests: map[string]*configs.TestFileModuleRequirements{
 			"provider-reqs-root.tftest.hcl": {
 				Requirements: providerreqs.Requirements{},
-				Runs: map[string]*ModuleRequirements{
+				Runs: map[string]*configs.ModuleRequirements{
 					"setup": {
 						Name:       "setup",
 						SourceAddr: addrs.ModuleSourceLocal("./setup"),
-						SourceDir:  "testdata/provider-reqs-with-tests/setup",
+						SourceDir:  "testdata/config-graph/provider-reqs-with-tests/setup",
 						Requirements: providerreqs.Requirements{
 							nullProvider:       providerreqs.MustParseVersionConstraints("~> 2.0.0"),
 							randomProvider:     providerreqs.MustParseVersionConstraints("~> 1.2.0"),
 							configuredProvider: nil,
 						},
-						Children: make(map[string]*ModuleRequirements),
-						Tests:    make(map[string]*TestFileModuleRequirements),
+						Children: make(map[string]*configs.ModuleRequirements),
+						Tests:    make(map[string]*configs.TestFileModuleRequirements),
 					},
 				},
 			},
@@ -389,7 +395,7 @@ func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 }
 
 func TestVerifyDependencySelections(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/config-graph/provider-reqs")
 	// TODO: Version Constraint Deprecation.
 	// Once we've removed the version argument from provider configuration
 	// blocks, this can go back to expected 0 diagnostics.
@@ -511,7 +517,7 @@ func TestVerifyDependencySelections(t *testing.T) {
 }
 
 func TestConfigProviderForConfigAddr(t *testing.T) {
-	cfg, diags := testModuleConfigFromDir("testdata/valid-modules/providers-fqns")
+	cfg, diags := testModuleConfigFromDir("testdata/config-graph/valid-modules/providers-fqns")
 	assertNoDiagnostics(t, diags)
 
 	got := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
@@ -529,18 +535,18 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 }
 
 func TestConfigAddProviderRequirements(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleConfigFromFile("testdata/config-graph/valid-files/providers-explicit-implied.tf")
 	assertNoDiagnostics(t, diags)
 
 	reqs := providerreqs.Requirements{
 		addrs.NewDefaultProvider("null"): nil,
 	}
-	diags = cfg.addProviderRequirements(reqs, true, false)
+	diags = cfg.AddProviderRequirements(reqs, true, false)
 	assertNoDiagnostics(t, diags)
 }
 
 func TestConfigImportProviderClashesWithModules(t *testing.T) {
-	src, err := os.ReadFile("testdata/invalid-import-files/import-and-module-clash.tf")
+	src, err := os.ReadFile("testdata/config-graph/invalid-import-files/import-and-module-clash.tf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,31 +564,31 @@ Use the providers argument within the module block to configure providers for al
 }
 
 func TestConfigImportProviderClashesWithResources(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-resource-clash.tf")
+	cfg, diags := testModuleConfigFromFile("testdata/config-graph/invalid-import-files/import-and-resource-clash.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(providerreqs.Requirements{}, true, false)
+	diags = cfg.AddProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
-		`testdata/invalid-import-files/import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
+		`testdata/config-graph/invalid-import-files/import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
 	})
 }
 
 func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/invalid-import-files/import-and-no-resource.tf")
+	cfg, diags := testModuleConfigFromFile("testdata/config-graph/invalid-import-files/import-and-no-resource.tf")
 	assertNoDiagnostics(t, diags)
 
-	diags = cfg.addProviderRequirements(providerreqs.Requirements{}, true, false)
+	diags = cfg.AddProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
-		`testdata/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
+		`testdata/config-graph/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
 	})
 }
 
 func TestConfigActionInResourceDependsOn(t *testing.T) {
-	src, err := os.ReadFile("testdata/invalid-modules/action-in-depends_on/action-in-resource-depends_on.tf")
+	src, err := os.ReadFile("testdata/config-graph/invalid-modules/action-in-depends_on/action-in-resource-depends_on.tf")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -595,4 +601,169 @@ func TestConfigActionInResourceDependsOn(t *testing.T) {
 	assertExactDiagnostics(t, diags, []string{
 		`main.tf:5,17-42: Invalid depends_on Action Reference; The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.`,
 	})
+}
+
+// testNestedModuleConfigFromDirWithTests matches testNestedModuleConfigFromDir
+// except it also loads any test files within the directory.
+func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*configs.Config, hcl.Diagnostics) {
+	t.Helper()
+
+	parser := configs.NewParser(nil)
+	mod, diags := parser.LoadConfigDir(path, configs.MatchTestFiles("tests"))
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
+
+	diags = append(diags, nestedDiags...)
+	return cfg, diags
+}
+
+func buildNestedModuleConfig(mod *configs.Module, path string, parser *configs.Parser) (*configs.Config, hcl.Diagnostics) {
+	versionI := 0
+
+	walkerFunc := configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			// For the sake of this test we're going to just treat our
+			// SourceAddr as a path relative to the calling module.
+			// A "real" implementation of ModuleWalker should accept the
+			// various different source address syntaxes Terraform supports.
+
+			// Build a full path by walking up the module tree, prepending each
+			// source address path until we hit the root
+			paths := []string{req.SourceAddr.String()}
+			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
+				paths = append([]string{config.SourceAddr.String()}, paths...)
+			}
+			paths = append([]string{path}, paths...)
+			sourcePath := filepath.Join(paths...)
+
+			mod, diags := parser.LoadConfigDir(sourcePath)
+			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
+			versionI++
+			return mod, version, diags
+		})
+	mockLoaderFunc := configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+		return nil, nil
+	})
+
+	cfg, diags := BuildConfigWithGraph(
+		mod,
+		walkerFunc,
+		nil,
+		mockLoaderFunc,
+	)
+
+	return cfg, diags.ToHCL()
+}
+
+// testModuleFromDir reads configuration from the given directory path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleConfigFromDir(path string) (*configs.Config, hcl.Diagnostics) {
+	parser := configs.NewParser(nil)
+	mod, diags := parser.LoadConfigDir(path)
+	cfg := testConfig(mod)
+	moreDiags := configs.FinalizeConfig(cfg, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
+func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) bool {
+	t.Helper()
+
+	for _, diag := range diags {
+		if diag.Summary == want {
+			return false
+		}
+	}
+
+	t.Errorf("missing diagnostic summary %q", want)
+	for _, diag := range diags {
+		t.Logf("- %s", diag)
+	}
+	return true
+}
+
+func testConfig(mod *configs.Module) *configs.Config {
+	cfg := &configs.Config{Module: mod, Children: map[string]*configs.Config{}}
+	cfg.Root = cfg
+	return cfg
+}
+
+// testModuleConfigFrom File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleConfigFromFile(filename string) (*configs.Config, hcl.Diagnostics) {
+	parser := configs.NewParser(nil)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := configs.NewModule([]*configs.File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg := testConfig(mod)
+	moreDiags := configs.FinalizeConfig(cfg, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
+// testModuleCfgFromFileWithExperiments File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleCfgFromFileWithExperiments(filename string) (*configs.Config, hcl.Diagnostics) {
+	parser := configs.NewParser(nil)
+	parser.AllowLanguageExperiments(true)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := configs.NewModule([]*configs.File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg := testConfig(mod)
+	moreDiags := configs.FinalizeConfig(cfg, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
+func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {
+	t.Helper()
+
+	gotDiags := map[string]bool{}
+	wantDiags := map[string]bool{}
+
+	for _, diag := range diags {
+		gotDiags[diag.Error()] = true
+	}
+	for _, msg := range want {
+		wantDiags[msg] = true
+	}
+
+	bad := false
+	for got := range gotDiags {
+		if _, exists := wantDiags[got]; !exists {
+			t.Errorf("unexpected diagnostic: %s", got)
+			bad = true
+		}
+	}
+	for want := range wantDiags {
+		if _, exists := gotDiags[want]; !exists {
+			t.Errorf("missing expected diagnostic: %s", want)
+			bad = true
+		}
+	}
+
+	return bad
+}
+
+// testParser returns a parser that reads files from the given map, which
+// is from paths to file contents.
+//
+// Since this function uses only in-memory objects, it should never fail.
+// If any errors are encountered in practice, this function will panic.
+func testParser(files map[string]string) *configs.Parser {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+
+	for filePath, contents := range files {
+		dirPath := path.Dir(filePath)
+		err := fs.MkdirAll(dirPath, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+		err = fs.WriteFile(filePath, []byte(contents), os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return configs.NewParser(fs)
 }

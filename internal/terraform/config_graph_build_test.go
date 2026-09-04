@@ -13,6 +13,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
@@ -373,11 +374,232 @@ func TestBuildConfigWithGraph_testModuleWithDynamicSource(t *testing.T) {
 	}
 }
 
+func TestBuildConfig_WithMockDataSources(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/valid-modules/with-mock-sources")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+	mockLoaderFunc := configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join(fixtureDir, provider.MockDataExternalSource)
+		return loader.Parser().LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
+	})
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	cfg, diags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		mockLoaderFunc,
+	)
+	assertNoDiagnostics(t, diags)
+
+	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
+
+	if len(provider.MockData.MockDataSources) != 1 {
+		t.Errorf("expected to load 1 mock data source but loaded %d", len(provider.MockData.MockDataSources))
+	}
+	if len(provider.MockData.MockResources) != 1 {
+		t.Errorf("expected to load 1 mock resource but loaded %d", len(provider.MockData.MockResources))
+	}
+	if provider.MockData.Overrides.Len() != 1 {
+		t.Errorf("expected to load 1 override but loaded %d", provider.MockData.Overrides.Len())
+	}
+}
+
+func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/valid-modules/with-mock-sources-inline")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+	mockLoaderFunc := configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+		sourcePath := filepath.Join(fixtureDir, provider.MockDataExternalSource)
+		return loader.Parser().LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
+	})
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	cfg, diags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		mockLoaderFunc,
+	)
+
+	assertNoDiagnostics(t, diags)
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+}
+
+func TestBuildConfig_WithNestedTestModules(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/valid-modules/with-tests-nested-module")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	mockLoaderFunc := configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+		return nil, nil
+	})
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	cfg, diags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		mockLoaderFunc,
+	)
+	assertNoDiagnostics(t, diags)
+	for _, diag := range diags {
+		t.Logf("- %s", diag)
+	}
+	if cfg == nil {
+		t.Fatal("got nil config; want non-nil")
+	}
+
+	// We should have loaded our test case, and one of the test runs should
+	// have loaded an alternate module.
+
+	if len(cfg.Module.Tests) != 1 {
+		t.Fatalf("expected exactly one test case but found %d", len(cfg.Module.Tests))
+	}
+
+	test := cfg.Module.Tests["main.tftest.hcl"]
+	if len(test.Runs) != 1 {
+		t.Fatalf("expected two test runs but found %d", len(test.Runs))
+	}
+
+	run := test.Runs[0]
+	if run.ConfigUnderTest == nil {
+		t.Fatalf("the first test run should have loaded config but did not")
+	}
+
+	if run.ConfigUnderTest.Parent != nil {
+		t.Errorf("config under test should not have a parent")
+	}
+
+	if run.ConfigUnderTest.Root != run.ConfigUnderTest {
+		t.Errorf("config under test root should be itself")
+	}
+
+	if len(run.ConfigUnderTest.Path) > 0 {
+		t.Errorf("config under test path should be the root module")
+	}
+
+	// We should also have loaded a single child underneath the config under
+	// test, and it should have valid paths.
+
+	child := run.ConfigUnderTest.Children["child"]
+
+	if child.Parent != run.ConfigUnderTest {
+		t.Errorf("child should point back to root")
+	}
+
+	if len(child.Path) != 1 || child.Path[0] != "child" {
+		t.Errorf("child should have rebased against virtual root")
+	}
+
+	if child.Root != run.ConfigUnderTest {
+		t.Errorf("child root should be main config under test")
+	}
+}
+
+func TestBuildConfig_WithTestModule(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/config-graph/valid-modules/with-tests-module")
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	walkerFunc := configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			// For the sake of this test we're going to just treat our
+			// SourceAddr as a path relative to our fixture directory.
+			// A "real" implementation of ModuleWalker should accept the
+			// various different source address syntaxes Terraform supports.
+			sourcePath := filepath.Join(fixtureDir, req.SourceAddr.String())
+
+			mod, diags := loader.Parser().LoadConfigDir(sourcePath)
+			version, _ := version.NewVersion("1.0.0")
+			return mod, version, diags
+		})
+	mockLoaderFunc := configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
+		return nil, nil
+	})
+
+	rootMod, loadDiags := loader.LoadRootModuleWithTests(fixtureDir, "tests")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	cfg, diags := BuildConfigWithGraph(
+		rootMod,
+		walkerFunc,
+		nil,
+		mockLoaderFunc,
+	)
+	assertNoDiagnostics(t, diags)
+
+	// We should have loaded our test case, and one of the test runs should
+	// have loaded an alternate module.
+
+	if len(cfg.Module.Tests) != 1 {
+		t.Fatalf("expected exactly one test case but found %d", len(cfg.Module.Tests))
+	}
+
+	test := cfg.Module.Tests["main.tftest.hcl"]
+	if len(test.Runs) != 2 {
+		t.Fatalf("expected two test runs but found %d", len(test.Runs))
+	}
+
+	run := test.Runs[0]
+	if run.ConfigUnderTest == nil {
+		t.Fatalf("the first test run should have loaded config but did not")
+	}
+
+	if run.ConfigUnderTest.Parent != nil {
+		t.Errorf("config under test should not have a parent")
+	}
+
+	if run.ConfigUnderTest.Root != run.ConfigUnderTest {
+		t.Errorf("config under test root should be itself")
+	}
+
+	if len(run.ConfigUnderTest.Path) > 0 {
+		t.Errorf("config under test path should be the root module")
+	}
+}
+
 func assertNoDiagnostics[D hcl.Diagnostics | tfdiags.Diagnostics](t *testing.T, diags D) bool {
 	t.Helper()
 
 	if len(diags) != 0 {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), 0)
+		return true
+	}
+	return false
+}
+
+func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
+	t.Helper()
+	if len(diags) != want {
+		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
+		for _, diag := range diags {
+			t.Logf("- %s", diag)
+		}
 		return true
 	}
 	return false

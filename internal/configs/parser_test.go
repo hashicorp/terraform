@@ -4,16 +4,13 @@
 package configs
 
 import (
-	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
 
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/afero"
 )
@@ -41,29 +38,6 @@ func testParser(files map[string]string) *Parser {
 	return NewParser(fs)
 }
 
-// testModuleConfigFrom File reads a single file from the given path as a
-// module and returns its configuration. This is a helper for use in unit tests.
-func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
-	parser := NewParser(nil)
-	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := NewModule([]*File{f}, nil)
-	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
-	return cfg, append(diags, moreDiags...)
-}
-
-// testModuleCfgFromFileWithExperiments File reads a single file from the given path as a
-// module and returns its configuration. This is a helper for use in unit tests.
-func testModuleCfgFromFileWithExperiments(filename string) (*Config, hcl.Diagnostics) {
-	parser := NewParser(nil)
-	parser.AllowLanguageExperiments(true)
-	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := NewModule([]*File{f}, nil)
-	diags = append(diags, modDiags...)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
-	return cfg, append(diags, moreDiags...)
-}
-
 // testModuleFromDir reads configuration from the given directory path as
 // a module and returns it. This is a helper for use in unit tests.
 func testModuleFromDir(path string) (*Module, hcl.Diagnostics) {
@@ -78,79 +52,6 @@ func testModuleFromDirWithExperiments(path string) (*Module, hcl.Diagnostics) {
 	parser := NewParser(nil)
 	parser.AllowLanguageExperiments(true)
 	return parser.LoadConfigDir(path)
-}
-
-// testModuleFromDir reads configuration from the given directory path as a
-// module and returns its configuration. This is a helper for use in unit tests.
-func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir(path)
-	cfg, moreDiags := BuildConfig(mod, nil, nil)
-	return cfg, append(diags, moreDiags...)
-}
-
-// testNestedModuleConfigFromDirWithTests matches testNestedModuleConfigFromDir
-// except it also loads any test files within the directory.
-func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*Config, hcl.Diagnostics) {
-	t.Helper()
-
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir(path, MatchTestFiles("tests"))
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
-	}
-
-	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
-
-	diags = append(diags, nestedDiags...)
-	return cfg, diags
-}
-
-// testNestedModuleConfigFromDir reads configuration from the given directory path as
-// a module with (optional) submodules and returns its configuration. This is a
-// helper for use in unit tests.
-func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diagnostics) {
-	t.Helper()
-
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDir(path)
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
-	}
-
-	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
-
-	diags = append(diags, nestedDiags...)
-	return cfg, diags
-}
-
-func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config, hcl.Diagnostics) {
-	versionI := 0
-	return BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
-			// For the sake of this test we're going to just treat our
-			// SourceAddr as a path relative to the calling module.
-			// A "real" implementation of ModuleWalker should accept the
-			// various different source address syntaxes Terraform supports.
-
-			// Build a full path by walking up the module tree, prepending each
-			// source address path until we hit the root
-			paths := []string{req.SourceAddr.String()}
-			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
-				paths = append([]string{config.SourceAddr.String()}, paths...)
-			}
-			paths = append([]string{path}, paths...)
-			sourcePath := filepath.Join(paths...)
-
-			mod, diags := parser.LoadConfigDir(sourcePath)
-			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
-			versionI++
-			return mod, version, diags
-		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-			return nil, nil
-		}),
-	)
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
@@ -168,22 +69,6 @@ func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
 		return true
 	}
 	return false
-}
-
-func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) bool {
-	t.Helper()
-
-	for _, diag := range diags {
-		if diag.Summary == want {
-			return false
-		}
-	}
-
-	t.Errorf("missing diagnostic summary %q", want)
-	for _, diag := range diags {
-		t.Logf("- %s", diag)
-	}
-	return true
 }
 
 func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {

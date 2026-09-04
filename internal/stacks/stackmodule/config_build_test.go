@@ -1,12 +1,11 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package configs
+package stackmodule
 
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -17,10 +16,11 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/configs"
 )
 
 func TestBuildConfig(t *testing.T) {
-	parser := NewParser(nil)
+	parser := configs.NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/config-build")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
@@ -28,8 +28,8 @@ func TestBuildConfig(t *testing.T) {
 	}
 
 	versionI := 0
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -41,7 +41,7 @@ func TestBuildConfig(t *testing.T) {
 			versionI++
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -51,7 +51,7 @@ func TestBuildConfig(t *testing.T) {
 	}
 
 	var got []string
-	cfg.DeepEach(func(c *Config) {
+	cfg.DeepEach(func(c *configs.Config) {
 		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
 	})
 	sort.Strings(got)
@@ -79,7 +79,7 @@ func TestBuildConfig(t *testing.T) {
 }
 
 func TestBuildConfigDiags(t *testing.T) {
-	parser := NewParser(nil)
+	parser := configs.NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/nested-errors")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
@@ -87,8 +87,8 @@ func TestBuildConfigDiags(t *testing.T) {
 	}
 
 	versionI := 0
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -100,7 +100,7 @@ func TestBuildConfigDiags(t *testing.T) {
 			versionI++
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -111,7 +111,7 @@ func TestBuildConfigDiags(t *testing.T) {
 
 	// we should still have module structure loaded
 	var got []string
-	cfg.DeepEach(func(c *Config) {
+	cfg.DeepEach(func(c *configs.Config) {
 		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
 	})
 	sort.Strings(got)
@@ -127,15 +127,15 @@ func TestBuildConfigDiags(t *testing.T) {
 }
 
 func TestBuildConfigChildModule_Backend(t *testing.T) {
-	parser := NewParser(nil)
+	parser := configs.NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/nested-backend-warning")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -146,7 +146,7 @@ func TestBuildConfigChildModule_Backend(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -155,7 +155,7 @@ func TestBuildConfigChildModule_Backend(t *testing.T) {
 
 	// we should still have module structure loaded
 	var got []string
-	cfg.DeepEach(func(c *Config) {
+	cfg.DeepEach(func(c *configs.Config) {
 		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
 	})
 	sort.Strings(got)
@@ -170,15 +170,15 @@ func TestBuildConfigChildModule_Backend(t *testing.T) {
 }
 
 func TestBuildConfigChildModule_CloudBlock(t *testing.T) {
-	parser := NewParser(nil)
+	parser := configs.NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/nested-cloud-warning")
 	assertNoDiagnostics(t, diags)
 	if mod == nil {
 		t.Fatal("got nil root module; want non-nil")
 	}
 
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+	cfg, diags := BuildConfig(mod, configs.ModuleWalkerFunc(
+		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
@@ -189,7 +189,7 @@ func TestBuildConfigChildModule_CloudBlock(t *testing.T) {
 			version, _ := version.NewVersion("1.0.0")
 			return mod, version, diags
 		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+		configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
 			return nil, nil
 		}),
 	)
@@ -198,7 +198,7 @@ func TestBuildConfigChildModule_CloudBlock(t *testing.T) {
 
 	// we should still have module structure loaded
 	var got []string
-	cfg.DeepEach(func(c *Config) {
+	cfg.DeepEach(func(c *configs.Config) {
 		got = append(got, fmt.Sprintf("%s %s", strings.Join(c.Path, "."), c.Version))
 	})
 	sort.Strings(got)
@@ -222,13 +222,13 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 	for _, info := range dirs {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			parser := NewParser(nil)
+			parser := configs.NewParser(nil)
 			path := filepath.Join(testDir, name)
 			parser.AllowLanguageExperiments(true)
 
-			opts := []Option{MatchTestFiles("tests")}
+			opts := []configs.Option{configs.MatchTestFiles("tests")}
 			if name == "list-in-child-module" {
-				opts = append(opts, MatchQueryFiles())
+				opts = append(opts, configs.MatchQueryFiles())
 			}
 
 			mod, diags := parser.LoadConfigDir(path, opts...)
@@ -264,8 +264,8 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			expectedErrs := readDiags(os.ReadFile(filepath.Join(testDir, name, "errors")))
 			expectedWarnings := readDiags(os.ReadFile(filepath.Join(testDir, name, "warnings")))
 
-			_, buildDiags := BuildConfig(mod, ModuleWalkerFunc(
-				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
+			_, buildDiags := BuildConfig(mod, configs.ModuleWalkerFunc(
+				func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 					// for simplicity, these tests will treat all source
 					// addresses as relative to the root module
 					sourcePath := filepath.Join(path, req.SourceAddr.String())
@@ -273,7 +273,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags
 				}),
-				MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
+				configs.MockDataLoaderFunc(func(provider *configs.Provider) (*configs.MockData, hcl.Diagnostics) {
 					return nil, nil
 				}),
 			)
@@ -345,194 +345,65 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 	}
 }
 
-func TestBuildConfig_WithMockDataSources(t *testing.T) {
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources", "tests")
-	assertNoDiagnostics(t, diags)
-	assertNoDiagnostics(t, diags)
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
-	}
-
-	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources", provider.MockDataExternalSource)
-		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
-	}))
-	assertNoDiagnostics(t, diags)
-	if cfg == nil {
-		t.Fatal("got nil config; want non-nil")
-	}
-
-	provider := cfg.Module.Tests["main.tftest.hcl"].Providers["aws"]
-
-	if len(provider.MockData.MockDataSources) != 1 {
-		t.Errorf("expected to load 1 mock data source but loaded %d", len(provider.MockData.MockDataSources))
-	}
-	if len(provider.MockData.MockResources) != 1 {
-		t.Errorf("expected to load 1 mock resource but loaded %d", len(provider.MockData.MockResources))
-	}
-	if provider.MockData.Overrides.Len() != 1 {
-		t.Errorf("expected to load 1 override but loaded %d", provider.MockData.Overrides.Len())
-	}
+func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {
+	t.Helper()
+	return assertDiagnosticCount(t, diags, 0)
 }
 
-func TestBuildConfig_WithMockDataSourcesInline(t *testing.T) {
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-mock-sources-inline", "tests")
-	assertNoDiagnostics(t, diags)
-	assertNoDiagnostics(t, diags)
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
+func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
+	t.Helper()
+	if len(diags) != want {
+		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
+		for _, diag := range diags {
+			t.Logf("- %s", diag)
+		}
+		return true
 	}
-
-	cfg, diags := BuildConfig(mod, nil, MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-		sourcePath := filepath.Join("testdata/valid-modules/with-mock-sources-inline", provider.MockDataExternalSource)
-		return parser.LoadMockDataDir(sourcePath, provider.MockDataDuringPlan, hcl.Range{})
-	}))
-	assertNoDiagnostics(t, diags)
-	if cfg == nil {
-		t.Fatal("got nil config; want non-nil")
-	}
+	return false
 }
 
-func TestBuildConfig_WithNestedTestModules(t *testing.T) {
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests-nested-module", "tests")
-	assertNoDiagnostics(t, diags)
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
+func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) bool {
+	t.Helper()
+
+	for _, diag := range diags {
+		if diag.Summary == want {
+			return false
+		}
 	}
 
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
-
-			// Bit of a hack to get the test working, but we know all the source
-			// addresses in this test are locals, so we can just treat them as
-			// paths in the filesystem.
-
-			addr := req.SourceAddr.String()
-			current := req.Parent
-			for current.SourceAddr != nil {
-				addr = path.Join(current.SourceAddr.String(), addr)
-				current = current.Parent
-			}
-			sourcePath := filepath.Join("testdata/valid-modules/with-tests-nested-module", addr)
-
-			mod, diags := parser.LoadConfigDir(sourcePath)
-			version, _ := version.NewVersion("1.0.0")
-			return mod, version, diags
-		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-			return nil, nil
-		}),
-	)
-	assertNoDiagnostics(t, diags)
-	if cfg == nil {
-		t.Fatal("got nil config; want non-nil")
+	t.Errorf("missing diagnostic summary %q", want)
+	for _, diag := range diags {
+		t.Logf("- %s", diag)
 	}
-
-	// We should have loaded our test case, and one of the test runs should
-	// have loaded an alternate module.
-
-	if len(cfg.Module.Tests) != 1 {
-		t.Fatalf("expected exactly one test case but found %d", len(cfg.Module.Tests))
-	}
-
-	test := cfg.Module.Tests["main.tftest.hcl"]
-	if len(test.Runs) != 1 {
-		t.Fatalf("expected two test runs but found %d", len(test.Runs))
-	}
-
-	run := test.Runs[0]
-	if run.ConfigUnderTest == nil {
-		t.Fatalf("the first test run should have loaded config but did not")
-	}
-
-	if run.ConfigUnderTest.Parent != nil {
-		t.Errorf("config under test should not have a parent")
-	}
-
-	if run.ConfigUnderTest.Root != run.ConfigUnderTest {
-		t.Errorf("config under test root should be itself")
-	}
-
-	if len(run.ConfigUnderTest.Path) > 0 {
-		t.Errorf("config under test path should be the root module")
-	}
-
-	// We should also have loaded a single child underneath the config under
-	// test, and it should have valid paths.
-
-	child := run.ConfigUnderTest.Children["child"]
-
-	if child.Parent != run.ConfigUnderTest {
-		t.Errorf("child should point back to root")
-	}
-
-	if len(child.Path) != 1 || child.Path[0] != "child" {
-		t.Errorf("child should have rebased against virtual root")
-	}
-
-	if child.Root != run.ConfigUnderTest {
-		t.Errorf("child root should be main config under test")
-	}
+	return true
 }
 
-func TestBuildConfig_WithTestModule(t *testing.T) {
-	parser := NewParser(nil)
-	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests-module", "tests")
-	assertNoDiagnostics(t, diags)
-	if mod == nil {
-		t.Fatal("got nil root module; want non-nil")
+func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {
+	t.Helper()
+
+	gotDiags := map[string]bool{}
+	wantDiags := map[string]bool{}
+
+	for _, diag := range diags {
+		gotDiags[diag.Error()] = true
+	}
+	for _, msg := range want {
+		wantDiags[msg] = true
 	}
 
-	cfg, diags := BuildConfig(mod, ModuleWalkerFunc(
-		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
-			// For the sake of this test we're going to just treat our
-			// SourceAddr as a path relative to our fixture directory.
-			// A "real" implementation of ModuleWalker should accept the
-			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join("testdata/valid-modules/with-tests-module", req.SourceAddr.String())
-
-			mod, diags := parser.LoadConfigDir(sourcePath)
-			version, _ := version.NewVersion("1.0.0")
-			return mod, version, diags
-		}),
-		MockDataLoaderFunc(func(provider *Provider) (*MockData, hcl.Diagnostics) {
-			return nil, nil
-		}),
-	)
-	assertNoDiagnostics(t, diags)
-	if cfg == nil {
-		t.Fatal("got nil config; want non-nil")
+	bad := false
+	for got := range gotDiags {
+		if _, exists := wantDiags[got]; !exists {
+			t.Errorf("unexpected diagnostic: %s", got)
+			bad = true
+		}
+	}
+	for want := range wantDiags {
+		if _, exists := gotDiags[want]; !exists {
+			t.Errorf("missing expected diagnostic: %s", want)
+			bad = true
+		}
 	}
 
-	// We should have loaded our test case, and one of the test runs should
-	// have loaded an alternate module.
-
-	if len(cfg.Module.Tests) != 1 {
-		t.Fatalf("expected exactly one test case but found %d", len(cfg.Module.Tests))
-	}
-
-	test := cfg.Module.Tests["main.tftest.hcl"]
-	if len(test.Runs) != 2 {
-		t.Fatalf("expected two test runs but found %d", len(test.Runs))
-	}
-
-	run := test.Runs[0]
-	if run.ConfigUnderTest == nil {
-		t.Fatalf("the first test run should have loaded config but did not")
-	}
-
-	if run.ConfigUnderTest.Parent != nil {
-		t.Errorf("config under test should not have a parent")
-	}
-
-	if run.ConfigUnderTest.Root != run.ConfigUnderTest {
-		t.Errorf("config under test root should be itself")
-	}
-
-	if len(run.ConfigUnderTest.Path) > 0 {
-		t.Errorf("config under test path should be the root module")
-	}
+	return bad
 }
