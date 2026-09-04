@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
@@ -34,9 +35,84 @@ func BuildConfig(root *Module, walker ModuleWalker, loader MockDataLoader) (*Con
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
+	diags = append(diags, resolveLegacyProviderRequirements(cfg)...)
 	diags = append(diags, LegacyFinalizeConfig(cfg, walker, loader)...)
 
 	return cfg, diags
+}
+
+func resolveLegacyProviderRequirements(cfg *Config) hcl.Diagnostics {
+	resolveSourceAndVersion := func(c *Config) hcl.Diagnostics {
+		if cfg.Module.ProviderRequirements != nil {
+			requiredProviders := make(map[string]*RequiredProvider)
+			for name, e := range cfg.Module.ProviderRequirementExprs {
+				rp := &RequiredProvider{
+					Name:      e.Name,
+					DeclRange: e.DeclRange,
+					Aliases:   e.ConfigAliases,
+				}
+				if e.SourceExpr != nil {
+					sourceVal, diags := e.SourceExpr.Value(nil)
+					if diags != nil {
+						return diags
+					}
+					sourceStr := sourceVal.AsString()
+					sourceType, sourceDiags := addrs.ParseProviderSourceString(sourceStr)
+					if sourceDiags.HasErrors() {
+						hclDiags := sourceDiags.ToHCL()
+						for _, d := range hclDiags {
+							if d.Subject == nil {
+								d.Subject = e.SourceExpr.Range().Ptr()
+							}
+						}
+						return hclDiags
+					}
+					rp.Source = sourceStr
+					rp.Type = sourceType
+				}
+
+				if e.VersionExpr != nil {
+					var diags tfdiags.Diagnostics
+					value, valueDiags := e.VersionExpr.Value(nil)
+					diags = diags.Append(valueDiags)
+					if diags.HasErrors() {
+						return diags.ToHCL()
+					}
+
+					constraintStr := value.AsString()
+					constraint, err := version.NewConstraint(constraintStr)
+					if err != nil {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid version constraint",
+							Detail:   "This string is not a valid version constraint.",
+							Subject:  e.VersionExpr.Range().Ptr(),
+						})
+						return diags.ToHCL()
+					}
+					rp.Requirement.Required = constraint
+				}
+				requiredProviders[name] = rp
+			}
+			if len(requiredProviders) > 0 {
+				c.Module.ProviderRequirements.RequiredProviders = requiredProviders
+			}
+		}
+		return nil
+	}
+
+	diags := resolveSourceAndVersion(cfg)
+	if diags != nil {
+		return diags
+	}
+	for _, c := range cfg.Children {
+		diags = resolveSourceAndVersion(c)
+		if diags != nil {
+			return diags
+		}
+	}
+
+	return nil
 }
 
 // LegacyFinalizeConfig performs the post-load validation and setup steps that are
