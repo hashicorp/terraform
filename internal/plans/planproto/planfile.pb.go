@@ -240,6 +240,8 @@ const (
 	DeferredReason_PROVIDER_CONFIG_UNKNOWN DeferredReason = 3
 	DeferredReason_ABSENT_PREREQ           DeferredReason = 4
 	DeferredReason_DEFERRED_PREREQ         DeferredReason = 5
+	DeferredReason_EXCLUDED                DeferredReason = 6
+	DeferredReason_EXCLUDED_PREREQ         DeferredReason = 7
 )
 
 // Enum value maps for DeferredReason.
@@ -251,6 +253,8 @@ var (
 		3: "PROVIDER_CONFIG_UNKNOWN",
 		4: "ABSENT_PREREQ",
 		5: "DEFERRED_PREREQ",
+		6: "EXCLUDED",
+		7: "EXCLUDED_PREREQ",
 	}
 	DeferredReason_value = map[string]int32{
 		"INVALID":                 0,
@@ -259,6 +263,8 @@ var (
 		"PROVIDER_CONFIG_UNKNOWN": 3,
 		"ABSENT_PREREQ":           4,
 		"DEFERRED_PREREQ":         5,
+		"EXCLUDED":                6,
+		"EXCLUDED_PREREQ":         7,
 	}
 )
 
@@ -2471,14 +2477,16 @@ const file_planfile_proto_rawDesc = "" +
 	"\x12#\n" +
 	"\x1fREAD_BECAUSE_DEPENDENCY_PENDING\x10\v\x12\x1d\n" +
 	"\x19READ_BECAUSE_CHECK_NESTED\x10\r\x12!\n" +
-	"\x1dDELETE_BECAUSE_NO_MOVE_TARGET\x10\f*\x9b\x01\n" +
+	"\x1dDELETE_BECAUSE_NO_MOVE_TARGET\x10\f*\xbe\x01\n" +
 	"\x0eDeferredReason\x12\v\n" +
 	"\aINVALID\x10\x00\x12\x1a\n" +
 	"\x16INSTANCE_COUNT_UNKNOWN\x10\x01\x12\x1b\n" +
 	"\x17RESOURCE_CONFIG_UNKNOWN\x10\x02\x12\x1b\n" +
 	"\x17PROVIDER_CONFIG_UNKNOWN\x10\x03\x12\x11\n" +
 	"\rABSENT_PREREQ\x10\x04\x12\x13\n" +
-	"\x0fDEFERRED_PREREQ\x10\x05*\xa4\x01\n" +
+	"\x0fDEFERRED_PREREQ\x10\x05\x12\f\n" +
+	"\bEXCLUDED\x10\x06\x12\x13\n" +
+	"\x0fEXCLUDED_PREREQ\x10\a*\xa4\x01\n" +
 	"\x12ActionTriggerEvent\x12\x11\n" +
 	"\rINVALID_EVENT\x10\x00\x12\x11\n" +
 	"\rBEFORE_CERATE\x10\x01\x12\x10\n" +

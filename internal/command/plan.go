@@ -175,6 +175,9 @@ func (c *PlanCommand) OperationRequest(be backendrun.OperationsBackend, view vie
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
+
+		// -exclude uses deferred changes, so it must be combined with -allow-deferral (so they must both be experimental)
+		opReq.Excludes = args.Excludes
 	} else if args.DeferralAllowed {
 		// Belated flag parse error, since we don't know about experiments
 		// support at actual parse time.
@@ -245,6 +248,11 @@ Plan Customization Options:
                       dependencies. You can use this option multiple times to
                       include more than one object. This is for exceptional
                       use only.
+
+  -exclude=resource   Creates a partial plan for the current configuration, excluding
+                      a module, resource, or resource instance and all of its dependents
+                      from the planning operation. You can use this option multiple times
+                      to exclude more than one object from the plan.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than

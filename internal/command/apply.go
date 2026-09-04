@@ -292,6 +292,9 @@ func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view vi
 	// EXPERIMENTAL: maybe enable deferred actions
 	if c.AllowExperimentalFeatures {
 		opReq.DeferralAllowed = args.DeferralAllowed
+
+		// -exclude uses deferred changes, so it must be combined with -allow-deferral (so they must both be experimental)
+		opReq.Excludes = args.Excludes
 	} else if args.DeferralAllowed {
 		// Belated flag parse error, since we don't know about experiments
 		// support at actual parse time.

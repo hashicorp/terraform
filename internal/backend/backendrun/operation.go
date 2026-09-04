@@ -125,6 +125,7 @@ type Operation struct {
 	AutoApprove          bool
 	Targets              []addrs.Targetable
 	ActionTargets        []addrs.Targetable
+	Excludes             []addrs.Targetable
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue
 	StatePersistInterval int

@@ -182,6 +182,7 @@ func (b *Local) localRunDirect(op *backendrun.Operation, run *backendrun.LocalRu
 		Mode:               op.PlanMode,
 		Targets:            op.Targets,
 		ActionTargets:      op.ActionTargets,
+		Excludes:           op.Excludes,
 		ForceReplace:       op.ForceReplace,
 		SetVariables:       variables,
 		SkipRefresh:        op.Type != backendrun.OperationTypeRefresh && !op.PlanRefresh,

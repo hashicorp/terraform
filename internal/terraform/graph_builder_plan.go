@@ -57,6 +57,9 @@ type PlanGraphBuilder struct {
 	// ActionTargets are actions that should be triggered.
 	ActionTargets []addrs.Targetable
 
+	// Excludes are the resources to exclude (defer) in the plan graph.
+	Excludes []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -342,6 +345,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
 			minimalRefresh:       b.minimalRefresh,
+			excludes:             b.Excludes,
 		}
 	}
 
@@ -354,6 +358,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
+			excludes:        b.Excludes,
 		}
 	}
 
@@ -381,6 +386,7 @@ func (b *PlanGraphBuilder) initDestroy() {
 			NodeAbstractResourceInstance: a,
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh: b.skipRefresh || b.minimalRefresh,
+			excludes:    b.Excludes,
 		}
 	}
 }

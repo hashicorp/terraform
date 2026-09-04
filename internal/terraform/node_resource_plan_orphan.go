@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstanceOrphan represents a resource that is "applyable":
@@ -33,6 +34,8 @@ type NodePlannableResourceInstanceOrphan struct {
 	// forgetModules lists modules that should not be destroyed, only removed
 	// from state.
 	forgetModules []addrs.Module
+
+	excludes []addrs.Targetable
 }
 
 var (
@@ -117,6 +120,57 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if len(n.excludes) > 0 {
+		var deferredReason providers.DeferredReason
+		excluded := false
+		deferrals := ctx.Deferrals()
+
+		// If a dependency of this resource was excluded, then exclude this resource. If this
+		// resource is deferred by a dependency for a different reason, then that will be detected
+		// and reported after planning.
+		excludedReasons := []providers.DeferredReason{
+			providers.DeferredReasonExcluded,
+			providers.DeferredReasonExcludedPrereq,
+		}
+		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, excludedReasons...) {
+			excluded = true
+			deferredReason = providers.DeferredReasonExcludedPrereq
+		}
+
+		// Check if this resource would be deferred directly via the provided exclude addresses
+		for _, excludeAddr := range n.excludes {
+			if excludeAddr.TargetContains(addr) {
+				excluded = true
+				deferredReason = providers.DeferredReasonExcluded
+				break
+			}
+		}
+
+		// If the practitioner is excluding this resource (or a resource this resource depends on),
+		// we don't know why, so we assume that refreshing/planning should not be performed when
+		// producing a deferred change.
+		if excluded {
+			beforeVal := cty.NullVal(cty.DynamicPseudoType)
+			if oldState != nil {
+				beforeVal = oldState.Value
+			}
+
+			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
+				Addr:         addr,
+				PrevRunAddr:  addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: beforeVal,
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			})
+			n.reportDeferredActionTriggers(ctx, deferredReason)
+
+			return diags
+		}
 	}
 
 	// Note any upgrades that readResourceInstanceState might've done in the

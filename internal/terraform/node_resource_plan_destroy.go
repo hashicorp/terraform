@@ -22,6 +22,8 @@ type NodePlanDestroyableResourceInstance struct {
 
 	// skipRefresh indicates that we should skip refreshing
 	skipRefresh bool
+
+	excludes []addrs.Targetable
 }
 
 var (
@@ -90,6 +92,57 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
+	}
+
+	if len(n.excludes) > 0 {
+		var deferredReason providers.DeferredReason
+		excluded := false
+		deferrals := ctx.Deferrals()
+
+		// If a dependency of this resource was excluded, then exclude this resource. If this
+		// resource is deferred by a dependency for a different reason, then that will be detected
+		// and reported after planning.
+		excludedReasons := []providers.DeferredReason{
+			providers.DeferredReasonExcluded,
+			providers.DeferredReasonExcludedPrereq,
+		}
+		if deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies, excludedReasons...) {
+			excluded = true
+			deferredReason = providers.DeferredReasonExcludedPrereq
+		}
+
+		// Check if this resource would be deferred directly via the provided exclude addresses
+		for _, excludeAddr := range n.excludes {
+			if excludeAddr.TargetContains(addr) {
+				excluded = true
+				deferredReason = providers.DeferredReasonExcluded
+				break
+			}
+		}
+
+		// If the practitioner is excluding this resource (or a resource this resource depends on),
+		// we don't know why, so we assume that refreshing/planning should not be performed when
+		// producing a deferred change.
+		if excluded {
+			beforeVal := cty.NullVal(cty.DynamicPseudoType)
+			if state != nil {
+				beforeVal = state.Value
+			}
+
+			deferrals.ReportResourceInstanceDeferred(addr, deferredReason, &plans.ResourceInstanceChange{
+				Addr:         addr,
+				PrevRunAddr:  addr,
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Delete,
+					Before: beforeVal,
+					After:  cty.NullVal(cty.DynamicPseudoType),
+				},
+			})
+			n.reportDeferredActionTriggers(ctx, deferredReason)
+
+			return diags
+		}
 	}
 
 	// If we are in the "skip refresh" mode then we will have skipped over our
