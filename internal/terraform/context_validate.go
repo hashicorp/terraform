@@ -44,6 +44,10 @@ type ValidateOpts struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// SkipActions, when true, suppresses action-related graph construction
+	// during validation.
+	SkipActions bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -117,6 +121,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 		ImportTargets:             c.findImportTargets(config),
 		queryPlan:                 opts.Query,
 		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		SkipActions:               opts.SkipActions,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
