@@ -89,11 +89,13 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
-	v.print(v.prepareMessage(CopyingConfigurationMessage, moduleSource))
+	template := "[reset][bold]Copying configuration[reset] from %q..."
+	v.print(fmt.Sprintf(template, moduleSource))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
-	v.print(v.prepareMessage(InitializingProviderPluginMessage))
+	msg := "\n[reset][bold]Initializing provider plugins..."
+	v.print(msg)
 }
 
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -173,14 +175,13 @@ func (v *InitHuman) LogPartnerAndCommunityProviders() {
 
 // Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileCreated() {
-	params := []any{}
-	v.print(v.prepareMessage(LockInfo, params...))
+	v.print(createdLockInfoHuman)
 }
 
 // Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileUpdated() {
-	params := []any{}
-	v.print(v.prepareMessage(DependenciesLockChangesInfo, params...))
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.print(msg)
 }
 
 // Implements ModuleInstallationLogger
@@ -199,18 +200,14 @@ func (v *InitHuman) LogModuleInstallation(message string) {
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleUpgrade() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.print(v.prepareMessage(UpgradingModulesMessage, params...))
+	msg := "[reset][bold]Upgrading modules..."
+	v.print(msg)
 }
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleInitialization() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.print(v.prepareMessage(InitializingModulesMessage, params...))
+	msg := "[reset][bold]Initializing modules..."
+	v.print(msg)
 }
 
 // print formats (trims whitespace & applies colour) and
@@ -267,6 +264,16 @@ func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 
 func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	preppedMessage := v.prepareMessage(messageCode, params...)
+	v.initOutputLog(preppedMessage, messageCode)
+}
+
+func (v *InitJSON) initOutputLog(preppedMessage string, messageCode any) {
+	switch messageCode.(type) {
+	case InitMessageCode, json.MessageType:
+		// ok, tolerated custom string types
+	default:
+		panic(fmt.Sprintf("initOutputLog: unexpected argument type %T", messageCode))
+	}
 
 	// Logged data includes by default:
 	// @level as "info"
@@ -281,16 +288,13 @@ func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
 	v.view.log.Info(
 		preppedMessage,
 		"type", "init_output",
-		"message_code", string(messageCode),
+		"message_code", messageCode,
 	)
 }
 
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
-	params := []any{moduleSource}
-
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.Output(CopyingConfigurationMessage, params...)
+	template := "Copying configuration from %q..."
+	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.CopyingConfigurationMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -314,10 +318,8 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) LogInstallProvidersStart() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(InitializingProviderPluginMessage, params...)
+	msg := "Initializing provider plugins..."
+	v.initOutputLog(msg, json.InitializingProviderPluginMessage)
 }
 
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -439,18 +441,14 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileCreated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(LockInfo, params...)
+	msg := strings.TrimSpace(createdLockInfoJSON)
+	v.initOutputLog(msg, json.LockInfo)
 }
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(DependenciesLockChangesInfo, params...)
+	msg := strings.TrimSpace(dependenciesLockChangesInfo)
+	v.initOutputLog(msg, json.DependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -469,18 +467,14 @@ func (v *InitJSON) LogModuleInstallation(message string) {
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleUpgrade() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(UpgradingModulesMessage, params...)
+	msg := "Upgrading modules..."
+	v.initOutputLog(msg, json.UpgradingModulesMessage)
 }
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleInitialization() {
-	// This was previously logged via Output, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	params := []any{}
-	v.Output(InitializingModulesMessage, params...)
+	msg := "Initializing modules..."
+	v.initOutputLog(msg, json.InitializingModulesMessage)
 }
 
 // prepareMessage retrieves a message template matching the InitMessageCode and
@@ -508,10 +502,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"copying_configuration_message": {
-		HumanValue: "[reset][bold]Copying configuration[reset] from %q...",
-		JSONValue:  "Copying configuration from %q...",
-	},
 	"output_init_empty_message": {
 		HumanValue: outputInitEmpty,
 		JSONValue:  outputInitEmptyJSON,
@@ -532,14 +522,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: outputInitSuccessCLICloud,
 		JSONValue:  outputInitSuccessCLICloudJSON,
 	},
-	"upgrading_modules_message": {
-		HumanValue: "[reset][bold]Upgrading modules...",
-		JSONValue:  "Upgrading modules...",
-	},
-	"initializing_modules_message": {
-		HumanValue: "[reset][bold]Initializing modules...",
-		JSONValue:  "Initializing modules...",
-	},
 	"initializing_terraform_cloud_message": {
 		HumanValue: "\n[reset][bold]Initializing HCP Terraform...",
 		JSONValue:  "Initializing HCP Terraform...",
@@ -548,10 +530,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing the backend...",
 		JSONValue:  "Initializing the backend...",
 	},
-	"initializing_provider_plugin_message": {
-		HumanValue: "\n[reset][bold]Initializing provider plugins...",
-		JSONValue:  "Initializing provider plugins...",
-	},
 	"initializing_state_store_message": {
 		HumanValue: "\n[reset][bold]Initializing the state store %q...",
 		JSONValue:  "Initializing the state store %q...",
@@ -559,10 +537,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
-	},
-	"lock_info": {
-		HumanValue: previousLockInfoHuman,
-		JSONValue:  previousLockInfoJSON,
 	},
 	"provider_already_installed_message": {
 		HumanValue: logProviderVersionAlreadyInstalledHuman,
@@ -652,19 +626,14 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	CopyingConfigurationMessage       InitMessageCode = "copying_configuration_message"
 	OutputInitEmptyMessage            InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessMessage          InitMessageCode = "output_init_success_message"
 	OutputInitSuccessCloudMessage     InitMessageCode = "output_init_success_cloud_message"
 	OutputInitSuccessCLIMessage       InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage  InitMessageCode = "output_init_success_cli_cloud_message"
-	UpgradingModulesMessage           InitMessageCode = "upgrading_modules_message"
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
-	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
 	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
-	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
-	LockInfo                          InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
