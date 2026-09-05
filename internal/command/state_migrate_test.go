@@ -2178,4 +2178,182 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 		// Assert expected JSON output is made
 		checkGoldenReference(t, out, fixture)
 	})
+
+	t.Run("state store to state store in another provider", func(t *testing.T) {
+		fixture := "state-store-changed/provider-used"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// hashicorp/test
+		sourcePssSchema := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		sourceProvider := mockPluggableStateStorageProvider(sourcePssSchema)
+		sourceProvider.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+		}
+		// hashicorp/test2
+		destinationPssSchema := map[string]providers.Schema{
+			"test2_dst": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
+		destinationProvider.MockStates = testing_provider.MockStateBytes{
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
+		}
+		providerSource := newMockProviderSource(t, map[string][]string{
+			"hashicorp/test":  {"1.2.3"},
+			"hashicorp/test2": {"3.2.1"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
+						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
+					},
+				},
+				ProviderSource: providerSource,
+			},
+		}
+
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit: %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected JSON output is made
+		checkParameterizedGoldenReference(t, out, fixture, getproviders.CurrentPlatform.String())
+	})
+
+	t.Run("automatic approval of new provider download", func(t *testing.T) {
+		// The fixture used here is the same as another subtest here, but this subtest
+		// makes provider download appear to be via HTTP, which triggers security features
+		// when a provider is downloaded before being immediately used for state storage purposes.
+		//
+		// Due to this, alternative golden reference JSON logs are used:
+		fixture := "state-store-changed/provider-used"
+		goldenReferenceFixturePath := filepath.Join(fixture, "alternative-logs/automatic-provider-approval")
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		b, err := os.ReadFile("source-pss.tfstate")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// hashicorp/test - source
+		sourcePssSchema := map[string]providers.Schema{
+			"test_src": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		srcMockProviderAddress := addrs.NewDefaultProvider("test")
+		sourceProvider := mockPluggableStateStorageProvider(sourcePssSchema)
+		sourceProvider.MockStates = testing_provider.MockStateBytes{
+			"test_src": map[string][]byte{"default": []byte(b)},
+		}
+		// hashicorp/test2 - destination
+		dstMockProviderAddress := addrs.NewDefaultProvider("test2")
+		destinationPssSchema := map[string]providers.Schema{
+			"test2_dst": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{},
+				},
+			},
+		}
+		destinationProvider := mockPluggableStateStorageProvider(destinationPssSchema)
+		destinationProvider.MockStates = testing_provider.MockStateBytes{
+			"test2_dst": map[string][]byte{}, // No existing state in the destination
+		}
+
+		// Set up mock provider source that mocks out hashicorp/test and hashicorp/test2 download via HTTP.
+		// This stops Terraform auto-approving the provider installation.
+		expectedVersion := "1.2.3"
+		source := newMockProviderSourceUsingTestHttpServer(t, map[string][]string{
+			"hashicorp/test":  {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
+			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					srcMockProviderAddress: providers.FactoryFixed(sourceProvider),
+					dstMockProviderAddress: providers.FactoryFixed(destinationProvider),
+				},
+			},
+			ProviderSource: source,
+			WorkingDir:     wd,
+		}
+		c := &StateMigrateCommand{
+			Meta: meta,
+		}
+
+		// Create supplemental lock file to be used with the -source-provider-lock-file
+		// and -destination-provider-lock-file flags.
+		// To avoid this being confused with the lock file in the working directory,
+		// this is made in a second temp directory away from other files in this test.
+		td2 := t.TempDir()
+		lockFileName := filepath.Join(td2, ".terraform.lock.hcl")
+		suppliedLockFileVersion := getproviders.MustParseVersion(expectedVersion)
+		locks := depsfile.NewLocks()
+		locks.SetProvider(
+			srcMockProviderAddress,
+			suppliedLockFileVersion,
+			getproviders.MustParseVersionConstraints("> 1.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno="),
+			},
+		)
+		locks.SetProvider(
+			dstMockProviderAddress,
+			suppliedLockFileVersion,
+			getproviders.MustParseVersionConstraints("> 1.0.0"),
+			[]getproviders.Hash{
+				getproviders.HashScheme1.New("Ro/5F9A1n2BADO4uPWVdJpiydN7bMRQOLzlOfb7m04s="),
+			},
+		)
+		depsfile.SaveLocksToFile(locks, lockFileName)
+
+		subtestArgs := append(args,
+			// Extra flags for supplying supplemental lock files
+			fmt.Sprintf("-source-provider-lock-file=%s", lockFileName),
+			fmt.Sprintf("-destination-provider-lock-file=%s", lockFileName),
+		)
+		code := c.Run(subtestArgs)
+		testOutput := done(t)
+		if code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, testOutput.All())
+		}
+
+		// Assert expected JSON output is made
+		checkParameterizedGoldenReference(t, testOutput, goldenReferenceFixturePath, getproviders.CurrentPlatform.String())
+	})
 }
