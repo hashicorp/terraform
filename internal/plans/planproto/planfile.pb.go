@@ -1013,14 +1013,14 @@ type Change struct {
 	// the documentation for any message that embeds Change.
 	Action Action `protobuf:"varint,1,opt,name=action,proto3,enum=tfplan.Action" json:"action,omitempty"`
 	// msgpack-encoded HCL values involved in the change.
-	//   - For update and replace, two values are provided that give the old and new values,
-	//     respectively.
-	//   - For create, one value is provided that gives the new value to be created
-	//   - For delete, one value is provided that describes the value being deleted
-	//   - For read, two values are provided that give the prior value for this object
-	//     (or null, if no prior value exists) and the value that was or will be read,
-	//     respectively.
-	//   - For no-op, one value is provided that is left unmodified by this non-change.
+	// - For update and replace, two values are provided that give the old and new values,
+	//   respectively.
+	// - For create, one value is provided that gives the new value to be created
+	// - For delete, one value is provided that describes the value being deleted
+	// - For read, two values are provided that give the prior value for this object
+	//   (or null, if no prior value exists) and the value that was or will be read,
+	//   respectively.
+	// - For no-op, one value is provided that is left unmodified by this non-change.
 	Values []*DynamicValue `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
 	// An unordered set of paths into the old value which are marked as
 	// sensitive. Values at these paths should be obscured in human-readable
