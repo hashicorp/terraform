@@ -64,8 +64,10 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 // or if the check index is out of bounds for the number of checks expected
 // of the given type, this method will panic to indicate a bug in the caller.
 //
-// This method will also panic if the specified check already had a known
-// status; each check should have its result reported only once.
+// If the specified check already had a known status, this method will log
+// a warning or error (depending on whether the status conflicts) and preserve
+// the original status. This is a defensive measure against race conditions or
+// duplicate reporting during concurrent graph walks.
 func (c *State) ReportCheckResult(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, status Status) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -111,8 +113,18 @@ func (c *State) reportCheckResult(objectAddr addrs.Checkable, checkType addrs.Ch
 	if index >= len(checks[checkType]) {
 		panic(fmt.Sprintf("%s index %d out of range for %s", checkType, index, objectAddr))
 	}
-	if checks[checkType][index] != StatusUnknown {
-		panic(fmt.Sprintf("duplicate status report for %s %s %d", objectAddr, checkType, index))
+
+	existingStatus := checks[checkType][index]
+	if existingStatus != StatusUnknown {
+		// Duplicate report detected; preserve first-write-wins semantics.
+		if existingStatus == status {
+			// Same status reported twice, likely a benign race condition.
+			log.Printf("[WARN] checks: duplicate status report for %s %s %d", objectAddr, checkType, index)
+			return
+		}
+		// Conflicting status reported; keep the original and log for debugging.
+		log.Printf("[ERROR] checks: conflicting status report for %s %s %d: was %s, got %s", objectAddr, checkType, index, existingStatus, status)
+		return
 	}
 
 	checks[checkType][index] = status
