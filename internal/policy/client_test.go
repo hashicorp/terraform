@@ -5,12 +5,15 @@ package policy
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"google.golang.org/grpc"
 	gproto "google.golang.org/protobuf/proto"
 
@@ -25,6 +28,7 @@ type stubPolicyClient struct {
 	evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
 	evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 	evaluateModuleFn   func(*proto.PolicyEvaluateModuleRequest) (*proto.PolicyEvaluateModuleResponse, error)
+	validateSchemasFn  func(context.Context, *proto.ValidateProviderSchemasRequest) (*proto.ValidateProviderSchemasResponse, error)
 }
 
 func (s *stubPolicyClient) Setup(ctx context.Context, req *proto.PolicySetupRequest, _ ...grpc.CallOption) (*proto.PolicySetupResponse, error) {
@@ -41,6 +45,58 @@ func (s *stubPolicyClient) EvaluateProvider(ctx context.Context, req *proto.Poli
 
 func (s *stubPolicyClient) EvaluateModule(ctx context.Context, req *proto.PolicyEvaluateModuleRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateModuleResponse, error) {
 	return s.evaluateModuleFn(req)
+}
+
+func (s *stubPolicyClient) ValidateProviderSchemas(ctx context.Context, req *proto.ValidateProviderSchemasRequest, _ ...grpc.CallOption) (*proto.ValidateProviderSchemasResponse, error) {
+	return s.validateSchemasFn(ctx, req)
+}
+
+func TestProviderSchemaToProto(t *testing.T) {
+	got, err := providerSchemaToProto(ProviderSchema{
+		Type:        "test",
+		Config:      cty.NilType,
+		Resources:   map[string]cty.Type{"test_empty": cty.NilType},
+		DataSources: map[string]cty.Type{"test_data": cty.EmptyObject},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error encoding absent schema bodies: %s", err)
+	}
+	if len(got.LocalNames) != 0 {
+		t.Fatalf("Terraform must not send configuration local names as policy aliases: %v", got.LocalNames)
+	}
+
+	for name, raw := range map[string][]byte{
+		"config":     got.Config,
+		"test_empty": got.Resources["test_empty"],
+		"test_data":  got.DataSources["test_data"],
+	} {
+		typ, err := ctyjson.UnmarshalType(raw)
+		if err != nil {
+			t.Fatalf("%s did not contain a valid cty type: %s", name, err)
+		}
+		if !typ.Equals(cty.EmptyObject) {
+			t.Errorf("%s encoded %s, want empty object", name, typ.FriendlyName())
+		}
+	}
+}
+
+func TestClientValidateProviderSchemasRPCError(t *testing.T) {
+	c := &client{client: &stubPolicyClient{
+		validateSchemasFn: func(ctx context.Context, req *proto.ValidateProviderSchemasRequest) (*proto.ValidateProviderSchemasResponse, error) {
+			return nil, errors.New("transport unavailable")
+		},
+	}}
+
+	resp := c.ValidateProviderSchemas(t.Context(), ValidateProviderSchemasRequest{
+		ProviderSchemas: []ProviderSchema{{Type: "test", Config: cty.EmptyObject}},
+	})
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("expected the RPC error to become a diagnostic")
+	}
+	detail := resp.Diagnostics[0].Description().Detail
+	if !strings.Contains(detail, "transport unavailable") || !strings.Contains(detail, "provider schemas") {
+		t.Fatalf("RPC diagnostic is not actionable: %q", detail)
+	}
 }
 
 func TestClientEvaluate(t *testing.T) {
