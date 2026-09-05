@@ -949,7 +949,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 		}
 		flagConfigExtra := arguments.NewFlagNameValueSlice("-backend-config")
 		flagConfigExtra.Set("input.config")
-		_, diags := c.backendConfigOverrideBody(flagConfigExtra, schema)
+		_, diags := c.backendConfigOverrideBody(flagConfigExtra, schema, Backend)
 		if len(diags) != 0 {
 			t.Errorf("expected no diags, got: %s", diags.Err())
 		}
@@ -4733,7 +4733,7 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		if !strings.Contains(testOutput.Stderr(), "Invalid backend configuration argument") {
+		if !strings.Contains(testOutput.Stderr(), "Invalid state store configuration argument") {
 			t.Fatalf("expected error output to report the config argument was invalid, got:\n %s", testOutput.All())
 		}
 	})
@@ -4772,7 +4772,7 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 
 		// Create file with partial configuration
 		partialConfigPath := filepath.Join(td, "overrides.test_store.tfbackend")
-		cfg := `provider {
+		cfg := `provider "test" {
   value = "OVERRIDDEN"
 }`
 		if err := os.WriteFile(partialConfigPath, []byte(cfg), 0644); err != nil {
@@ -4789,8 +4789,17 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			t.Fatalf("expected code 1 exit code, got %d, output: \n%s", code, testOutput.All())
 		}
 
-		if !strings.Contains(testOutput.Stderr(), "Error: Unsupported block type") {
-			t.Fatalf("expected error output to report the config argument was invalid, got:\n %s", testOutput.All())
+		expectedErrorMsgs := []string{
+			// We've detected that the user is attempting to override the provider block in a state_store block.
+			"Error: Cannot partially override provider configuration in a state store block.",
+
+			// More generic error due to the state store's schema not including the provider block in it's schema.
+			"Error: Unsupported block type",
+		}
+		for _, expected := range expectedErrorMsgs {
+			if !strings.Contains(testOutput.Stderr(), expected) {
+				t.Fatalf("expected error output to include %q, got:\n %s", expected, testOutput.All())
+			}
 		}
 	})
 }

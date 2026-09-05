@@ -242,7 +242,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 			// Handle any overrides supplied via -backend-config CLI flags
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body, StateStore)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -269,7 +269,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		var configOverride hcl.Body
 		if !initArgs.BackendConfig.Empty() {
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema, Backend)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -694,7 +694,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 //
 // If the returned diagnostics contains errors then the returned body may be
 // incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block, stateStorageMode string) (hcl.Body, tfdiags.Diagnostics) {
 	items := flags.AllItems()
 	if len(items) == 0 {
 		return nil, nil
@@ -731,6 +731,8 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 		if eq == -1 {
 			// The value is interpreted as a filename.
+			//
+			// Overrides via file support overriding Attributes and Blocks.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
 			if fileDiags.HasErrors() {
@@ -757,6 +759,16 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					LabelNames: labelNames,
 				})
 			}
+
+			if stateStorageMode == StateStore {
+				// Raise an error if the user is attempting to override a provider block in a state_store block.
+				diags = diags.Append(checkIfConfigOverrideIncludesProviderBlock(newBody))
+
+				// Allow to fall through to next check, which will also raise an "Unsupported block type" error
+				// related to the unexpected "provider" block, too. This is alongside any other errors the user
+				// should be notified about.
+			}
+
 			// Verify that the file body matches the expected backend schema.
 			_, schemaDiags := newBody.Content(&bodySchema)
 			diags = diags.Append(schemaDiags)
@@ -766,18 +778,21 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
+			// The value is interpreted as a key-value pair.
+			//
+			// Overrides via key-value pair only support overriding Attributes.
 			name := item.Value[:eq]
 			rawValue := item.Value[eq+1:]
 			attrS := schema.Attributes[name]
 			if attrS == nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid backend configuration argument",
-					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+					fmt.Sprintf("Invalid %s configuration argument", stateStorageMode),
+					fmt.Sprintf("The %s configuration argument %q given on the command line is not expected for the selected %s type.", stateStorageMode, name, stateStorageMode),
 				))
 				continue
 			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
+			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type, stateStorageMode)
 			diags = diags.Append(valueDiags)
 			if valueDiags.HasErrors() {
 				continue
@@ -789,6 +804,30 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 	flushVals()
 
 	return ret, diags
+}
+
+// checkIfConfigOverrideIncludesProviderBlock checks if the HCL body created from a file
+// used to supply override configuration for a state store is attempting to override the provider block.
+// We do this by seeing if the HCL body contains any "provider" blocks.
+func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	var s hcl.BodySchema
+	s.Blocks = append(s.Blocks, hcl.BlockHeaderSchema{
+		Type:       "provider",
+		LabelNames: []string{"name"},
+	})
+	bc, _, _ := newBody.PartialContent(&s)
+	for _, b := range bc.Blocks {
+		if b.Type == "provider" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot partially override provider configuration in a state store block.",
+				"The configuration arguments supplied by the override file attempts to override provider configuration, which is not allowed when using a state store.",
+			))
+			break
+		}
+	}
+	return diags
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
