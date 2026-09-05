@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -461,6 +462,12 @@ func (c *StateMigrateCommand) initializeDestinationStateStore(ctx context.Contex
 	diags = diags.Append(trustDiags)
 	if trustDiags.HasErrors() {
 		return nil, cty.NilVal, cty.NilVal, nil, diags
+	}
+
+	if upgrade {
+		// When upgrading the provider, clear the schema cache to ensure that any new schema changes are picked up.
+		// The source state store's already been initialised by the time we reach this point, which means the older provider version's schema is cached.
+		providers.SchemaCache.Clear()
 	}
 
 	dstB, stateStoreConfig, providerConfig, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)

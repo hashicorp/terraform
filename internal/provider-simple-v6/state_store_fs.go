@@ -22,8 +22,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-const fsStoreName = "simple6_fs"
-const defaultStatesDir = "terraform.tfstate.d"
+const (
+	fsStoreName      = "simple6_fs"
+	defaultStatesDir = "terraform.tfstate.d"
+)
 
 // FsStore allows storing state in the local filesystem.
 //
@@ -49,6 +51,14 @@ func stateStoreFsGetSchema() providers.Schema {
 					Type:        cty.String,
 					Optional:    true,
 					Description: "The directory where state files will be created. When unset the value will default to terraform.tfstate.d",
+				},
+
+				// This attribute's name can be overridden at build time using -ldflags.
+				// This is a way to enable E2E tests using different versions of the provider with different schemas.
+				AttributeName: {
+					Type:        cty.String,
+					Optional:    true,
+					Description: "A non-functional attribute whose name can be changed at build time to enable E2E tests using different provider versions, shown by changing schemas. The default attribute name is 'default'.",
 				},
 			},
 		},

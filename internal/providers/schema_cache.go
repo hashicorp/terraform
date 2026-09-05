@@ -39,3 +39,16 @@ func (c *schemaCache) Get(p addrs.Provider) (ProviderSchema, bool) {
 	s, ok := c.m[p]
 	return s, ok
 }
+
+// Clear empties the current schema cache. This is useful in
+// rare cases where we want to avoid what's in the cache.
+//
+// The original motivation for this method was the `state migrate`
+// command which may use two versions of the same provider at once.
+// Caching forces the first schema to be reused for the second version.
+func (c *schemaCache) Clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.m = make(map[addrs.Provider]ProviderSchema)
+}
