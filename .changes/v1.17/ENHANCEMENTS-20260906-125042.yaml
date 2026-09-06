@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'providercache: multiple Terraform processes can now safely share a global plugin cache directory (`plugin_cache_dir` / `TF_PLUGIN_CACHE_DIR`) concurrently, coordinated by per-provider advisory file locks'
+time: 2026-09-06T12:50:42.000000Z
+custom:
+    Issue: "39142"
