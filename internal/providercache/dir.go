@@ -36,19 +36,19 @@ type Dir struct {
 	// that the cache is cold. The cache will be invalidated (set back to nil)
 	// by any operation that modifies the contents of the cache directory.
 	//
-	// We intentionally don't make effort to detect modifications to the
-	// directory made by other codepaths because the contract for NewDir
-	// explicitly defines using the same directory for multiple purposes
-	// as undefined behavior.
+	// The global-cache installer also invalidates this after acquiring a
+	// package lock, because another process might have populated the cache
+	// while waiting for that lock.
 	metaCache map[addrs.Provider][]CachedProvider
 }
 
 // NewDir creates and returns a new Dir object that will read and write
 // provider plugins in the given filesystem directory.
 //
-// If two instances of Dir are concurrently operating on a particular base
-// directory, or if a Dir base directory is also used as a filesystem mirror
-// source directory, the behavior is undefined.
+// A Dir is not itself safe for concurrent use. Installer coordinates separate
+// Terraform processes that use the same directory as a global cache, but direct
+// concurrent calls to Dir methods and using a Dir as both a cache and a
+// filesystem mirror source remain undefined.
 func NewDir(baseDir string) *Dir {
 	return &Dir{
 		baseDir:        baseDir,
