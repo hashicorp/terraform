@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'tests: Normalize dynamic elapsed duration in command and policy output comparisons'
+time: 2026-09-06T07:28:00.000000Z
+custom:
+    Issue: "39026"
