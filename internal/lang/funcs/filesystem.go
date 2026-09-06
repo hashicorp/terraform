@@ -1,6 +1,5 @@
-// Copyright IBM Corp. 2014, 2026
-// SPDX-License-Identifier: BUSL-1.1
-
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
 package funcs
 
 import (
@@ -19,7 +18,21 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
+
+// stripDeprecationMarks returns a copy of the given marks with all
+// DeprecationMark entries removed. Deprecation marks on an input path
+// describe the input expression, not the output value, so they must not
+// be forwarded to the result of a filesystem function — otherwise a
+// config expression that applies two marks to the same path (e.g.
+// file(sensitive(module.m.path)) where module.m.path already carries a
+// deprecation mark) will produce a plan-time result carrying a different
+// mark set than apply-time, and the consistency check will abort.
+func stripDeprecationMarks(inputMarks cty.ValueMarks) cty.ValueMarks {
+	out, _ := inputMarks.FilterDeprecationMarks()
+	return out
+}
 
 // MakeFileFunc constructs a function that takes a file path and returns the
 // contents of that file, either directly as a string (where valid UTF-8 is
@@ -40,7 +53,7 @@ func MakeFileFunc(baseDir string, encBase64 bool, wrap ImplWrapper) function.Fun
 			pathArg, pathMarks := args[0].Unmark()
 
 			if !pathArg.IsKnown() {
-				return cty.UnknownVal(cty.String).WithMarks(pathMarks), nil
+				return cty.UnknownVal(cty.String).WithMarks(stripDeprecationMarks(pathMarks)), nil
 			}
 
 			path := pathArg.AsString()
@@ -53,12 +66,12 @@ func MakeFileFunc(baseDir string, encBase64 bool, wrap ImplWrapper) function.Fun
 			switch {
 			case encBase64:
 				enc := base64.StdEncoding.EncodeToString(src)
-				return cty.StringVal(enc).WithMarks(pathMarks), nil
+				return cty.StringVal(enc).WithMarks(stripDeprecationMarks(pathMarks)), nil
 			default:
 				if !utf8.Valid(src) {
 					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead", redactIfSensitive(path, pathMarks))
 				}
-				return cty.StringVal(string(src)).WithMarks(pathMarks), nil
+				return cty.StringVal(string(src)).WithMarks(stripDeprecationMarks(pathMarks)), nil
 			}
 		}),
 	})
@@ -139,7 +152,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() (funcs map[string]funct
 			vars, varsMarks := args[1].UnmarkDeep()
 
 			if !pathArg.IsKnown() || !vars.IsKnown() {
-				return cty.UnknownVal(retType).WithMarks(pathMarks, varsMarks), nil
+				return cty.UnknownVal(retType).WithMarks(stripDeprecationMarks(pathMarks), stripDeprecationMarks(varsMarks)), nil
 			}
 
 			expr, tmplMarks, err := loadTmpl(pathArg.AsString(), pathMarks)
@@ -170,7 +183,7 @@ func MakeFileExistsFunc(baseDir string, wrap ImplWrapper) function.Function {
 			pathArg, pathMarks := args[0].Unmark()
 
 			if !pathArg.IsKnown() {
-				return cty.UnknownVal(cty.Bool).WithMarks(pathMarks), nil
+				return cty.UnknownVal(cty.Bool).WithMarks(stripDeprecationMarks(pathMarks)), nil
 			}
 
 			path := pathArg.AsString()
@@ -189,13 +202,13 @@ func MakeFileExistsFunc(baseDir string, wrap ImplWrapper) function.Function {
 			fi, err := os.Stat(path)
 			if err != nil {
 				if os.IsNotExist(err) {
-					return cty.False.WithMarks(pathMarks), nil
+					return cty.False.WithMarks(stripDeprecationMarks(pathMarks)), nil
 				}
 				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to stat %s", redactIfSensitive(path, pathMarks))
 			}
 
 			if fi.Mode().IsRegular() {
-				return cty.True.WithMarks(pathMarks), nil
+				return cty.True.WithMarks(stripDeprecationMarks(pathMarks)), nil
 			}
 
 			// The Go stat API only provides convenient access to whether it's
@@ -249,6 +262,12 @@ func MakeFileSetFunc(baseDir string, wrap ImplWrapper) function.Function {
 		Impl: wrap(func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
 			patternArg, patternMarks := args[1].Unmark()
+
+			// Deprecation marks on the input path/pattern describe the input
+			// expressions, not the output set, so they must not be forwarded
+			// to the result.
+			pathMarks = stripDeprecationMarks(pathMarks)
+			patternMarks = stripDeprecationMarks(patternMarks)
 
 			if !pathArg.IsKnown() || !patternArg.IsKnown() {
 				return cty.UnknownVal(retType).WithMarks(pathMarks, patternMarks), nil
