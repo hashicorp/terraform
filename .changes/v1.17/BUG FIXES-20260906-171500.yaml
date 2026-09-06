@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/local: `apply` of a saved plan no longer emits an incorrect "target doesn''t match plan" warning when a `-target` flag is more specific than a target recorded in the plan, and now correctly warns when the plan contains additional targets not covered by a narrower `-target` flag'
+time: 2026-09-06T17:15:00.000000+05:30
+custom:
+    Issue: "39139"

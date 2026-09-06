@@ -425,23 +425,7 @@ func (b *Local) opApply(
 	// If the user erroneously included any plan options flags when they supplied a plan file,
 	// we'll return an error if the flag values don't match the plan file.
 	if len(op.Targets) != 0 {
-		// Do target flags all match targets in the plan?
-		for _, target := range op.Targets {
-			found := false
-			for _, planTarget := range plan.TargetAddrs {
-				if target.TargetContains(planTarget) {
-					found = true
-					break
-				}
-			}
-			if !found {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Can't change resource targeting when applying a saved plan",
-					fmt.Sprintf("The target address %q was supplied using a -target flag but does not match a target in the saved plan file. This flag will be ignored and won't influence the apply operation.", target),
-				))
-			}
-		}
+		diags = diags.Append(targetMismatchDiags(op.Targets, plan.TargetAddrs))
 	}
 	if op.PlanMode != plan.UIMode {
 		if op.PlanMode == plans.DestroyMode {
@@ -520,6 +504,65 @@ func (b *Local) opApply(
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
 	op.View.Diagnostics(diags)
+}
+
+// targetMismatchDiags compares the -target addresses supplied on the command
+// line against the target addresses recorded in a saved plan file, returning
+// a warning for each address on either side that isn't covered by (equal to,
+// containing, or contained by) at least one address on the other side.
+//
+// Two separate mismatches are possible here:
+//   - A -target flag whose address has nothing to do with any address in the
+//     saved plan: applying the saved plan can't be narrowed down by it, so
+//     it's pointless and will be ignored.
+//   - An address in the saved plan that isn't covered by any -target flag:
+//     that part of the plan will still be applied even though the user's
+//     -target flags suggested they only wanted a subset of it.
+func targetMismatchDiags(cliTargets, planTargets []addrs.Targetable) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// Two targets are considered compatible if either one contains the
+	// other (or they're equal, which TargetContains also treats as
+	// containment), regardless of which side is the more specific one.
+	compatible := func(a, b addrs.Targetable) bool {
+		return a.TargetContains(b) || b.TargetContains(a)
+	}
+
+	for _, target := range cliTargets {
+		found := false
+		for _, planTarget := range planTargets {
+			if compatible(target, planTarget) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change resource targeting when applying a saved plan",
+				fmt.Sprintf("The target address %q was supplied using a -target flag but does not match a target in the saved plan file. This flag will be ignored and won't influence the apply operation.", target),
+			))
+		}
+	}
+
+	for _, planTarget := range planTargets {
+		found := false
+		for _, target := range cliTargets {
+			if compatible(target, planTarget) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change resource targeting when applying a saved plan",
+				fmt.Sprintf("The saved plan file includes changes for %q, which isn't covered by any of the -target flags supplied to apply. This part of the plan will still be applied.", planTarget),
+			))
+		}
+	}
+
+	return diags
 }
 
 // backupStateForError is called in a scenario where we're unable to persist the

@@ -434,3 +434,78 @@ func TestApply_applyCanceledAutoApprove(t *testing.T) {
 	}
 
 }
+
+func mustParseApplyTarget(t *testing.T, str string) addrs.Targetable {
+	t.Helper()
+	target, diags := addrs.ParseTargetStr(str)
+	if diags.HasErrors() {
+		t.Fatalf("failed to parse target %q: %s", str, diags.Err())
+	}
+	return target.Subject
+}
+
+func TestTargetMismatchDiags(t *testing.T) {
+	target := func(str string) addrs.Targetable { return mustParseApplyTarget(t, str) }
+
+	tests := map[string]struct {
+		cliTargets, planTargets []addrs.Targetable
+		wantSummaries           []string
+	}{
+		"exact match, no warnings": {
+			cliTargets:    []addrs.Targetable{target("null_resource.a")},
+			planTargets:   []addrs.Targetable{target("null_resource.a")},
+			wantSummaries: nil,
+		},
+		"cli target more specific than plan target: covered, no warnings": {
+			// Regression case for the reported "inverted containment
+			// check": applying a plan that targeted the whole module with
+			// a more specific -target inside that module must not warn,
+			// since the resource was included under the module target.
+			cliTargets:    []addrs.Targetable{target("module.foo.null_resource.bar")},
+			planTargets:   []addrs.Targetable{target("module.foo")},
+			wantSummaries: nil,
+		},
+		"cli target broader than plan target: covered, no warnings": {
+			cliTargets:    []addrs.Targetable{target("module.foo")},
+			planTargets:   []addrs.Targetable{target("module.foo.null_resource.bar")},
+			wantSummaries: nil,
+		},
+		"cli target unrelated to the only plan target: warns both ways": {
+			// Neither address relates to the other at all, so both the
+			// "cli target doesn't match anything in the plan" loop and the
+			// "plan target isn't covered by any cli target" loop fire.
+			cliTargets:  []addrs.Targetable{target("null_resource.unrelated")},
+			planTargets: []addrs.Targetable{target("null_resource.a")},
+			wantSummaries: []string{
+				"Can't change resource targeting when applying a saved plan",
+				"Can't change resource targeting when applying a saved plan",
+			},
+		},
+		"plan target not covered by any cli target: warns once": {
+			// Regression case for the reported "subset / re-targeting
+			// blind spot": a plan with two targets, applied with -target
+			// covering only one of them, must warn about the other one
+			// still being applied. The covered target produces no warning
+			// in either direction, so only one warning is expected.
+			cliTargets:  []addrs.Targetable{target("null_resource.a")},
+			planTargets: []addrs.Targetable{target("null_resource.a"), target("null_resource.b")},
+			wantSummaries: []string{
+				"Can't change resource targeting when applying a saved plan",
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			diags := targetMismatchDiags(test.cliTargets, test.planTargets)
+			if len(diags) != len(test.wantSummaries) {
+				t.Fatalf("got %d diagnostics, want %d: %s", len(diags), len(test.wantSummaries), diags.Err())
+			}
+			for i, wantSummary := range test.wantSummaries {
+				if got := diags[i].Description().Summary; got != wantSummary {
+					t.Errorf("diag %d summary = %q, want %q", i, got, wantSummary)
+				}
+			}
+		})
+	}
+}
