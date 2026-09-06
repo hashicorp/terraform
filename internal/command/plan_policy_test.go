@@ -450,7 +450,7 @@ Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
-	if actual, diff := output.Stdout(), cmp.Diff(expected, output.Stdout()); diff != "" {
+	if actual, diff := output.Stdout(), cmp.Diff(expected, normalizeElapsedDuration(output.Stdout())); diff != "" {
 		t.Fatalf("unexpected output:\n%s. \nDiff: %s", actual, diff)
 	}
 }
@@ -653,7 +653,7 @@ Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
-	if actual, diff := output.Stdout(), cmp.Diff(expected, output.Stdout()); diff != "" {
+	if actual, diff := output.Stdout(), cmp.Diff(expected, normalizeElapsedDuration(output.Stdout())); diff != "" {
 		t.Fatalf("unexpected output:\n%s. \nDiff: %s", actual, diff)
 	}
 }
@@ -903,7 +903,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.
 Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
-	if diff := cmp.Diff(expectedStdout, output.Stdout()); diff != "" {
+	if diff := cmp.Diff(expectedStdout, normalizeElapsedDuration(output.Stdout())); diff != "" {
 		t.Fatalf("unexpected stdout output:\n%s", diff)
 	}
 
@@ -1026,7 +1026,7 @@ Note: You didn't use the -out option to save this plan, so Terraform can't
 guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
-	if diff := cmp.Diff(expectedStdOut, output.Stdout()); diff != "" {
+	if diff := cmp.Diff(expectedStdOut, normalizeElapsedDuration(output.Stdout())); diff != "" {
 		t.Fatalf("unexpected stdout output:\n%s", diff)
 	}
 

@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"testing"
@@ -1219,10 +1220,33 @@ func checkParameterizedGoldenReferenceHumanOutput(t *testing.T, output *terminal
 
 	want = strings.ReplaceAll(want, "\n", " ")
 
+	got = normalizeElapsedDuration(got)
+	want = normalizeElapsedDuration(want)
+
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("wrong output\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
 			"Please communicate with HCP Terraform team before resolving", diff)
+	}
+}
+
+var reElapsedDuration = regexp.MustCompile(`\b(complete|errored|progress) after \S+`)
+
+// normalizeElapsedDuration replaces non-deterministic elapsed execution durations
+// (e.g. "complete after 1s [id=...]") with a fixed "0s" duration to prevent CI flakes.
+func normalizeElapsedDuration(s string) string {
+	return reElapsedDuration.ReplaceAllString(s, "$1 after 0s")
+}
+
+func normalizeJSONLogMap(m map[string]interface{}) {
+	delete(m, "@timestamp") // Timestamps always differ
+	if hook, ok := m["hook"].(map[string]interface{}); ok {
+		if _, hasElapsed := hook["elapsed_seconds"]; hasElapsed {
+			hook["elapsed_seconds"] = float64(0)
+		}
+	}
+	if msg, ok := m["@message"].(string); ok {
+		m["@message"] = normalizeElapsedDuration(msg)
 	}
 }
 
@@ -1307,7 +1331,7 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 		if _, ok := gotMap["@timestamp"]; !ok {
 			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
 		}
-		delete(gotMap, "@timestamp")
+		normalizeJSONLogMap(gotMap)
 		gotLineMaps = append(gotLineMaps, gotMap)
 	}
 	var wantLineMaps []map[string]interface{}
@@ -1317,7 +1341,7 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
 			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, wantLines[index])
 		}
-		delete(wantMap, "@timestamp") // If the test fixture includes timestamps ignore and don't compare them, since they will always differ
+		normalizeJSONLogMap(wantMap)
 		wantLineMaps = append(wantLineMaps, wantMap)
 	}
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
@@ -1326,3 +1350,39 @@ func checkGoldenReferenceStr(t *testing.T, output *terminal.TestOutput, want str
 			"Please communicate with HCP Terraform team before resolving", diff)
 	}
 }
+
+func TestNormalizeElapsedDuration(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{
+			input: "data.test_data_source.a: Refresh complete after 1s [id=zzzzz]",
+			want:  "data.test_data_source.a: Refresh complete after 0s [id=zzzzz]",
+		},
+		{
+			input: "data.test_data_source.a: Read complete after 12s [id=zzzzz]",
+			want:  "data.test_data_source.a: Read complete after 0s [id=zzzzz]",
+		},
+		{
+			input: "test_instance.foo: Creation complete after 1m4s",
+			want:  "test_instance.foo: Creation complete after 0s",
+		},
+		{
+			input: "test_instance.foo: Creation errored after 500ms",
+			want:  "test_instance.foo: Creation errored after 0s",
+		},
+		{
+			input: "test_instance.foo: Modifications complete after 0s [id=foo]",
+			want:  "test_instance.foo: Modifications complete after 0s [id=foo]",
+		},
+	}
+
+	for _, tt := range tests {
+		got := normalizeElapsedDuration(tt.input)
+		if got != tt.want {
+			t.Errorf("normalizeElapsedDuration(%q) = %q; want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
