@@ -199,8 +199,7 @@ func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versi
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-	v.print(v.prepareMessage(FindingLatestVersionMessage, params...))
+	v.print(fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
@@ -487,11 +486,7 @@ func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versio
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(FindingLatestVersionMessage, params...)
+	v.view.Log(fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
@@ -607,10 +602,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: logFindingMatchingVersionHuman,
 		JSONValue:  logFindingMatchingVersionJSON,
 	},
-	"finding_latest_version_message": {
-		HumanValue: logFindingLatestVersionHuman,
-		JSONValue:  logFindingLatestVersionJSON,
-	},
 	"partner_and_community_providers_message": {
 		HumanValue: logPartnerAndCommunityProviders,
 		JSONValue:  logPartnerAndCommunityProviders,
@@ -676,8 +667,6 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
-	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
 	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
 	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
 )
