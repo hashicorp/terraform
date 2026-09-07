@@ -28,7 +28,7 @@ func New() backend.Backend {
 					"environment_variable_suffix": {
 						Type:        cty.String,
 						Optional:    true,
-						Description: "Suffix to append to ARM_* environment variables, such as _BACKEND. When set, unsuffixed and CI-native environment defaults are not used. An explicitly empty string disables the suffix.",
+						Description: "Suffix to append to ARM_* environment variables, such as _BACKEND. Unsuffixed ARM_* defaults are not used. A selected Azure Pipelines service connection can use native broker defaults. An explicitly empty string disables the suffix.",
 					},
 					"subscription_id": {
 						Type:        cty.String,

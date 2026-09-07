@@ -83,6 +83,23 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 		if anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id") {
 			disableEnvironmentDefaults(defaults, "oidc_token", "oidc_token_file_path", "use_aks_workload_identity")
 		}
+
+		serviceConnectionID := backendbase.SDKLikeEnvDefault(
+			data.String("ado_pipeline_service_connection_id"),
+			defaults["ado_pipeline_service_connection_id"].EnvVars...,
+		)
+		if strings.TrimSpace(serviceConnectionID) != "" {
+			// A selected ADO connection can use the current job's native broker, after ARM request overrides.
+			for _, attr := range []string{"oidc_request_url", "oidc_request_token"} {
+				def := defaults[attr]
+				for _, name := range b.SDKLikeDefaults[attr].EnvVars {
+					if strings.HasPrefix(name, "SYSTEM_") {
+						def.EnvVars = append(def.EnvVars, name)
+					}
+				}
+				defaults[attr] = def
+			}
+		}
 	}
 
 	prepared, err := defaults.ApplyTo(configVal)

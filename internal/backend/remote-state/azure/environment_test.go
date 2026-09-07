@@ -4,7 +4,10 @@
 package azure
 
 import (
+	"context"
+	"io"
 	"maps"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -316,6 +319,242 @@ func TestBackendSuffixOIDCMethods(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBackendSuffixADONativeBrokerDefaults(t *testing.T) {
+	tests := []struct {
+		name                               string
+		config                             map[string]interface{}
+		env                                map[string]string
+		wantConnection, wantURL, wantToken string
+		wantConflict                       bool
+	}{
+		{name: "no selected connection"},
+		{
+			name: "native task alias cannot select a connection",
+			env:  map[string]string{"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID_STATE": "native-suffixed-connection"},
+		},
+		{
+			name:           "explicit connection",
+			config:         map[string]interface{}{"ado_pipeline_service_connection_id": "explicit-connection"},
+			wantConnection: "explicit-connection", wantURL: "native-url", wantToken: "native-token",
+		},
+		{
+			name:           "selected OIDC alias",
+			env:            map[string]string{"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection"},
+			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
+		},
+		{
+			name: "selected connection does not enable GitHub fallback",
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"SYSTEM_OIDCREQUESTURI":                      "",
+				"SYSTEM_ACCESSTOKEN":                         "",
+			},
+			wantConnection: "selected-connection",
+		},
+		{
+			name: "canonical selected alias retains precedence",
+			env: map[string]string{
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_STATE": "canonical-connection",
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE":   "alias-connection",
+			},
+			wantConnection: "canonical-connection", wantURL: "native-url", wantToken: "native-token",
+		},
+		{
+			name: "selected ARM request overrides",
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"ARM_OIDC_REQUEST_URL_STATE":                 "selected-url",
+				"ARM_OIDC_REQUEST_TOKEN_STATE":               "selected-token",
+			},
+			wantConnection: "selected-connection", wantURL: "selected-url", wantToken: "selected-token",
+		},
+		{
+			name: "explicit request overrides",
+			config: map[string]interface{}{
+				"ado_pipeline_service_connection_id": "explicit-connection",
+				"oidc_request_url":                   "explicit-url",
+				"oidc_request_token":                 "explicit-token",
+			},
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"ARM_OIDC_REQUEST_URL_STATE":                 "selected-url",
+				"ARM_OIDC_REQUEST_TOKEN_STATE":               "selected-token",
+			},
+			wantConnection: "explicit-connection", wantURL: "explicit-url", wantToken: "explicit-token",
+		},
+		{
+			name: "selected URL with native bearer",
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"ARM_OIDC_REQUEST_URL_STATE":                 "selected-url",
+			},
+			wantConnection: "selected-connection", wantURL: "selected-url", wantToken: "native-token",
+		},
+		{
+			name: "native URL with selected bearer",
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"ARM_OIDC_REQUEST_TOKEN_STATE":               "selected-token",
+			},
+			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "selected-token",
+		},
+		{
+			name:   "empty overrides use native broker",
+			config: map[string]interface{}{"oidc_request_url": "", "oidc_request_token": ""},
+			env: map[string]string{
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+				"ARM_OIDC_REQUEST_URL_STATE":                 "",
+				"ARM_OIDC_REQUEST_TOKEN_STATE":               "",
+			},
+			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
+		},
+		{
+			name:   "explicit assertion suppresses selected connection and native broker",
+			config: map[string]interface{}{"oidc_token": "explicit-assertion"},
+			env:    map[string]string{"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "ignored-connection"},
+		},
+		{
+			name: "selected assertion and connection still conflict",
+			env: map[string]string{
+				"ARM_OIDC_TOKEN_STATE":                       "selected-assertion",
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "selected-connection",
+			},
+			wantConflict: true,
+		},
+		{
+			name:         "explicit assertion and connection still conflict",
+			config:       map[string]interface{}{"oidc_token": "explicit-assertion", "ado_pipeline_service_connection_id": "explicit-connection"},
+			wantConflict: true,
+		},
+		{
+			name:           "blank connection does not unlock native broker",
+			env:            map[string]string{"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": " "},
+			wantConnection: " ",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clearBackendEnvironment(t)
+			for _, name := range []string{
+				"ARM_OIDC_REQUEST_URL", "ARM_OIDC_REQUEST_TOKEN",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
+				"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
+				"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+			} {
+				t.Setenv(name, "ambient")
+			}
+			t.Setenv("SYSTEM_OIDCREQUESTURI", "native-url")
+			t.Setenv("SYSTEM_ACCESSTOKEN", "native-token")
+			for name, value := range test.env {
+				t.Setenv(name, value)
+			}
+			config := map[string]interface{}{"environment_variable_suffix": "_STATE"}
+			maps.Copy(config, test.config)
+			b := New()
+			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
+			if test.wantConflict {
+				if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "Conflicting OIDC authentication settings") {
+					t.Fatalf("expected OIDC conflict, got %v", diags)
+				}
+				return
+			}
+			if diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+			data := backendbase.NewSDKLikeData(prepared)
+			for attr, want := range map[string]string{
+				"ado_pipeline_service_connection_id": test.wantConnection,
+				"oidc_request_url":                   test.wantURL,
+				"oidc_request_token":                 test.wantToken,
+			} {
+				if got := data.String(attr); got != want {
+					t.Errorf("%s: got %q, want %q", attr, got, want)
+				}
+			}
+			repeated, diags := b.PrepareConfig(prepared)
+			if diags.HasErrors() || !repeated.RawEquals(prepared) {
+				t.Fatal("native broker defaults changed on repeated preparation")
+			}
+		})
+	}
+}
+
+func TestBackendSuffixADONativeBrokerAcquisition(t *testing.T) {
+	clearBackendEnvironment(t)
+	for name, value := range map[string]string{
+		"ARM_CLIENT_ID_BACKEND":                        "backend-client",
+		"ARM_TENANT_ID_BACKEND":                        "backend-tenant",
+		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND": "backend-connection",
+		"ARM_USE_OIDC_BACKEND":                         "true",
+		"ARM_USE_AZUREAD_BACKEND":                      "true",
+		"ARM_CLIENT_ID":                                "provider-client",
+		"ARM_TENANT_ID":                                "provider-tenant",
+		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID":         "provider-connection",
+		"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID":      "provider-connection",
+		"SYSTEM_OIDCREQUESTURI":                        "https://ado.example.invalid/oidc",
+		"SYSTEM_ACCESSTOKEN":                           "job-bearer",
+	} {
+		t.Setenv(name, value)
+	}
+	originalClient := auth.Client
+	t.Cleanup(func() { auth.Client = originalClient })
+	requests := 0
+	auth.Client = testAuthHTTPClient(func(req *http.Request) (*http.Response, error) {
+		requests++
+		if req.Method != http.MethodPost {
+			t.Fatalf("unexpected auth request method: %s", req.Method)
+		}
+		var body string
+		switch req.URL.Host {
+		case "ado.example.invalid":
+			if req.URL.Query().Get("serviceConnectionId") != "backend-connection" {
+				t.Fatal("OIDC broker did not use the selected backend service connection")
+			}
+			if req.Header.Get("Authorization") != "Bearer job-bearer" {
+				t.Fatal("OIDC broker did not use the native job bearer token")
+			}
+			body = `{"oidcToken":"issued-assertion"}`
+		case "login.microsoftonline.com":
+			if !strings.HasPrefix(req.URL.Path, "/backend-tenant/") {
+				t.Fatalf("unexpected token exchange tenant: %s", req.URL.Path)
+			}
+			if err := req.ParseForm(); err != nil {
+				t.Fatal(err)
+			}
+			if req.PostForm.Get("client_id") != "backend-client" || req.PostForm.Get("client_assertion") != "issued-assertion" {
+				t.Fatal("token exchange did not use the backend client and broker assertion")
+			}
+			body = `{"access_token":"storage-token","token_type":"Bearer","expires_in":3600}`
+		default:
+			t.Fatalf("unexpected auth request: %s", req.URL)
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Request:    req,
+		}, nil
+	})
+	b := New().(*Backend)
+	prepared := prepareBackendConfig(t, b, map[string]interface{}{"environment_variable_suffix": "_BACKEND"})
+	if diags := b.Configure(prepared); diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+	token, err := b.apiClient.azureAdStorageAuth.Token(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token.AccessToken != "storage-token" || requests != 2 {
+		t.Fatalf("expected broker acquisition and token exchange, got %d requests", requests)
+	}
+}
+
+type testAuthHTTPClient func(*http.Request) (*http.Response, error)
+
+func (f testAuthHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return f(req)
 }
 
 func TestBackendSuffixAmbientAuth(t *testing.T) {

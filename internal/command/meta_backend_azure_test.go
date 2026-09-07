@@ -21,9 +21,10 @@ import (
 
 func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 	tests := []struct {
-		name, suffix, control, nativeRequestToken string
-		configSelector                            interface{}
-		request                                   bool
+		name, suffix, control, nativeRequestToken     string
+		configSelector                                interface{}
+		serviceConnectionEnv, configServiceConnection string
+		request                                       bool
 	}{
 		{name: "legacy assertion"},
 		{name: "explicit selector", suffix: "_STATE", configSelector: "_STATE"},
@@ -32,6 +33,9 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 		{name: "selected broker", suffix: "_STATE", configSelector: "_STATE", request: true},
 		{name: "legacy GitHub broker", nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
 		{name: "legacy Azure Pipelines broker", nativeRequestToken: "SYSTEM_ACCESSTOKEN", request: true},
+		{name: "selected ADO native broker", suffix: "_STATE", configSelector: "_STATE", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE", request: true},
+		{name: "explicit ADO native broker", suffix: "_STATE", configSelector: "_STATE", nativeRequestToken: "SYSTEM_ACCESSTOKEN", configServiceConnection: "backend-connection", request: true},
+		{name: "control-selected ADO native broker", suffix: "_BACKEND", control: "_BACKEND", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", request: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -46,14 +50,16 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 			if test.suffix != "" {
 				t.Setenv("ARM_OIDC_TOKEN", "ambient-assertion")
 				t.Setenv("ARM_OIDC_REQUEST_TOKEN", "ambient-bearer")
+				t.Setenv("ARM_OIDC_REQUEST_URL", "https://example.invalid/ambient-oidc")
 			}
 			tokenEnv := "ARM_OIDC_TOKEN" + test.suffix
+			requestURLEnv := ""
 			attr := "oidc_token"
 			tokenFile := filepath.Join(t.TempDir(), "oidc-token")
 			if test.request {
 				attr = "oidc_request_token"
 				tokenEnv = "ARM_OIDC_REQUEST_TOKEN" + test.suffix
-				requestURLEnv := "ARM_OIDC_REQUEST_URL" + test.suffix
+				requestURLEnv = "ARM_OIDC_REQUEST_URL" + test.suffix
 				switch test.nativeRequestToken {
 				case "ACTIONS_ID_TOKEN_REQUEST_TOKEN":
 					tokenEnv = test.nativeRequestToken
@@ -71,10 +77,16 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 				t.Setenv("ARM_OIDC_TOKEN_FILE_PATH"+test.suffix, tokenFile)
 			}
 			t.Setenv(tokenEnv, "plan-credential")
+			if test.serviceConnectionEnv != "" {
+				t.Setenv(test.serviceConnectionEnv, "backend-connection")
+			}
 
 			selectorConfig := ""
 			if test.configSelector != nil {
 				selectorConfig = fmt.Sprintf("environment_variable_suffix = %q\n", test.configSelector)
+			}
+			if test.configServiceConnection != "" {
+				selectorConfig += fmt.Sprintf("ado_pipeline_service_connection_id = %q\n", test.configServiceConnection)
 			}
 			file, parseDiags := hclsyntax.ParseConfig([]byte(selectorConfig+`
 storage_account_name = "testaccount"
@@ -97,6 +109,13 @@ client_id            = "configured-client"
 			}
 			if !prepared.GetAttr(attr).RawEquals(cty.StringVal("plan-credential")) {
 				t.Fatalf("environment credential was not prepared for %s", attr)
+			}
+			if test.request && !prepared.GetAttr("oidc_request_url").RawEquals(cty.StringVal("https://example.invalid/oidc")) {
+				t.Fatal("broker URL did not come from the selected or permitted native environment")
+			}
+			if (test.serviceConnectionEnv != "" || test.configServiceConnection != "") &&
+				!prepared.GetAttr("ado_pipeline_service_connection_id").RawEquals(cty.StringVal("backend-connection")) {
+				t.Fatal("backend service connection was not selected")
 			}
 
 			saved := &workdir.BackendConfigState{Type: "azurerm"}
@@ -129,9 +148,18 @@ client_id            = "configured-client"
 			if !planConfig.GetAttr("client_id").RawEquals(cty.StringVal("configured-client")) {
 				t.Fatal("explicit identity was not retained in the plan")
 			}
+			wantConnection := cty.NullVal(cty.String)
+			if test.configServiceConnection != "" {
+				wantConnection = cty.StringVal(test.configServiceConnection)
+			}
+			if !planConfig.GetAttr("ado_pipeline_service_connection_id").RawEquals(wantConnection) {
+				t.Fatal("service connection persistence differs from explicit configuration")
+			}
 
 			t.Setenv(tokenEnv, "apply-credential")
-			if !test.request {
+			if test.request {
+				t.Setenv(requestURLEnv, "https://example.invalid/apply-oidc")
+			} else {
 				if err := os.WriteFile(tokenFile, []byte("apply-credential"), 0600); err != nil {
 					t.Fatal(err)
 				}
@@ -146,6 +174,9 @@ client_id            = "configured-client"
 			}
 			if !applyConfig.GetAttr(attr).RawEquals(cty.StringVal("apply-credential")) {
 				t.Fatal("saved plan did not use fresh credentials from the selected environment")
+			}
+			if test.request && !applyConfig.GetAttr("oidc_request_url").RawEquals(cty.StringVal("https://example.invalid/apply-oidc")) {
+				t.Fatal("saved plan did not use the fresh broker URL")
 			}
 			if diags := applyBackend.Configure(applyConfig); diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
