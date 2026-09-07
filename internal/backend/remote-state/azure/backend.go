@@ -231,6 +231,9 @@ func New() backend.Backend {
 					Fallback: "",
 				},
 
+				// client_id and client_id_file_path are intentionally omitted here.
+				// environment.go resolves their direct and file-based environment values together.
+
 				// Client Certificate specific fields
 				"client_certificate": {
 					EnvVars:  []string{"ARM_CLIENT_CERTIFICATE"},
@@ -264,6 +267,9 @@ func New() backend.Backend {
 					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND"},
 					// no fallback
 				},
+
+				// The OIDC request and token fields are intentionally omitted here.
+				// environment.go resolves short-lived credentials and generic service connection fallbacks at runtime.
 
 				// Managed Identity specific fields
 				"use_msi": {
