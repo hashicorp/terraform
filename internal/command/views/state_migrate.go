@@ -259,8 +259,7 @@ func (s *StateMigrateHuman) LogInstallProviderVersionStart(providerAddr addrs.Pr
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{version, providerAddr.ForDisplay()}
-	msg := s.prepareMessage(ReusingPreviousVersionInfo, params...)
+	msg := fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay())
 	s.log(msg)
 }
 

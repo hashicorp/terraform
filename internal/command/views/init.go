@@ -218,8 +218,8 @@ func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, 
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{version, providerAddr.ForDisplay()}
-	v.print(v.prepareMessage(ReusingPreviousVersionInfo, params...))
+	msg := fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay())
+	v.print(msg)
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
@@ -501,11 +501,8 @@ func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, v
 }
 
 func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(ReusingPreviousVersionInfo, params...)
+	msg := fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version)
+	v.view.Log(msg)
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
@@ -588,10 +585,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"reusing_previous_version_info": {
-		HumanValue: logReusingPreviousProviderVersionHuman,
-		JSONValue:  logReusingPreviousProviderVersionJSON,
-	},
 	"finding_matching_version_message": {
 		HumanValue: logFindingMatchingVersionHuman,
 		JSONValue:  logFindingMatchingVersionJSON,
@@ -675,8 +668,6 @@ const (
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
-	// ReusingPreviousVersionInfo indicates a provider which is locked to a specific version during installation
-	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
 	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
 	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
