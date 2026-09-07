@@ -247,8 +247,7 @@ func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr add
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-	msg := s.prepareMessage(BuiltInProviderAvailableMessage, params...)
+	msg := fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay())
 	s.log(msg)
 }
 
