@@ -1073,6 +1073,29 @@ func TestNewInit_LogCallToActionCLICloud_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogBackendConfiguredSuccess_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogBackendConfiguredSuccess("s3")
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Successfully configured the backend \"s3\"! Terraform will automatically\nuse this backend unless the backend configuration changes."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"backend_configured_success"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
