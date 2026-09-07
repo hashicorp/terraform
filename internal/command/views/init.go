@@ -205,8 +205,7 @@ func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	v.print(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
+	v.print(fmt.Sprintf(logProviderVersionAlreadyInstalledHuman, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
@@ -506,11 +505,7 @@ func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
+	v.view.Log(fmt.Sprintf(logProviderVersionAlreadyInstalledJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
@@ -641,10 +636,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"provider_already_installed_message": {
-		HumanValue: logProviderVersionAlreadyInstalledHuman,
-		JSONValue:  logProviderVersionAlreadyInstalledJSON,
-	},
 	"built_in_provider_available_message": {
 		HumanValue: logBuiltInProviderAvailableHuman,
 		JSONValue:  logBuiltInProviderAvailableJSON,
@@ -746,8 +737,6 @@ const (
 	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
 	// BuiltInProviderAvailableMessage indicates a built-in provider in use during installation
 	BuiltInProviderAvailableMessage InitMessageCode = "built_in_provider_available_message"
-	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
-	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
 	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
 	InstallingProviderMessage InitMessageCode = "installing_provider_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
