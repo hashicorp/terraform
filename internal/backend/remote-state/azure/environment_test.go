@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/go-azure-sdk/sdk/auth"
@@ -19,181 +20,216 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendbase"
 )
 
-func TestBackendEnvironmentPrecedence(t *testing.T) {
+func TestBackendEnvironmentSuffixSelector(t *testing.T) {
 	tests := []struct {
-		attr string
-		envs []string
+		name, control string
+		config        interface{}
+		want          string
+		wantError     bool
 	}{
-		{"subscription_id", []string{"ARM_SUBSCRIPTION_ID_BACKEND", "ARM_SUBSCRIPTION_ID"}},
-		{"tenant_id", []string{"ARM_TENANT_ID_BACKEND", "ARM_TENANT_ID"}},
-		{"client_id", []string{"ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID"}},
-		{"client_id_file_path", []string{"ARM_CLIENT_ID_FILE_PATH_BACKEND", "ARM_CLIENT_ID_FILE_PATH"}},
-		{"use_oidc", []string{"ARM_USE_OIDC_BACKEND", "ARM_USE_OIDC"}},
-		{"use_azuread_auth", []string{"ARM_USE_AZUREAD_BACKEND", "ARM_USE_AZUREAD"}},
-		{"oidc_token", []string{"ARM_OIDC_TOKEN_BACKEND", "ARM_OIDC_TOKEN"}},
-		{"oidc_token_file_path", []string{"ARM_OIDC_TOKEN_FILE_PATH_BACKEND", "ARM_OIDC_TOKEN_FILE_PATH"}},
-		{"oidc_request_url", []string{"ARM_OIDC_REQUEST_URL_BACKEND", "ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"}},
-		{"oidc_request_token", []string{"ARM_OIDC_REQUEST_TOKEN_BACKEND", "ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"}},
-		{"ado_pipeline_service_connection_id", []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"}},
+		{name: "unset"},
+		{name: "control environment", control: "_STATE_2", want: "_STATE_2"},
+		{name: "explicit configuration wins", control: "_PROVIDER", config: "_BACKEND", want: "_BACKEND"},
+		{name: "explicit empty disables control", control: "_BACKEND", config: ""},
+		{name: "explicit empty disables invalid control", control: "invalid", config: ""},
+		{name: "underscore only", config: "_", wantError: true},
+		{name: "missing underscore", config: "STATE", wantError: true},
+		{name: "lowercase", config: "_state", wantError: true},
+		{name: "hyphen", config: "_STATE-2", wantError: true},
+		{name: "whitespace", config: " _STATE", wantError: true},
+		{name: "newline", config: "_STATE\n", wantError: true},
+		{name: "non ASCII", config: "_\u00e9", wantError: true},
+		{name: "invalid control", control: "invalid", wantError: true},
 	}
-
 	for _, test := range tests {
-		t.Run(test.attr, func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			clearBackendEnvironment(t)
-			b := New().(*Backend)
-			attr := b.ConfigSchema().Attributes[test.attr]
-			if attr == nil || !attr.Optional {
-				t.Fatalf("%s must remain an optional schema attribute", test.attr)
+			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", test.control)
+			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX_BACKEND", "_IGNORED")
+			t.Setenv("ARM_CLIENT_ID", "legacy-client")
+			t.Setenv("ARM_CLIENT_ID_BACKEND", "selected-client")
+			b := New()
+			config := map[string]interface{}{"environment_variable_suffix": test.config}
+			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
+			if test.wantError {
+				if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "Invalid environment variable suffix") {
+					t.Fatalf("expected suffix diagnostic, got %v", diags)
+				}
+				return
 			}
-			if got := b.SDKLikeDefaults[test.attr].EnvVars; !reflect.DeepEqual(got, test.envs) {
-				t.Fatalf("schema defaults: got %v, want %v", got, test.envs)
+			if diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
 			}
-			config := map[string]interface{}{}
-			if strings.HasPrefix(test.attr, "oidc_request_") {
-				config["ado_pipeline_service_connection_id"] = "service-connection"
+			if got := prepared.GetAttr("environment_variable_suffix").AsString(); got != test.want {
+				t.Fatalf("suffix: got %q, want %q", got, test.want)
 			}
-
-			for first, name := range test.envs {
-				t.Run(name, func(t *testing.T) {
-					for i, env := range test.envs {
-						value := env
-						if attr.Type.Equals(cty.Bool) {
-							value = "true"
-							if i == first {
-								value = "false"
-							}
-						}
-						if i < first {
-							value = ""
-						}
-						t.Setenv(env, value)
-					}
-					want := cty.StringVal(name)
-					if attr.Type.Equals(cty.Bool) {
-						want = cty.False
-					}
-					got := prepareBackendConfig(t, b, config).GetAttr(test.attr)
-					if !got.RawEquals(want) {
-						t.Fatalf("got %s, want %s", got.GoString(), want.GoString())
-					}
-				})
-			}
-
-			t.Run("explicit configuration", func(t *testing.T) {
-				for _, env := range test.envs {
-					value := "environment"
-					if attr.Type.Equals(cty.Bool) {
-						value = "true"
-					}
-					t.Setenv(env, value)
-				}
-				var explicit interface{} = "configuration"
-				want := cty.StringVal("configuration")
-				if attr.Type.Equals(cty.Bool) {
-					explicit, want = false, cty.False
-				}
-				explicitConfig := maps.Clone(config)
-				explicitConfig[test.attr] = explicit
-				got := prepareBackendConfig(t, b, explicitConfig).GetAttr(test.attr)
-				if !got.RawEquals(want) {
-					t.Fatalf("got %s, want %s", got.GoString(), want.GoString())
-				}
-			})
-
-			t.Run("empty configuration uses environment", func(t *testing.T) {
-				if !attr.Type.Equals(cty.String) {
-					return
-				}
-				t.Setenv(test.envs[0], "environment")
-				emptyConfig := maps.Clone(config)
-				emptyConfig[test.attr] = ""
-				got := prepareBackendConfig(t, b, emptyConfig).GetAttr(test.attr)
-				if !got.RawEquals(cty.StringVal("environment")) {
-					t.Fatalf("got %s, want environment fallback", got.GoString())
-				}
-			})
-
-			t.Run("unset environment", func(t *testing.T) {
-				for _, env := range test.envs {
-					if err := os.Unsetenv(env); err != nil {
-						t.Fatal(err)
-					}
-				}
-				want := cty.NullVal(cty.String)
-				if attr.Type.Equals(cty.Bool) {
-					want = cty.False
-				}
-				got := prepareBackendConfig(t, b, config).GetAttr(test.attr)
-				if !got.RawEquals(want) {
-					t.Fatalf("got %s, want %s", got.GoString(), want.GoString())
-				}
-			})
-			if attr.Type.Equals(cty.Bool) {
-				for _, env := range test.envs {
-					t.Run(env+"=true", func(t *testing.T) {
-						t.Setenv(env, "true")
-						got := prepareBackendConfig(t, b, config).GetAttr(test.attr)
-						if !got.RawEquals(cty.True) {
-							t.Fatalf("got %s, want true", got.GoString())
-						}
-					})
-				}
-			}
-			if got := b.SDKLikeDefaults[test.attr].EnvVars; !reflect.DeepEqual(got, test.envs) {
-				t.Fatalf("PrepareConfig mutated schema defaults: %v", got)
+			if test.want == "" && prepared.GetAttr("client_id").AsString() != "legacy-client" {
+				t.Fatal("empty suffix did not restore legacy defaults")
 			}
 		})
 	}
 }
 
-func TestBackendCredentialPairPrecedence(t *testing.T) {
+func TestBackendEmptySuffixCompatibility(t *testing.T) {
+	clearBackendEnvironment(t)
+	b := New().(*Backend)
+	for attr, def := range b.SDKLikeDefaults {
+		if attr == "environment_variable_suffix" {
+			continue
+		}
+		for _, env := range def.EnvVars {
+			value := "legacy-" + env
+			if b.Schema.Attributes[attr].Type.Equals(cty.Bool) {
+				value = "true"
+			}
+			t.Setenv(env, value)
+			t.Setenv(env+"_BACKEND", "must-not-be-read")
+		}
+	}
+	for _, selector := range []interface{}{nil, ""} {
+		raw := decodeBackendConfig(t, b, map[string]interface{}{
+			"environment_variable_suffix": selector,
+			"client_id":                   "explicit-client",
+			"use_cli":                     false,
+		})
+		want, wantDiags := b.Base.PrepareConfig(raw)
+		got, diags := b.PrepareConfig(raw)
+		if diags.HasErrors() || wantDiags.HasErrors() {
+			t.Fatalf("unexpected diagnostics: %v / %v", diags, wantDiags)
+		}
+		for attr := range b.Schema.Attributes {
+			if attr != "environment_variable_suffix" && !got.GetAttr(attr).RawEquals(want.GetAttr(attr)) {
+				t.Errorf("legacy preparation differs for %s", attr)
+			}
+		}
+	}
+}
+
+func TestBackendSuffixMappings(t *testing.T) {
+	clearBackendEnvironment(t)
+	b := New().(*Backend)
+	suffix := "_STATE_2"
+	for attr, def := range b.SDKLikeDefaults {
+		if attr == "environment_variable_suffix" {
+			continue
+		}
+		t.Run(attr, func(t *testing.T) {
+			config := map[string]interface{}{"environment_variable_suffix": suffix}
+			ty := b.Schema.Attributes[attr].Type
+			for _, env := range def.EnvVars {
+				// Invalid boolean defaults and bogus credential files must be ignored in strict mode.
+				t.Setenv(env, "ambient")
+				if !strings.HasPrefix(env, "ARM_") {
+					t.Setenv(env+suffix, "ambient-native-suffixed")
+				}
+			}
+			want := cty.NullVal(ty)
+			if def.Fallback != "" {
+				want = cty.StringVal(def.Fallback)
+				if ty.Equals(cty.Bool) {
+					want = cty.BoolVal(def.Fallback == "true")
+				}
+			}
+			if attr == "use_cli" {
+				want = cty.False
+			}
+			got := prepareBackendConfig(t, b, config).GetAttr(attr)
+			if !got.RawEquals(want) {
+				t.Fatalf("ambient fallback for %s: got %s, want %s", attr, got.GoString(), want.GoString())
+			}
+
+			for first, name := range def.EnvVars {
+				if !strings.HasPrefix(name, "ARM_") {
+					continue
+				}
+				t.Run(name, func(t *testing.T) {
+					for i, env := range def.EnvVars {
+						if !strings.HasPrefix(env, "ARM_") {
+							continue
+						}
+						value := "selected-" + env
+						if ty.Equals(cty.Bool) {
+							value = "true"
+						}
+						if i < first {
+							value = ""
+						}
+						t.Setenv(env+suffix, value)
+					}
+					want := cty.StringVal("selected-" + name)
+					if ty.Equals(cty.Bool) {
+						want = cty.True
+					}
+					got := prepareBackendConfig(t, b, config).GetAttr(attr)
+					if !got.RawEquals(want) {
+						t.Fatalf("got %s, want %s", got.GoString(), want.GoString())
+					}
+					explicit := maps.Clone(config)
+					if ty.Equals(cty.Bool) {
+						explicit[attr] = false
+						want = cty.False
+					} else {
+						explicit[attr] = "explicit"
+						want = cty.StringVal("explicit")
+					}
+					got = prepareBackendConfig(t, b, explicit).GetAttr(attr)
+					if !got.RawEquals(want) {
+						t.Fatalf("explicit value lost precedence: got %s, want %s", got.GoString(), want.GoString())
+					}
+				})
+			}
+			if !reflect.DeepEqual(def, b.SDKLikeDefaults[attr]) {
+				t.Fatal("PrepareConfig mutated canonical defaults")
+			}
+		})
+	}
+}
+
+func TestBackendSuffixCredentialPairs(t *testing.T) {
 	pairs := []struct {
 		direct, file, directEnv, fileEnv string
 		read                             func(*backendbase.SDKLikeData) (*string, error)
 	}{
 		{"client_id", "client_id_file_path", "ARM_CLIENT_ID", "ARM_CLIENT_ID_FILE_PATH", getClientId},
+		{"client_secret", "client_secret_file_path", "ARM_CLIENT_SECRET", "ARM_CLIENT_SECRET_FILE_PATH", getClientSecret},
 		{"oidc_token", "oidc_token_file_path", "ARM_OIDC_TOKEN", "ARM_OIDC_TOKEN_FILE_PATH", getOidcToken},
 	}
 	for _, pair := range pairs {
 		t.Run(pair.direct, func(t *testing.T) {
 			tests := []struct {
-				name                       string
-				configDirect, configFile   string
-				backendDirect, backendFile string
-				genericDirect, genericFile string
-				want                       string
-				wantError                  bool
+				name                         string
+				suffix                       string
+				configDirect, configFile     string
+				selectedDirect, selectedFile string
+				want                         string
+				wantError                    bool
 			}{
-				{name: "config direct overrides environment file", configDirect: "config", backendFile: "backend", genericFile: "generic", want: "config"},
-				{name: "config file overrides environment direct", configFile: "config", backendDirect: "backend", genericDirect: "generic", want: "config"},
-				{name: "backend direct overrides generic file", backendDirect: "backend", genericFile: "generic", want: "backend"},
-				{name: "backend file overrides generic direct", backendFile: "backend", genericDirect: "generic", want: "backend"},
-				{name: "generic direct fallback", genericDirect: "generic", want: "generic"},
-				{name: "generic file fallback", genericFile: "generic", want: "generic"},
-				{name: "matching config pair", configDirect: "config", configFile: "config", want: "config"},
-				{name: "mismatching config pair", configDirect: "direct", configFile: "file", wantError: true},
-				{name: "matching backend pair", backendDirect: "backend", backendFile: "backend", want: "backend"},
-				{name: "mismatching backend pair", backendDirect: "direct", backendFile: "file", wantError: true},
-				{name: "matching generic pair", genericDirect: "generic", genericFile: "generic", want: "generic"},
-				{name: "mismatching generic pair", genericDirect: "direct", genericFile: "file", wantError: true},
+				{name: "explicit direct beats selected file", suffix: "_STATE", configDirect: "explicit", selectedFile: "selected", want: "explicit"},
+				{name: "explicit file beats selected direct", suffix: "_STATE", configFile: "explicit", selectedDirect: "selected", want: "explicit"},
+				{name: "matching explicit pair", suffix: "_STATE", configDirect: "same", configFile: "same", want: "same"},
+				{name: "mismatching explicit pair", suffix: "_STATE", configDirect: "direct", configFile: "file", wantError: true},
+				{name: "matching selected pair", suffix: "_STATE", selectedDirect: "same", selectedFile: "same", want: "same"},
+				{name: "mismatching selected pair", suffix: "_STATE", selectedDirect: "direct", selectedFile: "file", wantError: true},
+				{name: "selected file", suffix: "_STATE", selectedFile: "file", want: "file"},
+				{name: "legacy mixed-source mismatch unchanged", configDirect: "explicit", selectedFile: "environment", wantError: true},
 			}
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
 					clearBackendEnvironment(t)
-					config := map[string]interface{}{}
+					config := map[string]interface{}{"environment_variable_suffix": test.suffix}
 					if test.configDirect != "" {
 						config[pair.direct] = test.configDirect
 					}
 					if test.configFile != "" {
 						config[pair.file] = writeCredentialFile(t, test.configFile)
 					}
-					t.Setenv(pair.directEnv+"_BACKEND", test.backendDirect)
-					t.Setenv(pair.directEnv, test.genericDirect)
-					if test.backendFile != "" {
-						t.Setenv(pair.fileEnv+"_BACKEND", writeCredentialFile(t, test.backendFile))
+					t.Setenv(pair.directEnv+test.suffix, test.selectedDirect)
+					if test.selectedFile != "" {
+						t.Setenv(pair.fileEnv+test.suffix, writeCredentialFile(t, test.selectedFile))
 					}
-					if test.genericFile != "" {
-						t.Setenv(pair.fileEnv, writeCredentialFile(t, test.genericFile))
+					if test.suffix != "" {
+						t.Setenv(pair.directEnv, "ambient")
+						t.Setenv(pair.fileEnv, "ambient-missing-file")
 					}
 					data := backendbase.NewSDKLikeData(prepareBackendConfig(t, New(), config))
 					got, err := pair.read(&data)
@@ -212,112 +248,67 @@ func TestBackendCredentialPairPrecedence(t *testing.T) {
 	}
 }
 
-func TestBackendOIDCSourceSelection(t *testing.T) {
+func TestBackendSuffixOIDCMethods(t *testing.T) {
 	tests := []struct {
-		name   string
-		config map[string]interface{}
-		env    map[string]string
-		want   map[string]string
+		name      string
+		config    map[string]interface{}
+		env       map[string]string
+		wantError bool
+		want      map[string]string
 	}{
 		{
-			name: "separate backend client retains original service connection fallback",
-			env: map[string]string{
-				"ARM_CLIENT_ID_BACKEND":                "backend-client",
-				"ARM_CLIENT_ID":                        "provider-client",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID": "service-connection",
-				"SYSTEM_OIDCREQUESTURI":                "pipeline-url",
-				"SYSTEM_ACCESSTOKEN":                   "pipeline-token",
-			},
-			want: map[string]string{
-				"client_id":                          "backend-client",
-				"ado_pipeline_service_connection_id": "service-connection",
-				"oidc_request_url":                   "pipeline-url",
-				"oidc_request_token":                 "pipeline-token",
-			},
+			name:   "explicit assertion wins",
+			config: map[string]interface{}{"oidc_token": "explicit-assertion"},
+			env:    map[string]string{"ARM_OIDC_REQUEST_URL_STATE": "selected-url", "ARM_OIDC_REQUEST_TOKEN_STATE": "selected-bearer", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_STATE": "selected-connection"},
+			want:   map[string]string{"oidc_token": "explicit-assertion", "oidc_request_url": "", "oidc_request_token": "", "ado_pipeline_service_connection_id": ""},
 		},
 		{
-			name:   "explicit client and request retain generic service connection",
-			config: map[string]interface{}{"client_id": "backend-client", "oidc_request_url": "pipeline-url"},
-			env:    map[string]string{"ARM_CLIENT_ID": "provider-client", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID": "service-connection"},
-			want:   map[string]string{"client_id": "backend-client", "ado_pipeline_service_connection_id": "service-connection"},
+			name:   "explicit request wins",
+			config: map[string]interface{}{"oidc_request_url": "explicit-url"},
+			env:    map[string]string{"ARM_OIDC_TOKEN_STATE": "selected-assertion", "ARM_OIDC_TOKEN_FILE_PATH_STATE": "selected-file", "ARM_OIDC_REQUEST_TOKEN_STATE": "selected-bearer", "ARM_USE_AKS_WORKLOAD_IDENTITY_STATE": "true"},
+			want:   map[string]string{"oidc_token": "", "oidc_token_file_path": "", "oidc_request_url": "explicit-url", "oidc_request_token": "selected-bearer"},
 		},
 		{
-			name: "ignored backend request default does not disable generic service connection",
-			config: map[string]interface{}{
-				"oidc_request_url": "explicit-url",
-			},
-			env: map[string]string{
-				"ARM_OIDC_REQUEST_URL_BACKEND":           "ignored-url",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID": "service-connection",
-			},
-			want: map[string]string{
-				"oidc_request_url":                   "explicit-url",
-				"ado_pipeline_service_connection_id": "service-connection",
-			},
+			name:      "explicit methods conflict",
+			config:    map[string]interface{}{"oidc_token": "explicit-assertion", "oidc_request_url": "explicit-url"},
+			wantError: true,
 		},
 		{
-			name: "backend assertion isolates provider service connection",
-			env: map[string]string{
-				"ARM_OIDC_TOKEN_BACKEND":                  "backend-token",
-				"ARM_OIDC_TOKEN":                          "provider-token",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID":    "provider-connection",
-				"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID": "task-connection",
-				"SYSTEM_OIDCREQUESTURI":                   "pipeline-url",
-				"SYSTEM_ACCESSTOKEN":                      "pipeline-token",
-			},
-			want: map[string]string{
-				"oidc_token":                         "backend-token",
-				"ado_pipeline_service_connection_id": "",
-				"oidc_request_url":                   "",
-				"oidc_request_token":                 "",
-			},
+			name:      "selected methods conflict",
+			env:       map[string]string{"ARM_OIDC_TOKEN_STATE": "selected-assertion", "ARM_OIDC_REQUEST_URL_STATE": "selected-url"},
+			wantError: true,
 		},
 		{
-			name: "backend request overrides provider assertion and service connection",
-			env: map[string]string{
-				"ARM_OIDC_REQUEST_URL_BACKEND":         "backend-url",
-				"ARM_OIDC_REQUEST_TOKEN_BACKEND":       "backend-bearer",
-				"ARM_OIDC_TOKEN":                       "provider-token",
-				"ARM_OIDC_TOKEN_FILE_PATH":             "provider-file",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID": "provider-connection",
-			},
-			want: map[string]string{
-				"oidc_request_url":                   "backend-url",
-				"oidc_request_token":                 "backend-bearer",
-				"oidc_token":                         "",
-				"oidc_token_file_path":               "",
-				"ado_pipeline_service_connection_id": "",
-			},
+			name:      "AKS and request conflict",
+			config:    map[string]interface{}{"use_aks_workload_identity": true, "ado_pipeline_service_connection_id": "explicit-connection"},
+			wantError: true,
 		},
 		{
-			name:   "explicit service connection wins over isolation",
-			config: map[string]interface{}{"ado_pipeline_service_connection_id": "explicit-connection"},
-			env:    map[string]string{"ARM_OIDC_REQUEST_URL_BACKEND": "backend-url", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID": "provider-connection"},
-			want:   map[string]string{"ado_pipeline_service_connection_id": "explicit-connection"},
-		},
-		{
-			name: "backend service connection wins over isolation",
-			env: map[string]string{
-				"ARM_OIDC_REQUEST_TOKEN_BACKEND":               "backend-bearer",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND": "backend-connection",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":       "provider-connection",
-				"SYSTEM_OIDCREQUESTURI":                        "pipeline-url",
-			},
-			want: map[string]string{"ado_pipeline_service_connection_id": "backend-connection", "oidc_request_url": "pipeline-url"},
-		},
-		{
-			name: "raw pipelines request without service connection is not a GitHub request",
-			env:  map[string]string{"SYSTEM_OIDCREQUESTURI": "pipeline-url", "SYSTEM_ACCESSTOKEN": "pipeline-token"},
-			want: map[string]string{"oidc_request_url": "", "oidc_request_token": ""},
+			name:   "legacy competing inputs unchanged",
+			config: map[string]interface{}{"environment_variable_suffix": "", "oidc_token": "assertion", "oidc_request_url": "request-url"},
+			want:   map[string]string{"oidc_token": "assertion", "oidc_request_url": "request-url"},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clearBackendEnvironment(t)
+			config := map[string]interface{}{"environment_variable_suffix": "_STATE"}
+			maps.Copy(config, test.config)
 			for name, value := range test.env {
 				t.Setenv(name, value)
 			}
-			data := backendbase.NewSDKLikeData(prepareBackendConfig(t, New(), test.config))
+			b := New()
+			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
+			if test.wantError {
+				if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "Conflicting OIDC authentication settings") {
+					t.Fatalf("expected conflict diagnostic, got %v", diags)
+				}
+				return
+			}
+			if diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+			data := backendbase.NewSDKLikeData(prepared)
 			for attr, want := range test.want {
 				if got := data.String(attr); got != want {
 					t.Errorf("%s: got %q, want %q", attr, got, want)
@@ -327,88 +318,144 @@ func TestBackendOIDCSourceSelection(t *testing.T) {
 	}
 }
 
-func TestBackendOIDCAuthorizerSelection(t *testing.T) {
-	tests := []struct {
-		name string
-		env  map[string]string
-		want auth.Authorizer
-	}{
-		{
-			name: "github refresh",
-			env: map[string]string{
-				"ACTIONS_ID_TOKEN_REQUEST_URL":   "https://example.invalid/github",
-				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "github-bearer",
-			},
-			want: &auth.GitHubOIDCAuthorizer{},
-		},
-		{
-			name: "pipeline refresh",
-			env: map[string]string{
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID": "connection",
-				"SYSTEM_OIDCREQUESTURI":                "https://example.invalid/pipeline",
-				"SYSTEM_ACCESSTOKEN":                   "pipeline-bearer",
-			},
-			want: &auth.ADOPipelineOIDCAuthorizer{},
-		},
-		{
-			name: "backend request isolation",
-			env: map[string]string{
-				"ARM_OIDC_REQUEST_URL_BACKEND":         "https://example.invalid/github",
-				"ARM_OIDC_REQUEST_TOKEN_BACKEND":       "backend-bearer",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID": "provider-connection",
-				"ARM_OIDC_TOKEN":                       "provider-token",
-			},
-			want: &auth.GitHubOIDCAuthorizer{},
-		},
-		{
-			name: "pipeline assertion without service connection",
-			env: map[string]string{
-				"ARM_OIDC_TOKEN_BACKEND":               "backend-assertion",
-				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID": "provider-connection",
-				"SYSTEM_OIDCREQUESTURI":                "https://example.invalid/pipeline",
-				"SYSTEM_ACCESSTOKEN":                   "pipeline-bearer",
-			},
-			want: &auth.ClientAssertionAuthorizer{},
-		},
+func TestBackendSuffixAmbientAuth(t *testing.T) {
+	clearBackendEnvironment(t)
+	for _, name := range []string{"ARM_USE_CLI", "ARM_USE_MSI", "ARM_USE_AKS_WORKLOAD_IDENTITY"} {
+		t.Setenv(name, "true")
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for _, name := range []string{
+		"ARM_CLIENT_SECRET", "ARM_CLIENT_CERTIFICATE", "ARM_ACCESS_KEY", "ARM_SAS_TOKEN",
+		"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+		"SYSTEM_OIDCREQUESTURI", "SYSTEM_ACCESSTOKEN", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
+	} {
+		t.Setenv(name, "ambient")
+	}
+	t.Setenv("ARM_USE_OIDC_STATE", "true")
+	t.Setenv("ARM_CLIENT_ID_STATE", "selected-client")
+	t.Setenv("ARM_TENANT_ID_STATE", "selected-tenant")
+	t.Setenv("AZURE_CLIENT_ID", "ambient-client")
+	t.Setenv("AZURE_TENANT_ID", "ambient-tenant")
+	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "ambient-missing-file")
+	config := map[string]interface{}{"environment_variable_suffix": "_STATE", "use_azuread_auth": true}
+	b := New().(*Backend)
+	prepared := prepareBackendConfig(t, b, config)
+	for _, attr := range []string{"use_cli", "use_msi", "use_aks_workload_identity"} {
+		if prepared.GetAttr(attr).True() {
+			t.Fatalf("ambient auth enabled %s", attr)
+		}
+	}
+	diags := b.Configure(prepared)
+	if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "no Authorizer could be configured") {
+		t.Fatalf("expected missing selected credentials to fail without trying CLI/MSI/AKS, got %v", diags)
+	}
+
+	for _, explicit := range []bool{false, true} {
+		t.Run(map[bool]string{false: "selected environment opt-in", true: "explicit opt-in"}[explicit], func(t *testing.T) {
 			clearBackendEnvironment(t)
-			t.Setenv("ARM_CLIENT_ID_BACKEND", "backend-client")
-			t.Setenv("ARM_TENANT_ID_BACKEND", "backend-tenant")
-			t.Setenv("ARM_CLIENT_ID", "provider-client")
-			t.Setenv("ARM_TENANT_ID", "provider-tenant")
-			for name, value := range test.env {
-				t.Setenv(name, value)
+			t.Setenv("AZURE_FEDERATED_TOKEN_FILE", writeCredentialFile(t, "aks-assertion"))
+			config := map[string]interface{}{"environment_variable_suffix": "_STATE"}
+			if explicit {
+				config["use_aks_workload_identity"] = true
+			} else {
+				t.Setenv("ARM_USE_AKS_WORKLOAD_IDENTITY_STATE", "true")
 			}
-			b := New().(*Backend)
-			prepared := prepareBackendConfig(t, b, map[string]interface{}{"use_oidc": true, "use_azuread_auth": true, "use_cli": false})
-			if diags := b.Configure(prepared); diags.HasErrors() {
-				t.Fatal(diags.ErrWithWarnings())
+			data := backendbase.NewSDKLikeData(prepareBackendConfig(t, New(), config))
+			clientID, clientErr := getClientId(&data)
+			tenantID, tenantErr := getTenantId(&data)
+			token, tokenErr := getOidcToken(&data)
+			if clientErr != nil || tenantErr != nil || tokenErr != nil {
+				t.Fatalf("unexpected AKS errors: %v, %v, %v", clientErr, tenantErr, tokenErr)
 			}
-			cached, ok := b.apiClient.azureAdStorageAuth.(*auth.CachedAuthorizer)
-			if !ok {
-				t.Fatalf("expected cached authorizer, got %T", b.apiClient.azureAdStorageAuth)
-			}
-			if reflect.TypeOf(cached.Source) != reflect.TypeOf(test.want) {
-				t.Fatalf("got %T, want %T", cached.Source, test.want)
+			if *clientID != "ambient-client" || *tenantID != "ambient-tenant" || *token != "aks-assertion" {
+				t.Fatal("explicitly enabled AKS did not use its native identity inputs")
 			}
 		})
 	}
 }
 
-func TestBackendEnvironmentInvalidBoolean(t *testing.T) {
-	for _, name := range []string{"ARM_USE_OIDC_BACKEND", "ARM_USE_AZUREAD_BACKEND"} {
-		t.Run(name, func(t *testing.T) {
+func TestBackendSuffixInvalidSelectedBoolean(t *testing.T) {
+	clearBackendEnvironment(t)
+	t.Setenv("ARM_USE_OIDC", "true")
+	t.Setenv("ARM_USE_OIDC_STATE", "invalid")
+	b := New()
+	_, diags := b.PrepareConfig(decodeBackendConfig(t, b, map[string]interface{}{"environment_variable_suffix": "_STATE"}))
+	if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), `invalid value for "use_oidc"`) {
+		t.Fatalf("selected invalid flag must not fall back to the unsuffixed value: %v", diags)
+	}
+}
+
+func TestBackendSuffixAuthorizers(t *testing.T) {
+	tests := []struct {
+		name, suffix string
+		env          map[string]string
+		want         auth.Authorizer
+	}{
+		{"selected GitHub broker", "_STATE", map[string]string{"ARM_OIDC_REQUEST_URL_STATE": "https://example.invalid/github", "ARM_OIDC_REQUEST_TOKEN_STATE": "bearer"}, &auth.GitHubOIDCAuthorizer{}},
+		{"selected ADO broker", "_STATE", map[string]string{"ARM_OIDC_REQUEST_URL_STATE": "https://example.invalid/pipeline", "ARM_OIDC_REQUEST_TOKEN_STATE": "bearer", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE": "connection"}, &auth.ADOPipelineOIDCAuthorizer{}},
+		{"selected assertion", "_STATE", map[string]string{"ARM_OIDC_TOKEN_STATE": "assertion"}, &auth.ClientAssertionAuthorizer{}},
+		{"selected MSI opt-in", "_STATE", map[string]string{"ARM_USE_MSI_STATE": "true"}, &auth.ManagedIdentityAuthorizer{}},
+		{"legacy GitHub broker", "", map[string]string{"ACTIONS_ID_TOKEN_REQUEST_URL": "https://example.invalid/github", "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "bearer"}, &auth.GitHubOIDCAuthorizer{}},
+		{"legacy ADO task alias", "", map[string]string{"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID": "connection", "SYSTEM_OIDCREQUESTURI": "https://example.invalid/pipeline", "SYSTEM_ACCESSTOKEN": "bearer"}, &auth.ADOPipelineOIDCAuthorizer{}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			clearBackendEnvironment(t)
-			t.Setenv(name, "invalid")
-			t.Setenv(strings.TrimSuffix(name, "_BACKEND"), "true")
-			b := New()
-			config := decodeBackendConfig(t, b, nil)
-			if _, diags := b.PrepareConfig(config); !diags.HasErrors() {
-				t.Fatal("expected invalid backend boolean to fail instead of using generic fallback")
+			t.Setenv("ARM_CLIENT_ID"+test.suffix, "client")
+			t.Setenv("ARM_TENANT_ID"+test.suffix, "tenant")
+			for name, value := range test.env {
+				t.Setenv(name, value)
+			}
+			if test.suffix != "" {
+				for _, name := range []string{"ARM_CLIENT_SECRET", "ARM_CLIENT_CERTIFICATE", "ARM_CLIENT_CERTIFICATE_PATH", "ARM_OIDC_TOKEN", "ARM_ACCESS_KEY", "ARM_SAS_TOKEN", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"} {
+					t.Setenv(name, "ambient")
+				}
+			}
+			b := New().(*Backend)
+			prepared := prepareBackendConfig(t, b, map[string]interface{}{"environment_variable_suffix": test.suffix, "use_oidc": true, "use_azuread_auth": true, "use_cli": false})
+			if diags := b.Configure(prepared); diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+			cached, ok := b.apiClient.azureAdStorageAuth.(*auth.CachedAuthorizer)
+			if !ok || reflect.TypeOf(cached.Source) != reflect.TypeOf(test.want) {
+				t.Fatalf("expected %T in cached authorizer, got %#v", test.want, b.apiClient.azureAdStorageAuth)
 			}
 		})
+	}
+}
+
+func TestBackendSuffixConcurrentPreparation(t *testing.T) {
+	clearBackendEnvironment(t)
+	t.Setenv("ARM_CLIENT_ID", "legacy")
+	t.Setenv("ARM_CLIENT_ID_ONE", "one")
+	t.Setenv("ARM_CLIENT_ID_TWO", "two")
+	b := New().(*Backend)
+	original := maps.Clone(b.SDKLikeDefaults)
+	inputs := make([]cty.Value, 3)
+	for i, suffix := range []string{"", "_ONE", "_TWO"} {
+		inputs[i] = decodeBackendConfig(t, b, map[string]interface{}{"environment_variable_suffix": suffix})
+	}
+	var wg sync.WaitGroup
+	for range 20 {
+		for i, want := range []string{"legacy", "one", "two"} {
+			wg.Go(func() {
+				prepared, diags := b.PrepareConfig(inputs[i])
+				if diags.HasErrors() {
+					t.Error(diags.ErrWithWarnings())
+					return
+				}
+				if got := prepared.GetAttr("client_id").AsString(); got != want {
+					t.Errorf("got %q, want %q", got, want)
+				}
+				repeated, diags := b.PrepareConfig(prepared)
+				if diags.HasErrors() || !repeated.RawEquals(prepared) {
+					t.Error("repeated preparation changed the result")
+				}
+			})
+		}
+	}
+	wg.Wait()
+	if !reflect.DeepEqual(original, b.SDKLikeDefaults) {
+		t.Fatal("concurrent preparation mutated schema defaults")
 	}
 }
 
@@ -423,14 +470,8 @@ func prepareBackendConfig(t *testing.T, b backend.Backend, config map[string]int
 
 func decodeBackendConfig(t *testing.T, b backend.Backend, config map[string]interface{}) cty.Value {
 	t.Helper()
-	raw := map[string]interface{}{
-		"storage_account_name": "testaccount",
-		"container_name":       "testcontainer",
-		"key":                  "test.tfstate",
-	}
-	for name, value := range config {
-		raw[name] = value
-	}
+	raw := map[string]interface{}{"storage_account_name": "testaccount", "container_name": "testcontainer", "key": "test.tfstate"}
+	maps.Copy(raw, config)
 	result, diags := hcldec.Decode(backend.TestWrapConfig(raw), b.ConfigSchema().DecoderSpec(), nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
@@ -443,6 +484,9 @@ func clearBackendEnvironment(t *testing.T) {
 	for _, def := range New().(*Backend).SDKLikeDefaults {
 		for _, name := range def.EnvVars {
 			t.Setenv(name, "")
+			for _, suffix := range []string{"_BACKEND", "_STATE", "_STATE_2", "_ONE", "_TWO"} {
+				t.Setenv(name+suffix, "")
+			}
 		}
 	}
 }

@@ -5,8 +5,7 @@ package azure
 
 import (
 	"maps"
-	"os"
-	"slices"
+	"regexp"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -15,81 +14,110 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+var environmentVariableSuffixPattern = regexp.MustCompile(`^_[A-Z0-9_]+$`)
+
 func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
-	// Preserve the raw values while validating the schema, before choosing environment sources.
 	base := b.Base
 	base.SDKLikeDefaults = nil
 	configVal, diags := base.PrepareConfig(configVal)
 	if diags.HasErrors() {
 		return configVal, diags
 	}
-	data := backendbase.NewSDKLikeData(configVal)
+
+	// Unlike other string defaults, an explicitly empty selector must override its environment variable.
+	suffixVal := configVal.GetAttr("environment_variable_suffix")
+	if suffixVal.IsNull() {
+		suffixVal = cty.StringVal(backendbase.SDKLikeEnvDefault("", b.SDKLikeDefaults["environment_variable_suffix"].EnvVars...))
+	}
+	if !suffixVal.IsKnown() || (suffixVal.AsString() != "" && !environmentVariableSuffixPattern.MatchString(suffixVal.AsString())) {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid environment variable suffix",
+			"The environment_variable_suffix must be empty or match _[A-Z0-9_]+, for example _BACKEND.",
+			cty.GetAttrPath("environment_variable_suffix"),
+		))
+		return configVal, diags
+	}
+	attrs := configVal.AsValueMap()
+	attrs["environment_variable_suffix"] = suffixVal
+	configVal = cty.ObjectVal(attrs)
+
 	defaults := maps.Clone(b.SDKLikeDefaults)
+	selectorDefault := defaults["environment_variable_suffix"]
+	selectorDefault.EnvVars = nil
+	defaults["environment_variable_suffix"] = selectorDefault
 
-	// A direct value and its file alternative must come from the same source.
-	for _, pair := range [][2]string{
-		{"client_id", "client_id_file_path"},
-		{"oidc_token", "oidc_token_file_path"},
-	} {
-		if data.String(pair[0]) != "" || data.String(pair[1]) != "" {
-			for _, attr := range pair {
-				def := defaults[attr]
-				def.EnvVars = nil
-				defaults[attr] = def
+	suffix := suffixVal.AsString()
+	if suffix != "" {
+		for attr, def := range defaults {
+			var envNames []string
+			for _, name := range def.EnvVars {
+				if strings.HasPrefix(name, "ARM_") {
+					envNames = append(envNames, name+suffix)
+				}
 			}
-		} else if hasBackendEnvironmentValue(defaults, pair[:]...) {
-			useBackendEnvironmentOnly(defaults, pair[:]...)
-		}
-	}
-
-	// Selected backend-specific OIDC credentials must not inherit the provider's assertion or service connection.
-	for _, attr := range []string{"oidc_token", "oidc_token_file_path", "oidc_request_url", "oidc_request_token"} {
-		if data.String(attr) == "" && hasBackendEnvironmentValue(defaults, attr) {
-			useBackendEnvironmentOnly(defaults, "oidc_token", "oidc_token_file_path", "ado_pipeline_service_connection_id")
-			break
-		}
-	}
-
-	serviceConnectionID := backendbase.SDKLikeEnvDefault(
-		data.String("ado_pipeline_service_connection_id"),
-		defaults["ado_pipeline_service_connection_id"].EnvVars...,
-	)
-	if serviceConnectionID == "" {
-		// The SDK's Azure Pipelines request flow requires a service connection;
-		// its GitHub request flow cannot consume SYSTEM_* endpoints or responses.
-		for _, attr := range []string{"oidc_request_url", "oidc_request_token"} {
-			def := defaults[attr]
-			def.EnvVars = slices.DeleteFunc(slices.Clone(def.EnvVars), func(name string) bool {
-				return strings.HasPrefix(name, "SYSTEM_")
-			})
+			def.EnvVars = envNames
 			defaults[attr] = def
+		}
+		// A missing selected credential must not fall through to the ambient CLI session.
+		cliDefault := defaults["use_cli"]
+		cliDefault.Fallback = "false"
+		defaults["use_cli"] = cliDefault
+
+		data := backendbase.NewSDKLikeData(configVal)
+		for _, pair := range [][2]string{
+			{"client_id", "client_id_file_path"},
+			{"client_secret", "client_secret_file_path"},
+			{"client_certificate", "client_certificate_path"},
+			{"oidc_token", "oidc_token_file_path"},
+		} {
+			if anyStringSet(data, pair[:]...) {
+				disableEnvironmentDefaults(defaults, pair[:]...)
+			}
+		}
+
+		// Explicit OIDC inputs select the method; conflicting explicit inputs remain for validation.
+		if anyStringSet(data, "oidc_token", "oidc_token_file_path") || data.Bool("use_aks_workload_identity") {
+			disableEnvironmentDefaults(defaults, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id")
+		}
+		if anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id") {
+			disableEnvironmentDefaults(defaults, "oidc_token", "oidc_token_file_path", "use_aks_workload_identity")
 		}
 	}
 
 	prepared, err := defaults.ApplyTo(configVal)
 	if err != nil {
 		diags = diags.Append(err)
+		return prepared, diags
+	}
+	if suffix != "" {
+		data := backendbase.NewSDKLikeData(prepared)
+		hasAssertion := anyStringSet(data, "oidc_token", "oidc_token_file_path") || data.Bool("use_aks_workload_identity")
+		hasRequest := anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id")
+		if hasAssertion && hasRequest {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting OIDC authentication settings",
+				"When environment_variable_suffix is set, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
+			))
+		}
 	}
 	return prepared, diags
 }
 
-func hasBackendEnvironmentValue(defaults backendbase.SDKLikeDefaults, attrs ...string) bool {
+func anyStringSet(data backendbase.SDKLikeData, attrs ...string) bool {
 	for _, attr := range attrs {
-		for _, name := range defaults[attr].EnvVars {
-			if strings.HasSuffix(name, "_BACKEND") && os.Getenv(name) != "" {
-				return true
-			}
+		if data.String(attr) != "" {
+			return true
 		}
 	}
 	return false
 }
 
-func useBackendEnvironmentOnly(defaults backendbase.SDKLikeDefaults, attrs ...string) {
+func disableEnvironmentDefaults(defaults backendbase.SDKLikeDefaults, attrs ...string) {
 	for _, attr := range attrs {
 		def := defaults[attr]
-		def.EnvVars = slices.DeleteFunc(slices.Clone(def.EnvVars), func(name string) bool {
-			return !strings.HasSuffix(name, "_BACKEND")
-		})
+		def.EnvVars = nil
 		defaults[attr] = def
 	}
 }

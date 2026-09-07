@@ -25,6 +25,11 @@ func New() backend.Backend {
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 
+					"environment_variable_suffix": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Suffix to append to ARM_* environment variables, such as _BACKEND. When set, unsuffixed and CI-native environment defaults are not used. An explicitly empty string disables the suffix.",
+					},
 					"subscription_id": {
 						Type:        cty.String,
 						Optional:    true,
@@ -198,8 +203,11 @@ func New() backend.Backend {
 				},
 			},
 			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"environment_variable_suffix": {
+					EnvVars: []string{"ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX"},
+				},
 				"subscription_id": {
-					EnvVars:  []string{"ARM_SUBSCRIPTION_ID_BACKEND", "ARM_SUBSCRIPTION_ID"},
+					EnvVars:  []string{"ARM_SUBSCRIPTION_ID"},
 					Fallback: "",
 				},
 				"lookup_blob_endpoint": {
@@ -227,15 +235,15 @@ func New() backend.Backend {
 					Fallback: "",
 				},
 				"tenant_id": {
-					EnvVars:  []string{"ARM_TENANT_ID_BACKEND", "ARM_TENANT_ID"},
+					EnvVars:  []string{"ARM_TENANT_ID"},
 					Fallback: "",
 				},
 				"client_id": {
-					EnvVars:  []string{"ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID"},
+					EnvVars:  []string{"ARM_CLIENT_ID"},
 					Fallback: "",
 				},
 				"client_id_file_path": {
-					EnvVars: []string{"ARM_CLIENT_ID_FILE_PATH_BACKEND", "ARM_CLIENT_ID_FILE_PATH"},
+					EnvVars: []string{"ARM_CLIENT_ID_FILE_PATH"},
 					// no fallback
 				},
 
@@ -265,27 +273,27 @@ func New() backend.Backend {
 
 				// OIDC specific fields
 				"use_oidc": {
-					EnvVars:  []string{"ARM_USE_OIDC_BACKEND", "ARM_USE_OIDC"},
+					EnvVars:  []string{"ARM_USE_OIDC"},
 					Fallback: "false",
 				},
 				"ado_pipeline_service_connection_id": {
-					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
+					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
 					// no fallback
 				},
 				"oidc_request_token": {
-					EnvVars: []string{"ARM_OIDC_REQUEST_TOKEN_BACKEND", "ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"},
+					EnvVars: []string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"},
 					// no fallback
 				},
 				"oidc_request_url": {
-					EnvVars: []string{"ARM_OIDC_REQUEST_URL_BACKEND", "ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"},
+					EnvVars: []string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"},
 					// no fallback
 				},
 				"oidc_token": {
-					EnvVars:  []string{"ARM_OIDC_TOKEN_BACKEND", "ARM_OIDC_TOKEN"},
+					EnvVars:  []string{"ARM_OIDC_TOKEN"},
 					Fallback: "",
 				},
 				"oidc_token_file_path": {
-					EnvVars:  []string{"ARM_OIDC_TOKEN_FILE_PATH_BACKEND", "ARM_OIDC_TOKEN_FILE_PATH"},
+					EnvVars:  []string{"ARM_OIDC_TOKEN_FILE_PATH"},
 					Fallback: "",
 				},
 
@@ -313,7 +321,7 @@ func New() backend.Backend {
 
 				// Feature Flags
 				"use_azuread_auth": {
-					EnvVars:  []string{"ARM_USE_AZUREAD_BACKEND", "ARM_USE_AZUREAD"},
+					EnvVars:  []string{"ARM_USE_AZUREAD"},
 					Fallback: "false",
 				},
 			},
