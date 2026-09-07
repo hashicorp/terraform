@@ -289,22 +289,6 @@ func (s *StateMigrateHuman) LogProviderLockfileUpdated() {
 	s.log(dependenciesLockChangesInfo)
 }
 
-// Implements ProviderInstallationLogger interface.
-func (s *StateMigrateHuman) prepareMessage(code InitMessageCode, params ...any) string {
-	message, ok := MessageRegistry[code]
-	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(code)
-	}
-
-	if message.HumanValue == "" {
-		// no need to apply colorization if the message is empty
-		return message.HumanValue
-	}
-
-	return s.view.colorize.Color(strings.TrimSpace(fmt.Sprintf(message.HumanValue, params...)))
-}
-
 type StateMigrateJSON struct {
 	view *JSONView
 }
