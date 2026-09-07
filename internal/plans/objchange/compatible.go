@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package objchange
@@ -45,6 +45,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		errs = append(errs, path.NewErrorf("%swas present, but now absent", atRoot))
 		return errs
 	}
+
 	if planned.IsNull() {
 		// No further checks possible if both values are null
 		return errs
@@ -75,9 +76,29 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 			errs = append(errs, moreErrs...)
 		}
 	}
+
 	for name, blockS := range schema.BlockTypes {
 		plannedV, _ := planned.GetAttr(name).Unmark()
 		actualV, _ := actual.GetAttr(name).Unmark()
+
+		if blockS.Computed {
+			// computed collection blocks are only null on the wire to the
+			// provider to indicate absence of configuration, but the planned
+			// and actual values must still never be null. The planned value has
+			// already been validated, so we only check that the actual value
+			// still conforms.
+			if actualV.IsNull() && blockS.Nesting != configschema.NestingSingle {
+				errs = append(errs, path.NewErrorf("null block value after apply"))
+				return errs
+			}
+
+			if !plannedV.IsKnown() {
+				// If the block was planned as being unknown, we simply validate
+				// the block values directly as a whole. If there was a planned
+				// value, we recurse into it as normal.
+				return assertValueCompatible(plannedV, actualV, nil)
+			}
+		}
 
 		path := append(path, cty.GetAttrStep{Name: name})
 		switch blockS.Nesting {
@@ -366,6 +387,14 @@ func assertSetValuesCompatible(planned, actual cty.Value, path cty.Path, f func(
 	beqs := make([]bool, len(bs))
 	for ai, av := range as {
 		for bi, bv := range bs {
+			if aeqs[ai] && beqs[bi] {
+				// because the best we can do is check that a value correlates
+				// with some other value in the other set, one or both values
+				// might have already been matched. If they have both matched in
+				// some way there's no need run the check again.
+				continue
+			}
+
 			if f(av, bv) {
 				aeqs[ai] = true
 				beqs[bi] = true

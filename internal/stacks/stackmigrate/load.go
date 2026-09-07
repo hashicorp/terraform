@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackmigrate
@@ -112,9 +112,9 @@ func (l *Loader) LoadState(configPath string) (*states.State, tfdiags.Diagnostic
 
 	// The backend is initialised and configured, so now we can load the state
 	// from the backend.
-	stateManager, err := backend.StateMgr(workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error loading state: %s", err))
+	stateManager, sDiags := backend.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("error loading state: %s", sDiags.Err()))
 		return state, diags
 	}
 

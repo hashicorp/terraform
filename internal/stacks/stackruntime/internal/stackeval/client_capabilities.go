@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -11,5 +11,6 @@ func ClientCapabilities() providers.ClientCapabilities {
 	return providers.ClientCapabilities{
 		DeferralAllowed:            true,
 		WriteOnlyAttributesAllowed: true,
+		ComputedBlocksAllowed:      true,
 	}
 }

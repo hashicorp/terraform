@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package consul
@@ -43,9 +43,9 @@ func TestRemoteClient(t *testing.T) {
 			}))
 
 			// Grab the client
-			state, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatalf("err: %s", err)
+			state, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatalf("err: %s", sDiags.Err())
 			}
 
 			// Test
@@ -67,9 +67,9 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("err: %s", sDiags.Err())
 	}
 
 	// Test
@@ -83,9 +83,9 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 	}))
 
 	// Grab the client
-	state, err = b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state, sDiags = b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("err: %s", sDiags.Err())
 	}
 
 	// Test
@@ -105,9 +105,9 @@ func TestConsul_largeState(t *testing.T) {
 		"path":    path,
 	}))
 
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	c := s.(*remote.State).Client.(*RemoteClient)
@@ -135,14 +135,14 @@ func TestConsul_largeState(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = c.Put(payload)
-		if err != nil {
-			t.Fatal("could not put payload", err)
+		diags := c.Put(payload)
+		if diags.HasErrors() {
+			t.Fatal("could not put payload", diags.Err())
 		}
 
-		remote, err := c.Get()
-		if err != nil {
-			t.Fatal(err)
+		remote, diags := c.Get()
+		if diags.HasErrors() {
+			t.Fatal(diags.Err())
 		}
 
 		if !bytes.Equal(payload, remote.Data) {
@@ -192,9 +192,9 @@ func TestConsul_largeState(t *testing.T) {
 		"gzip":    true,
 	}))
 
-	s, err = b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags = b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("err: %s", sDiags.Err())
 	}
 
 	c = s.(*remote.State).Client.(*RemoteClient)
@@ -229,9 +229,9 @@ func TestConsul_largeState(t *testing.T) {
 	)
 
 	// Deleting the state should remove all chunks
-	err = c.Delete()
-	if err != nil {
-		t.Fatal(err)
+	dDiags := c.Delete()
+	if dDiags.HasErrors() {
+		t.Fatal(dDiags.Err())
 	}
 	testPaths(t, []string{})
 }
@@ -296,9 +296,9 @@ func TestConsul_destroyLock(t *testing.T) {
 			}))
 
 			// Grab the client
-			s, err := b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatalf("err: %s", err)
+			s, sDiags := b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatalf("err: %s", sDiags.Err())
 			}
 
 			clientA := s.(*remote.State).Client.(*RemoteClient)
@@ -319,9 +319,9 @@ func TestConsul_destroyLock(t *testing.T) {
 
 			// The release the lock from a second client to test the
 			// `terraform force-unlock <lock_id>` functionnality
-			s, err = b.StateMgr(backend.DefaultStateName)
-			if err != nil {
-				t.Fatalf("err: %s", err)
+			s, sDiags = b.StateMgr(backend.DefaultStateName)
+			if sDiags.HasErrors() {
+				t.Fatalf("err: %s", sDiags.Err())
 			}
 
 			clientB := s.(*remote.State).Client.(*RemoteClient)
@@ -356,20 +356,20 @@ func TestConsul_lostLock(t *testing.T) {
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
-	sA, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	sA, sDiags := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path,
 	})).StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	sB, err := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+	sB, sDiags := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,
 		"path":    path + "-not-used",
 	})).StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	info := statemgr.NewLockInfo()
@@ -418,9 +418,9 @@ func TestConsul_lostLockConnection(t *testing.T) {
 		"path":    path,
 	}))
 
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
 	info := statemgr.NewLockInfo()

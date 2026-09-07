@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package arguments
@@ -66,6 +66,16 @@ func TestParseRefresh_invalid(t *testing.T) {
 	}
 	if got.ViewType != ViewHuman {
 		t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
+	}
+}
+
+func TestParseRefresh_minimal_refresh(t *testing.T) {
+	_, diags := ParseRefresh([]string{"-minimal-refresh"})
+	if len(diags) == 0 {
+		t.Fatal("expected diags but got none")
+	}
+	if got, want := diags.Err().Error(), "Invalid mode option"; !strings.Contains(got, want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
 	}
 }
 

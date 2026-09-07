@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package format
@@ -88,7 +88,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 			lines := strings.Split(diag.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(paraWidth))
+					line = wordwrap.WrapString(color.Color(line), uint(paraWidth))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
@@ -162,7 +162,7 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 			lines := strings.Split(diag.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width-1))
+					line = wordwrap.WrapString(disabledColorize.Color(line), uint(width-1))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
@@ -229,7 +229,21 @@ type snippetFormatter struct {
 func (f *snippetFormatter) write() {
 	diag := f.diag
 	buf := f.buf
-	color := f.color
+
+	// The beginning of a Terraform snippet points to the source code location
+	// where the snippet was defined, (e.g. "on main.tf line 7")
+	// However, if the diagnostic is associated with a policy evaluation,
+	// the policy diagnostic will first indicate which policy was violated,
+	// and then include the terraform source code location as well.
+	mainSnippetPrefix := "  on"
+	if diag.PolicyRange != nil {
+		mainSnippetPrefix = "  while evaluating policy for"
+
+		// if the diagnostic has a policy range, then it contains policy-specific information
+		// and we will write that first.
+		f.writePolicySnippet(diag)
+	}
+
 	if diag.Address != "" {
 		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
 	}
@@ -243,119 +257,143 @@ func (f *snippetFormatter) write() {
 		// loaded through the main loader. We may load things in other
 		// ways in weird cases, so we'll tolerate it at the expense of
 		// a not-so-helpful error message.
-		fmt.Fprintf(buf, "  on %s line %d:\n  (source code not available)\n", diag.Range.Filename, diag.Range.Start.Line)
+		fmt.Fprintf(buf, "%s %s line %d:\n  (source code not available)\n",
+			mainSnippetPrefix, diag.Range.Filename, diag.Range.Start.Line)
 	} else {
-		snippet := diag.Snippet
-		code := snippet.Code
+		f.writeSnippet(mainSnippetPrefix, diag.Range, diag.Snippet)
 
-		var contextStr string
-		if snippet.Context != nil {
-			contextStr = fmt.Sprintf(", in %s", *snippet.Context)
-		}
-		fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.Range.Filename, diag.Range.Start.Line, contextStr)
-
-		// Split the snippet and render the highlighted section with underlines
-		start := snippet.HighlightStartOffset
-		end := snippet.HighlightEndOffset
-
-		// Only buggy diagnostics can have an end range before the start, but
-		// we need to ensure we don't crash here if that happens.
-		if end < start {
-			end = start + 1
-			if end > len(code) {
-				end = len(code)
-			}
-		}
-
-		// If either start or end is out of range for the code buffer then
-		// we'll cap them at the bounds just to avoid a panic, although
-		// this would happen only if there's a bug in the code generating
-		// the snippet objects.
-		if start < 0 {
-			start = 0
-		} else if start > len(code) {
-			start = len(code)
-		}
-		if end < 0 {
-			end = 0
-		} else if end > len(code) {
-			end = len(code)
-		}
-
-		before, highlight, after := code[0:start], code[start:end], code[end:]
-		code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
-
-		// Split the snippet into lines and render one at a time
-		lines := strings.Split(code, "\n")
-		for i, line := range lines {
-			fmt.Fprintf(
-				buf, "%4d: %s\n",
-				snippet.StartLine+i,
-				line,
-			)
-		}
-
-		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
-			// The diagnostic may also have information about the dynamic
-			// values of relevant variables at the point of evaluation.
-			// This is particularly useful for expressions that get evaluated
-			// multiple times with different values, such as blocks using
-			// "count" and "for_each", or within "for" expressions.
-			values := slices.Clone(snippet.Values)
-			sort.Slice(values, func(i, j int) bool {
-				return values[i].Traversal < values[j].Traversal
-			})
-
-			fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
-			if callInfo := snippet.FunctionCall; callInfo != nil && callInfo.Signature != nil {
-
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] while calling [bold]%s[reset]("), callInfo.CalledAs)
-				for i, param := range callInfo.Signature.Params {
-					if i > 0 {
-						buf.WriteString(", ")
-					}
-					buf.WriteString(param.Name)
-				}
-				if param := callInfo.Signature.VariadicParam; param != nil {
-					if len(callInfo.Signature.Params) > 0 {
-						buf.WriteString(", ")
-					}
-					buf.WriteString(param.Name)
-					buf.WriteString("...")
-				}
-				buf.WriteString(")\n")
-			}
-
-			// always print the values unless in the case of a test assertion, where we only print them if the user has requested verbose output
-			printValues := snippet.TestAssertionExpr == nil || snippet.TestAssertionExpr.ShowVerbose
-
-			// The diagnostic may also have information about failures from test assertions
-			// in a `terraform test` run. This is useful for understanding the values that
-			// were being compared when the assertion failed.
-			// Also, we'll print a JSON diff of the two values to make it easier to see the
-			// differences.
-			if snippet.TestAssertionExpr != nil {
-				f.printTestDiagOutput(snippet.TestAssertionExpr)
-			}
-
-			if printValues {
-				for _, value := range values {
-					// if the statement is one line, we'll just print it as is
-					// otherwise, we have to ensure that each line is indented correctly
-					// and that the first line has the traversal information
-					valSlice := strings.Split(value.Statement, "\n")
-					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"),
-						value.Traversal, valSlice[0])
-
-					for _, line := range valSlice[1:] {
-						fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
-					}
-				}
-			}
+		if diag.DeprecationOriginDescription != "" {
+			fmt.Fprintf(buf, "\n  The deprecation originates from %s\n", diag.DeprecationOriginDescription)
 		}
 	}
 
 	buf.WriteByte('\n')
+}
+
+func (f *snippetFormatter) writePolicySnippet(diag *viewsjson.Diagnostic) {
+	if diag.PolicySnippet == nil {
+		fmt.Fprintf(f.buf, "  on %s line %d:\n  (source code not available)\n",
+			diag.PolicyRange.Filename, diag.PolicyRange.Start.Line)
+	} else {
+		f.writeSnippet("  on", diag.PolicyRange, diag.PolicySnippet)
+	}
+
+	f.buf.WriteByte('\n')
+}
+
+// writeSnippet renders a diagnostic output from the given snippet and range.
+// The snippetPrefix is used as the prefix for the context line.
+func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.DiagnosticRange, snippet *viewsjson.DiagnosticSnippet) {
+	buf := f.buf
+	color := f.color
+	var contextStr string
+
+	// Build the context string from the snippet's context, if available
+	if snippet.Context != nil {
+		contextStr = fmt.Sprintf(", in %s", *snippet.Context)
+	}
+	context := fmt.Sprintf("%s %s line %d%s:\n",
+		snippetPrefix, rng.Filename, rng.Start.Line, contextStr)
+	buf.WriteString(context)
+
+	code := snippet.Code
+	// Split the snippet and render the highlighted section with underlines
+	start := snippet.HighlightStartOffset
+	end := snippet.HighlightEndOffset
+
+	// Only buggy diagnostics can have an end range before the start, but
+	// we need to ensure we don't crash here if that happens.
+	if end < start {
+		end = start + 1
+		end = min(end, len(code))
+	}
+
+	// If either start or end is out of range for the code buffer then
+	// we'll cap them at the bounds just to avoid a panic, although
+	// this would happen only if there's a bug in the code generating
+	// the snippet objects.
+	if start < 0 {
+		start = 0
+	} else if start > len(code) {
+		start = len(code)
+	}
+	if end < 0 {
+		end = 0
+	} else if end > len(code) {
+		end = len(code)
+	}
+
+	before, highlight, after := code[0:start], code[start:end], code[end:]
+	code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
+
+	// Split the snippet into lines and render one at a time
+	lines := strings.Split(code, "\n")
+	for i, line := range lines {
+		fmt.Fprintf(
+			buf, "%4d: %s\n",
+			snippet.StartLine+i,
+			line,
+		)
+	}
+
+	if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
+		// The diagnostic may also have information about the dynamic
+		// values of relevant variables at the point of evaluation.
+		// This is particularly useful for expressions that get evaluated
+		// multiple times with different values, such as blocks using
+		// "count" and "for_each", or within "for" expressions.
+		values := slices.Clone(snippet.Values)
+		sort.Slice(values, func(i, j int) bool {
+			return values[i].Traversal < values[j].Traversal
+		})
+
+		fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
+		if callInfo := snippet.FunctionCall; callInfo != nil && callInfo.Signature != nil {
+
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] while calling [bold]%s[reset]("), callInfo.CalledAs)
+			for i, param := range callInfo.Signature.Params {
+				if i > 0 {
+					buf.WriteString(", ")
+				}
+				buf.WriteString(param.Name)
+			}
+			if param := callInfo.Signature.VariadicParam; param != nil {
+				if len(callInfo.Signature.Params) > 0 {
+					buf.WriteString(", ")
+				}
+				buf.WriteString(param.Name)
+				buf.WriteString("...")
+			}
+			buf.WriteString(")\n")
+		}
+
+		// always print the values unless in the case of a test assertion, where we only print them if the user has requested verbose output
+		printValues := snippet.TestAssertionExpr == nil || snippet.TestAssertionExpr.ShowVerbose
+
+		// The diagnostic may also have information about failures from test assertions
+		// in a `terraform test` run. This is useful for understanding the values that
+		// were being compared when the assertion failed.
+		// Also, we'll print a JSON diff of the two values to make it easier to see the
+		// differences.
+		if snippet.TestAssertionExpr != nil {
+			f.printTestDiagOutput(snippet.TestAssertionExpr)
+		}
+
+		if printValues {
+			for _, value := range values {
+				// if the statement is one line, we'll just print it as is
+				// otherwise, we have to ensure that each line is indented correctly
+				// and that the first line has the traversal information
+				valSlice := strings.Split(value.Statement, "\n")
+				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"),
+					value.Traversal, valSlice[0])
+
+				for _, line := range valSlice[1:] {
+					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
+				}
+			}
+		}
+	}
 }
 
 func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -290,8 +290,8 @@ func TestRefreshPlan(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 

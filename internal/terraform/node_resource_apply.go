@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -55,11 +55,43 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module, false)
 	for _, module := range moduleInstances {
+		absAddr := n.Addr.Resource.Absolute(module)
+		// If the resource in this module instance is part of a partial expansion, we will expand it with an unknown count/for_each
+		if n.checkForPartialExpansion(ctx, absAddr) {
+			continue
+		}
+
 		moduleCtx := evalContextForModuleInstance(ctx, module)
-		diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module)))
+		diags = diags.Append(n.recordResourceData(moduleCtx, absAddr))
 	}
 
 	return nil, diags
+}
+
+func (n *nodeExpandApplyableResource) checkForPartialExpansion(ctx EvalContext, addr addrs.AbsResource) bool {
+	if len(n.PartialExpansions) == 0 {
+		return false
+	}
+
+	expander := ctx.InstanceExpander()
+	for _, per := range n.PartialExpansions {
+		if per.MatchesResource(addr) {
+			// Resources that are partially expanded shouldn't evaluate count or for_each expressions
+			// as we have already deferred them, so any resulting evaluations were not part of the plan.
+			switch {
+			case n.Config != nil && n.Config.Count != nil:
+				expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
+			case n.Config != nil && n.Config.ForEach != nil:
+				expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
+			default:
+				continue
+			}
+
+			return true
+		}
+	}
+
+	return false
 }
 
 // We need to expand the ephemeral resources mostly the same as we do during
@@ -79,8 +111,6 @@ func (n *nodeExpandApplyableResource) dynamicExpandEphemeral(ctx EvalContext) (*
 		expDiags := n.expandEphemeralResourceInstances(ctx, resAddr, &g)
 		diags = diags.Append(expDiags)
 	}
-
-	addRootNodeToGraph(&g)
 
 	return &g, diags
 }
@@ -142,12 +172,6 @@ func (n *nodeExpandApplyableResource) ephemeralResourceInstanceSubgraph(addr add
 
 		// Targeting
 		&TargetsTransformer{Targets: n.Targets},
-
-		// Connect references so ordering is correct
-		&ReferenceTransformer{},
-
-		// Make sure there is a single root
-		&RootTransformer{},
 	}
 
 	// Build the graph

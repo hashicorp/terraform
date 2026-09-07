@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -13,6 +13,8 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -178,6 +181,12 @@ type EvalContext interface {
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
 
+	// PolicyGraph returns the policy subgraph for this context.
+	// It is used to store resource policy nodes that are collected during the resource
+	// graph evaluation. Each managed resource instance selected for
+	// policy evaluation will have a corresponding policy node in this graph.
+	PolicyGraph() *policySubgraph
+
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
 	// arguments.
@@ -216,6 +225,27 @@ type EvalContext interface {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowed in the context of a destroy plan.
 	Forget() bool
+
+	// ProviderLocks returns a read-only snapshot of provider locks (exact
+	// version per provider selected during init).
+	ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock
+
+	// PolicyClient returns the policy client object which allows evaluation of
+	// policy for resources, modules, and providers via the policy plugin.
+	// Absent if policy evaluation is not enabled.
+	PolicyClient() policy.Client
+
+	// PolicySemaphore returns the semaphore used to limit concurrent policy
+	// evaluations. This is separate from the provider operation semaphore to
+	// ensure policy evaluations don't consume provider parallelism slots.
+	// Returns nil if policy evaluation is not enabled.
+	PolicySemaphore() Semaphore
+
+	Config() *configs.Config
+
+	// Deprecations returns the deprecations object that tracks meta-information
+	// about deprecation, e.g. which module calls suppress deprecation warnings.
+	Deprecations() *deprecation.Deprecations
 }
 
 func evalContextForModuleInstance(baseCtx EvalContext, addr addrs.ModuleInstance) EvalContext {

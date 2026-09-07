@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stubs
@@ -90,6 +90,20 @@ func (p *offlineProvider) ValidateEphemeralResourceConfig(providers.ValidateEphe
 	}
 }
 
+// ValidateListResourceConfig implements providers.Interface.
+func (p *offlineProvider) ValidateListResourceConfig(providers.ValidateListResourceConfigRequest) providers.ValidateListResourceConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateListResourceConfig on an unconfigured provider",
+		"Cannot validate this resource config because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateListResourceConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
 func (o *offlineProvider) UpgradeResourceState(_ providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -145,6 +159,11 @@ func (o *offlineProvider) ReadResource(_ providers.ReadResourceRequest) provider
 	return providers.ReadResourceResponse{
 		Diagnostics: diags,
 	}
+}
+
+// GenerateResourceConfig implements providers.Interface
+func (p *offlineProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
+	panic("not implemented")
 }
 
 func (o *offlineProvider) PlanResourceChange(_ providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -233,6 +252,169 @@ func (u *offlineProvider) CloseEphemeralResource(providers.CloseEphemeralResourc
 
 func (o *offlineProvider) CallFunction(request providers.CallFunctionRequest) providers.CallFunctionResponse {
 	return o.unconfiguredClient.CallFunction(request)
+}
+
+func (o *offlineProvider) ListResource(providers.ListResourceRequest) providers.ListResourceResponse {
+	var resp providers.ListResourceResponse
+	resp.Diagnostics = resp.Diagnostics.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ListResource on an unconfigured provider",
+		"Cannot list this resource because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return resp
+}
+
+// ValidateStateStoreConfig implements providers.Interface.
+func (o *offlineProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateStateStoreConfig on an unconfigured provider",
+		"Cannot validate state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateStateStoreConfigResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ConfigureStateStore implements providers.Interface.
+func (o *offlineProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ConfigureStateStore on an unconfigured provider",
+		"Cannot configure state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ConfigureStateStoreResponse{
+		Diagnostics: diags,
+	}
+}
+
+// ReadStateBytes implements providers.Interface.
+func (o *offlineProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ReadStateBytes on an unconfigured provider",
+		"Cannot read from state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ReadStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// WriteStateBytes implements providers.Interface.
+func (o *offlineProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called WriteStateBytes on an unconfigured provider",
+		"Cannot write to state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.WriteStateBytesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// GetStates implements providers.Interface.
+func (o *offlineProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called GetStates on an unconfigured provider",
+		"Cannot list states managed by this state store because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.GetStatesResponse{
+		Diagnostics: diags,
+	}
+}
+
+// DeleteState implements providers.Interface.
+func (o *offlineProvider) DeleteState(providers.DeleteStateRequest) providers.DeleteStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called DeleteState on an unconfigured provider",
+		"Cannot use this state store to delete a state because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.DeleteStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) LockState(providers.LockStateRequest) providers.LockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called LockState on an unconfigured provider",
+		"Cannot use this state store to lock a state because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.LockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+func (o *offlineProvider) UnlockState(providers.UnlockStateRequest) providers.UnlockStateResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called UnlockState on an unconfigured provider",
+		"Cannot use this state store to unlock a state because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.UnlockStateResponse{
+		Diagnostics: diags,
+	}
+}
+
+// PlanAction implements providers.Interface.
+func (o *offlineProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called PlanAction on an unconfigured provider",
+		"Cannot plan this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.PlanActionResponse{
+		Diagnostics: diags,
+	}
+}
+
+// InvokeAction implements providers.Interface.
+func (o *offlineProvider) InvokeAction(request providers.InvokeActionRequest) providers.InvokeActionResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called InvokeAction on an unconfigured provider",
+		"Cannot invoke this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.InvokeActionResponse{
+		Diagnostics: diags,
+	}
+}
+
+// InvokeAction implements providers.Interface.
+func (o *offlineProvider) ValidateActionConfig(request providers.ValidateActionConfigRequest) providers.ValidateActionConfigResponse {
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Called ValidateActionConfig on an unconfigured provider",
+		"Cannot invoke this action because this provider is not configured. This is a bug in Terraform - please report it.",
+		nil, // nil attribute path means the overall configuration block
+	))
+	return providers.ValidateActionConfigResponse{
+		Diagnostics: diags,
+	}
 }
 
 func (o *offlineProvider) Close() error {

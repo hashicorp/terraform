@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -15,8 +15,10 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -33,7 +35,8 @@ func (b *Local) opApply(
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	op *backendrun.Operation,
-	runningOp *backendrun.RunningOperation) {
+	runningOp *backendrun.RunningOperation,
+) {
 	log.Printf("[INFO] backend/local: starting Apply operation")
 
 	var diags, moreDiags tfdiags.Diagnostics
@@ -56,7 +59,8 @@ func (b *Local) opApply(
 	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
-	lr, _, opState, contextDiags := b.localRun(op)
+	lr, _, opState, contextDiags := b.localRun(stopCtx, op)
+
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -92,6 +96,9 @@ func (b *Local) opApply(
 	combinedPlanApply := false
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
+		// set the policy client to nil for the plan preceding apply
+		// so that policy evaluation is skipped during the plan.
+		lr.PlanOpts.PolicyClient = nil
 		combinedPlanApply = true
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
@@ -145,13 +152,19 @@ func (b *Local) opApply(
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
 			case plans.RefreshOnlyMode:
-				if op.Workspace != "default" {
-					query = "Would you like to update the Terraform state for \"" + op.Workspace + "\" to reflect these detected changes?"
+				if len(plan.ActionTargetAddrs) > 0 {
+					query = "Would you like to invoke the specified actions?"
+					desc = "Terraform will invoke the actions described above, and any changes will be written to the state without modifying real infrastructure\n" +
+						"There is no undo. Only 'yes' will be accepted to confirm."
 				} else {
-					query = "Would you like to update the Terraform state to reflect these detected changes?"
+					if op.Workspace != "default" {
+						query = "Would you like to update the Terraform state for \"" + op.Workspace + "\" to reflect these detected changes?"
+					} else {
+						query = "Would you like to update the Terraform state to reflect these detected changes?"
+					}
+					desc = "Terraform will write these changes to the state without modifying any real infrastructure.\n" +
+						"There is no undo. Only 'yes' will be accepted to confirm."
 				}
-				desc = "Terraform will write these changes to the state without modifying any real infrastructure.\n" +
-					"There is no undo. Only 'yes' will be accepted to confirm."
 			default:
 				if op.Workspace != "default" {
 					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
@@ -256,7 +269,7 @@ func (b *Local) opApply(
 		// depends on how they were declared, and is subject to compatibility
 		// constraints. Collect any suspect values as we go, and then use the
 		// same parsing logic from the plan to generate the diagnostics.
-		undeclaredVariables := map[string]backendrun.UnparsedVariableValue{}
+		undeclaredVariables := map[string]arguments.UnparsedVariableValue{}
 
 		parsedVars, _ := backendrun.ParseVariableValues(op.Variables, lr.Config.Module.Variables)
 
@@ -339,6 +352,14 @@ func (b *Local) opApply(
 						Subject:  rng,
 					})
 				} else {
+					markedPlannedVar := plannedVar
+					markedParsedVar := parsedVar.Value
+
+					if decl.Sensitive {
+						markedPlannedVar = markedPlannedVar.Mark(marks.Sensitive)
+						markedParsedVar = markedParsedVar.Mark(marks.Sensitive)
+					}
+
 					// The user can't override the planned variables, so we
 					// error when possible to avoid confusion.
 					if parsedVar.Value.Equals(plannedVar).False() {
@@ -351,11 +372,11 @@ func (b *Local) opApply(
 							diags = diags.Append(&hcl.Diagnostic{
 								Severity: hcl.DiagWarning,
 								Summary:  "Ignoring variable when applying a saved plan",
-								Detail: fmt.Sprintf("The variable %s cannot be overriden when applying a saved plan file, "+
+								Detail: fmt.Sprintf("The variable %s cannot be overridden when applying a saved plan file, "+
 									"because a saved plan includes the variable values that were set when it was created. "+
 									"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 									"To declare an ephemeral variable which is not saved in the plan file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+									varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -368,7 +389,7 @@ func (b *Local) opApply(
 									"set when it was created. The saved plan specifies %s as the value whereas during apply "+
 									"the value %s was %s. To declare an ephemeral variable which is not saved in the plan "+
 									"file, use ephemeral = true.",
-									varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+									varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 									parsedVar.SourceType.DiagnosticLabel()),
 								Subject: rng,
 							})
@@ -380,7 +401,7 @@ func (b *Local) opApply(
 							panic(fmt.Sprintf("Attempted to change variable %s when applying a saved plan. "+
 								"The saved plan specifies %s as the value whereas during apply the value %s was %s. "+
 								"This is a bug in Terraform, please report it.",
-								varName, tfdiags.CompactValueStr(plannedVar), tfdiags.CompactValueStr(parsedVar.Value),
+								varName, tfdiags.CompactValueStr(markedPlannedVar), tfdiags.CompactValueStr(markedParsedVar),
 								parsedVar.SourceType.DiagnosticLabel()))
 						}
 					}
@@ -401,9 +422,52 @@ func (b *Local) opApply(
 		}
 	}
 
+	// If the user erroneously included any plan options flags when they supplied a plan file,
+	// we'll return an error if the flag values don't match the plan file.
+	if len(op.Targets) != 0 {
+		// Do target flags all match targets in the plan?
+		for _, target := range op.Targets {
+			found := false
+			for _, planTarget := range plan.TargetAddrs {
+				if target.TargetContains(planTarget) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Can't change resource targeting when applying a saved plan",
+					fmt.Sprintf("The target address %q was supplied using a -target flag but does not match a target in the saved plan file. This flag will be ignored and won't influence the apply operation.", target),
+				))
+			}
+		}
+	}
+	if op.PlanMode != plan.UIMode {
+		if op.PlanMode == plans.DestroyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change plan mode when applying a saved plan",
+				"The -destroy flag was supplied to the apply command, but the plan file was not created with the -destroy flag. This flag will be ignored and won't influence the apply operation.",
+			))
+		}
+		if op.PlanMode == plans.RefreshOnlyMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Can't change plan mode when applying a saved plan",
+				"The -refresh-only flag was supplied to the apply command, but the plan file was not created with the -refresh-only flag. This flag will be ignored and won't influence the apply operation.",
+			))
+		}
+	}
+	if diags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	// Start the apply in a goroutine so that we can be interrupted.
 	var applyState *states.State
 	var applyDiags tfdiags.Diagnostics
+
 	doneCh := make(chan struct{})
 	go func() {
 		defer logging.PanicHandler()
@@ -411,7 +475,9 @@ func (b *Local) opApply(
 
 		log.Printf("[INFO] backend/local: apply calling Apply")
 		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, &terraform.ApplyOpts{
-			SetVariables: applyTimeValues,
+			SetVariables:  applyTimeValues,
+			ProviderLocks: providerLocksSnapshot(op.DependencyLocks),
+			PolicyClient:  lr.PolicyClient,
 		})
 	}()
 

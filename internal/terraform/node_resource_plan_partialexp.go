@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -115,9 +115,9 @@ func (n *nodePlannablePartialExpandedResource) Execute(ctx EvalContext, op walkO
 	case addrs.DataResourceMode:
 		change, changeDiags := n.dataResourceExecute(ctx)
 		diags = diags.Append(changeDiags)
-		ctx.Deferrals().ReportDataSourceExpansionDeferred(n.addr, change)
+		ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, change)
 	case addrs.EphemeralResourceMode:
-		ctx.Deferrals().ReportEphemeralResourceExpansionDeferred(n.addr)
+		ctx.Deferrals().ReportResourceExpansionDeferred(n.addr, nil)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.config.Mode))
 	}
@@ -197,6 +197,13 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	configVal, _, configDiags := ctx.EvaluateBlock(n.config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
+		return &change, diags
+	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
+	if diags.HasErrors() {
 		return &change, diags
 	}
 
@@ -351,6 +358,13 @@ func (n *nodePlannablePartialExpandedResource) dataResourceExecute(ctx EvalConte
 	configVal, _, configDiags := ctx.EvaluateBlock(n.config.Config, schema.Body, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
+		return &change, diags
+	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ResourceAddr().Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(n.config.Config, n.addr.String()))
+	if diags.HasErrors() {
 		return &change, diags
 	}
 

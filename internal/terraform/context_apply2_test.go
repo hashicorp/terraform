@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -7,6 +7,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -15,6 +17,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 
@@ -23,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -240,7 +242,7 @@ resource "test_instance" "a" {
 		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
 			AttrsJSON:    []byte(`{"id":"b"}`),
 			Status:       states.ObjectReady,
-			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+			Dependencies: []addrs.ConfigResource{addrA.ConfigResource()},
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
@@ -3861,14 +3863,14 @@ resource "test_object" "c" {
 	tfdiags.AssertNoErrors(t, diags)
 
 	// the destroy node for "a" must depend on the destroy node for "c"
-	for _, v := range g.Vertices() {
-		if dag.VertexName(v) != "test_object.a (destroy)" {
+	for v := range g.VerticesSeq() {
+		if v.Name() != "test_object.a (destroy)" {
 			continue
 		}
 
 		// make sure the "c" destroy node is a dependency
-		for _, dep := range g.Ancestors(v) {
-			if dag.VertexName(dep) == "test_object.c (destroy)" {
+		for dep := range g.Ancestors(v).All() {
+			if dep.Name() == "test_object.c (destroy)" {
 				// OK!
 				return
 			}
@@ -4011,4 +4013,1393 @@ resource "test_object" "x" {
 	if len(diags) != 1 && !strings.Contains(msg, "provider oops") {
 		t.Fatalf("expected only 'provider oops', but got: %s", msg)
 	}
+}
+
+func TestContext2Apply_excludeListResources(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			resource "test_resource" "test1" {
+				provider = test
+				instance_type = "t2.micro"
+			}
+		`,
+		"main.tfquery.hcl": `
+			list "test_resource" "test2" {
+				provider = test
+			}
+		`,
+	})
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	provider := testProvider("test")
+	provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+	var listExecuted bool
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		listExecuted = true
+		return providers.ListResourceResponse{
+			Result: cty.ObjectVal(map[string]cty.Value{
+				"data":   cty.EmptyTupleVal,
+				"config": request.Config,
+			}),
+		}
+	}
+
+	ctx, diags := NewContext(&ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			providerAddr: testProviderFuncFixed(provider),
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.ErrWithWarnings())
+	}
+
+	// Check that the plan does not include the list resource
+	if len(plan.Changes.Resources) != 1 {
+		t.Fatalf("expected 1 resource in the plan, got %d", len(plan.Changes.Resources))
+	}
+
+	// Check that the list resource was not executed
+	if listExecuted {
+		t.Fatal("expected list resource to not be executed, but it was")
+	}
+
+	_, diags = ctx.Apply(plan, mod, nil)
+	if diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+}
+
+func TestContext2Apply_errorDestroyWithIdentity(t *testing.T) {
+	m := testModule(t, "empty")
+	p := testProvider("test")
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		// Should actually be called for this test, because Terraform Core
+		// constructs the plan for a destroy operation itself.
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	value := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("baz"),
+	})
+	identity := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("baz"),
+	})
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		// The apply (in this case, a destroy) always fails, so we can verify
+		// that the object stays in the state after a destroy fails even though
+		// we aren't returning a new state object here.
+		return providers.ApplyResourceChangeResponse{
+			NewState:    value,
+			NewIdentity: identity,
+			Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("failed")),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "test",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:       states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"baz"}`),
+				IdentityJSON: []byte(`{"id":"baz"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("should have error")
+	}
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+	resourceInstanceStateSrc := state.Modules[""].Resources["test_resource.test"].Instance(addrs.NoKey).Current
+	resourceInstanceState, err := resourceInstanceStateSrc.Decode(schema)
+	if err != nil {
+		t.Fatalf("failed to decode resource instance state: %s", err)
+	}
+
+	if !resourceInstanceState.Value.RawEquals(value) {
+		t.Fatalf("expected value to still be present in state, but got: %s", resourceInstanceState.Value.GoString())
+	}
+	if !resourceInstanceState.Identity.RawEquals(identity) {
+		t.Fatalf("expected identity to still be present in state, but got: %s", resourceInstanceState.Identity.GoString())
+	}
+}
+
+func TestContext2Apply_SensitivityChangeWithIdentity(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "sensitive_var" {
+	default = "hello"
+	sensitive = true
+}
+
+resource "test_resource" "foo" {
+	value = var.sensitive_var
+}`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":              {Type: cty.String, Computed: true},
+					"value":           {Type: cty.String, Optional: true},
+					"sensitive_value": {Type: cty.String, Sensitive: true, Optional: true},
+				},
+			},
+		},
+		IdentityTypes: map[string]*configschema.Object{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+				Nesting: configschema.NestingSingle,
+			},
+		},
+	})
+	p.PlanResourceChangeFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_resource",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				Status:       states.ObjectReady,
+				AttrsJSON:    []byte(`{"id":"foo", "value":"hello"}`),
+				IdentityJSON: []byte(`{"id":"baz"}`),
+				// No AttrSensitivePaths present
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	tfdiags.AssertNoErrors(t, diags)
+
+	addr := mustResourceInstanceAddr("test_resource.foo")
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	fooState := state.ResourceInstance(addr)
+
+	if len(fooState.Current.AttrSensitivePaths) != 2 {
+		t.Fatalf("wrong number of sensitive paths, expected 2, got, %v", len(fooState.Current.AttrSensitivePaths))
+	}
+
+	for _, path := range fooState.Current.AttrSensitivePaths {
+		switch {
+		case path.Equals(cty.GetAttrPath("value")):
+		case path.Equals(cty.GetAttrPath("sensitive_value")):
+		default:
+			t.Errorf("unexpected sensitive path: %#v", path)
+			return
+		}
+	}
+
+	expectedIdentity := `{"id":"baz"}`
+	if string(fooState.Current.IdentityJSON) != expectedIdentity {
+		t.Fatalf("missing identity in state, got %q", fooState.Current.IdentityJSON)
+	}
+}
+
+func TestContext2Apply_noListValidated(t *testing.T) {
+	tests := map[string]struct {
+		name        string
+		mainConfig  string
+		queryConfig string
+		query       bool
+	}{
+		"query files not validated in default validate mode": {
+			mainConfig: `
+			terraform {	
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+			`,
+			queryConfig: `
+			// This config is invalid, but should not be validated in default validate mode
+			list "test_resource" "test" {
+				provider = test
+
+				config {
+					filter = {
+						attr = list.non_existent.attr
+					}
+				}
+			}
+			
+			locals {
+				test = list.non_existent.attr
+			}
+			`,
+			query: false,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			configFiles := map[string]string{"main.tf": tc.mainConfig}
+			if tc.queryConfig != "" {
+				configFiles["main.tfquery.hcl"] = tc.queryConfig
+			}
+
+			opts := []configs.Option{}
+			if tc.query {
+				opts = append(opts, configs.MatchQueryFiles())
+			}
+
+			m := testModuleInline(t, configFiles, opts...)
+
+			p := testProvider("test")
+			p.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			diags := ctx.Validate(m, &ValidateOpts{
+				Query: tc.query,
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+			tfdiags.AssertNoErrors(t, diags)
+
+			_, diags = ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+		})
+	}
+}
+
+func TestContext2Apply_deprecatedOutputsAndVariables(t *testing.T) {
+	tests := map[string]struct {
+		modules             map[string]string
+		buildState          func(*states.SyncState)
+		vars                InputValues
+		expectedDiagnostics func(m *configs.Config) tfdiags.Diagnostics
+	}{
+		"create resource using deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
+					},
+				})
+			},
+		},
+		"update resource to use deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+output "new" {
+    value = "new-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"value":"old-non-deprecated-value"}`),
+						Status:    states.ObjectReady,
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 100},
+					},
+				})
+			},
+		},
+		"no-op resource using deprecated output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"value":"deprecated-value"}`),
+						Status:    states.ObjectReady,
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// if the resource instance is not executed, we can not warn (during plan a warning was already emitted)
+				return tfdiags.Diagnostics{}
+			},
+		},
+		"create resource using deprecated variable": {
+			modules: map[string]string{
+				"mod/main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "Please use new_var instead"
+}
+
+output "value" {
+    value = var.old_var
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+    old_var = "test-value"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "Please use new_var instead",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 15, Byte: 51},
+						End:      hcl.Pos{Line: 4, Column: 27, Byte: 63},
+					},
+				})
+			},
+		},
+
+		"deprecated output in root output": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "old-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = "static"
+}
+
+output "test_output" {
+    value = module.mod.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				// Root outputs do not trigger deprecation warnings during apply
+				return tfdiags.Diagnostics{}
+			},
+		},
+		"deprecated variable with input value": {
+			modules: map[string]string{
+				"main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "This variable is deprecated"
+}
+
+resource "test_resource" "test" {
+    value = var.old_var
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			vars: InputValues{
+				"old_var": {
+					Value: cty.StringVal("test-value"),
+				},
+			},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "This variable is deprecated",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 5, Byte: 44},
+						End:      hcl.Pos{Line: 4, Column: 47, Byte: 86},
+					},
+				})
+			},
+		},
+		"multiple deprecated outputs used": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old1" {
+    deprecated = "Stop using old1"
+    value = "value1"
+}
+output "old2" {
+    deprecated = "Stop using old2"
+    value = "value2"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test1" {
+    value = module.mod.old1
+}
+
+resource "test_resource" "test2" {
+    value = module.mod.old2
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Stop using old1",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 87},
+						End:      hcl.Pos{Line: 7, Column: 28, Byte: 102},
+					},
+				}).Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Stop using old2",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 11, Column: 13, Byte: 153},
+						End:      hcl.Pos{Line: 11, Column: 28, Byte: 168},
+					},
+				})
+			},
+		},
+		"deprecated output in count": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "count_val" {
+    deprecated = "Please stop using this output"
+    value = 2
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    count = module.mod.count_val
+    value = "test-${count.index}"
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 33, Byte: 106},
+					},
+				})
+			},
+		},
+		"deprecated output in conditional expression": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+output "new" {
+    value = "new-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+resource "test_resource" "test" {
+    value = true ? module.mod.old : module.mod.new
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 86},
+						End:      hcl.Pos{Line: 7, Column: 51, Byte: 124},
+					},
+				})
+			},
+		},
+		"deprecated output used in local value": {
+			modules: map[string]string{
+				"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this output"
+    value = "deprecated-value"
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+locals {
+    local_value = module.mod.old
+}
+
+resource "test_resource" "test" {
+    value = local.local_value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Please stop using this output",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 19, Byte: 67},
+						End:      hcl.Pos{Line: 7, Column: 33, Byte: 81},
+					},
+				})
+			},
+		},
+		"deprecated variable in module with default value": {
+			modules: map[string]string{
+				"mod/main.tf": `
+variable "old_var" {
+    type = string
+    deprecated = "Please use new_var instead"
+    default = "default-value"
+}
+
+output "value" {
+    value = var.old_var
+}
+`,
+				"main.tf": `
+module "mod" {
+    source = "./mod"
+    old_var = "custom-value"
+}
+
+resource "test_resource" "test" {
+    value = module.mod.value
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated variable got a value",
+					Detail:   "Please use new_var instead",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 15, Byte: 51},
+						End:      hcl.Pos{Line: 4, Column: 29, Byte: 65},
+					},
+				})
+			},
+		},
+		"nested deprecated outputs": {
+			modules: map[string]string{
+				"inner/main.tf": `
+output "old" {
+    deprecated = "Inner module: please stop using this"
+    value = "inner-value"
+}
+`,
+				"outer/main.tf": `
+module "inner" {
+    source = "../inner"
+}
+
+output "old" {
+    deprecated = "Outer module: please stop using this"
+    value = module.inner.old
+}
+`,
+				"main.tf": `
+module "outer" {
+    source = "./outer"
+}
+
+resource "test_resource" "test" {
+    value = module.outer.old
+}
+`,
+			},
+			buildState: func(s *states.SyncState) {},
+			expectedDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Deprecated value used",
+					Detail:   "Outer module: please stop using this",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 90},
+						End:      hcl.Pos{Line: 7, Column: 29, Byte: 106},
+					},
+				})
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.modules)
+
+			state := states.BuildState(tc.buildState)
+
+			p := new(testing_provider.MockProvider)
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+				ResourceTypes: map[string]*configschema.Block{
+					"test_resource": {
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			})
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			vars := tc.vars
+			if vars == nil {
+				vars = InputValues{}
+			}
+
+			plan, planDiags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, vars))
+			if planDiags.HasErrors() {
+				t.Fatalf("plan errors: %s", planDiags.Err())
+			}
+
+			// Apply the plan
+			_, applyDiags := ctx.Apply(plan, m, nil)
+			if applyDiags.HasErrors() {
+				t.Fatalf("apply errors: %s", applyDiags.Err())
+			}
+
+			expectDiagnostics := tc.expectedDiagnostics(m)
+			tfdiags.AssertDiagnosticsMatch(t, applyDiags, expectDiagnostics)
+		})
+	}
+}
+
+func TestContext2Apply_outputWithTypeContraint(t *testing.T) {
+	m := testModule(t, "apply-output-type-constraint")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	wantValues := map[string]cty.Value{
+		"string": cty.StringVal("true"),
+		"object_default": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("Bart"),
+		}),
+		"object_override": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("Lisa"),
+		}),
+	}
+	ovs := state.RootOutputValues
+	for name, want := range wantValues {
+		os, ok := ovs[name]
+		if !ok {
+			t.Errorf("missing output value %q", name)
+			continue
+		}
+		if got := os.Value; !want.RawEquals(got) {
+			t.Errorf("wrong value for output %q\ngot:  %#v\nwant: %#v", name, got, want)
+		}
+	}
+
+	for gotName := range ovs {
+		if _, ok := wantValues[gotName]; !ok {
+			t.Errorf("unexpected extra output value %q", gotName)
+		}
+	}
+}
+
+func TestContext2Apply_storedPrivatePlanData(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "foo" {
+}
+
+resource "test_resource" "bar" {
+  value = test_resource.foo.computed
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Computed: true},
+					"value":    {Type: cty.String, Optional: true},
+					"computed": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	})
+
+	// make sure we can correctly re-plan a value which was stored in the
+	// PlannedPrivate data from our initial plan
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		planned := req.ProposedNewState.AsValueMap()
+		if req.PlannedPrivate != nil {
+			// fetch the originally planned random string
+			planned["computed"] = cty.StringVal(string(req.PlannedPrivate))
+		} else {
+			// this is our first plan, so generate a new computed value
+			s := fmt.Sprintf("%d", rand.Int())
+			planned["computed"] = cty.StringVal(s)
+			resp.PlannedPrivate = []byte(s)
+		}
+
+		planned["id"] = cty.UnknownVal(cty.String)
+		resp.PlannedState = cty.ObjectVal(planned)
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	// we don't need to try and determine what the correct random value was, if
+	// the planing was incorrect apply would fail with "Provider produced
+	// inconsistent final plan"
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+}
+
+// TestContext2Apply_deposedNoLongerExists_withConditions is a regression test
+// for a panic that occurred when applying a plan that contained a NoOp change
+// for a deposed object on a resource whose config declared a precondition.
+func TestContext2Apply_deposedNoLongerExists_withConditions(t *testing.T) {
+	// count = 0 so the configuration declares no current instances, but the
+	// resource block (with its precondition) is still present in the module.
+	// The precondition must reference something else in configuration; we
+	// reference path.module, which is always defined.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  count       = 0
+  test_string = "ok"
+  lifecycle {
+    create_before_destroy = true
+    precondition {
+      condition     = path.module != "/dev/null"
+      error_message = "never fires"
+    }
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	// Pretend the deposed object has been deleted out-of-band.
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: cty.NullVal(req.PriorState.Type()),
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		states.DeposedKey("deadbeef"),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	// Sanity check: the plan should contain a NoOp change for the deposed
+	// object and nothing else for this address.
+	addr := mustResourceInstanceAddr("test_object.a[0]")
+	deposedChange := plan.Changes.ResourceInstanceDeposed(addr, states.DeposedKey("deadbeef"))
+	if deposedChange == nil {
+		t.Fatalf("expected a deposed change for %s, got none", addr)
+	}
+	if deposedChange.Action != plans.NoOp {
+		t.Fatalf("expected NoOp deposed change for %s, got %s", addr, deposedChange.Action)
+	}
+	if got := plan.Changes.ResourceInstance(addr); got != nil {
+		t.Fatalf("expected no non-deposed change for %s, got %s", addr, got.Action)
+	}
+
+	// Apply must not panic.
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+}
+
+func TestContext2Apply_forget_resource_lifecycle(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource test_object forget {
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource test_object destroy {
+	lifecycle {
+		destroy = true
+	}
+}
+
+resource test_object default {}
+`})
+
+	p := simpleMockProvider()
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	destroy := mustResourceInstanceAddr("test_object.destroy")
+	defaultRes := mustResourceInstanceAddr("test_object.default")
+
+	testState := func() *states.State {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		root.SetResourceInstanceCurrent(
+			destroy.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		root.SetResourceInstanceCurrent(
+			defaultRes.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		return state
+	}
+
+	assertPlan := func(t *testing.T, plan *plans.Plan, inst addrs.AbsResourceInstance, action plans.Action) {
+		t.Helper()
+		change := plan.Changes.ResourceInstance(inst)
+		if change == nil {
+			t.Fatal("expected a change")
+		}
+		if change.Action != action {
+			t.Fatalf("wrong change type for %s. Got %s, wanted %s\n", destroy, change.Action, action)
+		}
+	}
+
+	t.Run("destroy all", func(t *testing.T) {
+		state := testState()
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+		if diags.HasErrors() {
+			t.Fatalf("plan: %s", diags.Err())
+		}
+
+		assertPlan(t, plan, forget, plans.Forget)
+		assertPlan(t, plan, destroy, plans.Delete)
+		assertPlan(t, plan, defaultRes, plans.Delete)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if !state.Empty() {
+			t.Fatalf("unexected remaining state")
+		}
+	})
+
+	t.Run("targeted destroy", func(t *testing.T) {
+		p.ApplyResourceChangeCalled = false //reset!
+		state := testState()
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.Targetable{forget}})
+		if len(diags) != 2 { // usual -target diag + warning about forgetting
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatalf("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.Forget)
+
+		change := plan.Changes.ResourceInstance(destroy)
+		if change != nil {
+			t.Fatal("unrelated resource change on a targeted plan?")
+		}
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		if len(applyDiags) != 1 { // usual diags when using -target
+			t.Errorf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
+		}
+		if len(state.AllResourceInstanceObjectAddrs()) != 2 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+
+		if p.ApplyResourceChangeCalled {
+			t.Fatalf("no changes should have been applied: forget only")
+		}
+	})
+
+	t.Run("tainted instance (destroy)", func(t *testing.T) {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+		if len(diags) != 1 {
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatalf("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.Forget)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if !state.Empty() {
+			t.Fatalf("unexected remaining state")
+		}
+	})
+
+	t.Run("tainted instance (replace)", func(t *testing.T) {
+		state := states.NewState()
+		root := state.EnsureModule(addrs.RootModuleInstance)
+		root.SetResourceInstanceCurrent(
+			forget.Resource,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectTainted,
+				AttrsJSON: []byte(`{"id":"bar"}`),
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+
+		plan, diags := ctx.Plan(m, state, nil)
+		if len(diags) != 1 {
+			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 1)
+		}
+		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
+			t.Fatal("missing expected diagnostic")
+		}
+		assertPlan(t, plan, forget, plans.CreateThenForget)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+	})
+
+	t.Run("remember", func(t *testing.T) {
+		// make sure we're not "forgetting" to create
+		plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+		assertNoDiagnostics(t, diags)
+		assertPlan(t, plan, forget, plans.Create)
+
+		state, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+		if len(state.AllResourceInstanceObjectAddrs()) != 3 {
+			t.Fatalf("wrong number of resources remaining in state")
+		}
+	})
+}
+
+func TestContext2Apply_forget_cycle(t *testing.T) {
+	// three cheers for users who test alpha releases!
+	// https://github.com/hashicorp/terraform/issues/38898
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = test_object.forget_too.test_string
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource "test_object" "forget_too" {
+	test_string = "hi"
+	lifecycle {
+		destroy = false
+	}
+}
+`})
+
+	p := simpleMockProvider()
+
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	forget2 := mustResourceInstanceAddr("test_object.forget_too")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		forget.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"test_string":"hi"}`),
+			Dependencies: []addrs.ConfigResource{forget2.ConfigResource()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		forget2.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"hi"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
+
+	state, applyDiags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, applyDiags)
+	if !state.Empty() {
+		t.Fatal("unexpected resources in state")
+	}
+}
+
+// the addition of the CBD resource should not interfere with the existing resource replacement
+func TestContext2Apply_replaceWithAddedCBD(t *testing.T) {
+	t.Run("example1", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r3"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old_r3"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "test_object" "r1" {}
+
+resource "test_object" "r2" {
+  lifecycle { create_before_destroy = true }
+  depends_on = [test_object.r1]
+}
+
+resource "test_object" "r3" {
+  test_string = test_object.r1.test_string
+}
+`})
+
+		p := simpleMockProvider()
+		oldR3destroyed := false
+
+		p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+			// we need to check for the destroy request for the old r3 instance
+			if !req.PriorState.IsNull() {
+				if arg := req.PriorState.GetAttr("test_string"); !arg.IsNull() && arg.AsString() == "old_r3" && req.PlannedState.IsNull() {
+					oldR3destroyed = true
+				}
+
+			}
+			resp.NewState = req.PlannedState
+			return resp
+		}
+
+		hook := new(MockHook)
+		ctx := testContext2(t, &ContextOpts{
+			Hooks: []Hook{hook},
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.NormalMode})
+		if assertNoDiagnostics(t, diags) {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		for _, ch := range plan.Changes.Resources {
+			if ch.Addr.Equal(mustResourceInstanceAddr("test_object.r3")) && ch.Action != plans.DeleteThenCreate {
+				t.Fatal("wrong change for r3:", ch.Action, ch.ActionReason)
+			}
+		}
+
+		_, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+
+		if !oldR3destroyed {
+			t.Fatal("the original r3 was not destroyed")
+		}
+	})
+
+	t.Run("example2", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r2"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"r2"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.r3"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"r3"}`),
+				Status:    states.ObjectTainted,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+resource "test_object" "r1" {
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "test_object" "r2" {
+  lifecycle {
+    replace_triggered_by = [test_object.r3]
+  }
+  depends_on = [test_object.r1]
+}
+
+resource "test_object" "r3" {
+  test_string = null
+}
+`})
+
+		p := simpleMockProvider()
+
+		hook := new(MockHook)
+		ctx := testContext2(t, &ContextOpts{
+			Hooks: []Hook{hook},
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.NormalMode})
+		if assertNoDiagnostics(t, diags) {
+			t.Fatal(diags.ErrWithWarnings())
+		}
+
+		_, applyDiags := ctx.Apply(plan, m, nil)
+		assertNoDiagnostics(t, applyDiags)
+	})
 }

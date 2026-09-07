@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -196,7 +196,8 @@ func (r *RemovedComponentConfig) CheckValid(ctx context.Context, phase EvalPhase
 		}()
 
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
-			ExternalProviders: providerClients,
+			ExternalProviders:         providerClients,
+			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		}))
 		return diags, nil
 	})

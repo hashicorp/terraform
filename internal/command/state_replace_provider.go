@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -27,23 +26,33 @@ type StateReplaceProviderCommand struct {
 }
 
 func (c *StateReplaceProviderCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-
-	var autoApprove bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state replace-provider")
-	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of replacements")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return cli.RunResultHelp
+	parsedArgs, parseDiags := arguments.ParseStateReplaceProvider(c.Meta.process(args))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
+		return 1
 	}
-	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("Exactly two arguments expected.\n")
-		return cli.RunResultHelp
+
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
+		return 1
 	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
@@ -54,19 +63,19 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	// Parse from/to arguments into providers
-	from, fromDiags := addrs.ParseProviderSourceString(args[0])
+	from, fromDiags := addrs.ParseProviderSourceString(parsedArgs.FromProviderAddr)
 	if fromDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			fmt.Sprintf(`Invalid "from" provider %q`, args[0]),
+			fmt.Sprintf(`Invalid "from" provider %q`, parsedArgs.FromProviderAddr),
 			fromDiags.Err().Error(),
 		))
 	}
-	to, toDiags := addrs.ParseProviderSourceString(args[1])
+	to, toDiags := addrs.ParseProviderSourceString(parsedArgs.ToProviderAddr)
 	if toDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			fmt.Sprintf(`Invalid "to" provider %q`, args[1]),
+			fmt.Sprintf(`Invalid "to" provider %q`, parsedArgs.ToProviderAddr),
 			toDiags.Err().Error(),
 		))
 	}
@@ -76,7 +85,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Initialize the state manager as configured
-	stateMgr, err := c.State()
+	view := arguments.ViewHuman
+	stateMgr, err := c.State(view)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -143,7 +153,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Confirm
-	if !autoApprove {
+	if !parsedArgs.AutoApprove {
 		c.Ui.Output(colorize.Color(
 			"\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
@@ -164,7 +174,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
-	b, backendDiags := c.Backend(nil)
+	// Load the backend
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -212,6 +223,15 @@ Options:
 
   -ignore-remote-version  A rare option used for the remote backend only. See
                           the remote backend documentation for more information.
+
+  -var 'foo=bar'          Set a value for one of the input variables in the root
+                          module of the configuration. Use this option more than
+                          once to set more than one variable.
+
+  -var-file=filename      Load variable values from the given file, in addition
+                          to the default files terraform.tfvars and *.auto.tfvars.
+                          Use this option more than once to include more than one
+                          variables file.
 
   -state, state-out, and -backup are legacy options supported for the local
   backend only. For more information, see the local backend's documentation.

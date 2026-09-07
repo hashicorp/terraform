@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -426,8 +426,11 @@ func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase Eval
 		depLocks := main.DependencyLocks(phase)
 		if depLocks != nil {
 			// Check if the provider is in the lockfile,
-			// if it is not we can not read the provider schema
-			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, scope.DeclRange())
+			// if it is not we can not read the provider schema. The
+			// version-constraint check is handled where the stack-level
+			// required_providers constraints are available (see
+			// ProviderConfig.CheckProviderArgs), so we pass nil here.
+			providerLockfileDiags := CheckProviderInLockfile(*depLocks, pTy, nil, scope.DeclRange())
 
 			// We report these diagnostics in a different place
 			if providerLockfileDiags.HasErrors() {

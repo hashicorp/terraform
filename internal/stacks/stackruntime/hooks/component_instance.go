@@ -1,10 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package hooks
 
 import (
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/stacks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
@@ -53,14 +54,15 @@ func (s ComponentInstanceStatus) ForProtobuf() stacks.StackChangeProgress_Compon
 // ComponentInstanceChange is the argument type for hook callbacks which
 // signal a set of planned or applied changes for a component instance.
 type ComponentInstanceChange struct {
-	Addr   stackaddrs.AbsComponentInstance
-	Add    int
-	Change int
-	Import int
-	Remove int
-	Defer  int
-	Move   int
-	Forget int
+	Addr             stackaddrs.AbsComponentInstance
+	Add              int
+	Change           int
+	Import           int
+	Remove           int
+	Defer            int
+	Move             int
+	Forget           int
+	ActionInvocation int
 }
 
 // Total sums all of the change counts as a forwards-compatibility measure. If
@@ -68,7 +70,7 @@ type ComponentInstanceChange struct {
 // that the component instance has some unknown changes, rather than falsely
 // stating that there are no changes at all.
 func (cic ComponentInstanceChange) Total() int {
-	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget
+	return cic.Add + cic.Change + cic.Import + cic.Remove + cic.Defer + cic.Move + cic.Forget + cic.ActionInvocation
 }
 
 // CountNewAction increments zero or more of the count fields based on the
@@ -90,4 +92,20 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 		cic.Add++
 		cic.Forget++
 	}
+}
+
+// ComponentInstancePolicyResult is the argument type for the hook callback which
+// sends policy results back to the client for a resource instance.
+type ComponentInstancePolicyResult struct {
+	ComponentAddr stackaddrs.AbsComponentInstance
+	ResourceAddr  string
+	Result        policy.EvaluationResponse
+}
+
+// ProviderInstancePolicyResults is the argument type for the hook callback which
+// sends policy results back to the client for a provider instance.
+type ProviderInstancePolicyResults struct {
+	Addr         stackaddrs.AbsProviderConfigInstance
+	ProviderAddr string
+	Result       policy.EvaluationResponse
 }

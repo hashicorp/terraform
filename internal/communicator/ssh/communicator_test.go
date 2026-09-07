@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !race
@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
@@ -101,6 +102,19 @@ func newMockLineServer(t *testing.T, signer ssh.Signer, pubKey string) string {
 				t.Errorf("Unable to accept channel.")
 			}
 			t.Log("Accepted channel")
+
+			go func() {
+				buf := make([]byte, 64)
+				n, _ := channel.Read(buf)
+				if n > 0 {
+					// this unusual test server ends up here when we're trying
+					// to handshake through a bastion instance. It's the only
+					// test that uses this path, and only if the test wasn't
+					// working, so just close the channel and let it fail.
+					t.Logf("unexpected test server read: %q, closing channel\n", buf[:n])
+					channel.Close()
+				}
+			}()
 
 			go func(in <-chan *ssh.Request) {
 				defer channel.Close()
@@ -660,7 +674,7 @@ func TestAccHugeUploadFile(t *testing.T) {
 		return scpUploadFile(targetFile, source, w, stdoutR, size)
 	}
 
-	cmd, err := quoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	cmd, err := quoteScpCommand([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -677,6 +691,146 @@ func TestAccHugeUploadFile(t *testing.T) {
 
 	if fs.Size() != size {
 		t.Fatalf("expected file size of %d, got %d", size, fs.Size())
+	}
+}
+
+func TestQuoteScpCommand(t *testing.T) {
+	testCases := []struct {
+		inputArgs   []string
+		platform    string
+		expectedCmd string
+	}{
+		// valid Unix command
+		{
+			[]string{"scp", "-vt", "/var/path"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path",
+		},
+
+		// command injection attempt in Unix
+		{
+			[]string{"scp", "-vt", "/var/path;rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\;rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path&&rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\&\\&rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path|rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\|rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path||rm"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\|\\|rm",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path; rm"},
+			TargetPlatformUnix,
+			"'scp' -vt '/var/path; rm'",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path`rm`"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\`rm\\`",
+		},
+		{
+			[]string{"scp", "-vt", "/var/path$(rm)"},
+			TargetPlatformUnix,
+			"'scp' -vt /var/path\\$\\(rm\\)",
+		},
+
+		// valid Windows commands
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp With Space"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp With Space\"",
+		},
+
+		// command injection attempt in Windows
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp ;rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp ;rmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\";rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\\\";rmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\nrmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\nrmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\trmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\trmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\vrmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp\vrmdir\"",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp\u0020rmdir"},
+			TargetPlatformWindows,
+			"scp -vt \"C:\\Windows\\Temp rmdir\"",
+		},
+
+		// There is no special handling of the injection attempts below
+		// but we include them anyway to demonstrate this
+		// and to avoid any regressions due to upstream changes.
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp;rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp;rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp&rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp&rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp&&rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp&&rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp|rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp|rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp||rmdir"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp||rmdir",
+		},
+		{
+			[]string{"scp", "-vt", "C:\\Windows\\Temp$(rmdir)"},
+			TargetPlatformWindows,
+			"scp -vt C:\\Windows\\Temp$(rmdir)",
+		},
+	}
+
+	for _, tc := range testCases {
+		cmd, err := quoteScpCommand(tc.inputArgs, tc.platform)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(tc.expectedCmd, cmd); diff != "" {
+			t.Fatalf("unexpected command for %q: %s", tc.inputArgs, diff)
+		}
 	}
 }
 
@@ -758,5 +912,43 @@ func acceptPublicKey(keystr string) func(ssh.ConnMetadata, ssh.PublicKey) (*ssh.
 		}
 
 		return nil, fmt.Errorf("public key rejected")
+	}
+}
+
+func TestBastionHostKey(t *testing.T) {
+	bastionAddr := newMockLineServer(t, nil, testClientPublicKey)
+	bastionHost, p, _ := net.SplitHostPort(bastionAddr)
+	bastionPort, _ := strconv.Atoi(p)
+
+	// there doesn't need to be a real end server, we should abort before
+	// initiating the second connection because BastionHostKey is wrong for
+	// testServerPrivateKey
+	connInfo := &connectionInfo{
+		User:     "none",
+		Password: "none",
+		Host:     "127.0.0.1",
+		Port:     uint16(9999),
+		Timeout:  "1s",
+
+		BastionUser:     "user",
+		BastionPassword: "pass",
+		BastionHost:     bastionHost,
+		BastionHostKey:  testClientPublicKey,
+		BastionPort:     uint16(bastionPort),
+	}
+
+	cfg, err := prepareSSHConfig(connInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := &Communicator{
+		connInfo: connInfo,
+		config:   cfg,
+	}
+
+	_, err = c.newSession()
+	if err == nil || !strings.Contains(err.Error(), "Error connecting to bastion: ssh: handshake failed: knownhosts: key mismatch") {
+		t.Fatalf("expected host key mismatch, got error:%v", err)
 	}
 }

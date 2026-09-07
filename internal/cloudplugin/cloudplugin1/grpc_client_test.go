@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloudplugin1
@@ -18,7 +18,7 @@ import (
 
 var mockError = "this is a mock error"
 
-func testGRPCloudClient(t *testing.T, ctrl *gomock.Controller, client *mock_cloudproto1.MockCommandService_ExecuteClient, executeError error) *GRPCCloudClient {
+func testGRPCloudClient(t *testing.T, ctrl *gomock.Controller, client *mock_cloudproto1.MockCommandService_ExecuteClient[cloudproto1.CommandResponse], executeError error) *GRPCCloudClient {
 	t.Helper()
 
 	if client != nil && executeError != nil {
@@ -57,7 +57,7 @@ func Test_GRPCCloudClient_ExecuteError(t *testing.T) {
 
 func Test_GRPCCloudClient_Execute_RecvError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient[cloudproto1.CommandResponse](ctrl)
 	executeClient.EXPECT().Recv().Return(nil, errors.New(mockError))
 
 	gRPCClient := testGRPCloudClient(t, ctrl, executeClient, nil)
@@ -78,7 +78,7 @@ func Test_GRPCCloudClient_Execute_RecvError(t *testing.T) {
 
 func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient[cloudproto1.CommandResponse](ctrl)
 
 	executeClient.EXPECT().Recv().Return(
 		&cloudproto1.CommandResponse{
@@ -93,13 +93,13 @@ func Test_GRPCCloudClient_Execute_Invalid_Exit(t *testing.T) {
 	exitCode := gRPCClient.Execute([]string{"example"}, io.Discard, io.Discard)
 
 	if exitCode != 255 {
-		t.Fatalf("expected exit %q, got %q", 255, exitCode)
+		t.Fatalf("expected exit %d, got %d", 255, exitCode)
 	}
 }
 
 func Test_GRPCCloudClient_Execute(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_cloudproto1.NewMockCommandService_ExecuteClient[cloudproto1.CommandResponse](ctrl)
 
 	gomock.InOrder(
 		executeClient.EXPECT().Recv().Return(
@@ -131,7 +131,7 @@ func Test_GRPCCloudClient_Execute(t *testing.T) {
 	exitCode := gRPCClient.Execute([]string{"example"}, &stdoutBuffer, io.Discard)
 
 	if exitCode != 99 {
-		t.Fatalf("expected exit %q, got %q", 99, exitCode)
+		t.Fatalf("expected exit %d, got %d", 99, exitCode)
 	}
 
 	if stdoutBuffer.String() != "firstcall\nsecondcall\n" {

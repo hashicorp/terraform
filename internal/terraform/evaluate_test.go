@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -99,6 +100,11 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 }
 
 func TestEvaluatorGetOutputValue(t *testing.T) {
+	nvs := namedvals.NewState()
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_output"), cty.StringVal("first"))
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_other_output"), cty.StringVal("second"))
+	nvs.SetOutputValue(mustAbsOutputValue("output.some_third_output"), cty.StringVal("third").Mark(marks.Sensitive))
+
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -113,23 +119,13 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 					"some_other_output": {
 						Name: "some_other_output",
 					},
+					"some_third_output": {
+						Name: "some_third_output",
+					},
 				},
 			},
 		},
-		State: states.BuildState(func(state *states.SyncState) {
-			state.SetOutputValue(addrs.AbsOutputValue{
-				Module: addrs.RootModuleInstance,
-				OutputValue: addrs.OutputValue{
-					Name: "some_output",
-				},
-			}, cty.StringVal("first"), true)
-			state.SetOutputValue(addrs.AbsOutputValue{
-				Module: addrs.RootModuleInstance,
-				OutputValue: addrs.OutputValue{
-					Name: "some_other_output",
-				},
-			}, cty.StringVal("second"), false)
-		}).SyncWrapper(),
+		NamedValues: nvs,
 	}
 
 	data := &evaluationStateData{
@@ -154,6 +150,18 @@ func TestEvaluatorGetOutputValue(t *testing.T) {
 	want = cty.StringVal("second")
 	got, diags = scope.Data.GetOutput(addrs.OutputValue{
 		Name: "some_other_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+
+	want = cty.StringVal("third").Mark(marks.Sensitive)
+	got, diags = scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_third_output",
 	}, tfdiags.SourceRange{})
 
 	if len(diags) != 0 {
@@ -561,7 +569,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 }
 
 func TestEvaluatorGetModule(t *testing.T) {
-	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper())
+	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), nil, nil)
 	evaluator.Instances.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"})
 	evaluator.NamedValues.SetOutputValue(
 		addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
@@ -586,7 +594,330 @@ func TestEvaluatorGetModule(t *testing.T) {
 	}
 }
 
-func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesSync) *Evaluator {
+func TestEvaluatorGetModule_validateTypedOutputs(t *testing.T) {
+	tests := map[string]struct {
+		configureModuleCall func(*configs.ModuleCall)
+		want                cty.Value
+	}{
+		"single": {
+			want: cty.ObjectVal(map[string]cty.Value{
+				"out": cty.UnknownVal(cty.String),
+			}),
+		},
+		"count": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.Count = hcltest.MockExprLiteral(cty.NumberIntVal(1))
+			},
+			want: cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+				"out": cty.String,
+			}))),
+		},
+		"empty_count": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.Count = hcltest.MockExprLiteral(cty.NumberIntVal(0))
+			},
+			want: cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+				"out": cty.String,
+			}))),
+		},
+		"for_each": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.ForEach = hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}))
+			},
+			want: cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"out": cty.String,
+			}))),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), func(out *configs.Output) {
+				out.ConstraintType = cty.String
+				out.TypeSet = true
+			}, test.configureModuleCall)
+
+			data := &evaluationStateData{
+				evaluationData: &evaluationData{
+					Evaluator: evaluator,
+				},
+				Operation: walkValidate,
+			}
+			scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+
+			got, diags := scope.Data.GetModule(addrs.ModuleCall{
+				Name: "mod",
+			}, tfdiags.SourceRange{})
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+			if !got.RawEquals(test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestEvaluatorGetModule_validateTypedOutputsWithDynamicTypes(t *testing.T) {
+	tests := map[string]struct {
+		configureModuleCall func(*configs.ModuleCall)
+	}{
+		"count": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.Count = hcltest.MockExprLiteral(cty.NumberIntVal(1))
+			},
+		},
+		"for_each": {
+			configureModuleCall: func(call *configs.ModuleCall) {
+				call.ForEach = hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+				}))
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), func(out *configs.Output) {
+				out.ConstraintType = cty.DynamicPseudoType
+				out.TypeSet = true
+			}, test.configureModuleCall)
+
+			data := &evaluationStateData{
+				evaluationData: &evaluationData{
+					Evaluator: evaluator,
+				},
+				Operation: walkValidate,
+			}
+			scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+
+			got, diags := scope.Data.GetModule(addrs.ModuleCall{
+				Name: "mod",
+			}, tfdiags.SourceRange{})
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+			if !got.RawEquals(cty.DynamicVal) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, cty.DynamicVal)
+			}
+		})
+	}
+}
+
+func TestEvaluatorGetModule_planTypedOutputs(t *testing.T) {
+	tests := map[string]struct {
+		setupInstances func(*instances.Expander)
+		setupOutputs   func(*namedvals.State)
+		want           cty.Value
+	}{
+		"count": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, 2)
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.IntKey(0)},
+					}),
+					cty.StringVal("first").Mark(marks.Sensitive),
+				)
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.IntKey(1)},
+					}),
+					cty.StringVal("second").Mark(marks.Sensitive),
+				)
+			},
+			want: cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("first").Mark(marks.Sensitive)}),
+				cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
+			}),
+		},
+		"empty_count": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, 0)
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				// explicitly setting no values
+			},
+			want: cty.ListValEmpty(cty.Object(map[string]cty.Type{"out": cty.String})),
+		},
+		"for_each": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleForEach(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				})
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.StringKey("a")},
+					}),
+					cty.StringVal("first").Mark(marks.Sensitive),
+				)
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.StringKey("b")},
+					}),
+					cty.StringVal("second").Mark(marks.Sensitive),
+				)
+			},
+			want: cty.MapVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("first").Mark(marks.Sensitive)}),
+				"b": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
+			}),
+		},
+		"empty_for_each": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleForEach(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, map[string]cty.Value{})
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				// no values for empty for_each
+			},
+			want: cty.MapValEmpty(cty.Object(map[string]cty.Type{"out": cty.String})),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), func(out *configs.Output) {
+				out.ConstraintType = cty.String
+				out.TypeSet = true
+			}, nil)
+
+			test.setupInstances(evaluator.Instances)
+			test.setupOutputs(evaluator.NamedValues)
+
+			data := &evaluationStateData{
+				evaluationData: &evaluationData{
+					Evaluator: evaluator,
+				},
+				Operation: walkPlan,
+			}
+			scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+
+			got, diags := scope.Data.GetModule(addrs.ModuleCall{
+				Name: "mod",
+			}, tfdiags.SourceRange{})
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+			if !got.RawEquals(test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestEvaluatorGetModule_planUntypedOutputsRemainStructural(t *testing.T) {
+	tests := map[string]struct {
+		setupInstances func(*instances.Expander)
+		setupOutputs   func(*namedvals.State)
+		want           cty.Value
+	}{
+		"count": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, 2)
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.IntKey(0)},
+					}),
+					cty.StringVal("first").Mark(marks.Sensitive),
+				)
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.IntKey(1)},
+					}),
+					cty.StringVal("second").Mark(marks.Sensitive),
+				)
+			},
+			want: cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("first").Mark(marks.Sensitive)}),
+				cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
+			}),
+		},
+		"for_each": {
+			setupInstances: func(expander *instances.Expander) {
+				expander.SetModuleForEach(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				})
+			},
+			setupOutputs: func(namedValues *namedvals.State) {
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.StringKey("a")},
+					}),
+					cty.StringVal("first").Mark(marks.Sensitive),
+				)
+				namedValues.SetOutputValue(
+					addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{
+						addrs.ModuleInstanceStep{Name: "mod", InstanceKey: addrs.StringKey("b")},
+					}),
+					cty.StringVal("second").Mark(marks.Sensitive),
+				)
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("first").Mark(marks.Sensitive)}),
+				"b": cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("second").Mark(marks.Sensitive)}),
+			}),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), nil, nil)
+
+			test.setupInstances(evaluator.Instances)
+			test.setupOutputs(evaluator.NamedValues)
+
+			data := &evaluationStateData{
+				evaluationData: &evaluationData{
+					Evaluator: evaluator,
+				},
+				Operation: walkPlan,
+			}
+			scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+
+			got, diags := scope.Data.GetModule(addrs.ModuleCall{
+				Name: "mod",
+			}, tfdiags.SourceRange{})
+
+			if len(diags) != 0 {
+				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+			if !got.RawEquals(test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesSync, configureOutput func(*configs.Output), configureModuleCall func(*configs.ModuleCall)) *Evaluator {
+	moduleCall := &configs.ModuleCall{
+		Name: "mod",
+	}
+	if configureModuleCall != nil {
+		configureModuleCall(moduleCall)
+	}
+
+	output := &configs.Output{
+		Name:           "out",
+		Sensitive:      true,
+		ConstraintType: cty.DynamicPseudoType,
+	}
+	if configureOutput != nil {
+		configureOutput(output)
+	}
+
 	return &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -594,9 +925,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		Config: &configs.Config{
 			Module: &configs.Module{
 				ModuleCalls: map[string]*configs.ModuleCall{
-					"mod": {
-						Name: "mod",
-					},
+					"mod": moduleCall,
 				},
 			},
 			Children: map[string]*configs.Config{
@@ -604,10 +933,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 					Path: addrs.Module{"module.mod"},
 					Module: &configs.Module{
 						Outputs: map[string]*configs.Output{
-							"out": {
-								Name:      "out",
-								Sensitive: true,
-							},
+							"out": output,
 						},
 					},
 				},

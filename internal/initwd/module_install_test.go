@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package initwd
@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
@@ -33,6 +34,12 @@ import (
 func TestMain(m *testing.M) {
 	flag.Parse()
 	os.Exit(m.Run())
+}
+
+func testModuleInstallerInitializer(loader *configload.Loader) Initializer {
+	return func(rootMod *configs.Module, walker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+		return terraform.BuildConfigWithGraph(rootMod, walker, nil, configs.MockDataLoaderFunc(loader.LoadExternalMockData))
+	}
 }
 
 func TestModuleInstaller(t *testing.T) {
@@ -45,16 +52,26 @@ func TestModuleInstaller(t *testing.T) {
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "child_a",
+			PackageAddr: "",
+		},
+		{
 			Name:        "Install",
 			ModuleAddr:  "child_a",
 			PackageAddr: "",
 			LocalPath:   "child_a",
+		},
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "child_a.child_b",
+			PackageAddr: "",
 		},
 		{
 			Name:        "Install",
@@ -77,7 +94,15 @@ func TestModuleInstaller(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -109,7 +134,7 @@ func TestModuleInstaller_error(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -130,7 +155,7 @@ func TestModuleInstaller_emptyModuleName(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -151,7 +176,7 @@ func TestModuleInstaller_invalidModuleName(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -189,7 +214,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -227,7 +252,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if diags.HasErrors() {
@@ -250,7 +275,7 @@ func TestModuleInstaller_ExactMatchPrerelease(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	cfg, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if diags.HasErrors() {
@@ -277,8 +302,8 @@ func TestModuleInstaller_PartialMatchPrerelease(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
-	cfg, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
+	cfg, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks, hooks)
 
 	if diags.HasErrors() {
 		t.Fatalf("found unexpected errors: %s", diags.Err())
@@ -300,7 +325,7 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -326,7 +351,7 @@ func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -352,7 +377,7 @@ func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -378,16 +403,26 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
 		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "child_a",
+			PackageAddr: "",
+		},
+		{
 			Name:        "Install",
 			ModuleAddr:  "child_a",
 			PackageAddr: "",
 			LocalPath:   "child_a",
+		},
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "child_a.child_b",
+			PackageAddr: "",
 		},
 		{
 			Name:        "Install",
@@ -410,7 +445,15 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -454,7 +497,7 @@ func TestLoaderInstallModules_invalidRegistry(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 
 	if !diags.HasErrors() {
@@ -493,7 +536,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -504,6 +547,12 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		// order by name, so the following list is kept in the same order.
 
 		// acctest_child_a accesses //modules/child_a directly
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_child_a",
+			PackageAddr: "",
+			Version:     v,
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
@@ -531,12 +580,23 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		// acctest_child_a.child_b
 		// (no download because it's a relative path inside acctest_child_a)
 		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_child_a.child_b",
+			PackageAddr: "",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_child_b",
+			PackageAddr: "",
+			Version:     v,
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
@@ -551,6 +611,12 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		},
 
 		// acctest_root
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_root",
+			PackageAddr: "",
+			Version:     v,
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
@@ -567,6 +633,11 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		// acctest_root.child_a
 		// (no download because it's a relative path inside acctest_root)
 		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_root.child_a",
+			PackageAddr: "",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
@@ -574,6 +645,11 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 		// acctest_root.child_a.child_b
 		// (no download because it's a relative path inside acctest_root, via acctest_root.child_a)
+		{
+			Name:        "ModuleSourceResolved",
+			ModuleAddr:  "acctest_root.child_a.child_b",
+			PackageAddr: "",
+		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
@@ -608,7 +684,15 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -656,7 +740,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -665,6 +749,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		// order by name, so the following list is kept in the same order.
 
 		// acctest_child_a accesses //modules/child_a directly
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_a",
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
@@ -679,12 +767,20 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		// acctest_child_a.child_b
 		// (no download because it's a relative path inside acctest_child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_a.child_b",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_child_b",
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
@@ -697,6 +793,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		},
 
 		// acctest_root
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root",
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
@@ -711,6 +811,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		// acctest_root.child_a
 		// (no download because it's a relative path inside acctest_root)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root.child_a",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
@@ -718,6 +822,10 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 		// acctest_root.child_a.child_b
 		// (no download because it's a relative path inside acctest_root, via acctest_root.child_a)
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "acctest_root.child_a.child_b",
+		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
@@ -738,7 +846,15 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfig(".")
+	rootMod, hclDiags := loader.LoadRootModule(".")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	wantTraces := map[string]string{
@@ -774,11 +890,15 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, nil)
+	inst := NewModuleInstaller(modulesDir, loader, nil, testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), ".", "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.tests.main.setup",
+		},
 		{
 			Name:        "Install",
 			ModuleAddr:  "test.tests.main.setup",
@@ -800,7 +920,15 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["tests/main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
@@ -831,7 +959,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
-	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil), testModuleInstallerInitializer(loader))
 	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
@@ -841,6 +969,11 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		// order by name, so the following list is kept in the same order.
 
 		// setup access acctest directly.
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup",
+			Version:    v,
+		},
 		{
 			Name:        "Download",
 			ModuleAddr:  "test.main.setup",
@@ -868,6 +1001,10 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		// main.tftest.hcl.setup.child_a
 		// (no download because it's a relative path inside acctest_child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_a"),
@@ -876,9 +1013,26 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		// main.tftest.hcl.setup.child_a.child_b
 		// (no download because it's a relative path inside main.tftest.hcl.setup.child_a)
 		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a.child_b",
+		},
+		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a.child_b",
 			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_b"),
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup",
+			Version:    v,
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a",
+		},
+		{
+			Name:       "ModuleSourceResolved",
+			ModuleAddr: "test.main.setup.child_a.child_b",
 		},
 	}
 
@@ -909,7 +1063,15 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	// Make sure the configuration is loadable now.
 	// (This ensures that correct information is recorded in the manifest.)
-	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
+	rootMod, hclDiags := loader.LoadRootModuleWithTests(".", "tests")
+	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(hclDiags))
+
+	config, loadDiags := terraform.BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
 	tfdiags.AssertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
 	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
@@ -945,6 +1107,17 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 		Version:    version,
 		LocalPath:  localPath,
 	})
+}
+
+func (h *testInstallHooks) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, vsn string) tfdiags.Diagnostics {
+	// we ignore errors here because local paths do not have a version
+	v, _ := version.NewVersion(vsn)
+	h.Calls = append(h.Calls, testInstallHookCall{
+		Name:       "ModuleSourceResolved",
+		ModuleAddr: strings.Join(req.Path, "."),
+		Version:    v,
+	})
+	return nil
 }
 
 // tempChdir copies the contents of the given directory to a temporary

@@ -23,6 +23,7 @@ import (
 type MockCommandServiceClient struct {
 	ctrl     *gomock.Controller
 	recorder *MockCommandServiceClientMockRecorder
+	isgomock struct{}
 }
 
 // MockCommandServiceClientMockRecorder is the mock recorder for MockCommandServiceClient.
@@ -43,50 +44,51 @@ func (m *MockCommandServiceClient) EXPECT() *MockCommandServiceClientMockRecorde
 }
 
 // Execute mocks base method.
-func (m *MockCommandServiceClient) Execute(arg0 context.Context, arg1 *cloudproto1.CommandRequest, arg2 ...grpc.CallOption) (cloudproto1.CommandService_ExecuteClient, error) {
+func (m *MockCommandServiceClient) Execute(ctx context.Context, in *cloudproto1.CommandRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[cloudproto1.CommandResponse], error) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1}
-	for _, a := range arg2 {
+	varargs := []any{ctx, in}
+	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Execute", varargs...)
-	ret0, _ := ret[0].(cloudproto1.CommandService_ExecuteClient)
+	ret0, _ := ret[0].(grpc.ServerStreamingClient[cloudproto1.CommandResponse])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Execute indicates an expected call of Execute.
-func (mr *MockCommandServiceClientMockRecorder) Execute(arg0, arg1 any, arg2 ...any) *gomock.Call {
+func (mr *MockCommandServiceClientMockRecorder) Execute(ctx, in any, opts ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1}, arg2...)
+	varargs := append([]any{ctx, in}, opts...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockCommandServiceClient)(nil).Execute), varargs...)
 }
 
 // MockCommandService_ExecuteClient is a mock of CommandService_ExecuteClient interface.
-type MockCommandService_ExecuteClient struct {
+type MockCommandService_ExecuteClient[Res any] struct {
 	ctrl     *gomock.Controller
-	recorder *MockCommandService_ExecuteClientMockRecorder
+	recorder *MockCommandService_ExecuteClientMockRecorder[Res]
+	isgomock struct{}
 }
 
 // MockCommandService_ExecuteClientMockRecorder is the mock recorder for MockCommandService_ExecuteClient.
-type MockCommandService_ExecuteClientMockRecorder struct {
-	mock *MockCommandService_ExecuteClient
+type MockCommandService_ExecuteClientMockRecorder[Res any] struct {
+	mock *MockCommandService_ExecuteClient[Res]
 }
 
 // NewMockCommandService_ExecuteClient creates a new mock instance.
-func NewMockCommandService_ExecuteClient(ctrl *gomock.Controller) *MockCommandService_ExecuteClient {
-	mock := &MockCommandService_ExecuteClient{ctrl: ctrl}
-	mock.recorder = &MockCommandService_ExecuteClientMockRecorder{mock}
+func NewMockCommandService_ExecuteClient[Res any](ctrl *gomock.Controller) *MockCommandService_ExecuteClient[Res] {
+	mock := &MockCommandService_ExecuteClient[Res]{ctrl: ctrl}
+	mock.recorder = &MockCommandService_ExecuteClientMockRecorder[Res]{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockCommandService_ExecuteClient) EXPECT() *MockCommandService_ExecuteClientMockRecorder {
+func (m *MockCommandService_ExecuteClient[Res]) EXPECT() *MockCommandService_ExecuteClientMockRecorder[Res] {
 	return m.recorder
 }
 
 // CloseSend mocks base method.
-func (m *MockCommandService_ExecuteClient) CloseSend() error {
+func (m *MockCommandService_ExecuteClient[Res]) CloseSend() error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CloseSend")
 	ret0, _ := ret[0].(error)
@@ -94,13 +96,13 @@ func (m *MockCommandService_ExecuteClient) CloseSend() error {
 }
 
 // CloseSend indicates an expected call of CloseSend.
-func (mr *MockCommandService_ExecuteClientMockRecorder) CloseSend() *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) CloseSend() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).CloseSend))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloseSend", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).CloseSend))
 }
 
 // Context mocks base method.
-func (m *MockCommandService_ExecuteClient) Context() context.Context {
+func (m *MockCommandService_ExecuteClient[Res]) Context() context.Context {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Context")
 	ret0, _ := ret[0].(context.Context)
@@ -108,13 +110,13 @@ func (m *MockCommandService_ExecuteClient) Context() context.Context {
 }
 
 // Context indicates an expected call of Context.
-func (mr *MockCommandService_ExecuteClientMockRecorder) Context() *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) Context() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).Context))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Context", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).Context))
 }
 
 // Header mocks base method.
-func (m *MockCommandService_ExecuteClient) Header() (metadata.MD, error) {
+func (m *MockCommandService_ExecuteClient[Res]) Header() (metadata.MD, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Header")
 	ret0, _ := ret[0].(metadata.MD)
@@ -123,13 +125,13 @@ func (m *MockCommandService_ExecuteClient) Header() (metadata.MD, error) {
 }
 
 // Header indicates an expected call of Header.
-func (mr *MockCommandService_ExecuteClientMockRecorder) Header() *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) Header() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).Header))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Header", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).Header))
 }
 
 // Recv mocks base method.
-func (m *MockCommandService_ExecuteClient) Recv() (*cloudproto1.CommandResponse, error) {
+func (m *MockCommandService_ExecuteClient[Res]) Recv() (*cloudproto1.CommandResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Recv")
 	ret0, _ := ret[0].(*cloudproto1.CommandResponse)
@@ -138,41 +140,41 @@ func (m *MockCommandService_ExecuteClient) Recv() (*cloudproto1.CommandResponse,
 }
 
 // Recv indicates an expected call of Recv.
-func (mr *MockCommandService_ExecuteClientMockRecorder) Recv() *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) Recv() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).Recv))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Recv", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).Recv))
 }
 
 // RecvMsg mocks base method.
-func (m *MockCommandService_ExecuteClient) RecvMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecvMsg", arg0)
+func (m_2 *MockCommandService_ExecuteClient[Res]) RecvMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "RecvMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RecvMsg indicates an expected call of RecvMsg.
-func (mr *MockCommandService_ExecuteClientMockRecorder) RecvMsg(arg0 any) *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) RecvMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).RecvMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecvMsg", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).RecvMsg), m)
 }
 
 // SendMsg mocks base method.
-func (m *MockCommandService_ExecuteClient) SendMsg(arg0 any) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendMsg", arg0)
+func (m_2 *MockCommandService_ExecuteClient[Res]) SendMsg(m any) error {
+	m_2.ctrl.T.Helper()
+	ret := m_2.ctrl.Call(m_2, "SendMsg", m)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SendMsg indicates an expected call of SendMsg.
-func (mr *MockCommandService_ExecuteClientMockRecorder) SendMsg(arg0 any) *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) SendMsg(m any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).SendMsg), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendMsg", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).SendMsg), m)
 }
 
 // Trailer mocks base method.
-func (m *MockCommandService_ExecuteClient) Trailer() metadata.MD {
+func (m *MockCommandService_ExecuteClient[Res]) Trailer() metadata.MD {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Trailer")
 	ret0, _ := ret[0].(metadata.MD)
@@ -180,7 +182,7 @@ func (m *MockCommandService_ExecuteClient) Trailer() metadata.MD {
 }
 
 // Trailer indicates an expected call of Trailer.
-func (mr *MockCommandService_ExecuteClientMockRecorder) Trailer() *gomock.Call {
+func (mr *MockCommandService_ExecuteClientMockRecorder[Res]) Trailer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockCommandService_ExecuteClient)(nil).Trailer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Trailer", reflect.TypeOf((*MockCommandService_ExecuteClient[Res])(nil).Trailer))
 }

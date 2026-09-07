@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package rpcapi
@@ -39,8 +39,7 @@ func ServePlugin(ctx context.Context, opts ServerOpts) error {
 		},
 		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
 			fullOpts := []grpc.ServerOption{
-				grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-				grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+				grpc.StatsHandler(otelgrpc.NewServerHandler()),
 			}
 			fullOpts = append(fullOpts, opts...)
 			server := grpc.NewServer(fullOpts...)

@@ -1,29 +1,46 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.TestOutput, int) {
 	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args = append(args, "-no-color")
+	args = append(args, testFixturePath(fixturepath))
+
+	code := c.Run(args)
+	return done(t), code
+}
+
+func validateTestProvider() *testing_provider.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
@@ -48,18 +65,8 @@ func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.Test
 			},
 		},
 	}
-	c := &ValidateCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
 
-	args = append(args, "-no-color")
-	args = append(args, testFixturePath(fixturepath))
-
-	code := c.Run(args)
-	return done(t), code
+	return p
 }
 
 func TestValidateCommand(t *testing.T) {
@@ -73,7 +80,7 @@ func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	// requires scanning the current working directory by validate command.
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("validate-valid/with-tfvars-file"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	view, done := testView(t)
 	c := &ValidateCommand{
@@ -120,7 +127,7 @@ func TestValidateFailingCommandMissingVariable(t *testing.T) {
 	}
 }
 
-func TestSameProviderMutipleTimesShouldFail(t *testing.T) {
+func TestSameProviderMultipleTimesShouldFail(t *testing.T) {
 	output, code := setupTest(t, "validate-invalid/multiple_providers")
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
@@ -189,10 +196,6 @@ func TestModuleWithIncorrectNameShouldFail(t *testing.T) {
 	if !strings.Contains(output.Stderr(), wantError) {
 		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
-	wantError = `Error: Variables not allowed`
-	if !strings.Contains(output.Stderr(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
-	}
 }
 
 func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
@@ -221,7 +224,6 @@ func TestMissingDefinedVar(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestFile(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
@@ -253,25 +255,23 @@ func TestValidateWithInvalidTestFile(t *testing.T) {
 }
 
 func TestValidateWithInvalidTestModule(t *testing.T) {
-
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -309,26 +309,107 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	}
 }
 
-func TestValidateWithInvalidOverrides(t *testing.T) {
+func TestValidate_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
 
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+
+		wantError := "Error: No value for required variable"
+		if !strings.Contains(output.Stderr(), wantError) {
+			t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(validateTestProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-var", "module_name=child",
+		}
+
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(validateTestProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-no-color"}
+		code := c.Run(args)
+		output := done(t)
+
+		if code != 0 {
+			t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+		}
+	})
+}
+
+func TestValidateWithInvalidOverrides(t *testing.T) {
 	// We're reusing some testing configs that were written for testing the
 	// test command here, so we have to initalise things slightly differently
 	// to the other tests.
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 
 	provider := testing_command.NewProvider(nil)
 
-	providerSource, close := newMockProviderSource(t, map[string][]string{
+	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-	defer close()
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
@@ -408,14 +489,14 @@ func TestValidate_json(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.path, func(t *testing.T) {
-			var want, got map[string]interface{}
+			var want, got map[string]any
 
 			wantFile, err := os.Open(path.Join(testFixturePath(tc.path), "output.json"))
 			if err != nil {
 				t.Fatalf("failed to open output file: %s", err)
 			}
 			defer wantFile.Close()
-			wantBytes, err := ioutil.ReadAll(wantFile)
+			wantBytes, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("failed to read output file: %s", err)
 			}
@@ -447,5 +528,365 @@ func TestValidate_json(t *testing.T) {
 				t.Errorf("unexpected error output:\n%s", errorOutput)
 			}
 		})
+	}
+}
+
+func TestValidate_ensure_json_diags(t *testing.T) {
+	t.Run("-var error diags are rendered using the correct view ", func(t *testing.T) {
+		output, code := setupTest(t, "validate-invalid", "-json", "-var", "foo")
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
+
+		gotString := output.Stdout()
+
+		var got map[string]any
+		err := json.Unmarshal([]byte(gotString), &got)
+		if err != nil {
+			t.Fatalf("Test did not produce valid JSON: %s", err)
+		}
+	})
+
+	t.Run("Flag/argument parsing error diags are rendered using the correct view ", func(t *testing.T) {
+		output, code := setupTest(t, "validate-invalid", "-json", "-foobar")
+
+		if code != 1 {
+			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+		}
+		if output.Stderr() != "" {
+			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		}
+
+		gotString := output.Stdout()
+
+		var got map[string]any
+		err := json.Unmarshal([]byte(gotString), &got)
+		if err != nil {
+			t.Fatalf("Test did not produce valid JSON: %s", err)
+		}
+	})
+}
+
+func TestValidateWithInvalidListResource(t *testing.T) {
+	td := t.TempDir()
+	cases := []struct {
+		name      string
+		path      string
+		wantError string
+		args      []string
+		code      int
+	}{
+		{
+			name: "invalid-traversal with validate -query command",
+			path: "query/invalid-traversal",
+			wantError: `
+Error: Invalid list resource traversal
+
+  on main.tfquery.hcl line 19, in list "test_instance" "test2":
+  19:   	ami = list.test_instance.test.state.instance_type
+
+The first step in the traversal for a list resource must be an attribute
+"data".
+`,
+			args: []string{"-query"},
+			code: 1,
+		},
+		{
+			name: "invalid-traversal with no -query",
+			path: "query/invalid-traversal",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			testCopyDir(t, testFixturePath(tc.path), td)
+			t.Chdir(td)
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := testUiWrapped(t)
+
+			provider := queryFixtureProvider()
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			}
+
+			c := &ValidateCommand{
+				Meta: meta,
+			}
+
+			var args []string
+			args = append(args, "-no-color")
+			args = append(args, tc.args...)
+
+			code := c.Run(args)
+			output := done(t)
+
+			if code != tc.code {
+				t.Fatalf("Expected status code %d but got %d: %s", tc.code, code, output.Stderr())
+			}
+
+			if diff := cmp.Diff(tc.wantError, output.Stderr()); diff != "" {
+				t.Fatalf("Expected error string %q but got %q\n\ndiff: \n%s", tc.wantError, output.Stderr(), diff)
+			}
+		})
+	}
+}
+
+func TestValidate_backendBlocks(t *testing.T) {
+	// This type of error is detected when parsing hcl, and isn't validation
+	// specific to backend blocks.
+	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/repeated-attr")
+		if code != 1 {
+			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Attribute redefined"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("invalid when the backend type is unknown", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/unknown-backend-type")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expectedErr := "Error: Unsupported backend type"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("removed backends cause errors with extra info", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/removed-backend-type")
+		if code != 1 {
+			t.Fatalf("expected an unsuccessful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expectedErrMsgs := []string{
+			"Error: Unsupported backend type",
+			"The \"artifactory\" backend is not supported in Terraform v1.3 or later.",
+		}
+		for _, msg := range expectedErrMsgs {
+			if !strings.Contains(output.Stderr(), msg) {
+				t.Fatalf("unexpected error content: wanted to include %q, got: %s",
+					msg,
+					output.Stderr(),
+				)
+			}
+		}
+	})
+
+	// We don't validate using the backend's schema due to potential use of the -backend-config flag.
+	t.Run("unknown attributes are not detected by validate command", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/unknown-attr")
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expected := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expected) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expected,
+				output.Stdout(),
+			)
+		}
+	})
+
+	// We don't validate using the backend's schema due to potential use of the -backend-config flag.
+	t.Run("unset required attributes are not detected by validate command", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-backend-configuration/missing-required-attr")
+		if code != 0 {
+			t.Fatalf("expected a successful exit code %d\n\n%s", code, output.Stderr())
+		}
+		expected := "Success! The configuration is valid."
+		if !strings.Contains(output.Stdout(), expected) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expected,
+				output.Stdout(),
+			)
+		}
+	})
+}
+
+// Resources are validated using their schemas, so unknown or missing required attributes are identified.
+func TestValidate_resourceBlock(t *testing.T) {
+	t.Run("invalid when block contains a repeated attribute", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-resource-configuration/repeated-attr")
+		if code != 1 {
+			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Attribute redefined"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("invalid when there's an unknown attribute present", func(t *testing.T) {
+		output, code := setupTest(t, "invalid-resource-configuration/unknown-attr")
+		if code != 1 {
+			t.Fatalf("unexpected successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Unsupported argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+
+	t.Run("invalid when a required attribute is unset", func(t *testing.T) {
+		view, done := testView(t)
+		p := testProvider()
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Required: true},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"network_interface": {
+								Nesting: configschema.NestingList,
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"device_index": {Type: cty.String, Optional: true},
+										"description":  {Type: cty.String, Optional: true},
+										"name":         {Type: cty.String, Optional: true},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		c := &ValidateCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{"-no-color", testFixturePath("invalid-resource-configuration/missing-required-attr")}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("expected non-successful exit code %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Missing required argument"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("unexpected error content: wanted %q, got: %s",
+				expectedErr,
+				output.Stderr(),
+			)
+		}
+	})
+}
+
+func TestValidate_child_module_backend_warning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("invalid-child-modules/with-backend"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful exit code, got: %d\n\n%s", code, output.Stdout())
+	}
+
+	expectedWarning := "Warning: Backend configuration ignored"
+	if !strings.Contains(output.Stdout(), expectedWarning) {
+		t.Fatalf("unexpected stdout content: wanted %q, got: %s",
+			expectedWarning,
+			output.Stdout(),
+		)
+	}
+}
+
+func TestValidate_child_module_cloud_block_warning(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("invalid-child-modules/with-cloud-block"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("expected successful exit code, got: %d\n\n%s", code, output.Stdout())
+	}
+
+	expectedWarning := "Warning: Cloud configuration ignored"
+	if !strings.Contains(output.Stdout(), expectedWarning) {
+		t.Fatalf("unexpected stdout content: wanted %q, got: %s",
+			expectedWarning,
+			output.Stdout(),
+		)
+	}
+}
+
+func TestValidate_child_module_import(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("valid-child-modules/with-import"), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(validateTestProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
 	}
 }

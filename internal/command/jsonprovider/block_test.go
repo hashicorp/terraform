@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonprovider
@@ -38,6 +38,16 @@ func TestMarshalBlock(t *testing.T) {
 							},
 						},
 					},
+					"deprecated": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Deprecated:         true,
+							DeprecationMessage: "This block is deprecated",
+							Attributes: map[string]*configschema.Attribute{
+								"attr": {Type: cty.String, Optional: true},
+							},
+						},
+					},
 				},
 			},
 			Want: &Block{
@@ -52,6 +62,17 @@ func TestMarshalBlock(t *testing.T) {
 							Attributes: map[string]*Attribute{
 								"description":  {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 								"device_index": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
+							},
+							DescriptionKind: "plain",
+						},
+					},
+					"deprecated": {
+						NestingMode: "list",
+						Block: &Block{
+							Deprecated:         true,
+							DeprecationMessage: "This block is deprecated",
+							Attributes: map[string]*Attribute{
+								"attr": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 							},
 							DescriptionKind: "plain",
 						},

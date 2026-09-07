@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -34,6 +34,15 @@ type taskStageSummarizer interface {
 	// for results, an optional message string to print while it is polling
 	// and an error if any.
 	Summarize(*IntegrationContext, IntegrationOutputWriter, *tfe.TaskStage) (bool, *string, error)
+}
+
+func isTerminalTaskStageStatus(status tfe.TaskStageStatus) bool {
+	switch status {
+	case tfe.TaskStagePassed, tfe.TaskStageFailed, tfe.TaskStageCanceled, tfe.TaskStageErrored:
+		return true
+	default:
+		return false
+	}
 }
 
 func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId string) (taskStages, error) {

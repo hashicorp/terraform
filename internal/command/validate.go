@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -19,6 +21,8 @@ import (
 // ValidateCommand is a Command implementation that validates the terraform files
 type ValidateCommand struct {
 	Meta
+
+	ParsedArgs *arguments.Validate
 }
 
 func (c *ValidateCommand) Run(rawArgs []string) int {
@@ -28,19 +32,41 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 
 	// Parse and validate flags
 	args, diags := arguments.ParseValidate(rawArgs)
+
+	c.ParsedArgs = args
+	view := views.NewValidate(args.ViewType, c.View)
+
+	// Now the view is ready, process any diagnostics from argument parsing
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("validate")
-		return 1
+		if args.ViewType == arguments.ViewHuman {
+			defer c.View.HelpPrompt("validate")
+		}
+		return view.Results(diags)
 	}
 
-	view := views.NewValidate(args.ViewType, c.View)
+	// If the query flag is set, include query files in the validation.
+	c.includeQueryFiles = c.ParsedArgs.Query
 
 	// After this point, we must only produce JSON output if JSON mode is
 	// enabled, so all errors should be accumulated into diags and we'll
 	// print out a suitable result at the end, depending on the format
 	// selection. All returns from this point on must be tail-calls into
 	// view.Results in order to produce the expected output.
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return view.Results(diags)
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		diags = diags.Append(varDiags)
+		return view.Results(diags)
+	}
 
 	dir, err := filepath.Abs(args.Path)
 	if err != nil {
@@ -54,7 +80,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		return view.Results(diags)
 	}
 
-	validateDiags := c.validate(dir, args.TestDirectory, args.NoTests)
+	validateDiags := c.validate(dir)
 	diags = diags.Append(validateDiags)
 
 	// Validating with dev overrides in effect means that the result might
@@ -66,47 +92,62 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	return view.Results(diags)
 }
 
-func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Diagnostics {
+func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var cfg *configs.Config
 
-	if noTests {
+	diags = diags.Append(c.resolveConstVariables(dir, c.ParsedArgs.ViewType))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	if c.ParsedArgs.NoTests {
 		cfg, diags = c.loadConfig(dir)
 	} else {
-		cfg, diags = c.loadConfigWithTests(dir, testDir)
+		cfg, diags = c.loadConfigWithTests(dir, c.ParsedArgs.TestDirectory)
 	}
 	if diags.HasErrors() {
 		return diags
 	}
 
-	validate := func(cfg *configs.Config) tfdiags.Diagnostics {
-		var diags tfdiags.Diagnostics
+	diags = diags.Append(c.validateConfig(cfg))
 
-		opts, err := c.contextOpts()
-		if err != nil {
-			diags = diags.Append(err)
-			return diags
-		}
-
-		tfCtx, ctxDiags := terraform.NewContext(opts)
-		diags = diags.Append(ctxDiags)
-		if ctxDiags.HasErrors() {
-			return diags
-		}
-
-		return diags.Append(tfCtx.Validate(cfg, nil))
+	// Validation of backend block, if present
+	// Backend blocks live outside the Terraform graph so we have to do this separately.
+	if cfg.Module.Backend != nil {
+		diags = diags.Append(c.validateBackendTypeSupported(cfg.Module.Backend))
 	}
 
-	diags = diags.Append(validate(cfg))
+	// Unless excluded, we'll also do a quick validation of the Terraform test files. These live
+	// outside the Terraform graph so we have to do this separately.
+	if !c.ParsedArgs.NoTests {
+		diags = diags.Append(c.validateTestFiles(cfg))
+	}
 
-	if noTests {
+	return diags
+}
+
+func (c *ValidateCommand) validateConfig(cfg *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	opts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
 		return diags
 	}
 
-	validatedModules := make(map[string]bool)
+	tfCtx, ctxDiags := terraform.NewContext(opts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return diags
+	}
 
-	// We'll also do a quick validation of the Terraform test files. These live
-	// outside the Terraform graph so we have to do this separately.
+	return diags.Append(tfCtx.Validate(cfg, nil))
+}
+
+func (c *ValidateCommand) validateTestFiles(cfg *configs.Config) tfdiags.Diagnostics {
+	diags := tfdiags.Diagnostics{}
+	validatedModules := make(map[string]bool)
 	for _, file := range cfg.Module.Tests {
 
 		// The file validation only returns warnings so we'll just add them
@@ -114,7 +155,6 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 		diags = diags.Append(file.Validate(cfg))
 
 		for _, run := range file.Runs {
-
 			if run.Module != nil {
 				// Then we can also validate the referenced modules, but we are
 				// only going to do this is if they are local modules.
@@ -124,24 +164,46 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 				// the registry, the expectation is that the author of the
 				// module should have ran `terraform validate` themselves.
 				if _, ok := run.Module.Source.(addrs.ModuleSourceLocal); ok {
-
 					if validated := validatedModules[run.Module.Source.String()]; !validated {
 
 						// Since we can reference the same module twice, let's
 						// not validate the same thing multiple times.
 
 						validatedModules[run.Module.Source.String()] = true
-						diags = diags.Append(validate(run.ConfigUnderTest))
+						diags = diags.Append(c.validateConfig(run.ConfigUnderTest))
 					}
-
 				}
 
 				diags = diags.Append(run.Validate(run.ConfigUnderTest))
 			} else {
 				diags = diags.Append(run.Validate(cfg))
 			}
-
 		}
+	}
+
+	return diags
+}
+
+// Validate that the config includes a backend type that exists in the current binary.
+// A name could be mistyped or the config could be using an old backend type that's been
+// removed from the version of Terraform in use.
+func (c *ValidateCommand) validateBackendTypeSupported(cfg *configs.Backend) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	bf := backendInit.Backend(cfg.Type)
+	if bf == nil {
+		detail := fmt.Sprintf("There is no backend type named %q.", cfg.Type)
+		if msg, removed := backendInit.RemovedBackends[cfg.Type]; removed {
+			detail = msg
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsupported backend type",
+			Detail:   detail,
+			Subject:  &cfg.TypeRange,
+		})
+		return diags
 	}
 
 	return diags
@@ -187,7 +249,19 @@ Options:
 
   -no-tests             If specified, Terraform will not validate test files.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -query                If specified, the command will also validate .tfquery.hcl files.
+
+  -var 'foo=bar'        Set a value for one of the input variables in the root
+                        module of the configuration. Use this option more than
+                        once to set more than one variable.
+
+  -var-file=filename    Load variable values from the given file, in addition
+                        to the default files terraform.tfvars and *.auto.tfvars.
+                        Use this option more than once to include more than one
+                        variables file.
+
 `
 	return strings.TrimSpace(helpText)
 }

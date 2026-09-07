@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package backendrun
@@ -9,25 +9,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// UnparsedVariableValue represents a variable value provided by the caller
-// whose parsing must be deferred until configuration is available.
-//
-// This exists to allow processing of variable-setting arguments (e.g. in the
-// command package) to be separated from parsing (in the backend package).
-type UnparsedVariableValue interface {
-	// ParseVariableValue information in the provided variable configuration
-	// to parse (if necessary) and return the variable value encapsulated in
-	// the receiver.
-	//
-	// If error diagnostics are returned, the resulting value may be invalid
-	// or incomplete.
-	ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics)
-}
 
 // ParseUndeclaredVariableValues processes a map of unparsed variable values
 // and returns an input values map of the ones not declared in the specified
@@ -35,7 +21,7 @@ type UnparsedVariableValue interface {
 // variables being present, depending on the source of these values. If more
 // than two undeclared values are present in file form (config, auto, -var-file)
 // the remaining errors are summarized to avoid a massive list of errors.
-func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseUndeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 	seenUndeclaredInFile := 0
@@ -73,6 +59,11 @@ func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls ma
 			// variables, because users will often set these globally
 			// when they are used across many (but not necessarily all)
 			// configurations.
+		case terraform.ValueFromCloud:
+			// We allow and ignore undeclared names fetched from the cloud
+			// backend, because users will often set these globally or via
+			// varsets when they are used across many (but not necessarily all)
+			// workspaces.
 		case terraform.ValueFromCLIArg:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -106,7 +97,7 @@ func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls ma
 // and returns an input values map of the ones declared in the specified
 // variable declaration mapping. Diagnostics will be populating with
 // any variable parsing errors encountered within this collection.
-func ParseDeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseDeclaredVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(terraform.InputValues, len(vv))
 
@@ -160,7 +151,20 @@ func isDefinedAny(name string, maps ...terraform.InputValues) bool {
 // InputValues may be incomplete but will include the subset of variables
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
-func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+func ParseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, false)
+}
+
+// ParseConstVariableValues is like ParseVariableValues but only produces
+// errors for missing const variables. Non-const required variables that are
+// missing will still receive placeholder values but won't produce errors.
+// This is used during early configuration loading (e.g. module installation)
+// where only const variables are needed for module source resolution.
+func ParseConstVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	return parseVariableValues(vv, decls, true)
+}
+
+func parseVariableValues(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable, constOnly bool) (terraform.InputValues, tfdiags.Diagnostics) {
 	ret, diags := ParseDeclaredVariableValues(vv, decls)
 	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 
@@ -180,14 +184,20 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 		// specific error message which mentions -var and -var-file command
 		// line options, whereas the one in Terraform Core is more general
 		// due to supporting both root and child module variables.
-		if vc.Required() {
+		shouldError := vc.Required()
+		if constOnly {
+			shouldError = vc.Const && vc.Required()
+		}
+		if shouldError {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "No value for required variable",
 				Detail:   fmt.Sprintf("The root module input variable %q is not set, and has no default value. Use a -var or -var-file command line argument to provide a value for this variable.", name),
 				Subject:  vc.DeclRange.Ptr(),
 			})
+		}
 
+		if vc.Required() {
 			// We'll include a placeholder value anyway, just so that our
 			// result is complete for any calling code that wants to cautiously
 			// analyze it for diagnostic purposes. Since our diagnostics now
@@ -213,4 +223,19 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 	}
 
 	return ret, diags
+}
+
+// HasUnsatisfiedConstVariables checks whether any const variables declared in
+// the given module are required but not yet present in the provided variable
+// values map. This is used to determine whether we need to fetch additional
+// variable values from a backend before loading the full configuration.
+func HasUnsatisfiedConstVariables(vv map[string]arguments.UnparsedVariableValue, decls map[string]*configs.Variable) bool {
+	for name, vc := range decls {
+		if vc.Const && vc.Required() {
+			if _, defined := vv[name]; !defined {
+				return true
+			}
+		}
+	}
+	return false
 }

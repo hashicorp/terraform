@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -6,12 +6,11 @@ package command
 import (
 	"encoding/json"
 	"testing"
-
-	"github.com/hashicorp/cli"
 )
 
 func TestMetadataFunctions_error(t *testing.T) {
-	ui := new(cli.MockUi)
+	t.Parallel()
+	ui := testUiWrapped(t)
 	c := &MetadataFunctionsCommand{
 		Meta: Meta{
 			Ui: ui,
@@ -25,7 +24,8 @@ func TestMetadataFunctions_error(t *testing.T) {
 }
 
 func TestMetadataFunctions_output(t *testing.T) {
-	ui := new(cli.MockUi)
+	t.Parallel()
+	ui := testUiWrapped(t)
 	m := Meta{Ui: ui}
 	c := &MetadataFunctionsCommand{Meta: m}
 

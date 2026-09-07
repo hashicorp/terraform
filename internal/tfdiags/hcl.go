@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -13,6 +13,7 @@ type hclDiagnostic struct {
 }
 
 var _ Diagnostic = hclDiagnostic{}
+var _ ComparableDiagnostic = hclDiagnostic{}
 
 func (d hclDiagnostic) Severity() Severity {
 	switch d.diag.Severity {
@@ -133,6 +134,13 @@ func (r SourceRange) ToHCL() hcl.Range {
 			Column: r.End.Column,
 			Byte:   r.End.Byte,
 		},
+	}
+}
+
+// FromHCL converts an hcl.Diagnostic into a Diagnostic implementation.
+func FromHCL(diag *hcl.Diagnostic) Diagnostic {
+	return hclDiagnostic{
+		diag: diag,
 	}
 }
 

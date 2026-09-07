@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package providers
@@ -22,6 +22,8 @@ func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName
 		return ss.DataSources[typeName]
 	case addrs.EphemeralResourceMode:
 		return ss.EphemeralResourceTypes[typeName]
+	case addrs.ListResourceMode:
+		return ss.ListResourceTypes[typeName]
 	default:
 		// Shouldn't happen, because the above cases are comprehensive.
 		return Schema{}
@@ -35,3 +37,30 @@ func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema Sche
 }
 
 type ResourceIdentitySchemas = GetResourceIdentitySchemasResponse
+
+// SchemaForActionType attempts to find a schema for the given type. Returns an
+// empty schema if none is available.
+func (ss ProviderSchema) SchemaForActionType(typeName string) (schema ActionSchema) {
+	schema, ok := ss.Actions[typeName]
+	if ok {
+		return schema
+	}
+	return ActionSchema{}
+}
+
+// SchemaForListResourceType attempts to find a schema for the given type. Returns an
+// empty schema if none is available.
+func (ss ProviderSchema) SchemaForListResourceType(typeName string) ListResourceSchema {
+	schema, ok := ss.ListResourceTypes[typeName]
+	ret := ListResourceSchema{FullSchema: schema.Body}
+	if !ok || schema.Body == nil {
+		return ret
+	}
+	// The configuration for the list block is nested within a "config" block.
+	configSchema, ok := schema.Body.BlockTypes["config"]
+	if !ok {
+		return ret
+	}
+	ret.ConfigSchema = &configSchema.Block
+	return ret
+}

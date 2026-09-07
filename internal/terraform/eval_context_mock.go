@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -22,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -57,11 +60,6 @@ type MockEvalContext struct {
 	ProviderSchemaAddr   addrs.AbsProviderConfig
 	ProviderSchemaSchema providers.ProviderSchema
 	ProviderSchemaError  error
-
-	ResourceIdentitySchemasCalled  bool
-	ResourceIdentitySchemasAddr    addrs.AbsProviderConfig
-	ResourceIdentitySchemasSchemas providers.ResourceIdentitySchemas
-	ResourceIdentitySchemasError   error
 
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.AbsProviderConfig
@@ -152,6 +150,9 @@ type MockEvalContext struct {
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
 
+	PolicyGraphCalled bool
+	PolicyGraphValue  *policySubgraph
+
 	MoveResultsCalled  bool
 	MoveResultsResults refactoring.MoveResults
 
@@ -166,6 +167,13 @@ type MockEvalContext struct {
 
 	ForgetCalled bool
 	ForgetValues bool
+
+	ProviderLocksValue   map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue    policy.Client
+	PolicySemaphoreValue Semaphore
+	ConfigValue          *configs.Config
+	DeprecationCalled    bool
+	DeprecationState     *deprecation.Deprecations
 }
 
 // MockEvalContext implements EvalContext
@@ -212,12 +220,6 @@ func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (provider
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
 	return c.ProviderSchemaSchema, c.ProviderSchemaError
-}
-
-func (c *MockEvalContext) ResourceIdentitySchemas(addr addrs.AbsProviderConfig) (providers.ResourceIdentitySchemas, error) {
-	c.ResourceIdentitySchemasCalled = true
-	c.ResourceIdentitySchemasAddr = addr
-	return c.ResourceIdentitySchemasSchemas, c.ProviderSchemaError
 }
 
 func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -416,6 +418,11 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	return c.PrevRunStateState
 }
 
+func (c *MockEvalContext) PolicyGraph() *policySubgraph {
+	c.PolicyGraphCalled = true
+	return c.PolicyGraphValue
+}
+
 func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
 	c.MoveResultsCalled = true
 	return c.MoveResultsResults
@@ -440,5 +447,31 @@ func (ctx *MockEvalContext) ClientCapabilities() providers.ClientCapabilities {
 	return providers.ClientCapabilities{
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
+		StorePlannedPrivate:        true,
+		ComputedBlocksAllowed:      true,
 	}
+}
+
+func (c *MockEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return c.ProviderLocksValue
+}
+
+func (c *MockEvalContext) PolicyClient() policy.Client {
+	return c.PolicyClientValue
+}
+
+func (c *MockEvalContext) PolicySemaphore() Semaphore {
+	return c.PolicySemaphoreValue
+}
+
+func (c *MockEvalContext) Config() *configs.Config {
+	return c.ConfigValue
+}
+
+func (c *MockEvalContext) Deprecations() *deprecation.Deprecations {
+	c.DeprecationCalled = true
+	if c.DeprecationState != nil {
+		return c.DeprecationState
+	}
+	return deprecation.NewDeprecations()
 }

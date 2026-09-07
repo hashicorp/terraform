@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package mocking
@@ -6,8 +6,11 @@ package mocking
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Overrides contains a summary of all the overrides that should apply for a
@@ -16,20 +19,46 @@ import (
 // This requires us to deduplicate between run blocks and test files, and mock
 // providers.
 type Overrides struct {
-	providerOverrides map[string]addrs.Map[addrs.Targetable, *configs.Override]
+	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]
 	localOverrides    addrs.Map[addrs.Targetable, *configs.Override]
 }
 
-func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *configs.Config) *Overrides {
+func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) (*Overrides, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	overrides := &Overrides{
-		providerOverrides: make(map[string]addrs.Map[addrs.Targetable, *configs.Override]),
+		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
 		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
+	}
+
+	// helper function to evaluate each override values, returning any error encountered.
+	evalAndPut := func(container addrs.Map[addrs.Targetable, *configs.Override], target addrs.Targetable, override *configs.Override) tfdiags.Diagnostics {
+
+		override.Values = cty.NilVal
+		if override.RawExpr != nil {
+			values, hclDiags := override.RawExpr.Value(ctx)
+			if values != cty.NilVal && !values.Type().IsObjectType() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid outputs attribute",
+					Detail:   fmt.Sprintf("%s blocks must specify an outputs attribute that is an object.", override.BlockName),
+					Subject:  override.ValuesRange.Ptr(),
+				})
+				return diags
+			}
+			override.Values = values
+			diags = diags.Append(hclDiags)
+		}
+
+		container.Put(target, override)
+		return diags
 	}
 
 	// The run block overrides have the highest priority, we always include all
 	// of them.
 	for _, elem := range run.Overrides.Elems {
-		overrides.localOverrides.PutElement(elem)
+		if diags := evalAndPut(overrides.localOverrides, elem.Key, elem.Value); diags.HasErrors() {
+			return overrides, diags
+		}
 	}
 
 	// The file overrides are second, we include these as long as there isn't
@@ -43,17 +72,14 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *conf
 			continue
 		}
 
-		overrides.localOverrides.PutElement(elem)
+		if diags := evalAndPut(overrides.localOverrides, elem.Key, elem.Value); diags.HasErrors() {
+			return overrides, diags
+		}
 	}
 
 	// Finally, we want to include the overrides for any mock providers we have.
-	for key, provider := range config.Module.ProviderConfigs {
-		if !provider.Mock {
-			// Only mock providers can supply overrides.
-			continue
-		}
-
-		for _, elem := range provider.MockData.Overrides.Elems {
+	for key, data := range mocks {
+		for _, elem := range data.Overrides.Elems {
 			target := elem.Key
 
 			if overrides.localOverrides.Has(target) {
@@ -65,11 +91,14 @@ func PackageOverrides(run *configs.TestRun, file *configs.TestFile, config *conf
 			if _, exists := overrides.providerOverrides[key]; !exists {
 				overrides.providerOverrides[key] = addrs.MakeMap[addrs.Targetable, *configs.Override]()
 			}
-			overrides.providerOverrides[key].PutElement(elem)
+
+			if diags := evalAndPut(overrides.providerOverrides[key], elem.Key, elem.Value); diags.HasErrors() {
+				return overrides, diags
+			}
 		}
 	}
 
-	return overrides
+	return overrides, diags
 }
 
 // IsOverridden returns true if the module is either overridden directly or
@@ -194,12 +223,10 @@ func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (add
 		return addrs.Map[addrs.Targetable, *configs.Override]{}, false
 	}
 
-	name := provider.Provider.Type
-	if len(provider.Alias) > 0 {
-		name = fmt.Sprintf("%s.%s", name, provider.Alias)
-	}
-
-	data, exists := overrides.providerOverrides[name]
+	data, exists := overrides.providerOverrides[addrs.RootProviderConfig{
+		Provider: provider.Provider,
+		Alias:    provider.Alias,
+	}]
 	return data, exists
 }
 

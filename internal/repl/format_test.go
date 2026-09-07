@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package repl
@@ -180,6 +180,10 @@ EOT_`,
 		{
 			cty.StringVal("an ephemeral value").Mark(marks.Ephemeral),
 			"(ephemeral value)",
+		},
+		{
+			cty.StringVal("I'm a deprecated string value").Mark(marks.Deprecation),
+			`"I'm a deprecated string value"`, // We don't render deprecated values differently, but we need to ensure the deprecation mark doesn't interfere with formatting
 		},
 	}
 

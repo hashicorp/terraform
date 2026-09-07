@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -16,10 +16,11 @@ import (
 
 // ConfigFileSet holds the different types of configuration files found in a directory.
 type ConfigFileSet struct {
-	Primary  []string // Regular .tf and .tf.json files
-	Override []string // Override files (override.tf or *_override.tf)
-	Tests    []string // Test files (.tftest.hcl or .tftest.json)
-	Queries  []string // Query files (.tfquery.hcl)
+	Primary         []string // Regular .tf and .tf.json files
+	Override        []string // Override files (override.tf or *_override.tf)
+	Tests           []string // Test files (.tftest.hcl or .tftest.json)
+	Queries         []string // Query files (.tfquery.hcl)
+	StateMigrations []string // State migration files (.tfmigrate.hcl)
 }
 
 // FileMatcher is an interface for components that can match and process specific file types
@@ -51,10 +52,11 @@ type parserConfig struct {
 func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	fileSet := ConfigFileSet{
-		Primary:  []string{},
-		Override: []string{},
-		Tests:    []string{},
-		Queries:  []string{},
+		Primary:         []string{},
+		Override:        []string{},
+		Tests:           []string{},
+		Queries:         []string{},
+		StateMigrations: []string{},
 	}
 
 	// Set up the parser configuration
@@ -63,9 +65,6 @@ func (p *Parser) dirFileSet(dir string, opts ...Option) (ConfigFileSet, hcl.Diag
 		matchers:      []FileMatcher{&moduleFiles{}},
 		testDirectory: DefaultTestDirectory,
 		fs:            p.fs,
-	}
-	if p.AllowsLanguageExperiments() {
-		cfg.matchers = append(cfg.matchers, &queryFiles{})
 	}
 	for _, opt := range opts {
 		opt(cfg)
@@ -125,6 +124,8 @@ func (p *Parser) rootFiles(dir string, matchers []FileMatcher, fileSet *ConfigFi
 					fileSet.Tests = append(fileSet.Tests, fullPath)
 				case *queryFiles:
 					fileSet.Queries = append(fileSet.Queries, fullPath)
+				case *stateMigrateFiles:
+					fileSet.StateMigrations = append(fileSet.StateMigrations, fullPath)
 				}
 				break // Stop checking other matchers once a match is found
 			}
@@ -139,6 +140,20 @@ func MatchTestFiles(dir string) Option {
 	return func(o *parserConfig) {
 		o.testDirectory = dir
 		o.matchers = append(o.matchers, &testFiles{})
+	}
+}
+
+// MatchQueryFiles adds a matcher for Terraform query files (.tfquery.hcl and .tfquery.json)
+func MatchQueryFiles() Option {
+	return func(o *parserConfig) {
+		o.matchers = append(o.matchers, &queryFiles{})
+	}
+}
+
+// MatchStateMigrateFiles adds a matcher for Terraform state migrate files (.tfmigrate.hcl only)
+func MatchStateMigrateFiles() Option {
+	return func(o *parserConfig) {
+		o.matchers = append(o.matchers, &stateMigrateFiles{})
 	}
 }
 
@@ -236,5 +251,19 @@ func (q *queryFiles) Matches(name string) bool {
 }
 
 func (q *queryFiles) DirFiles(dir string, options *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
+	return nil
+}
+
+// stateMigrateFiles matches Terraform state migrate files (.tfmigrate.hcl only)
+type stateMigrateFiles struct{}
+
+var _ FileMatcher = (*stateMigrateFiles)(nil)
+
+func (s *stateMigrateFiles) Matches(name string) bool {
+	return strings.HasSuffix(name, ".tfmigrate.hcl")
+}
+
+func (s *stateMigrateFiles) DirFiles(dir string, options *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
+	// There are no special directories for .tfmigrate.hcl files.
 	return nil
 }

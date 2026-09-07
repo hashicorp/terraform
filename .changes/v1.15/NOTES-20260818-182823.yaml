@@ -1,0 +1,5 @@
+kind: NOTES
+body: "Update go-slug to v0.18.3 to mitigate CVE-2026-14978, which is a Unicode normalization issue that could lead to files not being correctly excluded via `.terraformignore` from upload to a Terraform Enterprise or HCP Terraform during a run"
+time: 2026-08-18T18:28:23.757932+01:00
+custom:
+    Issue: "39036"

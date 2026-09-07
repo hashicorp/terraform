@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package cloud
@@ -101,10 +101,10 @@ func TestDetectConfigChangeType(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			var state *workdir.BackendState
+			var state *workdir.BackendConfigState
 			var config *configs.Backend
 			if test.stateType != "" {
-				state = &workdir.BackendState{
+				state = &workdir.BackendConfigState{
 					Type: test.stateType,
 					// everything else is irrelevant for our purposes here
 				}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package remote
@@ -204,6 +204,10 @@ func TestRemote_versionConstraints(t *testing.T) {
 		},
 	}
 
+	// Ensure CHECKPOINT_DISABLE is not set, as it causes the disco library
+	// to skip version constraint checks.
+	t.Setenv("CHECKPOINT_DISABLE", "")
+
 	// Save and restore the actual version.
 	p := tfversion.Prerelease
 	v := tfversion.Version
@@ -254,24 +258,24 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	if _, err := b.Workspaces(); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if _, diags := b.Workspaces(); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, diags.Err())
 	}
 
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
-	if _, err := b.StateMgr("prod"); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if _, sDiags := b.StateMgr("prod"); sDiags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, sDiags.Err())
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if diags := b.DeleteWorkspace(backend.DefaultStateName, true); diags.HasErrors() {
+		t.Fatalf("expected no error, got %v", diags.Err())
 	}
 
-	if err := b.DeleteWorkspace("prod", true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
+	if diags := b.DeleteWorkspace("prod", true); !diags.HasErrors() || diags.Err().Error() != backend.ErrWorkspacesNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, diags.Err())
 	}
 }
 
@@ -279,9 +283,9 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 	b, bCleanup := testBackendNoDefault(t)
 	defer bCleanup()
 
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces := []string(nil)
@@ -289,18 +293,18 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected states %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if _, err := b.StateMgr(backend.DefaultStateName); err != backend.ErrDefaultWorkspaceNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); sDiags.Err().Error() != backend.ErrDefaultWorkspaceNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, sDiags.Err())
 	}
 
 	expectedA := "test_A"
-	if _, err := b.StateMgr(expectedA); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedA); sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = append(expectedWorkspaces, expectedA)
@@ -309,13 +313,13 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 	}
 
 	expectedB := "test_B"
-	if _, err := b.StateMgr(expectedB); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedB); sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = append(expectedWorkspaces, expectedB)
@@ -323,17 +327,17 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != backend.ErrDefaultWorkspaceNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
+	if diags := b.DeleteWorkspace(backend.DefaultStateName, true); !diags.HasErrors() || diags.Err().Error() != backend.ErrDefaultWorkspaceNotSupported.Error() {
+		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, diags.Err())
 	}
 
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedA, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = []string{expectedB}
@@ -341,13 +345,13 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedB, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedWorkspaces = []string(nil)
@@ -496,8 +500,8 @@ func TestRemote_StateMgr_versionCheck(t *testing.T) {
 	}
 
 	// This should succeed
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 
 	// Now change the remote workspace to a different Terraform version
@@ -514,8 +518,8 @@ func TestRemote_StateMgr_versionCheck(t *testing.T) {
 
 	// This should fail
 	want := `Remote workspace Terraform version "0.13.5" does not match local Terraform version "0.14.0"`
-	if _, err := b.StateMgr(backend.DefaultStateName); err.Error() != want {
-		t.Fatalf("wrong error\n got: %v\nwant: %v", err.Error(), want)
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); sDiags.Err().Error() != want {
+		t.Fatalf("wrong error\n got: %v\nwant: %v", sDiags.Err().Error(), want)
 	}
 }
 
@@ -553,8 +557,8 @@ func TestRemote_StateMgr_versionCheckLatest(t *testing.T) {
 	}
 
 	// This should succeed despite not being a string match
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	if _, sDiags := b.StateMgr(backend.DefaultStateName); sDiags.HasErrors() {
+		t.Fatalf("expected no error, got %v", sDiags.Err())
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -19,11 +19,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/cli"
+	version "github.com/hashicorp/go-version"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -37,7 +41,7 @@ func TestApply(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -75,7 +79,7 @@ func TestApply_path(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := applyFixtureProvider()
 
@@ -105,17 +109,17 @@ func TestApply_approveNo(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "no",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 
 	p := applyFixtureProvider()
 	view, done := testView(t)
@@ -148,19 +152,19 @@ func TestApply_approveYes(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
 
-	defer testInputMap(t, map[string]string{
+	_ = testInputMap(t, map[string]string{
 		"approve": "yes",
-	})()
+	})
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t, new(cli.MockUi))
 
 	view, done := testView(t)
 	c := &ApplyCommand{
@@ -195,7 +199,7 @@ func TestApply_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -234,7 +238,7 @@ func TestApply_lockedStateWait(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -278,7 +282,7 @@ func TestApply_parallelism(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("parallelism"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -317,7 +321,6 @@ func TestApply_parallelism(t *testing.T) {
 			}
 		}
 		provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-
 			// If we ever have more than our intended parallelism number of
 			// apply operations running concurrently, the semaphore will fail.
 			select {
@@ -376,7 +379,7 @@ func TestApply_configInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-config-invalid"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	view, done := testView(t)
@@ -402,7 +405,7 @@ func TestApply_defaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := filepath.Join(td, DefaultStateFilename)
 
@@ -454,7 +457,7 @@ func TestApply_error(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-error"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -531,7 +534,7 @@ func TestApply_input(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Disable test mode so input would be asked
 	test = false
@@ -581,7 +584,7 @@ func TestApply_inputPartial(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input-partial"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Disable test mode so input would be asked
 	test = false
@@ -627,7 +630,7 @@ func TestApply_noArgs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -699,6 +702,499 @@ func TestApply_plan(t *testing.T) {
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
+}
+
+// Test the ability to apply a plan file with a state store.
+//
+// The state store's details (provider, config, etc) are supplied by the plan,
+// which allows this test to not use any configuration.
+func TestApply_plan_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// Create the plan file that includes a state store
+	ver := version.Must(version.NewVersion("1.2.3"))
+	providerCfg := cty.ObjectVal(map[string]cty.Value{
+		"region": cty.StringVal("spain"),
+	})
+	providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeCfg := cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("foobar"),
+	})
+	storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plan := &plans.Plan{
+		Changes: plans.NewChangesSrc(),
+
+		// We'll default to the fake plan being both applyable and complete,
+		// since that's what most tests expect. Tests can override these
+		// back to false again afterwards if they need to.
+		Applyable: true,
+		Complete:  true,
+
+		StateStore: &plans.StateStore{
+			Type: "test_store",
+			Provider: &plans.Provider{
+				Version: ver,
+				Source: &tfaddr.Provider{
+					Hostname:  tfaddr.DefaultProviderRegistryHost,
+					Namespace: "hashicorp",
+					Type:      "test",
+				},
+				Config: providerCfgRaw,
+			},
+			Config:    storeCfgRaw,
+			Workspace: "default",
+		},
+	}
+
+	// Create a plan file on disk
+	//
+	// In this process we create a plan file describing the creation of a test_instance.foo resource.
+	state := testState() // State describes
+	_, snap := testModuleWithSnapshot(t, "apply")
+	planPath := testPlanFile(t, snap, state, plan)
+
+	// Create a mock, to be used as the pluggable state store described in the planfile
+	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !mock.WriteStateBytesCalled {
+		t.Fatal("expected the test to write new state when applying the plan, but WriteStateBytesCalled is false on the mock provider.")
+	}
+}
+
+func TestApply_plan_stateStore_providerSupplyModes(t *testing.T) {
+	t.Run("can run init, plan, apply workflow using a dev override provider for PSS", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		t.Chdir(td)
+
+		cfg := `terraform {
+
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+  state_store "test_store" {
+    provider "test" {
+    }
+
+    value = "foobar"
+  }
+}
+
+output "foobar" {
+  value = "ok"
+}
+`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// Mock provider still needs to be supplied via testingOverrides despite the mock HTTP source
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
+		mockProviderAddress := addrs.NewDefaultProvider("test")
+		source := newMockProviderSource(t, map[string][]string{
+			// The test fixture config has no version constraints, so the latest version will
+			// be used; below is the 'latest' version in the test world.
+			"hashicorp/test": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+
+			// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PROVIDER IS A DEV OVERRIDE.
+			// The mock is still accessed via testingOverrides, but Terraform believes that it's a dev override due to
+			// its presence in the ProviderDevOverrides map.
+			ProviderDevOverrides: map[addrs.Provider]getproviders.PackageLocalDir{
+				mockProviderAddress: ".",
+			},
+		}
+
+		// Init
+		initCmd := &InitCommand{
+			Meta: meta,
+		}
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		if code := initCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Assert backend state file says the provider is a dev override
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != getproviders.DevOverride {
+			t.Fatalf("expected state store provider supply mode to be 'dev_override', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		// Plan - to produce a plan file.
+		//
+		// The plan file will not include version data, as the provider is considered to be a dev override.
+		ui = testUiWrapped(t)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		planCmd := &PlanCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"-out=planfile",
+		}
+		if code := planCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Apply - to use the plan file that lacks version data.
+		ui = testUiWrapped(t)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		applyCmd := &ApplyCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"planfile",
+		}
+		if code := applyCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+	})
+	t.Run("can run init, plan, apply workflow using a builtin provider for PSS", func(t *testing.T) {
+		// Create a temporary, uninitialized working directory with configuration including a state store
+		td := t.TempDir()
+		t.Chdir(td)
+
+		cfg := `terraform {
+
+  required_providers {
+    terraform = {
+      source = "terraform.io/builtin/terraform"
+    }
+  }
+  state_store "terraform_store" {
+    provider "terraform" {
+    }
+
+    value = "foobar"
+  }
+}
+
+output "foobar" {
+  value = "ok"
+}
+`
+		if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		// THIS ALLOWS THE TEST TO MIMIC A SCENARIO WHERE THE PSS PROVIDER IS BUILTIN.
+		// Terraform validates that builtin providers are called 'terraform' but we can still supply
+		// a mock in place of the actual builtin terraform provider. We just need the address and any
+		// schemas to match the builtin provider.
+		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+		mockProvider.MockStates = testing_provider.NewMockStateBytesWithTypesAndStateIds(
+			[]string{"test_store", "terraform_store"},
+			[]string{"default"},
+		)
+		schema := mockProvider.GetProviderSchema()
+		schema.StateStores["terraform_store"] = schema.StateStores["test_store"] // rename to match pretending this is a store in the builtin terraform provider.
+		mockProvider.GetProviderSchemaResponse = &schema
+		mockProviderAddress := addrs.NewBuiltInProvider("terraform")
+
+		source := newMockProviderSource(t, map[string][]string{
+			"hashicorp/terraform": {"1.2.3"},
+		})
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		meta := Meta{
+			Ui:                        ui,
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: source,
+		}
+
+		// Init
+		initCmd := &InitCommand{
+			Meta: meta,
+		}
+		args := []string{"-enable-pluggable-state-storage-experiment=true"}
+		if code := initCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Assert backend state file says the provider is built in
+		statePath := filepath.Join(meta.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal("Failed to load state:", err)
+		}
+		s := sMgr.State()
+		if s == nil || s.StateStore == nil {
+			t.Fatal("expected backend state file to be created and include state store details, but it was missing.")
+		}
+		if s.StateStore.ProviderSupplyMode != getproviders.BuiltIn {
+			t.Fatalf("expected state store provider supply mode to be 'built_in', got '%s'", s.StateStore.ProviderSupplyMode)
+		}
+
+		// Plan - to produce a plan file.
+		//
+		// The plan file will not include version data, as the provider is considered to be a dev override.
+		ui = testUiWrapped(t)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		planCmd := &PlanCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"-out=planfile",
+		}
+		if code := planCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+
+		// Apply - to use the plan file that lacks version data.
+		ui = testUiWrapped(t)
+		meta.Ui = ui
+		view, done = testView(t)
+		meta.View = view
+		applyCmd := &ApplyCommand{
+			Meta: meta,
+		}
+		args = []string{
+			"planfile",
+		}
+		if code := applyCmd.Run(args); code != 0 {
+			t.Fatalf("expected code 0 exit code, got %d, output: \n%s", code, done(t).All())
+		}
+	})
+
+	// See E2E tests for testing swapping between unmanaged(reattached and dev_override) and managed providers across the workflow.
+}
+
+// Test unhappy paths when applying a plan file describing a state store.
+func TestApply_plan_stateStore_errorCases(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
+		// Set some default reader/writers for the inputs
+		defaultInputReader = new(bytes.Buffer)
+		defaultInputWriter = new(bytes.Buffer)
+
+		// Create the plan file that includes a state store
+		ver := version.Must(version.NewVersion("1.2.3"))
+		providerCfg := cty.ObjectVal(map[string]cty.Value{
+			"region": cty.StringVal("spain"),
+		})
+		providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		storeCfg := cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foobar"),
+		})
+		storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		plan := &plans.Plan{
+			Changes: plans.NewChangesSrc(),
+
+			// We'll default to the fake plan being both applyable and complete,
+			// since that's what most tests expect. Tests can override these
+			// back to false again afterwards if they need to.
+			Applyable: true,
+			Complete:  true,
+
+			StateStore: &plans.StateStore{
+				Type: "test_doesnt_exist", // Mismatched with test_store in the provider
+				Provider: &plans.Provider{
+					Version: ver,
+					Source: &tfaddr.Provider{
+						Hostname:  tfaddr.DefaultProviderRegistryHost,
+						Namespace: "hashicorp",
+						Type:      "test",
+					},
+					Config: providerCfgRaw,
+				},
+				Config:    storeCfgRaw,
+				Workspace: "default",
+			},
+		}
+
+		// Create a plan file on disk
+		//
+		// In this process we create a plan file describing the creation of a test_instance.foo resource.
+		state := testState() // State describes
+		_, snap := testModuleWithSnapshot(t, "apply")
+		planPath := testPlanFile(t, snap, state, plan)
+
+		// Create a mock, to be used as the pluggable state store described in the planfile
+		mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+					},
+				},
+				View: view,
+			},
+		}
+
+		args := []string{
+			planPath,
+			"-no-color",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("expected an error but got none: %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: State store not implemented by the provider"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("expected error to include %q, but got:\n%s", expectedErr, output.Stderr())
+		}
+	})
+
+	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
+		// Set some default reader/writers for the inputs
+		defaultInputReader = new(bytes.Buffer)
+		defaultInputWriter = new(bytes.Buffer)
+
+		// Create the plan file that includes a state store
+		ver := version.Must(version.NewVersion("1.2.3"))
+		providerCfg := cty.ObjectVal(map[string]cty.Value{
+			"region": cty.StringVal("spain"),
+		})
+		providerCfgRaw, err := plans.NewDynamicValue(providerCfg, providerCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+		storeCfg := cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("foobar"),
+		})
+		storeCfgRaw, err := plans.NewDynamicValue(storeCfg, storeCfg.Type())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		plan := &plans.Plan{
+			Changes: plans.NewChangesSrc(),
+
+			// We'll default to the fake plan being both applyable and complete,
+			// since that's what most tests expect. Tests can override these
+			// back to false again afterwards if they need to.
+			Applyable: true,
+			Complete:  true,
+
+			StateStore: &plans.StateStore{
+				Type: "test_store",
+				Provider: &plans.Provider{
+					Version: ver,
+					Source: &tfaddr.Provider{
+						Hostname:  tfaddr.DefaultProviderRegistryHost,
+						Namespace: "hashicorp",
+						Type:      "test",
+					},
+					Config: providerCfgRaw,
+				},
+				Config:    storeCfgRaw,
+				Workspace: "default",
+			},
+		}
+
+		// Create a plan file on disk
+		//
+		// In this process we create a plan file describing the creation of a test_instance.foo resource.
+		state := testState() // State describes
+		_, snap := testModuleWithSnapshot(t, "apply")
+		planPath := testPlanFile(t, snap, state, plan)
+
+		// Create a mock, to be used as the pluggable state store described in the planfile
+		mock := &testing_provider.MockProvider{}
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
+					},
+				},
+				View: view,
+			},
+		}
+
+		args := []string{
+			planPath,
+			"-no-color",
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("expected an error but got none: %d\n\n%s", code, output.Stdout())
+		}
+		expectedErr := "Error: Provider does not support pluggable state storage"
+		if !strings.Contains(output.Stderr(), expectedErr) {
+			t.Fatalf("expected error to include %q, but got:\n%s", expectedErr, output.Stderr())
+		}
+	})
 }
 
 func TestApply_plan_backup(t *testing.T) {
@@ -782,7 +1278,8 @@ func TestApply_plan_remoteState(t *testing.T) {
 	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
-	tmp := testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
 	if err := os.MkdirAll(filepath.Dir(remoteStatePath), 0755); err != nil {
 		t.Fatalf("err: %s", err)
@@ -820,9 +1317,10 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatal(err)
 	}
 	planPath := testPlanFile(t, snap, state, &plans.Plan{
-		Backend: plans.Backend{
-			Type:   "http",
-			Config: backendConfigRaw,
+		Backend: &plans.Backend{
+			Type:      "http",
+			Config:    backendConfigRaw,
+			Workspace: "default",
 		},
 		Changes: plans.NewChangesSrc(),
 	})
@@ -854,6 +1352,59 @@ func TestApply_plan_remoteState(t *testing.T) {
 	// Check that there is no remote state config
 	if src, err := ioutil.ReadFile(remoteStatePath); err == nil {
 		t.Fatalf("has %s file; should not\n%s", remoteStatePath, src)
+	}
+}
+
+func TestApply_planWithVars(t *testing.T) {
+	// Regression test for apply with a plan file that includes variables,
+	// to ensure that apply doesn't prompt for the variables
+	tDir := testTempDir(t)
+
+	// The value of foo is the same as in the var file
+	planPath := applyFixturePlanFileWithVariableValue(t, "bar")
+	statePath := testTempFile(t)
+
+	t.Chdir(tDir)
+
+	p := applyFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Computed: true},
+						"value": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state-out", statePath,
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
 	}
 }
 
@@ -1049,6 +1600,78 @@ func TestApply_planWithEnvVars(t *testing.T) {
 	expectedWarn := "Warning: Ignoring variable when applying a saved plan\n"
 	if !strings.Contains(output.Stdout(), expectedWarn) {
 		t.Fatalf("expected warning in output, given: %q", output.Stdout())
+	}
+}
+
+func TestApply_planWithSensitiveEnvVars(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "apply-sensitive-variable")
+	plan := testPlan(t)
+
+	addr, diags := addrs.ParseAbsOutputValueStr("output.shadow")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	shadowVal := mustNewDynamicValue("noot", cty.DynamicPseudoType)
+	plan.VariableValues = map[string]plans.DynamicValue{
+		"shadow": shadowVal,
+	}
+	plan.Changes.Outputs = append(plan.Changes.Outputs, &plans.OutputChangeSrc{
+		Addr: addr,
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+			After:  shadowVal,
+		},
+	})
+	planPath := testPlanFileMatchState(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+		statemgr.SnapshotMeta{},
+	)
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	t.Setenv("TF_VAR_shadow", "unique")
+
+	args := []string{
+		"-state", statePath,
+		"-no-color",
+		planPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatal("unexpected failure: ", output.All())
+	}
+
+	out := output.Stdout()
+
+	expectedWarn := "Warning: Ignoring variable when applying a saved plan\n"
+	if !strings.Contains(out, expectedWarn) {
+		t.Fatalf("expected warning in output, given: %q", out)
+	}
+
+	if !strings.Contains(out, "(sensitive value)") {
+		t.Error("should have elided sensitive value")
+	}
+
+	if strings.Contains(out, "noot") {
+		t.Error("should have elided sensitive input, but contained value")
+	}
+
+	if strings.Contains(out, "unique") {
+		t.Error("should have elided sensitive input, but contained value")
 	}
 }
 
@@ -1249,7 +1872,7 @@ foo = "bar"
 		t.Run(name, func(t *testing.T) {
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath("apply-ephemeral-variable"), td)
-			defer testChdir(t, td)()
+			t.Chdir(td)
 
 			_, snap := testModuleWithSnapshot(t, "apply-ephemeral-variable")
 			plannedVal := cty.ObjectVal(map[string]cty.Value{
@@ -1423,7 +2046,7 @@ func TestApply_changedVars_applyTime(t *testing.T) {
 		// var files.
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("apply-vars-auto"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		p := planVarsFixtureProvider()
 		view, done := testView(t)
@@ -1463,13 +2086,119 @@ func TestApply_changedVars_applyTime(t *testing.T) {
 	})
 }
 
+// There isn't validation to stop users passing plan options like -target, -destroy and -refresh-only flags
+// to an apply command when a saved plan is used.
+//
+// Adding any validation is a breaking change.
+// For now, we raise warnings when applying a plan file that doesn't match the intent
+// expressed by the plan options passed to the apply command alongside the plan file.
+// See: https://github.com/hashicorp/terraform/issues/38670
+func TestApply_changedPlanOptions_applyTime(t *testing.T) {
+	t.Run("change to -target", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-target", "test_instance.foo",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change resource targeting when applying a saved plan`) {
+			t.Fatalf("missing warning text:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `target address "test_instance.foo"`) {
+			t.Fatalf("missing detail from warning:\n%s", output.All())
+		}
+	})
+	t.Run("change to -destroy", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-destroy",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change plan mode when applying a saved plan`) {
+			t.Fatalf("missing warning:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `-destroy`) {
+			t.Fatalf("missing flag name from warning:\n%s", output.All())
+		}
+	})
+	t.Run("change to -refresh-only", func(t *testing.T) {
+		planPath := applyFixturePlanFile(t)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-refresh-only",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if !strings.Contains(output.Stdout(), `Warning: Can't change plan mode when applying a saved plan`) {
+			t.Fatalf("missing warning text:\n%s", output.All())
+		}
+		if !strings.Contains(output.Stdout(), `-refresh-only`) {
+			t.Fatalf("missing flag name from warning:\n%s", output.All())
+		}
+	})
+}
+
 // we should be able to apply a plan file with no other file dependencies
 func TestApply_planNoModuleFiles(t *testing.T) {
 	// temporary data directory which we can remove between commands
 	td := testTempDir(t)
 	defer os.RemoveAll(td)
 
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := applyFixtureProvider()
 	planPath := applyFixturePlanFile(t)
@@ -1492,7 +2221,7 @@ func TestApply_refresh(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1559,7 +2288,7 @@ func TestApply_refreshFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1604,11 +2333,12 @@ func TestApply_refreshFalse(t *testing.T) {
 		t.Fatal("should not call ReadResource when refresh=false")
 	}
 }
+
 func TestApply_shutdown(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	cancelled := make(chan struct{})
 	shutdownCh := make(chan struct{})
@@ -1696,7 +2426,7 @@ func TestApply_state(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1790,7 +2520,7 @@ func TestApply_stateNoExist(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := applyFixtureProvider()
 	view, done := testView(t)
@@ -1815,7 +2545,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-sensitive-output"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	view, done := testView(t)
@@ -1852,7 +2582,7 @@ func TestApply_vars(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -1909,7 +2639,7 @@ func TestApply_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
@@ -1971,7 +2701,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
@@ -2032,7 +2762,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	varFilePath := filepath.Join(td, "terraform.tfvars.json")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
@@ -2093,7 +2823,7 @@ func TestApply_backup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -2170,7 +2900,7 @@ func TestApply_disableBackup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
@@ -2249,7 +2979,7 @@ func TestApply_terraformEnv(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -2286,11 +3016,11 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Create new env
 	{
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -2304,7 +3034,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Switch to it
 	{
 		args := []string{"test"}
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		selCmd := &WorkspaceSelectCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -2347,7 +3077,7 @@ output = test
 func TestApply_targeted(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-targeted"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
@@ -2402,7 +3132,7 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			td := testTempDir(t)
 			defer os.RemoveAll(td)
-			defer testChdir(t, td)()
+			t.Chdir(td)
 
 			view, done := testView(t)
 			c := &ApplyCommand{
@@ -2435,7 +3165,7 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 func TestApply_replace(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-replace"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -2522,7 +3252,7 @@ func TestApply_pluginPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -2562,7 +3292,7 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	statePath := testTempFile(t)
 
@@ -2603,7 +3333,7 @@ func TestApply_warnings(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = applyFixtureSchema()
@@ -2827,4 +3557,73 @@ func mustNewDynamicValue(val string, ty cty.Type) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+func TestProviderInconsistentFileFunc(t *testing.T) {
+	// Verify that providers can still accept inconsistent results from
+	// filesystem functions. We allow this for backwards compatibility, but
+	// ephemeral values should be used in the long-term to allow for controlled
+	// changes in values between plan and apply.
+	td := t.TempDir()
+	planDir := filepath.Join(td, "plan")
+	applyDir := filepath.Join(td, "apply")
+	testCopyDir(t, testFixturePath("changed-file-func-plan"), planDir)
+	testCopyDir(t, testFixturePath("changed-file-func-apply"), applyDir)
+	t.Chdir(planDir)
+
+	p := planVarsFixtureProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-out", filepath.Join(applyDir, "planfile"),
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+	}
+
+	t.Chdir(applyDir)
+
+	view, done = testView(t)
+	apply := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               new(cli.MockUi),
+			View:             view,
+		},
+	}
+	args = []string{
+		"planfile",
+	}
+	code = apply.Run(args)
+	output = done(t)
+	if code != 0 {
+		t.Fatalf("non-zero exit %d\n\n%s", code, output.Stderr())
+	}
 }

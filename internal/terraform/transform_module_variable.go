@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -27,11 +27,12 @@ import (
 // position to return errors and so the validate walk should include specific
 // steps for validating module blocks, separate from this transform.
 type ModuleVariableTransformer struct {
-	Config *configs.Config
+	Config    *configs.Config
+	Operation walkOperation
 
-	// Planning must be set to true when building a planning graph, and must be
-	// false when building an apply graph.
-	Planning bool
+	// ValidateChecks should be set to true if the graph should run the user
+	// defined validations for child module variables
+	ValidateChecks bool
 
 	// DestroyApply must be set to true when applying a destroy operation and
 	// false otherwise.
@@ -39,7 +40,13 @@ type ModuleVariableTransformer struct {
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
-	return t.transform(g, nil, t.Config)
+	// During init the transformer only processes the
+	// variables in the current module, skipping any child modules.
+	if t.Operation == walkInit && t.Config.Parent != nil {
+		return t.transformSingle(g, t.Config.Parent, t.Config)
+	} else {
+		return t.transform(g, nil, t.Config)
+	}
 }
 
 func (t *ModuleVariableTransformer) transform(g *Graph, parent, c *configs.Config) error {
@@ -86,9 +93,15 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 	// decode the content of the call block.
 	schema := &hcl.BodySchema{}
 	for _, v := range c.Module.Variables {
+		required := v.Default == cty.NilVal
+		if t.Operation == walkInit {
+			// During init we only want require const variables
+			required = required && v.Const
+		}
+
 		schema.Attributes = append(schema.Attributes, hcl.AttributeSchema{
 			Name:     v.Name,
-			Required: v.Default == cty.NilVal,
+			Required: required,
 		})
 	}
 
@@ -114,11 +127,11 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Module:       c.Path,
-			Config:       v,
-			Expr:         expr,
-			Planning:     t.Planning,
-			DestroyApply: t.DestroyApply,
+			Module:         c.Path,
+			Config:         v,
+			Expr:           expr,
+			ValidateChecks: t.ValidateChecks,
+			DestroyApply:   t.DestroyApply,
 		}
 		g.Add(node)
 	}

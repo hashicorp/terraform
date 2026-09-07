@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -10,12 +10,14 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
-	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
@@ -72,11 +74,21 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 		builtinProviderTypes = append(builtinProviderTypes, ty)
 	}
 	inst.SetBuiltInProviderTypes(builtinProviderTypes)
+
+	// Overridden providers consist of both:
+	// 1. reattached providers
+	// 2. development override providers
 	unmanagedProviderTypes := make(map[addrs.Provider]struct{}, len(m.UnmanagedProviders))
 	for ty := range m.UnmanagedProviders {
 		unmanagedProviderTypes[ty] = struct{}{}
 	}
 	inst.SetUnmanagedProviderTypes(unmanagedProviderTypes)
+	devOverrideProviderTypes := make(map[addrs.Provider]struct{}, len(m.ProviderDevOverrides))
+	for ty := range m.ProviderDevOverrides {
+		devOverrideProviderTypes[ty] = struct{}{}
+	}
+	inst.SetDevOverrideTypes(devOverrideProviderTypes)
+
 	return inst
 }
 
@@ -175,7 +187,7 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	for addr, path := range m.ProviderDevOverrides {
 		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
 	}
-	detailMsg.WriteString("\nSkip terraform init when using provider development overrides. It is not necessary and may error unexpectedly.")
+	detailMsg.WriteString("\nThese providers are not installed as part of init since they were overwritten. If this is unintentional please re-run without the development overrides set.")
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
 			tfdiags.Warning,
@@ -183,6 +195,45 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 			detailMsg.String(),
 		),
 	}
+}
+
+// providerUnmanagedInitWarnings returns diagnostics containing at least one
+// warning if and only if there is at least one unmanaged provider in effect
+// via TF_REATTACH_PROVIDERS.
+func (m *Meta) providerUnmanagedInitWarnings() tfdiags.Diagnostics {
+	if len(m.UnmanagedProviders) == 0 {
+		return nil
+	}
+
+	var detailMsg strings.Builder
+	detailMsg.WriteString("The following unmanaged providers are set via the TF_REATTACH_PROVIDERS environment variable:\n")
+
+	providerAddresses := make([]string, 0, len(m.UnmanagedProviders))
+	for providerAddr := range m.UnmanagedProviders {
+		providerAddresses = append(providerAddresses, providerAddr.ForDisplay())
+	}
+	sort.Strings(providerAddresses) // Enable deterministic ordering.
+
+	for _, providerAddr := range providerAddresses {
+		detailMsg.WriteString(fmt.Sprintf(" - %s\n", providerAddr))
+	}
+	detailMsg.WriteString("\nThese providers will not be installed as part of init, nor init -upgrade. Their entries in the dependency lock file will be left unchanged, if present. If this is unintentional please re-run without TF_REATTACH_PROVIDERS set.")
+
+	return tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Unmanaged providers are in effect",
+			detailMsg.String(),
+		),
+	}
+}
+
+func (m *Meta) isProviderDevOverride(pAddr addrs.Provider) bool {
+	if len(m.ProviderDevOverrides) == 0 {
+		return false
+	}
+	_, overridden := m.ProviderDevOverrides[pAddr]
+	return overridden
 }
 
 // providerDevOverrideRuntimeWarnings returns a diagnostics that contains at
@@ -246,23 +297,48 @@ func (m *Meta) providerDevOverrideRuntimeWarningsRemoteExecution() tfdiags.Diagn
 	}
 }
 
-// providerFactories uses the selections made previously by an installer in
+// ProviderFactories uses the selections made previously by an installer in
 // the local cache directory (m.providerLocalCacheDir) to produce a map
-// from provider addresses to factory functions to create instances of
+// of provider addresses to factory functions to create instances of
 // those providers.
 //
-// providerFactories will return an error if the installer's selections cannot
+// ProviderFactories will return an error if the installer's selections cannot
 // be honored with what is currently in the cache, such as if a selected
 // package has been removed from the cache or if the contents of a selected
 // package have been modified outside of the installer. If it returns an error,
 // the returned map may be incomplete or invalid, but will be as complete
 // as possible given the cause of the error.
-func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error) {
+func (m *Meta) ProviderFactories() (map[addrs.Provider]providers.Factory, error) {
 	locks, diags := m.lockedDependencies()
 	if diags.HasErrors() {
 		return nil, fmt.Errorf("failed to read dependency lock file: %s", diags.Err())
 	}
 
+	return m.providerFactoriesFromLocks(locks)
+}
+
+// ProviderFactoriesFromLocks receives in memory locks and uses them to produce a map
+// of provider addresses to factory functions to create instances of
+// those providers.
+//
+// ProviderFactoriesFromLocks should only be used if the calling code relies on locks
+// that have not yet been persisted to a dependency lock file on disk. Realistically, this
+// means only code in the init command should use this method.
+func (m *Meta) ProviderFactoriesFromLocks(configLocks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
+	// Ensure overrides and unmanaged providers are reflected in the returned list of factories,
+	// while avoiding mutating the in-memory
+	locks := m.annotateDependencyLocksWithOverrides(configLocks.DeepCopy())
+
+	return m.providerFactoriesFromLocks(locks)
+}
+
+// providerFactoriesFromLocks returns a map of provider factories from a given set of locks.
+//
+// In most cases, calling code should not use this method directly.
+// Instead, use:
+// * `ProviderFactoriesFromLocks` - for use when locks aren't yet persisted to a dependency lock file.
+// * `ProviderFactories` - for use when Terraform is guaranteed to read all necessary locks from a dependency lock file.
+func (m *Meta) providerFactoriesFromLocks(locks *depsfile.Locks) (map[addrs.Provider]providers.Factory, error) {
 	// We'll always run through all of our providers, even if one of them
 	// encounters an error, so that we can potentially report multiple errors
 	// where appropriate and so that callers can potentially make use of the
@@ -356,6 +432,12 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	for provider, reattach := range unmanagedProviders {
 		factories[provider] = unmanagedProviderFactory(provider, reattach)
 	}
+	if m.testingOverrides != nil {
+		// Allow tests, where testingOverrides is set, to see test providers in locks
+		for provider, factory := range m.testingOverrides.Providers {
+			factories[provider] = factory
+		}
+	}
 
 	var err error
 	if len(errs) > 0 {
@@ -365,11 +447,7 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 }
 
 func (m *Meta) internalProviders() map[string]providers.Factory {
-	return map[string]providers.Factory{
-		"terraform": func() (providers.Interface, error) {
-			return terraformProvider.NewProvider(), nil
-		},
-	}
+	return builtinProviders.BuiltInProviders()
 }
 
 // providerFactory produces a provider factory that runs up the executable

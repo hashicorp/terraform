@@ -1,12 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
 
 import (
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // SensitiveFunc returns a value identical to its argument except that
@@ -71,7 +72,7 @@ var IssensitiveFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		switch v := args[0]; {
-		case v.HasMark(marks.Sensitive):
+		case marks.Has(v, marks.Sensitive):
 			return cty.True, nil
 		case !v.IsKnown():
 			return cty.UnknownVal(cty.Bool), nil
@@ -80,15 +81,3 @@ var IssensitiveFunc = function.New(&function.Spec{
 		}
 	},
 })
-
-func Sensitive(v cty.Value) (cty.Value, error) {
-	return SensitiveFunc.Call([]cty.Value{v})
-}
-
-func Nonsensitive(v cty.Value) (cty.Value, error) {
-	return NonsensitiveFunc.Call([]cty.Value{v})
-}
-
-func Issensitive(v cty.Value) (cty.Value, error) {
-	return IssensitiveFunc.Call([]cty.Value{v})
-}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -71,6 +71,7 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
+                    "description": "This is terraform-provider-simple v5",
                     "description_kind": "plain"
                 }
             },
@@ -124,6 +125,21 @@ func TestProvidersSchema(t *testing.T) {
                                 "description_kind": "plain",
                                 "computed": true
                             },
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
                             "value": {
                                 "type": "string",
                                 "description_kind": "plain",
@@ -150,6 +166,7 @@ func TestProvidersSchema(t *testing.T) {
             "provider": {
                 "version": 0,
                 "block": {
+                    "description": "This is terraform-provider-simple v6",
                     "description_kind": "plain"
                 }
             },
@@ -203,6 +220,21 @@ func TestProvidersSchema(t *testing.T) {
                                 "description_kind": "plain",
                                 "computed": true
                             },
+                            "value": {
+                                "type": "string",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind": "plain"
+                    }
+                }
+            },
+            "list_resource_schemas": {
+                "simple_resource": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
                             "value": {
                                 "type": "string",
                                 "description_kind": "plain",
@@ -235,6 +267,33 @@ func TestProvidersSchema(t *testing.T) {
                             "type": "string",
                             "required_for_import": true
                         }
+                    }
+                }
+            },
+            "state_store_schemas" : {
+                "simple6_fs": {
+                    "version":0,
+                    "block": {
+                        "attributes": {
+                            "workspace_dir": {
+                                "type":"string",
+                                "description":"The directory where state files will be created. When unset the value will default to terraform.tfstate.d","description_kind":"plain","optional":true}
+                            },
+                        "description_kind":"plain"
+                    }
+                },
+                "simple6_inmem": {
+                    "version": 0,
+                    "block": {
+                        "attributes": {
+                            "lock_id": {
+                                "type": "string",
+                                "description": "initializes the state in a locked configuration",
+                                "description_kind": "plain",
+                                "optional": true
+                            }
+                        },
+                        "description_kind":"plain"
                     }
                 }
             }

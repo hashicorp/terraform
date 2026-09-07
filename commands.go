@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package main
@@ -115,7 +115,7 @@ func initCommands(
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
 
@@ -272,6 +272,12 @@ func initCommands(
 
 		"push": func() (cli.Command, error) {
 			return &command.PushCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"query": func() (cli.Command, error) {
+			return &command.QueryCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -436,6 +442,12 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		"stacks": func() (cli.Command, error) {
+			return &command.StacksCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	if meta.AllowExperimentalFeatures {
@@ -445,8 +457,14 @@ func initCommands(
 			}, nil
 		}
 
-		Commands["stacks"] = func() (cli.Command, error) {
-			return &command.StacksCommand{
+		Commands["test cleanup"] = func() (cli.Command, error) {
+			return &command.TestCleanupCommand{
+				Meta: meta,
+			}, nil
+		}
+
+		Commands["state migrate"] = func() (cli.Command, error) {
+			return &command.StateMigrateCommand{
 				Meta: meta,
 			}, nil
 		}

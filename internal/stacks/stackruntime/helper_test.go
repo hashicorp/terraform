@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -52,7 +53,6 @@ type TestContext struct {
 // TestCycle defines a single plan / apply cycle that should be performed within
 // a test.
 type TestCycle struct {
-
 	// Validate options
 
 	wantValidateDiags tfdiags.Diagnostics
@@ -441,6 +441,10 @@ func plannedChangeSortKey(change stackplan.PlannedChange) string {
 		// There should only be a single timestamp in a plan, so we can just
 		// return a simple string.
 		return "function-results"
+	case *stackplan.PlannedChangeActionInvocationInstancePlanned:
+		return change.ActionInvocationAddr.String()
+	case *stackplan.PlannedChangeDeferredActionInvocation:
+		return change.ActionInvocationPlanned.ActionInvocationAddr.String()
 	default:
 		// This is only going to happen during tests, so we can panic here.
 		panic(fmt.Errorf("unrecognized planned change type: %T", change))
@@ -481,7 +485,6 @@ func diagnosticSortFunc(diags tfdiags.Diagnostics) func(i, j int) bool {
 			return sortDescription(id.Description(), jd.Description())
 		}
 		if id.Source().Subject != nil && jd.Source().Subject != nil {
-
 			return sortRange(id.Source().Subject, jd.Source().Subject)
 		}
 
@@ -521,6 +524,14 @@ func mustAbsComponentInstance(addr string) stackaddrs.AbsComponentInstance {
 	ret, diags := stackaddrs.ParsePartialComponentInstanceStr(addr)
 	if len(diags) > 0 {
 		panic(fmt.Sprintf("failed to parse component instance address %q: %s", addr, diags))
+	}
+	return ret
+}
+
+func mustAbsActionInvocationInstance(addr string) stackaddrs.AbsActionInvocationInstance {
+	ret, diags := stackaddrs.ParseActionInvocationInstanceStr(addr)
+	if len(diags) > 0 {
+		panic(fmt.Sprintf("failed to parse action invocation instance address %q: %s", addr, diags))
 	}
 	return ret
 }
@@ -607,4 +618,27 @@ func providerFunctionHashArgs(provider addrs.Provider, name string, args ...cty.
 func providerFunctionHashResult(value cty.Value) []byte {
 	bytes := sha256.Sum256([]byte(value.GoString()))
 	return bytes[:]
+}
+
+// buildVersionMismatchLock returns a Locks value with provider "testing"
+// locked at 0.2.0, used to exercise version-mismatch diagnostics in tests.
+func buildVersionMismatchLock() depsfile.Locks {
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.2.0"),
+		providerreqs.MustParseVersionConstraints("0.2.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	return *lock
+}
+
+// hasDiagSummary reports whether any diagnostic in diags has the given summary.
+func hasDiagSummary(diags tfdiags.Diagnostics, summary string) bool {
+	for _, diag := range diags {
+		if diag.Description().Summary == summary {
+			return true
+		}
+	}
+	return false
 }

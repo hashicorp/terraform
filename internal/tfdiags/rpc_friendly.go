@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -14,6 +14,9 @@ type rpcFriendlyDiag struct {
 	Subject_  *SourceRange
 	Context_  *SourceRange
 }
+
+var _ Diagnostic = &rpcFriendlyDiag{}
+var _ ComparableDiagnostic = &rpcFriendlyDiag{}
 
 // rpcFriendlyDiag transforms a given diagnostic so that is more friendly to
 // RPC.

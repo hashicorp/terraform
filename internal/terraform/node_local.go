@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -81,7 +81,6 @@ func (n *nodeExpandLocal) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 		log.Printf("[TRACE] Expanding local: adding placeholder for all %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	})
-	addRootNodeToGraph(&g)
 	return &g, nil
 }
 
@@ -140,7 +139,14 @@ func (n *NodeLocal) References() []*addrs.Reference {
 func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	namedVals := ctx.NamedValues()
 	val, diags := evaluateLocalValue(n.Config, n.Addr.LocalValue, n.Addr.String(), ctx)
-	namedVals.SetLocalValue(n.Addr, val)
+	// We only use a shallow evaluation of deprecations here because we only want to warn
+	// if the entire value is deprecated. If e.g. a module is stored in the local and the module
+	// contains a deprecated output we don't want to warn about that here, but only when the
+	// output is actually referenced.
+	valWithoutDeprecations, deprecationDiags := ctx.Deprecations().ValidateAndUnmark(val, n.ModulePath(), n.Config.Expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
+	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
 	return diags
 }
 
@@ -166,6 +172,10 @@ func (n *NodeLocal) DotNode(name string, opts *dag.DotOpts) *dag.DotNode {
 type nodeLocalInPartialModule struct {
 	Addr   addrs.InPartialExpandedModule[addrs.LocalValue]
 	Config *configs.Local
+}
+
+func (n *nodeLocalInPartialModule) Name() string {
+	return n.Addr.String()
 }
 
 // Path implements [GraphNodePartialExpandedModule], meaning that the
@@ -234,5 +244,10 @@ func evaluateLocalValue(config *configs.Local, localAddr addrs.LocalValue, addrS
 	if val == cty.NilVal {
 		val = cty.DynamicVal
 	}
+
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(val, ctx.Path().Module(), expr.Range().Ptr())
+	diags = diags.Append(deprecationDiags)
+
 	return val, diags
 }

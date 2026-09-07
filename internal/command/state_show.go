@@ -1,14 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"os"
 	"strings"
-
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -24,111 +24,111 @@ import (
 type StateShowCommand struct {
 	Meta
 	StateMeta
+	viewType arguments.ViewType
 }
 
 func (c *StateShowCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("state show")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Streams.Eprintf("Error parsing command-line flags: %s\n", err.Error())
+	// Parse and apply global view arguments
+	common, args := arguments.ParseView(args)
+	c.View.Configure(common)
+
+	parsedArgs, diags := arguments.ParseStateShow(args)
+	if diags.HasErrors() {
+		c.View.Diagnostics(diags)
+		c.View.HelpPrompt("state show")
 		return 1
 	}
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Streams.Eprint("Exactly one argument expected.\n")
-		return cli.RunResultHelp
-	}
+
+	c.Meta.statePath = parsedArgs.StatePath
+	c.viewType = parsedArgs.ViewType
+	view := views.NewShow(parsedArgs.ViewType, c.View)
 
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Streams.Eprintf("Error loading plugin path: %\n", err)
+		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
-		return 1
+	b, diags := c.backend(".", c.viewType)
+	if diags.HasErrors() {
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		c.Streams.Eprint(ErrUnsupportedLocalOp)
-		return 1
+		diags = diags.Append(ErrUnsupportedLocalOp)
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// This is a read-only command
 	c.ignoreRemoteVersionConflict(b)
 
 	// Check if the address can be parsed
-	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
+	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
-		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, args[0]))
-		return 1
+		diags = diags.Append(fmt.Errorf(errParsingAddress, parsedArgs.Address))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// We expect the config dir to always be the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		c.Streams.Eprintf("Error getting cwd: %s\n", err)
-		return 1
-	}
+	cwd := c.WorkingDir.RootModuleDir()
 
 	// Build the operation (required to get the schemas)
-	opReq := c.Operation(b, arguments.ViewHuman)
+	opReq := c.Operation(b, c.viewType)
 	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		c.Streams.Eprintf("Error initializing config loader: %s\n", err)
-		return 1
+		diags = diags.Append(fmt.Errorf("Error initializing config loader: %s\n", err))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the context (required to get the schemas)
-	lr, _, ctxDiags := local.LocalRun(opReq)
+	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
+
 	if ctxDiags.HasErrors() {
-		c.View.Diagnostics(ctxDiags)
-		return 1
+		diags = diags.Append(ctxDiags)
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the schemas from the context
 	schemas, diags := lr.Core.Schemas(lr.Config, lr.InputState)
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		return 1
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Streams.Eprintf("Error selecting workspace: %s\n", err)
+		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s\n", err))
+		view.Diagnostics(diags)
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
-	if err != nil {
-		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, err))
-		return 1
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Streams.Eprintf("Failed to refresh state: %s\n", err)
-		return 1
+		diags = diags.Append(fmt.Errorf("Failed to refresh state: %s\n", err))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Streams.Eprintln(errStateNotFound)
-		return 1
+		diags = diags.Append(errors.New(errStateNotFound))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	is := state.ResourceInstance(addr)
 	if !is.HasCurrent() {
-		c.Streams.Eprintln(errNoInstanceFound)
-		return 1
+		diags = diags.Append(errors.New(errNoInstanceFound))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	// check if the resource has a configured provider, otherwise this will use the default provider
@@ -145,9 +145,11 @@ func (c *StateShowCommand) Run(args []string) int {
 		absPc,
 	)
 
-	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
+	mockFile := statefile.New(singleInstance, "", 0)
+	root, outputs, err := jsonstate.MarshalForRenderer(mockFile, schemas)
 	if err != nil {
-		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
+		diags = diags.Append(fmt.Errorf("Failed to marshal state to json: %s", err))
+		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	jstate := jsonformat.State{
@@ -158,14 +160,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 	}
 
-	renderer := jsonformat.Renderer{
-		Streams:             c.Streams,
-		Colorize:            c.Colorize(),
-		RunningInAutomation: c.RunningInAutomation,
-	}
-
-	renderer.RenderHumanState(jstate)
-	return 0
+	return view.DisplayResourceInstanceState(jstate, diags)
 }
 
 func (c *StateShowCommand) Help() string {
@@ -183,6 +178,8 @@ Options:
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
+  -json               If specified, output the resource state in a 
+               		  machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)
@@ -195,11 +192,11 @@ func (c *StateShowCommand) Synopsis() string {
 const errNoInstanceFound = `No instance found for the given address!
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`
 
 const errParsingAddress = `Error parsing instance address: %s
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "terraform state list". Please modify
 the address to reference a specific instance.`

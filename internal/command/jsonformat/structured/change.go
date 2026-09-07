@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package structured
@@ -180,6 +180,19 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	}
+}
+
+func FromJsonActionInvocation(actionInvocation jsonplan.ActionInvocation) Change {
+	return Change{
+		Before:          unmarshalGeneric(actionInvocation.ConfigValues),
+		After:           unmarshalGeneric(actionInvocation.ConfigValues),
+		Unknown:         unmarshalGeneric(actionInvocation.ConfigUnknown),
+		BeforeSensitive: unmarshalGeneric(actionInvocation.ConfigSensitive),
+		AfterSensitive:  unmarshalGeneric(actionInvocation.ConfigSensitive),
+
 		ReplacePaths:       attribute_path.Empty(false),
 		RelevantAttributes: attribute_path.AlwaysMatcher(),
 	}

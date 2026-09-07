@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package testing
@@ -37,9 +37,11 @@ var (
 						"value":                {Type: cty.String, Optional: true},
 						"interrupt_count":      {Type: cty.Number, Optional: true},
 						"destroy_fail":         {Type: cty.Bool, Optional: true, Computed: true},
+						"apply_fail":           {Type: cty.Bool, Optional: true},
 						"create_wait_seconds":  {Type: cty.Number, Optional: true},
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
 						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
+						"defer":                {Type: cty.Bool, Optional: true},
 					},
 				},
 			},
@@ -59,8 +61,10 @@ var (
 
 						"interrupt_count":      {Type: cty.Number, Computed: true},
 						"destroy_fail":         {Type: cty.Bool, Computed: true},
+						"apply_fail":           {Type: cty.Bool, Optional: true},
 						"create_wait_seconds":  {Type: cty.Number, Computed: true},
 						"destroy_wait_seconds": {Type: cty.Number, Computed: true},
+						"defer":                {Type: cty.Bool, Computed: true},
 					},
 				},
 			},
@@ -192,8 +196,7 @@ func (provider *TestProvider) DataSourceCount() int {
 }
 
 func (provider *TestProvider) count(prefix string) int {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	if len(prefix) == 0 {
 		return len(provider.Store.Data)
@@ -208,9 +211,18 @@ func (provider *TestProvider) count(prefix string) int {
 	return count
 }
 
+func (provider *TestProvider) Resources() []string {
+	var keys []string
+	for key := range provider.Store.Data {
+		if strings.HasPrefix(key, provider.ResourcePrefix()) {
+			keys = append(keys, key)
+		}
+	}
+	return keys
+}
+
 func (provider *TestProvider) string(prefix string) string {
-	provider.Store.mutex.RLock()
-	defer provider.Store.mutex.RUnlock()
+	defer provider.Store.beginRead()()
 
 	var keys []string
 	for key := range provider.Store.Data {
@@ -229,9 +241,18 @@ func (provider *TestProvider) ConfigureProvider(request providers.ConfigureProvi
 
 func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 	if request.ProposedNewState.IsNull() {
+
+		var deferred *providers.Deferred
+		if shouldBeDeferred := request.PriorState.GetAttr("defer"); !shouldBeDeferred.IsNull() && shouldBeDeferred.True() {
+			deferred = &providers.Deferred{
+				Reason: providers.DeferredReasonResourceConfigUnknown,
+			}
+		}
+
 		// Then this is a delete operation.
 		return providers.PlanResourceChangeResponse{
 			PlannedState: request.ProposedNewState,
+			Deferred:     deferred,
 		}
 	}
 
@@ -254,8 +275,16 @@ func (provider *TestProvider) PlanResourceChange(request providers.PlanResourceC
 		resource = cty.ObjectVal(vals)
 	}
 
+	var deferred *providers.Deferred
+	if shouldBeDeferred := resource.GetAttr("defer"); !shouldBeDeferred.IsKnown() || (!shouldBeDeferred.IsNull() && shouldBeDeferred.True()) {
+		deferred = &providers.Deferred{
+			Reason: providers.DeferredReasonResourceConfigUnknown,
+		}
+	}
+
 	return providers.PlanResourceChangeResponse{
 		PlannedState: resource,
+		Deferred:     deferred,
 	}
 }
 
@@ -318,6 +347,15 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		vals := resource.AsValueMap()
 		vals["destroy_fail"] = cty.False
 		resource = cty.ObjectVal(vals)
+	}
+
+	if applyFail := resource.GetAttr("apply_fail"); !applyFail.IsNull() && applyFail.IsKnown() && applyFail.True() {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(fmt.Errorf("apply_fail is set to true"))
+		return providers.ApplyResourceChangeResponse{
+			NewState:    cty.NilVal,
+			Diagnostics: diags,
+		}
 	}
 
 	provider.Store.Put(provider.GetResourceKey(id.AsString()), resource)
@@ -399,8 +437,7 @@ type ResourceStore struct {
 }
 
 func (store *ResourceStore) Delete(key string) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	if resource, ok := store.Data[key]; ok {
 		delete(store.Data, key)
@@ -410,15 +447,13 @@ func (store *ResourceStore) Delete(key string) cty.Value {
 }
 
 func (store *ResourceStore) Get(key string) cty.Value {
-	store.mutex.RLock()
-	defer store.mutex.RUnlock()
+	defer store.beginRead()()
 
 	return store.get(key)
 }
 
 func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
-	store.mutex.Lock()
-	defer store.mutex.Unlock()
+	defer store.beginWrite()()
 
 	old := store.get(key)
 	store.Data[key] = resource
@@ -430,4 +465,14 @@ func (store *ResourceStore) get(key string) cty.Value {
 		return resource
 	}
 	return cty.NilVal
+}
+
+func (store *ResourceStore) beginWrite() func() {
+	store.mutex.Lock()
+	return store.mutex.Unlock
+
+}
+func (store *ResourceStore) beginRead() func() {
+	store.mutex.RLock()
+	return store.mutex.RUnlock
 }

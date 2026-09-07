@@ -1,9 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,10 +13,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStateMv(t *testing.T) {
@@ -54,7 +60,7 @@ func TestStateMv(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -153,6 +159,132 @@ func TestStateMv(t *testing.T) {
 
 }
 
+func TestStateMv_stateStore(t *testing.T) {
+	// Create a temporary working directory
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing resources
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"baz","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	// Make the mock assert that the resource has been moved when the new state is persisted
+	oldAddr := "test_instance.foo"
+	newAddr := "test_instance.bar"
+	mockProvider.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
+		r := bytes.NewReader(req.Bytes)
+		file, err := statefile.Read(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		root := file.State.Modules[""]
+		if _, ok := root.Resources[oldAddr]; ok {
+			t.Fatalf("expected the new state to have moved the %s resource to the new addr %s, but the old addr is still present",
+				newAddr,
+				oldAddr,
+			)
+		}
+		resource, ok := root.Resources[newAddr]
+		if !ok {
+			t.Fatalf("expected the moved resource to be at addr %s, but it isn't present", newAddr)
+		}
+
+		// Check that the moved resource has the same state.
+		var key addrs.InstanceKey
+		type attrsJson struct {
+			Id  string `json:"id"`
+			Foo string `json:"foo"`
+			Bar string `json:"bar"`
+		}
+		var data attrsJson
+		attrs := resource.Instances[key].Current.AttrsJSON
+		err = json.Unmarshal(attrs, &data)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expectedData := attrsJson{
+			Id:  "foo",
+			Foo: "value",
+			Bar: "value",
+		}
+		if diff := cmp.Diff(expectedData, data); diff != "" {
+			t.Fatalf("the state of the moved resource doesn't match the original state:\nDiff = %s", diff)
+		}
+
+		return providers.WriteStateBytesResponse{}
+	}
+
+	ui := testUiWrapped(t)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
+				},
+				Ui: ui,
+			},
+		},
+	}
+
+	args := []string{
+		oldAddr,
+		newAddr,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// See the mock definition above for logic that asserts what the new state will look like after moving the resource.
+}
+
 func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -175,7 +307,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 	t.Run("backup option specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		backupPath := filepath.Join(td, "backup")
 
@@ -185,7 +317,7 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -223,7 +355,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup-out option specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		backupOutPath := filepath.Join(td, "backup-out")
 
@@ -233,7 +365,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -271,7 +403,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup and backup-out options specified", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		backupPath := filepath.Join(td, "backup")
 		backupOutPath := filepath.Join(td, "backup-out")
@@ -282,7 +414,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -321,7 +453,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup option specified with state option", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		statePath := testStateFile(t, state)
 		backupPath := filepath.Join(td, "backup")
@@ -332,7 +464,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -361,7 +493,7 @@ on a local state file only. You must specify a local state file with the
 	t.Run("backup-out option specified with state option", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
 		statePath := testStateFile(t, state)
 		backupOutPath := filepath.Join(td, "backup-out")
@@ -372,7 +504,7 @@ on a local state file only. You must specify a local state file with the
 		testStateFileRemote(t, dataState)
 
 		p := testProvider()
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		view, _ := testView(t)
 		c := &StateMvCommand{
 			StateMeta{
@@ -448,7 +580,7 @@ func TestStateMv_resourceToInstance(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -491,6 +623,108 @@ test_instance.baz:
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
 }
 
+func TestStateMv_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{"module.child.test_instance.test", "module.child.test_instance.moved"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{"-var", "module_name=child", "module.child.test_instance.test", "module.child.test_instance.moved"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`<no state>
+module.child:
+  test_instance.moved:
+    ID = 
+    provider = provider["registry.terraform.io/hashicorp/test"]`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					Ui:               ui,
+					View:             view,
+					WorkingDir:       wd,
+				},
+			},
+		}
+
+		args := []string{"module.child.test_instance.test", "module.child.test_instance.moved"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`<no state>
+module.child:
+  test_instance.moved:
+    ID = 
+    provider = provider["registry.terraform.io/hashicorp/test"]`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
+}
+
 func TestStateMv_resourceToInstanceErr(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -523,7 +757,7 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &StateMvCommand{
@@ -592,7 +826,7 @@ func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -666,7 +900,7 @@ func TestStateMv_instanceToResource(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -741,7 +975,7 @@ func TestStateMv_instanceToNewResource(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -814,7 +1048,7 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -852,7 +1086,7 @@ match.
 func TestStateMv_explicitWithBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	backupPath := filepath.Join(td, "backup")
 
@@ -891,7 +1125,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// init our backend
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
@@ -908,7 +1142,7 @@ func TestStateMv_explicitWithBackend(t *testing.T) {
 
 	// only modify statePath
 	p := testProvider()
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &StateMvCommand{
 		StateMeta{
 			Meta: Meta{
@@ -971,7 +1205,7 @@ func TestStateMv_backupExplicit(t *testing.T) {
 	backupPath := statePath + ".backup.test"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1022,7 +1256,7 @@ func TestStateMv_stateOutNew(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1096,7 +1330,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 	stateOutPath := testStateFile(t, stateDst)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1137,10 +1371,11 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 }
 
 func TestStateMv_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1210,7 +1445,7 @@ func TestStateMv_stateOutNew_count(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1286,7 +1521,7 @@ func TestStateMv_stateOutNew_largeCount(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1358,7 +1593,7 @@ func TestStateMv_stateOutNew_nestedModule(t *testing.T) {
 	stateOutPath := statePath + ".out"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1416,7 +1651,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 	stateOutPath2 := statePath + ".out2"
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1465,7 +1700,7 @@ func TestStateMv_toNewModule(t *testing.T) {
 func TestStateMv_withinBackend(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1516,7 +1751,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1544,7 +1779,7 @@ func TestStateMv_withinBackend(t *testing.T) {
 func TestStateMv_fromBackendToLocal(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := states.NewState()
 	state.Module(addrs.RootModuleInstance).SetResourceInstanceCurrent(
@@ -1587,7 +1822,7 @@ func TestStateMv_fromBackendToLocal(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1640,7 +1875,7 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 	testStateOutput(t, statePath, testStateMvOnlyResourceInModule_original)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1684,7 +1919,7 @@ func TestStateMvInvalidSourceAddress(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{
@@ -1711,7 +1946,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1749,7 +1984,7 @@ func TestStateMv_checkRequiredVersion(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StateMvCommand{
 		StateMeta{

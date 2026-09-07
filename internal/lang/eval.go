@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package lang
@@ -6,6 +6,7 @@ package lang
 import (
 	"fmt"
 	"log"
+	"maps"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -14,8 +15,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
-
-	"maps"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -75,7 +74,38 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
+
+	return val, diags
+}
+
+// EvalActionBlock is a special case for action blocks that allows the caller to
+// directly pass in the "caller" value. This allows for the evaluation of a
+// resource value which may be different from what's expected in the global
+// context, like for example when a destroy action needs to evaluate the
+// "before" value of the resource change.
+func (s *Scope) EvalActionBlock(body hcl.Body, schema *configschema.Block, caller cty.Value) (val cty.Value, diags tfdiags.Diagnostics) {
+
+	spec := schema.DecoderSpec()
+
+	refs, diags := langrefs.ReferencesInBlock(s.ParseRef, body, schema)
+	if diags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+
+	ctx, ctxDiags := s.EvalContextForExplicitSelf(refs)
+	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		// We'll stop early if we found problems in the references, because
+		// it's likely evaluation will produce redundant copies of the same errors.
+		return cty.UnknownVal(schema.ImpliedType()), diags
+	}
+
+	ctx.Variables["caller"] = caller
+	ctx.Variables["self"] = caller
+
+	val, evalDiags := hcldec.Decode(body, spec, ctx)
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
 
 	return val, diags
 }
@@ -153,7 +183,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(decDiags))
+	diags = diags.Append(CheckForUnknownFunctionDiags(decDiags, s.IgnoreUnknownProviderFunctions))
 	return val, diags
 }
 
@@ -179,7 +209,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 	}
 
 	val, evalDiags := expr.Value(ctx)
-	diags = diags.Append(checkForUnknownFunctionDiags(evalDiags))
+	diags = diags.Append(CheckForUnknownFunctionDiags(evalDiags, s.IgnoreUnknownProviderFunctions))
 
 	if wantType != cty.DynamicPseudoType {
 		var convErr error
@@ -216,7 +246,7 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 	// We cheat a bit here and just build an EvalContext for our requested
 	// reference with the "self" address overridden, and then pull the "self"
 	// result out of it to return.
-	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject)
+	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject, false)
 	diags = diags.Append(ctxDiags)
 	val := ctx.Variables["self"]
 	if val == cty.NilVal {
@@ -245,10 +275,14 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 // this type offers, but this is here for less common situations where the
 // caller will handle the evaluation calls itself.
 func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	return s.evalContext(refs, s.SelfAddr)
+	return s.evalContext(refs, s.SelfAddr, false)
 }
 
-func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+func (s *Scope) EvalContextForExplicitSelf(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return s.evalContext(refs, s.SelfAddr, true)
+}
+
+func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable, explicitSelf bool) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	if s == nil {
 		panic("attempt to construct EvalContext for nil Scope")
 	}
@@ -286,6 +320,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	dataResources := map[string]map[string]cty.Value{}
 	managedResources := map[string]map[string]cty.Value{}
 	ephemeralResources := map[string]map[string]cty.Value{}
+	listResources := map[string]map[string]cty.Value{}
 	wholeModules := map[string]cty.Value{}
 	inputVariables := map[string]cty.Value{}
 	localValues := map[string]cty.Value{}
@@ -302,18 +337,17 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		rng := ref.SourceRange
 
 		rawSubj := ref.Subject
-		if rawSubj == addrs.Self {
+		if _, ok := rawSubj.(addrs.SelfType); ok {
+			if explicitSelf {
+				// A self value will be passed in explicitly as an evaluation
+				// variable, so we should not try to construct one here.
+				// Planning an orphaned instance or removed resource might fail
+				// here even though self/caller is still valid.
+				continue
+			}
+
 			if selfAddr == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  `Invalid "self" reference`,
-					// This detail message mentions some current practice that
-					// this codepath doesn't really "know about". If the "self"
-					// object starts being supported in more contexts later then
-					// we'll need to adjust this message.
-					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
-					Subject: ref.SourceRange.ToHCL().Ptr(),
-				})
+				diags = diags.Append(SelfContextDiagnostics(ref))
 				continue
 			}
 
@@ -326,7 +360,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			subj := selfAddr.(addrs.ResourceInstance)
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
-
 			diags = diags.Append(valDiags)
 
 			// Self is an exception in that it must always resolve to a
@@ -358,6 +391,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			rawSubj = addr.Call
 		case addrs.ModuleCallInstanceOutput:
 			rawSubj = addr.Call.Call
+		case addrs.ActionInstance:
+			rawSubj = addr.Action
 		}
 
 		switch subj := rawSubj.(type) {
@@ -370,6 +405,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 				into = dataResources
 			case addrs.EphemeralResourceMode:
 				into = ephemeralResources
+			case addrs.ListResourceMode:
+				into = listResources
 			default:
 				panic(fmt.Errorf("unsupported ResourceMode %s", subj.Mode))
 			}
@@ -433,6 +470,15 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			runBlocks[subj.Name] = val
 
+		// Actions can not be accessed.
+		case addrs.Action:
+			return nil, diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "Actions can not be referenced in this context. They can only be referenced from within a resource's lifecycle actions list.",
+				Subject:  rng.ToHCL().Ptr(),
+			})
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -475,6 +521,13 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 
 	if self != cty.NilVal {
 		vals["self"] = self
+		// "caller" is used directly when an action in invoked from the CLI,
+		// because we need to automatically retrieve the resource from state
+		vals["caller"] = self
+	}
+
+	if len(listResources) > 0 {
+		vals["list"] = cty.ObjectVal(buildResourceObjects(listResources))
 	}
 
 	return ctx, diags
@@ -499,23 +552,29 @@ func normalizeRefValue(val cty.Value, diags tfdiags.Diagnostics) (cty.Value, tfd
 	return val, diags
 }
 
-// checkForUnknownFunctionDiags inspects the diagnostics for errors from unknown
+// CheckForUnknownFunctionDiags inspects the diagnostics for errors from unknown
 // function calls, and tailors the messages to better suit Terraform. We now
 // have multiple namespaces where functions may be declared, and it's up to the
 // user to have properly configured the module to populate the provider
 // namespace. The generic unknown function diagnostic from hcl does not direct
 // the user on how to remedy the situation in Terraform, and we can give more
 // useful information in a few Terraform specific cases here.
-func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
+func CheckForUnknownFunctionDiags(diags hcl.Diagnostics, ignoreUnknownProviderFunctions bool) hcl.Diagnostics {
+	var filteredDiags hcl.Diagnostics
 	for _, d := range diags {
 		extra, ok := hcl.DiagnosticExtra[hclsyntax.FunctionCallUnknownDiagExtra](d)
 		if !ok {
+			filteredDiags = filteredDiags.Append(d) // we always want to include unrelated diags
 			continue
 		}
+
 		name := extra.CalledFunctionName()
 		namespace := extra.CalledFunctionNamespace()
 		namespaceParts := strings.Split(namespace, "::")
 		if len(namespaceParts) < 2 {
+			// we always include diags for unknown regular function calls
+			filteredDiags = filteredDiags.Append(d)
+
 			// no namespace (namespace includes ::, so will have at least 2
 			// parts), but check if there is a matching name in a provider
 			// namspace.
@@ -531,6 +590,16 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
 			}
 			continue
 		}
+
+		// We might run into provider-defined functions during init. We can't filter out all
+		// places where they might be used, so we'll just filter out the diagnostics for the
+		// unknown function calls if we're configured to ignore them. This means that the user will
+		// just get an unknown value result for any provider function calls, which is fine because
+		// we won't have any provider functions available at this point anyway.
+		if ignoreUnknownProviderFunctions {
+			continue
+		}
+		filteredDiags = filteredDiags.Append(d)
 
 		// the diagnostic isn't really shared with anything, and copying would
 		// still retain the internal pointers, so we're going to modify the
@@ -580,5 +649,31 @@ func checkForUnknownFunctionDiags(diags hcl.Diagnostics) hcl.Diagnostics {
 		d.Detail = fmt.Sprintf(`There is no function named "%s%s". Ensure that provider name %q is declared in this module's required_providers block, and that this provider offers a function named %q.`, namespace, name, namespaceParts[1], name)
 	}
 
-	return diags
+	return filteredDiags
+}
+
+// SelfContextDiagnostics produces a diagnostic message for incorrect usage of
+// the self object with the correct context for "self" vs "caller"
+func SelfContextDiagnostics(ref *addrs.Reference) *hcl.Diagnostic {
+	switch sub := ref.Subject.(type) {
+	case addrs.SelfType:
+		summary := fmt.Sprintf("Invalid %q reference", sub)
+		detail := fmt.Sprintf("The %q object is not available in this context. ", sub)
+		switch {
+		case sub == addrs.Self:
+			detail += "This object can be used only in resource provisioner, connection, and postcondition blocks."
+		case sub == addrs.Caller:
+			detail += "This object can be used only in action blocks triggered from a resource instance."
+		}
+
+		return &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  summary,
+			Detail:   detail,
+			Subject:  ref.SourceRange.ToHCL().Ptr(),
+		}
+
+	default:
+		panic(fmt.Sprintf("reference %T is not a self type", ref))
+	}
 }

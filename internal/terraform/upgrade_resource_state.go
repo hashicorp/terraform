@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -24,13 +24,13 @@ import (
 //
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
-func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, bool, tfdiags.Diagnostics) {
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		// We only do state upgrading for managed resources.
 		// This was a part of the normal workflow in older versions and
 		// returned early, so we are only going to log the error for now.
 		log.Printf("[ERROR] data resource %s should not require state upgrade", addr)
-		return src, nil
+		return src, false, nil
 	}
 
 	// Remove any attributes from state that are not present in the schema.
@@ -59,8 +59,11 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			// version might be required here. :(
 			fmt.Sprintf("The current state of %s was created by a newer provider version than is currently selected. Upgrade the %s provider to work with this state.", addr, providerType),
 		))
-		return nil, diags
+		return nil, false, diags
 	}
+
+	// This indicates to the caller that the call to UpgradeResourceState was caused by a schema version upgrade
+	schemaVersionUpgraded := false
 
 	// If we get down here then we need to upgrade the state, with the
 	// provider's help.
@@ -70,6 +73,8 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// understand a flatmap built against an older schema.
 	if src.SchemaVersion != uint64(currentSchema.Version) {
 		log.Printf("[TRACE] upgradeResourceState: upgrading state for %s from version %d to %d using provider %q", addr, src.SchemaVersion, currentSchema.Version, providerType)
+
+		schemaVersionUpgraded = true
 	} else {
 		log.Printf("[TRACE] upgradeResourceState: schema version of %s is still %d; calling provider %q for any other minor fixups", addr, currentSchema.Version, providerType)
 	}
@@ -94,7 +99,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	resp := provider.UpgradeResourceState(req)
 	diags := resp.Diagnostics
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	if !resp.UpgradedState.IsWhollyKnown() {
@@ -118,7 +123,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 				fmt.Sprintf("The %s provider upgraded the state for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
 			))
 		}
-		return nil, diags
+		return nil, false, diags
 	}
 
 	// Check for any write-only attributes that have non-null values
@@ -136,7 +141,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	diags = diags.Append(writeOnlyDiags)
 
 	if writeOnlyDiags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	new, err := src.CompleteUpgrade(newValue, currentSchema.Body.ImpliedType(), uint64(currentSchema.Version))
@@ -149,10 +154,10 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 			fmt.Sprintf("Failed to encode state for %s after resource schema upgrade: %s.", addr, tfdiags.FormatError(err)),
 		))
 	}
-	return new, diags
+	return new, schemaVersionUpgraded, diags
 }
 
-func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema providers.Schema) (*states.ResourceInstanceObjectSrc, bool, tfdiags.Diagnostics) {
 	// TODO: This should eventually use a proper FQN.
 	providerType := addr.Resource.Resource.ImpliedProvider()
 	if src.IdentitySchemaVersion > uint64(currentSchema.IdentityVersion) {
@@ -166,13 +171,15 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 			// version might be required here. :(
 			fmt.Sprintf("The current state of %s was created by a newer provider version than is currently selected. Upgrade the %s provider to work with this state.", addr, providerType),
 		))
-		return nil, diags
+		return nil, false, diags
 	}
 
 	// We don't need to do anything if the identity schema version is already up-to-date.
 	if src.IdentitySchemaVersion == uint64(currentSchema.IdentityVersion) {
-		return src, nil
+		return src, false, nil
 	}
+
+	log.Printf("[TRACE] upgradeResourceIdentity: upgrading identity for %s from version %d to %d using provider %q", addr, src.IdentitySchemaVersion, currentSchema.IdentityVersion, providerType)
 
 	req := providers.UpgradeResourceIdentityRequest{
 		TypeName: addr.Resource.Resource.Type,
@@ -189,7 +196,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 	resp := provider.UpgradeResourceIdentity(req)
 	diags := resp.Diagnostics
 	if diags.HasErrors() {
-		return nil, diags
+		return nil, false, diags
 	}
 
 	if !resp.UpgradedIdentity.IsWhollyKnown() {
@@ -198,7 +205,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 			"Invalid resource identity upgrade",
 			fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: The returned state contains unknown values.", providerType, addr),
 		))
-		return nil, diags
+		return nil, false, diags
 	}
 
 	newIdentity := resp.UpgradedIdentity
@@ -212,7 +219,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 				fmt.Sprintf("The %s provider upgraded the identity for %s from a previous version, but produced an invalid result: %s.", providerType, addr, tfdiags.FormatError(err)),
 			))
 		}
-		return nil, diags
+		return nil, false, diags
 	}
 
 	new, err := src.CompleteIdentityUpgrade(newIdentity, currentSchema)
@@ -226,7 +233,7 @@ func upgradeResourceIdentity(addr addrs.AbsResourceInstance, provider providers.
 		))
 	}
 
-	return new, diags
+	return new, true, diags
 }
 
 // stripRemovedStateAttributes deletes any attributes no longer present in the

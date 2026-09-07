@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,9 +9,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -35,7 +36,7 @@ func TestTaint(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -80,7 +81,7 @@ func TestTaint_lockedState(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer unlock()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -105,7 +106,8 @@ func TestTaint_lockedState(t *testing.T) {
 
 func TestTaint_backup(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -127,7 +129,7 @@ func TestTaint_backup(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -149,7 +151,8 @@ func TestTaint_backup(t *testing.T) {
 
 func TestTaint_backupDisable(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -171,7 +174,7 @@ func TestTaint_backupDisable(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -196,7 +199,7 @@ func TestTaint_backupDisable(t *testing.T) {
 }
 
 func TestTaint_badState(t *testing.T) {
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -216,7 +219,8 @@ func TestTaint_badState(t *testing.T) {
 
 func TestTaint_defaultState(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -238,7 +242,7 @@ func TestTaint_defaultState(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -257,9 +261,106 @@ func TestTaint_defaultState(t *testing.T) {
 	testStateOutput(t, DefaultStateFilename, testTaintStr)
 }
 
+func TestTaint_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &TaintCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"module.child.test_instance.test"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &TaintCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=child", "module.child.test_instance.test"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`<no state>
+module.child:
+  test_instance.test: (tainted)
+    ID = 
+    provider = provider["registry.terraform.io/hashicorp/test"]`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &TaintCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"module.child.test_instance.test"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
+		expected := strings.TrimSpace(`<no state>
+module.child:
+  test_instance.test: (tainted)
+    ID = 
+    provider = provider["registry.terraform.io/hashicorp/test"]`)
+		if diff := cmp.Diff(expected, actual); diff != "" {
+			t.Fatalf("unexpected state output\n%s", diff)
+		}
+	})
+}
+
 func TestTaint_defaultWorkspaceState(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -281,7 +382,7 @@ func TestTaint_defaultWorkspaceState(t *testing.T) {
 	testWorkspace := "development"
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	meta := Meta{Ui: ui, View: view}
 	meta.SetWorkspace(testWorkspace)
@@ -319,7 +420,7 @@ func TestTaint_missing(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -357,7 +458,7 @@ func TestTaint_missingAllow(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -376,7 +477,7 @@ func TestTaint_missingAllow(t *testing.T) {
 	}
 
 	// Check for the warning
-	actual := strings.TrimSpace(ui.ErrorWriter.String())
+	actual := strings.TrimSpace(ui.OutputWriter.String())
 	expected := strings.TrimSpace(`
 Warning: No such resource instance
 
@@ -391,7 +492,8 @@ because -allow-missing was set.
 
 func TestTaint_stateOut(t *testing.T) {
 	// Get a temp cwd
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -413,7 +515,7 @@ func TestTaint_stateOut(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -469,7 +571,7 @@ func TestTaint_module(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
@@ -493,7 +595,7 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -515,7 +617,7 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	})
 	path := testStateFile(t, state)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -14,7 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 func TestInitProviders(t *testing.T) {
@@ -29,6 +31,10 @@ func TestInitProviders(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -51,7 +57,6 @@ func TestInitProviders(t *testing.T) {
 	if !strings.Contains(stdout, "Terraform has created a lock file") {
 		t.Errorf("lock file notification is missing from output:\n%s", stdout)
 	}
-
 }
 
 func TestInitProvidersInternal(t *testing.T) {
@@ -62,6 +67,10 @@ func TestInitProvidersInternal(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "terraform-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -112,6 +121,10 @@ func TestInitProvidersVendored(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -127,9 +140,7 @@ func TestInitProvidersVendored(t *testing.T) {
 
 	if !strings.Contains(stdout, "- Installing hashicorp/null v1.0.0+local") {
 		t.Errorf("provider download message is missing from output:\n%s", stdout)
-		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
-
 }
 
 func TestInitProvidersLocalOnly(t *testing.T) {
@@ -144,12 +155,6 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "local-only-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
-	// If you run this test on a workstation with a plugin-cache directory
-	// configured, it will leave a bad directory behind and terraform init will
-	// not work until you remove it.
-	//
-	// To avoid this, we will  "zero out" any existing cli config file.
-	tf.AddEnv("TF_CLI_CONFIG_FILE=")
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -161,6 +166,15 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
+	// If you run this test on a workstation with a plugin-cache directory
+	// configured, it will leave a bad directory behind and terraform init will
+	// not work until you remove it.
+	//
+	// To avoid this, we will  "zero out" any existing cli config file by
+	// passing in an empty override file.
+	configFile := emptyConfigFileForTests(t, wantMachineDir)
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Errorf("unexpected error: %s", err)
@@ -168,6 +182,7 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 
 	if stderr != "" {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
+		t.Logf("(a \"Failed to query available provider packages\" error can happen here if you have a .terraformrc CLI configuration file present in your home directory)")
 	}
 
 	if !strings.Contains(stdout, "Terraform has been successfully initialized!") {
@@ -250,6 +265,10 @@ func TestInitProviders_pluginCache(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
+	// zero out any existing cli config file by passing in an empty file.
+	configFile := emptyConfigFileForTests(t, tf.WorkDir())
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	cmd := tf.Cmd("init")
 
 	// convert the slashes if building for windows.
@@ -296,7 +315,7 @@ func TestInit_fromModule(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "empty")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
-	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
+	cmd := tf.Cmd("init", "-from-module=hashicorp/vault-starter/aws")
 	cmd.Stdin = nil
 	cmd.Stderr = &bytes.Buffer{}
 
@@ -406,5 +425,109 @@ func TestInitProviderWarnings(t *testing.T) {
 	if !strings.Contains(stdout, "This provider is archived and no longer needed.") {
 		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
+}
 
+// This is a regression test asserting that `terraform init -upgrade` doesn't error
+// when the state storage provider is unmanaged by Terraform. The check to see if the
+// state storage provider was affected by the upgrade process should be skipped when
+// the provider is not managed by Terraform. Previously the check wasn't skipped and
+// panicked due to how the provider was supplied.
+//
+// See the TestInit_getUpgradePlugins integration test for similar testing when using a
+// dev_override provider.
+func TestInitStateStoreUsingUnmanagedProvider(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	// In temp dir create a plugin cache to be used in the test cases.
+	// The cache is supplied to commands using the -plugin-dir init flag.
+	// There are 2 versions of the simple6 provider: 0.0.1 and 2.0.0
+	// This enables us to test an upgrade scenario where a newer provider version is available.
+	td := t.TempDir()
+	providerVersionOld := "0.0.1"
+	providerVersionNew := "2.0.0"
+	platform := getproviders.CurrentPlatform.String()
+	absolutePathToCache := filepath.Join(td, "cache")
+	simple6Provider := filepath.Join(td, "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+	for _, v := range []string{providerVersionOld, providerVersionNew} {
+		dir := filepath.Join(absolutePathToCache, "registry.terraform.io/hashicorp", "simple6", v, platform)
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			t.Fatal(err)
+		}
+		// Create an executable copy of the simple6ProviderExe file per version in the cache dir
+		data, err := os.ReadFile(simple6ProviderExe)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "terraform-provider-simple6"), data, 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	fixturePath := filepath.Join("testdata", "initialized-directory-with-state-store-unmanaged")
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+
+	// Assert the existing lockfile describes the older version of the provider.
+	lockFile := tf.Path(".terraform.lock.hcl")
+	buf, err := os.ReadFile(lockFile)
+	if err != nil {
+		t.Fatalf("unexpected error accessing lock file: %s", err)
+	}
+	buf = bytes.TrimSpace(buf)
+
+	expectedLockFileContent := fmt.Sprintf(`# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/simple6" {
+  version = "%s"
+}`, providerVersionOld)
+	if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
+		t.Errorf("unexpected difference in lock file content: %s", diff)
+	}
+
+	// The simple6 provider is unmanaged
+	reattachConfig, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+	tf.AddEnv("TF_REATTACH_PROVIDERS=" + reattachConfig)
+
+	// The init -upgrade process should succeed.
+	stdout, stderr, err := tf.Run(
+		"init",
+		"-upgrade",
+		"-enable-pluggable-state-storage-experiment",
+		fmt.Sprintf("-plugin-dir=%s", absolutePathToCache),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstdout: %s\nstderr: %s", err, stdout, stderr)
+	}
+
+	// Lockfile should be unchanged because the only provider in the config is unmanaged.
+	buf, err = os.ReadFile(lockFile)
+	if err != nil {
+		t.Fatalf("unexpected error accessing lock file: %s", err)
+	}
+	buf = bytes.TrimSpace(buf)
+
+	if diff := cmp.Diff(expectedLockFileContent, string(buf)); diff != "" {
+		t.Errorf("unexpected difference in lock file content: %s", diff)
+	}
+}
+
+// emptyConfigFileForTests creates a blank .terraformrc file in the requested
+// path and returns the path to the new file. It is the caller's responsibility
+// to cleanup the file after use.
+func emptyConfigFileForTests(t testing.TB, path string) string {
+	// zero out any existing cli config file by passing in an empty file.
+	configFile, err := os.Create(filepath.Join(path, ".terraformrc"))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	configFile.Close()
+	return configFile.Name()
 }

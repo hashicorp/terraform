@@ -1,0 +1,3 @@
+terraform {
+  # implied local backend
+}

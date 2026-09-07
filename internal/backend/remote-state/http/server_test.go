@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package http
@@ -277,14 +277,10 @@ func TestMTLSServer_NoCertFails(t *testing.T) {
 	}
 
 	// Now get a state manager and check that it fails to refresh the state
-	sm, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, err)
-	}
-	err = sm.RefreshState()
-	if nil == err {
+	_, sDiags := b.StateMgr(backend.DefaultStateName)
+	if !sDiags.HasErrors() {
 		t.Error("expected error when refreshing state without a client cert")
-	} else if !strings.Contains(err.Error(), "remote error: tls: certificate required") {
+	} else if !strings.Contains(sDiags.Err().Error(), "remote error: tls: certificate required") {
 		t.Errorf("expected the error to report missing tls credentials: %v", err)
 	}
 }
@@ -339,9 +335,9 @@ func TestMTLSServer_WithCertPasses(t *testing.T) {
 	}
 
 	// Now get a state manager, fetch the state, and ensure that the "foo" output is not set
-	sm, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, err)
+	sm, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, sDiags)
 	}
 	if err = sm.RefreshState(); err != nil {
 		t.Fatalf("unexpected error calling RefreshState: %v", err)

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
@@ -737,7 +737,7 @@ func TestMarshalResources(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, err := marshalResources(test.Resources, addrs.RootModuleInstance, test.Schemas)
+			got, err := marshalResources(test.Resources, test.Schemas)
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")

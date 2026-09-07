@@ -18,8 +18,9 @@ const _ProvisionerWhen_name = "ProvisionerWhenInvalidProvisionerWhenCreateProvis
 var _ProvisionerWhen_index = [...]uint8{0, 22, 43, 65}
 
 func (i ProvisionerWhen) String() string {
-	if i < 0 || i >= ProvisionerWhen(len(_ProvisionerWhen_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ProvisionerWhen_index)-1 {
 		return "ProvisionerWhen(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ProvisionerWhen_name[_ProvisionerWhen_index[i]:_ProvisionerWhen_index[i+1]]
+	return _ProvisionerWhen_name[_ProvisionerWhen_index[idx]:_ProvisionerWhen_index[idx+1]]
 }

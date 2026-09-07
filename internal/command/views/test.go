@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -71,7 +71,7 @@ type Test interface {
 	// addition, this function prints additional details about the current
 	// operation alongside the current state as the state will be missing newly
 	// created resources that also need to be handled manually.
-	FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc)
+	FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[string]*states.State, created []*plans.ResourceInstanceChangeSrc)
 
 	// TFCStatusUpdate prints a reassuring update, letting users know the latest
 	// status of their ongoing remote test run.
@@ -136,11 +136,15 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 		t.view.streams.Print(t.view.colorize.Color("[red]Failure![reset]"))
 	}
 
-	t.view.streams.Printf(" %d passed, %d failed", counts[moduletest.Pass], counts[moduletest.Fail]+counts[moduletest.Error])
-	if counts[moduletest.Skip] > 0 {
-		t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
+	if suite.CommandMode != moduletest.CleanupMode {
+		t.view.streams.Printf(" %d passed, %d failed", counts[moduletest.Pass], counts[moduletest.Fail]+counts[moduletest.Error])
+		if counts[moduletest.Skip] > 0 {
+			t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
+		} else {
+			t.view.streams.Println(".")
+		}
 	} else {
-		t.view.streams.Println(".")
+		t.view.streams.Println()
 	}
 }
 
@@ -208,7 +212,7 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 			}
 		} else {
 			// We'll print the plan.
-			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			jsonPlan, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -218,11 +222,13 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File, progress mod
 				plan := jsonformat.Plan{
 					PlanFormatVersion:     jsonplan.FormatVersion,
 					ProviderFormatVersion: jsonprovider.FormatVersion,
-					OutputChanges:         outputs,
-					ResourceChanges:       changed,
-					ResourceDrift:         drift,
+					OutputChanges:         jsonPlan.OutputChanges,
+					ResourceChanges:       jsonPlan.ResourceChanges,
+					ResourceDrift:         jsonPlan.ResourceDrift,
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-					RelevantAttributes:    attrs,
+					RelevantAttributes:    jsonPlan.RelevantAttributes,
+					ActionInvocations:     jsonPlan.ActionInvocations,
+					DeferredChanges:       jsonPlan.DeferredChanges,
 				}
 
 				var opts []plans.Quality
@@ -275,16 +281,28 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 	t.Diagnostics(run, file, diags)
 
+	skipCleanup := run != nil && run.Config.SkipCleanup
 	if state.HasManagedResourceInstanceObjects() {
-		// FIXME: This message says "resources" but this is actually a list
-		// of resource instance objects.
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
-		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
-			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
-				continue
+		if skipCleanup {
+			t.view.streams.Print(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier), t.view.outputColumns()))
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Printf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Printf("  - %s\n", resource.ResourceInstance)
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+		} else {
+			// FIXME: This message says "resources" but this is actually a list
+			// of resource instance objects.
+			t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			}
 		}
 	}
 }
@@ -301,12 +319,12 @@ func (t *TestHuman) FatalInterrupt() {
 	t.view.streams.Eprintln(format.WordWrap(fatalInterrupt, t.view.errorColumns()))
 }
 
-func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
 	t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name), t.view.errorColumns()))
 
 	// Print out the main state first, this is the state that isn't associated
 	// with a run block.
-	if state, exists := existingStates[nil]; exists && !state.Empty() {
+	if state, exists := existingStates[configs.TestMainStateIdentifier]; exists && !state.Empty() {
 		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
@@ -317,14 +335,12 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 		}
 	}
 
-	// Then print out the other states in order.
-	for _, run := range file.Runs {
-		state, exists := existingStates[run]
-		if !exists || state.Empty() {
+	for key, state := range existingStates {
+		if key == configs.TestMainStateIdentifier || state.Empty() {
 			continue
 		}
 
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q:\n", key), t.view.errorColumns()))
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
@@ -444,11 +460,15 @@ func (t *TestJSON) Conclusion(suite *moduletest.Suite) {
 			message.WriteString("Failure!")
 		}
 
-		message.WriteString(fmt.Sprintf(" %d passed, %d failed", summary.Passed, summary.Failed+summary.Errored))
-		if summary.Skipped > 0 {
-			message.WriteString(fmt.Sprintf(", %d skipped.", summary.Skipped))
-		} else {
-			message.WriteString(".")
+		if suite.CommandMode != moduletest.CleanupMode {
+			// don't print test summaries during cleanup mode.
+
+			message.WriteString(fmt.Sprintf(" %d passed, %d failed", summary.Passed, summary.Failed+summary.Errored))
+			if summary.Skipped > 0 {
+				message.WriteString(fmt.Sprintf(", %d skipped.", summary.Skipped))
+			} else {
+				message.WriteString(".")
+			}
 		}
 	}
 
@@ -571,7 +591,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 					"@testrun", run.Name)
 			}
 		} else {
-			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			jsonPlan, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
@@ -581,11 +601,13 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 				plan := jsonformat.Plan{
 					PlanFormatVersion:     jsonplan.FormatVersion,
 					ProviderFormatVersion: jsonprovider.FormatVersion,
-					OutputChanges:         outputs,
-					ResourceChanges:       changed,
-					ResourceDrift:         drift,
+					OutputChanges:         jsonPlan.OutputChanges,
+					ResourceChanges:       jsonPlan.ResourceChanges,
+					ResourceDrift:         jsonPlan.ResourceDrift,
 					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
-					RelevantAttributes:    attrs,
+					RelevantAttributes:    jsonPlan.RelevantAttributes,
+					ActionInvocations:     jsonPlan.ActionInvocations,
+					DeferredChanges:       jsonPlan.DeferredChanges,
 				}
 
 				t.view.log.Info(
@@ -602,30 +624,55 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 }
 
 func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
+	skipCleanup := run != nil && run.Config.SkipCleanup
 	if state.HasManagedResourceInstanceObjects() {
-		cleanup := json.TestFileCleanup{}
-		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
-			cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{
-				Instance:   resource.ResourceInstance.String(),
-				DeposedKey: resource.DeposedKey.String(),
-			})
-		}
+		if skipCleanup {
+			cleanup := json.TestFileCleanupSkipped{}
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				cleanup.SkippedResources = append(cleanup.SkippedResources, json.TestFailedResource{
+					Instance:   resource.ResourceInstance.String(),
+					DeposedKey: resource.DeposedKey.String(),
+				})
+			}
 
-		if run != nil {
-			t.view.log.Error(
-				fmt.Sprintf("Terraform left some resources in state after executing %s/%s, they need to be cleaned up manually.", file.Name, run.Name),
-				"type", json.MessageTestCleanup,
-				json.MessageTestCleanup, cleanup,
-				"@testfile", file.Name,
-				"@testrun", run.Name)
+			if run != nil {
+				t.view.log.Info(
+					fmt.Sprintf("Terraform left some resources in state after executing %s/%s because the skip_cleanup attribute was set.", file.Name, run.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			} else {
+				t.view.log.Info(
+					fmt.Sprintf("Terraform left some resources in state after executing %s because the skip_cleanup attribute was set.", file.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name)
+			}
 		} else {
-			t.view.log.Error(
-				fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
-				"type", json.MessageTestCleanup,
-				json.MessageTestCleanup, cleanup,
-				"@testfile", file.Name)
-		}
+			cleanup := json.TestFileCleanup{}
+			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
+				cleanup.FailedResources = append(cleanup.FailedResources, json.TestFailedResource{
+					Instance:   resource.ResourceInstance.String(),
+					DeposedKey: resource.DeposedKey.String(),
+				})
+			}
 
+			if run != nil {
+				t.view.log.Error(
+					fmt.Sprintf("Terraform left some resources in state after executing %s/%s, they need to be cleaned up manually.", file.Name, run.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			} else {
+				t.view.log.Error(
+					fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
+					"type", json.MessageTestCleanup,
+					json.MessageTestCleanup, cleanup,
+					"@testfile", file.Name)
+			}
+		}
 	}
 
 	t.Diagnostics(run, file, diags)
@@ -650,13 +697,13 @@ func (t *TestJSON) FatalInterrupt() {
 	t.view.Log(fatalInterrupt)
 }
 
-func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
 
 	message := json.TestFatalInterrupt{
 		States: make(map[string][]json.TestFailedResource),
 	}
 
-	for run, state := range existingStates {
+	for key, state := range existingStates {
 		if state.Empty() {
 			continue
 		}
@@ -669,10 +716,10 @@ func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.F
 			})
 		}
 
-		if run == nil {
+		if key == configs.TestMainStateIdentifier {
 			message.State = resources
 		} else {
-			message.States[run.Name] = resources
+			message.States[key] = resources
 		}
 	}
 

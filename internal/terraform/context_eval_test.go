@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -174,7 +174,7 @@ func TestContextPlanAndEval(t *testing.T) {
 				Value: cty.StringVal("a value"),
 			},
 		},
-	})
+	}, addrs.RootModuleInstance)
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	// This test isn't really about whether the plan is correct, but we'll

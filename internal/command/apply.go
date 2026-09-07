@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -45,6 +46,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	default:
 		args, diags = arguments.ParseApply(rawArgs)
 	}
+	diags = diags.Append(c.Validate(args))
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -95,15 +97,31 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove, args.PolicyPaths)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
 
+	if len(args.PolicyPaths) > 0 {
+		client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), args.PolicyPaths, backendPolicyEntitlement(be, policy.ApplyEvaluationStage))
+		// if there has been any errors when setting up the policy client, we log them but
+		// we still proceed with the operation, as a failure to set up the policy client
+		// should not prevent the apply operation from running
+		if opReq.View != nil && policyDiags != nil {
+			opReq.View.PolicyDiagnostics(policyDiags)
+		}
+		opReq.PolicyClient = client
+		defer stopClient()
+	}
+
 	// Collect variable value and add them to the operation request
-	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -142,6 +160,10 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	return 0
+}
+
+func (c *ApplyCommand) Validate(args *arguments.Apply) (diags tfdiags.Diagnostics) {
+	return diags.Append(validatePolicyPaths(args.PolicyPaths))
 }
 
 func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
@@ -210,28 +232,24 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
-		if plan.Backend.Config == nil {
+
+		if plan.Backend == nil && plan.StateStore == nil {
 			// Should never happen; always indicates a bug in the creation of the plan file
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to read plan from plan file",
-				"The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file.",
+				"The given plan file has neither a valid backend nor state store configuration. This is a bug in the Terraform command that generated this plan file.",
 			))
 			return nil, diags
 		}
-		be, beDiags = c.BackendForLocalPlan(plan.Backend)
+		be, beDiags = c.BackendForLocalPlan(plan)
 	} else {
-		// Both new plans and saved cloud plans load their backend from config.
-		backendConfig, configDiags := c.loadBackendConfig(".")
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags
-		}
 
-		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
-		})
+		// Load the backend
+		//
+		// Note: Both new plans and saved cloud plans load their backend from config,
+		// hence the config parsing in the method below.
+		be, beDiags = c.backend(".", viewType)
 	}
 
 	diags = diags.Append(beDiags)
@@ -241,14 +259,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 	return be, diags
 }
 
-func (c *ApplyCommand) OperationRequest(
-	be backendrun.OperationsBackend,
-	view views.Apply,
-	viewType arguments.ViewType,
-	planFile *planfile.WrappedPlanFile,
-	args *arguments.Operation,
-	autoApprove bool,
-) (*backendrun.Operation, tfdiags.Diagnostics) {
+func (c *ApplyCommand) OperationRequest(be backendrun.OperationsBackend, view views.Apply, viewType arguments.ViewType, planFile *planfile.WrappedPlanFile, args *arguments.Operation, autoApprove bool, policyPaths []string) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Applying changes with dev overrides in effect could make it impossible
@@ -274,7 +285,23 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
-	opReq.DeferralAllowed = args.DeferralAllowed
+	opReq.ActionTargets = args.ActionTargets
+	opReq.PolicyPaths = policyPaths
+	opReq.PlanMinimalRefresh = args.MinimalRefresh
+
+	// EXPERIMENTAL: maybe enable deferred actions
+	if c.AllowExperimentalFeatures {
+		opReq.DeferralAllowed = args.DeferralAllowed
+	} else if args.DeferralAllowed {
+		// Belated flag parse error, since we don't know about experiments
+		// support at actual parse time.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to parse command-line flags",
+			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
+		))
+		return nil, diags
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -284,28 +311,6 @@ func (c *ApplyCommand) OperationRequest(
 	}
 
 	return opReq, diags
-}
-
-func (c *ApplyCommand) GatherVariables(opReq *backendrun.Operation, args *arguments.Vars) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// FIXME the arguments package currently trivially gathers variable related
-	// arguments in a heterogenous slice, in order to minimize the number of
-	// code paths gathering variables during the transition to this structure.
-	// Once all commands that gather variables have been converted to this
-	// structure, we could move the variable gathering code to the arguments
-	// package directly, removing this shim layer.
-
-	varArgs := args.All()
-	items := make([]arguments.FlagNameValue, len(varArgs))
-	for i := range varArgs {
-		items[i].Name = varArgs[i].Name
-		items[i].Value = varArgs[i].Value
-	}
-	c.Meta.variableArgs = arguments.FlagNameValueSlice{Items: &items}
-	opReq.Variables, diags = c.collectVariableValues()
-
-	return diags
 }
 
 func (c *ApplyCommand) Help() string {
@@ -367,15 +372,20 @@ Options:
                          Defaults to 10.
 
   -replace=resource      Terraform will plan to replace this resource instance
-                         instead of doing an update or no-op action. 
+                         instead of doing an update or no-op action.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
 
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
-                         
+                         Legacy option for the local backend only. See the local
+                         backend's documentation for more information.
+
+
   -var 'foo=bar'         Set a value for one of the input variables in the root
                          module of the configuration. Use this option more than
                          once to set more than one variable.

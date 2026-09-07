@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -18,6 +18,8 @@ import (
 // nodes created alongside them to verify that the final value matches
 // the author's validation rules.
 type graphNodeValidatableVariable interface {
+	dag.Vertex
+
 	// variableValidationRules returns the information required to validate
 	// the final value produced by the implementing node.
 	//
@@ -33,6 +35,9 @@ type graphNodeValidatableVariable interface {
 	// for example, if the value came from an environment variable -- then
 	// the location of the variable declaration is a plausible substitute.
 	variableValidationRules() (configAddr addrs.ConfigInputVariable, rules []*configs.CheckRule, defnRange hcl.Range)
+
+	// isConst returns the variable's const value.
+	isConst() bool
 }
 
 // Correct behavior requires both of the input variable node types to
@@ -53,31 +58,37 @@ var _ graphNodeValidatableVariable = (*nodeExpandModuleVariable)(nil)
 // with the new [nodeVariableValidation] nodes to prevent downstream nodes
 // from relying on unvalidated values.
 type variableValidationTransformer struct {
-	validateWalk bool
+	operation walkOperation
 }
 
 var _ GraphTransformer = (*variableValidationTransformer)(nil)
 
 func (t *variableValidationTransformer) Transform(g *Graph) error {
 	log.Printf("[TRACE] variableValidationTransformer: adding validation nodes for any existing variable evaluation nodes")
-	for _, v := range g.Vertices() {
+	for v := range g.VerticesSeq() {
 		v, ok := v.(graphNodeValidatableVariable)
 		if !ok {
 			continue // irrelevant node
 		}
 
+		// Variable validation nodes don't need to be added to the init graph for non-constant variables since they will always be unknown
+		if !v.isConst() && t.operation == walkInit {
+			continue
+		}
+
 		configAddr, rules, defnRange := v.variableValidationRules()
+
 		newV := &nodeVariableValidation{
 			configAddr:   configAddr,
 			rules:        rules,
 			defnRange:    defnRange,
-			validateWalk: t.validateWalk,
+			validateWalk: t.operation == walkValidate,
 		}
 
 		if len(rules) != 0 {
 			log.Printf("[TRACE] variableValidationTransformer: %s has %d validation rule(s)", configAddr, len(rules))
 			g.Add(newV)
-			g.Connect(dag.BasicEdge(newV, v))
+			g.Connect(newV, v)
 		} else {
 			log.Printf("[TRACE] variableValidationTransformer: %s has no validation rules", configAddr)
 		}

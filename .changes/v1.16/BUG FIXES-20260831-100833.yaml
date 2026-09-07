@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix create_before_destroy ordering in some combinations of changes
+time: 2026-08-31T10:08:33.916401-04:00
+custom:
+    Issue: "39091"

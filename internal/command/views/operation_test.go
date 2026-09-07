@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -9,15 +9,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOperation_stopping(t *testing.T) {
@@ -471,6 +474,44 @@ func TestOperation_planNextStepInAutomation(t *testing.T) {
 	}
 }
 
+func TestOperation_planWithDeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDeferredChanges(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Note: This is a partial plan, parts can only be known in the next plan / apply cycle.
+
+
+  # test_resource.deferred was deferred
+  # (because the resource configuration is unknown)
+  + resource "test_resource" "deferred" {}
+
+─────────────────────────────────────────────────────────────────────────────
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // Test all the trivial OperationJSON methods together. Y'know, for brevity.
 // This test is not a realistic stream of messages.
 func TestOperationJSON_logs(t *testing.T) {
@@ -557,6 +598,229 @@ func TestOperationJSON_emergencyDumpState(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
+func TestOperationJSON_plan_with_actions(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	vpc, diags := addrs.ParseModuleInstanceStr("module.vpc")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}.Instance(addrs.NoKey).Absolute(root)
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}.Instance(addrs.IntKey(0)).Absolute(vpc)
+
+	act1 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_action", Name: "hello"}.Instance(addrs.NoKey).Absolute(root),
+		ActionTrigger: &plans.ResourceActionTrigger{
+			TriggeringResourceAddr:  boop,
+			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerBlockIndex: 0,
+			ActionsListIndex:        0,
+		},
+	}
+	act2 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_other_action", Name: "world"}.Instance(addrs.NoKey).Absolute(root),
+		ActionTrigger: &plans.ResourceActionTrigger{
+			TriggeringResourceAddr:  boop,
+			ActionTriggerEvent:      configs.AfterCreate,
+			ActionTriggerBlockIndex: 0,
+			ActionsListIndex:        1,
+		},
+	}
+	act3 := &plans.ActionInvocationInstanceSrc{
+		Addr: addrs.Action{Type: "test_action", Name: "goodbye"}.Instance(addrs.IntKey(0)).Absolute(vpc),
+		ActionTrigger: &plans.ResourceActionTrigger{
+			TriggeringResourceAddr:  beep,
+			ActionTriggerEvent:      configs.BeforeUpdate,
+			ActionTriggerBlockIndex: 1,
+			ActionsListIndex:        0,
+		},
+	}
+
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:        boop,
+					PrevRunAddr: boop,
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+				{
+					Addr:        beep,
+					PrevRunAddr: beep,
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Update},
+				},
+			},
+
+			ActionInvocations: []*plans.ActionInvocationInstanceSrc{
+				act1,
+				act2,
+				act3,
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Simple create
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Plan to create",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "create",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.boop`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.boop`,
+					"resource_key":     nil,
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Simple update
+		{
+			"@level":   "info",
+			"@message": "module.vpc.test_resource.beep[0]: Plan to update",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             `module.vpc.test_resource.beep[0]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"resource":         `test_resource.beep[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Action invocation 1
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_action.hello",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `action.test_action.hello`,
+					"implied_provider": "test",
+					"module":           "",
+					"action":           `action.test_action.hello`,
+					"action_key":       nil,
+					"action_name":      "hello",
+					"action_type":      "test_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(0),
+					"actions_list_index":         float64(0),
+					"on_failure":                 "ActionOnFailureHalt",
+					"triggering_event":           "AfterCreate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `test_resource.boop`,
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         `test_resource.boop`,
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Action invocation 2
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_other_action.world",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `action.test_other_action.world`,
+					"implied_provider": "test",
+					"module":           "",
+					"action":           `action.test_other_action.world`,
+					"action_key":       nil,
+					"action_name":      "world",
+					"action_type":      "test_other_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(0),
+					"actions_list_index":         float64(1),
+					"on_failure":                 "ActionOnFailureHalt",
+					"triggering_event":           "AfterCreate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `test_resource.boop`,
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         `test_resource.boop`,
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Action invocation 3
+		{
+			"@level":   "info",
+			"@message": "planned action invocation: action.test_action.goodbye[0]",
+			"@module":  "terraform.ui",
+			"type":     "planned_action_invocation",
+			"invocation": map[string]interface{}{
+				"action_addr": map[string]interface{}{
+					"addr":             `module.vpc.action.test_action.goodbye[0]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"action":           `action.test_action.goodbye[0]`,
+					"action_key":       float64(0),
+					"action_name":      "goodbye",
+					"action_type":      "test_action",
+				},
+				"lifecycle_trigger": map[string]interface{}{
+					"action_trigger_block_index": float64(1),
+					"actions_list_index":         float64(0),
+					"on_failure":                 "ActionOnFailureHalt",
+					"triggering_event":           "BeforeUpdate",
+					"triggering_resource": map[string]interface{}{
+						"addr":             `module.vpc.test_resource.beep[0]`,
+						"implied_provider": "test",
+						"module":           "module.vpc",
+						"resource":         `test_resource.beep[0]`,
+						"resource_key":     float64(0),
+						"resource_name":    "beep",
+						"resource_type":    "test_resource",
+					},
+				},
+			},
+		},
+		// Change summary with action invocations
+		{
+			"@level":   "info",
+			"@message": "Plan: 1 to add, 1 to change, 0 to destroy. Actions: 3 to invoke.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(3),
+				"add":               float64(1),
+				"import":            float64(0),
+				"change":            float64(1),
+				"remove":            float64(0),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
 func TestOperationJSON_planNoChanges(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	v := &OperationJSON{view: NewJSONView(NewView(streams))}
@@ -573,11 +837,13 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(0),
-				"import":    float64(0),
-				"change":    float64(0),
-				"remove":    float64(0),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
 			},
 		},
 	}
@@ -741,11 +1007,13 @@ func TestOperationJSON_plan(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(3),
-				"import":    float64(0),
-				"change":    float64(1),
-				"remove":    float64(3),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(3),
+				"import":            float64(0),
+				"change":            float64(1),
+				"remove":            float64(3),
 			},
 		},
 	}
@@ -888,11 +1156,13 @@ func TestOperationJSON_planWithImport(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(1),
-				"import":    float64(4),
-				"change":    float64(1),
-				"remove":    float64(2),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(1),
+				"import":            float64(4),
+				"change":            float64(1),
+				"remove":            float64(2),
 			},
 		},
 	}
@@ -1025,11 +1295,13 @@ func TestOperationJSON_planDriftWithMove(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(0),
-				"import":    float64(0),
-				"change":    float64(0),
-				"remove":    float64(0),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
 			},
 		},
 	}
@@ -1156,11 +1428,13 @@ func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(0),
-				"import":    float64(0),
-				"change":    float64(0),
-				"remove":    float64(0),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
 			},
 		},
 	}
@@ -1216,11 +1490,13 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"operation": "plan",
-				"add":       float64(0),
-				"import":    float64(0),
-				"change":    float64(0),
-				"remove":    float64(0),
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
 			},
 		},
 		// Output changes
@@ -1319,6 +1595,138 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 					"resource_key":     float64(1),
 					"resource_name":    "boop",
 					"resource_type":    "test_instance",
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planWithDeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
+			{
+				DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr:        boop.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: boop.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+			},
+		},
+	}
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop: deferred change, reason: resource_config_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "resource_config_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":             "test_instance.boop",
+						"implied_provider": "test",
+						"module":           "",
+						"resource":         "test_instance.boop",
+						"resource_key":     nil,
+						"resource_name":    "boop",
+						"resource_type":    "test_instance",
+					},
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planWithDeferredChange_unknownKey(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
+
+	plan := &plans.Plan{
+		Changes: &plans.ChangesSrc{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		DeferredResources: []*plans.DeferredResourceInstanceChangeSrc{
+			{
+				DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+				ChangeSrc: &plans.ResourceInstanceChangeSrc{
+					Addr:        boop.Instance(addrs.WildcardKey).Absolute(root),
+					PrevRunAddr: boop.Instance(addrs.WildcardKey).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
+				},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation":         "plan",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(0),
+				"import":            float64(0),
+				"change":            float64(0),
+				"remove":            float64(0),
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop[*]: deferred change, reason: instance_count_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "instance_count_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":                 "test_instance.boop[*]",
+						"implied_provider":     "test",
+						"module":               "",
+						"resource":             "test_instance.boop[*]",
+						"resource_key":         nil,
+						"resource_key_unknown": true,
+						"resource_name":        "boop",
+						"resource_type":        "test_instance",
+					},
 				},
 			},
 		},

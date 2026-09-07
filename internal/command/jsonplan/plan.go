@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
@@ -55,31 +55,33 @@ const (
 	DeferredReasonAbsentPrereq          = "absent_prereq"
 )
 
-// plan is the top-level representation of the json format of a plan. It includes
+// Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
-type plan struct {
+type Plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
 	TerraformVersion string      `json:"terraform_version,omitempty"`
 	Variables        variables   `json:"variables,omitempty"`
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift      []ResourceChange         `json:"resource_drift,omitempty"`
-	ResourceChanges    []ResourceChange         `json:"resource_changes,omitempty"`
-	DeferredChanges    []DeferredResourceChange `json:"deferred_changes,omitempty"`
-	OutputChanges      map[string]Change        `json:"output_changes,omitempty"`
-	PriorState         json.RawMessage          `json:"prior_state,omitempty"`
-	Config             json.RawMessage          `json:"configuration,omitempty"`
-	RelevantAttributes []ResourceAttr           `json:"relevant_attributes,omitempty"`
-	Checks             json.RawMessage          `json:"checks,omitempty"`
-	Timestamp          string                   `json:"timestamp,omitempty"`
-	Applyable          bool                     `json:"applyable"`
-	Complete           bool                     `json:"complete"`
-	Errored            bool                     `json:"errored"`
+	ResourceDrift             []ResourceChange           `json:"resource_drift,omitempty"`
+	ResourceChanges           []ResourceChange           `json:"resource_changes,omitempty"`
+	DeferredChanges           []DeferredResourceChange   `json:"deferred_changes,omitempty"`
+	DeferredActionInvocations []DeferredActionInvocation `json:"deferred_action_invocations,omitempty"`
+	OutputChanges             map[string]Change          `json:"output_changes,omitempty"`
+	ActionInvocations         []ActionInvocation         `json:"action_invocations,omitempty"`
+	PriorState                json.RawMessage            `json:"prior_state,omitempty"`
+	Config                    json.RawMessage            `json:"configuration,omitempty"`
+	RelevantAttributes        []ResourceAttr             `json:"relevant_attributes,omitempty"`
+	Checks                    json.RawMessage            `json:"checks,omitempty"`
+	Timestamp                 string                     `json:"timestamp,omitempty"`
+	Applyable                 bool                       `json:"applyable"`
+	Complete                  bool                       `json:"complete"`
+	Errored                   bool                       `json:"errored"`
 }
 
-func newPlan() *plan {
-	return &plan{
+func newPlan() *Plan {
+	return &Plan{
 		FormatVersion: FormatVersion,
 	}
 }
@@ -198,19 +200,16 @@ type variable struct {
 //
 // This function does a small part of the Marshal function, as it only returns
 // the part of the plan required by the jsonformat.Plan renderer.
-func MarshalForRenderer(
-	p *plans.Plan,
-	schemas *terraform.Schemas,
-) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, error) {
+func MarshalForRenderer(p *plans.Plan, schemas *terraform.Schemas) (*Plan, error) {
 	output := newPlan()
 
 	var err error
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	if output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	if len(p.DriftedResources) > 0 {
@@ -230,15 +229,26 @@ func MarshalForRenderer(
 		}
 		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
 
 	if err := output.marshalRelevantAttrs(p); err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
+	if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations, schemas); err != nil {
+		return nil, err
+	}
+
+	if len(p.DeferredResources) > 0 {
+		output.DeferredChanges, err = MarshalDeferredResourceChanges(p.DeferredResources, schemas)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return output, nil
 }
 
 // Marshal returns the json encoding of a terraform plan.
@@ -307,6 +317,13 @@ func Marshal(
 		}
 	}
 
+	if p.DeferredActionInvocations != nil {
+		output.DeferredActionInvocations, err = MarshalDeferredActionInvocations(p.DeferredActionInvocations, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling deferred action invocations: %s", err)
+		}
+	}
+
 	// output.OutputChanges
 	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
@@ -331,10 +348,17 @@ func Marshal(
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
+	// output.Changes.ActionInvocations
+	if p.Changes.ActionInvocations != nil {
+		if output.ActionInvocations, err = MarshalActionInvocations(p.Changes.ActionInvocations, schemas); err != nil {
+			return nil, fmt.Errorf("error marshaling action invocations: %s", err)
+		}
+	}
+
 	return json.Marshal(output)
 }
 
-func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
+func (p *Plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
 	p.Variables = make(variables, len(vars))
 
 	for k, v := range vars {
@@ -778,7 +802,7 @@ func MarshalOutputChanges(changes *plans.ChangesSrc) (map[string]Change, error) 
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
+func (p *Plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
@@ -796,7 +820,7 @@ func (p *plan) marshalPlannedValues(changes *plans.ChangesSrc, schemas *terrafor
 	return nil
 }
 
-func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
+func (p *Plan) marshalRelevantAttrs(plan *plans.Plan) error {
 	for _, ra := range plan.RelevantAttributes {
 		addr := ra.Resource.String()
 		path, err := encodePath(ra.Attr)

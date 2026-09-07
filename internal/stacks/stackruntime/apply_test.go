@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -64,10 +66,23 @@ func TestApply(t *testing.T) {
 
 	tcs := map[string]struct {
 		path   string
+		skip   bool
 		state  *stackstate.State
 		store  *stacks_testing_provider.ResourceStore
 		cycles []TestCycle
 	}{
+		"built-in provider used not present in required": {
+			path: "with-built-in-provider",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
+		"built-in provider used and explicitly defined in required providers": {
+			path: "with-built-in-provider-explicitly-defined",
+			cycles: []TestCycle{
+				{}, // plan, apply -> no diags
+			},
+		},
 		"creating inputs and outputs": {
 			path: "component-input-output",
 			cycles: []TestCycle{
@@ -2217,17 +2232,85 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"ephemeral-module-outputs": {
+			path: "ephemeral-module-output",
+			skip: true, // TODO(issues/37822): Enable this.
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                mustAbsComponentInstance("component.ephemeral_in"),
+							PlanApplyable:       false,
+							PlanComplete:        true,
+							Action:              plans.Create,
+							RequiredComponents:  collections.NewSet(mustAbsComponent("component.ephemeral_out")),
+							PlannedInputValues:  make(map[string]plans.DynamicValue),
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:               mustAbsComponentInstance("component.ephemeral_out"),
+							PlanApplyable:      false,
+							PlanComplete:       true,
+							Action:             plans.Create,
+							PlannedInputValues: make(map[string]plans.DynamicValue),
+							PlannedOutputValues: map[string]cty.Value{
+								"value": cty.DynamicVal, // ephemeral
+							},
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.ephemeral_in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_in"),
+							Dependencies: collections.NewSet[stackaddrs.AbsComponent](
+								mustAbsComponent("component.ephemeral_out"),
+							),
+							OutputValues: make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.UnknownVal(cty.String), // ephemeral
+							},
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.ephemeral_out"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_out"),
+							Dependents: collections.NewSet[stackaddrs.AbsComponent](
+								mustAbsComponent("component.ephemeral_in"),
+							),
+							OutputValues:   make(map[addrs.OutputValue]cty.Value),
+							InputVariables: make(map[addrs.InputVariable]cty.Value),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			if tc.skip {
+				t.Skip()
+			}
+
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -2435,8 +2518,8 @@ func TestApplyWithMovedResource(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -2613,8 +2696,8 @@ func TestApplyWithSensitivePropagation(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -2995,8 +3078,8 @@ func TestApplyWithFailedComponent(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3117,8 +3200,8 @@ func TestApplyWithFailedProviderLinkedComponent(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3234,8 +3317,8 @@ func TestApplyWithStateManipulation(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -3669,8 +3752,11 @@ func TestApplyWithStateManipulation(t *testing.T) {
 
 			// Check the counts during the apply for this test.
 			gotCounts := collections.NewMap[stackaddrs.AbsComponentInstance, *hooks.ComponentInstanceChange]()
+			var gotCountsMu sync.Mutex
 			ctx = ContextWithHooks(ctx, &stackeval.Hooks{
 				ReportComponentInstanceApplied: func(ctx context.Context, span any, change *hooks.ComponentInstanceChange) any {
+					gotCountsMu.Lock()
+					defer gotCountsMu.Unlock()
 					gotCounts.Put(change.Addr, change)
 					return span
 				},
@@ -3723,6 +3809,8 @@ func TestApplyWithStateManipulation(t *testing.T) {
 			}
 
 			wantCounts := tc.counts
+			gotCountsMu.Lock()
+			defer gotCountsMu.Unlock()
 			for key, elem := range wantCounts.All() {
 				// First, make sure everything we wanted is present.
 				if !gotCounts.HasKey(key) {
@@ -3761,8 +3849,8 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -3848,7 +3936,7 @@ func TestApplyWithChangedInputValues(t *testing.T) {
 			tfdiags.Error,
 			"Inconsistent value for input variable during apply",
 			"The value for non-ephemeral input variable \"input\" was set to a different value during apply than was set during plan. Only ephemeral input variables can change between the plan and apply phases."),
-		expectDiagnostic(tfdiags.Error, "Invalid inputs for component", "Invalid input variable definition object: attribute \"input\": string required."),
+		expectDiagnostic(tfdiags.Error, "Invalid inputs for component", "Input variable \"input\" could not be evaluated, additional diagnostics elsewhere should provide mode detail."),
 	)
 
 	wantChanges := []stackstate.AppliedChange{
@@ -3889,8 +3977,8 @@ func TestApplyAutomaticInputConversion(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 	req := PlanRequest{
@@ -4058,8 +4146,8 @@ func TestApply_DependsOnComponentWithNoInstances(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -4155,8 +4243,8 @@ func TestApply_WithProviderFunctions(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -4390,8 +4478,8 @@ func TestApplyFailedDependencyWithResourceInState(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -4560,8 +4648,8 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -4712,6 +4800,389 @@ func TestApplyManuallyRemovedResource(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, applyChanges, changesCmpOpts); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
+}
+
+func TestApply_WithPolicyResults(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_WithPolicyResults_EmbeddedStack(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation-embedded-stack")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	// Create a provider data store to indicate drift so the plan is applyable
+	dataStore := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("comp1-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp1-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp1-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-parent", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-parent"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		AddResource("comp2-child", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("comp2-child"),
+			"value": cty.StringVal("drifted value"),
+		})).
+		Build()
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.RefreshOnlyMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		PrevState:    policyEvaluationPriorState(t),
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, dataStore), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		// The module runtime currently does not evaluate resource policies during refresh, only module policies
+		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
+
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_WithPolicyResultsOnDestroy(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-evaluation")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.DestroyMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       cfg,
+		PrevState:    policyEvaluationPriorState(t),
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: cfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func TestApply_WithPolicyResultsOnRemovedComponent(t *testing.T) {
+	ctx := context.Background()
+	removedCfg := loadMainBundleConfigForTest(t, "policy-evaluation-removed")
+
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+
+	// Create comp1, remove/destroy comp2
+	priorState := stackstate.NewStateBuilder().
+		AddInput("component_names", cty.SetVal([]cty.Value{cty.StringVal("comp1"), cty.StringVal("comp2")})).
+		AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance(`component.simple_component["comp2"]`)).
+			AddInputVariable("name", cty.StringVal("comp2"))).
+		AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+			SetAddr(mustAbsResourceInstanceObject(`component.simple_component["comp2"].testing_resource.parent_resource`)).
+			SetProviderAddr(mustDefaultRootProvider("testing")).
+			SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+					"id":    "comp2-parent",
+					"value": "hello from the root of comp2",
+				}),
+			})).
+		AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+			SetAddr(mustAbsResourceInstanceObject(`component.simple_component["comp2"].module.child.testing_resource.child_resource`)).
+			SetProviderAddr(mustDefaultRootProvider("testing")).
+			SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+					"id":    "comp2-child",
+					"value": "hello from child module in comp2",
+				}),
+			})).
+		Build()
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode: plans.NormalMode,
+		// Omit policy client as we're not asserting policy results for the plan phase in this test
+		PolicyClient: nil,
+		Config:       removedCfg,
+		PrevState:    priorState,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+	})
+
+	gotPolicyResults := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config: removedCfg,
+		Plan:   plan,
+		ProviderFactories: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, policyEvaluationResourceStore(t)), nil
+			},
+		},
+		DependencyLocks: *lock,
+		PolicyClient:    policyEvaluationTestClient(t),
+	})
+
+	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
+		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
+		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
+	}
+
+	if diff := cmp.Diff(gotPolicyResults, wantPolicyResults, cmp.Comparer(simplePolicyDiagCompare)); diff != "" {
+		t.Errorf("wrong policy results\n%s", diff)
+	}
+}
+
+func planForApplyTest(t *testing.T, ctx context.Context, req PlanRequest) *stackplan.Plan {
+	t.Helper()
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors during plan\n%s", diags.ErrWithWarnings())
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			if err := planLoader.AddRaw(rawMsg); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return plan
+}
+
+func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRequest) map[string]map[string]policy.EvaluationResponse {
+	t.Helper()
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	resp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	var mu sync.Mutex
+	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
+	applyHooks := &Hooks{
+		ReportComponentInstancePolicyResult: func(ctx context.Context, a any, data *hooks.ComponentInstancePolicyResult) any {
+			mu.Lock()
+			defer mu.Unlock()
+
+			existingResults, ok := gotPolicyResults[data.ComponentAddr.String()]
+			if !ok {
+				gotPolicyResults[data.ComponentAddr.String()] = map[string]policy.EvaluationResponse{
+					data.ResourceAddr: data.Result,
+				}
+				return a
+			}
+
+			// Merge the two results together
+			existingResults[data.ResourceAddr] = data.Result
+
+			return a
+		},
+		ReportProviderInstancePolicyResult: func(ctx context.Context, data *hooks.ProviderInstancePolicyResults) {
+			mu.Lock()
+			defer mu.Unlock()
+			gotPolicyResults[data.Addr.String()] = map[string]policy.EvaluationResponse{
+				data.ProviderAddr: data.Result,
+			}
+		},
+	}
+
+	go Apply(ContextWithHooks(ctx, applyHooks), &req, &resp)
+	_, diags := collectApplyOutput(applyChangesCh, diagsCh)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors during apply\n%s", diags.ErrWithWarnings())
+	}
+
+	return gotPolicyResults
 }
 
 func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-chan tfdiags.Diagnostic) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {

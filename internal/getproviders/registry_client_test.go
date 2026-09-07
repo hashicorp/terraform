@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -24,12 +24,12 @@ import (
 func TestConfigureDiscoveryRetry(t *testing.T) {
 	t.Run("default retry", func(t *testing.T) {
 		if discoveryRetry != defaultRetry {
-			t.Fatalf("expected retry %q, got %q", defaultRetry, discoveryRetry)
+			t.Fatalf("expected retry %d, got %d", defaultRetry, discoveryRetry)
 		}
 
 		rc := newRegistryClient(nil, nil)
 		if rc.httpClient.RetryMax != defaultRetry {
-			t.Fatalf("expected client retry %q, got %q",
+			t.Fatalf("expected client retry %d, got %d",
 				defaultRetry, rc.httpClient.RetryMax)
 		}
 	})
@@ -44,13 +44,13 @@ func TestConfigureDiscoveryRetry(t *testing.T) {
 		configureDiscoveryRetry()
 		expected := 2
 		if discoveryRetry != expected {
-			t.Fatalf("expected retry %q, got %q",
+			t.Fatalf("expected retry %d, got %d",
 				expected, discoveryRetry)
 		}
 
 		rc := newRegistryClient(nil, nil)
 		if rc.httpClient.RetryMax != expected {
-			t.Fatalf("expected client retry %q, got %q",
+			t.Fatalf("expected client retry %d, got %d",
 				expected, rc.httpClient.RetryMax)
 		}
 	})
@@ -216,6 +216,11 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			// so we can test that the client-side code places them in the
 			// correct order (lowest precedence first).
 			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"2.0.0","protocols":["99.0"]},{"version":"1.2.0","protocols":["5.0"]}, {"version":"1.0.0","protocols":["5.0"]}]}`))
+		case "awesomesauce/invalidsemver":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			// This response includes an invalid semver version to test that the client properly ignores it
+			resp.Write([]byte(`{"versions":[{"version":"0.1.0","protocols":["1.0"]},{"version":"not-a-semver","protocols":["5.0"]},{"version":"1.0.0","protocols":["5.0"]}]}`))
 		case "weaksauce/unsupported-protocol":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StatePullCommand is a Command implementation that allows downloading
@@ -20,10 +22,25 @@ type StatePullCommand struct {
 }
 
 func (c *StatePullCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("state pull")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseStatePull(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
 		return 1
 	}
 
@@ -33,9 +50,10 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+	view := arguments.ViewHuman
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -48,9 +66,9 @@ func (c *StatePullCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+	stateMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
@@ -88,6 +106,17 @@ Usage: terraform [global options] state pull [options]
 
   The primary use of this is for state stored remotely. This command
   will still work with local state but is less useful for this.
+
+Options:
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 
 `
 	return strings.TrimSpace(helpText)

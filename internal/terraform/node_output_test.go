@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -25,28 +25,31 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 	ctx.ChecksState = checks.NewState(nil)
 	ctx.DeferralsState = deferring.NewDeferred(false)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &configs.Output{Name: "map-output", ConstraintType: cty.DynamicPseudoType}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
 		"a": cty.StringVal("b"),
 	})
 	ctx.EvaluateExprResult = val
+	scopedCtx := ctx.withScope(evalContextModuleInstance{
+		Addr: addrs.RootModuleInstance,
+	}).(*MockEvalContext)
 
-	err := node.Execute(ctx, walkApply)
+	err := node.Execute(scopedCtx, walkApply)
 	if err != nil {
 		t.Fatalf("unexpected execute error: %s", err)
 	}
 
-	outputVal := ctx.StateState.OutputValue(addr)
+	outputVal := scopedCtx.StateState.OutputValue(addr)
 	if got, want := outputVal.Value, val; !got.RawEquals(want) {
 		t.Errorf("wrong output value in state\n got: %#v\nwant: %#v", got, want)
 	}
 
-	if !ctx.RefreshStateCalled {
+	if !scopedCtx.RefreshStateCalled {
 		t.Fatal("should have called RefreshState, but didn't")
 	}
-	refreshOutputVal := ctx.RefreshStateState.OutputValue(addr)
+	refreshOutputVal := scopedCtx.RefreshStateState.OutputValue(addr)
 	if got, want := refreshOutputVal.Value, val; !got.RawEquals(want) {
 		t.Fatalf("wrong output value in refresh state\n got: %#v\nwant: %#v", got, want)
 	}
@@ -55,7 +58,7 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 func TestNodeApplyableOutputExecute_noState(t *testing.T) {
 	ctx := new(MockEvalContext)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &configs.Output{Name: "map-output", ConstraintType: cty.DynamicPseudoType}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
@@ -83,6 +86,7 @@ func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 				hcl.TraverseAttr{Name: "bar"},
 			},
 		},
+		ConstraintType: cty.DynamicPseudoType,
 	}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
@@ -105,7 +109,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.ChecksState = checks.NewState(nil)
 
-	config := &configs.Output{Name: "map-output"}
+	config := &configs.Output{Name: "map-output", ConstraintType: cty.DynamicPseudoType}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
@@ -129,8 +133,9 @@ func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
 	ctx.DeferralsState = deferring.NewDeferred(false)
 
 	config := &configs.Output{
-		Name:      "map-output",
-		Sensitive: true,
+		Name:           "map-output",
+		Sensitive:      true,
+		ConstraintType: cty.DynamicPseudoType,
 	}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}

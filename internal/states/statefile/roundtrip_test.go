@@ -1,11 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package statefile
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,7 +16,7 @@ import (
 
 func TestRoundtrip(t *testing.T) {
 	const dir = "testdata/roundtrip"
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,7 +36,7 @@ func TestRoundtrip(t *testing.T) {
 		outName := name + outSuffix
 
 		t.Run(name, func(t *testing.T) {
-			oSrcWant, err := ioutil.ReadFile(filepath.Join(dir, outName))
+			oSrcWant, err := os.ReadFile(filepath.Join(dir, outName))
 			if err != nil {
 				t.Fatal(err)
 			}

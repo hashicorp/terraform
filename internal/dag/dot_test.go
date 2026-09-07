@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package dag
@@ -32,6 +32,10 @@ type testDotVertex struct {
 	DotNodeTitle  string
 	DotNodeOpts   *DotOpts
 	DotNodeReturn *DotNode
+}
+
+func (v *testDotVertex) Name() string {
+	return "testDotVertex"
 }
 
 func (v *testDotVertex) DotNode(title string, opts *DotOpts) *DotNode {

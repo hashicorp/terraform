@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -27,21 +26,30 @@ type StatePushCommand struct {
 }
 
 func (c *StatePushCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var flagForce bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state push")
-	cmdFlags.BoolVar(&flagForce, "force", false, "")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseStatePush(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
-	args = cmdFlags.Args()
 
-	if len(args) != 1 {
-		c.Ui.Error("Exactly one argument expected.\n")
-		return cli.RunResultHelp
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
+		return 1
 	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
@@ -52,8 +60,8 @@ func (c *StatePushCommand) Run(args []string) int {
 	// Determine our reader for the input state. This is the filepath
 	// or stdin if "-" is given.
 	var r io.Reader = os.Stdin
-	if args[0] != "-" {
-		f, err := os.Open(args[0])
+	if parsedArgs.Path != "-" {
+		f, err := os.Open(parsedArgs.Path)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
@@ -72,14 +80,15 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Close()
 	}
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", args[0], err))
+		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err))
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(backendDiags)
+	view := arguments.ViewHuman
+	b, diags := c.backend(".", view)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -98,9 +107,9 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Get the state manager for the currently-selected workspace
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", sDiags.Err()))
 		return 1
 	}
 
@@ -128,14 +137,13 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Import it, forcing through the lineage/serial if requested and possible.
-	if err := statemgr.Import(srcStateFile, stateMgr, flagForce); err != nil {
+	if err := statemgr.Import(srcStateFile, stateMgr, parsedArgs.Force); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
 
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
-	var diags tfdiags.Diagnostics
 	if isCloudMode(b) {
 		schemas, diags = c.MaybeGetSchemas(srcStateFile.State, nil)
 	}
@@ -181,6 +189,15 @@ Options:
                       against the same workspace.
 
   -lock-timeout=0s    Duration to retry a state lock.
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 
 `
 	return strings.TrimSpace(helpText)

@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "command/login: display warning after successful login if user is subject to an organization's TTL policy"
+time: 2026-08-17T09:32:29.000000Z
+custom:
+    Issue: ""

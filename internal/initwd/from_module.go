@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package initwd
@@ -6,7 +6,6 @@ package initwd
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getmodules"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/zclconf/go-cty/cty"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/modsdir"
@@ -48,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, initializer Initializer, hooks ...ModuleInstallHook) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
@@ -59,7 +59,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// The target directory must exist but be empty.
 	{
-		entries, err := ioutil.ReadDir(rootDir)
+		entries, err := os.ReadDir(rootDir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -94,7 +94,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, loader, reg)
+	inst := NewModuleInstaller(instDir, loader, reg, initializer)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
@@ -129,24 +129,18 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	sourceAddr, err := moduleaddrs.ParseModuleSource(sourceAddrStr)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid module source address",
-			fmt.Sprintf("Failed to parse module source address: %s", err),
-		))
+	fakeRange := hcl.Range{
+		Filename: initFromModuleRootFilename,
+		Start:    hcl.InitialPos,
+		End:      hcl.InitialPos,
 	}
 	fakeRootModule := &configs.Module{
 		ModuleCalls: map[string]*configs.ModuleCall{
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
-				SourceAddr: sourceAddr,
-				DeclRange: hcl.Range{
-					Filename: initFromModuleRootFilename,
-					Start:    hcl.InitialPos,
-					End:      hcl.InitialPos,
-				},
+				SourceExpr: hcl.StaticExpr(cty.StringVal(sourceAddrStr), fakeRange),
+				Config:     hcl.EmptyBody(),
+				DeclRange:  fakeRange,
 			},
 		},
 		ProviderRequirements: &configs.RequiredProviders{},
@@ -166,10 +160,45 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	}
 	fetcher := getmodules.NewPackageFetcher()
 
-	walker := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
-	_, cDiags := inst.installDescendantModules(fakeRootModule, instManifest, walker, true)
-	if cDiags.HasErrors() {
-		return diags.Append(cDiags)
+	// When attempting to initialize the current directory with a module
+	// source, some use cases may want to ignore configuration errors from the
+	// building of the entire configuration structure, but we still need to
+	// capture installation errors. Because the actual module installation
+	// happens in the ModuleWalkFunc callback while building the config, we
+	// need to create a closure to capture the installation diagnostics
+	// separately.
+	walker := inst.moduleInstallWalker(ctx, instManifest, true, fetcher, wrapHooks)
+	var installDiags hcl.Diagnostics
+	initWalker := configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+		mod, version, moreDiags := walker.LoadModule(req)
+		installDiags = installDiags.Extend(moreDiags)
+		return mod, version, moreDiags
+	})
+	_, initDiags := initializer(fakeRootModule, initWalker)
+	diags = diags.Append(initDiags)
+	if installDiags.HasErrors() {
+		// We can't continue if there was an error during installation, but
+		// return all diagnostics in case there happens to be anything else
+		// useful when debugging the problem. Any instDiags will be included in
+		// diags already.
+		return diags
+	}
+
+	// If there are any errors here, they must be only from building the
+	// config structures. We don't want to block initialization at this
+	// point, so convert these into warnings. Any actual errors in the
+	// configuration will be raised as soon as the config is loaded again.
+	// We continue below because writing the manifest is required to finish
+	// module installation.
+	diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
+
+	err = instManifest.WriteSnapshotToDir(instDir)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to update module manifest",
+			fmt.Sprintf("Unable to write the module manifest file: %s", err),
+		))
 	}
 
 	// If all of that succeeded then we'll now migrate what was installed
@@ -215,9 +244,21 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			mod, _ := loader.Parser().LoadConfigDir(rootDir) // ignore diagnostics since we're just doing value-add here anyway
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
-					if pathTraversesUp(mc.SourceAddrRaw) {
+					sourceVal, _ := mc.SourceExpr.Value(nil)
+					if !sourceVal.IsKnown() {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Unknown module source",
+							Detail:   "Dynamic module sources cannot be used in conjunction with -from-module",
+							Subject:  mc.SourceExpr.Range().Ptr(),
+						})
+						return diags
+					}
+
+					sourceRaw := sourceVal.AsString()
+					if pathTraversesUp(sourceRaw) {
 						packageAddr, givenSubdir := moduleaddrs.SplitPackageSubdir(sourceAddrStr)
-						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
+						newSubdir := filepath.Join(givenSubdir, sourceRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable
 							// configuration since this suggests a path that
@@ -331,7 +372,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			newRecord.Dir = newDir
 			newRecord.Key = newKey
 			retManifest[newKey] = newRecord
-			hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			// Call the original hooks here, not the wrapper
+			for _, hook := range hooks {
+				hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+			}
 			continue
 		}
 
@@ -369,7 +413,10 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		newRecord.Dir = filepath.Join(instPath, subDir)
 		newRecord.Key = newKey
 		retManifest[newKey] = newRecord
-		hooks.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		// Call the original hooks here, not the wrapper
+		for _, hook := range hooks {
+			hook.Install(newRecord.Key, newRecord.Version, newRecord.Dir)
+		}
 	}
 
 	retManifest.WriteSnapshotToDir(modulesDir)
@@ -402,8 +449,19 @@ func pathTraversesUp(path string) bool {
 // does its own installation steps after the initial installation pass
 // has completed.
 type installHooksInitDir struct {
-	Wrapped ModuleInstallHooks
-	ModuleInstallHooksImpl
+	Wrapped []ModuleInstallHook
+	ModuleInstallHookImpl
+}
+
+// ModuleSourceResolved calls ModuleSourceResolved on each wrapped hook and returns the first error it encounters.
+func (h installHooksInitDir) ModuleSourceResolved(ctx context.Context, req *configs.ModuleRequest, version string) tfdiags.Diagnostics {
+	for _, hook := range h.Wrapped {
+		diags := hook.ModuleSourceResolved(ctx, req, version)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+	return nil
 }
 
 func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *version.Version) {
@@ -415,5 +473,7 @@ func (h installHooksInitDir) Download(moduleAddr, packageAddr string, version *v
 	}
 
 	trimAddr := moduleAddr[len(initFromModuleRootKeyPrefix):]
-	h.Wrapped.Download(trimAddr, packageAddr, version)
+	for _, hook := range h.Wrapped {
+		hook.Download(trimAddr, packageAddr, version)
+	}
 }

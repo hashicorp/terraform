@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -39,6 +39,7 @@ type Checkable interface {
 
 	CheckableKind() CheckableKind
 	String() string
+	ModuleInstance() ModuleInstance
 }
 
 var (

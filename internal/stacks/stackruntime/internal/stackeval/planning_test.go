@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -852,17 +851,9 @@ func TestPlanning_PathValues(t *testing.T) {
 			t.Fatalf("failed to get current working directory: %s", err)
 		}
 
-		normalizePath := func(path string) string {
-			rel, err := filepath.Rel(cwd, path)
-			if err != nil {
-				t.Errorf("rel(%s,%s): %s", cwd, path, err)
-				return path
-			}
-			return rel
-		}
-
+		// path.cwd should be absolute and all others should be relative, as per documentation.
 		expected := map[string]string{
-			"cwd":          ".",
+			"cwd":          cwd,
 			"root":         "testdata/sourcebundle/planning/path_values/module",       // this is the root module of the component
 			"module":       "testdata/sourcebundle/planning/path_values/module",       // this is the root module
 			"child_root":   "testdata/sourcebundle/planning/path_values/module",       // should be the same for all modules
@@ -870,11 +861,11 @@ func TestPlanning_PathValues(t *testing.T) {
 		}
 
 		actual := map[string]string{
-			"cwd":          normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "cwd"}].AsString()),
-			"root":         normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "root"}].AsString()),
-			"module":       normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "module"}].AsString()),
-			"child_root":   normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "child_root"}].AsString()),
-			"child_module": normalizePath(component.PlannedOutputValues[addrs.OutputValue{Name: "child_module"}].AsString()),
+			"cwd":          component.PlannedOutputValues[addrs.OutputValue{Name: "cwd"}].AsString(),
+			"root":         component.PlannedOutputValues[addrs.OutputValue{Name: "root"}].AsString(),
+			"module":       component.PlannedOutputValues[addrs.OutputValue{Name: "module"}].AsString(),
+			"child_root":   component.PlannedOutputValues[addrs.OutputValue{Name: "child_root"}].AsString(),
+			"child_module": component.PlannedOutputValues[addrs.OutputValue{Name: "child_module"}].AsString(),
 		}
 
 		if cmp.Diff(expected, actual) != "" {
@@ -950,8 +941,8 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 	lock := depsfile.NewLocks()
 	lock.SetProvider(
 		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
+		providerreqs.MustParseVersion("0.0.1"),
+		providerreqs.MustParseVersionConstraints("0.0.1"),
 		providerreqs.PreferredHashes([]providerreqs.Hash{}),
 	)
 
@@ -977,7 +968,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 		assertNoDiagnostics(t, diags)
 		return rawPlan, nil
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1022,7 +1012,8 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 					expectedString := cty.StringVal("through-local-aloha-foo-foo")
 					expectedList := []cty.Value{
 						cty.StringVal("through-local-aloha-foo"),
-						cty.StringVal("foo")}
+						cty.StringVal("foo"),
+					}
 
 					expectedMap := map[string]cty.Value{
 						"key":   cty.StringVal("through-local-aloha-foo"),
@@ -1049,7 +1040,6 @@ func TestPlanning_LocalsDataSource(t *testing.T) {
 
 		return state, nil
 	})
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1061,4 +1051,140 @@ func mustPlanDynamicValue(t *testing.T, v cty.Value) *tfstackdata1.DynamicValue 
 		t.Fatal(err)
 	}
 	return tfstackdata1.Terraform1ToStackDataDynamicValue(ret)
+}
+
+func TestPlanning_ActionInvocationLifecycle(t *testing.T) {
+	// This integration test verifies that action invocations with lifecycle
+	// triggers are correctly planned and included in the PlannedChange objects.
+
+	cfg := testStackConfig(t, "planning", "action_lifecycle")
+	componentInstAddr := stackaddrs.AbsComponentInstance{
+		Stack: stackaddrs.RootStackInstance,
+		Item: stackaddrs.ComponentInstance{
+			Component: stackaddrs.Component{
+				Name: "web",
+			},
+		},
+	}
+	actionInstAddr := addrs.AbsActionInstance{
+		Module: addrs.RootModuleInstance,
+		Action: addrs.ActionInstance{
+			Action: addrs.Action{
+				Type: "test_action",
+				Name: "notify",
+			},
+			Key: addrs.NoKey,
+		},
+	}
+	providerAddr := addrs.NewBuiltInProvider("test")
+	providerInstAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: providerAddr,
+	}
+
+	resourceTypeSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"value": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	actionTypeSchema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"message": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	main := NewForPlanning(cfg, stackstate.NewState(), PlanOpts{
+		PlanningMode:  plans.NormalMode,
+		PlanTimestamp: time.Now().UTC(),
+		ProviderFactories: ProviderFactories{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				return &providerTesting.MockProvider{
+					GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+						Provider: providers.Schema{
+							Body: &configschema.Block{},
+						},
+						ResourceTypes: map[string]providers.Schema{
+							"test_resource": {
+								Body: resourceTypeSchema,
+							},
+						},
+						Actions: map[string]providers.ActionSchema{
+							"test_action": {
+								ConfigSchema: actionTypeSchema,
+							},
+						},
+					},
+					ConfigureProviderFn: func(cpr providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+						return providers.ConfigureProviderResponse{}
+					},
+					PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+						return providers.PlanResourceChangeResponse{
+							PlannedState: prcr.ProposedNewState,
+						}
+					},
+				}, nil
+			},
+		},
+	})
+
+	outp, outpTest := testPlanOutput(t)
+	main.PlanAll(context.Background(), outp)
+	plan, diags := outpTest.Close(t)
+	assertNoDiagnostics(t, diags)
+
+	cmpPlan := plan.GetComponent(componentInstAddr)
+	if cmpPlan == nil {
+		t.Fatalf("no plan for %s", componentInstAddr)
+	}
+
+	// Verify that we have planned changes for action invocations
+	plannedChanges := outpTest.PlannedChanges()
+	var foundActionChange *stackplan.PlannedChangeActionInvocationInstancePlanned
+	for _, pc := range plannedChanges {
+		if actionChange, ok := pc.(*stackplan.PlannedChangeActionInvocationInstancePlanned); ok {
+			foundActionChange = actionChange
+			break
+		}
+	}
+
+	if foundActionChange == nil {
+		t.Fatalf("no action invocation planned change found; got %d changes", len(plannedChanges))
+	}
+
+	// Verify the action invocation details
+	if got, want := foundActionChange.ActionInvocationAddr.Component.String(), componentInstAddr.String(); got != want {
+		t.Errorf("wrong component instance\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := foundActionChange.ActionInvocationAddr.Item.String(), actionInstAddr.String(); got != want {
+		t.Errorf("wrong action instance\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := foundActionChange.ProviderConfigAddr.String(), providerInstAddr.String(); got != want {
+		t.Errorf("wrong provider config addr\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// Verify the invocation has the correct trigger type
+	if foundActionChange.Invocation == nil {
+		t.Fatal("invocation is nil")
+	}
+	if _, ok := foundActionChange.Invocation.ActionTrigger.(*plans.ResourceActionTrigger); !ok {
+		t.Errorf("wrong action trigger type\ngot:  %T\nwant: *plans.ResourceActionTrigger", foundActionChange.Invocation.ActionTrigger)
+	}
+
+	// Verify we can convert to proto successfully
+	protoChange, err := foundActionChange.PlannedChangeProto()
+	if err != nil {
+		t.Fatalf("failed to convert to proto: %s", err)
+	}
+	if protoChange == nil {
+		t.Fatal("proto change is nil")
+	}
+	if len(protoChange.Descriptions) == 0 {
+		t.Error("expected at least one description in proto change")
+	}
 }

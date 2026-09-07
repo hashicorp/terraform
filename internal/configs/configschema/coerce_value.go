@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -31,6 +31,7 @@ func (b *Block) CoerceValue(in cty.Value) (cty.Value, error) {
 
 func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 	convType := b.specType()
+
 	impliedType := convType.WithoutOptionalAttributesDeep()
 
 	switch {
@@ -73,10 +74,19 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q has none of required, optional, or computed set", name)
 		}
 
+		// check for NestingGroup which cannot be null
+		if attrS.NestedType != nil && attrS.NestedType.Nesting == NestingGroup && val.IsNull() {
+			// we can cheat here and use EmptyValue to get a "zero" value
+			// object, and expect the conversion to turn out the correct final
+			// object type
+			val = cty.EmptyObjectVal
+		}
+
 		val, err := convert.Convert(val, attrConvType)
 		if err != nil {
 			return cty.UnknownVal(impliedType), append(path, cty.GetAttrStep{Name: name}).NewError(err)
 		}
+
 		attrs[name] = val
 	}
 

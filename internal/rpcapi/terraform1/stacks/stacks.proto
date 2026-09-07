@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
@@ -257,13 +257,28 @@ message PlanStackChanges {
     int64 dependency_locks_handle = 4;
     int64 provider_cache_handle = 5;
     map<string, DynamicValueWithSource> input_values = 6;
-    // TODO: Various other planning options
+
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 8;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 9;
+    PolicyEntitlement policy_entitlement = 10;
   }
   message Event {
     oneof event {
       PlannedChange planned_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 10;
+      
+      // Resources and modules evaluate policies for each component instance
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 11;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 13;
     }
     reserved 3 to 9; // formerly used for individual progress events
   }
@@ -325,6 +340,13 @@ message ApplyStackChanges {
     // creating the plan.
     map<string, DynamicValueWithSource> input_values = 7;
 
+    // The path to the tfpolicy-plugin to use for evaluating policies. If omitted will skip policy evaluation.
+    optional string tfpolicy_plugin_path = 9;
+
+    // Paths to the policies to evaluate. If no policies are provided, will skip policy evaluation.
+    repeated string policy_paths = 10;
+    PolicyEntitlement policy_entitlement = 11;
+
     reserved 2; // (formerly the previous state, but we now propagate that as part of planned_changes as an implementation detail)
   }
   message Event {
@@ -332,6 +354,15 @@ message ApplyStackChanges {
       AppliedChange applied_change = 1;
       terraform1.Diagnostic diagnostic = 2;
       StackChangeProgress progress = 3;
+
+      // Resources and modules evaluate policies for each component instance
+      ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 4;
+
+      // Providers evaluate policy for each instance in a stack
+      ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
+
+      // Diagnostics that are returned when connecting/setting up the policy client
+      PolicySetupDiagnostics policy_setup_diagnostics = 6;
     }
   }
 }
@@ -406,6 +437,14 @@ message AttributePath {
   repeated Step steps = 1;
 }
 
+// Represents the address of a specific provider instance within a stack.
+message ProviderInstanceInStackAddr {
+  // The address of the static provider config that this is an instance of.
+  string provider_addr = 1;
+  // The address of the provider instance config.
+  string provider_instance_addr = 2;
+}
+
 // Represents the address of a specific component instance within a stack.
 message ComponentInstanceInStackAddr {
   // The address of the static component that this is an instance of.
@@ -415,6 +454,19 @@ message ComponentInstanceInStackAddr {
   // instance keys on the component itself or instance keys on any
   // of the containing embedded stacks.
   string component_instance_addr = 2;
+}
+
+// Represents the address of a specific action inside a specific 
+// component instance within the containing stack.
+message ActionInvocationInstanceInStackAddr {
+  // Unique address of the component instance that this action instance
+  // belongs to. 
+  string component_instance_addr = 1;
+  // Unique address of the action instance within the given component
+  // instance. Each component instance has a separate namespace of
+  // action instance addresses, so callers must take both fields together
+  // to produce a key that's unique throughout the entire plan.
+  string action_invocation_instance_addr = 2;
 }
 
 // Represents the address of a specific resource instance inside a specific
@@ -525,6 +577,8 @@ message PlannedChange {
       bool plan_applyable = 4;
       ResourceInstanceDeferred resource_instance_deferred = 5;
       InputVariable input_variable_planned = 6;
+      ActionInvocationInstance action_invocation_planned = 7;
+      ActionInvocationDeferred action_invocation_deferred = 8;
     }
   }
 
@@ -550,6 +604,7 @@ message PlannedChange {
     // unexpected differences caused by such situations as contradictory
     // configuration or provider bugs.
     bool plan_complete = 3;
+    map<string,DynamicValue> output_values = 4;
   }
   message ResourceInstance {
     ResourceInstanceObjectInStackAddr addr = 1;
@@ -627,6 +682,63 @@ message PlannedChange {
     DynamicValueChange values = 3;
     bool required_during_apply = 4;
   }
+
+  // ActionTriggerEvent describes the reason an action was triggered
+  enum ActionTriggerEvent {
+      INVALID_EVENT = 0;
+      BEFORE_CREATE = 1;
+      AFTER_CREATE = 2;
+      BEFORE_UPDATE = 3;
+      AFTER_UPDATE = 4;
+      BEFORE_DESTROY = 5;
+      AFTER_DESTROY = 6;
+      INVOKE = 7;
+  }
+
+  // ActionInvocationInstance contains a planned action invocation and any embedded ResourceInstanceActionChanges
+  message ActionInvocationInstance {
+      ActionInvocationInstanceInStackAddr addr = 1;
+
+      // provider is the address of the provider configuration that this change
+      // was planned with, and thus the configuration that must be used to
+      // apply it.
+      string provider_addr = 2;
+
+      // The type of the action used to extract schema information
+      string action_type = 3;
+
+      DynamicValue config_value = 4;
+
+      oneof action_trigger {
+          ResourceActionTrigger resource_action_trigger = 6;
+          InvokeActionTrigger invoke_action_trigger = 7;
+      }
+  }
+
+  // ActionInvocationDeferred represents an action invocation that
+  // was deferred for some reason.
+  // It contains the original action invocation that was deferred, along with the reason
+  // why it was deferred.
+  message ActionInvocationDeferred {
+    // The reason why it was deferred
+    Deferred deferred = 1;
+
+    // The original action invocation that was deferred
+    ActionInvocationInstance action_invocation = 2;
+  }
+
+  // ResourceActionTrigger contains details on the conditions that led to the
+  // triggering of an action.
+  message ResourceActionTrigger {
+    ResourceInstanceInStackAddr triggering_resource_address = 1;
+    ActionTriggerEvent trigger_event = 2;
+    int64 action_trigger_block_index = 3;
+    int64 actions_list_index = 4;
+  }
+
+  // InvokeActionTrigger indicates the action was triggered by the invoke command
+  // on the CLI.
+  message InvokeActionTrigger {}
 }
 
 // Deferred contains all the metadata about a the deferral of a resource
@@ -793,6 +905,9 @@ message StackChangeProgress {
     ComponentInstanceChanges component_instance_changes = 6;
     ComponentInstances component_instances = 7;
     DeferredResourceInstancePlannedChange deferred_resource_instance_planned_change = 8;
+    ActionInvocationPlanned action_invocation_planned = 9;
+    ActionInvocationStatus action_invocation_status = 10;
+    ActionInvocationProgress action_invocation_progress = 11;
   }
 
   // ComponentInstanceStatus describes the current status of a component instance
@@ -861,6 +976,70 @@ message StackChangeProgress {
     ResourceInstancePlannedChange change = 2;
   }
 
+  message ActionInvocationPlanned {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      string provider_addr = 2;
+      oneof action_trigger {
+        ResourceActionTrigger resource_action_trigger = 3;
+        InvokeActionTrigger invoke_action_trigger = 4;
+      }
+  }
+
+  message ActionInvocationStatus {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      Status status = 2;
+      string provider_addr = 3;
+
+      oneof action_trigger {
+        ResourceActionTrigger resource_action_trigger = 4;
+        InvokeActionTrigger invoke_action_trigger = 5;
+      }
+
+      enum Status {
+        INVALID = 0;
+        PENDING = 1;
+        RUNNING = 2;
+        COMPLETED = 3;
+        ERRORED = 4;
+      }
+  }
+
+  message ActionInvocationProgress {
+      ActionInvocationInstanceInStackAddr addr = 1;
+      string message = 2;
+      string provider_addr = 3;
+
+      oneof action_trigger {
+        ResourceActionTrigger resource_action_trigger = 4;
+        InvokeActionTrigger invoke_action_trigger = 5;
+      }
+  }
+
+  // ResourceActionTrigger contains details on the conditions that led to the
+  // triggering of an action.
+  message ResourceActionTrigger {
+    ResourceInstanceInStackAddr triggering_resource_address = 1;
+    ActionTriggerEvent trigger_event = 2;
+    int64 action_trigger_block_index = 3;
+    int64 actions_list_index = 4;
+  }
+
+  // InvokeActionTrigger indicates the action was triggered by the invoke command
+  // on the CLI.
+  message InvokeActionTrigger {}
+
+  // ActionTriggerEvent describes the reason an action was triggered
+  enum ActionTriggerEvent {
+      INVALID_EVENT = 0;
+      BEFORE_CREATE = 1;
+      AFTER_CREATE = 2;
+      BEFORE_UPDATE = 3;
+      AFTER_UPDATE = 4;
+      BEFORE_DESTROY = 5;
+      AFTER_DESTROY = 6;
+      INVOKE = 7;
+  }
+
   // ProvisionerStatus represents the progress of a given provisioner during its
   // resource instance's apply operation.
   message ProvisionerStatus {
@@ -904,6 +1083,7 @@ message StackChangeProgress {
     int32 defer = 7;
     int32 move = 8;
     int32 forget = 9;
+    int32 action_invocation = 10;
   }
 
   // ComponentInstances represents the result of expanding a component into zero
@@ -934,4 +1114,97 @@ message ListResourceIdentities {
     string resource_instance_addr = 3;
     DynamicValue resource_identity = 4;
   }
+}
+
+message ComponentInstancePolicyEvaluation {
+  ComponentInstanceInStackAddr addr = 1;
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message ProviderInstancePolicyEvaluation {
+  ProviderInstanceInStackAddr addr = 1;
+  repeated PolicyResult results = 2;
+  repeated PolicyInfo infos = 3;
+  repeated PolicyDiagnostic diagnostics = 4;
+}
+
+message PolicySetupDiagnostics {
+  repeated PolicyDiagnostic diagnostics = 1;
+}
+
+message PolicyMetaData {
+  string policy_name = 1;
+  string policy_set_name = 2;
+  string enforcement_level = 3;
+  string file_name = 4;
+  int32 enforce_index = 5;
+}
+
+message PolicyResult {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+}
+
+message PolicyInfo {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  string message = 3;
+  PolicyRange policy_range = 4;
+  PolicySnippet policy_snippet = 5;
+  EvaluateResult result = 6;
+
+  // Range related to the target_address
+  terraform1.SourceRange range = 7;
+}
+
+message PolicySnippet {
+  string context = 1;
+  string code = 2;
+  int64 start_line = 3;
+  int64 highlight_start_offset = 4;
+  int64 highlight_end_offset = 5;
+}
+
+message PolicyDiagnostic {
+  string target_address = 1;
+  PolicyMetaData policy_metadata = 2;
+  EvaluateResult result = 3;
+  terraform1.Diagnostic diagnostic = 4;
+  PolicySnippet policy_snippet = 5;
+  PolicyRange policy_range = 6;
+  repeated ExpressionValue expression_values = 7;
+}
+
+// Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
+enum EvaluateResult {
+  INVALID_EVALUATE_RESULT = 0;
+  UNKNOWN_EVALUATE_RESULT = 1;
+  ERROR_EVALUATE_RESULT = 2;
+  ALLOW_EVALUATE_RESULT = 3;
+  DENY_EVALUATE_RESULT = 4;
+  SETUP_ERROR_EVALUATE_RESULT = 5;
+}
+
+// Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
+message ExpressionValue {
+  AttributePath traversal = 1;
+  bytes value = 2;
+}
+
+// PolicyRange is similar to terraform1.SourceRange but is separated to avoid confusion because
+// policies are not included in the source bundle, which results in them having a file path rather
+// than a full source address.
+message PolicyRange {
+    string filename = 1;
+    terraform1.SourcePos start = 2;
+    terraform1.SourcePos end = 3;
+}
+
+message PolicyEntitlement { 
+  string host  = 1;
+  string token = 2;
+  string org   = 3;
 }

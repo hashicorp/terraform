@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -13,4 +13,20 @@ func Sourceless(severity Severity, summary, detail string) Diagnostic {
 		summary:  summary,
 		detail:   detail,
 	}
+}
+
+// SourcelessWithExtra is like Sourceless but also attaches an arbitrary extra
+// value that callers can retrieve with ExtraInfo.
+func SourcelessWithExtra(severity Severity, summary, detail string, extra interface{}) Diagnostic {
+	return diagnosticBase{
+		severity: severity,
+		summary:  summary,
+		detail:   detail,
+		extra:    extra,
+	}
+}
+
+// ListBlockAddrExtra identifies the list block associated with a diagnostic.
+type ListBlockAddrExtra struct {
+	ListBlockAddr string
 }

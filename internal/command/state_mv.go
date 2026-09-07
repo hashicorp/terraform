@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -6,8 +6,6 @@ package command
 import (
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -26,27 +24,33 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	// We create two metas to track the two states
-	var backupPathOut, statePathOut string
-
-	var dryRun bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state mv")
-	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	cmdFlags.StringVar(&statePathOut, "state-out", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(args))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
 		return 1
 	}
-	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("Exactly two arguments expected.\n")
-		return cli.RunResultHelp
+
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
+		return 1
 	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
@@ -58,7 +62,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	// and the state option is not set, make sure
 	// the backend is local
 	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.statePath == ""
-	backupOutOptionSetWithoutStateOption := backupPathOut != "-" && c.statePath == ""
+	backupOutOptionSetWithoutStateOption := parsedArgs.BackupOutPath != "-" && c.statePath == ""
 
 	var setLegacyLocalBackendOptions []string
 	if backupOptionSetWithoutStateOption {
@@ -92,7 +96,8 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Read the from state
-	stateFromMgr, err := c.State()
+	view := arguments.ViewHuman
+	stateFromMgr, err := c.State(view)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -126,11 +131,11 @@ func (c *StateMvCommand) Run(args []string) int {
 	stateToMgr := stateFromMgr
 	stateTo := stateFrom
 
-	if statePathOut != "" {
-		c.statePath = statePathOut
-		c.backupPath = backupPathOut
+	if parsedArgs.StateOutPath != "" {
+		c.statePath = parsedArgs.StateOutPath
+		c.backupPath = parsedArgs.BackupOutPath
 
-		stateToMgr, err = c.State()
+		stateToMgr, err = c.State(view)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
@@ -161,9 +166,9 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	var diags tfdiags.Diagnostics
-	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[0])
+	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.SourceAddr)
 	diags = diags.Append(moreDiags)
-	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, args[1])
+	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -171,7 +176,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	prefix := "Move"
-	if dryRun {
+	if parsedArgs.DryRun {
 		prefix = "Would move"
 	}
 
@@ -230,7 +235,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 			moved++
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
-			if !dryRun {
+			if !parsedArgs.DryRun {
 				ssFrom.RemoveModule(addrFrom)
 
 				// Update the address before adding it to the state.
@@ -275,7 +280,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 			moved++
 			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
-			if !dryRun {
+			if !parsedArgs.DryRun {
 				ssFrom.RemoveResource(addrFrom)
 
 				// Update the address before adding it to the state.
@@ -328,8 +333,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 
 			moved++
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), args[1]))
-			if !dryRun {
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), parsedArgs.DestAddr))
+			if !parsedArgs.DryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
 				fromResource := ssFrom.Resource(fromResourceAddr)
 				fromProviderAddr := fromResource.ProviderConfig
@@ -384,14 +389,15 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	if dryRun {
+	if parsedArgs.DryRun {
 		if moved == 0 {
 			c.Ui.Output("Would have moved nothing.")
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	b, backendDiags := c.Backend(nil)
+	// Load the backend
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -551,6 +557,15 @@ Options:
 
   -ignore-remote-version  A rare option used for the remote backend only. See
                           the remote backend documentation for more information.
+
+  -var 'foo=bar'          Set a value for one of the input variables in the root
+                          module of the configuration. Use this option more than
+                          once to set more than one variable.
+
+  -var-file=filename      Load variable values from the given file, in addition
+                          to the default files terraform.tfvars and *.auto.tfvars.
+                          Use this option more than once to include more than one
+                          variables file.
 
   -state, state-out, and -backup are legacy options supported for the local
   backend only. For more information, see the local backend's documentation.

@@ -1,0 +1,1 @@
+testdata/config-diagnostics/list-in-child-module/child/main.tfquery.hcl:1,1-28: Invalid list configuration; A list block was detected in "module.child". List blocks are only allowed in the root module.

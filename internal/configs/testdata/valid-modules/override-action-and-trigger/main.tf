@@ -1,9 +1,13 @@
 action "test_action" "test" {
-    foo = "bar"
+    config {
+      foo = "bar"
+    }
 }
 
 action "test_action" "unchanged" {
-    foo = "bar"
+    config {
+      foo = "bar"
+    }
 }
 
 resource "test_instance" "test" {

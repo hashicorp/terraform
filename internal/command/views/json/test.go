@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package json
@@ -39,6 +39,10 @@ type TestSuiteSummary struct {
 
 type TestFileCleanup struct {
 	FailedResources []TestFailedResource `json:"failed_resources"`
+}
+
+type TestFileCleanupSkipped struct {
+	SkippedResources []TestFailedResource `json:"skipped_resources"`
 }
 
 type TestFailedResource struct {

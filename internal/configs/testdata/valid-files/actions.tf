@@ -1,5 +1,7 @@
 action "provider_reboot" "powercycle" {
+  config {
     method = "biggest_hammer"  // drop it in the ocean, i presume
+  }
 }
 
 resource "aws_security_group" "firewall" {
@@ -11,7 +13,6 @@ resource "aws_security_group" "firewall" {
     ]
     action_trigger {
         events = [after_create, after_update]
-        condition = has_changed(self.environment)
         actions = [action.provider_reboot.powercycle]
     }
   }

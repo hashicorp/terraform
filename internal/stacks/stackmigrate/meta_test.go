@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackmigrate
@@ -58,7 +58,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 // existing workflows with invalid workspace names.
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
 	td := t.TempDir()
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// this is an invalid workspace name
 	workspace := "test workspace"
@@ -78,31 +78,16 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 
 	m := new(Meta)
 
+	// Normally, errors are returned when selecting an invalid workspace.
 	ws, err := m.Workspace()
-	if ws != workspace {
+	if ws != "" {
 		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
 	}
-	if err != nil {
-		t.Errorf("Unexpected error: %s", err)
-	}
-}
-
-// testChdir changes the directory and returns a function to defer to
-// revert the old cwd.
-func testChdir(t *testing.T, new string) func() {
-	t.Helper()
-
-	old, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if err == nil {
+		t.Errorf("Expected error but got none")
 	}
 
-	if err := os.Chdir(new); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	return func() {
-		// Re-run the function ignoring the defer result
-		testChdir(t, old)
-	}
+	// The Meta in the command package has a field `bypassWorkspaceNameValidityCheck` that allows
+	// a selected workspace to be invalid in specific commands (i.e. enough to enable users to recover from an invalid value).
+	// This can be implemented in Stacks when/if needed.
 }

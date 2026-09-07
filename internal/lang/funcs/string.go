@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package funcs
@@ -439,14 +439,4 @@ func isValidTemplateStringExpr(expr hcl.Expression) bool {
 		// Nothing else is allowed.
 		return false
 	}
-}
-
-// Replace searches a given string for another given substring,
-// and replaces all occurences with a given replacement string.
-func Replace(str, substr, replace cty.Value) (cty.Value, error) {
-	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
-}
-
-func StrContains(str, substr cty.Value) (cty.Value, error) {
-	return StrContainsFunc.Call([]cty.Value{str, substr})
 }

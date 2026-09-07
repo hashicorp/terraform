@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2e
@@ -7,10 +7,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/plans"
@@ -18,6 +18,10 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
+
+// TestExperimentsAllowedArgs is a slice of args that can be passed to [GoBuild]
+// to build a terraform binary with experimental features enabled.
+var TestExperimentsAllowedArgs = []string{"-ldflags", "-X 'main.experimentsAllowed=yes'"}
 
 // Type binary represents the combination of a compiled binary
 // and a temporary working directory to run it in.
@@ -113,6 +117,17 @@ func (b *binary) AddEnv(entry string) {
 	b.env = append(b.env, entry)
 }
 
+// RemoveEnv removes an entry from the environment variable table passed to any
+// commands subsequently run.
+func (b *binary) RemoveEnv(name string) {
+	for i, e := range b.env {
+		if strings.HasPrefix(e, name+"=") {
+			b.env = append(b.env[:i], b.env[i+1:]...)
+			break
+		}
+	}
+}
+
 // Cmd returns an exec.Cmd pre-configured to run the generated Terraform
 // binary with the given arguments in the temporary working directory.
 //
@@ -170,7 +185,7 @@ func (b *binary) OpenFile(path ...string) (*os.File, error) {
 // directory.
 func (b *binary) ReadFile(path ...string) ([]byte, error) {
 	flatPath := b.Path(path...)
-	return ioutil.ReadFile(flatPath)
+	return os.ReadFile(flatPath)
 }
 
 // FileExists is a helper for easily testing whether a particular file
@@ -238,9 +253,9 @@ func (b *binary) SetLocalState(state *states.State) error {
 	return statefile.Write(sf, f)
 }
 
-func GoBuild(pkgPath, tmpPrefix string) string {
+func GoBuild(pkgPath, tmpPrefix string, buildArgs ...string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
-	tmpFile, err := ioutil.TempFile(dir, prefix)
+	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		panic(err)
 	}
@@ -249,11 +264,12 @@ func GoBuild(pkgPath, tmpPrefix string) string {
 		panic(err)
 	}
 
-	cmd := exec.Command(
-		"go", "build",
-		"-o", tmpFilename,
-		pkgPath,
-	)
+	args := []string{"build", "-o", tmpFilename}
+	if len(buildArgs) > 0 {
+		args = append(args, buildArgs...)
+	}
+	args = append(args, pkgPath)
+	cmd := exec.Command("go", args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 

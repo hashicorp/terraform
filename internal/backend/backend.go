@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package backend provides interfaces that the CLI uses to interact with
@@ -91,16 +91,16 @@ type Backend interface {
 	// If the named workspace doesn't exist, or if it has no state, it will
 	// be created either immediately on this call or the first time
 	// PersistState is called, depending on the state manager implementation.
-	StateMgr(workspace string) (statemgr.Full, error)
+	StateMgr(workspace string) (statemgr.Full, tfdiags.Diagnostics)
 
 	// DeleteWorkspace removes the workspace with the given name if it exists.
 	//
 	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
 	// the responsibility of the caller to hold a Lock for the state manager
 	// belonging to this workspace before calling this method.
-	DeleteWorkspace(name string, force bool) error
+	DeleteWorkspace(name string, force bool) tfdiags.Diagnostics
 
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
-	Workspaces() ([]string, error)
+	Workspaces() ([]string, tfdiags.Diagnostics)
 }

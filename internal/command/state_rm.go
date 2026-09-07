@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -23,23 +22,32 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var dryRun bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state rm")
-	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
-	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&c.statePath, "state", "", "path")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseStateRm(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) < 1 {
-		c.Ui.Error("At least one address is required.\n")
-		return cli.RunResultHelp
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	if varDiags.HasErrors() {
+		c.showDiagnostics(varDiags)
+		return 1
 	}
 
 	if diags := c.Meta.checkRequiredVersion(); diags != nil {
@@ -48,7 +56,8 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	stateMgr, err := c.State()
+	view := arguments.ViewHuman
+	stateMgr, err := c.State(view)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 		return 1
@@ -81,8 +90,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	// This command primarily works with resource instances, though it will
 	// also clean up any modules and resources left empty by actions it takes.
 	var addrs []addrs.AbsResourceInstance
-	var diags tfdiags.Diagnostics
-	for _, addrStr := range args {
+	for _, addrStr := range parsedArgs.Addrs {
 		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, true, addrStr)
 		addrs = append(addrs, moreAddrs...)
 		diags = diags.Append(moreDiags)
@@ -93,7 +101,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	prefix := "Removed "
-	if dryRun {
+	if parsedArgs.DryRun {
 		prefix = "Would remove "
 	}
 
@@ -102,20 +110,21 @@ func (c *StateRmCommand) Run(args []string) int {
 	for _, addr := range addrs {
 		isCount++
 		c.Ui.Output(prefix + addr.String())
-		if !dryRun {
+		if !parsedArgs.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
 		}
 	}
 
-	if dryRun {
+	if parsedArgs.DryRun {
 		if isCount == 0 {
 			c.Ui.Output("Would have removed nothing.")
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	b, backendDiags := c.Backend(nil)
+	// Load the backend
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -190,10 +199,22 @@ Options:
 
   -state=PATH             Path to the state file to update. Defaults to the
                           current workspace state.
+                          Legacy option for the local backend only. See
+                          the local backend's documentation for more
+                          information.
 
   -ignore-remote-version  Continue even if remote and local Terraform versions
                           are incompatible. This may result in an unusable
                           workspace, and should be used with extreme caution.
+
+  -var 'foo=bar'          Set a value for one of the input variables in the root
+                          module of the configuration. Use this option more than
+                          once to set more than one variable.
+
+  -var-file=filename      Load variable values from the given file, in addition
+                          to the default files terraform.tfvars and *.auto.tfvars.
+                          Use this option more than once to include more than one
+                          variables file.
 
 `
 	return strings.TrimSpace(helpText)

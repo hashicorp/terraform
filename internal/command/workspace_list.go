@@ -1,13 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
-	"bytes"
-	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
@@ -17,69 +17,67 @@ type WorkspaceListCommand struct {
 	LegacyName bool
 }
 
-func (c *WorkspaceListCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
-
-	cmdFlags := c.Meta.defaultFlagSet("workspace list")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	configPath, err := ModulePath(args)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
+func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	args, diags := arguments.ParseWorkspaceList(rawArgs)
+
+	// Prepare the view
+	view := views.NewWorkspaceList(args.ViewType, c.View)
+
+	// Warn against using `terraform env` commands, if needed
+	diags = diags.Append(envCommandWarningDiag(c.LegacyName))
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.List("", nil, diags)
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	configPath := c.WorkingDir.RootModuleDir()
+	b, bDiags := c.backend(configPath, args.ViewType)
+	diags = diags.Append(bDiags)
+	if bDiags.HasErrors() {
+		view.List("", nil, diags)
 		return 1
 	}
 
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	states, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		view.List("", nil, diags)
 		return 1
 	}
 
-	env, isOverridden := c.WorkspaceOverridden()
-
-	var out bytes.Buffer
-	for _, s := range states {
-		if s == env {
-			out.WriteString("* ")
-		} else {
-			out.WriteString("  ")
-		}
-		out.WriteString(s + "\n")
+	env, isOverridden, err := c.WorkspaceOverridden()
+	if err != nil {
+		diags = diags.Append(err)
+		view.List("", nil, diags)
+		return 1
 	}
-
-	c.Ui.Output(out.String())
 
 	if isOverridden {
-		c.Ui.Output(envIsOverriddenNote)
+		warn := tfdiags.Sourceless(
+			tfdiags.Warning,
+			envIsOverriddenNote,
+			"",
+		)
+		diags = diags.Append(warn)
 	}
+
+	// Print:
+	// 1. Diagnostics
+	// 2. The list of workspaces, highlighting the current workspace
+	view.List(env, states, diags)
 
 	return 0
 }
@@ -98,6 +96,10 @@ Usage: terraform [global options] workspace list
 
   List Terraform workspaces.
 
+Options:
+
+  -json            If specified, machine readable output will be
+                   printed in JSON format.
 `
 	return strings.TrimSpace(helpText)
 }

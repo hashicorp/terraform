@@ -100,9 +100,10 @@ func useForPlan(content *hcl.BodyContent, def bool) (bool, hcl.Diagnostics) {
 // MockData packages up all the available mock and override data available to
 // a mocked provider.
 type MockData struct {
-	MockResources   map[string]*MockResource
-	MockDataSources map[string]*MockResource
-	Overrides       addrs.Map[addrs.Targetable, *Override]
+	MockResources          map[string]*MockResource
+	MockDataSources        map[string]*MockResource
+	MockEphemeralResources map[string]*MockResource
+	Overrides              addrs.Map[addrs.Targetable, *Override]
 }
 
 // Merge will merge the target MockData object into the current MockData.
@@ -151,6 +152,24 @@ func (data *MockData) Merge(other *MockData, skipCollisions bool) (diags hcl.Dia
 			Subject:  datasource.TypeRange.Ptr(),
 		})
 	}
+	for name, ephemeral := range other.MockEphemeralResources {
+		current, exists := data.MockEphemeralResources[name]
+		if !exists {
+			data.MockEphemeralResources[name] = ephemeral
+			continue
+		}
+
+		if skipCollisions {
+			continue
+		}
+
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate mock resource block",
+			Detail:   fmt.Sprintf("A mock_ephemeral %q block already exists at %s.", name, current.Range),
+			Subject:  ephemeral.TypeRange.Ptr(),
+		})
+	}
 	for _, elem := range other.Overrides.Elems {
 		target, override := elem.Key, elem.Value
 
@@ -181,6 +200,7 @@ type MockResource struct {
 	Type string
 
 	Defaults cty.Value
+	RawExpr  hcl.Expression
 
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
@@ -208,6 +228,11 @@ type Override struct {
 	Target *addrs.Target
 	Values cty.Value
 
+	BlockName string
+
+	// The raw expression of the values/outputs block
+	RawExpr hcl.Expression
+
 	// UseForPlan is true if the values should be computed during the planning
 	// phase.
 	UseForPlan bool
@@ -228,14 +253,15 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 	diags = append(diags, contentDiags...)
 
 	data := &MockData{
-		MockResources:   make(map[string]*MockResource),
-		MockDataSources: make(map[string]*MockResource),
-		Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+		MockResources:          make(map[string]*MockResource),
+		MockDataSources:        make(map[string]*MockResource),
+		MockEphemeralResources: make(map[string]*MockResource),
+		Overrides:              addrs.MakeMap[addrs.Targetable, *Override](),
 	}
 
 	for _, block := range content.Blocks {
 		switch block.Type {
-		case "mock_resource", "mock_data":
+		case "mock_resource", "mock_data", "mock_ephemeral":
 			resource, resourceDiags := decodeMockResourceBlock(block, useForPlanDefault)
 			diags = append(diags, resourceDiags...)
 
@@ -263,6 +289,17 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 						continue
 					}
 					data.MockDataSources[resource.Type] = resource
+				case addrs.EphemeralResourceMode:
+					if previous, ok := data.MockEphemeralResources[resource.Type]; ok {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Duplicate mock_ephemeral block",
+							Detail:   fmt.Sprintf("A mock_ephemeral block for %s has already been defined at %s.", resource.Type, previous.Range),
+							Subject:  resource.TypeRange.Ptr(),
+						})
+						continue
+					}
+					data.MockEphemeralResources[resource.Type] = resource
 				}
 			}
 		case "override_resource":
@@ -299,6 +336,23 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 				}
 				data.Overrides.Put(subject, override)
 			}
+		case "override_ephemeral":
+			override, overrideDiags := decodeOverrideEphemeralBlock(block, useForPlanDefault, source)
+			diags = append(diags, overrideDiags...)
+
+			if override != nil && override.Target != nil {
+				subject := override.Target.Subject
+				if previous, ok := data.Overrides.GetOk(subject); ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Duplicate override_ephemeral block",
+						Detail:   fmt.Sprintf("An override_ephemeral block targeting %s has already been defined at %s.", subject, previous.Range),
+						Subject:  override.Range.Ptr(),
+					})
+					continue
+				}
+				data.Overrides.Put(subject, override)
+			}
 		}
 	}
 
@@ -322,17 +376,17 @@ func decodeMockResourceBlock(block *hcl.Block, useForPlanDefault bool) (*MockRes
 		resource.Mode = addrs.ManagedResourceMode
 	case "mock_data":
 		resource.Mode = addrs.DataResourceMode
+	case "mock_ephemeral":
+		resource.Mode = addrs.EphemeralResourceMode
 	}
 
 	if defaults, exists := content.Attributes["defaults"]; exists {
-		var defaultDiags hcl.Diagnostics
 		resource.DefaultsRange = defaults.Range
-		resource.Defaults, defaultDiags = defaults.Expr.Value(nil)
-		diags = append(diags, defaultDiags...)
+		resource.RawExpr = defaults.Expr
 	} else {
 		// It's fine if we don't have any defaults, just means we'll generate
 		// values for everything ourselves.
-		resource.Defaults = cty.NilVal
+		resource.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
@@ -400,6 +454,43 @@ func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, sourc
 	return override, diags
 }
 
+func decodeOverrideEphemeralBlock(block *hcl.Block, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
+	override, diags := decodeOverrideBlock(block, "values", "override_ephemeral", useForPlanDefault, source)
+
+	if override.Target != nil {
+		var mode addrs.ResourceMode
+
+		switch override.Target.Subject.AddrType() {
+		case addrs.AbsResourceInstanceAddrType:
+			subject := override.Target.Subject.(addrs.AbsResourceInstance)
+			mode = subject.Resource.Resource.Mode
+		case addrs.AbsResourceAddrType:
+			subject := override.Target.Subject.(addrs.AbsResource)
+			mode = subject.Resource.Mode
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
+				Subject:  override.TargetRange.Ptr(),
+			})
+			return nil, diags
+		}
+
+		if mode != addrs.EphemeralResourceMode {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid override target",
+				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
+				Subject:  override.TargetRange.Ptr(),
+			})
+			return nil, diags
+		}
+	}
+
+	return override, diags
+}
+
 func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source OverrideSource) (*Override, hcl.Diagnostics) {
 	override, diags := decodeOverrideBlock(block, "values", "override_data", useForPlanDefault, source)
 
@@ -453,6 +544,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		Source:    source,
 		Range:     block.DefRange,
 		TypeRange: block.TypeRange,
+		BlockName: blockName,
 	}
 
 	if target, exists := content.Attributes["target"]; exists {
@@ -472,40 +564,19 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 			Subject:  override.Range.Ptr(),
 		})
 	}
-
 	if attribute, exists := content.Attributes[attributeName]; exists {
-		var valueDiags hcl.Diagnostics
 		override.ValuesRange = attribute.Range
-		override.Values, valueDiags = attribute.Expr.Value(nil)
-		diags = append(diags, valueDiags...)
+		override.RawExpr = attribute.Expr
 	} else {
 		// It's fine if we don't have any values, just means we'll generate
 		// values for everything ourselves. We set this to an empty object so
 		// it's equivalent to `values = {}` which makes later processing easier.
-		override.Values = cty.EmptyObjectVal
+		override.RawExpr = hcl.StaticExpr(cty.EmptyObjectVal, hcl.Range{})
 	}
 
 	useForPlan, useForPlanDiags := useForPlan(content, useForPlanDefault)
 	diags = append(diags, useForPlanDiags...)
 	override.UseForPlan = useForPlan
-
-	if !override.Values.Type().IsObjectType() {
-
-		var attributePreposition string
-		switch attributeName {
-		case "outputs":
-			attributePreposition = "an"
-		default:
-			attributePreposition = "a"
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Invalid %s attribute", attributeName),
-			Detail:   fmt.Sprintf("%s blocks must specify %s %s attribute that is an object.", blockName, attributePreposition, attributeName),
-			Subject:  override.ValuesRange.Ptr(),
-		})
-	}
 
 	return override, diags
 }
@@ -528,8 +599,10 @@ var mockDataSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "mock_resource", LabelNames: []string{"type"}},
 		{Type: "mock_data", LabelNames: []string{"type"}},
+		{Type: "mock_ephemeral", LabelNames: []string{"type"}},
 		{Type: "override_resource"},
 		{Type: "override_data"},
+		{Type: "override_ephemeral"},
 	},
 }
 

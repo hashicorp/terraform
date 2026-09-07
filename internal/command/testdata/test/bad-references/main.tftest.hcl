@@ -13,8 +13,7 @@ run "setup" {
 run "test" {
   variables {
     input_one = var.notreal
-    input_two = run.finalise.response
-    input_three = run.madeup.response
+    input_two = run.madeup.response
   }
 }
 

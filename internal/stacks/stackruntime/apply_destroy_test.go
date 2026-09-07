@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -1718,6 +1718,18 @@ func TestApplyDestroy(t *testing.T) {
 								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
 							},
 						},
+						PendingComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						BeginComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						EndComponentInstancePlan: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						ReportComponentInstancePlanned: []*hooks.ComponentInstanceChange{{
+							Addr: mustAbsComponentInstance("component.self"),
+						}},
 					},
 					wantAppliedHooks: &ExpectedHooks{
 						ComponentExpanded: []*hooks.ComponentInstances{
@@ -1726,6 +1738,18 @@ func TestApplyDestroy(t *testing.T) {
 								InstanceAddrs: []stackaddrs.AbsComponentInstance{mustAbsComponentInstance("component.self")},
 							},
 						},
+						PendingComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						BeginComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						EndComponentInstanceApply: collections.NewSet[stackaddrs.AbsComponentInstance](
+							mustAbsComponentInstance("component.self"),
+						),
+						ReportComponentInstanceApplied: []*hooks.ComponentInstanceChange{{
+							Addr: mustAbsComponentInstance("component.self"),
+						}},
 					},
 				},
 			},
@@ -1738,8 +1762,8 @@ func TestApplyDestroy(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package pluginshared
@@ -128,7 +128,7 @@ func (v BinaryManager) resolveRelease() (*Binary, error) {
 
 	// Unarchive
 	unzip := getter.ZipDecompressor{
-		FilesLimit:    1,
+		FilesLimit:    3, // plugin binary, .version file, and LICENSE.txt
 		FileSizeLimit: 500 * MB,
 	}
 	targetPath := v.binaryLocation()

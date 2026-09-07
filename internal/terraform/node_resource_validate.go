@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -67,7 +67,93 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 				return diags
 			}
 		}
+		diags = diags.Append(n.validateActions(ctx))
 	}
+
+	return diags
+}
+
+func (n *NodeValidatableResource) validateActions(ctx EvalContext) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// check that we have the correct reference type for any action expansion
+	repData, _ := n.stubRepetitionData()
+
+	// There may be many triggers and many actions within a trigger, but for the
+	// purposes of validation we don't need to repeat them. Just collect all
+	// known actions and validate them once each.
+	actions := addrs.MakeMap[addrs.ConfigAction, actionRef]()
+
+	for _, trigger := range n.actionTriggers {
+		// Self refs are allowed, but we'll at least prevent before_create from
+		// using them. Technically a resource can plan known computed
+		// attributes, but we'll guard against the common case for now.
+	EVENTS:
+		for _, event := range trigger.config.Events {
+			if event == configs.BeforeCreate {
+				refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, trigger.config.Condition)
+				for _, ref := range refs {
+					if _, isSelf := ref.Subject.(addrs.SelfType); isSelf {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Reference to self in before_create condition",
+							Detail:   "Computed attributes from self may not be known before the resource is created.",
+							Subject:  trigger.config.Condition.Range().Ptr(),
+						})
+						break EVENTS
+					}
+				}
+			}
+
+			if event.IsDestroy() {
+				if event.IsDestroy() && trigger.config.Condition != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Condition on destroy action",
+						Detail:   "Condition expression may not be used with a destroy action.",
+						Subject:  trigger.config.Condition.Range().Ptr(),
+					})
+				}
+			}
+		}
+
+		// check condition for full address self-refs
+		diags = diags.Append(validateMetaSelfRef(n.Addr.Resource, trigger.config.Condition))
+
+		for _, ref := range trigger.actionRefs {
+			actions.Put(ref.actionNode.Addr, ref)
+
+			actionInst, ds := evaluateActionExpression(ref.configRef.Expr, repData)
+			diags = diags.Append(ds)
+			if diags.HasErrors() {
+				// validateInstanceKey won't work if the value is invalid
+				continue
+			}
+
+			diags = diags.Append(ref.actionNode.validateInstanceKey(actionInst.Absolute(ctx.Path()), ref.configRef.Range.Ptr()))
+
+			// actions initially allowed to use caller data via arbitrary
+			// expressions, but using caller is preferred now to avoid hidden
+			// cycles in the graph
+			for _, actionBlockRef := range ref.actionNode.References() {
+				if resource, ok := actionBlockRef.Subject.(addrs.ResourceInstance); ok && resource.Resource.Equal(n.Addr.Resource) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Reference to triggering resource",
+						Detail:   `The triggering resource object can be accessed via the "caller" symbol to avoid unexpected graph cycles.`,
+						Subject:  actionBlockRef.SourceRange.ToHCL().Ptr(),
+					})
+				}
+			}
+		}
+	}
+
+	_, self := n.stubRepetitionData()
+
+	for _, ref := range actions.Iter() {
+		diags = diags.Append(ref.actionNode.Validate(ctx, self, cty.UnknownVal(n.Schema.Body.ImpliedType())))
+	}
+
 	return diags
 }
 
@@ -139,9 +225,14 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 }
 
 func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
-	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
+	val, hclBody, diags := ctx.EvaluateBlock(body, schema, selfAddr, keyData)
+
+	var deprecationDiags tfdiags.Diagnostics
+	val, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(val, schema, n.Addr.Module)
+	diags = diags.Append(deprecationDiags.InConfigBody(body, n.Addr.String()))
+	return val, hclBody, diags
 }
 
 // connectionBlockSupersetSchema is a schema representing the superset of all
@@ -318,12 +409,23 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
+	schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
+	// we validate the nil conditions below, because we want to try and suggest
+	// the alternate mode to users
+	if schema.Body != nil {
+		// core has never strictly validated schemas internally, so we only
+		// validate known-new schemas, which for now only consist of those with
+		// computed blocks.
+		if schema.Body.ContainsComputedBlocks() {
+			diags = diags.Append(schema.Body.InternalValidate())
+		}
+	}
+
 	// Provider entry point varies depending on resource mode, because
 	// managed resources and data resources are two distinct concepts
 	// in the provider abstraction.
 	switch n.Config.Mode {
 	case addrs.ManagedResourceMode:
-		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
 		if schema.Body == nil {
 			var suggestion string
 			if dSchema := providerSchema.SchemaForResourceType(addrs.DataResourceMode, n.Config.Type); dSchema.Body != nil {
@@ -355,6 +457,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
@@ -402,7 +507,6 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	case addrs.DataResourceMode:
-		schema := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
 		if schema.Body == nil {
 			var suggestion string
 			if dSchema := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type); dSchema.Body != nil {
@@ -434,6 +538,9 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(
 			validateResourceForbiddenEphemeralValues(ctx, configVal, schema.Body).InConfigBody(n.Config.Config, n.Addr.String()),
 		)
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
@@ -461,6 +568,11 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		if valDiags.HasErrors() {
 			return diags
 		}
+		var deprecationDiags tfdiags.Diagnostics
+		configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, n.ModulePath())
+		diags = diags.Append(
+			deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()),
+		)
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
 		req := providers.ValidateEphemeralResourceConfigRequest{
@@ -469,6 +581,74 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateEphemeralResourceConfig(req)
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	case addrs.ListResourceMode:
+		schema := providerSchema.SchemaForListResourceType(n.Config.Type)
+		if schema.IsNil() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid list resource",
+				Detail:   fmt.Sprintf("The provider %s does not support list resource %q.", n.Provider().ForDisplay(), n.Config.Type),
+				Subject:  &n.Config.TypeRange,
+			})
+			return diags
+		}
+
+		var blockVal, limit, includeResource cty.Value
+		var includeDiags tfdiags.Diagnostics
+
+		if n.Config.Config != nil {
+			var valDiags tfdiags.Diagnostics
+			blockVal, _, valDiags = ctx.EvaluateBlock(n.Config.Config, schema.FullSchema, nil, keyData)
+			diags = diags.Append(valDiags)
+			if valDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			blockVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(blockVal, schema.FullSchema, n.ModulePath())
+			diags = diags.Append(deprecationDiags.InConfigBody(n.Config.Config, n.Addr.String()))
+		}
+
+		if n.Config.List.Limit != nil {
+			var limitDiags tfdiags.Diagnostics
+			limit, _, limitDiags = newLimitEvaluator(true).EvaluateExpr(ctx, n.Config.List.Limit)
+			diags = diags.Append(limitDiags)
+			if limitDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			limit, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(limit, n.ModulePath(), n.Config.List.Limit.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
+		}
+
+		if n.Config.List.IncludeResource != nil {
+			includeResource, _, includeDiags = newIncludeRscEvaluator(true).EvaluateExpr(ctx, n.Config.List.IncludeResource)
+			diags = diags.Append(includeDiags)
+			if includeDiags.HasErrors() {
+				return diags
+			}
+			var deprecationDiags tfdiags.Diagnostics
+			includeResource, deprecationDiags = ctx.Deprecations().ValidateAndUnmark(includeResource, n.ModulePath(), n.Config.List.IncludeResource.Range().Ptr())
+			diags = diags.Append(deprecationDiags)
+		}
+
+		// Use unmarked value for validate request
+		unmarkedBlockVal, _ := blockVal.UnmarkDeep()
+
+		// if the config value is null, we still want to send a full object with all attributes being null
+		if !unmarkedBlockVal.IsNull() && unmarkedBlockVal.GetAttr("config").IsNull() {
+			mp := unmarkedBlockVal.AsValueMap()
+			mp["config"] = schema.ConfigSchema.EmptyValue()
+			unmarkedBlockVal = cty.ObjectVal(mp)
+		}
+		req := providers.ValidateListResourceConfigRequest{
+			TypeName:              n.Config.Type,
+			Config:                unmarkedBlockVal,
+			IncludeResourceObject: includeResource,
+			Limit:                 limit,
+		}
+
+		resp := provider.ValidateListResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
@@ -492,7 +672,7 @@ func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Express
 	return result, diags
 }
 
-func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) (instances.RepetitionData, addrs.Referenceable) {
+func (n *NodeValidatableResource) stubRepetitionData() (instances.RepetitionData, addrs.Referenceable) {
 	keyData := EvalDataForNoInstanceKey
 	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
 
@@ -529,7 +709,7 @@ func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) 
 func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+	keyData, selfAddr := n.stubRepetitionData()
 
 	for _, cr := range config.Preconditions {
 		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, nil, keyData)
@@ -560,8 +740,6 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 
 	diags = diags.Append(n.validateConfigGen(ctx))
 
-	// Import blocks are only valid within the root module, and must be
-	// evaluated within that context
 	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 
 	for _, imp := range n.importTargets {
@@ -571,11 +749,16 @@ func (n *NodeValidatableResource) validateImportTargets(ctx EvalContext) tfdiags
 			continue
 		}
 
+		if !imp.RelModule.Equal(addrs.RootModule) {
+			// if the import was in a nested module, we can't get the correct
+			// module instance context, so validation is skipped
+			continue
+		}
+
 		diags = diags.Append(validateImportSelfRef(n.Addr.Resource, imp.Config.ID))
 		if diags.HasErrors() {
 			return diags
 		}
-
 		if imp.Config.ForEach != nil {
 			diags = diags.Append(validateImportForEachRef(n.Addr.Resource, imp.Config.ForEach))
 			if diags.HasErrors() {
@@ -761,6 +944,21 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 				Detail:   "References in depends_on must be to a whole object (resource, etc), not to an attribute of an object.",
 				Subject:  ref.Remaining.SourceRange().Ptr(),
 			})
+		}
+
+		// We don't allow depends_on on actions because their ordering is depending on the resource
+		// that triggers them, therefore users should use a depends_on on the resource instead.
+
+		if ref != nil {
+			switch ref.Subject.(type) {
+			case addrs.Action, addrs.ActionInstance:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on reference",
+					Detail:   "Actions can not be referenced in depends_on. Use depends_on on the resource that triggers the action instead.",
+					Subject:  traversal.SourceRange().Ptr(),
+				})
+			}
 		}
 
 		// The ref must also refer to something that exists. To test that,

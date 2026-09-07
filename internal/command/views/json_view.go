@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -8,8 +8,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -17,7 +19,7 @@ import (
 // This version describes the schema of JSON UI messages. This version must be
 // updated after making any changes to this view, the jsonHook, or any of the
 // command/views/json package.
-const JSON_UI_VERSION = "1.2"
+const JSON_UI_VERSION = "1.3"
 
 func NewJSONView(view *View) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
@@ -95,6 +97,22 @@ func (v *JSONView) PlannedChange(c *json.ResourceInstanceChange) {
 	)
 }
 
+func (v *JSONView) DeferredChange(dc *json.DeferredResourceInstanceChange) {
+	v.log.Info(
+		dc.String(),
+		"type", json.MessageDeferredChange,
+		"deferred_change", dc,
+	)
+}
+
+func (v *JSONView) PlannedActionInvocation(action *json.ActionInvocation) {
+	v.log.Info(
+		fmt.Sprintf("planned action invocation: %s", action.Action.Action),
+		"type", json.MessagePlannedActionInvocation,
+		"invocation", action,
+	)
+}
+
 func (v *JSONView) ResourceDrift(c *json.ResourceInstanceChange) {
 	v.log.Info(
 		fmt.Sprintf("%s: Drift detected (%s)", c.Resource.Addr, c.Action),
@@ -125,4 +143,107 @@ func (v *JSONView) Outputs(outputs json.Outputs) {
 		"type", json.MessageOutputs,
 		"outputs", outputs,
 	)
+}
+
+func (v *JSONView) logPolicyResult(addr string, resp policy.EvaluationResponse) {
+	// Log all the info messages
+	for _, enforcement := range resp.Enforcements {
+		if enforcement.Message == "" {
+			continue
+		}
+		var src []byte
+		if enforcement.LocalRange != nil {
+			src = v.view.configSources()[enforcement.LocalRange.Filename]
+		}
+		info := json.NewPolicyInfo(src, enforcement)
+		args := []any{
+			"type", json.MessagePolicyInfo,
+			"target_address", addr,
+			json.MessagePolicyInfo, info,
+			"@policy", "true",
+			"result", enforcement.Result.String(),
+		}
+		if enforcement.Policy != nil {
+			args = append(args, "policy_metadata", json.MetadataFromEnforcement(enforcement))
+		}
+		v.log.Info("Policy info", args...)
+	}
+
+	for _, diag := range resp.Diagnostics {
+		v.logPolicyDiagnostic(diag, "target_address", addr)
+	}
+
+	for _, policy := range resp.Policies {
+		v.log.Info(
+			"Policy Result",
+			"type", json.MessagePolicyEvaluationResult,
+			"result", policy.Result.String(),
+			"target_address", addr,
+			"policy_address", policy.Address,
+			"@policy", "true",
+			"policy_metadata", json.MetadataFromPolicy(*policy),
+		)
+	}
+}
+
+func (v *JSONView) logPolicyQuerySummary(summary PolicyQuerySummary) {
+	v.log.Info(
+		"Policy query summary",
+		"type", json.MessagePolicyQuerySummary,
+		"@policy", "true",
+		"list_block_address", summary.ListBlockAddress,
+		"overall_result", summary.OverallResult,
+		"results", summary.Results,
+		"passed_policies", summary.PassedPolicies,
+	)
+}
+
+func (v *JSONView) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	v.logPolicyResult(addr, resp)
+}
+
+// PolicyDiagnostics logs policy diagnostics that are not tied to a specific
+// target, such as setup diagnostics (e.g. a failure to connect to the policy
+// engine), so no target address is attached.
+func (v *JSONView) PolicyDiagnostics(diags policy.Diagnostics) {
+	for _, diag := range diags {
+		v.logPolicyDiagnostic(diag)
+	}
+}
+
+// logPolicyDiagnostic logs the policy diagnostics. These are emitted as `policy_diagnostic` messages,
+// not standard Terraform `diagnostic` messages. We use the severity level only to
+// set the log level for that policy-specific output.
+func (v *JSONView) logPolicyDiagnostic(diag tfdiags.Diagnostic, extraArgs ...any) {
+	sources := v.view.configSources()
+	diagnostic := json.NewDiagnostic(diag, sources)
+
+	args := []any{
+		"type", json.MessagePolicyDiagnostic,
+		"@policy", "true",
+		json.MessagePolicyDiagnostic, diagnostic,
+	}
+	args = append(args, extraArgs...)
+	extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+	if extra != nil {
+		policyMetadata := json.MetadataFromPolicy(extra.Policy)
+		if extra.EnforceIndex != nil {
+			policyMetadata.EnforceIndex = extra.EnforceIndex
+		}
+		args = append(args, "policy_metadata", policyMetadata)
+		args = append(args, "result", extra.Result.String())
+	}
+	switch extra.Severity {
+	case hcl.DiagWarning:
+		v.log.Warn(fmt.Sprintf("Warning: %s", diag.Description().Summary), args...)
+	default:
+		v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
+	}
+}
+
+var _ Spacer = (*JSONView)(nil)
+
+// Spacer is a no-op for JSON view, as empty lines are not needed to space-out logs in machine-readable output.
+func (v *JSONView) Spacer() {
+	// do nothing
 }

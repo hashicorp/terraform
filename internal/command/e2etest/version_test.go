@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package e2etest
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -52,6 +53,9 @@ func TestVersionWithProvider(t *testing.T) {
 	fixturePath := filepath.Join("testdata", "template-provider")
 	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
+	configFile := emptyConfigFileForTests(t, tf.Path(""))
+	tf.AddEnv(fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", configFile))
+
 	// Initial run (before "init") should work without error but will not
 	// include the provider version, since we've not "locked" one yet.
 	{
@@ -93,5 +97,71 @@ func TestVersionWithProvider(t *testing.T) {
 		if !strings.Contains(stdout, wantMsg) {
 			t.Errorf("output does not contain provider information %q:\n%s", wantMsg, stdout)
 		}
+	}
+}
+
+// If users run any command with a -version or -v flag, we reroute to the version command.
+// This test ensures that this rerouting works as expected and defines how additional flags and arguments are handled.
+func TestVersionReroutingFromOtherCommands(t *testing.T) {
+	t.Parallel()
+
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	wantVersion := fmt.Sprintf("Terraform v%s\non %s\n\n", version.String(), getproviders.CurrentPlatform.String())
+
+	// Use version command directly
+	// The version command receives no arguments.
+	stdout, stderr, err := tf.Run("version")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+	if stdout != wantVersion {
+		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
+	}
+
+	// Use version flag with no command
+	// The version command receives arguments: ["-version"]
+	// and accepts the flag.
+	stdout, stderr, err = tf.Run("-version")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+	if stdout != wantVersion {
+		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
+	}
+
+	// Get version via init command
+	// The version command receives arguments: ["init", "-version"]
+	// but ignores them all.
+	stdout, stderr, err = tf.Run("init", "-version")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+	if stdout != wantVersion {
+		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
+	}
+
+	// Get version via init command with additional global and init-specific flags present
+	// The version command receives arguments: ["init", "-version", "-input=false", "-no-color", "-get=false", "-upgrade"]
+	// but ignores them all.
+	stdout, stderr, err = tf.Run("init", "-version", "-input=false", "-no-color", "-get=false", "-upgrade")
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
+	}
+	if stderr != "" {
+		t.Errorf("unexpected stderr output:\n%s", stderr)
+	}
+	if stdout != wantVersion {
+		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
 	}
 }

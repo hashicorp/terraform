@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package localexec
@@ -193,6 +193,8 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	case <-copyDoneCh:
 	case <-p.ctx.Done():
 	}
+
+	pr.Close()
 
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(

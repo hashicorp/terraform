@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -7,11 +7,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"maps"
 	"sync"
 	"time"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/hcl/v2"
+	builtinProviders "github.com/hashicorp/terraform/internal/builtin/providers"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
@@ -347,7 +350,15 @@ func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase E
 // ProviderFactories returns the collection of factory functions for providers
 // that are available to this instance of the evaluation runtime.
 func (m *Main) ProviderFactories() ProviderFactories {
-	return m.providerFactories
+	// Built-in provider factories are always present
+	resultProviderFactories := ProviderFactories{}
+	for k, v := range builtinProviders.BuiltInProviders() {
+		resultProviderFactories[addrs.NewBuiltInProvider(k)] = v
+	}
+
+	maps.Copy(resultProviderFactories, m.providerFactories)
+
+	return resultProviderFactories
 }
 
 // ProviderFunctions returns the collection of externally defined provider
@@ -638,4 +649,14 @@ func (m *Main) DependencyLocks(phase EvalPhase) *depsfile.Locks {
 		return nil
 
 	}
+}
+
+func (m *Main) PolicyClient() policy.Client {
+	if m.applying != nil {
+		return m.applying.opts.PolicyClient
+	}
+	if m.planning != nil {
+		return m.planning.opts.PolicyClient
+	}
+	return nil
 }

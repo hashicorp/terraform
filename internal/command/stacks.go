@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/pluginshared"
 	"github.com/hashicorp/terraform/internal/stacksplugin/stacksplugin1"
@@ -76,7 +78,24 @@ var (
 )
 
 func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
+	var pluginCacheDirOverride string
+
 	args = c.Meta.process(args)
+	cmdFlags := c.Meta.defaultFlagSet("stacks")
+	cmdFlags.StringVar(&pluginCacheDirOverride, "plugin-cache-dir", "", "plugin cache directory")
+	cmdFlags.Parse(args)
+
+	if pluginCacheDirOverride != "" {
+		err := c.storeStacksPluginPath(path.Join(pluginCacheDirOverride, StacksPluginDataDir))
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error storing cached stacks plugin path: %s\n", err))
+			return 1
+		}
+		// Remove the cache override arg from the args so it doesn't get passed to the plugin
+		args = slices.DeleteFunc(args, func(arg string) bool {
+			return strings.HasPrefix(arg, "-plugin-cache-dir")
+		})
+	}
 
 	diags := c.initPlugin()
 	if diags.HasWarnings() || diags.HasErrors() {
@@ -94,8 +113,9 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
 				"stacks": &stacksplugin1.GRPCStacksPlugin{
-					Metadata: c.pluginConfig.ToMetadata(),
-					Services: c.Meta.Services,
+					Metadata:   c.pluginConfig.ToMetadata(),
+					Services:   c.Meta.Services,
+					ShutdownCh: c.Meta.ShutdownCh,
 				},
 			},
 		},
@@ -126,6 +146,56 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 	}
 
 	return stacks1.Execute(args, stdout, stderr)
+}
+
+func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	displayHostname := strings.TrimSpace(os.Getenv("TF_STACKS_HOSTNAME"))
+	if displayHostname != "" {
+		return displayHostname, diags
+	}
+
+	displayHostname = strings.TrimSpace(os.Getenv("TF_CLOUD_HOSTNAME"))
+	if displayHostname != "" {
+		return displayHostname, diags
+	}
+
+	credentialsFile, err := cliconfig.CredentialsConfigFile()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Could not inspect credentials file for stacks hostname, using default hostname",
+			err.Error(),
+		))
+		log.Printf("[TRACE] stacksplugin hostname inference failed, falling back to %q", defaultHostname)
+		return defaultHostname, diags
+	}
+
+	hosts := cliconfig.ReadHostsInCredentialsFile(credentialsFile)
+
+	if len(hosts) == 1 {
+		for host := range hosts {
+			return host.ForDisplay(), diags
+		}
+	}
+
+	if len(hosts) > 1 {
+		hostnames := make([]string, 0, len(hosts))
+		for host := range hosts {
+			hostnames = append(hostnames, fmt.Sprintf("%q", host.ForDisplay()))
+		}
+		slices.Sort(hostnames)
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Multiple hostnames found in credentials file",
+			fmt.Sprintf("Multiple hostnames found in credentials file: %s. Cannot determine which to use. Set TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to specify the intended host.", strings.Join(hostnames, ", ")),
+		))
+		return "", diags
+	}
+
+	log.Printf("[TRACE] stacksplugin hostname not set, falling back to %q", defaultHostname)
+	return defaultHostname, diags
 }
 
 // discoverAndConfigure is an implementation detail of initPlugin. It fills in the
@@ -165,10 +235,10 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags
 	}
 
-	displayHostname := os.Getenv("TF_STACKS_HOSTNAME")
-	if strings.TrimSpace(displayHostname) == "" {
-		log.Printf("[TRACE] stacksplugin hostname not set, falling back to %q", defaultHostname)
-		displayHostname = defaultHostname
+	displayHostname, hostnameDiags := c.resolveDisplayHostname()
+	diags = diags.Append(hostnameDiags)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	hostname, err := svchost.ForComparison(displayHostname)
@@ -191,7 +261,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Hostname discovery failed",
-			err.Error(),
+			fmt.Sprintf("%s\n\nSet TF_STACKS_HOSTNAME or TF_CLOUD_HOSTNAME to specify the intended host.", err.Error()),
 		))
 	}
 
@@ -204,7 +274,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		token, err = cloud.CliConfigToken(hostname, cb.Services())
 		if err != nil {
 			// some commands like stacks init and validate could be run without a token so allow it without errors
-			diags.Append(tfdiags.Sourceless(
+			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Could not read token from credentials file, proceeding without a token",
 				err.Error(),
@@ -304,19 +374,50 @@ func (c *StacksCommand) initPlugin() tfdiags.Diagnostics {
 }
 
 func (c *StacksCommand) initPackagesCache() (string, error) {
-	packagesPath := path.Join(c.WorkingDir.DataDir(), StacksPluginDataDir)
+	var pluginPath string
+	defaultPluginPath := path.Join(c.CLIConfigDir, StacksPluginDataDir)
+	cacheStorePath := path.Join(c.WorkingDir.DataDir(), ".stackspluginpath")
 
-	if info, err := os.Stat(packagesPath); err != nil || !info.IsDir() {
-		log.Printf("[TRACE] initialized stacksplugin cache directory at %q", packagesPath)
-		err = os.MkdirAll(packagesPath, 0755)
+	if _, err := os.Stat(cacheStorePath); err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("[TRACE] No stacksplugin cache path store at '%s`, using default '%s'", cacheStorePath, defaultPluginPath)
+			// Use the default plugin cache path if the file does not exist
+			pluginPath = defaultPluginPath
+		} else {
+			log.Printf("[TRACE] Failed to check the stacksplugin cache path store at '%s', using default '%s'", cacheStorePath, defaultPluginPath)
+			// Use the default plugin cache path if there was an error checking the file
+			pluginPath = defaultPluginPath
+		}
+	} else {
+		data, err := os.ReadFile(cacheStorePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read stacks plugin stored path file: %w", err)
+		}
+		pluginPath = string(data)
+	}
+
+	if info, err := os.Stat(pluginPath); err != nil || !info.IsDir() {
+		log.Printf("[TRACE] initialized stacksplugin cache directory at %q", pluginPath)
+		err = os.MkdirAll(pluginPath, 0755)
 		if err != nil {
 			return "", fmt.Errorf("failed to initialize stacksplugin cache directory: %w", err)
 		}
 	} else {
-		log.Printf("[TRACE] stacksplugin cache directory found at %q", packagesPath)
+		log.Printf("[TRACE] stacksplugin cache directory found at %q", pluginPath)
 	}
 
-	return packagesPath, nil
+	return pluginPath, nil
+}
+
+func (c *StacksCommand) storeStacksPluginPath(pluginCachePath string) error {
+	f, err := os.Create(path.Join(c.WorkingDir.DataDir(), ".stackspluginpath"))
+	if err != nil {
+		return fmt.Errorf("failed to create stacks plugin stored path file: %w", err)
+	}
+	defer f.Close()
+	f.WriteString(pluginCachePath)
+
+	return nil
 }
 
 // Run runs the stacks command with the given arguments.
@@ -328,8 +429,17 @@ func (c *StacksCommand) Run(args []string) int {
 // Help returns help text for the stacks command.
 func (c *StacksCommand) Help() string {
 	helpText := new(bytes.Buffer)
-	if exitCode := c.realRun([]string{}, helpText, io.Discard); exitCode != 0 {
-		return ""
+	errorText := new(bytes.Buffer)
+
+	parsedArgs := []string{}
+	for _, arg := range os.Args[1:] {
+		if arg == "stacks" {
+			continue // skip stacks command name
+		}
+		parsedArgs = append(parsedArgs, arg)
+	}
+	if exitCode := c.realRun(parsedArgs, helpText, errorText); exitCode != 0 {
+		return errorText.String()
 	}
 
 	return helpText.String()

@@ -1,5 +1,0 @@
-kind: NEW FEATURES
-body: 'Deferred actions: The `plan`, `apply`, and `refresh` commands now support the `-allow-deferral` flag. The flag enables Terraform and Terraform Providers to defer changes with unresolvable unknown values to future plans instead of failing the entire plan.'
-time: 2025-05-15T15:19:04.603403+02:00
-custom:
-    Issue: "37067"

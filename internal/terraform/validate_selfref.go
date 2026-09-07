@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -156,9 +156,9 @@ func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Refer
 
 		if self.Equal(subject) {
 			tail := len(refs) - 1
-
 			refs[i], refs[tail] = refs[tail], refs[i]
 			refs = refs[:tail]
+			i--
 		}
 	}
 	return refs

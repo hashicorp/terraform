@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package getproviders
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	svchost "github.com/hashicorp/terraform-svchost"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -88,7 +89,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		// validate each part
 		// The legacy provider namespace is a special case.
 		if namespace != addrs.LegacyProviderNamespace {
-			_, err = addrs.ParseProviderPart(namespace)
+			_, err = tfaddr.ParseProviderNamespace(namespace)
 			if err != nil {
 				log.Printf("[WARN] local provider path %q contains invalid namespace %q; ignoring", fullPath, namespace)
 				return nil

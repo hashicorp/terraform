@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -24,6 +25,7 @@ type ephemeralResourceInput struct {
 	addr           addrs.AbsResourceInstance
 	config         *configs.Resource
 	providerConfig addrs.AbsProviderConfig
+	override       *configs.Override
 }
 
 // ephemeralResourceOpen implements the "open" step of the ephemeral resource
@@ -76,6 +78,13 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	if diags.HasErrors() {
 		return nil, diags
 	}
+	var deprecationDiags tfdiags.Diagnostics
+	configVal, deprecationDiags = ctx.Deprecations().ValidateAndUnmarkConfig(configVal, schema.Body, ctx.Path().Module())
+	diags = diags.Append(deprecationDiags.InConfigBody(config.Config, inp.addr.String()))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	unmarkedConfigVal, configMarks := configVal.UnmarkDeepWithPaths()
 
 	if !unmarkedConfigVal.IsWhollyKnown() {
@@ -103,6 +112,26 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 			return h.PreEphemeralOp(rId, plans.Read)
 		})
 
+		return nil, diags
+	}
+
+	// If we have an override for this ephemeral resource, apply it directly
+	// without calling the provider — same approach used for data sources.
+	if inp.override != nil {
+		overrideVal, overrideDiags := mocking.ComputedValuesForDataSource(configVal, &mocking.MockedData{
+			Value: inp.override.Values,
+			Range: inp.override.Range,
+		}, schema.Body)
+		diags = diags.Append(overrideDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+
+		resultVal := overrideVal.Mark(marks.Ephemeral)
+		ephemerals.RegisterInstance(ctx.StopCtx(), inp.addr, ephemeral.ResourceInstanceRegistration{
+			Value:      resultVal,
+			ConfigBody: config.Config,
+		})
 		return nil, diags
 	}
 
@@ -230,11 +259,7 @@ func (n *nodeEphemeralResourceClose) Execute(ctx EvalContext, op walkOperation) 
 	return resources.CloseInstances(ctx.StopCtx(), n.addr)
 }
 
-func (n *nodeEphemeralResourceClose) ProvidedBy() (addrs.ProviderConfig, bool) {
-	return n.resourceNode.ProvidedBy()
-}
-
-func (n *nodeEphemeralResourceClose) Provider() addrs.Provider {
+func (n *nodeEphemeralResourceClose) Provider() ProviderRef {
 	return n.resourceNode.Provider()
 }
 

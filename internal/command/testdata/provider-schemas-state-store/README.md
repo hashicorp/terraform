@@ -1,0 +1,2 @@
+This test fixture is a working directory that contains a state_store block that matches the backend state file and dependency lock file.
+Any test using this fixture will need to set up a mock provider that describes a state store in its schema that matches this config.

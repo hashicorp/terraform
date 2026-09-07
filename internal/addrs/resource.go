@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -278,6 +278,11 @@ func (m ModuleInstance) ResourceInstance(mode ResourceMode, typeName string, nam
 			Key: key,
 		},
 	}
+}
+
+// ModuleInstance returns the module instance portion of the address.
+func (r AbsResourceInstance) ModuleInstance() ModuleInstance {
+	return r.Module
 }
 
 // ContainingResource returns the address of the resource that contains the

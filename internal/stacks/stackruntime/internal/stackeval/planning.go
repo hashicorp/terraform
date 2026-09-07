@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -31,6 +32,8 @@ type PlanOpts struct {
 	PlanTimestamp time.Time
 
 	DependencyLocks depsfile.Locks
+
+	PolicyClient policy.Client
 }
 
 // Plannable is implemented by objects that can participate in planning.
@@ -105,10 +108,22 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 		})
 	}
 
+	for _, actInvoke := range plan.Changes.ActionInvocations {
+		cic.ActionInvocation++
+		hookMore(ctx, seq, h.ReportActionInvocationPlanned, &hooks.ActionInvocation{
+			Addr: stackaddrs.AbsActionInvocationInstance{
+				Component: addr,
+				Item:      actInvoke.Addr,
+			},
+			ProviderAddr: actInvoke.ProviderAddr.Provider,
+			Trigger:      actInvoke.ActionTrigger,
+		})
+	}
+
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
 
-func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, hooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
+func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, tfHooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// This is our main bridge from the stacks language into the main Terraform
@@ -163,7 +178,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	}
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
-		Hooks:                    hooks,
+		Hooks:                    tfHooks,
 		Providers:                providerFactories,
 		PreloadedProviderSchemas: providerSchemas,
 		Provisioners:             main.availableProvisioners(),

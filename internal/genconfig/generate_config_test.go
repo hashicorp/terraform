@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package genconfig
@@ -362,6 +362,10 @@ resource "tfcoremock_simple_resource" "empty" {
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
 								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"deprecated": {
 									Type:     cty.String,
 									Optional: true,
 								},
@@ -825,12 +829,16 @@ resource "tfcoremock_sensitive_values" "values" {
 			if err != nil {
 				t.Fatalf("schema failed InternalValidate: %s", err)
 			}
-			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
+
+			val, _ := tc.value.UnmarkDeep()
+			config := ExtractLegacyConfigFromState(tc.schema, val)
+
+			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, config, false)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
 			}
 
-			got := WrapResourceContents(tc.addr, contents)
+			got := contents.String()
 			want := strings.TrimSpace(tc.expected)
 			if diff := cmp.Diff(got, want); len(diff) > 0 {
 				t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
@@ -844,5 +852,207 @@ func sensitiveAttribute(t cty.Type) *configschema.Attribute {
 		Type:      t,
 		Optional:  true,
 		Sensitive: true,
+	}
+}
+
+func TestGenerateResourceAndIDContents(t *testing.T) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"name": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"id": {
+				Type:     cty.String,
+				Computed: true,
+			},
+			"tags": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"network_interface": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"subnet_id": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"ip_address": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Define the identity schema
+	idSchema := &configschema.Object{
+		Nesting: configschema.NestingSingle,
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+
+	// Create mock resource instance values
+	value := cty.TupleVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-1"),
+				"id":   cty.StringVal("i-abcdef"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Dev"),
+					"Owner":       cty.StringVal("Team1"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-123"),
+						"ip_address": cty.StringVal("10.0.0.1"),
+					}),
+				}),
+			}),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-abcdef"),
+			}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"state": cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("instance-2"),
+				"id":   cty.StringVal("i-123456"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"Environment": cty.StringVal("Prod"),
+					"Owner":       cty.StringVal("Team2"),
+				}),
+				"network_interface": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"subnet_id":  cty.StringVal("subnet-456"),
+						"ip_address": cty.StringVal("10.0.0.2"),
+					}),
+				}),
+			}),
+			"identity": cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-123456"),
+			}),
+		}),
+	})
+
+	// Create test resource address
+	addr := addrs.AbsResource{
+		Module: addrs.RootModuleInstance,
+		Resource: addrs.Resource{
+			Mode: addrs.ListResourceMode,
+			Type: "aws_instance",
+			Name: "example",
+		},
+	}
+
+	// Create instance addresses for each instance
+	instAddr1 := addr.Instance(addrs.NoKey)
+
+	// Create provider config
+	pc := addrs.LocalProviderConfig{
+		LocalName: "aws",
+	}
+
+	// the handling of the list value was moved to the caller, so break it back down in the same way here
+	var listElements []ResourceListElement
+
+	iter := value.ElementIterator()
+	for iter.Next() {
+		_, val := iter.Element()
+		// we still need to generate the resource block even if the state is not given,
+		// so that the import block can reference it.
+		stateVal := cty.NilVal
+		if val.Type().HasAttribute("state") {
+			stateVal = val.GetAttr("state")
+		}
+
+		stateVal, _ = stateVal.UnmarkDeep()
+		config := ExtractLegacyConfigFromState(schema, stateVal)
+
+		idVal := val.GetAttr("identity")
+
+		listElements = append(listElements, ResourceListElement{Config: config, Identity: idVal})
+	}
+
+	// Generate content
+	content, diags := GenerateListResourceContents(instAddr1, schema, idSchema, pc, listElements)
+	// Check for diagnostics
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Err())
+	}
+
+	// Check the generated content
+	expectedContent := `resource "aws_instance" "example_0" {
+  provider = aws
+  name     = "instance-1"
+  tags = {
+    Environment = "Dev"
+    Owner       = "Team1"
+  }
+  network_interface {
+    ip_address = "10.0.0.1"
+    subnet_id  = "subnet-123"
+  }
+}
+
+import {
+  to       = aws_instance.example_0
+  provider = aws
+  identity = {
+    id = "i-abcdef"
+  }
+}
+
+resource "aws_instance" "example_1" {
+  provider = aws
+  name     = "instance-2"
+  tags = {
+    Environment = "Prod"
+    Owner       = "Team2"
+  }
+  network_interface {
+    ip_address = "10.0.0.2"
+    subnet_id  = "subnet-456"
+  }
+}
+
+import {
+  to       = aws_instance.example_1
+  provider = aws
+  identity = {
+    id = "i-123456"
+  }
+}
+
+`
+	// Normalize both strings by removing extra whitespace for comparison
+	normalizeString := func(s string) string {
+		// Remove spaces at the end of lines and replace multiple newlines with a single one
+		lines := strings.Split(s, "\n")
+		for i, line := range lines {
+			lines[i] = strings.TrimRight(line, " \t")
+		}
+		return strings.Join(lines, "\n")
+	}
+
+	normalizedExpected := normalizeString(expectedContent)
+
+	var merged string
+
+	for _, imp := range content.Imports {
+		merged += imp.Resource.String()
+	}
+	normalizedActual := normalizeString(content.String())
+
+	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
+		t.Errorf("Generated content doesn't match expected. want:\n%s\ngot:\n%s\ndiff:\n%s", normalizedExpected, normalizedActual, diff)
 	}
 }

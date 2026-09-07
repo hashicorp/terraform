@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 // This file is copied from terraform-provider-azurerm: internal/provider/helpers.go
@@ -12,7 +12,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/backend/backendbase"
 )
 
 // logEntry avoids log entries showing up in test output
@@ -41,10 +41,19 @@ func decodeCertificate(clientCertificate string) ([]byte, error) {
 	return pfx, nil
 }
 
-func getOidcToken(d *schema.ResourceData) (*string, error) {
-	idToken := strings.TrimSpace(d.Get("oidc_token").(string))
+func getOidcToken(d *backendbase.SDKLikeData) (*string, error) {
+	idToken := strings.TrimSpace(d.String("oidc_token"))
+	tokenFilePath := d.String("oidc_token_file_path")
 
-	if path := d.Get("oidc_token_file_path").(string); path != "" {
+	if environmentVariableSet(envARMOIDCTokenBackend, envARMOIDCTokenFilePathBackend) {
+		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, envARMOIDCTokenBackend))
+		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, envARMOIDCTokenFilePathBackend)
+	} else {
+		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, "ARM_OIDC_TOKEN"))
+		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, "ARM_OIDC_TOKEN_FILE_PATH")
+	}
+
+	if path := tokenFilePath; path != "" {
 		fileTokenRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -60,7 +69,7 @@ func getOidcToken(d *schema.ResourceData) (*string, error) {
 		idToken = fileToken
 	}
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_FEDERATED_TOKEN_FILE") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_FEDERATED_TOKEN_FILE") != "" {
 		path := os.Getenv("AZURE_FEDERATED_TOKEN_FILE")
 		fileTokenRaw, err := os.ReadFile(os.Getenv("AZURE_FEDERATED_TOKEN_FILE"))
 
@@ -80,10 +89,19 @@ func getOidcToken(d *schema.ResourceData) (*string, error) {
 	return &idToken, nil
 }
 
-func getClientId(d *schema.ResourceData) (*string, error) {
-	clientId := strings.TrimSpace(d.Get("client_id").(string))
+func getClientId(d *backendbase.SDKLikeData) (*string, error) {
+	clientId := strings.TrimSpace(d.String("client_id"))
+	clientIdFilePath := d.String("client_id_file_path")
 
-	if path := d.Get("client_id_file_path").(string); path != "" {
+	if environmentVariableSet(envARMClientIDBackend, envARMClientIDFilePathBackend) {
+		clientId = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientId, envARMClientIDBackend))
+		clientIdFilePath = backendbase.SDKLikeEnvDefault(clientIdFilePath, envARMClientIDFilePathBackend)
+	} else {
+		clientId = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientId, "ARM_CLIENT_ID"))
+		clientIdFilePath = backendbase.SDKLikeEnvDefault(clientIdFilePath, "ARM_CLIENT_ID_FILE_PATH")
+	}
+
+	if path := clientIdFilePath; path != "" {
 		fileClientIdRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -99,7 +117,7 @@ func getClientId(d *schema.ResourceData) (*string, error) {
 		clientId = fileClientId
 	}
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_CLIENT_ID") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_CLIENT_ID") != "" {
 		aksClientId := os.Getenv("AZURE_CLIENT_ID")
 		if clientId != "" && clientId != aksClientId {
 			return nil, fmt.Errorf("mismatch between supplied Client ID and that provided by AKS Workload Identity - please remove, ensure they match, or disable use_aks_workload_identity")
@@ -110,10 +128,10 @@ func getClientId(d *schema.ResourceData) (*string, error) {
 	return &clientId, nil
 }
 
-func getClientSecret(d *schema.ResourceData) (*string, error) {
-	clientSecret := strings.TrimSpace(d.Get("client_secret").(string))
+func getClientSecret(d *backendbase.SDKLikeData) (*string, error) {
+	clientSecret := strings.TrimSpace(d.String("client_secret"))
 
-	if path := d.Get("client_secret_file_path").(string); path != "" {
+	if path := d.String("client_secret_file_path"); path != "" {
 		fileSecretRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -132,10 +150,10 @@ func getClientSecret(d *schema.ResourceData) (*string, error) {
 	return &clientSecret, nil
 }
 
-func getTenantId(d *schema.ResourceData) (*string, error) {
-	tenantId := strings.TrimSpace(d.Get("tenant_id").(string))
+func getTenantId(d *backendbase.SDKLikeData) (*string, error) {
+	tenantId := strings.TrimSpace(d.String("tenant_id"))
 
-	if d.Get("use_aks_workload_identity").(bool) && os.Getenv("AZURE_TENANT_ID") != "" {
+	if d.Bool("use_aks_workload_identity") && os.Getenv("AZURE_TENANT_ID") != "" {
 		aksTenantId := os.Getenv("AZURE_TENANT_ID")
 		if tenantId != "" && tenantId != aksTenantId {
 			return nil, fmt.Errorf("mismatch between supplied Tenant ID and that provided by AKS Workload Identity - please remove, ensure they match, or disable use_aks_workload_identity")
@@ -144,4 +162,62 @@ func getTenantId(d *schema.ResourceData) (*string, error) {
 	}
 
 	return &tenantId, nil
+}
+
+func getOidcRequestURL(d *backendbase.SDKLikeData) string {
+	return backendbase.SDKLikeEnvDefault(
+		d.String("oidc_request_url"),
+		envARMOIDCRequestURLBackend,
+		"ARM_OIDC_REQUEST_URL",
+		"ACTIONS_ID_TOKEN_REQUEST_URL",
+		"SYSTEM_OIDCREQUESTURI",
+	)
+}
+
+func getOidcRequestToken(d *backendbase.SDKLikeData) string {
+	return backendbase.SDKLikeEnvDefault(
+		d.String("oidc_request_token"),
+		envARMOIDCRequestTokenBackend,
+		"ARM_OIDC_REQUEST_TOKEN",
+		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
+		"SYSTEM_ACCESSTOKEN",
+	)
+}
+
+func getADOPipelineServiceConnectionID(d *backendbase.SDKLikeData) string {
+	if serviceConnectionID := d.String("ado_pipeline_service_connection_id"); serviceConnectionID != "" {
+		return serviceConnectionID
+	}
+
+	if backendOIDCIdentityEnvironmentConfigured() {
+		return ""
+	}
+
+	return backendbase.SDKLikeEnvDefault(
+		"",
+		"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID",
+		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
+		"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
+	)
+}
+
+func backendOIDCIdentityEnvironmentConfigured() bool {
+	return environmentVariableSet(
+		envARMTenantIDBackend,
+		envARMClientIDBackend,
+		envARMClientIDFilePathBackend,
+		envARMOIDCRequestTokenBackend,
+		envARMOIDCRequestURLBackend,
+		envARMOIDCTokenBackend,
+		envARMOIDCTokenFilePathBackend,
+	)
+}
+
+func environmentVariableSet(names ...string) bool {
+	for _, name := range names {
+		if os.Getenv(name) != "" {
+			return true
+		}
+	}
+	return false
 }

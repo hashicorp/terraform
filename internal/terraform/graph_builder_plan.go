@@ -1,15 +1,17 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -52,6 +54,9 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ActionTargets are actions that should be triggered.
+	ActionTargets []addrs.Targetable
+
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
@@ -71,9 +76,14 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
+	// minimalRefresh indicates that we should run an initial plan for each resource prior to refreshing:
+	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
+	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
+	minimalRefresh bool
+
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
-	ConcreteResourceInstance        ConcreteResourceInstanceNodeFunc
+	ConcreteDestroyResourceInstance ConcreteResourceInstanceNodeFunc
 	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
@@ -110,6 +120,24 @@ type PlanGraphBuilder struct {
 	// SkipGraphValidation indicates whether the graph builder should skip
 	// validation of the graph.
 	SkipGraphValidation bool
+
+	PolicyClient policy.Client
+
+	// If true, the graph builder will generate a query plan instead of a
+	// normal plan. This is used for the "terraform query" command.
+	queryPlan bool
+
+	// overridePreventDestroy is only applicable during destroy operations, and
+	// allows Terraform to ignore the configuration attribute prevent_destroy
+	// to destroy resources regardless.
+	overridePreventDestroy bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
 }
 
 // See GraphBuilder
@@ -140,37 +168,37 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
-			destroy:  b.Operation == walkDestroy || b.Operation == walkPlanDestroy,
+			Concrete:  b.ConcreteResource,
+			Config:    b.Config,
+			Operation: b.Operation,
 
 			importTargets: b.ImportTargets,
 
-			// We only want to generate config during a plan operation.
 			generateConfigPathForImportTargets: b.GenerateConfigPath,
 		},
 
 		// Add dynamic values
 		&RootVariableTransformer{
-			Config:       b.Config,
-			RawValues:    b.RootVariableValues,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			RawValues:      b.RootVariableValues,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&ModuleVariableTransformer{
-			Config:       b.Config,
-			Planning:     true,
-			DestroyApply: false, // always false for planning
+			Config:         b.Config,
+			ValidateChecks: true,
+			DestroyApply:   false, // always false for planning
 		},
 		&variableValidationTransformer{
-			validateWalk: b.Operation == walkValidate,
+			operation: b.Operation,
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:      b.Config,
-			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
-			Destroying:  b.Operation == walkPlanDestroy,
-			Overrides:   b.Overrides,
+			Config:                    b.Config,
+			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
+			Destroying:                b.Operation == walkPlanDestroy,
+			Overrides:                 b.Overrides,
+			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
@@ -201,7 +229,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// ConfigTransformer created nodes that will do that during
 		// DynamicExpand.)
 		&StateTransformer{
-			ConcreteCurrent: b.ConcreteResourceInstance,
+			ConcreteCurrent: b.ConcreteDestroyResourceInstance,
 			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
 			State:           b.State,
 		},
@@ -228,6 +256,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
 		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
+
+		// In order to analyze any use of caller, this must happen after
+		// AttachSchemaTransformer so we can get all references from the action
+		// configs.
+		&ActionInvokePlanTransformer{
+			Config:          b.Config,
+			Operation:       b.Operation,
+			ActionTargets:   b.ActionTargets,
+			ResourceTargets: b.Targets,
+			queryPlanMode:   b.queryPlan,
+		},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
@@ -258,7 +297,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{Targets: slices.Concat(b.Targets, b.ActionTargets)},
+
+		// Filter the graph to only include nodes that are relevant to the query operation.
+		&QueryTransformer{queryPlan: b.queryPlan, validate: b.Operation == walkValidate},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
@@ -269,6 +311,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Request policy evaluation for resources.
+		&policyEvalTransformer{PolicyClient: b.PolicyClient, QueryPlan: b.queryPlan},
 
 		// Close the root module
 		&CloseRootModuleTransformer{},
@@ -289,31 +334,37 @@ func (b *PlanGraphBuilder) initPlan() {
 	}
 
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
+			minimalRefresh:       b.minimalRefresh,
 		}
 	}
 
 	b.ConcreteResourceOrphan = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
-			skipPlanChanges:              b.skipPlanChanges,
-			forgetResources:              b.forgetResources,
-			forgetModules:                b.forgetModules,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.minimalRefresh,
+			skipPlanChanges: b.skipPlanChanges,
+			forgetResources: b.forgetResources,
+			forgetModules:   b.forgetModules,
 		}
 	}
 
 	b.ConcreteResourceInstanceDeposed = func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
 
-			skipRefresh:     b.skipRefresh,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
 			forgetResources: b.forgetResources,
 			forgetModules:   b.forgetModules,
@@ -324,10 +375,12 @@ func (b *PlanGraphBuilder) initPlan() {
 func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
 
-	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+	b.ConcreteDestroyResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		a.overridePreventDestroy = b.overridePreventDestroy
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
-			skipRefresh:                  b.skipRefresh,
+			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
+			skipRefresh: b.skipRefresh || b.minimalRefresh,
 		}
 	}
 }

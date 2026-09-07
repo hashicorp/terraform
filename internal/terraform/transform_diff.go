@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -18,10 +19,11 @@ import (
 // DiffTransformer is a GraphTransformer that adds graph nodes representing
 // each of the resource changes described in the given Changes object.
 type DiffTransformer struct {
-	Concrete ConcreteResourceInstanceNodeFunc
-	State    *states.State
-	Changes  *plans.ChangesSrc
-	Config   *configs.Config
+	Concrete     ConcreteResourceInstanceNodeFunc
+	State        *states.State
+	Changes      *plans.ChangesSrc
+	Config       *configs.Config
+	PolicyClient policy.Client
 }
 
 // return true if the given resource instance has either Preconditions or
@@ -64,7 +66,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// dependency edges, so we'll do some prep work here to ensure we'll only
 	// create connections to nodes that existed before we started here.
 	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
-	for _, node := range g.Vertices() {
+	for node := range g.VerticesSeq() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
 			continue
@@ -95,14 +97,28 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// For a no-op change we don't take any action but we still
 			// run any condition checks associated with the object, to
 			// make sure that they still hold when considering the
-			// results of other changes.
-			update = t.hasConfigConditions(addr)
+			// results of other changes. However, if the object is also
+			// deposed, then the instance no longer exists and there is
+			// no reason to process conditions.
+			if dk == states.NotDeposed {
+				update = t.hasConfigConditions(addr)
+
+				// During apply we can also force a node for no-op managed resource changes so that
+				// policy evaluation can still run against unchanged objects.
+				if t.PolicyClient != nil && rc.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+					update = true
+				}
+			}
+
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
 			update = true
 			delete = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
+		case plans.CreateThenForget:
+			update = true
+			forget = true
 		case plans.Forget:
 			forget = true
 		default:
@@ -174,14 +190,14 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				if dn, ok := node.(GraphNodeDeposer); ok {
 					dn.SetPreallocatedDeposedKey(dk)
 				}
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, dag.VertexName(node), dk)
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s, deposing prior object to %s", addr, node.Name(), dk)
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented by %s", addr, node.Name())
 			}
 
 			g.Add(node)
 			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
-				g.Connect(dag.BasicEdge(node, rsrcNode))
+				g.Connect(node, rsrcNode)
 			}
 		}
 
@@ -202,9 +218,9 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 			if dk == states.NotDeposed {
-				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s will be represented for destruction by %s", addr, node.Name())
 			} else {
-				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, dag.VertexName(node))
+				log.Printf("[TRACE] DiffTransformer: %s deposed object %s will be represented for destruction by %s", addr, dk, node.Name())
 			}
 			g.Add(node)
 		}
@@ -223,7 +239,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				}
 			}
 
-			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, dag.VertexName(node))
+			log.Printf("[TRACE] DiffTransformer: %s will be represented for forgetting by %s", addr, node.Name())
 			g.Add(node)
 		}
 

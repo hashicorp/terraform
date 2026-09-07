@@ -1,0 +1,183 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package views
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+type QueryOperationHuman struct {
+	view        *View
+	queryPolicy *queryPolicyView
+
+	// inAutomation indicates that commands are being run by an
+	// automated system rather than directly at a command prompt.
+	//
+	// This is a hint not to produce messages that expect that a user can
+	// run a follow-up command, perhaps because Terraform is running in
+	// some sort of workflow automation tool that abstracts away the
+	// exact commands that are being run.
+	inAutomation bool
+}
+
+var _ Operation = (*QueryOperationHuman)(nil)
+
+func (v *QueryOperationHuman) Interrupted() {
+	v.view.streams.Println(format.WordWrap(interrupted, v.view.outputColumns()))
+}
+
+func (v *QueryOperationHuman) FatalInterrupt() {
+	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
+}
+
+func (v *QueryOperationHuman) Stopping() {
+	v.view.streams.Println("Stopping operation...")
+}
+
+func (v *QueryOperationHuman) Cancelled(planMode plans.Mode) {
+	v.view.streams.Println("Query cancelled.")
+}
+
+func (v *QueryOperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
+	return nil
+}
+
+func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	// The hook for individual query blocks do not display any output when the results are empty,
+	// so we will display a grouped warning message here for the empty queries.
+	emptyBlocks := []string{}
+	if plan != nil && plan.Changes != nil {
+		for _, query := range plan.Changes.Queries {
+			pSchema := schemas.ProviderSchema(query.ProviderAddr.Provider)
+			addr := query.Addr
+			schema := pSchema.ListResourceTypes[addr.Resource.Resource.Type]
+
+			results, err := query.Decode(schema)
+			if err != nil {
+				v.view.streams.Eprintln(err)
+				continue
+			}
+
+			data := results.Results.Value.GetAttr("data")
+			if data.LengthInt() == 0 {
+				emptyBlocks = append(emptyBlocks, addr.String())
+			}
+		}
+	}
+
+	if len(emptyBlocks) > 0 {
+		msg := fmt.Sprintf(v.view.colorize.Color("[bold][yellow]Warning:[reset][bold] list block(s) [%s] returned 0 results.\n"), strings.Join(emptyBlocks, ", "))
+		v.view.streams.Println(format.WordWrap(msg, v.view.outputColumns()))
+	}
+
+	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
+		return
+	}
+
+	var summaries []PolicyQuerySummary
+	v.queryPolicy.Flush(func(summary PolicyQuerySummary) {
+		summaries = append(summaries, summary)
+	})
+	v.view.streams.Println(RenderPolicyQuerySummariesHuman(summaries))
+}
+
+func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
+}
+
+func (v *QueryOperationHuman) PlanNextStep(planPath string, genConfigPath string) {
+}
+
+func (v *QueryOperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *QueryOperationHuman) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
+}
+
+func (v *QueryOperationHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	if v.queryPolicy == nil {
+		v.view.PolicyResult(addr, resp)
+		return
+	}
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
+		return
+	}
+	v.view.PolicyResult(addr, resp)
+}
+
+type QueryOperationJSON struct {
+	view        *JSONView
+	queryPolicy *queryPolicyView
+}
+
+var _ Operation = (*QueryOperationJSON)(nil)
+
+func (v *QueryOperationJSON) Interrupted() {
+	v.view.Log(interrupted)
+}
+
+func (v *QueryOperationJSON) FatalInterrupt() {
+	v.view.Log(fatalInterrupt)
+}
+
+func (v *QueryOperationJSON) Stopping() {
+	v.view.Log("Stopping operation...")
+}
+
+func (v *QueryOperationJSON) Cancelled(planMode plans.Mode) {
+	v.view.Log("Query cancelled")
+}
+
+func (v *QueryOperationJSON) EmergencyDumpState(stateFile *statefile.File) error {
+	return nil
+}
+
+func (v *QueryOperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
+		return
+	}
+	v.queryPolicy.Flush(v.view.logPolicyQuerySummary)
+}
+
+func (v *QueryOperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
+}
+
+func (v *QueryOperationJSON) PlanNextStep(planPath string, genConfigPath string) {
+}
+
+func (v *QueryOperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *QueryOperationJSON) PolicyDiagnostics(diags policy.Diagnostics) {
+	v.view.PolicyDiagnostics(diags)
+}
+
+func (v *QueryOperationJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
+	if v.queryPolicy == nil {
+		v.view.PolicyResult(addr, resp)
+		return
+	}
+	handled, unconsumed := v.queryPolicy.AddResult(addr, resp)
+	if handled {
+		if len(unconsumed) > 0 {
+			v.view.PolicyResult(addr, policy.EvaluationResponse{Diagnostics: unconsumed})
+		}
+		return
+	}
+	v.view.PolicyResult(addr, resp)
+}

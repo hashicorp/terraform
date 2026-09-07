@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package rpcapi
@@ -28,6 +28,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/policy"
+	policyproto "github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1/dependencies"
@@ -488,7 +490,409 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	}
 }
 
-func TestStackChangeProgress(t *testing.T) {
+func TestStacksPlanStackChanges_noPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// No policy plugin or policies should result in no evaluations
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromPlan(t, events)
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	events, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:           stacks.PlanMode_NORMAL,
+		StackConfigHandle:  open.StackConfigHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
+	}
+
+	gotEvents := collectPolicyEventsFromPlan(t, events)
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_noPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle: open.StackConfigHandle,
+		PlanHandle:        planResult.PlanHandle,
+
+		// No policy plugin or policies should result in no evaluations
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	// No policy events should be emitted
+	wantEvents := make([]aggregatedPolicyEvent, 0)
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+	// For this test, we do actually want to use a "real" provider. We'll
+	// use the providerCacheOverride to side-load the testing provider.
+	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+		return stacks_testing_provider.NewProviderWithData(t, nil), nil
+	}
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	stacksServer.providerDependencyLockOverride = lock
+
+	// Set the policy client mock, which returns evaluation data for the "multiple-components" source bundle
+	stacksServer.policyClientOverride = policyEvaluationTestClient(t)
+
+	source := "git::https://example.com/multiple-components.git"
+	sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hnd := handles.NewSourceBundle(sb)
+
+	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+		stacks.RegisterStacksServer(srv, stacksServer)
+	})
+	defer close()
+	stacksClient := stacks.NewStacksClient(grpcClient)
+
+	open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+		SourceBundleHandle: hnd.ForProtobuf(),
+		SourceAddress: &terraform1.SourceAddress{
+			Source: source,
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+		StackConfigHandle: open.StackConfigHandle,
+	})
+
+	planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+		PlanMode:          stacks.PlanMode_NORMAL,
+		StackConfigHandle: open.StackConfigHandle,
+
+		// We are only asserting policy evaluation on apply in this test
+		TfpolicyPluginPath: nil,
+		PolicyPaths:        nil,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+		var events []*stacks.PlanStackChanges_Event
+		for {
+			event, err := planResp.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			events = append(events, event)
+		}
+		return events
+	}())
+
+	planStream, err := stacksClient.OpenPlan(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	for _, v := range planEvents.PlannedChanges {
+		for _, r := range v.GetPlannedChange().Raw {
+			planStream.Send(&stacks.OpenStackPlan_RequestItem{
+				Raw: r,
+			})
+		}
+	}
+
+	planResult, err := planStream.CloseAndRecv()
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	fakePolicyPluginPath := "/not/a/real/plugin"
+	applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+		StackConfigHandle:  open.StackConfigHandle,
+		PlanHandle:         planResult.PlanHandle,
+		TfpolicyPluginPath: &fakePolicyPluginPath,
+		PolicyPaths: []string{
+			"/fake/policy-set/",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	wantEvents := []aggregatedPolicyEvent{
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
+		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
+		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
+	}
+
+	gotEvents := collectPolicyEventsFromApply(t, applyResp)
+
+	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
+		// Order of policy evaluation data is not guaranteed
+		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+	); diff != "" {
+		t.Fatalf("unexpected policy events\n%s", diff)
+	}
+}
+
+func TestStackChangeProgressDuringPlanNormal(t *testing.T) {
 	tcs := map[string]struct {
 		source      string
 		store       *stacks_testing_provider.ResourceStore
@@ -640,7 +1044,6 @@ func TestStackChangeProgress(t *testing.T) {
 			},
 			want: []*stacks.StackChangeProgress{
 				{
-
 					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &stacks.ComponentInstanceInStackAddr{
@@ -695,7 +1098,8 @@ func TestStackChangeProgress(t *testing.T) {
 							ProviderAddr: "registry.terraform.io/hashicorp/testing",
 						},
 					},
-				}, {
+				},
+				{
 					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
 						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
 							Addr: &stacks.ComponentInstanceInStackAddr{
@@ -810,12 +1214,204 @@ func TestStackChangeProgress(t *testing.T) {
 				},
 			},
 		},
+		"invalid - update": {
+			source: "git::https://example.com/invalid.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
+						ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Status:       stacks.StackChangeProgress_ResourceInstanceStatus_ERRORED,
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED,
+						},
+					},
+				},
+			},
+			diagnostics: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "invalid configuration",
+					Detail:   "configure_error attribute was set",
+				},
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Provider configuration is invalid",
+					Detail:   "Cannot decode the prior state for this resource instance because its provider configuration is invalid.",
+				},
+			},
+		},
+		"invalid - create": {
+			source: "git::https://example.com/invalid.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstanceStatus_{
+						ResourceInstanceStatus: &stacks.StackChangeProgress_ResourceInstanceStatus{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Status:       stacks.StackChangeProgress_ResourceInstanceStatus_ERRORED,
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_ERRORED,
+						},
+					},
+				},
+			},
+			diagnostics: []*terraform1.Diagnostic{
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "invalid configuration",
+					Detail:   "configure_error attribute was set",
+				},
+				{
+					Severity: terraform1.Diagnostic_ERROR,
+					Summary:  "Provider configuration is invalid",
+					Detail:   "Cannot plan changes for this resource because its associated provider configuration is invalid.",
+				},
+			},
+		},
+		"no-op plan": {
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED,
+						},
+					},
+				},
+			},
+		},
+		"empty plan": {
+			source: "git::https://example.com/empty.git",
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_PLANNED,
+						},
+					},
+				},
+			},
+		},
+		"action_invocations": {
+			// This test verifies that the ActionInvocation field exists in ComponentInstanceChanges
+			// and is included in the total count. Once we implement action invocation tracking logic,
+			// this field will have a value > 0 for components with actions.
+			source: "git::https://example.com/action_invocations.git",
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total:            2,
+							Add:              1,
+							ActionInvocation: 1,
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
 			ctx := context.Background()
-
 			handles := newHandleTable()
 			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
 
@@ -828,8 +1424,8 @@ func TestStackChangeProgress(t *testing.T) {
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			stacksServer.providerDependencyLockOverride = lock
@@ -914,24 +1510,24 @@ func TestStackChangeProgress(t *testing.T) {
 			// First, validate the diagnostics. Most of the tests are either
 			// expecting a specific single diagnostic so we do actually check
 			// everything.
+			// We don't care about the ordering since it's not guaranteed.
 
-			diagIx := 0
-			for ; diagIx < len(tc.diagnostics); diagIx++ {
-				if diagIx >= len(gotEvents.Diagnostics) {
-					// Then we have more expected diagnostics than we got.
-					t.Errorf("missing expected diagnostic: %v", tc.diagnostics[diagIx])
-					continue
-				}
-				diag := gotEvents.Diagnostics[diagIx].Event.(*stacks.PlanStackChanges_Event_Diagnostic).Diagnostic
-				if diff := cmp.Diff(tc.diagnostics[diagIx], diag, protocmp.Transform()); diff != "" {
-					// Then we have a diagnostic that doesn't match what we
-					// expected.
-					t.Errorf("wrong diagnostic\n%s", diff)
-				}
+			if len(tc.diagnostics) != len(gotEvents.Diagnostics) {
+				t.Fatalf("expected %d diagnostics, got %d", len(tc.diagnostics), len(gotEvents.Diagnostics))
 			}
-			for ; diagIx < len(gotEvents.Diagnostics); diagIx++ {
-				// Then we have more diagnostics than we expected.
-				t.Errorf("unexpected diagnostic: %v", gotEvents.Diagnostics[diagIx])
+
+		DIAGS:
+			for _, expectedDiag := range tc.diagnostics {
+				for _, gotDiagEvent := range gotEvents.Diagnostics {
+					gotDiag := gotDiagEvent.Event.(*stacks.PlanStackChanges_Event_Diagnostic).Diagnostic
+
+					if diff := cmp.Diff(expectedDiag, gotDiag, protocmp.Transform()); diff == "" {
+						continue DIAGS // Found it
+					}
+				}
+
+				// If we reach this point we did not find the diag
+				t.Errorf("missing expected diagnostic: %v, got %v", expectedDiag, gotEvents.Diagnostics)
 			}
 
 			// Now we're going to manually verify the existence of some key events.
@@ -967,6 +1563,543 @@ func TestStackChangeProgress(t *testing.T) {
 				}
 
 				for _, evt := range gotEvents.PlannedChanges {
+					t.Logf("        returned event: %s", evt.String())
+				}
+			}
+		})
+	}
+}
+
+func TestStackChangeProgressDuringPlanDestroy(t *testing.T) {
+	tcs := map[string]struct {
+		source      string
+		store       *stacks_testing_provider.ResourceStore
+		state       []stackstate.AppliedChange
+		inputs      map[string]cty.Value
+		want        []*stacks.StackChangeProgress
+		diagnostics []*terraform1.Diagnostic
+	}{
+		"destroy plan": {
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ResourceInstancePlannedChange_{
+						ResourceInstancePlannedChange: &stacks.StackChangeProgress_ResourceInstancePlannedChange{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_resource.resource",
+							},
+							Actions: []stacks.ChangeType{
+								stacks.ChangeType_DELETE,
+							},
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceChanges_{
+						ComponentInstanceChanges: &stacks.StackChangeProgress_ComponentInstanceChanges{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Total:  1,
+							Remove: 1,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
+			}
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			stacksServer.providerDependencyLockOverride = lock
+
+			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			hnd := handles.NewSourceBundle(sb)
+
+			client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				stacks.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			stacksClient := stacks.NewStacksClient(client)
+
+			open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+				SourceBundleHandle: hnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+				StackConfigHandle: open.StackConfigHandle,
+			})
+
+			resp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+				PlanMode:          stacks.PlanMode_DESTROY,
+				StackConfigHandle: open.StackConfigHandle,
+				PreviousState:     appliedChangeToRawState(t, tc.state),
+				InputValues: func() map[string]*stacks.DynamicValueWithSource {
+					values := make(map[string]*stacks.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &stacks.DynamicValueWithSource{
+							Value: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			wantEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+				events := make([]*stacks.PlanStackChanges_Event, 0, len(tc.want))
+				for _, want := range tc.want {
+					events = append(events, &stacks.PlanStackChanges_Event{
+						Event: &stacks.PlanStackChanges_Event_Progress{
+							Progress: want,
+						},
+					})
+				}
+				return events
+			}())
+
+			gotEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+				var events []*stacks.PlanStackChanges_Event
+				for {
+					event, err := resp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			// First, validate the diagnostics. Most of the tests are either
+			// expecting a specific single diagnostic so we do actually check
+			// everything.
+			// We don't care about the ordering since it's not guaranteed.
+
+			if len(tc.diagnostics) != len(gotEvents.Diagnostics) {
+				t.Fatalf("expected %d diagnostics, got %d", len(tc.diagnostics), len(gotEvents.Diagnostics))
+			}
+
+		DIAGS:
+			for _, expectedDiag := range tc.diagnostics {
+				for _, gotDiagEvent := range gotEvents.Diagnostics {
+					gotDiag := gotDiagEvent.Event.(*stacks.PlanStackChanges_Event_Diagnostic).Diagnostic
+
+					if diff := cmp.Diff(expectedDiag, gotDiag, protocmp.Transform()); diff == "" {
+						continue DIAGS // Found it
+					}
+				}
+
+				// If we reach this point we did not find the diag
+				t.Errorf("missing expected diagnostic: %v, got %v", expectedDiag, gotEvents.Diagnostics)
+			}
+
+			// Now we're going to manually verify the existence of some key events.
+			// We're not looking for every event because (a) the exact ordering of
+			// events is not guaranteed and (b) we don't want to start failing every
+			// time a new event is added.
+
+		WantPlannedChange:
+			for _, want := range wantEvents.PlannedChanges {
+				for _, got := range gotEvents.PlannedChanges {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantPlannedChange
+					}
+				}
+				t.Errorf("missing expected planned change: %v", want)
+			}
+
+		WantMiscHook:
+			for _, want := range wantEvents.MiscHooks {
+				for _, got := range gotEvents.MiscHooks {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantMiscHook
+					}
+				}
+				t.Errorf("missing expected event: %v", want)
+			}
+
+			if t.Failed() {
+				// if the test failed, let's print out all the events we got to help
+				// with debugging.
+				for _, evt := range gotEvents.MiscHooks {
+					t.Logf("        returned event: %s", evt.String())
+				}
+
+				for _, evt := range gotEvents.PlannedChanges {
+					t.Logf("        returned event: %s", evt.String())
+				}
+			}
+		})
+	}
+}
+
+func TestStackChangeProgressDuringApply(t *testing.T) {
+	tcs := map[string]struct {
+		mode        stacks.PlanMode
+		source      string
+		store       *stacks_testing_provider.ResourceStore
+		state       []stackstate.AppliedChange
+		inputs      map[string]cty.Value
+		want        []*stacks.StackChangeProgress
+		diagnostics []*terraform1.Diagnostic
+	}{
+		"simple": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/simple.git",
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
+		"no-op": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/simple.git",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("resource", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("resource"),
+					"value": cty.NullVal(cty.String),
+				})).
+				Build(),
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+				&stackstate.AppliedChangeResourceInstanceObject{
+					ResourceInstanceObjectAddr: mustAbsResourceInstanceObject(t, "component.self.testing_resource.resource"),
+					NewStateSrc: &states.ResourceInstanceObjectSrc{
+						AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+							"id":    "resource",
+							"value": nil,
+						}),
+						Status: states.ObjectReady,
+					},
+					ProviderConfigAddr: mustDefaultRootProvider("testing"),
+					Schema:             stacks_testing_provider.TestingResourceSchema,
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
+		"empty": {
+			mode:   stacks.PlanMode_NORMAL,
+			source: "git::https://example.com/empty.git",
+			state: []stackstate.AppliedChange{
+				&stackstate.AppliedChangeComponentInstance{
+					ComponentAddr:         mustAbsComponent(t, "component.self"),
+					ComponentInstanceAddr: mustAbsComponentInstance(t, "component.self"),
+				},
+			},
+			want: []*stacks.StackChangeProgress{
+				{
+					Event: &stacks.StackChangeProgress_ComponentInstanceStatus_{
+						ComponentInstanceStatus: &stacks.StackChangeProgress_ComponentInstanceStatus{
+							Addr: &stacks.ComponentInstanceInStackAddr{
+								ComponentAddr:         "component.self",
+								ComponentInstanceAddr: "component.self",
+							},
+							Status: stacks.StackChangeProgress_ComponentInstanceStatus_APPLIED,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProviderWithData(t, tc.store), nil
+			}
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			stacksServer.providerDependencyLockOverride = lock
+
+			sb, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			hnd := handles.NewSourceBundle(sb)
+
+			client, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				stacks.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			stacksClient := stacks.NewStacksClient(client)
+
+			open, err := stacksClient.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+				SourceBundleHandle: hnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			defer stacksClient.CloseStackConfiguration(ctx, &stacks.CloseStackConfiguration_Request{
+				StackConfigHandle: open.StackConfigHandle,
+			})
+
+			planResp, err := stacksClient.PlanStackChanges(ctx, &stacks.PlanStackChanges_Request{
+				PlanMode:          tc.mode,
+				StackConfigHandle: open.StackConfigHandle,
+				PreviousState:     appliedChangeToRawState(t, tc.state),
+				InputValues: func() map[string]*stacks.DynamicValueWithSource {
+					values := make(map[string]*stacks.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &stacks.DynamicValueWithSource{
+							Value: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			planEvents := splitStackOperationEvents(func() []*stacks.PlanStackChanges_Event {
+				var events []*stacks.PlanStackChanges_Event
+				for {
+					event, err := planResp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			planStream, err := stacksClient.OpenPlan(ctx)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			for _, v := range planEvents.PlannedChanges {
+				for _, r := range v.GetPlannedChange().Raw {
+					planStream.Send(&stacks.OpenStackPlan_RequestItem{
+						Raw: r,
+					})
+				}
+			}
+
+			planResult, err := planStream.CloseAndRecv()
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			applyResp, err := stacksClient.ApplyStackChanges(ctx, &stacks.ApplyStackChanges_Request{
+				StackConfigHandle: open.StackConfigHandle,
+				PlanHandle:        planResult.PlanHandle,
+				InputValues: func() map[string]*stacks.DynamicValueWithSource {
+					values := make(map[string]*stacks.DynamicValueWithSource)
+					for name, value := range tc.inputs {
+						values[name] = &stacks.DynamicValueWithSource{
+							Value: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, value, value.Type()),
+							},
+							SourceRange: &terraform1.SourceRange{
+								Start: &terraform1.SourcePos{},
+								End:   &terraform1.SourcePos{},
+							},
+						}
+					}
+					return values
+				}(),
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			wantEvents := splitApplyStackOperationEvents(func() []*stacks.ApplyStackChanges_Event {
+				events := make([]*stacks.ApplyStackChanges_Event, 0, len(tc.want))
+				for _, want := range tc.want {
+					events = append(events, &stacks.ApplyStackChanges_Event{
+						Event: &stacks.ApplyStackChanges_Event_Progress{
+							Progress: want,
+						},
+					})
+				}
+				return events
+			}())
+
+			gotApplyEvents := splitApplyStackOperationEvents(func() []*stacks.ApplyStackChanges_Event {
+				var events []*stacks.ApplyStackChanges_Event
+				for {
+					event, err := applyResp.Recv()
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatalf("unexpected error: %s", err)
+					}
+					events = append(events, event)
+				}
+				return events
+			}())
+
+			// First, validate the diagnostics. Most of the tests are either
+			// expecting a specific single diagnostic so we do actually check
+			// everything.
+
+			diagIx := 0
+			for ; diagIx < len(tc.diagnostics); diagIx++ {
+				if diagIx >= len(gotApplyEvents.Diagnostics) {
+					// Then we have more expected diagnostics than we got.
+					t.Errorf("missing expected diagnostic: %v", tc.diagnostics[diagIx])
+					continue
+				}
+				diag := gotApplyEvents.Diagnostics[diagIx].Event.(*stacks.ApplyStackChanges_Event_Diagnostic).Diagnostic
+				if diff := cmp.Diff(tc.diagnostics[diagIx], diag, protocmp.Transform()); diff != "" {
+					// Then we have a diagnostic that doesn't match what we
+					// expected.
+					t.Errorf("wrong diagnostic\n%s", diff)
+				}
+			}
+			for ; diagIx < len(gotApplyEvents.Diagnostics); diagIx++ {
+				// Then we have more diagnostics than we expected.
+				t.Errorf("unexpected diagnostic: %v", gotApplyEvents.Diagnostics[diagIx])
+			}
+
+			// Now we're going to manually verify the existence of some key events.
+			// We're not looking for every event because (a) the exact ordering of
+			// events is not guaranteed and (b) we don't want to start failing every
+			// time a new event is added.
+
+		WantPlannedChange:
+			for _, want := range wantEvents.AppliedChanges {
+				for _, got := range gotApplyEvents.AppliedChanges {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantPlannedChange
+					}
+				}
+				t.Errorf("missing expected planned change: %v", want)
+			}
+
+		WantMiscHook:
+			for _, want := range wantEvents.MiscHooks {
+				for _, got := range gotApplyEvents.MiscHooks {
+					if len(cmp.Diff(want, got, protocmp.Transform())) == 0 {
+						continue WantMiscHook
+					}
+				}
+				t.Errorf("missing expected event: %v", want)
+			}
+
+			if t.Failed() {
+				// if the test failed, let's print out all the events we got to help
+				// with debugging.
+				for _, evt := range gotApplyEvents.MiscHooks {
+					t.Logf("        returned event: %s", evt.String())
+				}
+
+				for _, evt := range gotApplyEvents.AppliedChanges {
 					t.Logf("        returned event: %s", evt.String())
 				}
 			}
@@ -1087,167 +2220,232 @@ func TestStacksOpenTerraformState_Raw(t *testing.T) {
 }
 
 func TestStacksMigrateTerraformState(t *testing.T) {
-	ctx := context.Background()
 
-	handles := newHandleTable()
-	stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
-
-	grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
-		stacks.RegisterStacksServer(srv, stacksServer)
-	})
-	defer close()
-
-	s := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "testing_deferred_resource",
-				Name: "resource",
-			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"hello","value":"world","deferred":false}`),
-				Status:    states.ObjectReady,
-			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("testing"),
-				Module:   addrs.RootModule,
-			},
-		)
-	})
-
-	statePath := stackmigrate.TestStateFile(t, s)
-	stacksClient := stacks.NewStacksClient(grpcClient)
-	resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
-		State: &stacks.OpenTerraformState_Request_ConfigPath{
-			ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
-		},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hnd := handle[*states.State](resp.StateHandle)
-	state := handles.TerraformState(hnd)
-	if state == nil {
-		t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
-	}
-
-	if !statefile.StatesMarshalEqual(s, state) {
-		t.Fatalf("loaded state does not match original state")
-	}
-
-	// up until now is basically what we did in TestStacksOpenTerraformState_ConfigPath
-	// now we're going to migrate the state and check that the migration worked
-
-	// In normal use a client would have previously opened a source bundle
-	// using Dependencies.OpenSourceBundle, so we'll simulate the effect
-	// of that here.
-
-	sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
-	if err != nil {
-		t.Fatal(err)
-	}
-	sourcesHnd := handles.NewSourceBundle(sources)
-
-	openResp, err := stacksServer.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
-		SourceBundleHandle: sourcesHnd.ForProtobuf(),
-		SourceAddress: &terraform1.SourceAddress{
-			Source: "git::https://example.com/baz.git",
-		},
-	})
-	if err != nil {
-		t.Fatalf("unable to open stack configuration: %s", err)
-	}
-
-	// For this test, we do actually want to use a "real" provider. We'll
-	// use the providerCacheOverride to side-load the testing provider.
-	stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
-	stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
-		return stacks_testing_provider.NewProvider(t), nil
-	}
-
-	lock := depsfile.NewLocks()
-	lock.SetProvider(
-		addrs.NewDefaultProvider("testing"),
-		providerreqs.MustParseVersion("0.0.0"),
-		providerreqs.MustParseVersionConstraints("=0.0.0"),
-		providerreqs.PreferredHashes([]providerreqs.Hash{}),
-	)
-	lockHandle := handles.NewDependencyLocks(lock)
-
-	stream, err := stacksClient.MigrateTerraformState(ctx, &stacks.MigrateTerraformState_Request{
-		StateHandle:           resp.StateHandle,
-		ConfigHandle:          openResp.StackConfigHandle,
-		DependencyLocksHandle: lockHandle.ForProtobuf(),
-		Mapping: &stacks.MigrateTerraformState_Request_Simple{
-			Simple: &stacks.MigrateTerraformState_Request_Mapping{
+	testCases := map[string]struct {
+		source          string
+		requestMapping  *stacks.MigrateTerraformState_Request_Mapping
+		wantChangeDescs []*stacks.AppliedChange_ChangeDescription
+	}{
+		"simple-baz": {
+			source: "git::https://example.com/baz.git",
+			requestMapping: &stacks.MigrateTerraformState_Request_Mapping{
 				ResourceAddressMap: map[string]string{
 					"testing_deferred_resource.resource": "component.self",
 				},
 			},
-		},
-	})
-
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	gotEvents := []*stacks.MigrateTerraformState_Event{}
-	for {
-		event, err := stream.Recv()
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err)
-		}
-
-		gotEvents = append(gotEvents, event)
-	}
-
-	wantChanges := []*stacks.AppliedChange_ChangeDescription{
-		{
-			Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
-			Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
-				ResourceInstance: &stacks.AppliedChange_ResourceInstance{
-					Addr: &stacks.ResourceInstanceObjectInStackAddr{
-						ComponentInstanceAddr: "component.self",
-						ResourceInstanceAddr:  "testing_deferred_resource.resource",
+			wantChangeDescs: []*stacks.AppliedChange_ChangeDescription{
+				{
+					Key: "RSRCcomponent.self,testing_deferred_resource.resource,cur",
+					Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+						ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "testing_deferred_resource.resource",
+							},
+							NewValue: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+									"id":       cty.StringVal("hello"),
+									"value":    cty.StringVal("world"),
+									"deferred": cty.False,
+								}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+							},
+							ResourceMode: stacks.ResourceMode_MANAGED,
+							ResourceType: "testing_deferred_resource",
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
 					},
-					NewValue: &stacks.DynamicValue{
-						Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
-							"id":       cty.StringVal("hello"),
-							"value":    cty.StringVal("world"),
-							"deferred": cty.False,
-						}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+				},
+				{
+					Key: "CMPTcomponent.self",
+					Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+						ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+							ComponentAddr:         "component.self",
+							ComponentInstanceAddr: "component.self",
+						},
 					},
-					ResourceMode: stacks.ResourceMode_MANAGED,
-					ResourceType: "testing_deferred_resource",
-					ProviderAddr: "registry.terraform.io/hashicorp/testing",
 				},
 			},
 		},
-		{
-			Key: "CMPTcomponent.self",
-			Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
-				ComponentInstance: &stacks.AppliedChange_ComponentInstance{
-					ComponentAddr:         "component.self",
-					ComponentInstanceAddr: "component.self",
+		"nested-modules-with-implicit-provider-config-quux": {
+			source: "git::https://example.com/quux.git",
+			requestMapping: &stacks.MigrateTerraformState_Request_Mapping{
+				ResourceAddressMap: map[string]string{
+					"testing_deferred_resource.resource": "component.self.module.child.module.grand-child.testing_deferred_resource.resource",
+				},
+			},
+			wantChangeDescs: []*stacks.AppliedChange_ChangeDescription{
+				{
+					Key: "RSRCcomponent.self,module.child.module.grand-child.testing_deferred_resource.resource,cur",
+					Description: &stacks.AppliedChange_ChangeDescription_ResourceInstance{
+						ResourceInstance: &stacks.AppliedChange_ResourceInstance{
+							Addr: &stacks.ResourceInstanceObjectInStackAddr{
+								ComponentInstanceAddr: "component.self",
+								ResourceInstanceAddr:  "module.child.module.grand-child.testing_deferred_resource.resource",
+							},
+							NewValue: &stacks.DynamicValue{
+								Msgpack: mustMsgpack(t, cty.ObjectVal(map[string]cty.Value{
+									"id":       cty.StringVal("hello"),
+									"value":    cty.StringVal("world"),
+									"deferred": cty.False,
+								}), cty.Object(map[string]cty.Type{"id": cty.String, "value": cty.String, "deferred": cty.Bool})),
+							},
+							ResourceMode: stacks.ResourceMode_MANAGED,
+							ResourceType: "testing_deferred_resource",
+							ProviderAddr: "registry.terraform.io/hashicorp/testing",
+						},
+					},
+				},
+				{
+					Key: "CMPTcomponent.self",
+					Description: &stacks.AppliedChange_ChangeDescription_ComponentInstance{
+						ComponentInstance: &stacks.AppliedChange_ComponentInstance{
+							ComponentAddr:         "component.self",
+							ComponentInstanceAddr: "component.self",
+						},
+					},
 				},
 			},
 		},
 	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
 
-	if len(gotEvents) != len(wantChanges) {
-		t.Fatalf("expected %d events, got %d", len(wantChanges), len(gotEvents))
-	}
+			ctx := context.Background()
 
-	gotChanges := make([]*stacks.AppliedChange_ChangeDescription, len(gotEvents))
-	for i, evt := range gotEvents {
-		gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
-	}
-	if diff := cmp.Diff(wantChanges, gotChanges, protocmp.Transform()); diff != "" {
-		t.Fatalf("wrong changes\n%s", diff)
+			handles := newHandleTable()
+			stacksServer := newStacksServer(newStopper(), handles, disco.New(), &serviceOpts{})
+
+			grpcClient, close := grpcClientForTesting(ctx, t, func(srv *grpc.Server) {
+				stacks.RegisterStacksServer(srv, stacksServer)
+			})
+			defer close()
+
+			s := states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "testing_deferred_resource",
+						Name: "resource",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{"id":"hello","value":"world","deferred":false}`),
+						Status:    states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("testing"),
+						Module:   addrs.RootModule,
+					},
+				)
+			})
+
+			statePath := stackmigrate.TestStateFile(t, s)
+			stacksClient := stacks.NewStacksClient(grpcClient)
+			resp, err := stacksClient.OpenTerraformState(ctx, &stacks.OpenTerraformState_Request{
+				State: &stacks.OpenTerraformState_Request_ConfigPath{
+					ConfigPath: strings.TrimSuffix(statePath, "/terraform.tfstate"),
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			hnd := handle[*states.State](resp.StateHandle)
+			state := handles.TerraformState(hnd)
+			if state == nil {
+				t.Fatalf("returned handle %d does not refer to a Terraform state", resp.StateHandle)
+			}
+
+			if !statefile.StatesMarshalEqual(s, state) {
+				t.Fatalf("loaded state does not match original state")
+			}
+
+			// up until now is basically what we did in TestStacksOpenTerraformState_ConfigPath
+			// now we're going to migrate the state and check that the migration worked
+
+			// In normal use a client would have previously opened a source bundle
+			// using Dependencies.OpenSourceBundle, so we'll simulate the effect
+			// of that here.
+
+			sources, err := sourcebundle.OpenDir("testdata/sourcebundle")
+			if err != nil {
+				t.Fatal(err)
+			}
+			sourcesHnd := handles.NewSourceBundle(sources)
+
+			openResp, err := stacksServer.OpenStackConfiguration(ctx, &stacks.OpenStackConfiguration_Request{
+				SourceBundleHandle: sourcesHnd.ForProtobuf(),
+				SourceAddress: &terraform1.SourceAddress{
+					Source: tc.source,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unable to open stack configuration: %s", err)
+			}
+
+			// For this test, we do actually want to use a "real" provider. We'll
+			// use the providerCacheOverride to side-load the testing provider.
+			stacksServer.providerCacheOverride = make(map[addrs.Provider]providers.Factory)
+			stacksServer.providerCacheOverride[addrs.NewDefaultProvider("testing")] = func() (providers.Interface, error) {
+				return stacks_testing_provider.NewProvider(t), nil
+			}
+
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+			lockHandle := handles.NewDependencyLocks(lock)
+
+			stream, err := stacksClient.MigrateTerraformState(ctx, &stacks.MigrateTerraformState_Request{
+				StateHandle:           resp.StateHandle,
+				ConfigHandle:          openResp.StackConfigHandle,
+				DependencyLocksHandle: lockHandle.ForProtobuf(),
+				Mapping: &stacks.MigrateTerraformState_Request_Simple{
+					Simple: tc.requestMapping,
+				},
+			})
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			gotEvents := []*stacks.MigrateTerraformState_Event{}
+			for {
+				event, err := stream.Recv()
+				if err == io.EOF {
+					break
+				}
+
+				if err != nil {
+					t.Fatalf("unexpected error: %s", err)
+				}
+
+				gotEvents = append(gotEvents, event)
+			}
+
+			if len(gotEvents) != len(tc.wantChangeDescs) {
+				t.Fatalf("expected %d events, got %d", len(tc.wantChangeDescs), len(gotEvents))
+			}
+
+			gotDiags := []*terraform1.Diagnostic{}
+			gotChanges := make([]*stacks.AppliedChange_ChangeDescription, len(gotEvents))
+			for i, evt := range gotEvents {
+				if evt.GetDiagnostic() != nil {
+					gotDiags = append(gotDiags, evt.GetDiagnostic())
+					continue
+				}
+
+				gotChanges[i] = evt.GetAppliedChange().Descriptions[0]
+			}
+
+			if len(gotDiags) > 0 {
+				t.Fatalf("unexpected diags: %v", gotDiags)
+			}
+
+			if diff := cmp.Diff(tc.wantChangeDescs, gotChanges, protocmp.Transform()); diff != "" {
+				t.Fatalf("wrong changes\n%s", diff)
+			}
+		})
 	}
 }
 
@@ -1287,6 +2485,30 @@ func splitStackOperationEvents(all []*stacks.PlanStackChanges_Event) stackOperat
 	return ret
 }
 
+type stacksApplyOperationEventStreams struct {
+	AppliedChanges []*stacks.ApplyStackChanges_Event
+	Diagnostics    []*stacks.ApplyStackChanges_Event
+
+	// MiscHooks is the "everything else" category where the detailed begin/end
+	// events for individual Terraform Core operations appear.
+	MiscHooks []*stacks.ApplyStackChanges_Event
+}
+
+func splitApplyStackOperationEvents(all []*stacks.ApplyStackChanges_Event) stacksApplyOperationEventStreams {
+	ret := stacksApplyOperationEventStreams{}
+	for _, evt := range all {
+		switch evt.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_AppliedChange:
+			ret.AppliedChanges = append(ret.AppliedChanges, evt)
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			ret.Diagnostics = append(ret.Diagnostics, evt)
+		default:
+			ret.MiscHooks = append(ret.MiscHooks, evt)
+		}
+	}
+	return ret
+}
+
 func mustMsgpack(t *testing.T, v cty.Value, ty cty.Type) []byte {
 	t.Helper()
 
@@ -1296,4 +2518,403 @@ func mustMsgpack(t *testing.T, v cty.Value, ty cty.Type) []byte {
 	}
 
 	return ret
+}
+
+// policyEvaluationTestClient returns a mock policy client that is configured to return
+// evalaution data for the "multiple-components" source bundle.
+func policyEvaluationTestClient(t *testing.T) policy.Client {
+	t.Helper()
+
+	policyClient := policy.NewTestMockClient(t)
+
+	policyObj := func(result policy.EvaluateResult) *policy.Policy {
+		return &policy.Policy{
+			Result:           result,
+			PolicySetName:    "some_policy_set",
+			Address:          "policy_name",
+			Directory:        "some/path/to",
+			Filename:         "policy_file.tfpolicy.hcl",
+			EnforcementLevel: "mandatory",
+		}
+	}
+
+	policyClient.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		// Assert some of the data from the component resource
+		if req.Target != "testing_resource" {
+			t.Fatalf(`unexpected resource evaluated, wanted: testing_resource, got: %q`, req.Target)
+		}
+		val := req.Attrs.Raw.GetAttr("value")
+		if !strings.HasPrefix(val.AsString(), "hello") {
+			t.Fatalf(`unexpected resource data, wanted: attr.value to start with "hello", got: %q`, val.AsString())
+		}
+
+		// Resource in the root module will return enforcement info
+		if req.Meta.ModulePath == "" {
+			return policy.EvaluationResponse{
+				Overall:  policy.AllowResult,
+				Policies: []*policy.Policy{policyObj(policy.AllowResult)},
+				Enforcements: []policy.EnforcementResult{
+					{
+						Result:     policy.AllowResult,
+						Message:    "just an advisory message",
+						BlockIndex: 1,
+						Policy:     policyObj(policy.AllowResult),
+					},
+				},
+			}
+		}
+
+		// Resource in child module will return a diagnostic
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module resource violation",
+					Detail:   "module.child.testing_resource.child_resource violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
+	}
+
+	policyClient.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+		// Assert the module address
+		if req.Meta.Address != "module.child" {
+			t.Fatalf(`unexpected module evaluated, wanted: module.child, got: %q`, req.Meta.Address)
+		}
+
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
+	}
+
+	policyClient.EvaluateProviderFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateProviderRequest_ProviderMetadata]) policy.EvaluationResponse {
+		// Assert provider data
+		expectedMeta := &policyproto.PolicyEvaluateProviderRequest_ProviderMetadata{
+			Name:      "testing",
+			Alias:     "default",
+			Namespace: "hashicorp",
+			Source:    "registry.terraform.io/hashicorp/testing",
+			Version:   "0.1.0",
+		}
+		if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+			t.Fatalf("unexpected provider metadata\n%s", diff)
+		}
+
+		val := req.Attrs.Raw.GetAttr("ignored")
+		if !strings.HasPrefix(val.AsString(), "comp") {
+			t.Fatalf(`unexpected resource data, wanted: attr.ignored to start with "comp", got: %q`, val.AsString())
+		}
+
+		return policy.EvaluationResponse{
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{policyObj(policy.DenyResult)},
+			Enforcements: []policy.EnforcementResult{
+				{
+					Result:  policy.AllowResult,
+					Message: "just an advisory message",
+					Policy:  policyObj(policy.AllowResult),
+				},
+			},
+			Diagnostics: policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Provider policy violation",
+					Detail:   "testing provider violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil),
+		}
+	}
+
+	return policyClient
+}
+
+func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr string) aggregatedPolicyEvent {
+	expectedPolicyMetadata := &stacks.PolicyMetaData{
+		PolicyName:       "policy_name",
+		PolicySetName:    "some_policy_set",
+		EnforcementLevel: "mandatory",
+		FileName:         "policy_file.tfpolicy.hcl",
+	}
+
+	return aggregatedPolicyEvent{
+		Addr: componentInstanceAddr,
+		PolicyEvalautionProto: &stacks.ComponentInstancePolicyEvaluation{
+			Addr: &stacks.ComponentInstanceInStackAddr{
+				ComponentAddr:         "component.simple_component",
+				ComponentInstanceAddr: componentInstanceAddr,
+			},
+			Results: []*stacks.PolicyResult{
+				{
+					TargetAddress:  "module.child.testing_resource.child_resource",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+				{
+					TargetAddress:  "testing_resource.parent_resource",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+				},
+				{
+					TargetAddress:  "module.child",
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+			},
+			Infos: []*stacks.PolicyInfo{
+				{
+					TargetAddress: "testing_resource.parent_resource",
+					PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyName:       "policy_name",
+						PolicySetName:    "some_policy_set",
+						EnforcementLevel: "mandatory",
+						FileName:         "policy_file.tfpolicy.hcl",
+						EnforceIndex:     1,
+					},
+					Message: "just an advisory message",
+					Result:  stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Range: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+						Start: &terraform1.SourcePos{
+							Byte:   161,
+							Line:   14,
+							Column: 1,
+						},
+						End: &terraform1.SourcePos{
+							Byte:   206,
+							Line:   14,
+							Column: 46,
+						},
+					},
+				},
+			},
+			Diagnostics: []*stacks.PolicyDiagnostic{
+				{
+					TargetAddress:  "module.child.testing_resource.child_resource",
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Child module resource violation",
+						Detail:   "module.child.testing_resource.child_resource violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+							Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//child/main.tf",
+							Start:      &terraform1.SourcePos{Byte: 161, Line: 14, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 205, Line: 14, Column: 45},
+						},
+					},
+				},
+				{
+					TargetAddress:  "module.child",
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Child module policy violation",
+						Detail:   "module.child violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+							Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tf",
+							Start:      &terraform1.SourcePos{Byte: 259, Line: 18, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 273, Line: 18, Column: 15},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func createExpectedProviderInstancePolicyEvaluation(providerInstanceAddr string) aggregatedPolicyEvent {
+	expectedPolicyMetadata := &stacks.PolicyMetaData{
+		PolicyName:       "policy_name",
+		PolicySetName:    "some_policy_set",
+		EnforcementLevel: "mandatory",
+		FileName:         "policy_file.tfpolicy.hcl",
+	}
+
+	providerAddr := `provider["registry.terraform.io/hashicorp/testing"].default`
+	return aggregatedPolicyEvent{
+		Addr: providerInstanceAddr,
+		PolicyEvalautionProto: &stacks.ProviderInstancePolicyEvaluation{
+			Addr: &stacks.ProviderInstanceInStackAddr{
+				ProviderAddr:         providerAddr,
+				ProviderInstanceAddr: providerInstanceAddr,
+			},
+			Results: []*stacks.PolicyResult{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: expectedPolicyMetadata,
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+				},
+			},
+			Infos: []*stacks.PolicyInfo{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: expectedPolicyMetadata,
+					Message:        "just an advisory message",
+					Result:         stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					Range: &terraform1.SourceRange{
+						SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+						Start: &terraform1.SourcePos{
+							Byte:   98,
+							Line:   8,
+							Column: 1,
+						},
+						End: &terraform1.SourcePos{
+							Byte:   126,
+							Line:   8,
+							Column: 29,
+						},
+					},
+				},
+			},
+			Diagnostics: []*stacks.PolicyDiagnostic{
+				{
+					TargetAddress:  providerAddr,
+					PolicyMetadata: &stacks.PolicyMetaData{},
+					Result:         stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Provider policy violation",
+						Detail:   "testing provider violates policy",
+						Subject: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+							Start:      &terraform1.SourcePos{Byte: 98, Line: 8, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 126, Line: 8, Column: 29},
+						},
+						Context: &terraform1.SourceRange{
+							SourceAddr: "git::https://example.com/multiple-components.git//main.tfcomponent.hcl",
+							Start:      &terraform1.SourcePos{Byte: 98, Line: 8, Column: 1},
+							End:        &terraform1.SourcePos{Byte: 126, Line: 8, Column: 29},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func collectPolicyEventsFromPlan(t *testing.T, planEvents grpc.ServerStreamingClient[stacks.PlanStackChanges_Event]) []aggregatedPolicyEvent {
+	t.Helper()
+
+	gotEvents := make([]aggregatedPolicyEvent, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := planEvents.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
+			})
+		case *stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ProviderInstancePolicyEvaluation.GetAddr().GetProviderInstanceAddr(),
+				PolicyEvalautionProto: evt.ProviderInstancePolicyEvaluation,
+			})
+		case *stacks.PlanStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b aggregatedPolicyEvent) int {
+		return strings.Compare(
+			a.Addr,
+			b.Addr,
+		)
+	})
+
+	return gotEvents
+}
+
+func collectPolicyEventsFromApply(t *testing.T, applyEvents grpc.ServerStreamingClient[stacks.ApplyStackChanges_Event]) []aggregatedPolicyEvent {
+	gotEvents := make([]aggregatedPolicyEvent, 0)
+	var diags []*terraform1.Diagnostic
+	for {
+		event, err := applyEvents.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		switch evt := event.Event.(type) {
+		case *stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
+				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
+			})
+		case *stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation:
+			gotEvents = append(gotEvents, aggregatedPolicyEvent{
+				Addr:                  evt.ProviderInstancePolicyEvaluation.GetAddr().GetProviderInstanceAddr(),
+				PolicyEvalautionProto: evt.ProviderInstancePolicyEvaluation,
+			})
+		case *stacks.ApplyStackChanges_Event_Diagnostic:
+			diags = append(diags, event.GetDiagnostic())
+		default:
+			continue
+		}
+	}
+
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diags: %v", diags)
+	}
+
+	// Order of policy events is not guaranteed
+	slices.SortFunc(gotEvents, func(a, b aggregatedPolicyEvent) int {
+		return strings.Compare(
+			a.Addr,
+			b.Addr,
+		)
+	})
+
+	return gotEvents
+}
+
+type aggregatedPolicyEvent struct {
+	Addr                  string
+	PolicyEvalautionProto any
 }

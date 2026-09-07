@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2014, 2026
 # SPDX-License-Identifier: BUSL-1.1
 
 
@@ -79,6 +79,14 @@ function generate {
         COMPLETE_VERSION="$LATEST_VERSION-$PRERELEASE_VERSION"
 
         npx -y changie@$CHANGIE_VERSION merge -u "## $COMPLETE_VERSION ($HUMAN_DATE)"
+
+        # If we have no changes yet, the changelog is empty now, so we need to add a header
+        if ! grep -q "$COMPLETE_VERSION" CHANGELOG.md; then
+            CURRENT_CHANGELOG=$(cat CHANGELOG.md)
+            echo "## $COMPLETE_VERSION ($HUMAN_DATE)" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "$CURRENT_CHANGELOG" >> CHANGELOG.md
+        fi
         ;;
 
         beta)

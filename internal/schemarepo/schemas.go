@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package schemarepo
@@ -52,4 +52,12 @@ func (ss *Schemas) ResourceTypeConfig(provider addrs.Provider, resourceMode addr
 // provisioner, or nil of no such schema is available.
 func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 	return ss.Provisioners[name]
+}
+
+func (ss *Schemas) ActionTypeConfig(provider addrs.Provider, actionType string) providers.ActionSchema {
+	ps := ss.ProviderSchema(provider)
+	if ps.Actions == nil {
+		return providers.ActionSchema{}
+	}
+	return ps.Actions[actionType]
 }

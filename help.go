@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package main
@@ -44,7 +44,7 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 	sort.Strings(otherCommands)
 
 	// The output produced by this is included in the docs at
-	// website/source/docs/cli/commands/index.html.markdown; if you
+	// .../docs/cli/commands/index.mdx (in web-unified-docs); if you
 	// change this then consider updating that to match.
 	helpText := fmt.Sprintf(`
 Usage: terraform [global options] <subcommand> [args]

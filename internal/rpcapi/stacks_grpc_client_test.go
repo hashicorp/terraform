@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package rpcapi
@@ -57,7 +57,7 @@ func mockDisco() *disco.Disco {
 	return d
 }
 
-func mockGRPStacksClient(t *testing.T, ctrl *gomock.Controller, client *mock_stacksproto1.MockCommandService_ExecuteClient, executeError error) *GRPCStacksClient {
+func mockGRPStacksClient(t *testing.T, ctrl *gomock.Controller, client *mock_stacksproto1.MockCommandService_ExecuteClient[stacksproto1.CommandResponse], executeError error) *GRPCStacksClient {
 	t.Helper()
 
 	if client != nil && executeError != nil {
@@ -100,7 +100,7 @@ func Test_GRPCStacksClient_ExecuteError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_RecvError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
 	executeClient.EXPECT().Recv().Return(nil, errors.New(mockError))
 
 	gRPCClient := mockGRPStacksClient(t, ctrl, executeClient, nil)
@@ -123,7 +123,7 @@ func Test_GRPCStacksClient_Execute_RecvError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_HandleEOFError(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
 	executeClient.EXPECT().Recv().Return(&stacksproto1.CommandResponse{
 		Data: &stacksproto1.CommandResponse_ExitCode{
 			ExitCode: 0,
@@ -152,7 +152,7 @@ func Test_GRPCStacksClient_Execute_HandleEOFError(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
 
 	executeClient.EXPECT().Recv().Return(
 		&stacksproto1.CommandResponse{
@@ -172,7 +172,7 @@ func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 	// This is necessary because the plugin.GRPCBroker cannot be mocked except the actual plugin process is started.
 	exitCode := gRPCClient.executeWithBrokers(mockBrokerIDs, []string{"init"}, io.Discard, io.Discard)
 	if exitCode != 255 {
-		t.Fatalf("expected exit %q, got %q", 255, exitCode)
+		t.Fatalf("expected exit %d, got %d", 255, exitCode)
 	}
 
 	recvLog := "[TRACE] received exit code: 3000\n[ERROR] stacksplugin returned an invalid error code 3000\n"
@@ -183,7 +183,7 @@ func Test_GRPCStacksClient_Execute_Invalid_Exit(t *testing.T) {
 
 func Test_GRPCStacksClient_Execute(t *testing.T) {
 	ctrl := gomock.NewController(t)
-	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient(ctrl)
+	executeClient := mock_stacksproto1.NewMockCommandService_ExecuteClient[stacksproto1.CommandResponse](ctrl)
 
 	gomock.InOrder(
 		executeClient.EXPECT().Recv().Return(
@@ -216,7 +216,7 @@ func Test_GRPCStacksClient_Execute(t *testing.T) {
 	// This is necessary because the plugin.GRPCBroker cannot be mocked except the actual plugin process is started.
 	exitCode := gRPCClient.executeWithBrokers(mockBrokerIDs, []string{"example"}, &stdoutBuffer, io.Discard)
 	if exitCode != 99 {
-		t.Fatalf("expected exit %q, got %q", 99, exitCode)
+		t.Fatalf("expected exit %d, got %d", 99, exitCode)
 	}
 
 	recvResponse := "firstresponse\nsecondresponse\n"

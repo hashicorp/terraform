@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -443,6 +443,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 	}
 
 	resp.PlannedState = cty.ObjectVal(planned)
+	resp.PlannedIdentity = req.PriorIdentity
 	return
 }
 
@@ -636,6 +637,10 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 						Sensitive: true,
 						Optional:  true,
 					},
+					"defer": {
+						Type:     cty.Bool,
+						Optional: true,
+					},
 					"random": {
 						Type:     cty.String,
 						Optional: true,
@@ -781,14 +786,16 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 	// backend configuration if they didn't set one, since the backend is
 	// usually dealt with in a calling package and so tests in this package
 	// don't really care about it.
-	if plan.Backend.Config == nil {
+	if plan.Backend == nil {
 		cfg, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
 		if err != nil {
 			panic(fmt.Sprintf("NewDynamicValue failed: %s", err)) // shouldn't happen because we control the inputs
 		}
-		plan.Backend.Type = "local"
-		plan.Backend.Config = cfg
-		plan.Backend.Workspace = "default"
+		plan.Backend = &plans.Backend{
+			Type:      "local",
+			Config:    cfg,
+			Workspace: "default",
+		}
 	}
 
 	filename := filepath.Join(dir, "tfplan")
@@ -807,7 +814,25 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 		return nil, nil, nil, err
 	}
 
-	config, diags := pr.ReadConfig()
+	snap, err := pr.ReadConfigSnapshot()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	loader := configload.NewLoaderFromSnapshot(snap)
+	rootMod, hclDiags := loader.LoadRootModule(snap.Modules[""].Dir)
+	diags := tfdiags.Diagnostics(nil).Append(hclDiags)
+	if diags.HasErrors() {
+		return nil, nil, nil, diags.Err()
+	}
+
+	config, buildDiags := BuildConfigWithGraph(
+		rootMod,
+		loader.ModuleWalker(),
+		nil,
+		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
+	)
+	diags = diags.Append(buildDiags)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags.Err()
 	}

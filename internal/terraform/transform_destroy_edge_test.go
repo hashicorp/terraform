@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -410,8 +410,8 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 
 	nodesByName := make(map[string]dag.Vertex)
 	nodesByResourceExpand := make(map[string]dag.Vertex)
-	for _, n := range graph.Vertices() {
-		name := dag.VertexName(n)
+	for n := range graph.VerticesSeq() {
+		name := n.Name()
 		if _, exists := nodesByName[name]; exists {
 			t.Fatalf("multiple nodes have name %q", name)
 		}

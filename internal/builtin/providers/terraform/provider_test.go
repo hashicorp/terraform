@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -42,12 +42,14 @@ func TestMoveResourceState_DataStore(t *testing.T) {
 		t.Errorf("unexpected diagnostics: %s", resp.Diagnostics.Err())
 	}
 
-	expectedTargetState := cty.ObjectVal(map[string]cty.Value{
-		"id":               cty.StringVal("test"),
-		"input":            cty.NullVal(cty.DynamicPseudoType),
-		"output":           cty.NullVal(cty.DynamicPseudoType),
-		"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
-	})
+	expected, err := dataStoreResourceSchema().Body.CoerceValue(cty.EmptyObjectVal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedMap := expected.AsValueMap()
+
+	expectedMap["id"] = cty.StringVal("test")
+	expectedTargetState := cty.ObjectVal(expectedMap)
 
 	if !resp.TargetState.RawEquals(expectedTargetState) {
 		t.Errorf("expected state was:\n%#v\ngot state is:\n%#v\n", expectedTargetState, resp.TargetState)
@@ -65,5 +67,15 @@ func TestMoveResourceState_NonExistentResource(t *testing.T) {
 
 	if !resp.Diagnostics.HasErrors() {
 		t.Fatal("expected diagnostics")
+	}
+}
+
+func TestGetProviderSchema_ProviderConfigNotNil(t *testing.T) {
+	provider := &Provider{}
+	resp := provider.GetProviderSchema()
+
+	if resp.Provider.Body == nil {
+		t.Fatal("provider config schema body should not be nil; a nil body causes " +
+			"a spurious ERROR-level log message in AttachSchemaTransformer")
 	}
 }

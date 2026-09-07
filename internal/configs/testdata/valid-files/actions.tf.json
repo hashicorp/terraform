@@ -17,7 +17,7 @@
               "test_object.a[count.index].test_string"
             ],
             "action_trigger": {
-                "events": ["before_destroy"],
+                "events": ["before_create"],
                 "actions": ["action.test_action.a"]
             }
           }

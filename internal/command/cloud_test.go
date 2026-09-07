@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -99,12 +98,12 @@ func testDisco(s *httptest.Server) *disco.Disco {
 	host, _ := url.Parse(s.URL)
 	defaultHostname := "app.terraform.io"
 	tfeHost := svchost.Hostname(defaultHostname)
-	services := map[string]interface{}{
+	services := map[string]any{
 		"cloudplugin.v1": fmt.Sprintf("%s/api/cloudplugin/v1/", s.URL),
 		"tfe.v2":         fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 
-	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+	credsSrc := auth.StaticCredentialsSource(map[svchost.Hostname]map[string]any{
 		tfeHost: {"token": "test-auth-token"},
 	})
 
@@ -123,19 +122,19 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	disco := testDisco(server)
 
 	wd := tempWorkingDirFixture(t, "cloud-config")
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	// Overwrite the cloud backend with the test disco
 	previousBackend := backendInit.Backend("cloud")
 	backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(disco) })
 	defer backendInit.Set("cloud", previousBackend)
 
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	// Initialize the backend
 	ic := &InitCommand{
-		Meta{
+		Meta: Meta{
 			Ui:               ui,
 			View:             view,
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -149,7 +148,7 @@ func TestCloud_withBackendConfig(t *testing.T) {
 	}
 
 	// Run the cloud command
-	ui = cli.NewMockUi()
+	ui = testUiWrapped(t)
 	c := &CloudCommand{
 		Meta: Meta{
 			Ui:               ui,
@@ -178,7 +177,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 	disco := testDisco(server)
 
 	wd := tempWorkingDir(t)
-	defer testChdir(t, wd.RootModuleDir())()
+	t.Chdir(wd.RootModuleDir())
 
 	serverURL, _ := url.Parse(server.URL)
 
@@ -186,7 +185,7 @@ func TestCloud_withENVConfig(t *testing.T) {
 	defer os.Unsetenv("TF_CLOUD_HOSTNAME")
 
 	// Run the cloud command
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &CloudCommand{
 		Meta: Meta{
 			Ui:               ui,

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package format
@@ -407,10 +407,37 @@ func TestDiagnostic(t *testing.T) {
 [red]╵[reset]
 `,
 		},
+		"warning from deprecation": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecation detected",
+				Detail:   "Countermeasures must be taken.",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+					OriginDescription: "module.foo.bar",
+				},
+			},
+			`[yellow]╷[reset]
+[yellow]│[reset] [bold][yellow]Warning: [reset][bold]Deprecation detected[reset]
+[yellow]│[reset]
+[yellow]│[reset]   on test.tf line 1:
+[yellow]│[reset]    1: test [underline]source[reset] code
+[yellow]│[reset]
+[yellow]│[reset]   The deprecation originates from module.foo.bar
+[yellow]│[reset]
+[yellow]│[reset] Countermeasures must be taken.
+[yellow]╵[reset]
+`,
+		},
 	}
 
 	sources := map[string][]byte{
-		"test.tf": []byte(`test source code`),
+		"test.tf":       []byte(`test source code`),
+		"deprecated.tf": []byte(`source of deprecation`),
 	}
 
 	// This empty Colorize just passes through all of the formatting codes
@@ -424,8 +451,9 @@ func TestDiagnostic(t *testing.T) {
 			diag := diags[0]
 			got := strings.TrimSpace(Diagnostic(diag, sources, colorize, 40))
 			want := strings.TrimSpace(test.Want)
-			if got != want {
-				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s\n\n", got, want, diff)
 			}
 		})
 	}
@@ -715,10 +743,37 @@ Error: Bad bad bad
 Whatever shall we do?
 `,
 		},
+
+		"warning from deprecation": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Deprecation detected",
+				Detail:   "Countermeasures must be taken.",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+					OriginDescription: "module.foo.bar",
+				},
+			},
+			`
+Warning: Deprecation detected
+
+  on test.tf line 1:
+   1: test source code
+
+  The deprecation originates from module.foo.bar
+
+Countermeasures must be taken.
+`,
+		},
 	}
 
 	sources := map[string][]byte{
-		"test.tf": []byte(`test source code`),
+		"test.tf":       []byte(`test source code`),
+		"deprecated.tf": []byte(`source of deprecation`),
 	}
 
 	for name, test := range tests {
@@ -728,8 +783,8 @@ Whatever shall we do?
 			diag := diags[0]
 			got := strings.TrimSpace(DiagnosticPlain(diag, sources, 40))
 			want := strings.TrimSpace(test.Want)
-			if got != want {
-				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n,diff:\n%s\n\n", got, want, diff)
 			}
 		})
 	}
@@ -996,6 +1051,82 @@ eventually make it onto multiple lines. THE END
 
 	if output != expected {
 		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}
+
+func TestDiagnosticPlainFromJSON_policySnippet(t *testing.T) {
+	tests := map[string]struct {
+		diag *viewsjson.Diagnostic
+		want string
+	}{
+		"with policy range, policy snippet, and range": {
+			diag: &viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "policy denied",
+				PolicyRange: &viewsjson.DiagnosticRange{
+					Filename: "policy_file.tfpolicy.hcl",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				PolicySnippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource_policy "resource_type" "policy_name" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   48,
+				},
+				Range: &viewsjson.DiagnosticRange{
+					Filename: "main.tf",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				Snippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource "test_instance" "foo" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   30,
+				},
+			},
+			want: `
+Error: policy denied
+
+  on policy_file.tfpolicy.hcl line 1:
+   1: resource_policy "resource_type" "policy_name" {
+
+  while evaluating policy for main.tf line 1:
+   1: resource "test_instance" "foo" {
+`,
+		},
+		"with policy range and policy snippet but no range": {
+			diag: &viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "policy denied",
+				PolicyRange: &viewsjson.DiagnosticRange{
+					Filename: "policy_file.tfpolicy.hcl",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				PolicySnippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource_policy "resource_type" "policy_name" {`,
+					StartLine:            1,
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   48,
+				},
+			},
+			want: `
+Error: policy denied
+
+  on policy_file.tfpolicy.hcl line 1:
+   1: resource_policy "resource_type" "policy_name" {
+`,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := strings.TrimSpace(DiagnosticPlainFromJSON(tc.diag, 0))
+			want := strings.TrimSpace(tc.want)
+
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("unexpected output diff:\n%s", diff)
+			}
+		})
 	}
 }
 

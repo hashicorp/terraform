@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: A new `-minimal-refresh` planning option has been added, which will only refresh resources that have proposed changes.
+time: 2026-07-30T09:29:41.779931-04:00
+custom:
+    Issue: "35290"

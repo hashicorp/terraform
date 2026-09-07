@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configload
@@ -27,6 +27,8 @@ type Loader struct {
 	// modules is used to install and locate descendant modules that are
 	// referenced (directly or indirectly) from the root module.
 	modules moduleMgr
+
+	parserOpts []configs.Option
 }
 
 // Config is used with NewLoader to specify configuration arguments for the
@@ -43,6 +45,18 @@ type Config struct {
 	// not supported, which should be true only in specialized circumstances
 	// such as in tests.
 	Services *disco.Disco
+
+	// IncludeQueryFiles is set to true if query files should be parsed
+	// when running query commands.
+	IncludeQueryFiles bool
+
+	// IncludeStateMigrateFiles is set to true if state migration files should
+	// be parsed when running state migrate commands.
+	IncludeStateMigrateFiles bool
+
+	// OverrideFS is used to override the filesystem that the loader
+	// reads configuration and module files from.
+	OverrideFS afero.Fs
 }
 
 // NewLoader creates and returns a loader that reads configuration from the
@@ -53,6 +67,11 @@ type Config struct {
 // manifest cannot be read then an error will be returned.
 func NewLoader(config *Config) (*Loader, error) {
 	fs := afero.NewOsFs()
+
+	if config.OverrideFS != nil {
+		fs = config.OverrideFS
+	}
+
 	parser := configs.NewParser(fs)
 	reg := registry.NewClient(config.Services, nil)
 
@@ -65,11 +84,20 @@ func NewLoader(config *Config) (*Loader, error) {
 			Services:   config.Services,
 			Registry:   reg,
 		},
+		parserOpts: make([]configs.Option, 0),
 	}
 
 	err := ret.modules.readModuleManifestSnapshot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read module manifest: %s", err)
+	}
+
+	if config.IncludeQueryFiles {
+		ret.parserOpts = append(ret.parserOpts, configs.MatchQueryFiles())
+	}
+
+	if config.IncludeStateMigrateFiles {
+		ret.parserOpts = append(ret.parserOpts, configs.MatchStateMigrateFiles())
 	}
 
 	return ret, nil
@@ -122,7 +150,7 @@ func (l *Loader) Sources() map[string][]byte {
 // least one Terraform configuration file. This is a wrapper around calling
 // the same method name on the loader's parser.
 func (l *Loader) IsConfigDir(path string) bool {
-	return l.parser.IsConfigDir(path)
+	return l.parser.IsConfigDir(path, l.parserOpts...)
 }
 
 // ImportSources writes into the receiver's source code map the given source
@@ -175,4 +203,9 @@ func (l *Loader) AllowLanguageExperiments(allowed bool) {
 // called on this object.
 func (l *Loader) AllowsLanguageExperiments() bool {
 	return l.parser.AllowsLanguageExperiments()
+}
+
+// ModuleWalker returns a walker suitable for loading already-installed modules.
+func (l *Loader) ModuleWalker() configs.ModuleWalker {
+	return configs.ModuleWalkerFunc(l.moduleWalkerLoad)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -69,7 +69,7 @@ func TestEvalReplaceTriggeredBy(t *testing.T) {
 				t.Fatal(hclDiags)
 			}
 
-			got, diags := evalReplaceTriggeredByExpr(expr, tc.repData)
+			got, diags := evalSemiStaticExpr(expr, tc.repData)
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -4399,6 +4399,65 @@ resource "test_object" "b" {
 	}
 }
 
+func TestContext2Plan_triggeredByInvalidAttribute(t *testing.T) {
+	// This test verifies that referencing a non-existent attribute in
+	// replace_triggered_by produces an error.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "new"
+}
+resource "test_object" "b" {
+  test_string = "value"
+  lifecycle {
+    replace_triggered_by = [ test_object.a.nonexistent_attribute ]
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.b"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected errors for invalid attribute reference in replace_triggered_by")
+	}
+
+	// Check that the error message is about the invalid attribute reference.
+	// StaticValidateTraversal returns "Unsupported attribute" errors.
+	errMsg := diags.Err().Error()
+	if !strings.Contains(errMsg, "Unsupported attribute") && !strings.Contains(errMsg, "nonexistent_attribute") {
+		t.Fatalf("unexpected error message: %s", errMsg)
+	}
+}
+
 func TestContext2Plan_dataSchemaChange(t *testing.T) {
 	// We can't decode the prior state when a data source upgrades the schema
 	// in an incompatible way. Since prior state for data sources is purely
@@ -6500,8 +6559,7 @@ resource "test_object" "a" {
 		Mode: plans.DestroyMode,
 		SetVariables: InputValues{
 			"input": {
-				Value:       cty.StringVal("foo"),
-				SourceType:  ValueFromCLIArg,
+				Value:       cty.UnknownVal(cty.String),
 				SourceRange: tfdiags.SourceRange{},
 			},
 		},
@@ -6698,6 +6756,164 @@ resource "aws_instance" "foo" {
 	}
 }
 
+func TestContext2Plan_invalidReferencesAreNotRelevant(t *testing.T) {
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: new(configschema.Block),
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"test_computed_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"key": {
+								Type:     cty.String,
+								Computed: true,
+							},
+							"dynamic": {
+								Type:     cty.DynamicPseudoType,
+								Computed: true,
+							},
+							"object": {
+								NestedType: &configschema.Object{
+									Nesting: configschema.NestingSingle,
+									Attributes: map[string]*configschema.Attribute{
+										"value": {
+											Type:     cty.String,
+											Computed: true,
+										},
+									},
+								},
+								Computed: true,
+							},
+						},
+					},
+				},
+				"test_simple_object": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"value": {
+								Type:     cty.String,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			switch request.TypeName {
+			case "test_computed_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: cty.ObjectVal(map[string]cty.Value{
+						"key": cty.UnknownVal(cty.String),
+						"object": cty.UnknownVal(cty.Object(map[string]cty.Type{
+							"value": cty.String,
+						})),
+						"dynamic": cty.DynamicVal,
+					}),
+				}
+			case "test_simple_object":
+				return providers.PlanResourceChangeResponse{
+					PlannedState: request.ProposedNewState,
+				}
+			default:
+				panic(fmt.Sprintf("unknown resource type %q", request.TypeName))
+			}
+		},
+	}
+
+	tcs := map[string]struct {
+		configs            map[string]string
+		expectedAttributes []string
+		expectedDiags      []string
+	}{
+		"invalid object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedDiags: []string{
+				"Invalid index:The given key does not identify an element in this collection value. An object only supports looking up attributes by name, not by numeric index.",
+			},
+		},
+		"dynamic object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.dynamic[0].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.dynamic",
+				"test_computed_object.a.object.value",
+			},
+		},
+		"unknown object reference": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_computed_object" "a" {}
+
+resource "test_simple_object" "b" {
+	value = try(test_computed_object.a.object[test_computed_object.a.key].value, test_computed_object.a.object.value)
+}
+`,
+			},
+			expectedAttributes: []string{
+				"test_computed_object.a.key",
+				"test_computed_object.a.object",
+				"test_computed_object.a.object.value",
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, tc.configs)
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, nil, DefaultPlanOpts)
+			if len(diags) != len(tc.expectedDiags) {
+				t.Errorf("should find exactly %d diagnostics, but was %d", len(tc.expectedDiags), len(diags))
+			} else {
+				for ix := range tc.expectedDiags {
+					if diag := fmt.Sprintf("%s:%s", diags[ix].Description().Summary, diags[ix].Description().Detail); diag != tc.expectedDiags[ix] {
+						t.Errorf("unexpected diagnostic diagnostic: %s", diag)
+					}
+				}
+			}
+
+			if len(plan.RelevantAttributes) != len(tc.expectedAttributes) {
+				t.Errorf("should find exactly %d relevant attribute, but was %d", len(tc.expectedAttributes), len(plan.RelevantAttributes))
+			} else {
+
+				var sorted []string
+				for _, attr := range plan.RelevantAttributes {
+					sorted = append(sorted, attr.DebugString())
+				}
+				sort.Strings(sorted)
+
+				for ix := range tc.expectedAttributes {
+					if sorted[ix] != tc.expectedAttributes[ix] {
+						t.Errorf("found wrong relevant attribute at %d: %s", ix, sorted[ix])
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestContext2Plan_orphanUpdateInstance(t *testing.T) {
 	// ean orphaned instance should still reflect the refreshed state in the plan
 	m := testModuleInline(t, map[string]string{
@@ -6845,5 +7061,935 @@ data "test_data_source" "foo" {
 	if !after.RawEquals(expected) {
 		t.Fatalf("\nexpected plan: %#v\n  actual plan: %#v\n", expected, after)
 
+	}
+}
+
+// Testing that managed resources of type list are handled correctly
+//   - They must be referenced using the fully qualified name
+//   - We provide a hint to the user if they try to reference a resource of type list
+//     without using the fully qualified name
+func TestContext2Plan_resourceNamedList(t *testing.T) {
+	cases := []struct {
+		name           string
+		mainConfig     string
+		diagCount      int
+		expectedErrMsg []string
+	}{
+		{
+			// We tried to reference a resource of type list without using the fully-qualified name.
+			// The error contains a hint to help the user.
+			name: "reference list block from resource",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource1" {
+					provider = test
+				}
+
+				resource "list" "test_resource2" {
+					provider = test
+					attr = list.test_resource1.attr
+				}
+				`,
+			diagCount: 1,
+			expectedErrMsg: []string{
+				"Reference to undeclared resource",
+				"A list resource \"test_resource1\" \"attr\" has not been declared in the root module.",
+				"Did you mean the managed resource list.test_resource1? If so, please use the fully qualified name of the resource, e.g. resource.list.test_resource1",
+			},
+		},
+		{
+			// We are referencing a managed resource
+			// of type list using the resource.<block>.<name> syntax. This should be allowed.
+			name: "reference managed resource of type list using resource.<block>.<name>",
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "list" "test_resource" {
+					provider = test
+					attr = "bar"
+				}
+
+				resource "list" "normal_resource" {
+					provider = test
+					attr = resource.list.test_resource.attr
+				}
+				`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			configs := map[string]string{"main.tf": tc.mainConfig}
+
+			m := testModuleInline(t, configs)
+
+			providerAddr := addrs.NewDefaultProvider("test")
+			provider := testProvider("test")
+			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+			provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+
+			ctx, diags := NewContext(&ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					providerAddr: testProviderFuncFixed(provider),
+				},
+			})
+			tfdiags.AssertNoDiagnostics(t, diags)
+
+			_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, nil))
+			if len(diags) != tc.diagCount {
+				t.Fatalf("expected %d diagnostics, got %d \n -diags: %s", tc.diagCount, len(diags), diags)
+			}
+
+			if tc.diagCount > 0 {
+				for _, err := range tc.expectedErrMsg {
+					if !strings.Contains(diags.Err().Error(), err) {
+						t.Fatalf("expected error message %q, but got %q", err, diags.Err().Error())
+					}
+				}
+			}
+
+		})
+	}
+}
+
+func TestContext2Plan_deprecated_output(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+output "old-and-unused" {
+    deprecated = "This should not show up in the errors, we are not using it"
+    value = "old"
+}
+output "new" {
+    value = "foo"
+}
+`,
+		"mod2/main.tf": `
+variable "input" {
+	type = string
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+resource "test_resource" "test" {
+    attr = module.mod.old # WARNING
+}
+resource "test_resource" "test2" {
+    attr = module.mod.new # OK
+}
+resource "test_resource" "test3" {
+    attr = module.mod.old # WARNING
+}
+output "test_output" {
+	value = module.mod.old # WARNING
+}
+output "test_output_conditional" {
+	value = false ? module.mod.old : module.mod.new # WARNING
+}
+module "mod2" {
+	source = "./mod2"
+	input = module.mod.old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 6, Column: 12, Byte: 84},
+				End:      hcl.Pos{Line: 6, Column: 26, Byte: 98},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 12, Column: 12, Byte: 225},
+				End:      hcl.Pos{Line: 12, Column: 26, Byte: 239},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 15, Column: 10, Byte: 284},
+				End:      hcl.Pos{Line: 15, Column: 24, Byte: 298},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 18, Column: 10, Byte: 355},
+				End:      hcl.Pos{Line: 18, Column: 49, Byte: 394},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 22, Column: 10, Byte: 451},
+				End:      hcl.Pos{Line: 22, Column: 24, Byte: 465},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	))
+}
+
+func TestContext2Plan_deprecated_output_expansion(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/nested/main.tf": `
+output "old" {
+    deprecated = "mod/nested: Please stop using this"
+    value = "old"
+}
+`,
+		"mod/main.tf": `
+output "old" {
+    deprecated = "mod: Please stop using this"
+    value = "old"
+}
+module "modnested" {
+    source = "./nested"
+}
+
+output "new" {
+    deprecated = "mod: The dependency is deprecated, please stop using this"
+    value = module.modnested.old
+}
+`,
+		"mod2/main.tf": `
+output "old" {
+    deprecated = "mod2: Please stop using this"
+    value = "old"
+}
+output "new" {
+    value = "new"
+}
+`,
+		"mod3/main.tf": `
+output "old" {
+  deprecated = "mod2: Please stop using this"
+  value = "old"
+}
+output "new" {
+  value = "new"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+module "mod2" {
+	count = 2
+	source = "./mod2"
+}
+
+module "mod3" {
+	count = 2
+	source = "./mod3"
+}
+
+resource "test_resource" "foo" {
+  attr = module.mod.old # WARNING
+}
+
+resource "test_resource" "bar" {
+  attr = module.mod2[0].old # WARNING
+}
+
+resource "test_resource" "baz" {
+  attr = module.mod.new # WARNING
+}
+
+output "test_output_no_warning" {
+	value = module.mod3[0].new # OK
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+	var expectedDiags tfdiags.Diagnostics
+	expectedDiags = expectedDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 17, Column: 10, Byte: 180},
+				End:      hcl.Pos{Line: 17, Column: 24, Byte: 194},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod2: Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 21, Column: 10, Byte: 250},
+				End:      hcl.Pos{Line: 21, Column: 28, Byte: 268},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod2.old",
+			},
+		},
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "mod: The dependency is deprecated, please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 25, Column: 10, Byte: 324},
+				End:      hcl.Pos{Line: 25, Column: 24, Byte: 338},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.new",
+			},
+		},
+	)
+
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, expectedDiags)
+}
+
+func TestContext2Plan_deprecated_output_expansion_with_splat(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+`,
+		"main.tf": `
+module "mod" {
+	count = 2
+	source = "./mod"
+}
+output "test_output2" {
+	value = module.mod[*].old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
+				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 10, Byte: 80},
+				End:      hcl.Pos{Line: 7, Column: 27, Byte: 97},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	))
+}
+
+func TestContext2Plan_deprecated_output_used_in_check_block(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+output "old-and-unused" {
+    deprecated = "This should not show up in the errors, we are not using it"
+    value = "old"
+}
+output "new" {
+    value = "foo"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+check "deprecated_check" {
+  assert {
+    condition     = !strcontains(module.mod.old, "hello-world")
+    error_message = "Neither condition nor error_message should contain ${module.mod.old} deprecated value"
+  }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 21, Byte: 97},
+				End:      hcl.Pos{Line: 7, Column: 64, Byte: 140},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 8, Column: 21, Byte: 161},
+				End:      hcl.Pos{Line: 8, Column: 108, Byte: 248},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	))
+}
+
+func TestContext2Plan_deprecated_output_in_lifecycle_conditions(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+`,
+		"main.tf": `
+module "mod" {
+    source = "./mod"
+}
+
+locals {
+    a = "a"
+    b = "b"
+}
+
+resource "test_resource" "test" {
+    attr = "not-the-problem"
+
+    lifecycle {
+        precondition {
+            condition     = module.mod.old == "old"
+            error_message = "This is okay."
+        }
+    
+        postcondition {
+            condition     = local.a != local.b
+            error_message = "This should error with deprecated usage: ${module.mod.old}"
+        }
+    }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 16, Column: 29, Byte: 207},
+				End:      hcl.Pos{Line: 16, Column: 52, Byte: 230},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated value used",
+			Detail:   "Please stop using this",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 22, Column: 29, Byte: 389},
+				End:      hcl.Pos{Line: 22, Column: 89, Byte: 449},
+			},
+			Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+				OriginDescription: "module.mod.old",
+			},
+		},
+	))
+}
+
+func TestContext2Plan_deprecated_variable(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+variable "old-and-used" {
+	type = string
+	deprecated = "module variable deprecation 1"
+	default = "optional"
+}
+
+variable "old-and-unused" {
+	type = string
+	deprecated = "module variable deprecation 2"
+	default = "optional"
+}
+
+variable "new" {
+    type = string
+    default = "optional"
+}
+
+output "use-everything" {
+    value = {
+      used = var.old-and-used
+      unused = var.old-and-unused
+      new = var.new
+    }
+}
+`,
+		"main.tf": `
+variable "root-old-and-used" {
+	type = string
+	deprecated = "root variable deprecation 1"
+	default = "optional"
+}
+
+variable "root-old-and-unused" {
+	type = string
+	deprecated = "root variable deprecation 2"
+	default = "optional"
+}
+
+variable "new" {
+    type = string
+    default = "new"
+}
+
+module "old-mod" {
+    source = "./mod"
+    old-and-used = "old"
+}
+
+module "new-mod" {
+    source = "./mod"
+    new = "new"
+}
+
+output "use-everything" {
+    value = {
+      used = var.root-old-and-used
+      unused = var.root-old-and-unused
+      new = var.new
+    }
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	vars := InputValues{
+		"root-old-and-used": {
+			Value: cty.StringVal("root-old-and-used"),
+		},
+		"root-old-and-unused": {
+			Value: cty.NullVal(cty.String),
+		},
+		"new": {
+			Value: cty.StringVal("new"),
+		},
+	}
+
+	// We can find module variable deprecation during validation
+	diags := ctx.Validate(m, &ValidateOpts{})
+	var expectedValidateDiags tfdiags.Diagnostics
+	expectedValidateDiags = expectedValidateDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "module variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 21, Column: 20, Byte: 350},
+				End:      hcl.Pos{Line: 21, Column: 25, Byte: 355},
+			},
+		},
+	)
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedValidateDiags)
+
+	_, diags = ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, vars))
+	var expectedPlanDiags tfdiags.Diagnostics
+	expectedPlanDiags = expectedPlanDiags.Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "root variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 4, Column: 2, Byte: 48},
+				End:      hcl.Pos{Line: 4, Column: 42, Byte: 90},
+			},
+		},
+	).Append(
+		&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Deprecated variable got a value",
+			Detail:   "module variable deprecation 1",
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 21, Column: 20, Byte: 350},
+				End:      hcl.Pos{Line: 21, Column: 25, Byte: 355},
+			},
+		},
+	)
+
+	tfdiags.AssertDiagnosticsMatch(t, diags, expectedPlanDiags)
+}
+
+func TestContext2Plan_ignoring_nested_expanded_module_deprecations(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"mod/main.tf": `
+output "old" {
+    deprecated = "Please stop using this"
+    value = "old"
+}
+
+module "nested" {
+    count = 3
+    source = "./nested"
+}
+
+locals {
+  foo = module.nested.*.old # WARNING (if not muted)
+}
+`,
+		"mod/nested/main.tf": `
+output "old" {
+    deprecated = "Please stop using this nested output"
+    value = "old"
+}
+
+module "deeper" {
+    count = 4
+    source = "./deeper"
+}
+
+locals {
+  bar = module.deeper[2].old # WARNING (if not muted)
+}
+`,
+		"mod/nested/deeper/main.tf": `
+output "old" {
+  deprecated = "Please stop using this deeply nested output"
+  value = "old"
+}
+`,
+		"main.tf": `
+module "silenced" {
+    count = 2
+    source = "./mod"
+
+    # We don't want deprecations within this module call
+    ignore_nested_deprecations = true
+}
+
+# We want to still have deprecation warnings within our control surface
+locals {
+  using_silenced_old = module.silenced[0].old # WARNING
+}
+`,
+	})
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"attr": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+		Actions: map[string]*providers.ActionSchema{
+			"test_action": {
+				ConfigSchema: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"attr": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+
+	tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "Deprecated value used",
+		Detail:   "Please stop using this",
+		Subject: &hcl.Range{
+			Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+			Start:    hcl.Pos{Line: 12, Column: 24, Byte: 259},
+			End:      hcl.Pos{Line: 12, Column: 46, Byte: 281},
+		},
+		Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
+			OriginDescription: "module.silenced.old",
+		},
+	}))
+}
+
+func TestContext2Plan_deprecated_child_output_attr_in_root(t *testing.T) {
+	// This passes validation (see
+	// TestContext2Validate_deprecatedAttr/referencing nested deprecated attr in
+	// child module output) but should error during plan.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			module "child" {
+				source = "./child"
+			}
+
+			output "deprecated" {
+				value = module.child.deprecated.foo
+			}
+			`,
+
+		"child/main.tf": `
+            resource "aws_instance" "test" {
+            }
+            output "deprecated" {
+              value = aws_instance.test
+            }
+             `,
+	})
+
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true, Deprecated: true},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, nil, SimplePlanOpts(plans.NormalMode, InputValues{}))
+	if !diags.HasWarnings() {
+		t.Fatal("missing expected warnings!")
+	} else {
+		tfdiags.AssertDiagnosticsMatch(t, diags, tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  `Deprecated value used`,
+			Detail:   `Deprecated resource attribute "foo" used. Refer to the provider documentation for details.`,
+			Subject: &hcl.Range{
+				Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
+				Start:    hcl.Pos{Line: 7, Column: 13, Byte: 87},
+				End:      hcl.Pos{Line: 7, Column: 40, Byte: 114},
+			},
+		}))
 	}
 }

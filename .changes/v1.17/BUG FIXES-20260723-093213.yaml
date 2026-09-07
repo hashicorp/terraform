@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'funcs: pow and log no longer panic when result is not a number'
+time: 2026-07-23T09:32:13.319283-04:00
+custom:
+    Issue: "38912"

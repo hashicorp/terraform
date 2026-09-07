@@ -1,0 +1,29 @@
+{
+  "terraform_source_bundle": 1,
+  "packages": [
+    {
+      "source": "git::https://example.com/root.git",
+      "local": "root",
+      "meta": {}
+    },
+    {
+      "source": "git::https://example.com/pet-nulls.git?ref=0.0.2",
+      "local": "component",
+      "meta": {}
+    }
+  ],
+  "registry": [],
+  "components": [
+    {
+      "source": "example.com/awesomecorp/tfstack-pet-nulls",
+      "versions": {
+        "0.0.1": {
+          "source": "git::https://example.com/pet-nulls.git?ref=0.0.1"
+        },
+        "0.0.2": {
+          "source": "git::https://example.com/pet-nulls.git?ref=0.0.2"
+        }
+      }
+    }
+  ]
+}

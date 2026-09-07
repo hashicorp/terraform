@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -113,6 +113,15 @@ func (m Module) TargetContains(other Targetable) bool {
 		return m.TargetContains(to.Module)
 
 	case AbsResourceInstance:
+		return m.TargetContains(to.Module)
+
+	case ConfigAction:
+		return m.TargetContains(to.Module)
+
+	case AbsAction:
+		return m.TargetContains(to.Module)
+
+	case AbsActionInstance:
 		return m.TargetContains(to.Module)
 
 	default:

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package pluginshared
@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -67,7 +68,8 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(testManifest))
 		}
 	default:
-		fileToSend, err := os.Open(fmt.Sprintf("testdata/%s", r.URL.Path))
+		path := filepath.Clean(r.URL.Path)
+		fileToSend, err := os.Open(fmt.Sprintf("testdata/%s", path))
 		if err == nil {
 			io.Copy(w, fileToSend)
 			return

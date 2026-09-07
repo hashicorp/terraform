@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -52,6 +52,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.EphemeralSet {
 		v.Ephemeral = ov.Ephemeral
 		v.EphemeralSet = ov.EphemeralSet
+	}
+	if ov.ConstSet {
+		v.Const = ov.Const
+		v.ConstSet = ov.ConstSet
 	}
 	if ov.Default != cty.NilVal {
 		v.Default = ov.Default
@@ -156,6 +160,11 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 		o.Ephemeral = oo.Ephemeral
 		o.EphemeralSet = oo.EphemeralSet
 	}
+	if oo.TypeSet {
+		o.ConstraintType = oo.ConstraintType
+		o.TypeDefaults = oo.TypeDefaults
+		o.TypeSet = oo.TypeSet
+	}
 
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
@@ -174,11 +183,8 @@ func (o *Output) merge(oo *Output) hcl.Diagnostics {
 func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	if omc.SourceSet {
-		mc.SourceAddr = omc.SourceAddr
-		mc.SourceAddrRaw = omc.SourceAddrRaw
-		mc.SourceAddrRange = omc.SourceAddrRange
-		mc.SourceSet = omc.SourceSet
+	if omc.SourceExpr != nil {
+		mc.SourceExpr = omc.SourceExpr
 	}
 
 	if omc.Count != nil {
@@ -189,8 +195,8 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.ForEach = omc.ForEach
 	}
 
-	if len(omc.Version.Required) != 0 {
-		mc.Version = omc.Version
+	if omc.VersionExpr != nil {
+		mc.VersionExpr = omc.VersionExpr
 	}
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
@@ -305,17 +311,6 @@ func (a *Action) merge(oa *Action, rps map[string]*RequiredProvider) hcl.Diagnos
 	}
 
 	a.Config = MergeBodies(a.Config, oa.Config)
-
-	// We don't allow depends_on to be overridden because that is likely to
-	// cause confusing misbehavior.
-	if len(oa.DependsOn) != 0 {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Unsupported override",
-			Detail:   "The depends_on argument may not be overridden.",
-			Subject:  oa.DependsOn[0].SourceRange().Ptr(), // the first item is the closest range we have
-		})
-	}
 
 	return diags
 }

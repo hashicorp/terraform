@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -10,10 +10,12 @@ import (
 )
 
 func TestFlagStringKV_impl(t *testing.T) {
+	t.Parallel()
 	var _ flag.Value = new(FlagStringKV)
 }
 
 func TestFlagStringKV(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		Input  string
 		Output map[string]string

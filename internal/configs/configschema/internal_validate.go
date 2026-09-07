@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -29,12 +29,21 @@ func (b *Block) InternalValidate() error {
 func (b *Block) internalValidate(prefix string) error {
 	var multiErr error
 
+	if prefix == "" && !b.Deprecated && b.DeprecationMessage != "" {
+		multiErr = errors.Join(multiErr, fmt.Errorf("top-level block: DeprecationMessage must not be set when Deprecated is false"))
+	}
+
 	for name, attrS := range b.Attributes {
 		if attrS == nil {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
 			continue
 		}
 		multiErr = errors.Join(multiErr, attrS.internalValidate(name, prefix))
+
+		// all attributes within a computed block must also be computed
+		if b.Computed && !attrS.Computed {
+			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: all attributes within computed blocks must also be computed", prefix, name))
+		}
 	}
 
 	for name, blockS := range b.BlockTypes {
@@ -48,9 +57,17 @@ func (b *Block) internalValidate(prefix string) error {
 		} else if !validName.MatchString(name) {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
 		}
+		if !blockS.Deprecated && blockS.DeprecationMessage != "" {
+			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: DeprecationMessage must not be set when Deprecated is false", prefix, name))
+		}
 
 		if blockS.MinItems < 0 || blockS.MaxItems < 0 {
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems and MaxItems must both be greater than zero", prefix, name))
+		}
+
+		// any nested blocks within a computed block must also be computed
+		if b.Computed && !blockS.Computed {
+			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: all nested blocks within computed blocks must also be computed", prefix, name))
 		}
 
 		switch blockS.Nesting {
@@ -64,6 +81,9 @@ func (b *Block) internalValidate(prefix string) error {
 		case NestingGroup:
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
 				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems and MaxItems cannot be used in NestingGroup mode", prefix, name))
+			}
+			if blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingGroup blocks cannot be computed", prefix, name))
 			}
 		case NestingList, NestingSet:
 			if blockS.MinItems > blockS.MaxItems && blockS.MaxItems != 0 {
@@ -84,9 +104,15 @@ func (b *Block) internalValidate(prefix string) error {
 					multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: NestingSet blocks may not contain WriteOnly attributes", prefix, name))
 				}
 			}
+			if blockS.MinItems > 0 && blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: Computed cannot be used when MinItems > 0", prefix, name))
+			}
 		case NestingMap:
 			if blockS.MinItems != 0 || blockS.MaxItems != 0 {
 				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: MinItems and MaxItems must both be 0 in NestingMap mode", prefix, name))
+			}
+			if blockS.MinItems > 0 && blockS.Computed {
+				multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: Computed cannot be used when MinItems > 0", prefix, name))
 			}
 		default:
 			multiErr = errors.Join(multiErr, fmt.Errorf("%s%s: invalid nesting mode %s", prefix, name, blockS.Nesting))
@@ -126,6 +152,9 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 	if a.Computed && a.Required {
 		err = errors.Join(err, fmt.Errorf("%s%s: cannot set both Computed and Required", prefix, name))
 	}
+	if !a.Deprecated && a.DeprecationMessage != "" {
+		err = errors.Join(err, fmt.Errorf("%s%s: DeprecationMessage must not be set when Deprecated is false", prefix, name))
+	}
 
 	if a.Type == cty.NilType && a.NestedType == nil {
 		err = errors.Join(err, fmt.Errorf("%s%s: either Type or NestedType must be defined", prefix, name))
@@ -139,7 +168,7 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 
 	if a.NestedType != nil {
 		switch a.NestedType.Nesting {
-		case NestingSingle, NestingMap:
+		case NestingSingle, NestingMap, NestingGroup:
 			// no validations to perform
 		case NestingList, NestingSet:
 			if a.NestedType.Nesting == NestingSet {
@@ -174,6 +203,10 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 
 func (o *Object) InternalValidate() error {
 	var err error
+
+	if o.Nesting == nestingModeInvalid {
+		return fmt.Errorf("object schema nesting mode is invalid")
+	}
 
 	for name, attrS := range o.Attributes {
 		if attrS == nil {

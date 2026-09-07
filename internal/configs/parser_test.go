@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -45,6 +45,18 @@ func testParser(files map[string]string) *Parser {
 // module and returns its configuration. This is a helper for use in unit tests.
 func testModuleConfigFromFile(filename string) (*Config, hcl.Diagnostics) {
 	parser := NewParser(nil)
+	f, diags := parser.LoadConfigFile(filename)
+	mod, modDiags := NewModule([]*File{f}, nil)
+	diags = append(diags, modDiags...)
+	cfg, moreDiags := BuildConfig(mod, nil, nil)
+	return cfg, append(diags, moreDiags...)
+}
+
+// testModuleCfgFromFileWithExperiments File reads a single file from the given path as a
+// module and returns its configuration. This is a helper for use in unit tests.
+func testModuleCfgFromFileWithExperiments(filename string) (*Config, hcl.Diagnostics) {
+	parser := NewParser(nil)
+	parser.AllowLanguageExperiments(true)
 	f, diags := parser.LoadConfigFile(filename)
 	mod, modDiags := NewModule([]*File{f}, nil)
 	diags = append(diags, modDiags...)

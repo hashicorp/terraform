@@ -1,0 +1,3 @@
+module "kinder" {
+  source = "./kinder"
+}

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -29,6 +30,8 @@ type SourceBundleParser struct {
 	// for itself whether to enable it so that tests can cover both the
 	// allowed and not-allowed situations.
 	allowExperiments bool
+
+	mu sync.Mutex
 }
 
 // NewSourceBundleParser creates a new [SourceBundleParser] for the given
@@ -67,7 +70,38 @@ func (p *SourceBundleParser) LoadConfigDir(source sourceaddrs.FinalSource) (*Mod
 		})
 		return nil, diags
 	}
-	mod.SourceDir = sourceDir
+
+	// The result of sources.LocalPathForSource can be an absolute path, but we
+	// don't actually want to pass an absolute path for a module's SourceDir;
+	// doing so will cause the value of `path.module` in Terraform configs to
+	// differ across plans and applies, since tfc-agent performs plans and
+	// applies in temporary directories. Instead, we try to resolve a relative
+	// path from Terraform's working directory, which should always be a
+	// reasonable SourceDir value.
+	var relativeSourceDir string
+	if filepath.IsAbs(sourceDir) {
+		workDir, err := os.Getwd()
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Cannot resolve working directory",
+				Detail:   fmt.Sprintf("Failed to resolve current working directory: %s. This is a bug in Terraform - please report it.", err),
+			})
+		}
+
+		relativeSourceDir, err = filepath.Rel(workDir, sourceDir)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Cannot resolve relative path",
+				Detail:   fmt.Sprintf("Failed to resolve relative path to module directory: %s. This is a bug in Terraform - please report it.", err),
+			})
+		}
+	} else {
+		// sourceDir is already relative, use it as-is
+		relativeSourceDir = sourceDir
+	}
+	mod.SourceDir = relativeSourceDir
 
 	return mod, diags
 }
@@ -176,6 +210,9 @@ func (p *SourceBundleParser) loadSources(sources []sourceaddrs.FinalSource, over
 }
 
 func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, override bool) (*File, hcl.Diagnostics) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	var diags hcl.Diagnostics
 	path, err := p.sources.LocalPathForSource(source)
 	if err != nil {
@@ -213,6 +250,7 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 	default:
 		file, fdiags = p.p.ParseHCL(src, syntheticFilename)
 	}
+
 	diags = append(diags, fdiags...)
 
 	body := hcl.EmptyBody()
@@ -220,6 +258,7 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 		body = file.Body
 	}
 
+	// We are in a locked method, it's safe to call p.allowExperiments directly
 	return parseConfigFile(body, diags, override, p.allowExperiments)
 }
 
@@ -233,5 +272,13 @@ func (p *SourceBundleParser) loadConfigFile(source sourceaddrs.FinalSource, over
 // is responsible for deciding for itself whether and how to call this
 // method.
 func (p *SourceBundleParser) AllowLanguageExperiments(allowed bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.allowExperiments = allowed
+}
+
+func (p *SourceBundleParser) AllowsLanguageExperiments() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.allowExperiments
 }

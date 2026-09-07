@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -114,4 +114,9 @@ func (c CheckRuleType) Description() string {
 		// This should not happen
 		return "Condition"
 	}
+}
+
+// ModuleInstance returns the module instance address containing this check rule.
+func (c CheckRule) ModuleInstance() ModuleInstance {
+	return c.Container.ModuleInstance()
 }

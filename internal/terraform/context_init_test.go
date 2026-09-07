@@ -1,0 +1,1150 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package terraform
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+)
+
+var _ configs.ModuleWalker = (*MockModuleWalker)(nil)
+
+type MockModuleWalker struct {
+	Calls         []*configs.ModuleRequest
+	DefaultModule *configs.Module
+	// the string key refers to ModuleSource.String()
+	MockedCalls map[string]*configs.Module
+}
+
+func (m *MockModuleWalker) LoadModule(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+	m.Calls = append(m.Calls, req)
+
+	if mod, ok := m.MockedCalls[req.SourceAddr.String()]; ok {
+		return mod, nil, nil
+	}
+
+	return m.DefaultModule, nil, nil
+}
+
+func (m *MockModuleWalker) MockModuleCalls(t *testing.T, calls map[string]*configs.Module) {
+	t.Helper()
+	if m.MockedCalls == nil {
+		m.MockedCalls = make(map[string]*configs.Module)
+	}
+	for k, v := range calls {
+		// Make sure we can parse the module source
+		ms := mustModuleSource(t, k)
+		m.MockedCalls[ms.String()] = v
+	}
+}
+
+func TestInit(t *testing.T) {
+	for name, tc := range map[string]struct {
+		module                map[string]string
+		vars                  InputValues
+		mockedLoadModuleCalls map[string]map[string]string
+		// m -> root module
+		// mc -> module calls
+		expectDiags           func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics
+		expectLoadModuleCalls []*configs.ModuleRequest
+		// Set to true to emulate module installation continuing even in the presence
+		// of parsing errors
+		ignoreParsingErrors bool
+	}{
+		"empty config": {
+			module: map[string]string{"main.tf": ``},
+		},
+		"local - no variables": {
+			module: map[string]string{
+				"main.tf": `
+module "example" {
+  source = "./modules/example"
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"remote - no variables": {
+			module: map[string]string{
+				"main.tf": `
+module "example" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "6.6.0"
+}
+
+module "example2" {
+  source  = "terraform-iaac/cert-manager/kubernetes"
+}
+				`,
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
+			}, {
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "6.6.0"),
+			}},
+		},
+
+		"local - with variables": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("example"), SourceType: ValueFromCLIArg},
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"local with non-const variables": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("example"), SourceType: ValueFromCLIArg},
+			},
+
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				// TODO: We should try to somehow add an "extra" into the diagnostics to indicate
+				// that this may be caused by a non-const variable used during init.
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Unknown module source`,
+					Detail:   `Only literal values and const variables can be evaluated during init.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 6, Column: 14, Byte: 69},
+						End:      hcl.Pos{Line: 6, Column: 37, Byte: 92},
+					},
+				})
+			},
+		},
+
+		"remote - with variable in source": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example2" {
+  source  = "terraform-iaac/${var.name}/kubernetes"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("cert-manager"), SourceType: ValueFromCLIArg},
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
+			}},
+		},
+		"remote - with variable in constraint": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example2" {
+  source  = "terraform-iaac/cert-manager/kubernetes"
+  version = ">= ${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("1.2.3"), SourceType: ValueFromCLIArg},
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr:        mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
+				VersionConstraint: mustVersionContraint(t, ">= 1.2.3"),
+			}},
+		},
+
+		"locals in module sources": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+
+locals {
+  org_and_repo = "terraform-iaac/${var.name}"
+}
+
+module "example2" {
+  source  = "${local.org_and_repo}/kubernetes"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("cert-manager"), SourceType: ValueFromCLIArg},
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
+			}},
+		},
+
+		"each in module sources": {
+			module: map[string]string{
+				"main.tf": `
+module "example" {
+  for_each = toset(["cert-manager", "helm"])
+  source  = "terraform-iaac/${each.key}/kubernetes"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("cert-manager"), SourceType: ValueFromCLIArg},
+			},
+
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid module source`,
+					Detail:   `The module source can only reference constant input variables and local values.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 4, Column: 31, Byte: 95},
+						End:      hcl.Pos{Line: 4, Column: 39, Byte: 103},
+					},
+				})
+			},
+		},
+
+		"module variables in source": {
+			module: map[string]string{
+				"main.tf": `
+module "mod" {
+  source = "./mod"
+  name   = "cert-manager"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("cert-manager"), SourceType: ValueFromCLIArg},
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./mod": {
+					"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example" {
+  source  = "terraform-iaac/${var.name}/kubernetes"
+}
+					`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./mod"),
+			}, {
+				SourceAddr: mustModuleSource(t, "terraform-iaac/cert-manager/kubernetes"),
+			}},
+		},
+
+		"undefined variable in module source": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example2" {
+  source  = "terraform-iaac/${var.name}/kubernetes"
+}
+`,
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Required variable not set",
+					Detail:   `The variable "name" is required, but is not set.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 16, Byte: 16},
+					},
+				})
+			},
+		},
+
+		"resource reference in module source": {
+			module: map[string]string{
+				"main.tf": `
+resource "null_resource" "example" {}
+
+module "example" {
+    source  = "terraform-iaac/${null_resource.example.id}/kubernetes"
+}
+`,
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source",
+					Detail:   "The module source can only reference constant input variables and local values.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 5, Column: 33, Byte: 91},
+						End:      hcl.Pos{Line: 5, Column: 54, Byte: 112},
+					},
+				})
+			},
+		},
+		"resource reference in module call": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+    type = string
+    default = "aws"
+    const = true
+}
+resource "null_resource" "example" {}
+
+module "example" {
+    source  = "./${var.name}"
+
+    name = var.name
+    this_should_be_unknown_and_not_cause_error = null_resource.example.id
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./aws": {
+					"main.tf": `
+variable "name" {
+    type = string
+    const = true
+}
+
+variable "this_should_be_unknown_and_not_cause_error" {
+    type = string
+}
+
+module "example" {
+    source = "terraform-iaac/${var.name}/kubernetes"
+}
+
+
+output "foo" {
+    value = var.this_should_be_unknown_and_not_cause_error
+}
+			`,
+				},
+			},
+
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "terraform-iaac/aws/kubernetes"),
+			}, {
+				SourceAddr: mustModuleSource(t, "./aws"),
+			}},
+		},
+
+		"module output reference in module source": {
+			module: map[string]string{
+				"main.tf": `
+module "example" {
+    source = "./module/example"
+}
+
+module "example2" {
+    source  = "terraform-iaac/${module.example.id}/kubernetes"
+}
+    `,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./module/example": {
+					"main.tf": `
+output "id" {
+  value = "example-id"
+}
+							`,
+				}},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./module/example"),
+			}},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source",
+					Detail:   "The module source can only reference constant input variables and local values.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 33, Byte: 107},
+						End:      hcl.Pos{Line: 7, Column: 50, Byte: 124},
+					},
+				})
+			},
+		},
+
+		"nested module loading - no variables": {
+			module: map[string]string{
+				"main.tf": `
+module "parent" {
+  source = "hashicorp/parent/aws"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"hashicorp/parent/aws": {
+					"main.tf": `
+module "child" {
+  source = "hashicorp/child/aws"
+}
+					`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "hashicorp/parent/aws"),
+			}, {
+				SourceAddr: mustModuleSource(t, "hashicorp/child/aws"),
+			}},
+		},
+
+		"nested module loading - with variables": {
+			module: map[string]string{
+				"main.tf": `
+module "parent" {
+  source = "hashicorp/parent/aws"
+  name = "child"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"hashicorp/parent/aws": {
+					"main.tf": `
+variable "name" {
+    type = string
+    const = true
+}
+module "child" {
+  source = "hashicorp/${var.name}/aws"
+  name = "grand${var.name}"
+}
+					`,
+				},
+				"hashicorp/child/aws": {
+					"main.tf": `
+variable "name" {
+    type = string
+    const = true
+}
+module "grandchild" {
+  source = "hashicorp/${var.name}/aws"
+}
+					`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "hashicorp/parent/aws"),
+			}, {
+				SourceAddr: mustModuleSource(t, "hashicorp/child/aws"),
+			}, {
+				SourceAddr: mustModuleSource(t, "hashicorp/grandchild/aws"),
+			}},
+		},
+		"module nested expansion": {
+			module: map[string]string{
+				"main.tf": `
+module "fromdisk" {
+  source    = "./mod"
+  namespace = "terraform-iaac"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./mod": {
+					"main.tf": `
+locals {
+  source = var.namespace
+}
+variable "namespace" {
+  type      = string
+  const = true
+}
+module "terraform" {
+  source = "${var.namespace}/helm/kubernetes"
+}
+output "name" {
+  value = "fooo"
+}
+`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./mod"),
+			}, {
+				SourceAddr: mustModuleSource(t, "terraform-iaac/helm/kubernetes"),
+			}},
+		},
+
+		"const variable with no value and no default": {
+			module: map[string]string{"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Required variable not set`,
+					Detail:   `The variable "name" is required, but is not set.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 1, Byte: 1},
+						End:      hcl.Pos{Line: 2, Column: 16, Byte: 16},
+					},
+				})
+			},
+		},
+
+		"const variable with default": {
+			module: map[string]string{"main.tf": `
+variable "name" {
+  type = string
+  const = true
+  default = "example"
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"non-const variable passed into const module variable": {
+			module: map[string]string{"main.tf": `
+variable "name" {
+  type = string
+  default = "example"
+}
+module "example" {
+  source = "./modules/example"
+  name = "./modules/${var.name}2"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+  const = true
+}
+					`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Const variables must be known`,
+					Detail:   `Only a constant value can be passed into a constant module variable.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 10, Byte: 118},
+						End:      hcl.Pos{Line: 8, Column: 34, Byte: 142},
+					},
+				})
+			},
+		},
+
+		"non-static module variable used as static": {
+			module: map[string]string{"main.tf": `
+module "example" {
+  source = "./modules/example"
+
+  name = "foo"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+}
+
+module "nested" {
+    source = "./modules/${var.name}"
+}
+					`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				// TODO: We should try to somehow add an "extra" into the diagnostics to indicate
+				// that this may be caused by a non-const variable used during init.
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Unknown module source`,
+					Detail:   `Only literal values and const variables can be evaluated during init.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(mc["./modules/example"].SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 14, Byte: 69},
+						End:      hcl.Pos{Line: 7, Column: 37, Byte: 92},
+					},
+				})
+			},
+		},
+
+		"const variable with passing validation": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.name != ""
+    error_message = "must not be empty"
+  }
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("example"), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"const variable with failing validation": {
+			module: map[string]string{
+				"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+
+  validation {
+    condition     = var.name != "bad"
+    error_message = "must not be bad"
+  }
+}
+module "example" {
+    source = "./modules/${var.name}"
+}
+`,
+			},
+			vars: InputValues{
+				"name": &InputValue{Value: cty.StringVal("bad"), SourceType: ValueFromCLIArg},
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for variable",
+					Detail:   fmt.Sprintf("must not be bad\n\nThis was checked by the validation rule at %s.", m.Variables["name"].Validations[0].DeclRange.String()),
+					Subject:  m.Variables["name"].DeclRange.Ptr(),
+				})
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/bad"),
+			}},
+		},
+
+		"non-const variable validation does not run during init": {
+			module: map[string]string{
+				"main.tf": `
+variable "some" {
+ type = string
+}
+variable "name" {
+  type    = string
+  default = "bad"
+
+  validation {
+    condition     = var.name != var.some
+    error_message = "must not be bad"
+  }
+}
+module "example" {
+    source = "./modules/example"
+
+    name = var.name
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+}
+`},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+
+		"registry with version and local with null version": {
+			module: map[string]string{
+				"main.tf": `
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+}
+
+module "local" {
+  source  = "./modules/local"
+  version = null
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}, {
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "~> 5.0"),
+			}},
+		},
+
+		"conditional version with mixed sources - null on local": {
+			module: map[string]string{
+				"main.tf": `
+variable "use_local" {
+  type  = bool
+  const = true
+}
+
+locals {
+  source = var.use_local ? "./modules/local" : "terraform-aws-modules/vpc/aws"
+}
+
+module "example" {
+  source  = local.source
+  version = var.use_local ? null : "5.0.0"
+}
+`,
+			},
+			vars: InputValues{
+				"use_local": &InputValue{Value: cty.BoolVal(true), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
+
+		"conditional version with mixed sources - version on registry": {
+			module: map[string]string{
+				"main.tf": `
+variable "use_local" {
+  type  = bool
+  const = true
+}
+
+locals {
+  source = var.use_local ? "./modules/local" : "terraform-aws-modules/vpc/aws"
+}
+
+module "example" {
+  source  = local.source
+  version = var.use_local ? null : "5.0.0"
+}
+`,
+			},
+			vars: InputValues{
+				"use_local": &InputValue{Value: cty.BoolVal(false), SourceType: ValueFromCLIArg},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "5.0.0"),
+			}},
+		},
+
+		"version from const variable set to null": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  type    = string
+  const   = true
+  default = null
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
+
+		"source from const variable set to null": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const   = true
+  default = null
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsuitable module source",
+					Detail:   `Unsuitable value: null value is not allowed.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 7, Column: 13, Byte: 85},
+						End:      hcl.Pos{Line: 7, Column: 22, Byte: 94},
+					},
+				})
+			},
+		},
+
+		"source from const sensitive variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const     = true
+  sensitive = true
+  default   = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module source",
+					Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 13, Byte: 121},
+						End:      hcl.Pos{Line: 8, Column: 22, Byte: 130},
+					},
+				})
+			},
+		},
+
+		"source from const ephemeral variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  const     = true
+  ephemeral = true
+  default   = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module source",
+					Detail:   "The module source cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 8, Column: 13, Byte: 121},
+						End:      hcl.Pos{Line: 8, Column: 22, Byte: 130},
+					},
+				})
+			},
+		},
+
+		"source from const deprecated variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "sourc" {
+  deprecated = true
+  const      = true
+  default    = "./modules/local"
+}
+module "local" {
+  source  = var.sourc
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/local"),
+			}},
+		},
+
+		"version from const sensitive variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  const     = true
+  sensitive = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module version",
+					Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 13, Byte: 139},
+						End:      hcl.Pos{Line: 9, Column: 20, Byte: 146},
+					},
+				})
+			},
+		},
+
+		"version from const ephemeral variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  const     = true
+  ephemeral = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "./modules/local"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unknown module version",
+					Detail:   "The module version cannot be derived from a sensitive or ephemeral value.",
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 9, Column: 13, Byte: 139},
+						End:      hcl.Pos{Line: 9, Column: 20, Byte: 146},
+					},
+				})
+			},
+		},
+
+		"version from const deprecated variable": {
+			module: map[string]string{
+				"main.tf": `
+variable "ver" {
+  deprecated = true
+  const      = true
+  default   = "1.0.0"
+}
+module "local" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = var.ver
+}
+`,
+			},
+			ignoreParsingErrors: true,
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr:        mustModuleSource(t, "terraform-aws-modules/vpc/aws"),
+				VersionConstraint: mustVersionContraint(t, "1.0.0"),
+			}},
+		},
+
+		"incomplete module call config": {
+			module: map[string]string{"main.tf": `
+module "example" {
+  source = "./modules/example"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type = string
+}
+`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+		},
+		"incomplete module call config with const": {
+			module: map[string]string{"main.tf": `
+module "example" {
+  source = "./modules/example"
+}
+`,
+			},
+			mockedLoadModuleCalls: map[string]map[string]string{
+				"./modules/example": {
+					"main.tf": `
+variable "name" {
+  type  = string
+  const = true
+}
+
+module "name" {
+  source = var.name
+}
+`,
+				},
+			},
+			expectLoadModuleCalls: []*configs.ModuleRequest{{
+				SourceAddr: mustModuleSource(t, "./modules/example"),
+			}},
+			expectDiags: func(m *configs.Module, mc map[string]*configs.Module) tfdiags.Diagnostics {
+				return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Missing required argument",
+					Detail:   `The argument "name" is required, but no definition was found.`,
+					Subject: &hcl.Range{
+						Filename: filepath.Join(m.SourceDir, "main.tf"),
+						Start:    hcl.Pos{Line: 2, Column: 18, Byte: 18},
+						End:      hcl.Pos{Line: 2, Column: 18, Byte: 18},
+					},
+				})
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testRootModuleInline(t, tc.module, tc.ignoreParsingErrors)
+
+			ctx := testContext2(t, &ContextOpts{
+				Parallelism: 1,
+			})
+			moduleWalker := MockModuleWalker{
+				DefaultModule: testRootModuleInline(t, map[string]string{"main.tf": `// empty`}, false),
+			}
+			mockedModules := make(map[string]*configs.Module)
+			if tc.mockedLoadModuleCalls != nil {
+				for k, v := range tc.mockedLoadModuleCalls {
+					mockedModules[k] = testRootModuleInline(t, v, false)
+				}
+				moduleWalker.MockModuleCalls(t, mockedModules)
+			}
+			_, diags := ctx.Init(m, InitOpts{
+				SetVariables: tc.vars,
+				Walker:       &moduleWalker,
+			})
+			if tc.expectDiags != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectDiags(m, mockedModules))
+			} else {
+				tfdiags.AssertNoDiagnostics(t, diags)
+			}
+
+			if len(moduleWalker.Calls) != len(tc.expectLoadModuleCalls) {
+				t.Fatalf("expected %d LoadModule calls, got %d", len(tc.expectLoadModuleCalls), len(moduleWalker.Calls))
+			}
+
+			// Create a map of expected sources and version constraints for comparison
+			type expectedCall struct {
+				found             bool
+				versionConstraint string
+			}
+			expectedSources := make(map[string]*expectedCall)
+			foundSources := []string{}
+			for _, expected := range tc.expectLoadModuleCalls {
+				expectedSources[expected.SourceAddr.String()] = &expectedCall{
+					versionConstraint: expected.VersionConstraint.Required.String(),
+				}
+			}
+
+			// Mark sources as found and check version constraints
+			for _, call := range moduleWalker.Calls {
+				source := call.SourceAddr.String()
+				foundSources = append(foundSources, source)
+				if ec, exists := expectedSources[source]; !exists {
+					t.Errorf("unexpected LoadModule call for source %q", source)
+				} else {
+					ec.found = true
+					gotConstraint := call.VersionConstraint.Required.String()
+					if gotConstraint != ec.versionConstraint {
+						t.Errorf("LoadModule call for source %q: expected version constraint %q, got %q", source, ec.versionConstraint, gotConstraint)
+					}
+				}
+			}
+
+			// Check all expected sources were called
+			for source, ec := range expectedSources {
+				if !ec.found {
+					t.Errorf("expected LoadModule call for source %q but it was not called. Calls that were made: \n %s", source, strings.Join(foundSources, ", "))
+				}
+			}
+		})
+	}
+}
+
+func mustModuleSource(t *testing.T, rawStr string) addrs.ModuleSource {
+	src, err := moduleaddrs.ParseModuleSource(rawStr)
+	if err != nil {
+		t.Fatalf("failed to parse module source %q: %s", rawStr, err)
+	}
+	return src
+}
+
+func mustVersionContraint(t *testing.T, rawStr string) configs.VersionConstraint {
+	constraints, err := version.NewConstraint(rawStr)
+	if err != nil {
+		t.Fatalf("failed to parse version constraint %q: %s", rawStr, err)
+	}
+	return configs.VersionConstraint{
+		Required: constraints,
+	}
+}

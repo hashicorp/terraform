@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonplan
@@ -226,6 +226,19 @@ func TestMarshalPlanResources(t *testing.T) {
 		},
 		"delete": {
 			Action: plans.Delete,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("foo"),
+				"foozles": cty.StringVal("bar"),
+			}),
+			After: cty.NullVal(cty.Object(map[string]cty.Type{
+				"woozles": cty.String,
+				"foozles": cty.String,
+			})),
+			Want: nil,
+			Err:  false,
+		},
+		"forget": {
+			Action: plans.Forget,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"woozles": cty.StringVal("foo"),
 				"foozles": cty.StringVal("bar"),

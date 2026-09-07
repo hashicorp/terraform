@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package providers
 
 import (
@@ -98,6 +95,20 @@ func (m *Mock) ValidateDataResourceConfig(request ValidateDataResourceConfigRequ
 	// support the same data source syntax as the original provider and we can
 	// call validate without needing to configure the provider first.
 	return m.Provider.ValidateDataResourceConfig(request)
+}
+
+func (m *Mock) ValidateListResourceConfig(request ValidateListResourceConfigRequest) ValidateListResourceConfigResponse {
+	// We'll just pass this through to the underlying provider. The mock should
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
+	return m.Provider.ValidateListResourceConfig(request)
+}
+
+func (m *Mock) ValidateActionConfig(request ValidateActionConfigRequest) ValidateActionConfigResponse {
+	// We'll just pass this through to the underlying provider. The mock should
+	// support the same data source syntax as the original provider and we can
+	// call validate without needing to configure the provider first.
+	return m.Provider.ValidateActionConfig(request)
 }
 
 func (m *Mock) UpgradeResourceState(request UpgradeResourceStateRequest) (response UpgradeResourceStateResponse) {
@@ -309,6 +320,10 @@ func (m *Mock) ImportResourceState(request ImportResourceStateRequest) (response
 	return response
 }
 
+func (m *Mock) GenerateResourceConfig(request GenerateResourceConfigRequest) (response GenerateResourceConfigResponse) {
+	panic("not implemented")
+}
+
 func (m *Mock) MoveResourceState(request MoveResourceStateRequest) MoveResourceStateResponse {
 	// The MoveResourceState operation happens offline, so we can just hand this
 	// off to the underlying provider.
@@ -347,63 +362,102 @@ func (m *Mock) ReadDataSource(request ReadDataSourceRequest) ReadDataSourceRespo
 	return response
 }
 
-func (m *Mock) ValidateEphemeralResourceConfig(ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return ValidateEphemeralResourceConfigResponse{
-		Diagnostics: diags,
-	}
+func (m *Mock) ValidateEphemeralResourceConfig(request ValidateEphemeralResourceConfigRequest) ValidateEphemeralResourceConfigResponse {
+	// Delegate to the underlying provider so it can validate the configuration
+	// against the real schema, exactly as we do for resources and data sources.
+	return m.Provider.ValidateEphemeralResourceConfig(request)
 }
 
-func (m *Mock) OpenEphemeralResource(OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return OpenEphemeralResourceResponse{
-		Diagnostics: diags,
+func (m *Mock) OpenEphemeralResource(request OpenEphemeralResourceRequest) OpenEphemeralResourceResponse {
+	var response OpenEphemeralResourceResponse
+
+	schema := m.GetProviderSchema()
+	response.Diagnostics = response.Diagnostics.Append(schema.Diagnostics)
+	if schema.Diagnostics.HasErrors() {
+		return response
 	}
+
+	ephemeralSchema, exists := schema.EphemeralResourceTypes[request.TypeName]
+	if !exists {
+		// Should have been caught during validation.
+		panic(fmt.Errorf("failed to retrieve schema for ephemeral resource %s", request.TypeName))
+	}
+
+	mockedData := &mocking.MockedData{
+		Value: cty.NilVal, // If we have no mocked data we use cty.NilVal.
+	}
+	if mockedEphemeral, exists := m.Data.MockEphemeralResources[request.TypeName]; exists {
+		mockedData.Value = mockedEphemeral.Defaults
+		mockedData.Range = mockedEphemeral.DefaultsRange
+	}
+
+	value, diags := mocking.ComputedValuesForDataSource(request.Config, mockedData, ephemeralSchema.Body)
+	response.Diagnostics = response.Diagnostics.Append(diags)
+	response.Result = value
+	return response
 }
 
 func (m *Mock) RenewEphemeralResource(RenewEphemeralResourceRequest) RenewEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return RenewEphemeralResourceResponse{
-		Diagnostics: diags,
-	}
+	// Mocked ephemeral resources never expire, so renewal is a no-op.
+	return RenewEphemeralResourceResponse{}
 }
 
 func (m *Mock) CloseEphemeralResource(CloseEphemeralResourceRequest) CloseEphemeralResourceResponse {
-	// FIXME: Design some means to mock an ephemeral resource type.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"No ephemeral resource types in mock providers",
-		"The provider mocking mechanism does not yet support ephemeral resource types.",
-		nil, // the topmost configuration object
-	))
-	return CloseEphemeralResourceResponse{
-		Diagnostics: diags,
-	}
+	// Nothing to close for a mocked ephemeral resource.
+	return CloseEphemeralResourceResponse{}
 }
 
 func (m *Mock) CallFunction(request CallFunctionRequest) CallFunctionResponse {
 	return m.Provider.CallFunction(request)
+}
+
+func (m *Mock) ListResource(request ListResourceRequest) ListResourceResponse {
+	return m.Provider.ListResource(request)
+}
+
+func (m *Mock) ValidateStateStoreConfig(req ValidateStateStoreConfigRequest) ValidateStateStoreConfigResponse {
+	return m.Provider.ValidateStateStoreConfig(req)
+}
+
+func (m *Mock) ConfigureStateStore(req ConfigureStateStoreRequest) ConfigureStateStoreResponse {
+	return m.Provider.ConfigureStateStore(req)
+}
+
+func (m *Mock) ReadStateBytes(req ReadStateBytesRequest) ReadStateBytesResponse {
+	return m.Provider.ReadStateBytes(req)
+}
+
+func (m *Mock) WriteStateBytes(req WriteStateBytesRequest) WriteStateBytesResponse {
+	return m.Provider.WriteStateBytes(req)
+}
+
+func (m *Mock) LockState(req LockStateRequest) LockStateResponse {
+	return m.Provider.LockState(req)
+}
+
+func (m *Mock) UnlockState(req UnlockStateRequest) UnlockStateResponse {
+	return m.Provider.UnlockState(req)
+}
+
+func (m *Mock) GetStates(req GetStatesRequest) GetStatesResponse {
+	return m.Provider.GetStates(req)
+}
+
+func (m *Mock) DeleteState(req DeleteStateRequest) DeleteStateResponse {
+	return m.Provider.DeleteState(req)
+}
+
+func (m *Mock) PlanAction(request PlanActionRequest) PlanActionResponse {
+	return PlanActionResponse{}
+}
+
+func (m *Mock) InvokeAction(request InvokeActionRequest) InvokeActionResponse {
+	return InvokeActionResponse{
+		Events: func(yield func(InvokeActionEvent) bool) {
+			yield(InvokeActionEvent_Completed{})
+		},
+		Diagnostics: nil,
+	}
 }
 
 func (m *Mock) Close() error {

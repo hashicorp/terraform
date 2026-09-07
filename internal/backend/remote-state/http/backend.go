@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package http
@@ -306,18 +306,26 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+		return nil, diags.Append(backend.ErrWorkspacesNotSupported)
 	}
 
-	return &remote.State{Client: b.client}, nil
+	sm := &remote.State{Client: b.client}
+
+	if err := sm.RefreshState(); err != nil {
+		return nil, diags.Append(err)
+	}
+
+	return sm, diags
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }
 
-func (b *Backend) DeleteWorkspace(string, bool) error {
-	return backend.ErrWorkspacesNotSupported
+func (b *Backend) DeleteWorkspace(string, bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(backend.ErrWorkspacesNotSupported)
 }

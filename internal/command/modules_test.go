@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -14,7 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/moduleref"
 )
 
@@ -22,9 +24,10 @@ func TestModules_noJsonFlag(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
-	ui := new(cli.MockUi)
+	t.Chdir(dir)
+
+	ui := testUiWrapped(t)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -71,9 +74,10 @@ Modules declared by configuration:
 func TestModules_noJsonFlag_noModules(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
-	ui := new(cli.MockUi)
+	t.Chdir(dir)
+
+	ui := testUiWrapped(t)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -100,10 +104,10 @@ func TestModules_fullCmd(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
+	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -127,10 +131,10 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-unreferenced-entries"), dir)
+	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -153,10 +157,10 @@ func TestModules_uninstalledModules(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(dir, 0755)
 	testCopyDir(t, testFixturePath("modules-uninstalled-entries"), dir)
+	t.Chdir(dir)
 
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
-	defer testChdir(t, dir)()
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
@@ -179,6 +183,133 @@ func TestModules_uninstalledModules(t *testing.T) {
 	if !strings.Contains(output, `Run "terraform init"`) {
 		t.Fatalf("expected error message to ask user to run terraform init: %s\n", output)
 	}
+}
+
+func TestModules_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+
+		cmd := &ModulesCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		code := cmd.Run(args)
+		if code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		output := done(t).All()
+		if !strings.Contains(output, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", output)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+
+		cmd := &ModulesCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		code := cmd.Run(append(args, "-var", "module_name=child"))
+		if code != 0 {
+			t.Fatalf("Got a non-zero exit code: %d\n%s", code, done(t).All())
+		}
+
+		actual := done(t).All()
+
+		expectedOutputHuman := `
+Modules declared by configuration:
+.
+└── "child"[./modules/child]
+
+`
+		if runtime.GOOS == "windows" {
+			expectedOutputHuman = `
+Modules declared by configuration:
+.
+└── "child"[.\modules\child]
+
+`
+		}
+
+		if diff := cmp.Diff(expectedOutputHuman, actual); diff != "" {
+			t.Fatalf("unexpected output:\n%s\n", diff)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		server := cloudTestServerWithVars(t)
+		defer server.Close()
+		d := testDisco(server)
+
+		previousBackend := backendInit.Backend("cloud")
+		backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+		defer backendInit.Set("cloud", previousBackend)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+
+		cmd := &ModulesCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+				WorkingDir:       wd,
+				Services:         d,
+			},
+		}
+
+		args := []string{}
+		code := cmd.Run(args)
+		if code != 0 {
+			t.Fatalf("Got a non-zero exit code: %d\n%s", code, done(t).All())
+		}
+
+		actual := done(t).All()
+
+		expectedOutputHuman := `
+Modules declared by configuration:
+.
+└── "child"[./modules/example]
+
+`
+		if runtime.GOOS == "windows" {
+			expectedOutputHuman = `
+Modules declared by configuration:
+.
+└── "child"[.\modules\example]
+
+`
+		}
+
+		if diff := cmp.Diff(expectedOutputHuman, actual); diff != "" {
+			t.Fatalf("unexpected output:\n%s\n", diff)
+		}
+	})
 }
 
 func compareJSONOutput(t *testing.T, got string, want string) {

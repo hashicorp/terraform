@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
@@ -17,76 +18,51 @@ type WorkspaceSelectCommand struct {
 	LegacyName bool
 }
 
-func (c *WorkspaceSelectCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Process global flags and configure the view/UI.
+	rawArgs = c.Meta.process(rawArgs)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	var orCreate bool
-	cmdFlags := c.Meta.defaultFlagSet("workspace select")
-	cmdFlags.BoolVar(&orCreate, "or-create", false, "create workspace if it does not exist")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: NAME.\n")
+	// Process command-specific arguments.
+	// Currently there are no arguments for this command, so ignore the returned value for now.
+	args, diags := arguments.ParseWorkspaceSelect(rawArgs)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return cli.RunResultHelp
 	}
 
-	configPath, err := ModulePath(args[1:])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	current, isOverridden := c.WorkspaceOverridden()
+	// Block selecting a workspace if an environment variable will override the new selection anyway.
+	//
+	// We ignore errors raised about the value of the override ENV, or the value of the currently selected
+	// workspace; this command should help users recover from those errors, not block them.
+	current, isOverridden, _ := c.WorkspaceOverridden()
 	if isOverridden {
 		c.Ui.Error(envIsOverriddenSelectError)
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
+	c.bypassWorkspaceNameValidityCheck = true // allow selecting a new workspace when the current one is invalid.
+	configPath := c.WorkingDir.RootModuleDir()
+	b, diags := c.backend(configPath, args.ViewType)
+	if diags.HasErrors() {
 		c.showDiagnostics(diags)
-		return 1
-	}
-
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load backend: %s", err))
 		return 1
 	}
 
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	name := args[0]
-	if !validWorkspaceName(name) {
-		c.Ui.Error(fmt.Sprintf(envInvalidName, name))
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
-	states, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
+	name := args.Name
 	if name == current {
 		// already using this workspace
 		return 0
@@ -103,10 +79,10 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	var newState bool
 
 	if !found {
-		if orCreate {
-			_, err = b.StateMgr(name)
-			if err != nil {
-				c.Ui.Error(err.Error())
+		if args.OrCreate {
+			_, sDiags := b.StateMgr(name)
+			if sDiags.HasErrors() {
+				c.Ui.Error(sDiags.Err().Error())
 				return 1
 			}
 			newState = true
@@ -116,7 +92,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		}
 	}
 
-	err = c.SetWorkspace(name)
+	err := c.SetWorkspace(name)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

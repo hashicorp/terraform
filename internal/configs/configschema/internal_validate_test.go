@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -122,6 +122,18 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{},
 		},
+		"attribute with deprecation message but not deprecated": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						Type:               cty.String,
+						Optional:           true,
+						DeprecationMessage: "use bar instead",
+					},
+				},
+			},
+			[]string{"foo: DeprecationMessage must not be set when Deprecated is false"},
+		},
 		"attribute with missing type": {
 			&Block{
 				Attributes: map[string]*Attribute{
@@ -208,6 +220,25 @@ func TestBlockInternalValidate(t *testing.T) {
 				},
 			},
 			[]string{"bad.nested_bad: cannot set both Optional and Required"},
+		},
+		"nested block with deprecation message but not deprecated": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"bad": {
+						Nesting: NestingSingle,
+						Block: Block{
+							DeprecationMessage: "use good instead",
+						},
+					},
+				},
+			},
+			[]string{"bad: DeprecationMessage must not be set when Deprecated is false"},
+		},
+		"top-level block with deprecation message but not deprecated": {
+			&Block{
+				DeprecationMessage: "use another resource instead",
+			},
+			[]string{"top-level block: DeprecationMessage must not be set when Deprecated is false"},
 		},
 		"nested list block with dynamically-typed attribute": {
 			&Block{
@@ -304,6 +335,38 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"bad: NestingSet attributes may not contain WriteOnly attributes"},
 		},
+
+		"nested computed block with non-computed attr": {
+			&Block{
+				BlockTypes: map[string]*NestedBlock{
+					"partial": &NestedBlock{
+						Block: Block{
+							Computed: true,
+							Attributes: map[string]*Attribute{
+								"required": {Type: cty.String, Required: true},
+								"computed": {Type: cty.String, Computed: true},
+							},
+
+							BlockTypes: map[string]*NestedBlock{
+								"nested": &NestedBlock{
+									Block: Block{
+										Attributes: map[string]*Attribute{
+											"optional": {Type: cty.String, Optional: true},
+										},
+									},
+									Nesting: NestingList,
+								},
+							},
+						},
+						Nesting: NestingList,
+					},
+				},
+			},
+			[]string{
+				`partial.required: all attributes within computed blocks must also be computed`,
+				`partial.nested: all nested blocks within computed blocks must also be computed`,
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -333,7 +396,7 @@ func TestObjectInternalValidate(t *testing.T) {
 		Errs   []string
 	}{
 		"empty": {
-			&Object{},
+			&Object{Nesting: NestingSingle},
 			[]string{},
 		},
 		"valid": {
@@ -429,10 +492,15 @@ func joinedErrors(err error) []error {
 		Unwrap() []error
 	}
 
+	var res []error
+
 	switch terr := err.(type) {
 	case Unwrapper:
-		return terr.Unwrap()
+		for _, err := range terr.Unwrap() {
+			res = append(res, joinedErrors(err)...)
+		}
 	default:
 		return []error{err}
 	}
+	return res
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -16,11 +16,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -51,10 +53,19 @@ type PlanOpts struct {
 	// pre-destroy plan removed entirely.
 	PreDestroyRefresh bool
 
+	// MinimalRefresh will run an initial plan for each resource prior to refreshing:
+	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
+	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
+	MinimalRefresh bool
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
 	// type for more information on how to correctly populate this.
+	// Variables that are declared but not set are also included here,
+	// but their values are set to nil, so that Terraform Core
+	// can later substitute a default if available, or generate an error
+	// if not.
 	SetVariables InputValues
 
 	// If Targets has a non-zero length then it activates targeted planning
@@ -66,6 +77,14 @@ type PlanOpts struct {
 	// and so populating this field will cause Terraform to generate extra
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
+
+	// ActionTargets represents the actions that should be triggered by this
+	// execution. This is incompatible with the `Targets` attribute, only one
+	// can be set. Also, Mode must be plans.RefreshOnly when using
+	// ActionTargets.
+	//
+	// TEMP: For now, only support a single entry in this slice.
+	ActionTargets []addrs.Targetable
 
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
@@ -135,6 +154,30 @@ type PlanOpts struct {
 	// Forget if set to true will cause the plan to forget all resources. This is
 	// only allowd in the context of a destroy plan.
 	Forget bool
+
+	// Query is a boolean that indicates whether the plan is being
+	// generated for a query operation.
+	Query bool
+
+	// OverridePreventDestroy will override any prevent_destroy attributes
+	// allowing Terraform to destroy resources even if the prevent_destroy
+	// attribute is set. This can only be set during a destroy plan, and should
+	// only be set during the test command.
+	OverridePreventDestroy bool
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
+
+	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
+	// file).
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
+
+	// Optional policy client to enable live policy evaluations.
+	PolicyClient policy.Client
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -153,20 +196,20 @@ type PlanOpts struct {
 // by the UI layer to give extra context to support understanding of the
 // returned error messages.
 func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
-	plan, _, diags := c.PlanAndEval(config, prevRunState, opts)
+	plan, _, diags := c.PlanAndEval(config, prevRunState, opts, addrs.RootModuleInstance)
 	return plan, diags
 }
 
 // PlanAndEval is like [Context.Plan] except that it additionally makes a
 // best effort to return a [lang.Scope] which can evaluate expressions in the
-// root module based on the content of the generated plan.
+// module instance provided based on the content of the generated plan.
 //
 // The scope will be nil if the planning process doesn't complete successfully
 // enough to produce a valid evaluation scope. If the returned plan is nil
 // then the scope will always be nil, but it's also possible for the scope
 // to be nil even when the plan isn't, if the plan is not complete enough for
 // the evaluation scope to produce consistent results.
-func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	var diags tfdiags.Diagnostics
 
@@ -207,9 +250,10 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	case plans.NormalMode, plans.DestroyMode:
 		// OK
 	case plans.RefreshOnlyMode:
-		if opts.SkipRefresh {
+		if opts.SkipRefresh && len(opts.ActionTargets) == 0 {
 			// The CLI layer (and other similar callers) should prevent this
-			// combination of options.
+			// combination of options - although it is okay if we are invoking
+			// actions.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
@@ -246,6 +290,42 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
+	if len(opts.ActionTargets) > 0 {
+		if opts.Mode != plans.RefreshOnlyMode {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"Must be in RefreshOnlyMode when invoking actions. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
+
+	if opts.MinimalRefresh {
+		if opts.Mode != plans.NormalMode && opts.Mode != plans.DestroyMode {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				fmt.Sprintf("The -minimal-refresh planning option is only allowed in normal or destroy planning modes, got %s. This is a bug in Terraform.", opts.Mode),
+			))
+			return nil, nil, diags
+		}
+		if opts.SkipRefresh {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"The -minimal-refresh planning option cannot be combined with skipping refresh, because it only affects whether Terraform refreshes. This is a bug in Terraform.",
+			))
+			return nil, nil, diags
+		}
+	}
+
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
 	// caller's responsibility to have already handled the decoding of these
@@ -256,7 +336,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
-	if len(opts.Targets) > 0 {
+	if len(opts.Targets) > 0 && len(opts.ActionTargets) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Resource targeting is in effect",
@@ -266,16 +346,35 @@ The -target option is not for routine use, and is provided only for exceptional 
 		))
 	}
 
+	if opts.Query {
+		var hasQuery bool
+		for c := range config.AllModules() {
+			if len(c.Module.ListResources) > 0 {
+				hasQuery = true
+				break
+			}
+		}
+
+		if !hasQuery {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"No resources to query",
+				`The configuration does not contain any resources that can be queried.`,
+			))
+			return nil, nil, diags
+		}
+	}
+
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	var evalScope *lang.Scope
 	switch opts.Mode {
 	case plans.NormalMode:
-		plan, evalScope, planDiags = c.plan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.plan(config, prevRunState, opts, moduleAddr)
 	case plans.DestroyMode:
-		plan, evalScope, planDiags = c.destroyPlan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.destroyPlan(config, prevRunState, opts, moduleAddr)
 	case plans.RefreshOnlyMode:
-		plan, evalScope, planDiags = c.refreshOnlyPlan(config, prevRunState, opts)
+		plan, evalScope, planDiags = c.refreshOnlyPlan(config, prevRunState, opts, moduleAddr)
 	default:
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
@@ -344,7 +443,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 		if len(varMarks) > 0 {
 			plan.VariableMarks = varMarks
 		}
+
+		// Append all targets into the plans targets, note that opts.Targets
+		// and opts.ActionTargets should never both be populated.
 		plan.TargetAddrs = opts.Targets
+		plan.ActionTargetAddrs = opts.ActionTargets
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}
@@ -409,26 +512,26 @@ func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
 	}
 }
 
-func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
+	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts, moduleAddr)
 	diags = diags.Append(walkDiags)
 
 	return plan, evalScope, diags
 }
 
-func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.RefreshOnlyMode {
 		panic(fmt.Sprintf("called Context.refreshOnlyPlan with %s", opts.Mode))
 	}
 
-	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts)
+	plan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts, moduleAddr)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		// Non-nil plan along with errors indicates a non-applyable partial
@@ -465,11 +568,17 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	return plan, evalScope, diags
 }
 
-func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.DestroyMode {
 		panic(fmt.Sprintf("called Context.destroyPlan with %s", opts.Mode))
+	}
+
+	// During a plan there isn't a way for providers to indicate that a refresh is needed or not prior to attempting
+	// to destroy a resource instance, so -minimal-refresh optimizes to skip refresh.
+	if !opts.SkipRefresh && opts.MinimalRefresh {
+		opts.SkipRefresh = true
 	}
 
 	priorState := prevRunState
@@ -490,6 +599,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		refreshOpts := *opts
 		refreshOpts.Mode = plans.NormalMode
 		refreshOpts.PreDestroyRefresh = true
+		refreshOpts.OverridePreventDestroy = false
 
 		// FIXME: A normal plan is required here to refresh the state, because
 		// the state and configuration may not match during a destroy, and a
@@ -497,7 +607,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		// the destroy plan should take care of refreshing instances itself,
 		// where the special cases of evaluation and skipping condition checks
 		// can be done.
-		refreshPlan, _, refreshDiags := c.plan(config, prevRunState, &refreshOpts)
+		refreshPlan, _, refreshDiags := c.plan(config, prevRunState, &refreshOpts, moduleAddr)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -527,7 +637,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
 	}
 
-	destroyPlan, evalScope, walkDiags := c.planWalk(config, priorState, opts)
+	destroyPlan, evalScope, walkDiags := c.planWalk(config, priorState, opts, moduleAddr)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		// Non-nil plan along with errors indicates a non-applyable partial
@@ -639,9 +749,12 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 // config.
 func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
-	for _, ic := range config.Module.Import {
+	importStatements := refactoring.FindImportStatements(config)
+	for _, ic := range importStatements {
 		importTargets = append(importTargets, &ImportTarget{
-			Config: ic,
+			Config:              ic.Import,
+			RelModule:           ic.ContainingModule,
+			AbsToConfigResource: ic.AbsToResource,
 		})
 	}
 	return importTargets
@@ -670,7 +783,7 @@ func (c *Context) findForgetTargets(config *configs.Config) (forgetResources []a
 	return forgetResources, forgetModules, diags
 }
 
-func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
+func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
@@ -689,6 +802,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// instances excluded by targeting then planning is likely to encounter
 		// strange problems that may lead to confusing error messages.
 		return nil, nil, diags
+	}
+
+	if opts.PreDestroyRefresh {
+		// The pre-destroy refresh walk is an internal implementation detail used
+		// only to refresh state before producing the real destroy plan. Policy
+		// results should come only from the actual destroy plan walk.
+		opts.PolicyClient = nil
 	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
@@ -728,6 +848,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PlanTimeTimestamp:          timestamp,
 		FunctionResults:            funcResults,
 		Forget:                     opts.Forget,
+		ProviderLocks:              opts.ProviderLocks,
+		PolicyClient:               opts.PolicyClient,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -770,12 +892,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
-	deferredResources, deferredDiags := c.deferredResources(config, walker.Deferrals.GetDeferredChanges(), priorState)
-	diags = diags.Append(deferredDiags)
-
 	var forgottenResources []string
 	for _, rc := range changes.Resources {
-		if rc.Action == plans.Forget {
+		if rc.Action == plans.Forget || rc.Action == plans.CreateThenForget {
 			// TODO KEM display resource ids
 			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
 		}
@@ -802,7 +921,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		UIMode:             opts.Mode,
 		Changes:            changesSrc,
 		DriftedResources:   driftedResources,
-		DeferredResources:  deferredResources,
 		PrevRunState:       prevRunState,
 		PriorState:         priorState,
 		ExternalReferences: opts.ExternalReferences,
@@ -810,8 +928,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Checks:             states.NewCheckResults(walker.Checks),
 		Timestamp:          timestamp,
 		FunctionResults:    funcResults.GetHashes(),
-
 		// Other fields get populated by Context.Plan after we return
+	}
+
+	if !schemaDiags.HasErrors() {
+		deferredResources, deferredDiags := c.deferredResources(schemas, walker.Deferrals.GetDeferredChanges())
+		diags = diags.Append(deferredDiags)
+		plan.DeferredResources = deferredResources
+
+		deferredActionInvocations, deferredActionInvocationsDiags := c.deferredActionInvocations(schemas, walker.Deferrals.GetDeferredActionInvocations())
+		diags = diags.Append(deferredActionInvocationsDiags)
+		plan.DeferredActionInvocations = deferredActionInvocations
 	}
 
 	// Our final rulings on whether the plan is "complete" and "applyable".
@@ -830,7 +957,9 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			// In refresh-only mode we explicitly don't expect to propose any
 			// actions, but the plan is applyable if the state was changed
 			// in an interesting way by the refresh step.
-			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) || !plan.PriorState.RootOutputValuesEqual(plan.PrevRunState)
+			plan.Applyable = !plan.PriorState.ManagedResourcesEqual(plan.PrevRunState) ||
+				!plan.PriorState.RootOutputValuesEqual(plan.PrevRunState) ||
+				len(plan.Changes.ActionInvocations) > 0
 		} else {
 			// For other planning modes a plan is applyable if its "changes"
 			// are not considered empty (by whatever rules the plans package
@@ -846,24 +975,34 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		log.Println("[WARN] Planning encountered errors, so plan is not applyable")
 	}
 
+	// If the caller is requesting an evaluation scope that is not the root module, ensure the eval context exists
+	if !moduleAddr.Equal(addrs.RootModuleInstance) && !walker.scopeEvalContextExists(evalContextModuleInstance{Addr: moduleAddr}) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to retrieve evaluation scope after graph walk",
+			fmt.Sprintf(`The module address "%s" does not have an evaluation scope. This usually `+
+				`indicates that the module or the specific module instance provided does not exist.`, moduleAddr),
+		))
+		return plan, nil, diags
+	}
+
 	// The caller also gets access to an expression evaluation scope in the
-	// root module, in case it needs to extract other information using
+	// module instance provided, in case it needs to extract other information using
 	// expressions, like in "terraform console" or the test harness.
-	evalScope := evalScopeFromGraphWalk(walker, addrs.RootModuleInstance)
+	evalScope := evalScopeFromGraphWalk(walker, moduleAddr)
 
 	return plan, evalScope, diags
 }
 
-func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.DeferredResourceInstanceChange, state *states.State) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+func (c *Context) deferredResources(schemas *Schemas, deferrals []*plans.DeferredResourceInstanceChange) ([]*plans.DeferredResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	var deferredResources []*plans.DeferredResourceInstanceChangeSrc
 
-	schemas, diags := c.Schemas(config, state)
-	if diags.HasErrors() {
-		return deferredResources, diags
-	}
-
 	for _, deferral := range deferrals {
-
+		if deferral.Change == nil {
+			// we only need to report deferrals with planned changes.
+			continue
+		}
 		schema := schemas.ResourceTypeConfig(
 			deferral.Change.ProviderAddr.Provider,
 			deferral.Change.Addr.Resource.Resource.Mode,
@@ -883,10 +1022,34 @@ func (c *Context) deferredResources(config *configs.Config, deferrals []*plans.D
 	return deferredResources, diags
 }
 
+func (c *Context) deferredActionInvocations(schemas *Schemas, deferrals []*plans.DeferredActionInvocation) ([]*plans.DeferredActionInvocationSrc, tfdiags.Diagnostics) {
+	var deferredActionInvocations []*plans.DeferredActionInvocationSrc
+	var diags tfdiags.Diagnostics
+	for _, deferral := range deferrals {
+		schema := schemas.ActionTypeConfig(deferral.ActionInvocationInstance.ProviderAddr.Provider, deferral.ActionInvocationInstance.Addr.Action.Action.Type)
+
+		deferralSrc, err := deferral.Encode(&schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to prepare deferred action invocation for plan",
+				fmt.Sprintf("The deferred action invocation %q could not be serialized to store in the plan: %s.", deferral.ActionInvocationInstance.Addr, err)))
+			continue
+		}
+
+		deferredActionInvocations = append(deferredActionInvocations, deferralSrc)
+	}
+	return deferredActionInvocations, diags
+}
+
 func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 	if opts != nil {
 		externalProviderConfigs = opts.ExternalProviders
+	}
+
+	if opts != nil && opts.OverridePreventDestroy && opts.Mode == plans.RefreshOnlyMode {
+		panic("you can't set OverridePreventDestroy during refresh operations.")
 	}
 
 	switch mode := opts.Mode; mode {
@@ -898,53 +1061,66 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
-			Config:                  config,
-			State:                   prevRunState,
-			RootVariableValues:      opts.SetVariables,
-			ExternalProviderConfigs: externalProviderConfigs,
-			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
-			ForceReplace:            opts.ForceReplace,
-			skipRefresh:             opts.SkipRefresh,
-			preDestroyRefresh:       opts.PreDestroyRefresh,
-			Operation:               walkPlan,
-			ExternalReferences:      opts.ExternalReferences,
-			Overrides:               opts.Overrides,
-			ImportTargets:           c.findImportTargets(config),
-			forgetResources:         forgetResources,
-			forgetModules:           forgetModules,
-			GenerateConfigPath:      opts.GenerateConfigPath,
-			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			Config:                    config,
+			State:                     prevRunState,
+			RootVariableValues:        opts.SetVariables,
+			ExternalProviderConfigs:   externalProviderConfigs,
+			Plugins:                   c.plugins,
+			Targets:                   opts.Targets,
+			ForceReplace:              opts.ForceReplace,
+			skipRefresh:               opts.SkipRefresh,
+			preDestroyRefresh:         opts.PreDestroyRefresh,
+			minimalRefresh:            opts.MinimalRefresh,
+			Operation:                 walkPlan,
+			ExternalReferences:        opts.ExternalReferences,
+			Overrides:                 opts.Overrides,
+			ImportTargets:             c.findImportTargets(config),
+			forgetResources:           forgetResources,
+			forgetModules:             forgetModules,
+			GenerateConfigPath:        opts.GenerateConfigPath,
+			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
+			queryPlan:                 opts.Query,
+			overridePreventDestroy:    opts.OverridePreventDestroy,
+			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                  config,
-			State:                   prevRunState,
-			RootVariableValues:      opts.SetVariables,
-			ExternalProviderConfigs: externalProviderConfigs,
-			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
-			skipRefresh:             opts.SkipRefresh,
-			skipPlanChanges:         true, // this activates "refresh only" mode.
-			Operation:               walkPlan,
-			ExternalReferences:      opts.ExternalReferences,
-			Overrides:               opts.Overrides,
-			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			Config:                    config,
+			State:                     prevRunState,
+			RootVariableValues:        opts.SetVariables,
+			ExternalProviderConfigs:   externalProviderConfigs,
+			Plugins:                   c.plugins,
+			Targets:                   opts.Targets,
+			ActionTargets:             opts.ActionTargets,
+			skipRefresh:               opts.SkipRefresh,
+			skipPlanChanges:           true, // this activates "refresh only" mode.
+			minimalRefresh:            opts.MinimalRefresh,
+			Operation:                 walkPlan,
+			ExternalReferences:        opts.ExternalReferences,
+			Overrides:                 opts.Overrides,
+			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
+			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                  config,
-			State:                   prevRunState,
-			RootVariableValues:      opts.SetVariables,
-			ExternalProviderConfigs: externalProviderConfigs,
-			Plugins:                 c.plugins,
-			Targets:                 opts.Targets,
-			skipRefresh:             opts.SkipRefresh,
-			Operation:               walkPlanDestroy,
-			Overrides:               opts.Overrides,
-			SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+			Config:                    config,
+			State:                     prevRunState,
+			RootVariableValues:        opts.SetVariables,
+			ExternalProviderConfigs:   externalProviderConfigs,
+			Plugins:                   c.plugins,
+			Targets:                   opts.Targets,
+			skipRefresh:               opts.SkipRefresh,
+			minimalRefresh:            opts.MinimalRefresh,
+			Operation:                 walkPlanDestroy,
+			Overrides:                 opts.Overrides,
+			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
+			overridePreventDestroy:    opts.OverridePreventDestroy,
+			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+			PolicyClient:              opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

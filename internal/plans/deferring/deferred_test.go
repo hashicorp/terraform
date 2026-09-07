@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package deferring
@@ -158,7 +158,7 @@ func TestDeferred_absDataSourceInstanceDeferred(t *testing.T) {
 	})
 
 	// Instance A has its Read action deferred for some reason.
-	deferred.ReportDataSourceInstanceDeferred(instAAddr, providers.DeferredReasonProviderConfigUnknown, &plans.ResourceInstanceChange{
+	deferred.ReportResourceInstanceDeferred(instAAddr, providers.DeferredReasonProviderConfigUnknown, &plans.ResourceInstanceChange{
 		Addr:        instAAddr,
 		PrevRunAddr: instAAddr,
 		Change: plans.Change{
@@ -228,7 +228,7 @@ func TestDeferred_absEphemeralResourceInstanceDeferred(t *testing.T) {
 	})
 
 	// Instance A has e.g. the open action deferred
-	deferred.ReportEphemeralResourceInstanceDeferred(instAAddr, providers.DeferredReasonProviderConfigUnknown)
+	deferred.ReportResourceInstanceDeferred(instAAddr, providers.DeferredReasonProviderConfigUnknown, nil)
 
 	t.Run("with one resource instance deferred", func(t *testing.T) {
 		if !deferred.ShouldDeferResourceInstanceChanges(instCAddr, dependencies.Get(instCAddr.ConfigResource())) {
@@ -293,7 +293,7 @@ func TestDeferred_partialExpandedDatasource(t *testing.T) {
 	})
 
 	// Resource A hasn't been expanded fully, so is deferred.
-	deferred.ReportDataSourceExpansionDeferred(instAPartial, &plans.ResourceInstanceChange{
+	deferred.ReportResourceExpansionDeferred(instAPartial, &plans.ResourceInstanceChange{
 		Addr: instAAddr,
 		Change: plans.Change{
 			Action: plans.Read,
@@ -381,4 +381,122 @@ func TestDeferred_partialExpandedResource(t *testing.T) {
 			t.Errorf("%s reported as needing deferred; should not be", instCAddr)
 		}
 	})
+}
+
+func TestDeferred_resourceInstanceDeferredInSiblingModuleInstance(t *testing.T) {
+	instA0 := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Key: addrs.StringKey("0"),
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "a",
+			},
+		},
+	}
+
+	// the theoretical sibling instance module.foo[1].test.a["1"] is not deferred
+
+	instB0 := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.IntKey(0)).Child("bar", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "b",
+			},
+		},
+	}
+
+	instB1 := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.IntKey(1)).Child("bar", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "b",
+			},
+		},
+	}
+
+	// dependencies are only tracked at the config resource level, but only
+	// resources in foo[0] are going to be deferred
+	bDeps := []addrs.ConfigResource{instA0.ConfigResource()}
+
+	deferred := NewDeferred(true)
+
+	// Instance A0 has its Create action deferred for some reason.
+	deferred.ReportResourceInstanceDeferred(instA0, providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+		Addr: instA0,
+		Change: plans.Change{
+			Action: plans.Create,
+			After:  cty.DynamicVal,
+		},
+	})
+
+	if !deferred.ShouldDeferResourceInstanceChanges(instB0, bDeps) {
+		t.Errorf("%s was not reported as needing deferred; should be deferred", instB0)
+	}
+	if deferred.ShouldDeferResourceInstanceChanges(instB1, bDeps) {
+		t.Errorf("%s reported as needing deferred; should not be", instB1)
+	}
+}
+
+func TestDeferred_partialExpandedResourceDeferredInSiblingModuleInstance(t *testing.T) {
+	moduleFoo0 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(0))
+	instA0 := addrs.AbsResourceInstance{
+		Module: moduleFoo0.Child("bar", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "a",
+			},
+		},
+	}
+	instAPartial := moduleFoo0.
+		UnexpandedChild(addrs.ModuleCall{Name: "bar"}).
+		Resource(instA0.Resource.Resource)
+
+	instB0 := addrs.AbsResourceInstance{
+		Module: moduleFoo0.Child("bar", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "b",
+			},
+		},
+	}
+	instB1 := addrs.AbsResourceInstance{
+		Module: addrs.RootModuleInstance.Child("foo", addrs.IntKey(1)).Child("bar", addrs.IntKey(0)),
+		Resource: addrs.ResourceInstance{
+			Resource: addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test",
+				Name: "b",
+			},
+		},
+	}
+
+	// Dependencies are only tracked at the config resource level, but only
+	// partially-expanded resources beneath foo[0] are deferred.
+	bDeps := []addrs.ConfigResource{instA0.ConfigResource()}
+
+	deferred := NewDeferred(true)
+	deferred.ReportResourceExpansionDeferred(instAPartial, &plans.ResourceInstanceChange{
+		Addr: instA0,
+		Change: plans.Change{
+			Action: plans.Create,
+			After:  cty.DynamicVal,
+		},
+	})
+
+	if !deferred.ShouldDeferResourceInstanceChanges(instB0, bDeps) {
+		t.Errorf("%s was not reported as needing deferred; should be deferred", instB0)
+	}
+	if deferred.ShouldDeferResourceInstanceChanges(instB1, bDeps) {
+		t.Errorf("%s reported as needing deferred; should not be", instB1)
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package tfdiags
@@ -13,7 +13,15 @@ type diagnosticBase struct {
 	summary  string
 	detail   string
 	address  string
+	extra    interface{}
 }
+
+var _ Diagnostic = &diagnosticBase{}
+
+// diagnosticBase doesn't implement ComparableDiagnostic because the lack of source data
+// means separate diagnostics might be falsely identified as equal. This poses a user-facing
+// risk if deduplication of diagnostics removes a diagnostic that's incorrectly been identified
+// as a duplicate via comparison.
 
 func (d diagnosticBase) Severity() Severity {
 	return d.severity
@@ -36,5 +44,5 @@ func (d diagnosticBase) FromExpr() *FromExpr {
 }
 
 func (d diagnosticBase) ExtraInfo() interface{} {
-	return nil
+	return d.extra
 }

@@ -1,16 +1,20 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestStateIdentities(t *testing.T) {
@@ -18,7 +22,7 @@ func TestStateIdentities(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -60,7 +64,7 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -99,7 +103,7 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -141,7 +145,7 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -172,7 +176,7 @@ func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -193,10 +197,10 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-identities-backend-default"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -243,10 +247,10 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to rename state file: %s", err)
 	}
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -285,10 +289,11 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 }
 
 func TestStateIdentities_noState(t *testing.T) {
-	testCwd(t)
+	tmp := t.TempDir()
+	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -306,10 +311,10 @@ func TestStateIdentities_modules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-identities-nested-modules"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
+	ui := testUiWrapped(t)
 	c := &StateIdentitiesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -421,4 +426,71 @@ func TestStateIdentities_modules(t *testing.T) {
 		}
 	})
 
+}
+
+func TestStateIdentities_stateStore(t *testing.T) {
+	// We need configuration present to force pluggable state storage to be used
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Get a state file, that contains identity information,as bytes
+	state := testStateWithIdentity()
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+	stateBytes := stateBuf.Bytes()
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBytes,
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	ui := testUiWrapped(t)
+	c := &StateIdentitiesCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			Ui: ui,
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Test that outputs were displayed
+	expected := `{
+  "test_instance.bar": {
+    "id": "my-bar-id"
+  },
+  "test_instance.foo": {
+    "id": "my-foo-id"
+  }
+}
+`
+	actual := ui.OutputWriter.String()
+
+	// Normalize JSON strings
+	var expectedJSON, actualJSON map[string]interface{}
+	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
+	}
+	if err := json.Unmarshal([]byte(actual), &actualJSON); err != nil {
+		t.Fatalf("Failed to unmarshal actual JSON: %s", err)
+	}
+
+	if !reflect.DeepEqual(expectedJSON, actualJSON) {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", expected, actual)
+	}
 }

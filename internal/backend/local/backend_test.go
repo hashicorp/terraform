@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package local
@@ -116,9 +116,9 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 
 	// State file at the `path` location doesn't exist yet
 	workspace := backend.DefaultStateName
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
 	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
@@ -137,7 +137,7 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -150,9 +150,9 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 	// Writing to a non-default workspace's state creates a file
 	// that's unaffected by the `path` location
 	workspace = "fizzbuzz"
-	stmgr, err = b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags = b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	fizzbuzzStatePath := fmt.Sprintf("%s/terraform.tfstate.d/%s/terraform.tfstate", td, workspace)
 	err = stmgr.WriteState(s)
@@ -186,9 +186,9 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 
 	// Writing to the default workspace's state creates a file
 	workspace := backend.DefaultStateName
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
@@ -196,7 +196,7 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -233,9 +233,9 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	// Unaffected by the `workspace_dir` location.
 	workspace := backend.DefaultStateName
 	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
-	stmgr, err := b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	s := states.NewState()
 	s.RootOutputValues = map[string]*states.OutputValue{
@@ -243,7 +243,7 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err = stmgr.WriteState(s)
+	err := stmgr.WriteState(s)
 	if err != nil {
 		t.Fatalf("unexpected error returned from WriteState")
 	}
@@ -254,9 +254,9 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	// that's affected by the `workspace_dir` location
 	workspace = "fizzbuzz"
 	fizzbuzzStatePath := fmt.Sprintf("%s/%s/%s/terraform.tfstate", td, workspaceDir, workspace)
-	stmgr, err = b.StateMgr(workspace)
-	if err != nil {
-		t.Fatalf("unexpected error returned from StateMgr")
+	stmgr, sDiags = b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
 	err = stmgr.WriteState(s)
 	if err != nil {
@@ -276,31 +276,31 @@ func TestLocal_cannotDeleteDefaultState(t *testing.T) {
 	b := New()
 
 	// Only default workspace exists initially.
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 	if !reflect.DeepEqual(states, expectedStates) {
 		t.Fatalf("expected []string{%q}, got %q", dflt, states)
 	}
 
 	// Attempt to delete default state - force=false
-	err = b.DeleteWorkspace(dflt, false)
-	if err == nil {
+	dwDiags := b.DeleteWorkspace(dflt, false)
+	if !dwDiags.HasErrors() {
 		t.Fatal("expected error but there was none")
 	}
 	expectedErr := "cannot delete default state"
-	if err.Error() != expectedErr {
-		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	if dwDiags.Err().Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, dwDiags.Err())
 	}
 
 	// Setting force=true doesn't change outcome
-	err = b.DeleteWorkspace(dflt, true)
-	if err == nil {
+	dwDiags = b.DeleteWorkspace(dflt, true)
+	if !dwDiags.HasErrors() {
 		t.Fatal("expected error but there was none")
 	}
-	if err.Error() != expectedErr {
-		t.Fatalf("expected error %q, got: %q", expectedErr, err)
+	if dwDiags.Err().Error() != expectedErr {
+		t.Fatalf("expected error %q, got: %q", expectedErr, dwDiags.Err())
 	}
 }
 
@@ -313,9 +313,9 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	b := New()
 
 	// Only the default workspace exists initially.
-	states, err := b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags := b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	if !reflect.DeepEqual(states, expectedStates) {
@@ -324,13 +324,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 
 	// Calling StateMgr with a new workspace name creates that workspace's state file.
 	expectedA := "test_A"
-	if _, err := b.StateMgr(expectedA); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedA); sDiags.HasErrors() {
+		t.Fatal(sDiags)
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = append(expectedStates, expectedA)
@@ -340,13 +340,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 
 	// Creating another workspace appends it to the list of present workspaces.
 	expectedB := "test_B"
-	if _, err := b.StateMgr(expectedB); err != nil {
-		t.Fatal(err)
+	if _, sDiags := b.StateMgr(expectedB); sDiags.HasErrors() {
+		t.Fatal(sDiags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = append(expectedStates, expectedB)
@@ -355,13 +355,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// Can delete a given workspace
-	if err := b.DeleteWorkspace(expectedA, true); err != nil {
-		t.Fatal(err)
+	if dwDiags := b.DeleteWorkspace(expectedA, true); dwDiags.HasErrors() {
+		t.Fatal(dwDiags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = []string{dflt, expectedB}
@@ -370,13 +370,13 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// Can delete another workspace
-	if err := b.DeleteWorkspace(expectedB, true); err != nil {
-		t.Fatal(err)
+	if diags := b.DeleteWorkspace(expectedB, true); diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 
-	states, err = b.Workspaces()
-	if err != nil {
-		t.Fatal(err)
+	states, wDiags = b.Workspaces()
+	if wDiags.HasErrors() {
+		t.Fatal(wDiags.Err())
 	}
 
 	expectedStates = []string{dflt}
@@ -385,7 +385,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 	}
 
 	// You cannot delete the default workspace
-	if err := b.DeleteWorkspace(dflt, true); err == nil {
+	if diags := b.DeleteWorkspace(dflt, true); !diags.HasErrors() {
 		t.Fatal("expected error deleting default state")
 	}
 }
@@ -626,16 +626,17 @@ func (b *testDelegateBackend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags.Append(errTestDelegateConfigure)
 }
 
-func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
-	return nil, errTestDelegateState
+func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	return nil, diags.Append(errTestDelegateState)
 }
 
-func (b *testDelegateBackend) Workspaces() ([]string, error) {
-	return nil, errTestDelegateStates
+func (b *testDelegateBackend) Workspaces() ([]string, tfdiags.Diagnostics) {
+	return nil, tfdiags.Diagnostics{}.Append(errTestDelegateStates)
 }
 
-func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
-	return errTestDelegateDeleteState
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) tfdiags.Diagnostics {
+	return tfdiags.Diagnostics{}.Append(errTestDelegateDeleteState)
 }
 
 // Verify that all backend.Backend methods are dispatched to the correct Backend when
@@ -654,23 +655,23 @@ func TestLocal_callsMethodsOnStateBackend(t *testing.T) {
 	}
 
 	if _, diags := b.PrepareConfig(cty.NilVal); !diags.HasErrors() {
-		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags)
+		t.Fatal("expected errTestDelegatePrepareConfig error, got:", diags.Err())
 	}
 
 	if diags := b.Configure(cty.NilVal); !diags.HasErrors() {
-		t.Fatal("expected errTestDelegateConfigure error, got:", diags)
+		t.Fatal("expected errTestDelegateConfigure error, got:", diags.Err())
 	}
 
-	if _, err := b.StateMgr("test"); err != errTestDelegateState {
-		t.Fatal("expected errTestDelegateState, got:", err)
+	if _, sDiags := b.StateMgr("test"); sDiags.Err().Error() != errTestDelegateState.Error() {
+		t.Fatal("expected errTestDelegateState, got:", sDiags.Err())
 	}
 
-	if _, err := b.Workspaces(); err != errTestDelegateStates {
-		t.Fatal("expected errTestDelegateStates, got:", err)
+	if _, diags := b.Workspaces(); !diags.HasErrors() || diags.Err().Error() != errTestDelegateStates.Error() {
+		t.Fatal("expected errTestDelegateStates, got:", diags.Err())
 	}
 
-	if err := b.DeleteWorkspace("test", true); err != errTestDelegateDeleteState {
-		t.Fatal("expected errTestDelegateDeleteState, got:", err)
+	if diags := b.DeleteWorkspace("test", true); !diags.HasErrors() || diags.Err().Error() != errTestDelegateDeleteState.Error() {
+		t.Fatal("expected errTestDelegateDeleteState, got:", diags.Err())
 	}
 }
 

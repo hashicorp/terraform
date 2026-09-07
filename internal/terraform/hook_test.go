@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -10,7 +10,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -23,8 +25,9 @@ func TestNilHook_impl(t *testing.T) {
 // It is intended for testing that core code is emitting the correct hooks
 // for a given situation.
 type testHook struct {
-	mu    sync.Mutex
-	Calls []*testHookCall
+	mu            sync.Mutex
+	Calls         []*testHookCall
+	PolicyResults map[string]policy.EvaluationResponse
 }
 
 var _ Hook = (*testHook)(nil)
@@ -44,6 +47,17 @@ func (h *testHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PolicyResult", addr})
+	if h.PolicyResults == nil {
+		h.PolicyResults = make(map[string]policy.EvaluationResponse)
+	}
+	h.PolicyResults[addr] = resp
+	return HookActionContinue, nil
+}
+
 func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -51,14 +65,14 @@ func (h *testHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PreDiff", id.Addr.String()})
 	return HookActionContinue, nil
 }
 
-func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *testHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostDiff", id.Addr.String()})
@@ -169,6 +183,20 @@ func (h *testHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostListQuery", id.Addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -179,5 +207,26 @@ func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostStateUpdate", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"StartAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"ProgressAction", ""})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"CompleteAction", ""})
 	return HookActionContinue, nil
 }

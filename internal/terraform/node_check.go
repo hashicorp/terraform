@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -92,7 +92,6 @@ func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagno
 		testAddr := addrs.ObjectInPartialExpandedModule(pem, n.addr)
 		log.Printf("[WARN] nodeExpandCheck: not yet doing placeholder-check for all %s", testAddr)
 	})
-	addRootNodeToGraph(&g)
 
 	return &g, nil
 }

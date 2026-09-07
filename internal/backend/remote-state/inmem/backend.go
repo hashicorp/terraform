@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package inmem
@@ -71,28 +71,33 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
-	defaultClient := &RemoteClient{
-		Name: backend.DefaultStateName,
-	}
+	// Some tests may configure this backend multiple times
+	// and expect the same state from memory afterwards.
+	_, ok := states.m[backend.DefaultStateName]
+	if !ok {
+		defaultClient := &RemoteClient{
+			Name: backend.DefaultStateName,
+		}
 
-	states.m[backend.DefaultStateName] = &remote.State{
-		Client: defaultClient,
-	}
+		states.m[backend.DefaultStateName] = &remote.State{
+			Client: defaultClient,
+		}
 
-	// set the default client lock info per the test config
-	if v := configVal.GetAttr("lock_id"); !v.IsNull() {
-		info := statemgr.NewLockInfo()
-		info.ID = v.AsString()
-		info.Operation = "test"
-		info.Info = "test config"
+		// set the default client lock info per the test config
+		if v := configVal.GetAttr("lock_id"); !v.IsNull() {
+			info := statemgr.NewLockInfo()
+			info.ID = v.AsString()
+			info.Operation = "test"
+			info.Info = "test config"
 
-		locks.lock(backend.DefaultStateName, info)
+			locks.lock(backend.DefaultStateName, info)
+		}
 	}
 
 	return nil
 }
 
-func (b *Backend) Workspaces() ([]string, error) {
+func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
 	states.Lock()
 	defer states.Unlock()
 
@@ -106,19 +111,21 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return workspaces, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string, _ bool) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
 	if name == backend.DefaultStateName || name == "" {
-		return fmt.Errorf("can't delete default state")
+		return tfdiags.Diagnostics{}.Append(fmt.Errorf("can't delete default state"))
 	}
 
 	delete(states.m, name)
 	return nil
 }
 
-func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
+func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	states.Lock()
 	defer states.Unlock()
 
@@ -137,22 +144,22 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockID, err := s.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("failed to lock inmem state: %s", err)
+			return nil, diags.Append(fmt.Errorf("failed to lock inmem state: %s", err))
 		}
 		defer s.Unlock(lockID)
 
 		// If we have no state, we have to create an empty state
 		if v := s.State(); v == nil {
 			if err := s.WriteState(statespkg.NewState()); err != nil {
-				return nil, err
+				return nil, diags.Append(err)
 			}
 			if err := s.PersistState(nil); err != nil {
-				return nil, err
+				return nil, diags.Append(err)
 			}
 		}
 	}
 
-	return s, nil
+	return s, diags
 }
 
 type stateMap struct {

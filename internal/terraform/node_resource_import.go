@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -36,23 +36,13 @@ func (n *graphNodeImportState) Name() string {
 }
 
 // GraphNodeProviderConsumer
-func (n *graphNodeImportState) ProvidedBy() (addrs.ProviderConfig, bool) {
+func (n *graphNodeImportState) Provider() ProviderRef {
 	// We assume that n.ProviderAddr has been properly populated here.
 	// It's the responsibility of the code creating a graphNodeImportState
 	// to populate this, possibly by calling DefaultProviderConfig() on the
 	// resource address to infer an implied provider from the resource type
 	// name.
-	return n.ProviderAddr, false
-}
-
-// GraphNodeProviderConsumer
-func (n *graphNodeImportState) Provider() addrs.Provider {
-	// We assume that n.ProviderAddr has been properly populated here.
-	// It's the responsibility of the code creating a graphNodeImportState
-	// to populate this, possibly by calling DefaultProviderConfig() on the
-	// resource address to infer an implied provider from the resource type
-	// name.
-	return n.ProviderAddr.Provider
+	return ProviderRef{Addr: n.ProviderAddr}
 }
 
 // GraphNodeProviderConsumer
@@ -213,8 +203,6 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.D
 			ResolvedProvider: n.ResolvedProvider,
 		})
 	}
-
-	addRootNodeToGraph(g)
 
 	// Done!
 	return g, diags

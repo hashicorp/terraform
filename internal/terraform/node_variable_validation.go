@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -128,7 +128,7 @@ func (n *nodeVariableValidation) Execute(globalCtx EvalContext, op walkOperation
 			moduleCtx,
 			n.rules,
 			n.defnRange,
-			n.validateWalk,
+			op,
 		))
 	}
 

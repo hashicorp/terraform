@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -133,7 +133,7 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 		return diags
 	}
 	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		BackendConfig: backendConfig,
 	})
 	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
@@ -172,7 +172,8 @@ func (c *CloudCommand) discoverAndConfigure() tfdiags.Diagnostics {
 
 	currentWorkspace, err := c.Workspace()
 	if err != nil {
-		// The only possible error here is "you set TF_WORKSPACE badly"
+		// The only possible errors here are "you set TF_WORKSPACE badly",
+		// or "someone other than Terraform CLI tampered with your .terraform/environment file".
 		return diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Bad current workspace",

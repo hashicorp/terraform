@@ -1,11 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"context"
 	"fmt"
-	"os"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -28,23 +28,13 @@ func (c *ProvidersSchemaCommand) Synopsis() string {
 }
 
 func (c *ProvidersSchemaCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("providers schema")
-	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, diags := arguments.ParseProvidersSchema(c.Meta.process(args))
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	if !jsonOutput {
-		c.Ui.Error(
-			"The `terraform providers schema` command requires the `-json` flag.\n")
-		cmdFlags.Usage()
-		return 1
-	}
+	viewType := arguments.ViewJSON // See above; enforced use of JSON output
 
 	// Check for user-supplied plugin path
 	var err error
@@ -52,11 +42,8 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
-
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.backend(".", viewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -74,12 +61,8 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	// This is a read-only command
 	c.ignoreRemoteVersionConflict(b)
 
-	// we expect that the config dir is the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
-		return 1
-	}
+	// Get the config directory
+	cwd := c.WorkingDir.RootModuleDir()
 
 	// Build the operation
 	opReq := c.Operation(b, arguments.ViewJSON)
@@ -92,8 +75,19 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 
+	var varDiags tfdiags.Diagnostics
+	opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get the context
-	lr, _, ctxDiags := local.LocalRun(opReq)
+	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
+
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -120,6 +114,17 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 const providersSchemaCommandHelp = `
 Usage: terraform [global options] providers schema -json
 
-  Prints out a json representation of the schemas for all providers used 
+  Prints out a json representation of the schemas for all providers used
   in the current configuration.
+
+Options:
+
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 `

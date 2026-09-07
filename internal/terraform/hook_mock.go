@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -9,7 +9,9 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -37,22 +39,18 @@ type MockHook struct {
 	PostApplyReturnError error
 	PostApplyFn          func(addrs.AbsResourceInstance, addrs.DeposedKey, cty.Value, error) (HookAction, error)
 
-	PreDiffCalled        bool
-	PreDiffAddr          addrs.AbsResourceInstance
-	PreDiffGen           addrs.DeposedKey
-	PreDiffPriorState    cty.Value
-	PreDiffProposedState cty.Value
-	PreDiffReturn        HookAction
-	PreDiffError         error
+	PreDiffCalled bool
+	PreDiffAddr   addrs.AbsResourceInstance
+	PreDiffGen    addrs.DeposedKey
+	PreDiffReturn HookAction
+	PreDiffError  error
 
-	PostDiffCalled       bool
-	PostDiffAddr         addrs.AbsResourceInstance
-	PostDiffGen          addrs.DeposedKey
-	PostDiffAction       plans.Action
-	PostDiffPriorState   cty.Value
-	PostDiffPlannedState cty.Value
-	PostDiffReturn       HookAction
-	PostDiffError        error
+	PostDiffCalled bool
+	PostDiffAddr   addrs.AbsResourceInstance
+	PostDiffGen    addrs.DeposedKey
+	PostDiffAction plans.Action
+	PostDiffReturn HookAction
+	PostDiffError  error
 
 	PreProvisionInstanceCalled bool
 	PreProvisionInstanceAddr   addrs.AbsResourceInstance
@@ -142,12 +140,40 @@ type MockHook struct {
 	PostEphemeralOpReturn      HookAction
 	PostEphemeralOpReturnError error
 
+	PreListQueryCalled      bool
+	PreListQueryAddr        addrs.AbsResourceInstance
+	PreListQueryReturn      HookAction
+	PreListQueryReturnError error
+
+	PostListQueryCalled      bool
+	PostListQueryAddr        addrs.AbsResourceInstance
+	PostListQueryReturn      HookAction
+	PostListQueryReturnError error
+
 	StoppingCalled bool
 
 	PostStateUpdateCalled bool
 	PostStateUpdateState  *states.State
 	PostStateUpdateReturn HookAction
 	PostStateUpdateError  error
+
+	// Fields for StartAction, ProgressAction, CompleteAction
+	StartActionCalled bool
+	StartActionID     HookActionIdentity
+	StartActionReturn HookAction
+	StartActionError  error
+
+	ProgressActionCalled   bool
+	ProgressActionID       HookActionIdentity
+	ProgressActionProgress string
+	ProgressActionReturn   HookAction
+	ProgressActionError    error
+
+	CompleteActionCalled   bool
+	CompleteActionID       HookActionIdentity
+	CompleteActionErrorArg error
+	CompleteActionReturn   HookAction
+	CompleteActionError    error
 }
 
 var _ Hook = (*MockHook)(nil)
@@ -182,19 +208,17 @@ func (h *MockHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newSt
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, priorState, proposedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PreDiff(id HookResourceIdentity, dk addrs.DeposedKey, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	h.PreDiffCalled = true
 	h.PreDiffAddr = id.Addr
 	h.PreDiffGen = dk
-	h.PreDiffPriorState = priorState
-	h.PreDiffProposedState = proposedNewState
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, err error) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -202,8 +226,6 @@ func (h *MockHook) PostDiff(id HookResourceIdentity, dk addrs.DeposedKey, action
 	h.PostDiffAddr = id.Addr
 	h.PostDiffGen = dk
 	h.PostDiffAction = action
-	h.PostDiffPriorState = priorState
-	h.PostDiffPlannedState = plannedNewState
 	return h.PostDiffReturn, h.PostDiffError
 }
 
@@ -346,6 +368,24 @@ func (h *MockHook) PostEphemeralOp(id HookResourceIdentity, action plans.Action,
 	return h.PostEphemeralOpReturn, h.PostEphemeralOpReturnError
 }
 
+func (h *MockHook) PreListQuery(id HookResourceIdentity, input_config cty.Value, configSchema *configschema.Block) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PreListQueryCalled = true
+	h.PreListQueryAddr = id.Addr
+	return h.PreListQueryReturn, h.PreListQueryReturnError
+}
+
+func (h *MockHook) PostListQuery(id HookResourceIdentity, results plans.QueryResults, identityVersion int64) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.PostListQueryCalled = true
+	h.PostListQueryAddr = id.Addr
+	return h.PostListQueryReturn, h.PostListQueryReturnError
+}
+
 func (h *MockHook) Stopping() {
 	h.Lock()
 	defer h.Unlock()
@@ -360,4 +400,39 @@ func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.PostStateUpdateCalled = true
 	h.PostStateUpdateState = new
 	return h.PostStateUpdateReturn, h.PostStateUpdateError
+}
+
+func (h *MockHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+	return HookActionContinue, nil
+}
+
+func (h *MockHook) StartAction(id HookActionIdentity) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.StartActionCalled = true
+	h.StartActionID = id
+	return h.StartActionReturn, h.StartActionError
+}
+
+func (h *MockHook) ProgressAction(id HookActionIdentity, progress string) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.ProgressActionCalled = true
+	h.ProgressActionID = id
+	h.ProgressActionProgress = progress
+	return h.ProgressActionReturn, h.ProgressActionError
+}
+
+func (h *MockHook) CompleteAction(id HookActionIdentity, err error) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.CompleteActionCalled = true
+	h.CompleteActionID = id
+	h.CompleteActionErrorArg = err
+	return h.CompleteActionReturn, h.CompleteActionError
 }

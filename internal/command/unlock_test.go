@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -18,7 +18,7 @@ import (
 func TestUnlock(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Write the legacy state
 	statePath := DefaultStateFilename
@@ -35,7 +35,7 @@ func TestUnlock(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
@@ -70,11 +70,11 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-inmem-locked"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 	defer inmem.Reset()
 
 	// init backend
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	ci := &InitCommand{
 		Meta: Meta{
@@ -86,7 +86,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c := &UnlockCommand{
 		Meta: Meta{
 			Ui:   ui,
@@ -104,7 +104,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 
-	ui = new(cli.MockUi)
+	ui = testUiWrapped(t)
 	c = &UnlockCommand{
 		Meta: Meta{
 			Ui:   ui,

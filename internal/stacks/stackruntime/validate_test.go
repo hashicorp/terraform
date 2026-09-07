@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackruntime
@@ -20,10 +20,6 @@ import (
 )
 
 type validateTestInput struct {
-	// skip lets us write tests for behaviour we want to add in the future. Set
-	// this to true for any tests that are not yet implemented.
-	skip bool
-
 	// diags is a function that returns the expected diagnostics for the
 	// test.
 	diags func() tfdiags.Diagnostics
@@ -42,6 +38,7 @@ var (
 		"variable-output-roundtrip":        {},
 		"variable-output-roundtrip-nested": {},
 		"aliased-provider":                 {},
+		"planning-action-lifecycle":        {},
 		filepath.Join("with-single-input", "input-from-component"): {},
 		filepath.Join("with-single-input", "input-from-component-list"): {
 			planInputVars: map[string]cty.Value{
@@ -71,6 +68,22 @@ var (
 
 	// invalidConfigurations are shared between the validate and plan tests.
 	invalidConfigurations = map[string]validateTestInput{
+		"const-variable-in-component": {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Const variable not supported in stacks",
+					Detail:   "Variables with const = true are not supported in modules used as stack components. Const variables are evaluated during configuration loading, which is not supported in the stacks runtime.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("const-variable-in-component/const-variable-in-component.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 1, Byte: 124},
+						End:      hcl.Pos{Line: 10, Column: 17, Byte: 140},
+					},
+				})
+				return diags
+			},
+		},
 		"validate-undeclared-variable": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
@@ -251,7 +264,7 @@ var (
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid inputs for component",
-					Detail:   "Invalid input variable definition object: attribute \"input\": string required.",
+					Detail:   "Invalid input variable definition object: attribute \"input\": string required, but have configuration for hashicorp/testing provider.",
 					Subject: &hcl.Range{
 						Filename: mainBundleSourceAddrStr("with-single-input/input-from-provider/input-from-provider.tfcomponent.hcl"),
 						Start:    hcl.Pos{Line: 17, Column: 12, Byte: 239},
@@ -329,25 +342,21 @@ var (
 // potentially be included in here unless it depends on provider plugins
 // to complete validation, since this test cannot supply provider plugins.
 func TestValidate_valid(t *testing.T) {
-	for name, tc := range validConfigurations {
+	for name := range validConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lock.SetProvider(
 				addrs.NewDefaultProvider("other"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -382,23 +391,19 @@ func TestValidate_valid(t *testing.T) {
 func TestValidate_invalid(t *testing.T) {
 	for name, tc := range invalidConfigurations {
 		t.Run(name, func(t *testing.T) {
-			if tc.skip {
-				// We've added this test before the implementation was ready.
-				t.SkipNow()
-			}
 			ctx := context.Background()
 
 			lock := depsfile.NewLocks()
 			lock.SetProvider(
 				addrs.NewDefaultProvider("testing"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 			lock.SetProvider(
 				addrs.NewDefaultProvider("other"),
-				providerreqs.MustParseVersion("0.0.0"),
-				providerreqs.MustParseVersionConstraints("=0.0.0"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
 				providerreqs.PreferredHashes([]providerreqs.Hash{}),
 			)
 
@@ -478,7 +483,7 @@ Terraform uses references to decide a suitable order for performing operations, 
 				return diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Provider missing from lockfile",
-					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `tfstacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+					Detail:   "Provider \"registry.terraform.io/hashicorp/testing\" is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `terraform stacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
 					Subject: &hcl.Range{
 						Filename: "git::https://example.com/test.git//with-single-input/input-from-component/input-from-component.tfcomponent.hcl",
 						Start:    hcl.Pos{Line: 8, Column: 1, Byte: 98},
@@ -530,8 +535,8 @@ Terraform uses references to decide a suitable order for performing operations, 
 				for addr := range tc.providers {
 					locks.SetProvider(
 						addr,
-						providerreqs.MustParseVersion("0.0.0"),
-						providerreqs.MustParseVersionConstraints("=0.0.0"),
+						providerreqs.MustParseVersion("0.1.0"),
+						providerreqs.MustParseVersionConstraints("0.1.0"),
 						providerreqs.PreferredHashes([]providerreqs.Hash{}),
 					)
 				}
@@ -545,6 +550,62 @@ Terraform uses references to decide a suitable order for performing operations, 
 			testContext.Validate(t, ctx, TestCycle{
 				wantValidateDiags: tc.wantDiags,
 			})
+		})
+	}
+}
+
+// TestValidate_versionMismatch verifies that a version mismatch between the
+// lock file and required_providers is reported as an error during validation.
+// Two scenarios are tested: a stack with an explicit "provider" block, and one
+// where the provider is only declared in required_providers and passed through
+// to an embedded stack.
+func TestValidate_versionMismatch(t *testing.T) {
+	cases := []struct {
+		name      string
+		configDir string
+		fatalMsg  string
+	}{
+		{
+			// "with-single-input/valid" has both required_providers and a
+			// provider block (direct code path through ProviderConfig.checkValid).
+			name:      "withProviderBlock",
+			configDir: "with-single-input/valid",
+			fatalMsg:  "expected version mismatch error, got none",
+		},
+		{
+			// "policy-evaluation-embedded-stack" has required_providers in the
+			// root stack config but the provider block lives only in the
+			// embedded stack.
+			name:      "passThroughProvider",
+			configDir: "policy-evaluation-embedded-stack",
+			fatalMsg:  "expected version mismatch error for pass-through provider, got none",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			cfg := loadMainBundleConfigForTest(t, tc.configDir)
+			// Lock says 0.2.0, but configs say version = "0.1.0".
+			lock := buildVersionMismatchLock()
+
+			gotDiags := Validate(ctx, &ValidateRequest{
+				Config: cfg,
+				ProviderFactories: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						return stacks_testing_provider.NewProvider(t), nil
+					},
+				},
+				DependencyLocks:    lock,
+				ExperimentsAllowed: true,
+			})
+
+			if !gotDiags.HasErrors() {
+				t.Fatal(tc.fatalMsg)
+			}
+			if !hasDiagSummary(gotDiags, "Provider version doesn't match the lockfile") {
+				t.Fatalf("expected 'Provider version doesn't match the lockfile', got:\n%s", gotDiags.Err())
+			}
 		})
 	}
 }

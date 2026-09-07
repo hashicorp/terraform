@@ -19,8 +19,9 @@ const _Progress_name = "StartingRunningTearDownComplete"
 var _Progress_index = [...]uint8{0, 8, 15, 23, 31}
 
 func (i Progress) String() string {
-	if i < 0 || i >= Progress(len(_Progress_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_Progress_index)-1 {
 		return "Progress(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _Progress_name[_Progress_index[i]:_Progress_index[i+1]]
+	return _Progress_name[_Progress_index[idx]:_Progress_index[idx+1]]
 }

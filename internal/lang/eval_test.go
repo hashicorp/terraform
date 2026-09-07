@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package lang
@@ -366,14 +366,31 @@ func TestScopeEvalContext(t *testing.T) {
 				}),
 			},
 		},
+
+		// self is populated as both self and caller
 		{
 			Expr: `self.baz`,
 			Want: map[string]cty.Value{
 				"self": cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
 				}),
+				"caller": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("multi1"),
+				}),
 			},
 		},
+		{
+			Expr: `caller.baz`,
+			Want: map[string]cty.Value{
+				"self": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("multi1"),
+				}),
+				"caller": cty.ObjectVal(map[string]cty.Value{
+					"attr": cty.StringVal("multi1"),
+				}),
+			},
+		},
+
 		{
 			Expr: `terraform.workspace`,
 			Want: map[string]cty.Value{

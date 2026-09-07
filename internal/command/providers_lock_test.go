@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -12,7 +12,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -23,9 +27,9 @@ func TestProvidersLock(t *testing.T) {
 		// create an empty working directory
 		td := t.TempDir()
 		os.MkdirAll(td, 0755)
-		defer testChdir(t, td)()
+		t.Chdir(td)
 
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -50,7 +54,7 @@ provider "registry.terraform.io/hashicorp/test" {
   ]
 }
 `
-		runProviderLockGenericTest(t, testDirectory, expected)
+		runProviderLockGenericTest(t, testDirectory, expected, false)
 	})
 
 	// This test depends on the -fs-mirror argument, so we always know what results to expect
@@ -67,14 +71,30 @@ provider "registry.terraform.io/hashicorp/test" {
   ]
 }
 `
-		runProviderLockGenericTest(t, testDirectory, expected)
+		runProviderLockGenericTest(t, testDirectory, expected, false)
+	})
+
+	// This test depends on the -fs-mirror argument, so we always know what results to expect
+	t.Run("tests", func(t *testing.T) {
+		testDirectory := "providers-lock/with-tests"
+		expected := `# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version = "1.0.0"
+  hashes = [
+    "h1:7MjN4eFisdTv4tlhXH5hL4QQd39Jy4baPhFxwAd/EFE=",
+  ]
+}
+`
+		runProviderLockGenericTest(t, testDirectory, expected, true)
 	})
 }
 
-func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
+func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, init bool) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(testDirectory), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -86,8 +106,22 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
+	if init {
+		// optionally execute the get command to fetch local modules if the
+		// test case needs them
+		c := &GetCommand{
+			Meta: Meta{
+				Ui: new(cli.MockUi),
+			},
+		}
+		code := c.Run(nil)
+		if code != 0 {
+			t.Fatal("failed get command")
+		}
+	}
+
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	c := &ProvidersLockCommand{
 		Meta: Meta{
 			Ui:               ui,
@@ -111,10 +145,88 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 	}
 }
 
+func TestProvidersLock_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=example", "-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected command to proceed past const variable resolution")
+		}
+
+		output := ui.ErrorWriter.String()
+		if !strings.Contains(output, "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		server := cloudTestServerWithVars(t)
+		defer server.Close()
+		d := testDisco(server)
+
+		previousBackend := backendInit.Backend("cloud")
+		backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+		defer backendInit.Set("cloud", previousBackend)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		c := &ProvidersLockCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				WorkingDir:       wd,
+				Services:         d,
+			},
+		}
+
+		args := []string{"-fs-mirror=fs-mirror"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected command to proceed past const variable resolution")
+		}
+
+		output := ui.ErrorWriter.String()
+		if !strings.Contains(output, "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		}
+	})
+}
+
 func TestProvidersLock_args(t *testing.T) {
 
 	t.Run("mirror collision", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -138,7 +250,7 @@ func TestProvidersLock_args(t *testing.T) {
 	})
 
 	t.Run("invalid platform", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,
@@ -159,7 +271,7 @@ func TestProvidersLock_args(t *testing.T) {
 	})
 
 	t.Run("invalid provider argument", func(t *testing.T) {
-		ui := new(cli.MockUi)
+		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				Ui: ui,

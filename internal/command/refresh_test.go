@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -16,7 +16,6 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -34,7 +33,7 @@ func TestRefresh(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -91,7 +90,7 @@ func TestRefresh_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-empty"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	view, done := testView(t)
@@ -125,7 +124,7 @@ func TestRefresh_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -234,7 +233,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	originalState := testState()
 
@@ -316,7 +315,7 @@ func TestRefresh_outPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -385,7 +384,7 @@ func TestRefresh_var(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -422,7 +421,7 @@ func TestRefresh_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -460,11 +459,53 @@ func TestRefresh_varFile(t *testing.T) {
 	}
 }
 
+// TestRefresh_varFileDuplicateAttr is a regression test for a bug where a
+// -var-file containing a duplicated attribute would print an error diagnostic
+// but still exit 0, silently discarding the file and falling back to other
+// variable sources (here, the variable's default value). A malformed var file
+// must cause the refresh to fail.
+func TestRefresh_varFileDuplicateAttr(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("refresh-duplicate-var-file"), td)
+	t.Chdir(td)
+
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
+	view, done := testView(t)
+	c := &RefreshCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-var-file", "duplicate.tfvars",
+		"-state", statePath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure with a non-zero exit code\n\n%s", output.Stdout())
+	}
+
+	if got, want := output.Stderr(), "Attribute redefined"; !strings.Contains(got, want) {
+		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+	}
+
+	if p.ConfigureProviderCalled {
+		t.Fatal("refresh proceeded using the variable's default value; the malformed var file should have aborted the operation")
+	}
+}
+
 func TestRefresh_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-var"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -505,7 +546,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-unset-var"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	// Disable test mode so input would be asked
 	test = false
@@ -517,7 +558,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
@@ -553,7 +594,7 @@ func TestRefresh_backup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -638,7 +679,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -713,7 +754,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-output"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -760,7 +801,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 func TestRefresh_targeted(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("refresh-targeted"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	state := testState()
 	statePath := testStateFile(t, state)
@@ -821,7 +862,7 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			td := testTempDir(t)
 			defer os.RemoveAll(td)
-			defer testChdir(t, td)()
+			t.Chdir(td)
 
 			view, done := testView(t)
 			c := &RefreshCommand{
@@ -854,7 +895,7 @@ func TestRefresh_warnings(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer testChdir(t, td)()
+	t.Chdir(td)
 
 	p := testProvider()
 	p.GetProviderSchemaResponse = refreshFixtureSchema()

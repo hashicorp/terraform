@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configschema
@@ -53,6 +53,29 @@ func (b *Block) ContainsSensitive() bool {
 	}
 	for _, blockS := range b.BlockTypes {
 		if blockS.ContainsSensitive() {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsDeprecated returns true if any of the attributes of the receiving
+// block or any of its descendant blocks are marked as deprecated.
+func (b *Block) ContainsDeprecated() bool {
+	if b.Deprecated {
+		return true
+	}
+
+	for _, attrS := range b.Attributes {
+		if attrS.Deprecated {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsDeprecated() {
+			return true
+		}
+	}
+	for _, blockS := range b.BlockTypes {
+		if blockS.ContainsDeprecated() {
 			return true
 		}
 	}
@@ -138,8 +161,9 @@ func (o *Object) specType() cty.Type {
 	} else {
 		ret = cty.Object(attrTys)
 	}
+
 	switch o.Nesting {
-	case NestingSingle:
+	case NestingSingle, NestingGroup:
 		return ret
 	case NestingList:
 		return cty.List(ret)
@@ -160,6 +184,20 @@ func (o *Object) ContainsSensitive() bool {
 			return true
 		}
 		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsDeprecated returns true if any of the attributes of the receiving
+// Object are marked as sensitive.
+func (o *Object) ContainsDeprecated() bool {
+	for _, attrS := range o.Attributes {
+		if attrS.Deprecated {
+			return true
+		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsDeprecated() {
 			return true
 		}
 	}

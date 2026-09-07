@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -6,9 +6,9 @@ package command
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -22,48 +22,23 @@ type WorkspaceDeleteCommand struct {
 	LegacyName bool
 }
 
-func (c *WorkspaceDeleteCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+func (c *WorkspaceDeleteCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Process global flags and configure the view/UI.
+	rawArgs = c.Meta.process(rawArgs)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	var force bool
-	var stateLock bool
-	var stateLockTimeout time.Duration
-	cmdFlags := c.Meta.defaultFlagSet("workspace delete")
-	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty workspace")
-	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: NAME.\n")
+	// Process command-specific arguments.
+	args, diags := arguments.ParseWorkspaceDelete(rawArgs)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return cli.RunResultHelp
 	}
 
-	configPath, err := ModulePath(args[1:])
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
+	configPath := c.WorkingDir.RootModuleDir()
+	b, backendDiags := c.backend(configPath, args.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -73,13 +48,16 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// This command will not write state
 	c.ignoreRemoteVersionConflict(b)
 
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		c.Ui.Error(err.Error())
+	workspaces, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
+	if wDiags.HasErrors() {
+		c.Ui.Error(wDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
-	workspace := args[0]
+	// Is the user attempting to delete a workspace that doesn't exist?
+	workspace := args.Name
 	exists := false
 	for _, ws := range workspaces {
 		if workspace == ws {
@@ -93,6 +71,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Is the user attempting to delete the currently selected workspace?
 	currentWorkspace, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -103,16 +82,22 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// we need the actual state to see if it's empty
-	stateMgr, err := b.StateMgr(workspace)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	// Is the user attempting to delete the default workspace?
+	if workspace == backend.DefaultStateName {
+		c.Ui.Error("Cannot delete the default workspace")
+		return 1
+	}
+
+	// Check if the workspace's state is empty or not
+	stateMgr, sDiags := b.StateMgr(workspace)
+	if sDiags.HasErrors() {
+		c.Ui.Error(sDiags.Err().Error())
 		return 1
 	}
 
 	var stateLocker clistate.Locker
-	if stateLock {
-		stateLocker = clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+	if args.Lock {
+		stateLocker = clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(args.ViewType, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-replace-provider"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
@@ -130,7 +115,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	hasResources := stateMgr.State().HasManagedResourceInstanceObjects()
 
-	if hasResources && !force {
+	if hasResources && !args.Force {
 		// We'll collect a list of what's being managed here as extra context
 		// for the message.
 		var buf strings.Builder
@@ -168,11 +153,13 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	err = b.DeleteWorkspace(workspace, force)
-	if err != nil {
-		c.Ui.Error(err.Error())
+	dwDiags := b.DeleteWorkspace(workspace, args.Force)
+	diags = diags.Append(dwDiags)
+	if dwDiags.HasErrors() {
+		c.Ui.Error(dwDiags.Err().Error())
 		return 1
 	}
+	c.showDiagnostics(diags) // output warnings, if any
 
 	c.Ui.Output(
 		c.Colorize().Color(

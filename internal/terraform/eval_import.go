@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -24,12 +24,12 @@ import (
 func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// import blocks only exist in the root module, and must be evaluated in
-	// that context.
-	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 	scope := ctx.EvaluationScope(nil, nil, keyData)
 	importIdVal, evalDiags := scope.EvalExpr(expr, cty.String)
 	diags = diags.Append(evalDiags)
+	if diags.HasErrors() {
+		return cty.NilVal, diags
+	}
 
 	if importIdVal.IsNull() {
 		return cty.NilVal, diags.Append(&hcl.Diagnostic{
@@ -84,9 +84,6 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData in
 func evaluateImportIdentityExpression(expr hcl.Expression, identity *configschema.Object, ctx EvalContext, keyData instances.RepetitionData, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	// import blocks only exist in the root module, and must be evaluated in
-	// that context.
-	ctx = evalContextForModuleInstance(ctx, addrs.RootModuleInstance)
 	scope := ctx.EvaluationScope(nil, nil, keyData)
 	importIdentityVal, evalDiags := scope.EvalExpr(expr, identity.ConfigType())
 	if evalDiags.HasErrors() {
@@ -241,7 +238,7 @@ func parseImportToKeyExpression(expr hcl.Expression, keyData instances.Repetitio
 		return idx, diags
 	}
 
-	if val.HasMark(marks.Sensitive) {
+	if marks.Has(val, marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid index expression",

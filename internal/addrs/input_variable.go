@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package addrs
@@ -79,6 +79,11 @@ func (v AbsInputVariableInstance) CheckRule(typ CheckRuleType, i int) CheckRule 
 		Type:      typ,
 		Index:     i,
 	}
+}
+
+// ModuleInstance returns the module instance portion of the address.
+func (v AbsInputVariableInstance) ModuleInstance() ModuleInstance {
+	return v.Module
 }
 
 func (v AbsInputVariableInstance) ConfigCheckable() ConfigCheckable {

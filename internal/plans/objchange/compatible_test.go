@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package objchange
@@ -134,7 +134,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"name": cty.Zero,
 			}),
 			[]string{
-				`.name: wrong final value type: string required`,
+				`.name: wrong final value type: string required, but have number`,
 			},
 		},
 		{
@@ -388,7 +388,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 				"stuff": cty.True,
 			}),
 			[]string{
-				`.stuff: wrong final value type: string required`,
+				`.stuff: wrong final value type: string required, but have bool`,
 			},
 		},
 		{
@@ -1403,6 +1403,168 @@ func TestAssertObjectCompatible(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{
 				"block": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
 					"foo": cty.String,
+				}))),
+			}),
+			nil,
+		},
+
+		// computed blocks
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"single": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"list": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"map": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+					"set": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.UnknownVal(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+				"list": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+				"map": cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+				"set": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"c": cty.StringVal("c value"),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"k": cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+
+		// invalid null computed block value
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			[]string{`null block value after apply`},
+		},
+
+		// null single block value
+		{
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"single": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
 				}))),
 			}),
 			nil,

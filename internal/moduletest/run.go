@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package moduletest
@@ -8,29 +8,21 @@ import (
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	MainStateIdentifier = ""
-)
-
 type Run struct {
 	Config *configs.TestRun
 
-	// ModuleConfig is a copy of the module configuration that the run is testing.
-	// The variables and provider configurations are copied so that the run can
-	// modify them safely without affecting the original configuration.
-	// However, any other fields in the module configuration are still shared between
-	// all runs that use the same module configuration.
+	// ModuleConfig is the config that this run block is executing against.
 	ModuleConfig *configs.Config
 
 	Verbose *Verbose
@@ -38,6 +30,12 @@ type Run struct {
 	Name   string
 	Index  int
 	Status Status
+
+	// Outputs are set by the Terraform Test graph once this run block is
+	// executed. Callers should only access this if the Status field is set to
+	// Pass or Fail as both of these cases indicate the run block was executed
+	// successfully, and actually had values to write.
+	Outputs cty.Value
 
 	Diagnostics tfdiags.Diagnostics
 
@@ -55,25 +53,9 @@ type Run struct {
 }
 
 func NewRun(config *configs.TestRun, moduleConfig *configs.Config, index int) *Run {
-	// Make a copy the module configuration variables and provider configuration maps
-	// so that the run can modify the map safely.
-	newModuleConfig := *moduleConfig
-	if moduleConfig.Module != nil {
-		newModule := *moduleConfig.Module
-		newModule.Variables = make(map[string]*configs.Variable, len(moduleConfig.Module.Variables))
-		for name, variable := range moduleConfig.Module.Variables {
-			newModule.Variables[name] = variable
-		}
-		newModule.ProviderConfigs = make(map[string]*configs.Provider, len(moduleConfig.Module.ProviderConfigs))
-		for name, provider := range moduleConfig.Module.ProviderConfigs {
-			newModule.ProviderConfigs[name] = provider
-		}
-		newModuleConfig.Module = &newModule
-	}
-
 	return &Run{
 		Config:       config,
-		ModuleConfig: &newModuleConfig,
+		ModuleConfig: moduleConfig,
 		Name:         config.Name,
 		Index:        index,
 	}
@@ -111,103 +93,6 @@ func (run *Run) Addr() addrs.Run {
 	return addrs.Run{Name: run.Name}
 }
 
-func (run *Run) GetTargets() ([]addrs.Targetable, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var targets []addrs.Targetable
-
-	for _, target := range run.Config.Options.Target {
-		addr, diags := addrs.ParseTarget(target)
-		diagnostics = diagnostics.Append(diags)
-		if addr != nil {
-			targets = append(targets, addr.Subject)
-		}
-	}
-
-	return targets, diagnostics
-}
-
-func (run *Run) GetReplaces() ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var replaces []addrs.AbsResourceInstance
-
-	for _, replace := range run.Config.Options.Replace {
-		addr, diags := addrs.ParseAbsResourceInstance(replace)
-		diagnostics = diagnostics.Append(diags)
-		if diags.HasErrors() {
-			continue
-		}
-
-		if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-			diagnostics = diagnostics.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Can only target managed resources for forced replacements.",
-				Detail:   addr.String(),
-				Subject:  replace.SourceRange().Ptr(),
-			})
-			continue
-		}
-
-		replaces = append(replaces, addr)
-	}
-
-	return replaces, diagnostics
-}
-
-func (run *Run) GetReferences() ([]*addrs.Reference, tfdiags.Diagnostics) {
-	var diagnostics tfdiags.Diagnostics
-	var references []*addrs.Reference
-
-	for _, rule := range run.Config.CheckRules {
-		for _, variable := range rule.Condition.Variables() {
-			reference, diags := addrs.ParseRefFromTestingScope(variable)
-			diagnostics = diagnostics.Append(diags)
-			if reference != nil {
-				references = append(references, reference)
-			}
-		}
-		for _, variable := range rule.ErrorMessage.Variables() {
-			reference, diags := addrs.ParseRefFromTestingScope(variable)
-			diagnostics = diagnostics.Append(diags)
-			if reference != nil {
-				references = append(references, reference)
-			}
-		}
-	}
-
-	for _, expr := range run.Config.Variables {
-		moreRefs, moreDiags := langrefs.ReferencesInExpr(addrs.ParseRefFromTestingScope, expr)
-		diagnostics = diagnostics.Append(moreDiags)
-		references = append(references, moreRefs...)
-	}
-
-	return references, diagnostics
-}
-
-// GetStateKey returns the run's state key. If an explicit state key is set in
-// the run's configuration, that key is returned. Otherwise, if the run is using
-// an alternate module under test, the source of that module is returned as the
-// state key. If neither of these conditions are met, an empty string is
-// returned, and this denotes that the run is using the root module under test.
-func (run *Run) GetStateKey() string {
-	if run.Config.StateKey != "" {
-		return run.Config.StateKey
-	}
-
-	// The run has an alternate module under test, so we can use the module's source
-	if run.Config.ConfigUnderTest != nil {
-		return run.Config.Module.Source.String()
-	}
-
-	return MainStateIdentifier
-}
-
-// GetModuleConfigID returns the identifier for the module configuration that
-// this run is testing. This is used to uniquely identify the module
-// configuration in the test state.
-func (run *Run) GetModuleConfigID() string {
-	return run.ModuleConfig.Module.SourceDir
-}
-
 // ExplainExpectedFailures is similar to ValidateExpectedFailures except it
 // looks for any diagnostics produced by custom conditions and are included in
 // the expected failures and adds an additional explanation that clarifies the
@@ -217,14 +102,14 @@ func (run *Run) GetModuleConfigID() string {
 // an expected failure during the planning stage will still result in the
 // overall test failing as the plan failed and we couldn't even execute the
 // apply stage.
-func (run *Run) ExplainExpectedFailures(originals tfdiags.Diagnostics) tfdiags.Diagnostics {
+func ExplainExpectedFailures(config *configs.TestRun, originals tfdiags.Diagnostics) tfdiags.Diagnostics {
 
 	// We're going to capture all the checkable objects that are referenced
 	// from the expected failures.
 	expectedFailures := addrs.MakeMap[addrs.Referenceable, bool]()
 	sourceRanges := addrs.MakeMap[addrs.Referenceable, tfdiags.SourceRange]()
 
-	for _, traversal := range run.Config.ExpectFailures {
+	for _, traversal := range config.ExpectFailures {
 		// Ignore the diagnostics returned from the reference parsing, these
 		// references will have been checked earlier in the process by the
 		// validate stage so we don't need to do that again here.
@@ -344,14 +229,14 @@ func (run *Run) ExplainExpectedFailures(originals tfdiags.Diagnostics) tfdiags.D
 // diagnostics were generated by custom conditions. Terraform adds the
 // addrs.CheckRule that generated each diagnostic to the diagnostic itself so we
 // can tell which diagnostics can be expected.
-func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.Diagnostics {
+func ValidateExpectedFailures(config *configs.TestRun, originals tfdiags.Diagnostics) tfdiags.Diagnostics {
 
 	// We're going to capture all the checkable objects that are referenced
 	// from the expected failures.
 	expectedFailures := addrs.MakeMap[addrs.Referenceable, bool]()
 	sourceRanges := addrs.MakeMap[addrs.Referenceable, tfdiags.SourceRange]()
 
-	for _, traversal := range run.Config.ExpectFailures {
+	for _, traversal := range config.ExpectFailures {
 		// Ignore the diagnostics returned from the reference parsing, these
 		// references will have been checked earlier in the process by the
 		// validate stage so we don't need to do that again here.

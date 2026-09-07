@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
@@ -35,7 +35,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	view := views.NewOutput(args.ViewType, c.View)
 
 	// Fetch data from state
-	outputs, diags := c.Outputs(args.StatePath)
+	outputs, diags := c.Outputs(args.StatePath, args.ViewType)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
@@ -54,7 +54,7 @@ func (c *OutputCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
+func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[string]*states.OutputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Allow state path override
@@ -63,9 +63,9 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Load the backend
-	b, backendDiags := c.Backend(nil)
+	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
-	if diags.HasErrors() {
+	if backendDiags.HasErrors() {
 		return nil, diags
 	}
 
@@ -83,13 +83,13 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 	}
 
 	// Get the state
-	stateStore, err := b.StateMgr(env)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+	sMgr, sDiags := b.StateMgr(env)
+	if sDiags.HasErrors() {
+		diags = diags.Append(fmt.Errorf("Failed to load state: %s", sDiags.Err()))
 		return nil, diags
 	}
 
-	output, err := stateStore.GetRootOutputValues(ctx)
+	output, err := sMgr.GetRootOutputValues(ctx)
 	if err != nil {
 		return nil, diags.Append(err)
 	}
@@ -109,8 +109,10 @@ Usage: terraform [global options] output [options] [NAME]
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-                   "terraform.tfstate". Ignored when remote 
-                   state is used.
+                   "terraform.tfstate".
+                   Legacy option for the local backend only. See
+                   the local backend's documentation for more
+                   information.
 
   -no-color        If specified, output won't contain any color.
 

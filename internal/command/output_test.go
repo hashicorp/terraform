@@ -1,18 +1,28 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
+	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestOutput(t *testing.T) {
@@ -36,6 +46,63 @@ func TestOutput(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		"foo",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: \n%s", output.Stderr())
+	}
+
+	actual := strings.TrimSpace(output.Stdout())
+	if actual != `"bar"` {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestOutput_stateStore(t *testing.T) {
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{
 		"foo",
 	}
 	code := c.Run(args)
@@ -323,3 +390,162 @@ func TestOutput_stateDefault(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+// deprecatedInmemBackend wraps the inmem backend and injects a deprecation
+// warning from PrepareConfig, simulating a backend with deprecated attributes
+// (like the S3 backend's dynamodb_table).
+type deprecatedInmemBackend struct {
+	backend.Backend
+}
+
+func (b *deprecatedInmemBackend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	newObj, diags := b.Backend.PrepareConfig(obj)
+	diags = diags.Append(tfdiags.SimpleWarning(`The attribute "deprecated_attr" is deprecated.`))
+	return newObj, diags
+}
+
+func TestOutputRaw_warningsSuppressed(t *testing.T) {
+	// Pre-populate the inmem backend with a state containing an output value
+	inmem.Reset()
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Register a backend that wraps inmem with a deprecation warning,
+	// simulating a backend like S3 whose PrepareConfig warns about
+	// deprecated attributes (e.g. dynamodb_table).
+	backendInit.Set("inmem", func() backend.Backend {
+		return &deprecatedInmemBackend{Backend: inmem.New()}
+	})
+	defer backendInit.Set("inmem", inmem.New)
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("output-backend-with-deprecation"), td)
+	t.Chdir(td)
+
+	// Write the state into the inmem backend's default workspace
+	b := inmem.New()
+	b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"lock_id": cty.NullVal(cty.String),
+	}))
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	sMgr.WriteState(originalState)
+	if err := sMgr.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-raw", "foo"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit code %d\nstderr:\n%s", code, output.Stderr())
+	}
+
+	// The key assertion: warnings must not appear in raw output
+	// as they would be indistinguishable from the value.
+	stderr := output.Stderr()
+	if strings.Contains(stderr, "deprecated") {
+		t.Fatalf("warnings should be suppressed, got:\n%s", stderr)
+	}
+
+	actual := strings.TrimSpace(output.Stdout())
+	if actual != `bar` {
+		t.Fatalf("expected output \"bar\", got: %#v", actual)
+	}
+}
+
+func TestOutputJson_warningsSuppressed(t *testing.T) {
+	// Pre-populate the inmem backend with a state containing an output value
+	inmem.Reset()
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+			cty.StringVal("bar"),
+			false,
+		)
+	})
+
+	// Register a backend that wraps inmem with a deprecation warning,
+	// simulating a backend like S3 whose PrepareConfig warns about
+	// deprecated attributes (e.g. dynamodb_table).
+	backendInit.Set("inmem", func() backend.Backend {
+		return &deprecatedInmemBackend{Backend: inmem.New()}
+	})
+	defer backendInit.Set("inmem", inmem.New)
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("output-backend-with-deprecation"), td)
+	t.Chdir(td)
+
+	// Write the state into the inmem backend's default workspace
+	b := inmem.New()
+	b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"lock_id": cty.NullVal(cty.String),
+	}))
+	sMgr, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("unexpected error: %s", sDiags.Err())
+	}
+	sMgr.WriteState(originalState)
+	if err := sMgr.PersistState(nil); err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	view, done := testView(t)
+	c := &OutputCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-json"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("unexpected exit code %d\nstderr:\n%s", code, output.Stderr())
+	}
+
+	stderr := output.Stderr()
+	if strings.Contains(stderr, "deprecated") {
+		t.Fatalf("warnings should be suppressed, got:\n%s", stderr)
+	}
+
+	expectedJson := `{
+	"foo":{
+		"sensitive":false,
+		"type":"string",
+		"value":"bar"
+	}
+}`
+	if diff := cmp.Diff(expectedJson, output.Stdout(), transformJSON); diff != "" {
+		t.Fatalf("unexpected output: %s", diff)
+	}
+}
+
+var transformJSON = cmp.FilterValues(func(x, y string) bool {
+	xBytes := []byte(x)
+	yBytes := []byte(y)
+	return json.Valid(xBytes) && json.Valid(yBytes)
+}, cmp.Transformer("ParseJSON", func(in string) (out any) {
+	inBytes := []byte(in)
+	if err := json.Unmarshal(inBytes, &out); err != nil {
+		panic(err)
+	}
+	return out
+}))

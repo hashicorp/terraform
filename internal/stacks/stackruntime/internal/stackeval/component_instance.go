@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackeval
@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -164,6 +165,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 	providerClients := configuredProviderClients(ctx, c.main, known, unknown, PlanPhase)
 
 	plantimestamp := c.main.PlanTimestamp()
+
 	return &terraform.PlanOpts{
 		Mode:                       mode,
 		SkipRefresh:                skipRefresh,
@@ -171,6 +173,9 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalProviders:          providerClients,
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
+		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		PolicyClient:               c.main.PolicyClient(),
+
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
 	}, nil
@@ -190,6 +195,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 		ctx, c.tracingName()+" modules", &c.moduleTreePlan,
 		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
+			h := hooksFromContext(ctx)
 
 			if c.mode == plans.DestroyMode {
 
@@ -201,7 +207,13 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					// and never applied, or that it was previously destroyed
 					// via an earlier destroy operation.
 					//
-					// Return a dummy plan:
+					// Return a dummy plan and send dummy events:
+					hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
+					seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
+					hookMore(ctx, seq, h.ReportComponentInstancePlanned, &hooks.ComponentInstanceChange{
+						Addr: c.Addr(),
+					})
+					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
 					return &plans.Plan{
 						UIMode:    plans.DestroyMode,
 						Complete:  true,
@@ -218,7 +230,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				// outputs from this component can read from the refresh result
 				// without causing a cycle.
 
-				h := hooksFromContext(ctx)
 				hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
 				seq, planCtx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
 
@@ -334,7 +345,6 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				}
 			}
 
-			h := hooksFromContext(ctx)
 			hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
 			seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
 			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, []terraform.Hook{
@@ -345,10 +355,13 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					addr:  c.Addr(),
 				},
 			}, c)
+
 			if plan != nil {
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {
 					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
+				} else if plan.Errored {
+					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 				} else {
 					hookMore(ctx, seq, h.DeferComponentInstancePlan, c.Addr())
 				}
@@ -380,6 +393,15 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 
 		// If we're destroying and there's nothing to destroy, then we can
 		// consider this a no-op.
+		// We still need to report through the hooks that this component instance has been handled.
+		h := hooksFromContext(ctx)
+		hookSingle(ctx, hooksFromContext(ctx).PendingComponentInstanceApply, c.Addr())
+		seq, ctx := hookBegin(ctx, h.BeginComponentInstanceApply, h.ContextAttach, c.Addr())
+		hookMore(ctx, seq, h.ReportComponentInstanceApplied, &hooks.ComponentInstanceChange{
+			Addr: c.Addr(),
+		})
+		hookMore(ctx, seq, h.EndComponentInstanceApply, c.Addr())
+
 		return &ComponentInstanceApplyResult{
 			FinalState:                      plan.PriorState, // after refresh
 			AffectedResourceInstanceObjects: resourceInstanceObjectsAffectedByStackPlan(stackPlan),
@@ -791,6 +813,20 @@ func (c *ComponentInstance) ResourceSchema(ctx context.Context, providerTypeAddr
 	ret := providerSchema.SchemaForResourceType(mode, typ)
 	if ret.Body == nil {
 		return providers.Schema{}, fmt.Errorf("schema does not include %v %q", mode, typ)
+	}
+	return ret, nil
+}
+
+// ActionSchema implements stackplan.PlanProducer.
+func (c *ComponentInstance) ActionSchema(ctx context.Context, providerTypeAddr addrs.Provider, actionType string) (providers.ActionSchema, error) {
+	providerType := c.main.ProviderType(providerTypeAddr)
+	providerSchema, err := providerType.Schema(ctx)
+	if err != nil {
+		return providers.ActionSchema{}, err
+	}
+	ret := providerSchema.SchemaForActionType(actionType)
+	if ret.ConfigSchema == nil {
+		return providers.ActionSchema{}, fmt.Errorf("schema does not include action type %q", actionType)
 	}
 	return ret, nil
 }

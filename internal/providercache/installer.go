@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package providercache
@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"slices"
 	"sort"
 	"strings"
 
@@ -57,6 +58,12 @@ type Installer struct {
 	// lifecycle for, and therefore does not need to worry about the
 	// installation of.
 	unmanagedProviderTypes map[addrs.Provider]struct{}
+
+	// devOverrideTypes is a set of provider addresses that should be
+	// considered implemented. Binaries of these providers are supplied
+	// from the users machine via CLI configuration, so Terraform does
+	// not need to worry about installing them.
+	devOverrideTypes map[addrs.Provider]struct{}
 }
 
 // NewInstaller constructs and returns a new installer with the given target
@@ -160,6 +167,15 @@ func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{})
 	i.unmanagedProviderTypes = types
 }
 
+// SetDevOverrideTypes tells the receiver to consider the providers
+// indicated by the passed addrs.Providers as dev overrides. Terraform should not
+// try to install these providers and record their versions in the dependency lock
+// file; the binaries supplied via CLI configuration have no version information
+// available.
+func (i *Installer) SetDevOverrideTypes(types map[addrs.Provider]struct{}) {
+	i.devOverrideTypes = types
+}
+
 // EnsureProviderVersions compares the given provider requirements with what
 // is already available in the installer's target directory and then takes
 // appropriate installation actions to ensure that suitable packages
@@ -179,7 +195,7 @@ func (i *Installer) SetUnmanagedProviderTypes(types map[addrs.Provider]struct{})
 // failures then those notifications will be redundant with the ones included
 // in the final returned error value so callers should show either one or the
 // other, and not both.
-func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode) (*depsfile.Locks, error) {
+func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.Locks, reqs getproviders.Requirements, mode InstallMode, hooks ...InstallerHook) (*depsfile.Locks, error) {
 	errs := map[addrs.Provider]error{}
 	evts := installerEventsForContext(ctx)
 
@@ -205,13 +221,7 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 		if provider.IsBuiltIn() {
 			// Built in providers do not require installation but we'll still
 			// verify that the requested provider name is valid.
-			valid := false
-			for _, name := range i.builtInProviderTypes {
-				if name == provider.Type {
-					valid = true
-					break
-				}
-			}
+			valid := slices.Contains(i.builtInProviderTypes, provider.Type)
 			var err error
 			if valid {
 				if len(versionConstraints) == 0 {
@@ -242,6 +252,10 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 			// unmanaged providers do not require installation
 			continue
 		}
+		if _, ok := i.devOverrideTypes[provider]; ok {
+			// development override providers do not require installation
+			continue
+		}
 		acceptableVersions := versions.MeetingConstraints(versionConstraints)
 		if !mode.forceQueryAllProviders() {
 			// If we're not forcing potential changes of version then an
@@ -249,10 +263,11 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 			// the currently-configured version constraints.
 			if lock := locks.Provider(provider); lock != nil {
 				if !acceptableVersions.Has(lock.Version()) {
-					err := fmt.Errorf(
-						"locked provider %s %s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
-						provider, lock.Version(), getproviders.VersionConstraintsString(versionConstraints),
-					)
+					err := getproviders.ErrLockConflictsWithConstraints{
+						Provider:                 provider,
+						LockVersion:              lock.Version(),
+						VersionConstraintsString: getproviders.VersionConstraintsString(versionConstraints),
+					}
 					errs[provider] = err
 					// This is a funny case where we're returning an error
 					// before we do any querying at all. To keep the event
@@ -340,12 +355,30 @@ NeedProvider:
 	// install its package into our target cache (possibly via the global cache).
 	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
 	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
+	hookErrs := map[addrs.Provider]error{}
 	for provider, version := range need {
 		if err := ctx.Err(); err != nil {
 			// If our context has been cancelled or reached a timeout then
 			// we'll abort early, because subsequent operations against
 			// that context will fail immediately anyway.
 			return nil, err
+		}
+
+		hookErr := i.CallHooks(hooks, func(hook InstallerHook) error {
+			// For each needed provider, we report the selected version to the hooks.
+			// If a hook returns an error then we will skip installing that provider,
+			// but continue evaluating the remaining providers so callers can gather
+			// all of the resulting diagnostics before returning.
+			//
+			// We do this for all providers, including already installed ones.
+			// Their installation cannot be prevented, but the hook can still
+			// return an error to indicate that the provider version is not
+			// acceptable.
+			return hook.ProviderVersionSelected(ctx, provider, version.String())
+		})
+		if hookErr != nil {
+			hookErrs[provider] = hookErr
+			continue
 		}
 
 		lock := locks.Provider(provider)
@@ -723,9 +756,10 @@ NeedProvider:
 	}
 
 	if len(errs) > 0 {
-		return locks, InstallerError{
-			ProviderErrors: errs,
-		}
+		return locks, InstallerError{ProviderErrors: errs}
+	}
+	if len(hookErrs) > 0 {
+		return locks, InstallerError{ProviderErrors: hookErrs}
 	}
 	return locks, nil
 }
@@ -785,4 +819,30 @@ func (err InstallerError) Error() string {
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
 	return strings.TrimSpace(b.String())
+}
+
+type InstallerHook interface {
+	// ProviderVersionSelected is called after the installer has selected a provider
+	// version and before it decides whether install the selected package, either from
+	// the local cache or from a remote registry.
+	//
+	// Returning an error aborts installation of that provider.
+	ProviderVersionSelected(ctx context.Context, provider addrs.Provider, version string) error
+}
+
+// CallHooks iterates over all the hook implementations and calls the given function on each one.
+func (i *Installer) CallHooks(hooks []InstallerHook, fn func(InstallerHook) error) error {
+	var errs []error
+	for _, hook := range hooks {
+		if err := fn(hook); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return fmt.Errorf("some hooks failed: %v", errs)
 }

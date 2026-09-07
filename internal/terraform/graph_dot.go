@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -9,4 +9,10 @@ import "github.com/hashicorp/terraform/internal/dag"
 // the given Terraform graph.
 func GraphDot(g *Graph, opts *dag.DotOpts) (string, error) {
 	return string(g.Dot(opts)), nil
+}
+
+// GraphMermaid returns the Mermaid flowchart formatting for the given
+// Terraform graph.
+func GraphMermaid(g *Graph, opts *dag.DotOpts) (string, error) {
+	return string(g.Mermaid(opts)), nil
 }

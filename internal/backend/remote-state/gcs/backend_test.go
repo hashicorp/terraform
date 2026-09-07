@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package gcs
@@ -6,6 +6,7 @@ package gcs
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -151,9 +152,9 @@ func TestAccRemoteClient(t *testing.T) {
 	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
-	ss, err := be.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
+	ss, sDiags := be.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, sDiags.Err())
 	}
 
 	rs, ok := ss.(*remote.State)
@@ -177,9 +178,9 @@ func TestAccRemoteClientWithEncryption(t *testing.T) {
 	be := setupBackend(t, config)
 	defer teardownBackend(t, be, noPrefix)
 
-	ss, err := be.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, err)
+	ss, sDiags := be.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatalf("be.StateMgr(%q) = %v", backend.DefaultStateName, sDiags.Err())
 	}
 
 	rs, ok := ss.(*remote.State)
@@ -203,9 +204,9 @@ func TestAccRemoteLocks(t *testing.T) {
 	defer teardownBackend(t, be, noPrefix)
 
 	remoteClient := func() (remote.Client, error) {
-		ss, err := be.StateMgr(backend.DefaultStateName)
-		if err != nil {
-			return nil, err
+		ss, sDiags := be.StateMgr(backend.DefaultStateName)
+		if sDiags.HasErrors() {
+			t.Fatal(sDiags.Err())
 		}
 
 		rs, ok := ss.(*remote.State)
@@ -343,7 +344,7 @@ func setupBackend(t *testing.T, config map[string]interface{}) backend.Backend {
 	bkt := be.storageClient.Bucket(config["bucket"].(string))
 	_, err := bkt.Attrs(ctx)
 	if err != nil {
-		if err != storage.ErrBucketNotExist {
+		if !errors.Is(err, storage.ErrBucketNotExist) {
 			t.Fatal(err)
 		}
 

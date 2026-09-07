@@ -1,15 +1,18 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package command
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
@@ -27,43 +30,30 @@ type ConsoleCommand struct {
 }
 
 func (c *ConsoleCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var evalFromPlan bool
-	cmdFlags := c.Meta.extendedFlagSet("console")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.BoolVar(&evalFromPlan, "plan", false, "evaluate from plan")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command line flags: %s\n", err.Error()))
-		return 1
-	}
+	parsedArgs, diags := arguments.ParseConsole(c.Meta.process(args))
 
-	configPath, err := ModulePath(cmdFlags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	configPath = c.Meta.normalizePath(configPath)
+	// Copy parsed flags back to Meta
+	c.Meta.statePath = parsedArgs.StatePath
+	c.Meta.input = parsedArgs.InputEnabled
+	c.Meta.compactWarnings = parsedArgs.CompactWarnings
+	c.Meta.targetFlags = parsedArgs.TargetFlags
 
-	// Check for user-supplied plugin path
-	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
-
-	backendConfig, backendDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(backendDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
+	configPath := c.Meta.normalizePath(parsedArgs.ConfigPath)
+
+	// Check for user-supplied plugin path
+	var err error
+	if c.pluginPath, err = c.loadPluginPath(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		return 1
+	}
+
 	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
+	b, backendDiags := c.backend(configPath, arguments.ViewHuman)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -93,17 +83,21 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	{
-		var moreDiags tfdiags.Diagnostics
-		opReq.Variables, moreDiags = c.collectVariableValues()
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
+		// Collect variable value and add them to the operation request
+		var varDiags tfdiags.Diagnostics
+		opReq.Variables, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+			opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
+		})
+		diags = diags.Append(varDiags)
+		if varDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
 	}
 
 	// Get the context
-	lr, _, ctxDiags := local.LocalRun(opReq)
+	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
+
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -125,9 +119,35 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	var scope *lang.Scope
-	if evalFromPlan {
+
+	// By default, we will use the root module scope for evaluating expressions.
+	moduleAddr := addrs.RootModuleInstance
+
+	// If an alternative scope has been provided by the user, parse and use that
+	if parsedArgs.Scope != "" {
+		traversalSrc := []byte(parsedArgs.Scope)
+		traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<module scope address>", hcl.Pos{Line: 1, Column: 1})
+		diags = diags.Append(travDiags)
+		if diags.HasErrors() {
+			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		scopeModuleAddr, addrDiags := addrs.ParseModuleInstance(traversal)
+		diags = diags.Append(addrDiags)
+		if diags.HasErrors() {
+			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		moduleAddr = scopeModuleAddr
+	}
+
+	if parsedArgs.EvalFromPlan {
 		var planDiags tfdiags.Diagnostics
-		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts)
+		_, scope, planDiags = lr.Core.PlanAndEval(lr.Config, lr.InputState, lr.PlanOpts, moduleAddr)
 		diags = diags.Append(planDiags)
 	} else {
 		evalOpts := &terraform.EvalOpts{}
@@ -142,7 +162,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		// derived values (input variables, local values, output values)
 		// that are not stored in the persistent state.
 		var scopeDiags tfdiags.Diagnostics
-		scope, scopeDiags = lr.Core.Eval(lr.Config, lr.InputState, addrs.RootModuleInstance, evalOpts)
+		scope, scopeDiags = lr.Core.Eval(lr.Config, lr.InputState, moduleAddr, evalOpts)
 		diags = diags.Append(scopeDiags)
 	}
 	if scope == nil {
@@ -232,6 +252,16 @@ Options:
                     instead of evaluating against the current state.
                     You can use this to inspect the effects of configuration
                     changes that haven't been applied yet.
+
+  -scope=module     Provide a module instance address which declares the scope to
+                    use when evaluating expressions against the planned or current
+                    state. Defaults to the root module.
+                    
+                    Examples of module instance addresses:
+                        module.child
+                        module.child.module.grandchild
+                        module.child["key"]
+                        module.child[0]
 
   -var 'foo=bar'    Set a variable in the Terraform configuration. This
                     flag can be set multiple times.

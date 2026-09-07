@@ -52,6 +52,7 @@ run "test_a" {
 run "test_b" {
   variables {
     input = run.test_a.value
+    delay = 2 // Simulate a longer run to allow `test_d` to start in parallel
   }
 
   assert {

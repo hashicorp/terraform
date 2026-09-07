@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package init contains the list of backends that can be initialized and
@@ -91,6 +91,13 @@ func Backend(name string) backend.InitFn {
 	backendsLock.Lock()
 	defer backendsLock.Unlock()
 	return backends[name]
+}
+
+func BackendExists(name string) bool {
+	backendsLock.Lock()
+	defer backendsLock.Unlock()
+	_, ok := backends[name]
+	return ok
 }
 
 // Set sets a new backend in the list of backends. If f is nil then the

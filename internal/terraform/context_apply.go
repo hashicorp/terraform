@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -12,8 +12,10 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -39,6 +41,22 @@ type ApplyOpts struct {
 	// values that were declared as ephemeral, because all other input
 	// values must retain the values that were specified during planning.
 	SetVariables InputValues
+
+	// AllowRootEphemeralOutputs overrides a specific check made within the
+	// output nodes that they cannot be ephemeral at within root modules. This
+	// should be set to true for plans executing from within either the stacks
+	// or test runtimes, where the root modules as Terraform sees them aren't
+	// the actual root modules.
+	AllowRootEphemeralOutputs bool
+
+	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
+	// file). This is required by policy evaluations against providers to access version information.
+	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
+
+	// Optional policy client.
+	// When set, policy evaluation logic will be executed in the graph.
+	// When nil, that logic will be skipped.
+	PolicyClient policy.Client
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -52,7 +70,9 @@ type ApplyOpts struct {
 // as in test cases.
 func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 	return &ApplyOpts{
-		ExternalProviders: po.ExternalProviders,
+		ExternalProviders:         po.ExternalProviders,
+		AllowRootEphemeralOutputs: po.AllowRootEphemeralOutputs,
+		ProviderLocks:             po.ProviderLocks,
 	}
 }
 
@@ -199,13 +219,20 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		PlanTimeTimestamp: plan.Timestamp,
 
 		FunctionResults: lang.NewFunctionResultsTable(plan.FunctionResults),
+
+		ProviderLocks: opts.ProviderLocks,
+		PolicyClient:  opts.PolicyClient,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
 	// After the walk is finished, we capture a simplified snapshot of the
 	// check result data as part of the new state.
-	walker.State.RecordCheckResults(walker.Checks)
+	// The concurrent-safe state has already been closed by the walk, so we
+	// need to access the underlying state object directly to update it.
+	state := walker.State.Lock()
+	state.RecordCheckResults(walker.Checks)
+	walker.State.Unlock()
 
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
@@ -217,7 +244,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		newState.PruneResourceHusks()
 	}
 
-	if len(plan.TargetAddrs) > 0 {
+	if len(plan.TargetAddrs) > 0 && len(plan.ActionTargetAddrs) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Applied changes may be incomplete",
@@ -251,6 +278,8 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return newState, evalScope, diags
 }
 
+// checkApplyTimeVariables checks that the ephemeral variables needed in the configuration
+// are also set during apply. Variables that are not needed should not be set at all.
 func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValues, config *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for name := range needed.All() {
@@ -267,16 +296,21 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 			))
 		}
 	}
-	for name := range gotValues {
+	for name, value := range gotValues {
 		if !needed.Has(name) {
 			// We'll treat this a little differently depending on whether
 			// the variable is declared as ephemeral or not.
 			if vc, ok := config.Module.Variables[name]; ok && vc.Ephemeral {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"No value for required variable",
-					fmt.Sprintf("The ephemeral input variable %q was not set during the plan phase, and so must remain unset during the apply phase.", name),
-				))
+
+				// Only non-null ephemeral variables are recorded in the plan as needed,
+				// therefore we can treat a supplied null value here as if it was not set
+				if !value.Value.IsNull() {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"No value for required variable",
+						fmt.Sprintf("The ephemeral input variable %q was not set during the plan phase, and so must remain unset during the apply phase.", name),
+					))
+				}
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -291,6 +325,10 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 
 func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *ApplyOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if opts == nil {
+		opts = new(ApplyOpts)
+	}
 
 	variables := InputValues{}
 	for name, dyVal := range plan.VariableValues {
@@ -316,10 +354,8 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 	// FIXME: We should check that all of these match declared variables and
 	// that all of them are declared as ephemeral, because all non-ephemeral
 	// variables are supposed to come exclusively from plan.VariableValues.
-	if opts != nil {
-		for n, vv := range opts.SetVariables {
-			variables[n] = vv
-		}
+	for n, vv := range opts.SetVariables {
+		variables[n] = vv
 	}
 	if diags.HasErrors() {
 		return nil, walkApply, diags
@@ -352,25 +388,23 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		operation = walkDestroy
 	}
 
-	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
-	if opts != nil {
-		externalProviderConfigs = opts.ExternalProviders
-	}
-
 	graph, moreDiags := (&ApplyGraphBuilder{
-		Config:                  config,
-		Changes:                 plan.Changes,
-		DeferredChanges:         plan.DeferredResources,
-		State:                   plan.PriorState,
-		RootVariableValues:      variables,
-		ExternalProviderConfigs: externalProviderConfigs,
-		Plugins:                 c.plugins,
-		Targets:                 plan.TargetAddrs,
-		ForceReplace:            plan.ForceReplaceAddrs,
-		Operation:               operation,
-		ExternalReferences:      plan.ExternalReferences,
-		Overrides:               plan.Overrides,
-		SkipGraphValidation:     c.graphOpts.SkipGraphValidation,
+		Config:                    config,
+		Changes:                   plan.Changes,
+		DeferredChanges:           plan.DeferredResources,
+		State:                     plan.PriorState,
+		RootVariableValues:        variables,
+		ExternalProviderConfigs:   opts.ExternalProviders,
+		Plugins:                   c.plugins,
+		Targets:                   plan.TargetAddrs,
+		ActionTargets:             plan.ActionTargetAddrs,
+		ForceReplace:              plan.ForceReplaceAddrs,
+		Operation:                 operation,
+		ExternalReferences:        plan.ExternalReferences,
+		Overrides:                 plan.Overrides,
+		SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
+		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		PolicyClient:              opts.PolicyClient,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package views
@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -252,11 +253,13 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"add":       float64(1),
-				"import":    float64(0),
-				"change":    float64(2),
-				"remove":    float64(3),
-				"operation": "apply",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(1),
+				"import":            float64(0),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"operation":         "apply",
 			},
 		},
 	}
@@ -282,11 +285,78 @@ func TestJSONView_ChangeSummaryWithImport(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
-				"add":       float64(1),
-				"change":    float64(2),
-				"remove":    float64(3),
-				"import":    float64(1),
-				"operation": "apply",
+				"action_fail":       float64(0),
+				"action_invocation": float64(0),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(1),
+				"operation":         "apply",
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_ChangeSummaryWithActionInvocations(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	jv.ChangeSummary(&viewsjson.ChangeSummary{
+		Add:              1,
+		Change:           2,
+		Remove:           3,
+		ActionInvocation: 23,
+		Operation:        viewsjson.OperationApplied,
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Apply complete! Resources: 1 added, 2 changed, 3 destroyed. Actions: 23 invoked.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
+				"action_invocation": float64(23),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(0),
+				"operation":         "apply",
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_ChangeSummaryWithActionInvocationsAndImports(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	jv.ChangeSummary(&viewsjson.ChangeSummary{
+		Add:              1,
+		Change:           2,
+		Remove:           3,
+		Import:           2,
+		ActionInvocation: 23,
+		Operation:        viewsjson.OperationApplied,
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Apply complete! Resources: 2 imported, 1 added, 2 changed, 3 destroyed. Actions: 23 invoked.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"action_fail":       float64(0),
+				"action_invocation": float64(23),
+				"add":               float64(1),
+				"change":            float64(2),
+				"remove":            float64(3),
+				"import":            float64(2),
+				"operation":         "apply",
 			},
 		},
 	}
@@ -373,6 +443,99 @@ func TestJSONView_Outputs(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
+func TestJSONView_DeferredChange(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	foo, diags := addrs.ParseModuleInstanceStr("module.foo")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr:        managed.Instance(addrs.NoKey).Absolute(foo),
+		PrevRunAddr: managed.Instance(addrs.NoKey).Absolute(foo),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+		},
+	}
+	dc := &plans.DeferredResourceInstanceChangeSrc{
+		DeferredReason: providers.DeferredReasonResourceConfigUnknown,
+		ChangeSrc:      cs,
+	}
+	jv.DeferredChange(viewsjson.NewDeferredResourceInstanceChange(dc))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "module.foo.test_instance.bar: deferred change, reason: resource_config_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "resource_config_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":             "module.foo.test_instance.bar",
+						"implied_provider": "test",
+						"module":           "module.foo",
+						"resource":         "test_instance.bar",
+						"resource_key":     nil,
+						"resource_name":    "bar",
+						"resource_type":    "test_instance",
+					},
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_DeferredChange_UnknownKey(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr:        managed.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+		PrevRunAddr: managed.Instance(addrs.WildcardKey).Absolute(addrs.RootModuleInstance),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Create,
+		},
+	}
+	dc := &plans.DeferredResourceInstanceChangeSrc{
+		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+		ChangeSrc:      cs,
+	}
+	jv.DeferredChange(viewsjson.NewDeferredResourceInstanceChange(dc))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "test_instance.bar[*]: deferred change, reason: instance_count_unknown",
+			"@module":  "terraform.ui",
+			"type":     "deferred_change",
+			"deferred_change": map[string]interface{}{
+				"reason": "instance_count_unknown",
+				"change": map[string]interface{}{
+					"action": "create",
+					"resource": map[string]interface{}{
+						"addr":                 "test_instance.bar[*]",
+						"implied_provider":     "test",
+						"module":               "",
+						"resource":             "test_instance.bar[*]",
+						"resource_key":         nil,
+						"resource_key_unknown": true,
+						"resource_name":        "bar",
+						"resource_type":        "test_instance",
+					},
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
 // This helper function tests a possibly multi-line JSONView output string
 // against a slice of structs representing the desired log messages. It
 // verifies that the output of JSONView is in JSON log format, one message per
@@ -382,7 +545,6 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 	// Remove final trailing newline
 	output = strings.TrimSuffix(output, "\n")
-
 	// Split log into lines, each of which should be a JSON log message
 	gotLines := strings.Split(output, "\n")
 
@@ -423,6 +585,9 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 // testJSONViewOutputEquals skips the first line of output, since it ought to
 // be a version message that we don't care about for most of our tests.
+//
+// This is used for testing multi-line, structured JSON output from a command like init/plan/apply.
+// This helper is not appropriate for testing single, static log output from views.
 func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]interface{}, options ...cmp.Option) {
 	t.Helper()
 

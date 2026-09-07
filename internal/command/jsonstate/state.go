@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package jsonstate
@@ -276,7 +276,7 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, err
 	var err error
 
 	ret.Address = ""
-	rs, err := marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
+	rs, err := marshalResources(s.RootModule().Resources, schemas)
 	if err != nil {
 		return ret, err
 	}
@@ -330,7 +330,7 @@ func marshalModules(
 		// the module may be resourceless and contain only submodules, it will then be nil here
 		stateMod := s.Module(child)
 		if stateMod != nil {
-			rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
+			rs, err := marshalResources(stateMod.Resources, schemas)
 			if err != nil {
 				return nil, err
 			}
@@ -356,7 +356,7 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
+func marshalResources(resources map[string]*states.Resource, schemas *terraform.Schemas) ([]Resource, error) {
 	var ret []Resource
 
 	var sortedResources []*states.Resource
@@ -368,7 +368,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	})
 
 	for _, r := range sortedResources {
-
 		var sortedKeys []addrs.InstanceKey
 		for k := range r.Instances {
 			sortedKeys = append(sortedKeys, k)
@@ -537,7 +536,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
-	if val.HasMark(marks.Sensitive) {
+	if marks.Has(val, marks.Sensitive) {
 		return cty.True
 	}
 
@@ -620,6 +619,7 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 func unmarkValueForMarshaling(v cty.Value) (unmarkedV cty.Value, sensitivePaths []cty.Path, err error) {
 	val, pvms := v.UnmarkDeepWithPaths()
 	sensitivePaths, otherMarks := marks.PathsWithMark(pvms, marks.Sensitive)
+	_, otherMarks = marks.PathsWithMark(otherMarks, marks.Deprecation)
 	if len(otherMarks) != 0 {
 		return cty.NilVal, nil, fmt.Errorf(
 			"%s: cannot serialize value marked as %#v for inclusion in a state snapshot (this is a bug in Terraform)",

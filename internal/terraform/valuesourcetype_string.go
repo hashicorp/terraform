@@ -17,6 +17,7 @@ func _() {
 	_ = x[ValueFromInput-73]
 	_ = x[ValueFromPlan-80]
 	_ = x[ValueFromCaller-83]
+	_ = x[ValueFromCloud-84]
 }
 
 const (
@@ -27,11 +28,12 @@ const (
 	_ValueSourceType_name_4 = "ValueFromInput"
 	_ValueSourceType_name_5 = "ValueFromNamedFile"
 	_ValueSourceType_name_6 = "ValueFromPlan"
-	_ValueSourceType_name_7 = "ValueFromCaller"
+	_ValueSourceType_name_7 = "ValueFromCallerValueFromCloud"
 )
 
 var (
 	_ValueSourceType_index_3 = [...]uint8{0, 15, 32}
+	_ValueSourceType_index_7 = [...]uint8{0, 15, 29}
 )
 
 func (i ValueSourceType) String() string {
@@ -51,8 +53,9 @@ func (i ValueSourceType) String() string {
 		return _ValueSourceType_name_5
 	case i == 80:
 		return _ValueSourceType_name_6
-	case i == 83:
-		return _ValueSourceType_name_7
+	case 83 <= i && i <= 84:
+		i -= 83
+		return _ValueSourceType_name_7[_ValueSourceType_index_7[i]:_ValueSourceType_index_7[i+1]]
 	default:
 		return "ValueSourceType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

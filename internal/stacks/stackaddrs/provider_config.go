@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package stackaddrs
@@ -91,6 +91,17 @@ func AbsProviderToInstance(addr AbsProviderConfig, ik addrs.InstanceKey) AbsProv
 		Item: ProviderConfigInstance{
 			ProviderConfig: addr.Item,
 			Key:            ik,
+		},
+	}
+}
+
+func ConfigProviderConfigForAbsInstance(instAddr AbsProviderConfigInstance) ConfigProviderConfig {
+	configInst := ConfigForAbs(instAddr) // a ConfigProviderConfigInstance
+	return ConfigProviderConfig{
+		Stack: configInst.Stack,
+		Item: ProviderConfig{
+			Name:     configInst.Item.ProviderConfig.Name,
+			Provider: configInst.Item.ProviderConfig.Provider,
 		},
 	}
 }

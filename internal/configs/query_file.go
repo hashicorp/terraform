@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package configs
@@ -39,7 +39,7 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 	content, contentDiags := body.Content(queryFileSchema)
 	diags = append(diags, contentDiags...)
 
-	listBlockNames := make(map[string]hcl.Range)
+	listBlockTypes := make(map[string]map[string]hcl.Range)
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -50,16 +50,20 @@ func loadQueryFile(body hcl.Body) (*QueryFile, hcl.Diagnostics) {
 				file.ListResources = append(file.ListResources, list)
 			}
 
-			if rng, exists := listBlockNames[list.Name]; exists {
+			if _, exists := listBlockTypes[list.Type]; !exists {
+				listBlockTypes[list.Type] = make(map[string]hcl.Range)
+			}
+			if rng, exists := listBlockTypes[list.Type][list.Name]; exists {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Duplicate \"list\" block names",
-					Detail:   fmt.Sprintf("This query file already has a list block named %s defined at %s.", list.Name, rng),
+					Detail:   fmt.Sprintf("This query file already has a list block named %s.%s defined at %s.", list.Type, list.Name, rng),
 					Subject:  block.DefRange.Ptr(),
 				})
 				continue
 			}
-			listBlockNames[list.Name] = list.DeclRange
+
+			listBlockTypes[list.Type][list.Name] = list.DeclRange
 		case "provider":
 			cfg, cfgDiags := decodeProviderBlock(block, false)
 			diags = append(diags, cfgDiags...)
@@ -103,6 +107,7 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Name:      block.Labels[1],
 		DeclRange: block.DefRange,
 		Config:    remain,
+		List:      &ListResource{},
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -145,13 +150,67 @@ func decodeQueryListBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		}
 	}
 
+	if attr, exists := content.Attributes["include_resource"]; exists {
+		r.List.IncludeResource = attr.Expr
+	}
+
+	if attr, exists := content.Attributes["limit"]; exists {
+		r.List.Limit = attr.Expr
+	}
+
+	// verify that the list block has a config block
+	content, contentDiags = block.Body.Content(&hcl.BodySchema{
+		Attributes: QueryListResourceBlockSchema.Attributes,
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: "config"},
+		},
+	})
+	diags = append(diags, contentDiags...)
+
+	var configBlock hcl.Body
+	for _, block := range content.Blocks {
+		switch block.Type {
+		case "config":
+			if configBlock != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate config block",
+					Detail:   "A list block must contain only one nested \"config\" block.",
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			configBlock = block.Body
+		default:
+			// Should not get here because the above should cover all
+			// block types declared in the schema.
+			panic(fmt.Sprintf("unhandled block type %q", block.Type))
+		}
+	}
+
 	return &r, diags
 }
 
 // QueryListResourceBlockSchema is the schema for a list resource type within
 // a terraform query file.
 var QueryListResourceBlockSchema = &hcl.BodySchema{
-	Attributes: commonResourceAttributes,
+	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "count",
+		},
+		{
+			Name: "for_each",
+		},
+		{
+			Name: "provider",
+		},
+		{
+			Name: "include_resource",
+		},
+		{
+			Name: "limit",
+		},
+	},
 }
 
 // queryFileSchema is the schema for a terraform query file. It defines the

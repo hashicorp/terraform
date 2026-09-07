@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package moduleref
@@ -56,12 +56,10 @@ func (r *Resolver) findAndTrimReferencedEntries(cfg *configs.Config, parentRecor
 	var name string
 	var versionConstraints version.Constraints
 	if parentKey != nil {
-		for key := range cfg.Parent.Children {
+		for key, child := range cfg.Parent.Children {
 			if key == *parentKey {
 				name = key
-				if cfg.Parent.Module.ModuleCalls[key] != nil {
-					versionConstraints = cfg.Parent.Module.ModuleCalls[key].Version.Required
-				}
+				versionConstraints = child.VersionConstraint.Required
 				break
 			}
 		}

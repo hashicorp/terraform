@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/deprecation"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -24,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
@@ -88,9 +91,34 @@ type BuiltinEvalContext struct {
 	EphemeralResourcesValue *ephemeral.Resources
 	RefreshStateValue       *states.SyncState
 	PrevRunStateValue       *states.SyncState
+	PolicyGraphValue        *policySubgraph
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
+	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
+	PolicyClientValue       policy.Client
+	PolicySemaphoreValue    Semaphore
+	DeprecationsValue       *deprecation.Deprecations
+}
+
+func (ctx *BuiltinEvalContext) ProviderLocks() map[addrs.Provider]*depsfile.ProviderLock {
+	return ctx.ProviderLocksValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyClient() policy.Client {
+	return ctx.PolicyClientValue
+}
+
+func (ctx *BuiltinEvalContext) PolicySemaphore() Semaphore {
+	return ctx.PolicySemaphoreValue
+}
+
+func (ctx *BuiltinEvalContext) PolicyGraph() *policySubgraph {
+	return ctx.PolicyGraphValue
+}
+
+func (ctx *BuiltinEvalContext) Config() *configs.Config {
+	return ctx.Evaluator.Config
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -225,12 +253,9 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	}
 
 	req := providers.ConfigureProviderRequest{
-		TerraformVersion: version.String(),
-		Config:           cfg,
-		ClientCapabilities: providers.ClientCapabilities{
-			DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
-			WriteOnlyAttributesAllowed: true,
-		},
+		TerraformVersion:   version.String(),
+		Config:             cfg,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	}
 
 	resp := p.ConfigureProvider(req)
@@ -327,6 +352,23 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 	return val, body, diags
 }
 
+// EvaluateBlockForProvider is a workaround to allow providers to access a more
+// ephemeral context, where filesystem functions can return inconsistent
+// results. Prior to ephemeral values, some configurations were using this
+// loophole to inject different credentials between plan and apply. This
+// exception is not added to the EvalContext interface, so in order to access
+// this workaround the context type must be asserted as BuiltinEvalContext.
+func (ctx *BuiltinEvalContext) EvaluateBlockForProvider(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	scope := ctx.EvaluationScope(self, nil, keyData)
+	scope.ForProvider = true
+	body, evalDiags := scope.ExpandBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	val, evalDiags := scope.EvalBlock(body, schema)
+	diags = diags.Append(evalDiags)
+	return val, body, diags
+}
+
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
@@ -335,7 +377,7 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
 
 	// get the reference to lookup changes in the plan
-	ref, diags := evalReplaceTriggeredByExpr(expr, repData)
+	ref, diags := evalSemiStaticExpr(expr, repData)
 	if diags.HasErrors() {
 		return nil, false, diags
 	}
@@ -406,6 +448,27 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	default:
 		return nil, false, diags
 	}
+
+	// Validate the attribute reference against the target resource's schema.
+	// We use schema-based validation rather than value-based validation because
+	// resources may contain dynamically-typed attributes (DynamicPseudoType) whose
+	// actual type can change between plans. Schema validation ensures we only
+	// error on truly invalid attribute references.
+	// We use change.ProviderAddr rather than resolving from config because
+	// the provider configuration may not be local to the current module.
+	providerSchema, err := ctx.ProviderSchema(change.ProviderAddr)
+	if err == nil {
+		schema := providerSchema.SchemaForResourceType(resCfg.Mode, resCfg.Type)
+		if schema.Body != nil {
+			moreDiags := schema.Body.StaticValidateTraversal(ref.Remaining)
+			diags = diags.Append(moreDiags)
+			if diags.HasErrors() {
+				return nil, false, diags
+			}
+		}
+	}
+	// If we couldn't get the schema, we skip validation and let the value
+	// comparison below handle it. This is a graceful degradation for edge cases.
 
 	path, _ := traversalToPath(ref.Remaining)
 	attrBefore, _ := path.Apply(change.Before)
@@ -618,5 +681,11 @@ func (ctx *BuiltinEvalContext) ClientCapabilities() providers.ClientCapabilities
 	return providers.ClientCapabilities{
 		DeferralAllowed:            ctx.Deferrals().DeferralAllowed(),
 		WriteOnlyAttributesAllowed: true,
+		StorePlannedPrivate:        true,
+		ComputedBlocksAllowed:      true,
 	}
+}
+
+func (ctx *BuiltinEvalContext) Deprecations() *deprecation.Deprecations {
+	return ctx.DeprecationsValue
 }

@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
 package terraform
@@ -14,7 +14,6 @@ import (
 // GraphNodeDestroyer must be implemented by nodes that destroy resources.
 type GraphNodeDestroyer interface {
 	dag.Vertex
-
 	// DestroyAddr is the address of the resource that is being
 	// destroyed by this node. If this returns nil, then this node
 	// is not destroying anything.
@@ -23,6 +22,7 @@ type GraphNodeDestroyer interface {
 
 // GraphNodeCreator must be implemented by nodes that create OR update resources.
 type GraphNodeCreator interface {
+	dag.Vertex
 	// CreateAddr is the address of the resource being created or updated
 	CreateAddr() *addrs.AbsResourceInstance
 }
@@ -86,8 +86,7 @@ destroyA ------------->  destroyB
 // destroyed. This is where these cross-provider edges are still required to
 // ensure the correct order.
 func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
-	e := dag.BasicEdge(from, to)
-	g.Connect(e)
+	g.Connect(from, to)
 
 	// If this is a complete destroy operation, then there are no create/update
 	// nodes to worry about and we can accept the edge without deeper inspection.
@@ -99,19 +98,7 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	// description of the provider being used to help determine if 2 nodes are
 	// from the same provider instance.
 	getComparableProvider := func(pc GraphNodeProviderConsumer) string {
-		ps := pc.Provider().String()
-
-		// we don't care about `exact` here, since we're only looking for any
-		// clue that the providers may differ.
-		p, _ := pc.ProvidedBy()
-		switch p := p.(type) {
-		case addrs.AbsProviderConfig:
-			ps = p.String()
-		case addrs.LocalProviderConfig:
-			ps = p.String()
-		}
-
-		return ps
+		return pc.Provider().String()
 	}
 
 	pc, ok := from.(GraphNodeProviderConsumer)
@@ -129,95 +116,90 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	// Check for cycles, and back out the edge if there are any.
 	// The cycles we are looking for only appears between providers, so don't
 	// waste time checking for cycles if both nodes use the same provider.
-	if fromProvider != toProvider && g.Ancestors(to).Include(from) {
+	if fromProvider != toProvider && g.Ancestors(to).Contains(from) {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
-			dag.VertexName(from), dag.VertexName(to))
-		g.RemoveEdge(e)
+			from.Name(), to.Name())
+		g.RemoveEdge(from, to)
 	}
 }
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
 	// the list of destroyers.
-	destroyers := make(map[string][]GraphNodeDestroyer)
+	destroyers := addrs.MakeMap[addrs.AbsResourceInstance, []GraphNodeDestroyer]()
 
 	// Record the creators, which will need to depend on the destroyers if they
 	// are only being updated.
-	creators := make(map[string][]GraphNodeCreator)
+	creators := addrs.MakeMap[addrs.ConfigResource, []GraphNodeCreator]()
 
 	// destroyersByResource records each destroyer by the ConfigResource
 	// address.  We use this because dependencies are only referenced as
 	// resources and have no index or module instance information, but we will
 	// want to connect all the individual instances for correct ordering.
-	destroyersByResource := make(map[string][]GraphNodeDestroyer)
-	for _, v := range g.Vertices() {
+	destroyersByResource := addrs.MakeMap[addrs.ConfigResource, []GraphNodeDestroyer]()
+	for v := range g.VerticesSeq() {
 		switch n := v.(type) {
 		case GraphNodeDestroyer:
 			addrP := n.DestroyAddr()
 			if addrP == nil {
-				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", dag.VertexName(n), v)
+				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", n.Name(), v)
 				continue
 			}
 			addr := *addrP
 
 			key := addr.String()
-			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", dag.VertexName(n), v, key)
-			destroyers[key] = append(destroyers[key], n)
+			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", n.Name(), v, key)
+			destroyers.Put(addr, append(destroyers.Get(addr), n))
 
-			resAddr := addr.ContainingResource().Config().String()
-			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
+			resAddr := addr.ContainingResource().Config()
+			destroyersByResource.Put(resAddr, append(destroyersByResource.Get(resAddr), n))
 		case GraphNodeCreator:
 			addr := n.CreateAddr()
-			cfgAddr := addr.ContainingResource().Config().String()
+			cfgAddr := addr.ContainingResource().Config()
 
 			if t.Changes == nil {
 				// unit tests may not have changes
-				creators[cfgAddr] = append(creators[cfgAddr], n)
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
 				break
 			}
 
 			// NoOp changes should not participate in the destroy dependencies.
 			rc := t.Changes.ResourceInstance(*addr)
 			if rc != nil && rc.Action != plans.NoOp {
-				creators[cfgAddr] = append(creators[cfgAddr], n)
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
 			}
 		}
 	}
 
 	// If we aren't destroying anything, there will be no edges to make
 	// so just exit early and avoid future work.
-	if len(destroyers) == 0 {
+	if destroyers.Len() == 0 {
 		return nil
 	}
 
-	// Go through and connect creators to destroyers. Going along with
-	// our example, this makes: A_d => A
-	for _, v := range g.Vertices() {
-		cn, ok := v.(GraphNodeCreator)
+	// Go through and connect creators to destroyers.
+	for v := range g.VerticesSeq() {
+		creator, ok := v.(GraphNodeCreator)
 		if !ok {
 			continue
 		}
 
-		addr := cn.CreateAddr()
+		addr := creator.CreateAddr()
 		if addr == nil {
 			continue
 		}
 
-		for _, d := range destroyers[addr.String()] {
-			// For illustrating our example
-			a_d := d.(dag.Vertex)
-			a := v
-
+		for _, destroyer := range destroyers.Get(*addr) {
 			log.Printf(
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
-				dag.VertexName(a), dag.VertexName(a_d))
+				creator.Name(), destroyer.Name())
 
-			g.Connect(dag.BasicEdge(a, a_d))
+			g.Connect(creator, destroyer)
 		}
 	}
 
 	// connect creators to any destroyers on which they may depend
-	for _, cs := range creators {
+	for _, cs := range creators.Iter() {
 		for _, c := range cs {
 			ri, ok := c.(GraphNodeResourceInstance)
 			if !ok {
@@ -225,12 +207,12 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			for _, resAddr := range ri.StateDependencies() {
-				for _, desDep := range destroyersByResource[resAddr.String()] {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
-						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-						g.Connect(dag.BasicEdge(c, desDep))
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", c.Name(), desDep.Name())
+						g.Connect(c, desDep)
 					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", c.Name(), desDep.Name())
 					}
 				}
 			}
@@ -238,7 +220,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	}
 
 	// Connect destroy dependencies as stored in the state
-	for _, ds := range destroyers {
+	for _, ds := range destroyers.Iter() {
 		for _, des := range ds {
 			ri, ok := des.(GraphNodeResourceInstance)
 			if !ok {
@@ -246,24 +228,24 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			for _, resAddr := range ri.StateDependencies() {
-				for _, desDep := range destroyersByResource[resAddr.String()] {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
-						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", desDep.Name(), des.Name())
 						t.tryInterProviderDestroyEdge(g, desDep, des)
 					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", desDep.Name(), des.Name())
 					}
 				}
 
 				// We can have some create or update nodes which were
 				// dependents of the destroy node. If they have no destroyer
 				// themselves, make the connection directly from the creator.
-				for _, createDep := range creators[resAddr.String()] {
+				for _, createDep := range creators.Get(resAddr) {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
-						log.Printf("[DEBUG] DestroyEdgeTransformer2: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
+						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", createDep.Name(), des.Name())
 						t.tryInterProviderDestroyEdge(g, createDep, des)
 					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer2: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", createDep.Name(), des.Name())
 					}
 				}
 			}
@@ -313,18 +295,18 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 
 	// we need to track nodes to keep, because the dependency trees can overlap,
 	// so we can't just remove all dependencies of nodes we don't want.
-	keep := make(dag.Set)
+	keep := dag.NewVertexSet()
 
 	// Only keep destroyers, their providers, and anything the providers need
 	// for configuration. Since the destroyer should already be hooked up to the
 	// provider, keeping all the destroyer dependencies should suffice.
-	for _, n := range g.Vertices() {
+	for n := range g.VerticesSeq() {
 		// a special case of destroyer, is that by convention Terraform expects
 		// root outputs to be "destroyed", and the output node is what writes
 		// the nil state. A root module output currently identifies itself as a
 		// temporary value which is not temporary for that reason.
 		if tmp, ok := n.(graphNodeTemporaryValue); ok && !tmp.temporaryValue() {
-			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping root output %s", dag.VertexName(n))
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping root output %s", n.Name())
 			keep.Add(n)
 			continue
 		}
@@ -335,18 +317,18 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping destroy node %s", dag.VertexName(n))
+		log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping destroy node %s", n.Name())
 		keep.Add(n)
 
-		for _, anc := range g.Ancestors(n) {
-			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping %s as dependency of %s", dag.VertexName(anc), dag.VertexName(n))
+		for anc := range g.Ancestors(n).All() {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping %s as dependency of %s", anc.Name(), n.Name())
 			keep.Add(anc)
 		}
 	}
 
-	for _, n := range g.Vertices() {
-		if !keep.Include(n) {
-			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", dag.VertexName(n))
+	for n := range g.VerticesSeq() {
+		if !keep.Contains(n) {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", n.Name())
 			g.Remove(n)
 		}
 	}

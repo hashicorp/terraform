@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/azurerm: Add backend-specific environment variables for configuring a separate workload identity'
+time: 2026-09-07T14:05:05.820000+01:00
+custom:
+    Issue: "36922"
