@@ -118,6 +118,7 @@ const (
 	// and changes are potentially breaking.
 	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
 	MessageOutputInitSuccessMessage          MessageType = "output_init_success_message"
+	MessageOutputInitEmptyMessage            MessageType = "output_init_empty_message"
 	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
 	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
