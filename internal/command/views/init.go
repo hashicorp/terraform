@@ -209,8 +209,7 @@ func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provid
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	v.print(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+	v.print(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
@@ -509,11 +508,7 @@ func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provide
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(UsingProviderFromCacheDirInfo, params...)
+	v.view.Log(fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
@@ -652,10 +647,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: logFindingLatestVersionHuman,
 		JSONValue:  logFindingLatestVersionJSON,
 	},
-	"using_provider_from_cache_dir_info": {
-		HumanValue: logUsingProviderVersionFromCacheDirHuman,
-		JSONValue:  logUsingProviderVersionFromCacheDirJSON,
-	},
 	"installing_provider_message": {
 		HumanValue: logInstallProviderVersionStartHuman,
 		JSONValue:  logInstallProviderVersionStartJSON,
@@ -741,8 +732,6 @@ const (
 	InstallingProviderMessage InitMessageCode = "installing_provider_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
 	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
-	// UsingProviderFromCacheDirInfo indicates that a provider is being linked from a system-wide cache
-	UsingProviderFromCacheDirInfo InitMessageCode = "using_provider_from_cache_dir_info"
 	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
 	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
 )
