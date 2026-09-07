@@ -103,11 +103,19 @@ func (p *Parser) rootFiles(dir string, matchers []FileMatcher, fileSet *ConfigFi
 	}
 
 	for _, info := range infos {
-		if info.IsDir() || IsIgnoredFile(info.Name()) {
+		if info.IsDir() {
 			continue
 		}
 
 		name := info.Name()
+
+		// Query files (.tfquery.hcl) and state migration files (.tfmigrate.hcl)
+		// legitimately begin with a dot, so they must not be filtered out by the
+		// hidden-file check below.
+		if IsIgnoredFile(name) && !isDotPrefixedConfigFile(name) {
+			continue
+		}
+
 		fullPath := filepath.Join(dir, name)
 
 		// Try each matcher to see if it matches
@@ -266,4 +274,14 @@ func (s *stateMigrateFiles) Matches(name string) bool {
 func (s *stateMigrateFiles) DirFiles(dir string, options *parserConfig, fileSet *ConfigFileSet) hcl.Diagnostics {
 	// There are no special directories for .tfmigrate.hcl files.
 	return nil
+}
+
+// isDotPrefixedConfigFile returns true if name is a Terraform configuration
+// file whose conventional name begins with a dot, such as ".tfquery.hcl" or
+// ".tfmigrate.hcl". These are matched by their suffix, but must not be skipped
+// by the hidden-file heuristic that otherwise ignores dot-prefixed names.
+func isDotPrefixedConfigFile(name string) bool {
+	return strings.HasSuffix(name, ".tfquery.hcl") ||
+		strings.HasSuffix(name, ".tfquery.json") ||
+		strings.HasSuffix(name, ".tfmigrate.hcl")
 }

@@ -181,6 +181,11 @@ func TestParserLoadConfigDirWithQueries(t *testing.T) {
 			managedResources: 1,
 		},
 		{
+			name:          "dot-prefixed query file",
+			directory:     "testdata/query-files/valid/dot-prefixed",
+			listResources: 1,
+		},
+		{
 			name:             "loading query lists with no-experiments",
 			directory:        "testdata/query-files/valid/mixed",
 			managedResources: 1,

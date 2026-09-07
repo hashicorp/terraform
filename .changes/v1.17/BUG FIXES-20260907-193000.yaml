@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "query: `terraform query` now discovers `.tfquery.hcl` query files whose names begin with a dot, which were previously skipped as hidden files and reported as \"No resources to query\"."
+time: 2026-09-07T19:30:00Z
+custom:
+  Issue: "39151"
