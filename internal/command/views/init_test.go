@@ -981,6 +981,29 @@ func TestNewInit_LogInitSuccess_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInitSuccessEmpty_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitSuccessEmpty()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Terraform initialized in an empty directory!`, // @message : we don't assert the full contents due to size
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_empty_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)

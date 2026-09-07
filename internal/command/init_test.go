@@ -92,7 +92,7 @@ func TestInit_empty(t *testing.T) {
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
-	exp := views.MessageRegistry[views.OutputInitEmptyMessage].JSONValue
+	exp := "Terraform initialized in an empty directory!"
 	actual := cleanString(done(t).All())
 	if !strings.Contains(actual, cleanString(exp)) {
 		t.Fatalf("expected output to be %q\n, got %q", exp, actual)

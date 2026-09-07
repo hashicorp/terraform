@@ -110,7 +110,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 	if empty {
-		view.Output(views.OutputInitEmptyMessage)
+		view.LogInitSuccessEmpty()
 		return 0
 	}
 
