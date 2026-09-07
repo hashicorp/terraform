@@ -981,6 +981,29 @@ func TestNewInit_LogInitSuccess_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInitSuccessCloud_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitSuccessCloud()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"HCP Terraform has been successfully initialized!"`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_success_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_LogInitSuccessEmpty_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
