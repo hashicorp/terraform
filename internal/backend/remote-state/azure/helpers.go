@@ -45,9 +45,9 @@ func getOidcToken(d *backendbase.SDKLikeData) (*string, error) {
 	idToken := strings.TrimSpace(d.String("oidc_token"))
 	tokenFilePath := d.String("oidc_token_file_path")
 
-	if environmentVariableSet(envARMOIDCTokenBackend, envARMOIDCTokenFilePathBackend) {
-		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, envARMOIDCTokenBackend))
-		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, envARMOIDCTokenFilePathBackend)
+	if environmentVariableSet("ARM_OIDC_TOKEN_BACKEND", "ARM_OIDC_TOKEN_FILE_PATH_BACKEND") {
+		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, "ARM_OIDC_TOKEN_BACKEND"))
+		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, "ARM_OIDC_TOKEN_FILE_PATH_BACKEND")
 	} else {
 		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, "ARM_OIDC_TOKEN"))
 		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, "ARM_OIDC_TOKEN_FILE_PATH")
@@ -93,9 +93,9 @@ func getClientId(d *backendbase.SDKLikeData) (*string, error) {
 	clientId := strings.TrimSpace(d.String("client_id"))
 	clientIdFilePath := d.String("client_id_file_path")
 
-	if environmentVariableSet(envARMClientIDBackend, envARMClientIDFilePathBackend) {
-		clientId = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientId, envARMClientIDBackend))
-		clientIdFilePath = backendbase.SDKLikeEnvDefault(clientIdFilePath, envARMClientIDFilePathBackend)
+	if environmentVariableSet("ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID_FILE_PATH_BACKEND") {
+		clientId = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientId, "ARM_CLIENT_ID_BACKEND"))
+		clientIdFilePath = backendbase.SDKLikeEnvDefault(clientIdFilePath, "ARM_CLIENT_ID_FILE_PATH_BACKEND")
 	} else {
 		clientId = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientId, "ARM_CLIENT_ID"))
 		clientIdFilePath = backendbase.SDKLikeEnvDefault(clientIdFilePath, "ARM_CLIENT_ID_FILE_PATH")
@@ -167,7 +167,7 @@ func getTenantId(d *backendbase.SDKLikeData) (*string, error) {
 func getOidcRequestURL(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
 	requestURL := backendbase.SDKLikeEnvDefault(
 		d.String("oidc_request_url"),
-		envARMOIDCRequestURLBackend,
+		"ARM_OIDC_REQUEST_URL_BACKEND",
 		"ARM_OIDC_REQUEST_URL",
 		"ACTIONS_ID_TOKEN_REQUEST_URL",
 	)
@@ -180,7 +180,7 @@ func getOidcRequestURL(d *backendbase.SDKLikeData, adoPipelineServiceConnectionI
 func getOidcRequestToken(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
 	requestToken := backendbase.SDKLikeEnvDefault(
 		d.String("oidc_request_token"),
-		envARMOIDCRequestTokenBackend,
+		"ARM_OIDC_REQUEST_TOKEN_BACKEND",
 		"ARM_OIDC_REQUEST_TOKEN",
 		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 	)
@@ -209,13 +209,13 @@ func getADOPipelineServiceConnectionID(d *backendbase.SDKLikeData) string {
 
 func backendOIDCIdentityEnvironmentConfigured() bool {
 	return environmentVariableSet(
-		envARMTenantIDBackend,
-		envARMClientIDBackend,
-		envARMClientIDFilePathBackend,
-		envARMOIDCRequestTokenBackend,
-		envARMOIDCRequestURLBackend,
-		envARMOIDCTokenBackend,
-		envARMOIDCTokenFilePathBackend,
+		"ARM_TENANT_ID_BACKEND",
+		"ARM_CLIENT_ID_BACKEND",
+		"ARM_CLIENT_ID_FILE_PATH_BACKEND",
+		"ARM_OIDC_REQUEST_TOKEN_BACKEND",
+		"ARM_OIDC_REQUEST_URL_BACKEND",
+		"ARM_OIDC_TOKEN_BACKEND",
+		"ARM_OIDC_TOKEN_FILE_PATH_BACKEND",
 	)
 }
 

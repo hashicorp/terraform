@@ -18,21 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	envARMSubscriptionIDBackend                 = "ARM_SUBSCRIPTION_ID_BACKEND"
-	envARMTenantIDBackend                       = "ARM_TENANT_ID_BACKEND"
-	envARMClientIDBackend                       = "ARM_CLIENT_ID_BACKEND"
-	envARMClientIDFilePathBackend               = "ARM_CLIENT_ID_FILE_PATH_BACKEND"
-	envARMUseOIDCBackend                        = "ARM_USE_OIDC_BACKEND"
-	envARMUseAzureADBackend                     = "ARM_USE_AZUREAD_BACKEND"
-	envARMOIDCRequestTokenBackend               = "ARM_OIDC_REQUEST_TOKEN_BACKEND"
-	envARMOIDCRequestURLBackend                 = "ARM_OIDC_REQUEST_URL_BACKEND"
-	envARMOIDCTokenBackend                      = "ARM_OIDC_TOKEN_BACKEND"
-	envARMOIDCTokenFilePathBackend              = "ARM_OIDC_TOKEN_FILE_PATH_BACKEND"
-	envARMADOPipelineServiceConnectionIDBackend = "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND"
-	envARMOIDCAzureServiceConnectionIDBackend   = "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND"
-)
-
 // New creates a new backend for Azure remote state.
 func New() backend.Backend {
 	return &Backend{
@@ -214,7 +199,7 @@ func New() backend.Backend {
 			},
 			SDKLikeDefaults: backendbase.SDKLikeDefaults{
 				"subscription_id": {
-					EnvVars:  []string{envARMSubscriptionIDBackend, "ARM_SUBSCRIPTION_ID"},
+					EnvVars:  []string{"ARM_SUBSCRIPTION_ID_BACKEND", "ARM_SUBSCRIPTION_ID"},
 					Fallback: "",
 				},
 				"lookup_blob_endpoint": {
@@ -242,7 +227,7 @@ func New() backend.Backend {
 					Fallback: "",
 				},
 				"tenant_id": {
-					EnvVars:  []string{envARMTenantIDBackend, "ARM_TENANT_ID"},
+					EnvVars:  []string{"ARM_TENANT_ID_BACKEND", "ARM_TENANT_ID"},
 					Fallback: "",
 				},
 
@@ -272,11 +257,11 @@ func New() backend.Backend {
 
 				// OIDC specific fields
 				"use_oidc": {
-					EnvVars:  []string{envARMUseOIDCBackend, "ARM_USE_OIDC"},
+					EnvVars:  []string{"ARM_USE_OIDC_BACKEND", "ARM_USE_OIDC"},
 					Fallback: "false",
 				},
 				"ado_pipeline_service_connection_id": {
-					EnvVars: []string{envARMADOPipelineServiceConnectionIDBackend, envARMOIDCAzureServiceConnectionIDBackend},
+					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND"},
 					// no fallback
 				},
 
@@ -304,7 +289,7 @@ func New() backend.Backend {
 
 				// Feature Flags
 				"use_azuread_auth": {
-					EnvVars:  []string{envARMUseAzureADBackend, "ARM_USE_AZUREAD"},
+					EnvVars:  []string{"ARM_USE_AZUREAD_BACKEND", "ARM_USE_AZUREAD"},
 					Fallback: "false",
 				},
 			},

@@ -34,14 +34,14 @@ func TestBackendIdentityEnvironmentVariablePrecedence(t *testing.T) {
 				"use_azuread_auth": false,
 			},
 			env: map[string]string{
-				envARMSubscriptionIDBackend: "backend-subscription",
-				"ARM_SUBSCRIPTION_ID":       "generic-subscription",
-				envARMTenantIDBackend:       "backend-tenant",
-				"ARM_TENANT_ID":             "generic-tenant",
-				envARMUseOIDCBackend:        "true",
-				"ARM_USE_OIDC":              "true",
-				envARMUseAzureADBackend:     "true",
-				"ARM_USE_AZUREAD":           "true",
+				"ARM_SUBSCRIPTION_ID_BACKEND": "backend-subscription",
+				"ARM_SUBSCRIPTION_ID":         "generic-subscription",
+				"ARM_TENANT_ID_BACKEND":       "backend-tenant",
+				"ARM_TENANT_ID":               "generic-tenant",
+				"ARM_USE_OIDC_BACKEND":        "true",
+				"ARM_USE_OIDC":                "true",
+				"ARM_USE_AZUREAD_BACKEND":     "true",
+				"ARM_USE_AZUREAD":             "true",
 			},
 			want: struct {
 				subscriptionID string
@@ -57,14 +57,14 @@ func TestBackendIdentityEnvironmentVariablePrecedence(t *testing.T) {
 		},
 		"backend environment wins": {
 			env: map[string]string{
-				envARMSubscriptionIDBackend: "backend-subscription",
-				"ARM_SUBSCRIPTION_ID":       "generic-subscription",
-				envARMTenantIDBackend:       "backend-tenant",
-				"ARM_TENANT_ID":             "generic-tenant",
-				envARMUseOIDCBackend:        "true",
-				"ARM_USE_OIDC":              "false",
-				envARMUseAzureADBackend:     "true",
-				"ARM_USE_AZUREAD":           "false",
+				"ARM_SUBSCRIPTION_ID_BACKEND": "backend-subscription",
+				"ARM_SUBSCRIPTION_ID":         "generic-subscription",
+				"ARM_TENANT_ID_BACKEND":       "backend-tenant",
+				"ARM_TENANT_ID":               "generic-tenant",
+				"ARM_USE_OIDC_BACKEND":        "true",
+				"ARM_USE_OIDC":                "false",
+				"ARM_USE_AZUREAD_BACKEND":     "true",
+				"ARM_USE_AZUREAD":             "false",
 			},
 			want: struct {
 				subscriptionID string
@@ -124,7 +124,7 @@ func TestBackendIdentityEnvironmentVariablePrecedence(t *testing.T) {
 func TestClientIDEnvironmentVariablePrecedence(t *testing.T) {
 	t.Run("configuration wins", func(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
-		t.Setenv(envARMClientIDBackend, "backend-client")
+		t.Setenv("ARM_CLIENT_ID_BACKEND", "backend-client")
 		t.Setenv("ARM_CLIENT_ID", "generic-client")
 
 		data := testBackendData(t, map[string]interface{}{"client_id": "config-client"})
@@ -139,7 +139,7 @@ func TestClientIDEnvironmentVariablePrecedence(t *testing.T) {
 
 	t.Run("backend environment wins", func(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
-		t.Setenv(envARMClientIDBackend, "backend-client")
+		t.Setenv("ARM_CLIENT_ID_BACKEND", "backend-client")
 		t.Setenv("ARM_CLIENT_ID", "generic-client")
 
 		data := testBackendData(t, nil)
@@ -174,7 +174,7 @@ func TestClientIDEnvironmentVariablePrecedence(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
 		backendFile := writeTestFile(t, "backend-client-id", "backend-client")
 		genericFile := writeTestFile(t, "generic-client-id", "generic-file-client")
-		t.Setenv(envARMClientIDFilePathBackend, backendFile)
+		t.Setenv("ARM_CLIENT_ID_FILE_PATH_BACKEND", backendFile)
 		t.Setenv("ARM_CLIENT_ID", "generic-client")
 		t.Setenv("ARM_CLIENT_ID_FILE_PATH", genericFile)
 
@@ -205,7 +205,7 @@ func TestClientIDEnvironmentVariablePrecedence(t *testing.T) {
 func TestOIDCTokenEnvironmentVariablePrecedence(t *testing.T) {
 	t.Run("configuration wins", func(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
-		t.Setenv(envARMOIDCTokenBackend, "backend-token")
+		t.Setenv("ARM_OIDC_TOKEN_BACKEND", "backend-token")
 		t.Setenv("ARM_OIDC_TOKEN", "generic-token")
 
 		data := testBackendData(t, map[string]interface{}{"oidc_token": "config-token"})
@@ -220,7 +220,7 @@ func TestOIDCTokenEnvironmentVariablePrecedence(t *testing.T) {
 
 	t.Run("backend environment wins and remains runtime only", func(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
-		t.Setenv(envARMOIDCTokenBackend, "backend-token")
+		t.Setenv("ARM_OIDC_TOKEN_BACKEND", "backend-token")
 		t.Setenv("ARM_OIDC_TOKEN", "generic-token")
 
 		data := testBackendData(t, nil)
@@ -255,7 +255,7 @@ func TestOIDCTokenEnvironmentVariablePrecedence(t *testing.T) {
 		clearBackendIdentityEnvironment(t)
 		backendFile := writeTestFile(t, "backend-token", "backend-token")
 		genericFile := writeTestFile(t, "generic-token", "generic-file-token")
-		t.Setenv(envARMOIDCTokenFilePathBackend, backendFile)
+		t.Setenv("ARM_OIDC_TOKEN_FILE_PATH_BACKEND", backendFile)
 		t.Setenv("ARM_OIDC_TOKEN", "generic-token")
 		t.Setenv("ARM_OIDC_TOKEN_FILE_PATH", genericFile)
 
@@ -283,18 +283,18 @@ func TestOIDCRequestEnvironmentVariablePrecedence(t *testing.T) {
 				"oidc_request_token": "config-token",
 			},
 			env: map[string]string{
-				envARMOIDCRequestURLBackend:   "backend-url",
-				envARMOIDCRequestTokenBackend: "backend-token",
-				"ARM_OIDC_REQUEST_URL":        "generic-url",
-				"ARM_OIDC_REQUEST_TOKEN":      "generic-token",
+				"ARM_OIDC_REQUEST_URL_BACKEND":   "backend-url",
+				"ARM_OIDC_REQUEST_TOKEN_BACKEND": "backend-token",
+				"ARM_OIDC_REQUEST_URL":           "generic-url",
+				"ARM_OIDC_REQUEST_TOKEN":         "generic-token",
 			},
 			wantURL:   "config-url",
 			wantToken: "config-token",
 		},
 		"backend environment wins": {
 			env: map[string]string{
-				envARMOIDCRequestURLBackend:      "backend-url",
-				envARMOIDCRequestTokenBackend:    "backend-token",
+				"ARM_OIDC_REQUEST_URL_BACKEND":   "backend-url",
+				"ARM_OIDC_REQUEST_TOKEN_BACKEND": "backend-token",
 				"ARM_OIDC_REQUEST_URL":           "generic-url",
 				"ARM_OIDC_REQUEST_TOKEN":         "generic-token",
 				"ACTIONS_ID_TOKEN_REQUEST_URL":   "github-url",
@@ -376,23 +376,23 @@ func TestADOPipelineServiceConnectionEnvironmentVariablePrecedence(t *testing.T)
 				"ado_pipeline_service_connection_id": "config-service-connection",
 			},
 			env: map[string]string{
-				envARMADOPipelineServiceConnectionIDBackend: "backend-service-connection",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":    "generic-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND": "backend-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":         "generic-service-connection",
 			},
 			want: "config-service-connection",
 		},
 		"canonical backend environment wins": {
 			env: map[string]string{
-				envARMADOPipelineServiceConnectionIDBackend: "backend-service-connection",
-				envARMOIDCAzureServiceConnectionIDBackend:   "legacy-backend-service-connection",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":    "generic-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND": "backend-service-connection",
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND":   "legacy-backend-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":         "generic-service-connection",
 			},
 			want: "backend-service-connection",
 		},
 		"legacy backend environment fallback": {
 			env: map[string]string{
-				envARMOIDCAzureServiceConnectionIDBackend: "legacy-backend-service-connection",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":  "generic-service-connection",
+				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND": "legacy-backend-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":       "generic-service-connection",
 			},
 			want: "legacy-backend-service-connection",
 		},
@@ -419,7 +419,7 @@ func TestADOPipelineServiceConnectionEnvironmentVariablePrecedence(t *testing.T)
 		},
 		"backend identity does not inherit provider service connection": {
 			env: map[string]string{
-				envARMClientIDBackend:                     "backend-client",
+				"ARM_CLIENT_ID_BACKEND":                   "backend-client",
 				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":  "provider-service-connection",
 				"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID":    "legacy-provider-service-connection",
 				"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID": "task-service-connection",
@@ -428,16 +428,16 @@ func TestADOPipelineServiceConnectionEnvironmentVariablePrecedence(t *testing.T)
 		},
 		"backend direct token does not inherit provider service connection": {
 			env: map[string]string{
-				envARMOIDCTokenBackend:                   "backend-token",
+				"ARM_OIDC_TOKEN_BACKEND":                 "backend-token",
 				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID": "provider-service-connection",
 			},
 			want: "",
 		},
 		"backend service connection remains available for separate identity": {
 			env: map[string]string{
-				envARMClientIDBackend:                       "backend-client",
-				envARMADOPipelineServiceConnectionIDBackend: "backend-service-connection",
-				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":    "provider-service-connection",
+				"ARM_CLIENT_ID_BACKEND":                          "backend-client",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND": "backend-service-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":         "provider-service-connection",
 			},
 			want: "backend-service-connection",
 		},
@@ -486,32 +486,32 @@ func clearBackendIdentityEnvironment(t *testing.T) {
 	t.Helper()
 
 	for _, name := range []string{
-		envARMSubscriptionIDBackend,
+		"ARM_SUBSCRIPTION_ID_BACKEND",
 		"ARM_SUBSCRIPTION_ID",
-		envARMTenantIDBackend,
+		"ARM_TENANT_ID_BACKEND",
 		"ARM_TENANT_ID",
-		envARMClientIDBackend,
+		"ARM_CLIENT_ID_BACKEND",
 		"ARM_CLIENT_ID",
-		envARMClientIDFilePathBackend,
+		"ARM_CLIENT_ID_FILE_PATH_BACKEND",
 		"ARM_CLIENT_ID_FILE_PATH",
-		envARMUseOIDCBackend,
+		"ARM_USE_OIDC_BACKEND",
 		"ARM_USE_OIDC",
-		envARMUseAzureADBackend,
+		"ARM_USE_AZUREAD_BACKEND",
 		"ARM_USE_AZUREAD",
-		envARMOIDCRequestURLBackend,
+		"ARM_OIDC_REQUEST_URL_BACKEND",
 		"ARM_OIDC_REQUEST_URL",
 		"ACTIONS_ID_TOKEN_REQUEST_URL",
 		"SYSTEM_OIDCREQUESTURI",
-		envARMOIDCRequestTokenBackend,
+		"ARM_OIDC_REQUEST_TOKEN_BACKEND",
 		"ARM_OIDC_REQUEST_TOKEN",
 		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 		"SYSTEM_ACCESSTOKEN",
-		envARMOIDCTokenBackend,
+		"ARM_OIDC_TOKEN_BACKEND",
 		"ARM_OIDC_TOKEN",
-		envARMOIDCTokenFilePathBackend,
+		"ARM_OIDC_TOKEN_FILE_PATH_BACKEND",
 		"ARM_OIDC_TOKEN_FILE_PATH",
-		envARMADOPipelineServiceConnectionIDBackend,
-		envARMOIDCAzureServiceConnectionIDBackend,
+		"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND",
+		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND",
 		"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID",
 		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
 		"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
