@@ -325,11 +325,18 @@ func TestOIDCRequestEnvironmentVariablePrecedence(t *testing.T) {
 		},
 		"azure pipelines platform fallback": {
 			env: map[string]string{
-				"SYSTEM_OIDCREQUESTURI": "ado-url",
-				"SYSTEM_ACCESSTOKEN":    "ado-token",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID": "ado-service-connection",
+				"SYSTEM_OIDCREQUESTURI":                  "ado-url",
+				"SYSTEM_ACCESSTOKEN":                     "ado-token",
 			},
 			wantURL:   "ado-url",
 			wantToken: "ado-token",
+		},
+		"azure pipelines without service connection requires direct token": {
+			env: map[string]string{
+				"SYSTEM_OIDCREQUESTURI": "ado-url",
+				"SYSTEM_ACCESSTOKEN":    "ado-token",
+			},
 		},
 	}
 
@@ -339,6 +346,7 @@ func TestOIDCRequestEnvironmentVariablePrecedence(t *testing.T) {
 			setEnvironment(t, test.env)
 
 			data := testBackendData(t, test.config)
+			serviceConnectionID := getADOPipelineServiceConnectionID(&data)
 			if test.config == nil {
 				if got := data.String("oidc_request_url"); got != "" {
 					t.Fatalf("OIDC request URL environment value entered prepared config: %q", got)
@@ -347,10 +355,10 @@ func TestOIDCRequestEnvironmentVariablePrecedence(t *testing.T) {
 					t.Fatalf("OIDC request token environment value entered prepared config: %q", got)
 				}
 			}
-			if got := getOidcRequestURL(&data); got != test.wantURL {
+			if got := getOidcRequestURL(&data, serviceConnectionID); got != test.wantURL {
 				t.Errorf("wrong OIDC request URL: got %q, want %q", got, test.wantURL)
 			}
-			if got := getOidcRequestToken(&data); got != test.wantToken {
+			if got := getOidcRequestToken(&data, serviceConnectionID); got != test.wantToken {
 				t.Errorf("wrong OIDC request token: got %q, want %q", got, test.wantToken)
 			}
 		})

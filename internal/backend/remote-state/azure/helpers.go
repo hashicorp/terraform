@@ -164,24 +164,30 @@ func getTenantId(d *backendbase.SDKLikeData) (*string, error) {
 	return &tenantId, nil
 }
 
-func getOidcRequestURL(d *backendbase.SDKLikeData) string {
-	return backendbase.SDKLikeEnvDefault(
+func getOidcRequestURL(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
+	requestURL := backendbase.SDKLikeEnvDefault(
 		d.String("oidc_request_url"),
 		envARMOIDCRequestURLBackend,
 		"ARM_OIDC_REQUEST_URL",
 		"ACTIONS_ID_TOKEN_REQUEST_URL",
-		"SYSTEM_OIDCREQUESTURI",
 	)
+	if requestURL == "" && adoPipelineServiceConnectionID != "" {
+		requestURL = os.Getenv("SYSTEM_OIDCREQUESTURI")
+	}
+	return requestURL
 }
 
-func getOidcRequestToken(d *backendbase.SDKLikeData) string {
-	return backendbase.SDKLikeEnvDefault(
+func getOidcRequestToken(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
+	requestToken := backendbase.SDKLikeEnvDefault(
 		d.String("oidc_request_token"),
 		envARMOIDCRequestTokenBackend,
 		"ARM_OIDC_REQUEST_TOKEN",
 		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
-		"SYSTEM_ACCESSTOKEN",
 	)
+	if requestToken == "" && adoPipelineServiceConnectionID != "" {
+		requestToken = os.Getenv("SYSTEM_ACCESSTOKEN")
+	}
+	return requestToken
 }
 
 func getADOPipelineServiceConnectionID(d *backendbase.SDKLikeData) string {

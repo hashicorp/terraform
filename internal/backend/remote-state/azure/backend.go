@@ -379,9 +379,9 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 		return backendbase.ErrorAsDiagnostics(err)
 	}
 
-	oidcRequestURL := getOidcRequestURL(&data)
-	oidcRequestToken := getOidcRequestToken(&data)
 	adoPipelineServiceConnectionID := getADOPipelineServiceConnectionID(&data)
+	oidcRequestURL := getOidcRequestURL(&data, adoPipelineServiceConnectionID)
+	oidcRequestToken := getOidcRequestToken(&data, adoPipelineServiceConnectionID)
 
 	var (
 		env *environments.Environment
