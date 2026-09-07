@@ -42,9 +42,9 @@ func decodeCertificate(clientCertificate string) ([]byte, error) {
 }
 
 func getOidcToken(d *backendbase.SDKLikeData) (*string, error) {
-	idToken, tokenFilePath := resolveOidcTokenInputs(d)
+	idToken := strings.TrimSpace(d.String("oidc_token"))
 
-	if path := tokenFilePath; path != "" {
+	if path := d.String("oidc_token_file_path"); path != "" {
 		fileTokenRaw, err := os.ReadFile(path)
 
 		if err != nil {
@@ -81,9 +81,9 @@ func getOidcToken(d *backendbase.SDKLikeData) (*string, error) {
 }
 
 func getClientId(d *backendbase.SDKLikeData) (*string, error) {
-	clientId, clientIdFilePath := resolveClientIDInputs(d)
+	clientId := strings.TrimSpace(d.String("client_id"))
 
-	if path := clientIdFilePath; path != "" {
+	if path := d.String("client_id_file_path"); path != "" {
 		fileClientIdRaw, err := os.ReadFile(path)
 
 		if err != nil {

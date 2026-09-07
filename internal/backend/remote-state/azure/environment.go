@@ -4,102 +4,92 @@
 package azure
 
 import (
+	"maps"
 	"os"
+	"slices"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend/backendbase"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func resolveClientIDInputs(d *backendbase.SDKLikeData) (string, string) {
-	clientID := strings.TrimSpace(d.String("client_id"))
-	clientIDFilePath := d.String("client_id_file_path")
+func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	// Preserve the raw values while validating the schema, before choosing environment sources.
+	base := b.Base
+	base.SDKLikeDefaults = nil
+	configVal, diags := base.PrepareConfig(configVal)
+	if diags.HasErrors() {
+		return configVal, diags
+	}
+	data := backendbase.NewSDKLikeData(configVal)
+	defaults := maps.Clone(b.SDKLikeDefaults)
 
-	if environmentVariableSet("ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID_FILE_PATH_BACKEND") {
-		clientID = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientID, "ARM_CLIENT_ID_BACKEND"))
-		clientIDFilePath = backendbase.SDKLikeEnvDefault(clientIDFilePath, "ARM_CLIENT_ID_FILE_PATH_BACKEND")
-	} else {
-		clientID = strings.TrimSpace(backendbase.SDKLikeEnvDefault(clientID, "ARM_CLIENT_ID"))
-		clientIDFilePath = backendbase.SDKLikeEnvDefault(clientIDFilePath, "ARM_CLIENT_ID_FILE_PATH")
+	// A direct value and its file alternative must come from the same source.
+	for _, pair := range [][2]string{
+		{"client_id", "client_id_file_path"},
+		{"oidc_token", "oidc_token_file_path"},
+	} {
+		if data.String(pair[0]) != "" || data.String(pair[1]) != "" {
+			for _, attr := range pair {
+				def := defaults[attr]
+				def.EnvVars = nil
+				defaults[attr] = def
+			}
+		} else if hasBackendEnvironmentValue(defaults, pair[:]...) {
+			useBackendEnvironmentOnly(defaults, pair[:]...)
+		}
 	}
 
-	return clientID, clientIDFilePath
-}
-
-func resolveOidcTokenInputs(d *backendbase.SDKLikeData) (string, string) {
-	idToken := strings.TrimSpace(d.String("oidc_token"))
-	tokenFilePath := d.String("oidc_token_file_path")
-
-	if environmentVariableSet("ARM_OIDC_TOKEN_BACKEND", "ARM_OIDC_TOKEN_FILE_PATH_BACKEND") {
-		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, "ARM_OIDC_TOKEN_BACKEND"))
-		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, "ARM_OIDC_TOKEN_FILE_PATH_BACKEND")
-	} else {
-		idToken = strings.TrimSpace(backendbase.SDKLikeEnvDefault(idToken, "ARM_OIDC_TOKEN"))
-		tokenFilePath = backendbase.SDKLikeEnvDefault(tokenFilePath, "ARM_OIDC_TOKEN_FILE_PATH")
+	// Selected backend-specific OIDC credentials must not inherit the provider's assertion or service connection.
+	for _, attr := range []string{"oidc_token", "oidc_token_file_path", "oidc_request_url", "oidc_request_token"} {
+		if data.String(attr) == "" && hasBackendEnvironmentValue(defaults, attr) {
+			useBackendEnvironmentOnly(defaults, "oidc_token", "oidc_token_file_path", "ado_pipeline_service_connection_id")
+			break
+		}
 	}
 
-	return idToken, tokenFilePath
-}
-
-func getOidcRequestURL(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
-	requestURL := backendbase.SDKLikeEnvDefault(
-		d.String("oidc_request_url"),
-		"ARM_OIDC_REQUEST_URL_BACKEND",
-		"ARM_OIDC_REQUEST_URL",
-		"ACTIONS_ID_TOKEN_REQUEST_URL",
+	serviceConnectionID := backendbase.SDKLikeEnvDefault(
+		data.String("ado_pipeline_service_connection_id"),
+		defaults["ado_pipeline_service_connection_id"].EnvVars...,
 	)
-	if requestURL == "" && adoPipelineServiceConnectionID != "" {
-		requestURL = os.Getenv("SYSTEM_OIDCREQUESTURI")
-	}
-	return requestURL
-}
-
-func getOidcRequestToken(d *backendbase.SDKLikeData, adoPipelineServiceConnectionID string) string {
-	requestToken := backendbase.SDKLikeEnvDefault(
-		d.String("oidc_request_token"),
-		"ARM_OIDC_REQUEST_TOKEN_BACKEND",
-		"ARM_OIDC_REQUEST_TOKEN",
-		"ACTIONS_ID_TOKEN_REQUEST_TOKEN",
-	)
-	if requestToken == "" && adoPipelineServiceConnectionID != "" {
-		requestToken = os.Getenv("SYSTEM_ACCESSTOKEN")
-	}
-	return requestToken
-}
-
-func getADOPipelineServiceConnectionID(d *backendbase.SDKLikeData) string {
-	if serviceConnectionID := d.String("ado_pipeline_service_connection_id"); serviceConnectionID != "" {
-		return serviceConnectionID
+	if serviceConnectionID == "" {
+		// The SDK's Azure Pipelines request flow requires a service connection;
+		// its GitHub request flow cannot consume SYSTEM_* endpoints or responses.
+		for _, attr := range []string{"oidc_request_url", "oidc_request_token"} {
+			def := defaults[attr]
+			def.EnvVars = slices.DeleteFunc(slices.Clone(def.EnvVars), func(name string) bool {
+				return strings.HasPrefix(name, "SYSTEM_")
+			})
+			defaults[attr] = def
+		}
 	}
 
-	if backendOIDCIdentityEnvironmentConfigured() {
-		return ""
+	prepared, err := defaults.ApplyTo(configVal)
+	if err != nil {
+		diags = diags.Append(err)
 	}
-
-	return backendbase.SDKLikeEnvDefault(
-		"",
-		"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID",
-		"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
-		"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
-	)
+	return prepared, diags
 }
 
-func backendOIDCIdentityEnvironmentConfigured() bool {
-	return environmentVariableSet(
-		"ARM_TENANT_ID_BACKEND",
-		"ARM_CLIENT_ID_BACKEND",
-		"ARM_CLIENT_ID_FILE_PATH_BACKEND",
-		"ARM_OIDC_REQUEST_TOKEN_BACKEND",
-		"ARM_OIDC_REQUEST_URL_BACKEND",
-		"ARM_OIDC_TOKEN_BACKEND",
-		"ARM_OIDC_TOKEN_FILE_PATH_BACKEND",
-	)
-}
-
-func environmentVariableSet(names ...string) bool {
-	for _, name := range names {
-		if os.Getenv(name) != "" {
-			return true
+func hasBackendEnvironmentValue(defaults backendbase.SDKLikeDefaults, attrs ...string) bool {
+	for _, attr := range attrs {
+		for _, name := range defaults[attr].EnvVars {
+			if strings.HasSuffix(name, "_BACKEND") && os.Getenv(name) != "" {
+				return true
+			}
 		}
 	}
 	return false
+}
+
+func useBackendEnvironmentOnly(defaults backendbase.SDKLikeDefaults, attrs ...string) {
+	for _, attr := range attrs {
+		def := defaults[attr]
+		def.EnvVars = slices.DeleteFunc(slices.Clone(def.EnvVars), func(name string) bool {
+			return !strings.HasSuffix(name, "_BACKEND")
+		})
+		defaults[attr] = def
+	}
 }

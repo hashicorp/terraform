@@ -230,9 +230,14 @@ func New() backend.Backend {
 					EnvVars:  []string{"ARM_TENANT_ID_BACKEND", "ARM_TENANT_ID"},
 					Fallback: "",
 				},
-
-				// client_id and client_id_file_path are intentionally omitted here.
-				// environment.go resolves their direct and file-based environment values together.
+				"client_id": {
+					EnvVars:  []string{"ARM_CLIENT_ID_BACKEND", "ARM_CLIENT_ID"},
+					Fallback: "",
+				},
+				"client_id_file_path": {
+					EnvVars: []string{"ARM_CLIENT_ID_FILE_PATH_BACKEND", "ARM_CLIENT_ID_FILE_PATH"},
+					// no fallback
+				},
 
 				// Client Certificate specific fields
 				"client_certificate": {
@@ -264,12 +269,25 @@ func New() backend.Backend {
 					Fallback: "false",
 				},
 				"ado_pipeline_service_connection_id": {
-					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND"},
+					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID_BACKEND", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
 					// no fallback
 				},
-
-				// The OIDC request and token fields are intentionally omitted here.
-				// environment.go resolves short-lived credentials and generic service connection fallbacks at runtime.
+				"oidc_request_token": {
+					EnvVars: []string{"ARM_OIDC_REQUEST_TOKEN_BACKEND", "ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"},
+					// no fallback
+				},
+				"oidc_request_url": {
+					EnvVars: []string{"ARM_OIDC_REQUEST_URL_BACKEND", "ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"},
+					// no fallback
+				},
+				"oidc_token": {
+					EnvVars:  []string{"ARM_OIDC_TOKEN_BACKEND", "ARM_OIDC_TOKEN"},
+					Fallback: "",
+				},
+				"oidc_token_file_path": {
+					EnvVars:  []string{"ARM_OIDC_TOKEN_FILE_PATH_BACKEND", "ARM_OIDC_TOKEN_FILE_PATH"},
+					Fallback: "",
+				},
 
 				// Managed Identity specific fields
 				"use_msi": {
@@ -370,10 +388,6 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 		return backendbase.ErrorAsDiagnostics(err)
 	}
 
-	adoPipelineServiceConnectionID := getADOPipelineServiceConnectionID(&data)
-	oidcRequestURL := getOidcRequestURL(&data, adoPipelineServiceConnectionID)
-	oidcRequestToken := getOidcRequestToken(&data, adoPipelineServiceConnectionID)
-
 	var (
 		env *environments.Environment
 
@@ -410,9 +424,9 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 		ClientSecret:              *clientSecret,
 
 		OIDCAssertionToken:             *oidcToken,
-		OIDCTokenRequestURL:            oidcRequestURL,
-		OIDCTokenRequestToken:          oidcRequestToken,
-		ADOPipelineServiceConnectionID: adoPipelineServiceConnectionID,
+		OIDCTokenRequestURL:            data.String("oidc_request_url"),
+		OIDCTokenRequestToken:          data.String("oidc_request_token"),
+		ADOPipelineServiceConnectionID: data.String("ado_pipeline_service_connection_id"),
 
 		CustomManagedIdentityEndpoint: data.String("msi_endpoint"),
 
