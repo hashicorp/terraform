@@ -447,7 +447,7 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
 	if cloud {
-		view.Output(views.OutputInitSuccessCloudMessage)
+		view.LogInitSuccessCloud()
 	} else {
 		view.LogInitSuccess()
 	}
