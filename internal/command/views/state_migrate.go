@@ -239,8 +239,7 @@ func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addr
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	s.log(s.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+	s.log(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
