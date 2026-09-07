@@ -121,9 +121,9 @@ func TestBackendSuffixMappings(t *testing.T) {
 			ty := b.Schema.Attributes[attr].Type
 			for _, env := range def.EnvVars {
 				// Invalid boolean defaults and bogus credential files must be ignored in strict mode.
-				t.Setenv(env, "ambient")
+				t.Setenv(env, "unselected")
 				if !strings.HasPrefix(env, "ARM_") {
-					t.Setenv(env+suffix, "ambient-native-suffixed")
+					t.Setenv(env+suffix, "unselected-native-suffixed")
 				}
 			}
 			want := cty.NullVal(ty)
@@ -138,7 +138,7 @@ func TestBackendSuffixMappings(t *testing.T) {
 			}
 			got := prepareBackendConfig(t, b, config).GetAttr(attr)
 			if !got.RawEquals(want) {
-				t.Fatalf("ambient fallback for %s: got %s, want %s", attr, got.GoString(), want.GoString())
+				t.Fatalf("unselected fallback for %s: got %s, want %s", attr, got.GoString(), want.GoString())
 			}
 
 			for first, name := range def.EnvVars {
@@ -231,8 +231,8 @@ func TestBackendSuffixCredentialPairs(t *testing.T) {
 						t.Setenv(pair.fileEnv+test.suffix, writeCredentialFile(t, test.selectedFile))
 					}
 					if test.suffix != "" {
-						t.Setenv(pair.directEnv, "ambient")
-						t.Setenv(pair.fileEnv, "ambient-missing-file")
+						t.Setenv(pair.directEnv, "unselected")
+						t.Setenv(pair.fileEnv, "unselected-missing-file")
 					}
 					data := backendbase.NewSDKLikeData(prepareBackendConfig(t, New(), config))
 					got, err := pair.read(&data)
@@ -443,7 +443,7 @@ func TestBackendSuffixADONativeBrokerDefaults(t *testing.T) {
 				"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
 				"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 			} {
-				t.Setenv(name, "ambient")
+				t.Setenv(name, "unselected")
 			}
 			t.Setenv("SYSTEM_OIDCREQUESTURI", "native-url")
 			t.Setenv("SYSTEM_ACCESSTOKEN", "native-token")
@@ -557,7 +557,7 @@ func (f testAuthHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return f(req)
 }
 
-func TestBackendSuffixAmbientAuth(t *testing.T) {
+func TestBackendSuffixRequiresAuthOptIn(t *testing.T) {
 	clearBackendEnvironment(t)
 	for _, name := range []string{"ARM_USE_CLI", "ARM_USE_MSI", "ARM_USE_AKS_WORKLOAD_IDENTITY"} {
 		t.Setenv(name, "true")
@@ -567,20 +567,20 @@ func TestBackendSuffixAmbientAuth(t *testing.T) {
 		"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 		"SYSTEM_OIDCREQUESTURI", "SYSTEM_ACCESSTOKEN", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
 	} {
-		t.Setenv(name, "ambient")
+		t.Setenv(name, "unselected")
 	}
 	t.Setenv("ARM_USE_OIDC_STATE", "true")
 	t.Setenv("ARM_CLIENT_ID_STATE", "selected-client")
 	t.Setenv("ARM_TENANT_ID_STATE", "selected-tenant")
-	t.Setenv("AZURE_CLIENT_ID", "ambient-client")
-	t.Setenv("AZURE_TENANT_ID", "ambient-tenant")
-	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "ambient-missing-file")
+	t.Setenv("AZURE_CLIENT_ID", "aks-client")
+	t.Setenv("AZURE_TENANT_ID", "aks-tenant")
+	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "unused-token-file")
 	config := map[string]interface{}{"environment_variable_suffix": "_STATE", "use_azuread_auth": true}
 	b := New().(*Backend)
 	prepared := prepareBackendConfig(t, b, config)
 	for _, attr := range []string{"use_cli", "use_msi", "use_aks_workload_identity"} {
 		if prepared.GetAttr(attr).True() {
-			t.Fatalf("ambient auth enabled %s", attr)
+			t.Fatalf("unsuffixed auth flag enabled %s", attr)
 		}
 	}
 	diags := b.Configure(prepared)
@@ -605,7 +605,7 @@ func TestBackendSuffixAmbientAuth(t *testing.T) {
 			if clientErr != nil || tenantErr != nil || tokenErr != nil {
 				t.Fatalf("unexpected AKS errors: %v, %v, %v", clientErr, tenantErr, tokenErr)
 			}
-			if *clientID != "ambient-client" || *tenantID != "ambient-tenant" || *token != "aks-assertion" {
+			if *clientID != "aks-client" || *tenantID != "aks-tenant" || *token != "aks-assertion" {
 				t.Fatal("explicitly enabled AKS did not use its native identity inputs")
 			}
 		})
@@ -646,7 +646,7 @@ func TestBackendSuffixAuthorizers(t *testing.T) {
 			}
 			if test.suffix != "" {
 				for _, name := range []string{"ARM_CLIENT_SECRET", "ARM_CLIENT_CERTIFICATE", "ARM_CLIENT_CERTIFICATE_PATH", "ARM_OIDC_TOKEN", "ARM_ACCESS_KEY", "ARM_SAS_TOKEN", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"} {
-					t.Setenv(name, "ambient")
+					t.Setenv(name, "unselected")
 				}
 			}
 			b := New().(*Backend)

@@ -59,7 +59,7 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 			def.EnvVars = envNames
 			defaults[attr] = def
 		}
-		// A missing selected credential must not fall through to the ambient CLI session.
+		// Missing backend credentials must not fall back to an existing Azure CLI login.
 		cliDefault := defaults["use_cli"]
 		cliDefault.Fallback = "false"
 		defaults["use_cli"] = cliDefault

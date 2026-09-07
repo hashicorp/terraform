@@ -48,9 +48,9 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 			}
 			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", test.control)
 			if test.suffix != "" {
-				t.Setenv("ARM_OIDC_TOKEN", "ambient-assertion")
-				t.Setenv("ARM_OIDC_REQUEST_TOKEN", "ambient-bearer")
-				t.Setenv("ARM_OIDC_REQUEST_URL", "https://example.invalid/ambient-oidc")
+				t.Setenv("ARM_OIDC_TOKEN", "provider-assertion")
+				t.Setenv("ARM_OIDC_REQUEST_TOKEN", "provider-bearer")
+				t.Setenv("ARM_OIDC_REQUEST_URL", "https://example.invalid/provider-oidc")
 			}
 			tokenEnv := "ARM_OIDC_TOKEN" + test.suffix
 			requestURLEnv := ""
