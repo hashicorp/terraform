@@ -330,7 +330,7 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 
 	v.view.log.Info(
 		msg,
-		"type", json.LogStateStoreProviderInstallationStart,
+		"type", json.MessageStateStoreProviderInstallationStart,
 	)
 }
 
@@ -338,7 +338,7 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
 		logInteractiveApprovalMessageJSON,
-		"type", json.LogProviderInteractiveApproval,
+		"type", json.MessageProviderInteractiveApproval,
 	)
 }
 
@@ -346,7 +346,7 @@ func (v *InitJSON) LogInteractiveApproval() {
 func (v *InitJSON) LogInteractiveRejection() {
 	v.view.log.Info(
 		logInteractiveRejectionMessageJSON,
-		"type", json.LogProviderInteractiveRejection,
+		"type", json.MessageProviderInteractiveRejection,
 	)
 }
 
@@ -354,7 +354,7 @@ func (v *InitJSON) LogInteractiveRejection() {
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
-		"type", json.LogProviderAutomaticApproval,
+		"type", json.MessageProviderAutomaticApproval,
 	)
 }
 
