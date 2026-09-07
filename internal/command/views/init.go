@@ -195,8 +195,7 @@ func (v *InitHuman) LogAutomaticApproval() {
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-	v.print(v.prepareMessage(FindingMatchingVersionMessage, params...))
+	v.print(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
@@ -484,11 +483,7 @@ func (v *InitJSON) LogAutomaticApproval() {
 }
 
 func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(FindingMatchingVersionMessage, params...)
+	v.view.Log(fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
@@ -681,8 +676,6 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
-	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
 	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
 	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
