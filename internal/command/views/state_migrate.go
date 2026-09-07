@@ -276,8 +276,7 @@ func (s *StateMigrateHuman) LogInstallProviderVersionCompleteWithKeyID(providerA
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
-	msg := s.prepareMessage(PartnerAndCommunityProvidersMessage)
-	s.log(msg)
+	s.log(logPartnerAndCommunityProviders)
 }
 
 // Implements DependencyLockLogger interface.

@@ -234,7 +234,7 @@ func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addr
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
-	v.print(v.prepareMessage(PartnerAndCommunityProvidersMessage))
+	v.print(logPartnerAndCommunityProviders)
 }
 
 // Implements ProviderLockingLogger
@@ -511,9 +511,7 @@ func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs
 }
 
 func (v *InitJSON) LogPartnerAndCommunityProviders() {
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(PartnerAndCommunityProvidersMessage)
+	v.view.Log(logPartnerAndCommunityProviders)
 }
 
 // Implements ProviderLockingLogger
@@ -582,10 +580,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 	"finding_matching_version_message": {
 		HumanValue: logFindingMatchingVersionHuman,
 		JSONValue:  logFindingMatchingVersionJSON,
-	},
-	"partner_and_community_providers_message": {
-		HumanValue: logPartnerAndCommunityProviders,
-		JSONValue:  logPartnerAndCommunityProviders,
 	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
@@ -656,8 +650,6 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
-	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
 )
 
 const outputInitEmpty = `
