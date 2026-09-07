@@ -222,8 +222,7 @@ func (s *StateMigrateHuman) LogAutomaticApproval() {
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-	s.log(s.prepareMessage(FindingMatchingVersionMessage, params...))
+	s.log(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 // Implements ProviderInstallationLogger interface.
