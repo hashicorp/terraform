@@ -260,16 +260,14 @@ func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	s.log(s.prepareMessage(InstalledProviderVersionInfo, params...))
+	s.log(fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-
-	s.log(s.prepareMessage(InstalledProviderVersionInfo, params...))
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	s.log(msg)
 }
 
 // Implements ProviderInstallationLogger interface.
