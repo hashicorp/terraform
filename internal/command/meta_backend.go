@@ -1830,7 +1830,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
 		view := views.NewInit(vt, m.View)
-		view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
+		view.LogBackendConfiguredSuccess(s.Backend.Type)
 	}
 
 	return b, diags
@@ -1957,7 +1957,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
 			view := views.NewInit(vt, m.View)
-			view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
+			view.LogBackendConfiguredSuccess(s.Backend.Type)
 		}
 	}
 

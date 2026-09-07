@@ -63,6 +63,9 @@ type Init interface {
 	// LogCallToActionCLICloud is just like LogCallToActionCLI but uses HCP Terraform-specific language
 	LogCallToActionCLICloud()
 
+	// LogBackendConfiguredSuccess reports that the backend was successfully configured.
+	LogBackendConfiguredSuccess(backendType string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -153,6 +156,10 @@ func (v *InitHuman) LogCallToActionCLI() {
 
 func (v *InitHuman) LogCallToActionCLICloud() {
 	v.print(strings.TrimSpace(outputInitSuccessCLICloud))
+}
+
+func (v *InitHuman) LogBackendConfiguredSuccess(backendType string) {
+	v.print(fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessHuman), backendType))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
@@ -408,6 +415,10 @@ func (v *InitJSON) LogCallToActionCLI() {
 
 func (v *InitJSON) LogCallToActionCLICloud() {
 	v.initOutputLog(strings.TrimSpace(outputInitSuccessCLICloudJSON), json.MessageOutputInitSuccessCLICloudMessage)
+}
+
+func (v *InitJSON) LogBackendConfiguredSuccess(backendType string) {
+	v.initOutputLog(fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessJSON), backendType), json.MessageBackendConfiguredSuccess)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -674,10 +685,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from %q state store to %q backend.",
 		JSONValue:  "Migrating from %q state store to %q backend.",
 	},
-	"backend_configured_success": {
-		HumanValue: backendConfiguredSuccessHuman,
-		JSONValue:  backendConfiguredSuccessJSON,
-	},
 	"backend_configured_unset": {
 		HumanValue: backendConfiguredUnsetHuman,
 		JSONValue:  backendConfiguredUnsetJSON,
@@ -721,8 +728,6 @@ const (
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
-	// BackendConfiguredSuccessMessage indicates successful backend configuration
-	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
 	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
 	// BackendMigrateToCloudMessage indicates migration to HCP Terraform

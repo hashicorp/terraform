@@ -128,4 +128,5 @@ const (
 	// TODO - Remove these and their JSON output; machine readable output does not need calls to action
 	MessageOutputInitSuccessCLIMessage      MessageType = "output_init_success_cli_message"
 	MessageOutputInitSuccessCLICloudMessage MessageType = "output_init_success_cli_cloud_message"
+	MessageBackendConfiguredSuccess         MessageType = "backend_configured_success"
 )
