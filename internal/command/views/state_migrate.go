@@ -249,8 +249,7 @@ func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provi
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	s.log(s.prepareMessage(InstallingProviderMessage, params...))
+	s.log(fmt.Sprintf(logInstallProviderVersionStartHuman, providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
