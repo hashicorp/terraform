@@ -342,7 +342,7 @@ func (s *StateMigrateJSON) LogStateMigrationStart(source string, destination str
 	msg := fmt.Sprintf(logStateMigrationStartJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationStart,
+		"type", json.MessageMigrationStart,
 	)
 }
 
@@ -351,7 +351,7 @@ func (s *StateMigrateJSON) LogStateMigrationComplete(source string, destination 
 	msg := fmt.Sprintf(logStateMigrationCompleteJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationComplete,
+		"type", json.MessageMigrationComplete,
 	)
 }
 
@@ -360,7 +360,7 @@ func (s *StateMigrateJSON) LogStateMigrationFinalized(source string, destination
 	msg := fmt.Sprintf(logStateMigrationFinalizedJSON, source, destination)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationFinalized,
+		"type", json.MessageMigrationFinalized,
 	)
 }
 
@@ -382,7 +382,7 @@ func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailu
 
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationErrored,
+		"type", json.MessageMigrationErrored,
 		"failure_mode", failMode,
 	)
 }
@@ -391,7 +391,7 @@ func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailu
 func (s *StateMigrateJSON) LogInteractiveApproval() {
 	s.view.log.Info(
 		logInteractiveApprovalMessageJSON,
-		"type", json.LogProviderInteractiveApproval,
+		"type", json.MessageProviderInteractiveApproval,
 	)
 }
 
@@ -399,7 +399,7 @@ func (s *StateMigrateJSON) LogInteractiveApproval() {
 func (s *StateMigrateJSON) LogInteractiveRejection() {
 	s.view.log.Info(
 		logInteractiveRejectionMessageJSON,
-		"type", json.LogProviderInteractiveRejection,
+		"type", json.MessageProviderInteractiveRejection,
 	)
 }
 
@@ -407,7 +407,7 @@ func (s *StateMigrateJSON) LogInteractiveRejection() {
 func (s *StateMigrateJSON) LogAutomaticApproval() {
 	s.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
-		"type", json.LogProviderAutomaticApproval,
+		"type", json.MessageProviderAutomaticApproval,
 	)
 }
 
@@ -416,7 +416,7 @@ func (s *StateMigrateJSON) LogProviderLockfileCreated() {
 	msg := strings.TrimSpace(previousLockInfoJSON)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderLockfileCreated,
+		"type", json.MessageProviderLockfileCreated,
 	)
 }
 
@@ -425,7 +425,7 @@ func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
 	msg := strings.TrimSpace(dependenciesLockChangesInfo)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderLockfileUpdated,
+		"type", json.MessageProviderLockfileUpdated,
 	)
 }
 
@@ -433,7 +433,7 @@ func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
 func (s *StateMigrateJSON) LogInstallProvidersStart() {
 	s.view.log.Info(
 		logInstallProvidersStartMessageJSON,
-		"type", json.LogProviderInstallationStart,
+		"type", json.MessageProviderInstallationStart,
 	)
 }
 
@@ -442,7 +442,7 @@ func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provid
 	msg := fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay())
 	s.view.log.Info(
 		msg,
-		"type", json.LogBuiltInProviderAvailable,
+		"type", json.MessageBuiltInProviderAvailable,
 	)
 }
 
@@ -451,7 +451,7 @@ func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.
 	msg := fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderQueryUsePreviousVersion,
+		"type", json.MessageProviderQueryUsePreviousVersion,
 	)
 }
 
@@ -460,7 +460,7 @@ func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) 
 	msg := fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay())
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderQueryUseLatest,
+		"type", json.MessageProviderQueryUseLatest,
 	)
 }
 
@@ -469,7 +469,7 @@ func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider
 	msg := fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints))
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderQueryUseConstraints,
+		"type", json.MessageProviderQueryUseConstraints,
 	)
 }
 
@@ -478,7 +478,7 @@ func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs
 	msg := fmt.Sprintf(logProviderVersionAlreadyInstalledJSON, providerAddr.ForDisplay(), version)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderVersionAlreadyInstalled,
+		"type", json.MessageProviderVersionAlreadyInstalled,
 	)
 }
 
@@ -487,7 +487,7 @@ func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addr
 	msg := fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderVersionFoundInCacheDir,
+		"type", json.MessageProviderVersionFoundInCacheDir,
 	)
 }
 
@@ -496,7 +496,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionStart(providerAddr addrs.Pro
 	msg := fmt.Sprintf(logInstallProviderVersionStartJSON, providerAddr.ForDisplay(), version)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderVersionInstallationStart,
+		"type", json.MessageProviderVersionInstallationStart,
 	)
 }
 
@@ -506,7 +506,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionComplete(providerAddr addrs.
 	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderVersionInstallationComplete,
+		"type", json.MessageProviderVersionInstallationComplete,
 	)
 }
 
@@ -516,7 +516,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAd
 	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
 	s.view.log.Info(
 		msg,
-		"type", json.LogProviderVersionInstallationComplete,
+		"type", json.MessageProviderVersionInstallationComplete,
 	)
 }
 
@@ -524,7 +524,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAd
 func (s *StateMigrateJSON) LogPartnerAndCommunityProviders() {
 	s.view.log.Info(
 		logPartnerAndCommunityProviders,
-		"type", json.LogThirdPartyProvidersInstalled,
+		"type", json.MessageThirdPartyProvidersInstalled,
 	)
 }
 
@@ -532,7 +532,7 @@ func (s *StateMigrateJSON) LogMigrationSourceInitializationStart(storageMethod s
 	msg := fmt.Sprintf(logMigrationSourceInitializationStartJSON, storageMethod)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationSourceInitializationStart,
+		"type", json.MessageMigrationSourceInitializationStart,
 	)
 }
 
@@ -540,7 +540,7 @@ func (s *StateMigrateJSON) LogMigrationSourceInitializationComplete(storageMetho
 	msg := fmt.Sprintf(logMigrationSourceInitializationCompleteJSON, storageMethod)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationSourceInitializationComplete,
+		"type", json.MessageMigrationSourceInitializationComplete,
 	)
 }
 
@@ -548,7 +548,7 @@ func (s *StateMigrateJSON) LogMigrationDestinationInitializationStart(storageMet
 	msg := fmt.Sprintf(logMigrationDestinationInitializationStartJSON, storageMethod)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationDestinationInitializationStart,
+		"type", json.MessageMigrationDestinationInitializationStart,
 	)
 }
 
@@ -556,6 +556,6 @@ func (s *StateMigrateJSON) LogMigrationDestinationInitializationComplete(storage
 	msg := fmt.Sprintf(logMigrationDestinationInitializationCompleteJSON, storageMethod)
 	s.view.log.Info(
 		msg,
-		"type", json.LogMigrationDestinationInitializationComplete,
+		"type", json.MessageMigrationDestinationInitializationComplete,
 	)
 }
