@@ -223,14 +223,14 @@ func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provide
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "") // add empty key id to the end
+	v.print(msg)
 }
 
 func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	v.print(msg)
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
@@ -509,20 +509,14 @@ func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, "") // empty key id at the end
+	v.view.Log(msg)
 }
 
 func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
+	v.view.Log(msg)
 }
 
 func (v *InitJSON) LogPartnerAndCommunityProviders() {
@@ -606,10 +600,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: logFindingLatestVersionHuman,
 		JSONValue:  logFindingLatestVersionJSON,
 	},
-	"installed_provider_version_info": {
-		HumanValue: logInstallProviderVersionCompleteHuman,
-		JSONValue:  logInstallProviderVersionCompleteJSON,
-	},
 	"partner_and_community_providers_message": {
 		HumanValue: logPartnerAndCommunityProviders,
 		JSONValue:  logPartnerAndCommunityProviders,
@@ -685,8 +675,6 @@ const (
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
 	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
 	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
-	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
-	InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
 	// ReusingPreviousVersionInfo indicates a provider which is locked to a specific version during installation
 	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
 	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
