@@ -700,10 +700,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// Following message codes are used and documented EXTERNALLY
-	// Keep docs/internals/machine-readable-ui.mdx up to date with
-	// this list when making changes here.
-
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
