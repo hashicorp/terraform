@@ -227,8 +227,7 @@ func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provide
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-	msg := s.prepareMessage(FindingLatestVersionMessage, params...)
+	msg := fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay())
 	s.log(msg)
 }
 
