@@ -294,7 +294,7 @@ func (v *InitJSON) initOutputLog(preppedMessage string, messageCode any) {
 
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
 	template := "Copying configuration from %q..."
-	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.CopyingConfigurationMessage)
+	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.MessageCopyingConfigurationMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -319,7 +319,7 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 
 func (v *InitJSON) LogInstallProvidersStart() {
 	msg := "Initializing provider plugins..."
-	v.initOutputLog(msg, json.InitializingProviderPluginMessage)
+	v.initOutputLog(msg, json.MessageInitializingProviderPluginMessage)
 }
 
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -442,13 +442,13 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileCreated() {
 	msg := strings.TrimSpace(createdLockInfoJSON)
-	v.initOutputLog(msg, json.LockInfo)
+	v.initOutputLog(msg, json.MessageLockInfo)
 }
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
 	msg := strings.TrimSpace(dependenciesLockChangesInfo)
-	v.initOutputLog(msg, json.DependenciesLockChangesInfo)
+	v.initOutputLog(msg, json.MessageDependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -468,13 +468,13 @@ func (v *InitJSON) LogModuleInstallation(message string) {
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleUpgrade() {
 	msg := "Upgrading modules..."
-	v.initOutputLog(msg, json.UpgradingModulesMessage)
+	v.initOutputLog(msg, json.MessageUpgradingModulesMessage)
 }
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleInitialization() {
 	msg := "Initializing modules..."
-	v.initOutputLog(msg, json.InitializingModulesMessage)
+	v.initOutputLog(msg, json.MessageInitializingModulesMessage)
 }
 
 // prepareMessage retrieves a message template matching the InitMessageCode and

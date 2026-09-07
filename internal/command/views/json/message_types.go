@@ -107,10 +107,10 @@ const (
 	// In a future major version we should make init's JSON output align with the conventions used
 	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
 	// and changes are potentially breaking.
-	CopyingConfigurationMessage       MessageType = "copying_configuration_message"
-	UpgradingModulesMessage           MessageType = "upgrading_modules_message"
-	InitializingModulesMessage        MessageType = "initializing_modules_message"
-	InitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
-	LockInfo                          MessageType = "lock_info"
-	DependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
+	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
+	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
+	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
+	MessageLockInfo                          MessageType = "lock_info"
+	MessageDependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
 )
