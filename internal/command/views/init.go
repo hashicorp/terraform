@@ -42,6 +42,9 @@ type Init interface {
 	// LogInitSuccess reports a successful init command completing
 	LogInitSuccess()
 
+	// LogInitSuccessEmpty reports a successful init command completing, but notes that the config was empty
+	LogInitSuccessEmpty()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -122,6 +125,11 @@ func (v *InitHuman) LogInitializingHCPTerraformStart() {
 
 func (v *InitHuman) LogInitSuccess() {
 	msg := strings.TrimSpace(outputInitSuccess)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitSuccessEmpty() {
+	msg := strings.TrimSpace(outputInitEmpty)
 	v.print(msg)
 }
 
@@ -349,6 +357,11 @@ func (v *InitJSON) LogInitSuccess() {
 	v.initOutputLog(msg, json.MessageOutputInitSuccessMessage)
 }
 
+func (v *InitJSON) LogInitSuccessEmpty() {
+	msg := strings.TrimSpace(outputInitEmptyJSON)
+	v.initOutputLog(msg, json.MessageOutputInitEmptyMessage)
+}
+
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
 // New methods have since been added that replace the old `LogInitMessage` method,
 // but to ensure that the same JSON output is produced we keep `logInitMessage` to
@@ -554,10 +567,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"output_init_empty_message": {
-		HumanValue: outputInitEmpty,
-		JSONValue:  outputInitEmptyJSON,
-	},
 	"output_init_success_cloud_message": {
 		HumanValue: outputInitSuccessCloud,
 		JSONValue:  outputInitSuccessCloudJSON,
@@ -658,7 +667,6 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	OutputInitEmptyMessage           InitMessageCode = "output_init_empty_message"
 	OutputInitSuccessCloudMessage    InitMessageCode = "output_init_success_cloud_message"
 	OutputInitSuccessCLIMessage      InitMessageCode = "output_init_success_cli_message"
 	OutputInitSuccessCLICloudMessage InitMessageCode = "output_init_success_cli_cloud_message"
