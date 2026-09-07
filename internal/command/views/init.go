@@ -401,26 +401,6 @@ func (v *InitJSON) LogCallToActionCLICloud() {
 	v.initOutputLog(msg, json.MessageOutputInitSuccessCLICloudMessage)
 }
 
-// logInitMessage is an internalised version of an old method `LogInitMessage`.
-// New methods have since been added that replace the old `LogInitMessage` method,
-// but to ensure that the same JSON output is produced we keep `logInitMessage` to
-// be reused by the newer methods.
-//
-// Logs produced via this method are not annotated with any extra data.
-// By default they contain:
-// * @level as "info"
-// * @module as "terraform.ui" (See NewJSONView)
-// * @timestamp formatted in the default way
-// * @message set as the string constructed from this method's arguments
-func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.prepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
-
-	v.view.Log(preppedMessage)
-}
-
 func (v *InitJSON) LogInstallProvidersStart() {
 	msg := "Initializing provider plugins..."
 	v.initOutputLog(msg, json.MessageInitializingProviderPluginMessage)
