@@ -1012,6 +1012,9 @@ func UnmarshalActions(actions []string) plans.Action {
 		if actions[0] == "create" && actions[1] == "forget" {
 			return plans.CreateThenForget
 		}
+		if actions[0] == "forget" && actions[1] == "create" {
+			return plans.ForgetThenCreate
+		}
 	}
 
 	if len(actions) == 1 {

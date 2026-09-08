@@ -6,13 +6,14 @@ package terraform
 import (
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeResourcePolicy is a node that evaluates a resource instance's policy.
@@ -126,7 +127,7 @@ func policyNodesFromChange(change *plans.ResourceInstanceChange) []*nodeResource
 				After:        cty.NilVal,
 			},
 		}
-	case plans.CreateThenForget:
+	case plans.CreateThenForget, plans.ForgetThenCreate:
 		return []*nodeResourcePolicy{
 			{
 				ResourceAddr: change.Addr,

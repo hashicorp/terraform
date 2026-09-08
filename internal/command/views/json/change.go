@@ -134,7 +134,7 @@ func changeAction(action plans.Action) ChangeAction {
 		return ActionRead
 	case plans.Update:
 		return ActionUpdate
-	case plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget:
+	case plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget, plans.ForgetThenCreate:
 		return ActionReplace
 	case plans.Delete:
 		return ActionDelete

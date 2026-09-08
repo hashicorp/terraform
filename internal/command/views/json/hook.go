@@ -549,7 +549,7 @@ func startActionVerb(action plans.Action) string {
 		return "Destroying"
 	case plans.Read:
 		return "Refreshing"
-	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget, plans.ForgetThenCreate:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacing"
@@ -583,7 +583,7 @@ func progressActionVerb(action plans.Action) string {
 		return "destroying"
 	case plans.Read:
 		return "refreshing"
-	case plans.CreateThenDelete, plans.CreateThenForget, plans.DeleteThenCreate:
+	case plans.CreateThenDelete, plans.CreateThenForget, plans.DeleteThenCreate, plans.ForgetThenCreate:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "replacing"
@@ -620,7 +620,7 @@ func actionNoun(action plans.Action) string {
 		return "Destruction"
 	case plans.Read:
 		return "Refresh"
-	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget:
+	case plans.CreateThenDelete, plans.DeleteThenCreate, plans.CreateThenForget, plans.ForgetThenCreate:
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacement"

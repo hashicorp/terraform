@@ -116,7 +116,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			update = true
 			delete = true
 			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
-		case plans.CreateThenForget:
+		case plans.CreateThenForget, plans.ForgetThenCreate:
 			update = true
 			forget = true
 		case plans.Forget:
