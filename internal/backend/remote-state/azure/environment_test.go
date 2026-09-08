@@ -143,7 +143,11 @@ func TestBackendEnvironmentMappings(t *testing.T) {
 					config := map[string]interface{}{"backend_environment_variable_strict_mode": strictMode}
 					var allowed []string
 					for _, env := range def.EnvVars {
-						if !strictMode || strings.HasPrefix(env, "ARM_BACKEND_") {
+						if !strictMode || strings.HasPrefix(env, "ARM_BACKEND_") ||
+							env == "ACTIONS_ID_TOKEN_REQUEST_URL" ||
+							env == "ACTIONS_ID_TOKEN_REQUEST_TOKEN" ||
+							env == "SYSTEM_OIDCREQUESTURI" ||
+							env == "SYSTEM_ACCESSTOKEN" {
 							allowed = append(allowed, env)
 						} else {
 							t.Setenv(env, "ignored")
@@ -387,17 +391,47 @@ func TestBackendAuthenticationPriority(t *testing.T) {
 	}
 }
 
-func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
+func TestBackendStrictJobTokenDefaults(t *testing.T) {
 	tests := []struct {
 		name                               string
 		config                             map[string]interface{}
 		env                                map[string]string
 		wantConnection, wantURL, wantToken string
 	}{
-		{name: "no selected connection"},
+		{name: "job inputs without connection", wantURL: "native-url", wantToken: "native-token"},
 		{
-			name: "native task alias cannot select a connection",
-			env:  map[string]string{"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID": "native-connection"},
+			name:    "native task alias cannot select a connection",
+			env:     map[string]string{"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID": "native-connection"},
+			wantURL: "native-url", wantToken: "native-token",
+		},
+		{
+			name: "GitHub job inputs retain precedence over SYSTEM inputs",
+			env: map[string]string{
+				"ACTIONS_ID_TOKEN_REQUEST_URL":   "github-url",
+				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "github-token",
+			},
+			wantURL: "github-url", wantToken: "github-token",
+		},
+		{
+			name: "backend inputs override GitHub job inputs",
+			env: map[string]string{
+				"ACTIONS_ID_TOKEN_REQUEST_URL":   "github-url",
+				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "github-token",
+				"ARM_BACKEND_OIDC_REQUEST_URL":   "backend-url",
+				"ARM_BACKEND_OIDC_REQUEST_TOKEN": "backend-token",
+			},
+			wantURL: "backend-url", wantToken: "backend-token",
+		},
+		{
+			name:   "explicit inputs override backend and GitHub inputs",
+			config: map[string]interface{}{"oidc_request_url": "explicit-url", "oidc_request_token": "explicit-token"},
+			env: map[string]string{
+				"ACTIONS_ID_TOKEN_REQUEST_URL":   "github-url",
+				"ACTIONS_ID_TOKEN_REQUEST_TOKEN": "github-token",
+				"ARM_BACKEND_OIDC_REQUEST_URL":   "backend-url",
+				"ARM_BACKEND_OIDC_REQUEST_TOKEN": "backend-token",
+			},
+			wantURL: "explicit-url", wantToken: "explicit-token",
 		},
 		{
 			name:           "explicit connection",
@@ -410,7 +444,7 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
-			name: "selected connection does not enable GitHub fallback",
+			name: "missing job inputs remain unset",
 			env: map[string]string{
 				"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "selected-connection",
 				"SYSTEM_OIDCREQUESTURI":                        "",
@@ -495,9 +529,9 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			wantConnection: "explicit-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
-			name:           "blank connection does not unlock native broker",
+			name:           "blank connection does not discard job inputs",
 			env:            map[string]string{"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": " "},
-			wantConnection: " ",
+			wantConnection: " ", wantURL: "native-url", wantToken: "native-token",
 		},
 	}
 	for _, test := range tests {
@@ -507,7 +541,6 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 				"ARM_OIDC_REQUEST_URL", "ARM_OIDC_REQUEST_TOKEN",
 				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
 				"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
-				"ACTIONS_ID_TOKEN_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 			} {
 				t.Setenv(name, "unselected")
 			}
@@ -630,8 +663,8 @@ func TestBackendStrictRequiresAuthOptIn(t *testing.T) {
 		t.Setenv(name, "unselected")
 	}
 	t.Setenv("ARM_BACKEND_USE_OIDC", "true")
-	t.Setenv("ARM_BACKEND_CLIENT_ID", "selected-client")
-	t.Setenv("ARM_BACKEND_TENANT_ID", "selected-tenant")
+	t.Setenv("ARM_CLIENT_ID", "provider-client")
+	t.Setenv("ARM_TENANT_ID", "provider-tenant")
 	t.Setenv("AZURE_CLIENT_ID", "aks-client")
 	t.Setenv("AZURE_TENANT_ID", "aks-tenant")
 	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "unused-token-file")
@@ -691,6 +724,7 @@ func TestBackendAuthorizers(t *testing.T) {
 		want       auth.Authorizer
 	}{
 		{"backend GitHub broker", true, map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "https://example.invalid/github", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "bearer"}, &auth.GitHubOIDCAuthorizer{}},
+		{"strict GitHub job inputs", true, map[string]string{"ACTIONS_ID_TOKEN_REQUEST_URL": "https://example.invalid/github", "ACTIONS_ID_TOKEN_REQUEST_TOKEN": "bearer"}, &auth.GitHubOIDCAuthorizer{}},
 		{"backend ADO broker", true, map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "https://example.invalid/pipeline", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "bearer", "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "connection"}, &auth.ADOPipelineOIDCAuthorizer{}},
 		{"backend assertion", true, map[string]string{"ARM_BACKEND_OIDC_TOKEN": "assertion"}, &auth.ClientAssertionAuthorizer{}},
 		{"backend MSI opt-in", true, map[string]string{"ARM_BACKEND_USE_MSI": "true"}, &auth.ManagedIdentityAuthorizer{}},

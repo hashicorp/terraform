@@ -35,6 +35,8 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 		{name: "backend broker", backendCredentials: true, request: true},
 		{name: "strict backend broker", configStrict: &enabled, backendCredentials: true, request: true},
 		{name: "GitHub broker fallback", nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
+		{name: "strict GitHub job inputs", configStrict: &enabled, nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
+		{name: "control-enabled GitHub job inputs", control: "true", nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
 		{name: "ADO broker fallback", nativeRequestToken: "SYSTEM_ACCESSTOKEN", request: true},
 		{name: "backend ADO native broker", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", request: true},
 		{name: "strict backend ADO native broker", configStrict: &enabled, nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", request: true},

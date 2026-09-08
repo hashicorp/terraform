@@ -28,7 +28,7 @@ func New() backend.Backend {
 					"backend_environment_variable_strict_mode": {
 						Type:        cty.Bool,
 						Optional:    true,
-						Description: "Use ARM_BACKEND_* environment variables instead of provider environment variables. When a service connection ID is provided for the backend, Terraform can use the Azure Pipelines job's SYSTEM_OIDCREQUESTURI (token request URL) and SYSTEM_ACCESSTOKEN (access token) to request an OIDC token. Defaults to false.",
+						Description: "Use ARM_BACKEND_* variables instead of provider environment variables. GitHub Actions and Azure Pipelines can still supply their job's OIDC token request URL and access token. Defaults to false.",
 					},
 					"subscription_id": {
 						Type:        cty.String,

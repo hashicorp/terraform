@@ -30,7 +30,11 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 		for attr, def := range defaults {
 			var envNames []string
 			for _, name := range def.EnvVars {
-				if strings.HasPrefix(name, "ARM_BACKEND_") {
+				if strings.HasPrefix(name, "ARM_BACKEND_") ||
+					name == "ACTIONS_ID_TOKEN_REQUEST_URL" ||
+					name == "ACTIONS_ID_TOKEN_REQUEST_TOKEN" ||
+					name == "SYSTEM_OIDCREQUESTURI" ||
+					name == "SYSTEM_ACCESSTOKEN" {
 					envNames = append(envNames, name)
 				}
 			}
@@ -41,25 +45,6 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 		cliDefault := defaults["use_cli"]
 		cliDefault.Fallback = "false"
 		defaults["use_cli"] = cliDefault
-
-		data := backendbase.NewSDKLikeData(configVal)
-		serviceConnectionID := backendbase.SDKLikeEnvDefault(
-			data.String("ado_pipeline_service_connection_id"),
-			defaults["ado_pipeline_service_connection_id"].EnvVars...,
-		)
-		if strings.TrimSpace(serviceConnectionID) != "" {
-			// For a backend ADO connection, use the job's OIDC URL and access token
-			// after any backend request overrides.
-			for _, attr := range []string{"oidc_request_url", "oidc_request_token"} {
-				def := defaults[attr]
-				for _, name := range b.SDKLikeDefaults[attr].EnvVars {
-					if strings.HasPrefix(name, "SYSTEM_") {
-						def.EnvVars = append(def.EnvVars, name)
-					}
-				}
-				defaults[attr] = def
-			}
-		}
 	}
 
 	prepared, err := defaults.ApplyTo(configVal)
