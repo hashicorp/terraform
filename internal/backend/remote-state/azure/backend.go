@@ -25,7 +25,7 @@ func New() backend.Backend {
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 
-					"strict_mode": {
+					"backend_environment_variable_strict_mode": {
 						Type:        cty.Bool,
 						Optional:    true,
 						Description: "Require ARM_BACKEND_* environment defaults instead of provider defaults. A selected Azure Pipelines service connection can still use native broker defaults. Defaults to false.",
@@ -203,8 +203,8 @@ func New() backend.Backend {
 				},
 			},
 			SDKLikeDefaults: backendbase.SDKLikeDefaults{
-				"strict_mode": {
-					EnvVars:  []string{"ARM_BACKEND_STRICT_MODE"},
+				"backend_environment_variable_strict_mode": {
+					EnvVars:  []string{"ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE"},
 					Fallback: "false",
 				},
 				"subscription_id": {
@@ -224,7 +224,7 @@ func New() backend.Backend {
 					Fallback: "public",
 				},
 				"metadata_host": {
-					EnvVars:  []string{"ARM_BACKEND_METADATA_HOSTNAME", "ARM_BACKEND_METADATA_HOST", "ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"}, // TODO: remove support for `METADATA_HOST` in a future version
+					EnvVars:  []string{"ARM_BACKEND_METADATA_HOSTNAME", "ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"}, // TODO: remove support for `METADATA_HOST` in a future version
 					Fallback: "",
 				},
 				"access_key": {
@@ -278,7 +278,7 @@ func New() backend.Backend {
 					Fallback: "false",
 				},
 				"ado_pipeline_service_connection_id": {
-					EnvVars: []string{"ARM_BACKEND_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
+					EnvVars: []string{"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
 					// no fallback
 				},
 				"oidc_request_token": {

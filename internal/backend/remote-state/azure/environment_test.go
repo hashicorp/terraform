@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendbase"
 )
 
-func TestBackendStrictMode(t *testing.T) {
+func TestBackendEnvironmentVariableStrictMode(t *testing.T) {
 	tests := []struct {
 		name, control string
 		config        interface{}
@@ -41,7 +41,7 @@ func TestBackendStrictMode(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clearBackendEnvironment(t)
-			t.Setenv("ARM_BACKEND_STRICT_MODE", test.control)
+			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE", test.control)
 			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", "_IGNORED")
 			t.Setenv("ARM_CLIENT_ID", "legacy-client")
 			t.Setenv("ARM_CLIENT_ID_BACKEND", "ignored-old-name")
@@ -49,7 +49,7 @@ func TestBackendStrictMode(t *testing.T) {
 			if _, exists := b.ConfigSchema().Attributes["environment_variable_suffix"]; exists {
 				t.Fatal("obsolete suffix selector remains in schema")
 			}
-			config := map[string]interface{}{"strict_mode": test.config}
+			config := map[string]interface{}{"backend_environment_variable_strict_mode": test.config}
 			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
 			if test.wantError {
 				if !diags.HasErrors() {
@@ -60,7 +60,7 @@ func TestBackendStrictMode(t *testing.T) {
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
-			if got := prepared.GetAttr("strict_mode").True(); got != test.want {
+			if got := prepared.GetAttr("backend_environment_variable_strict_mode").True(); got != test.want {
 				t.Fatalf("strict mode: got %t, want %t", got, test.want)
 			}
 			if test.want {
@@ -78,7 +78,7 @@ func TestBackendDefaultEnvironmentFallback(t *testing.T) {
 	clearBackendEnvironment(t)
 	b := New().(*Backend)
 	for attr, def := range b.SDKLikeDefaults {
-		if attr == "strict_mode" {
+		if attr == "backend_environment_variable_strict_mode" {
 			continue
 		}
 		for _, env := range def.EnvVars {
@@ -94,9 +94,9 @@ func TestBackendDefaultEnvironmentFallback(t *testing.T) {
 	}
 	for _, strictMode := range []interface{}{nil, false} {
 		raw := decodeBackendConfig(t, b, map[string]interface{}{
-			"strict_mode": strictMode,
-			"client_id":   "explicit-client",
-			"use_cli":     false,
+			"backend_environment_variable_strict_mode": strictMode,
+			"client_id": "explicit-client",
+			"use_cli":   false,
 		})
 		want, wantDiags := b.Base.PrepareConfig(raw)
 		got, diags := b.PrepareConfig(raw)
@@ -115,7 +115,7 @@ func TestBackendEnvironmentMappings(t *testing.T) {
 	clearBackendEnvironment(t)
 	b := New().(*Backend)
 	for attr, def := range b.SDKLikeDefaults {
-		if attr == "strict_mode" {
+		if attr == "backend_environment_variable_strict_mode" {
 			continue
 		}
 		t.Run(attr, func(t *testing.T) {
@@ -130,14 +130,17 @@ func TestBackendEnvironmentMappings(t *testing.T) {
 					backendNames[env] = true
 				} else {
 					seenFallback = true
-					if strings.HasPrefix(env, "ARM_") && !backendNames["ARM_BACKEND_"+strings.TrimPrefix(env, "ARM_")] {
+					if strings.HasPrefix(env, "ARM_") &&
+						env != "ARM_METADATA_HOST" &&
+						env != "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID" &&
+						!backendNames["ARM_BACKEND_"+strings.TrimPrefix(env, "ARM_")] {
 						t.Fatalf("missing explicit ARM_BACKEND alternative for %s", env)
 					}
 				}
 			}
 			for _, strictMode := range []bool{false, true} {
 				t.Run(map[bool]string{false: "default", true: "strict"}[strictMode], func(t *testing.T) {
-					config := map[string]interface{}{"strict_mode": strictMode}
+					config := map[string]interface{}{"backend_environment_variable_strict_mode": strictMode}
 					var allowed []string
 					for _, env := range def.EnvVars {
 						if !strictMode || strings.HasPrefix(env, "ARM_BACKEND_") {
@@ -209,6 +212,24 @@ func TestBackendEnvironmentMappings(t *testing.T) {
 	}
 }
 
+func TestBackendEnvironmentAliases(t *testing.T) {
+	b := New().(*Backend)
+	tests := map[string][]string{
+		"metadata_host": {"ARM_BACKEND_METADATA_HOSTNAME", "ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"},
+		"ado_pipeline_service_connection_id": {
+			"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID",
+			"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID",
+			"ARM_OIDC_AZURE_SERVICE_CONNECTION_ID",
+			"AZURESUBSCRIPTION_SERVICE_CONNECTION_ID",
+		},
+	}
+	for attr, want := range tests {
+		if got := b.SDKLikeDefaults[attr].EnvVars; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s aliases: got %v, want %v", attr, got, want)
+		}
+	}
+}
+
 func TestBackendCredentialPairs(t *testing.T) {
 	pairs := []struct {
 		direct, file, backendDirectEnv, backendFileEnv, directEnv, fileEnv string
@@ -240,7 +261,7 @@ func TestBackendCredentialPairs(t *testing.T) {
 			for _, test := range tests {
 				t.Run(test.name, func(t *testing.T) {
 					clearBackendEnvironment(t)
-					config := map[string]interface{}{"strict_mode": test.strictMode}
+					config := map[string]interface{}{"backend_environment_variable_strict_mode": test.strictMode}
 					if test.configDirect != "" {
 						config[pair.direct] = test.configDirect
 					}
@@ -287,7 +308,7 @@ func TestBackendStrictOIDCMethods(t *testing.T) {
 		{
 			name:   "explicit assertion wins",
 			config: map[string]interface{}{"oidc_token": "explicit-assertion"},
-			env:    map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "selected-url", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "selected-bearer", "ARM_BACKEND_ADO_PIPELINE_SERVICE_CONNECTION_ID": "selected-connection"},
+			env:    map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "selected-url", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "selected-bearer", "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "selected-connection"},
 			want:   map[string]string{"oidc_token": "explicit-assertion", "oidc_request_url": "", "oidc_request_token": "", "ado_pipeline_service_connection_id": ""},
 		},
 		{
@@ -313,14 +334,14 @@ func TestBackendStrictOIDCMethods(t *testing.T) {
 		},
 		{
 			name:   "legacy competing inputs unchanged",
-			config: map[string]interface{}{"strict_mode": false, "oidc_token": "assertion", "oidc_request_url": "request-url"},
+			config: map[string]interface{}{"backend_environment_variable_strict_mode": false, "oidc_token": "assertion", "oidc_request_url": "request-url"},
 			want:   map[string]string{"oidc_token": "assertion", "oidc_request_url": "request-url"},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clearBackendEnvironment(t)
-			config := map[string]interface{}{"strict_mode": true}
+			config := map[string]interface{}{"backend_environment_variable_strict_mode": true}
 			maps.Copy(config, test.config)
 			for name, value := range test.env {
 				t.Setenv(name, value)
@@ -379,12 +400,12 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			wantConnection: "selected-connection",
 		},
 		{
-			name: "canonical selected alias retains precedence",
+			name: "backend alias wins over generic canonical alias",
 			env: map[string]string{
-				"ARM_BACKEND_ADO_PIPELINE_SERVICE_CONNECTION_ID": "canonical-connection",
-				"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID":   "alias-connection",
+				"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID":       "provider-connection",
+				"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "backend-connection",
 			},
-			wantConnection: "canonical-connection", wantURL: "native-url", wantToken: "native-token",
+			wantConnection: "backend-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
 			name: "selected ARM request overrides",
@@ -475,7 +496,7 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			for name, value := range test.env {
 				t.Setenv(name, value)
 			}
-			config := map[string]interface{}{"strict_mode": true}
+			config := map[string]interface{}{"backend_environment_variable_strict_mode": true}
 			maps.Copy(config, test.config)
 			b := New()
 			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
@@ -563,7 +584,7 @@ func TestBackendStrictADONativeBrokerAcquisition(t *testing.T) {
 		}, nil
 	})
 	b := New().(*Backend)
-	prepared := prepareBackendConfig(t, b, map[string]interface{}{"strict_mode": true})
+	prepared := prepareBackendConfig(t, b, map[string]interface{}{"backend_environment_variable_strict_mode": true})
 	if diags := b.Configure(prepared); diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -600,7 +621,7 @@ func TestBackendStrictRequiresAuthOptIn(t *testing.T) {
 	t.Setenv("AZURE_CLIENT_ID", "aks-client")
 	t.Setenv("AZURE_TENANT_ID", "aks-tenant")
 	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", "unused-token-file")
-	config := map[string]interface{}{"strict_mode": true, "use_azuread_auth": true}
+	config := map[string]interface{}{"backend_environment_variable_strict_mode": true, "use_azuread_auth": true}
 	b := New().(*Backend)
 	prepared := prepareBackendConfig(t, b, config)
 	for _, attr := range []string{"use_cli", "use_msi", "use_aks_workload_identity"} {
@@ -617,7 +638,7 @@ func TestBackendStrictRequiresAuthOptIn(t *testing.T) {
 		t.Run(map[bool]string{false: "selected environment opt-in", true: "explicit opt-in"}[explicit], func(t *testing.T) {
 			clearBackendEnvironment(t)
 			t.Setenv("AZURE_FEDERATED_TOKEN_FILE", writeCredentialFile(t, "aks-assertion"))
-			config := map[string]interface{}{"strict_mode": true}
+			config := map[string]interface{}{"backend_environment_variable_strict_mode": true}
 			if explicit {
 				config["use_aks_workload_identity"] = true
 			} else {
@@ -676,7 +697,7 @@ func TestBackendAuthorizers(t *testing.T) {
 				}
 			}
 			b := New().(*Backend)
-			prepared := prepareBackendConfig(t, b, map[string]interface{}{"strict_mode": test.strictMode, "use_oidc": true, "use_azuread_auth": true, "use_cli": false})
+			prepared := prepareBackendConfig(t, b, map[string]interface{}{"backend_environment_variable_strict_mode": test.strictMode, "use_oidc": true, "use_azuread_auth": true, "use_cli": false})
 			if diags := b.Configure(prepared); diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
@@ -734,7 +755,7 @@ func TestBackendMinimalMultitenantOIDC(t *testing.T) {
 			b := New().(*Backend)
 			prepared := prepareBackendConfig(t, b, nil)
 			data := backendbase.NewSDKLikeData(prepared)
-			if data.Bool("strict_mode") || !data.Bool("use_oidc") || !data.Bool("use_azuread_auth") {
+			if data.Bool("backend_environment_variable_strict_mode") || !data.Bool("use_oidc") || !data.Bool("use_azuread_auth") {
 				t.Fatal("minimal config did not inherit shared OIDC/data-plane flags")
 			}
 			if data.String("client_id") != "backend-client" || data.String("tenant_id") != "backend-tenant" {
@@ -770,7 +791,7 @@ func TestBackendConcurrentPreparation(t *testing.T) {
 	}
 	inputs := make([]cty.Value, 2)
 	for i, strictMode := range []bool{false, true} {
-		inputs[i] = decodeBackendConfig(t, b, map[string]interface{}{"strict_mode": strictMode})
+		inputs[i] = decodeBackendConfig(t, b, map[string]interface{}{"backend_environment_variable_strict_mode": strictMode})
 	}
 	var wg sync.WaitGroup
 	for range 20 {

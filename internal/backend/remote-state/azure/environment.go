@@ -17,14 +17,14 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 	// Resolve strict mode before reading other environment defaults.
 	base := b.Base
 	base.SDKLikeDefaults = backendbase.SDKLikeDefaults{
-		"strict_mode": b.SDKLikeDefaults["strict_mode"],
+		"backend_environment_variable_strict_mode": b.SDKLikeDefaults["backend_environment_variable_strict_mode"],
 	}
 	configVal, diags := base.PrepareConfig(configVal)
 	if diags.HasErrors() {
 		return configVal, diags
 	}
 
-	strictMode := configVal.GetAttr("strict_mode").True()
+	strictMode := configVal.GetAttr("backend_environment_variable_strict_mode").True()
 	defaults := maps.Clone(b.SDKLikeDefaults)
 	if strictMode {
 		for attr, def := range defaults {
@@ -93,7 +93,7 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Conflicting OIDC authentication settings",
-				"When strict_mode is enabled, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
+				"When backend_environment_variable_strict_mode is enabled, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
 			))
 		}
 	}

@@ -48,7 +48,7 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 					t.Setenv(name, "")
 				}
 			}
-			t.Setenv("ARM_BACKEND_STRICT_MODE", test.control)
+			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE", test.control)
 			wantStrict := test.control == "true"
 			if test.configStrict != nil {
 				wantStrict = *test.configStrict
@@ -94,7 +94,7 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 
 			settings := ""
 			if test.configStrict != nil {
-				settings = fmt.Sprintf("strict_mode = %t\n", *test.configStrict)
+				settings = fmt.Sprintf("backend_environment_variable_strict_mode = %t\n", *test.configStrict)
 			}
 			if test.configServiceConnection != "" {
 				settings += fmt.Sprintf("ado_pipeline_service_connection_id = %q\n", test.configServiceConnection)
@@ -118,7 +118,7 @@ client_id            = "configured-client"
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
-			if prepared.GetAttr("strict_mode").True() != wantStrict {
+			if prepared.GetAttr("backend_environment_variable_strict_mode").True() != wantStrict {
 				t.Fatal("incorrect strict-mode setting")
 			}
 			if !prepared.GetAttr(attr).RawEquals(cty.StringVal("plan-credential")) {
@@ -156,7 +156,7 @@ client_id            = "configured-client"
 			if test.configStrict != nil {
 				wantMode = cty.BoolVal(*test.configStrict)
 			}
-			if !planConfig.GetAttr("strict_mode").RawEquals(wantMode) {
+			if !planConfig.GetAttr("backend_environment_variable_strict_mode").RawEquals(wantMode) {
 				t.Fatal("strict-mode persistence differs from explicit configuration")
 			}
 			if !planConfig.GetAttr("client_id").RawEquals(cty.StringVal("configured-client")) {
@@ -177,14 +177,14 @@ client_id            = "configured-client"
 				t.Fatal(err)
 			}
 			if test.configStrict != nil {
-				t.Setenv("ARM_BACKEND_STRICT_MODE", fmt.Sprint(!*test.configStrict))
+				t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE", fmt.Sprint(!*test.configStrict))
 			}
 			applyBackend := azure.New()
 			applyConfig, diags := applyBackend.PrepareConfig(planConfig)
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
-			if applyConfig.GetAttr("strict_mode").True() != wantStrict {
+			if applyConfig.GetAttr("backend_environment_variable_strict_mode").True() != wantStrict {
 				t.Fatal("saved plan did not retain the expected strict-mode setting")
 			}
 			if !applyConfig.GetAttr(attr).RawEquals(cty.StringVal("apply-credential")) {
@@ -197,12 +197,12 @@ client_id            = "configured-client"
 				t.Fatal(diags.ErrWithWarnings())
 			}
 			if test.control == "true" && test.configStrict == nil {
-				t.Setenv("ARM_BACKEND_STRICT_MODE", "")
+				t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE", "")
 				withoutControl, diags := azure.New().PrepareConfig(planConfig)
 				if diags.HasErrors() {
 					t.Fatal(diags.ErrWithWarnings())
 				}
-				if withoutControl.GetAttr("strict_mode").True() {
+				if withoutControl.GetAttr("backend_environment_variable_strict_mode").True() {
 					t.Fatal("environment-derived strict mode unexpectedly survived in the saved plan")
 				}
 			}
