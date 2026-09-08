@@ -949,3 +949,116 @@ func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
 		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
 	}
 }
+
+func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", "combined-with-pluggable-state-storage")), td)
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	varArgs := []string{
+		"-var", "provider_source=registry.terraform.io/hashicorp/test",
+		"-var", "provider_version=1.0.0",
+	}
+
+	// INIT
+	ui := testUiWrapped(t)
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := initCmd.Run(append([]string{"-enable-pluggable-state-storage-experiment"}, varArgs...))
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+	expectedMsg := `Finding hashicorp/test versions matching "1.0.0"...`
+	if !strings.Contains(testOutput.All(), expectedMsg) {
+		t.Fatalf("expected output to contain %q\n, got:\n%s", expectedMsg, testOutput.All())
+	}
+
+	// PLAN
+	ui = testUiWrapped(t)
+	view, done = testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = planCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// APPLY
+	ui = testUiWrapped(t)
+	view, done = testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = applyCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// REFRESH
+	ui = testUiWrapped(t)
+	view, done = testView(t)
+	refreshCmd := &RefreshCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = refreshCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// QUERY
+	queryMockProvider := queryFixtureProvider()
+	queryMockProvider = addPluggableStateStoreToMockProvider(queryMockProvider, mockSingleStateStoreSchema("test_store")) // Update the query-specific mock to also include a state store.
+	ui = testUiWrapped(t)
+	view, done = testView(t)
+	queryCmd := &QueryCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(queryMockProvider),
+			Ui:                        ui,
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = queryCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+}
