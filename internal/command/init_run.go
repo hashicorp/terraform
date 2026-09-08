@@ -115,6 +115,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 	}
 
 	// Load just the root module to begin backend and module initialization
+	// The test directory is included because modules blocks may be present and are needed for module installation.
 	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, initArgs.TestsDirectory)
 
 	// There may be parsing errors in config loading but these will be shown later _after_
