@@ -221,7 +221,7 @@ func TestFunctionCacheMarkedValues(t *testing.T) {
 	deprecated := marks.NewDeprecation("deprecated", "test")
 	alsoDeprecated := marks.NewDeprecation("deprecated by something else", "test")
 
-	tests := map[string]cty.ValueMarks{
+	markSets := map[string]cty.ValueMarks{
 		"sensitive and ephemeral":   cty.NewValueMarks(marks.Sensitive, marks.Ephemeral),
 		"sensitive and type":        cty.NewValueMarks(marks.Sensitive, marks.TypeType),
 		"sensitive and deprecated":  cty.NewValueMarks(marks.Sensitive, deprecated),
@@ -232,10 +232,46 @@ func TestFunctionCacheMarkedValues(t *testing.T) {
 		),
 	}
 
-	for name, valMarks := range tests {
+	type testCase struct {
+		args   []cty.Value
+		result cty.Value
+	}
+
+	tests := map[string]testCase{}
+	for name, valMarks := range markSets {
+		tests[name] = testCase{
+			args:   []cty.Value{cty.StringVal("template").WithMarks(valMarks)},
+			result: cty.StringVal("rendered").WithMarks(valMarks),
+		}
+	}
+
+	// Marks are commonly nested within compound arguments rather than applied
+	// at the top level, as in templatefile(path, { key = sensitive(...) }), so
+	// hashing must also be stable when UnmarkDeep has to descend into an
+	// object to strip them.
+	tests["marks nested in object"] = testCase{
+		args: []cty.Value{
+			cty.StringVal("template.tftpl"),
+			cty.ObjectVal(map[string]cty.Value{
+				"password": cty.StringVal("hunter2").WithMarks(
+					cty.NewValueMarks(marks.Sensitive, marks.Ephemeral),
+				),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"owner": cty.StringVal("ops").WithMarks(
+						cty.NewValueMarks(marks.Sensitive, deprecated),
+					),
+				}),
+				"plain": cty.StringVal("unmarked"),
+			}),
+		},
+		result: cty.StringVal("rendered").WithMarks(
+			cty.NewValueMarks(marks.Sensitive, marks.Ephemeral),
+		),
+	}
+
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			args := []cty.Value{cty.StringVal("template").WithMarks(valMarks)}
-			result := cty.StringVal("rendered").WithMarks(valMarks)
+			args, result := test.args, test.result
 
 			results := NewFunctionResultsTable(nil)
 			for i := 0; i < 100; i++ {
