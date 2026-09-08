@@ -1352,6 +1352,14 @@ func (n *NodeAbstractResourceInstance) plan(
 		actionReason = plans.ResourceInstanceReplaceBecauseTainted
 	}
 
+	if action == plans.CreateThenDelete && forget {
+		action = plans.CreateThenForget
+	}
+
+	if action == plans.DeleteThenCreate && forget {
+		action = plans.ForgetThenCreate // not a thing
+	}
+
 	// If we plan to change the sensitivity on some portion of the value, this
 	// is an Update action even when the values are otherwise equal.
 	//

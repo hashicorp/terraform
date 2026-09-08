@@ -5174,7 +5174,7 @@ resource test_object default {}
 		state, applyDiags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, applyDiags)
 		if !state.Empty() {
-			t.Fatalf("unexected remaining state")
+			t.Fatalf("unexpected remaining state")
 		}
 	})
 
@@ -5284,6 +5284,71 @@ resource "test_object" "forget_too" {
 	if !state.Empty() {
 		t.Fatal("unexpected resources in state")
 	}
+}
+
+func TestContext2Apply_forget_replace(t *testing.T) {
+	// https://github.com/hashicorp/terraform/issues/39088
+	// we have a resource in state that needs replacing, and forget statement, but we're doing a replace
+	// don't be weird about it
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = "hello"
+	lifecycle {
+		destroy = false
+	}
+}
+`})
+
+	p := simpleMockProvider()
+
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	forget := mustResourceInstanceAddr("test_object.forget")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		forget.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"hi"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	// need the provider to return a requires_replace (or otherwise force replace)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		obj := req.ProposedNewState.AsValueMap()
+
+		if !req.PriorState.IsNull() {
+			if req.PriorState.GetAttr("test_string").AsString() != "hello" {
+				resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("test_string"))
+			}
+		}
+
+		resp.PlannedState = cty.ObjectVal(obj)
+		return resp
+	}
+
+	plan, diags := ctx.Plan(m, state, nil)
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
+
+	state, applyDiags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, applyDiags)
+	if state.Empty() {
+		t.Fatal("missing expected resources in state")
+	}
+
+	fmt.Println(state.AllResourceInstanceObjectAddrs())
 }
 
 // the addition of the CBD resource should not interfere with the existing resource replacement
