@@ -115,6 +115,82 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 	}
 }
 
+// The Provider method must prefer the provider address resolved from an
+// import target's config (via required_providers at decode time) even when
+// the import block has no explicit "provider" argument. This is the
+// -generate-config-out path for import-only resources.
+func TestNodeAbstractResourceProvider_ImportTarget(t *testing.T) {
+	tests := map[string]struct {
+		importTargets []*ImportTarget
+		want          addrs.Provider
+		wantAlias     string
+	}{
+		"import target without explicit provider uses required_providers resolution": {
+			importTargets: []*ImportTarget{
+				{
+					Config: &configs.Import{
+						Provider: addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "datahub-project",
+							Type:      "datahub",
+						},
+					},
+				},
+			},
+			want: addrs.Provider{
+				Hostname:  addrs.DefaultProviderRegistryHost,
+				Namespace: "datahub-project",
+				Type:      "datahub",
+			},
+		},
+		"import target with explicit provider preserves the alias": {
+			importTargets: []*ImportTarget{
+				{
+					Config: &configs.Import{
+						Provider: addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "datahub-project",
+							Type:      "datahub",
+						},
+						ProviderConfigRef: &configs.ProviderConfigRef{
+							Name:  "datahub",
+							Alias: "west",
+						},
+					},
+				},
+			},
+			want: addrs.Provider{
+				Hostname:  addrs.DefaultProviderRegistryHost,
+				Namespace: "datahub-project",
+				Type:      "datahub",
+			},
+			wantAlias: "west",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			node := &NodeAbstractResource{
+				// Just enough NodeAbstractResource for the Provider function.
+				// (This would not be valid for some other functions.)
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "datahub_ingestion_source",
+					Name: "rt_source",
+				}.InModule(addrs.RootModule),
+				importTargets: test.importTargets,
+			}
+			got := node.Provider()
+			if got.FQN() != test.want {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", got.FQN(), test.want)
+			}
+			if got.Addr.Alias != test.wantAlias {
+				t.Errorf("wrong alias\ngot:  %q\nwant: %q", got.Addr.Alias, test.wantAlias)
+			}
+		})
+	}
+}
+
 // Make sure ProvideBy returns the final resolved provider
 func TestNodeAbstractResourceSetProvider(t *testing.T) {
 	node := &NodeAbstractResource{

@@ -364,16 +364,21 @@ func (n *NodeAbstractResource) Provider() ProviderRef {
 		// The import targets should either all be defined via config or none
 		// of them should be. They should also all have the same provider, so it
 		// shouldn't matter which we check here, as they'll all give the same.
-		if n.importTargets[0].Config != nil && n.importTargets[0].Config.ProviderConfigRef != nil {
+		if n.importTargets[0].Config != nil {
 			ref := ProviderRef{
 				Addr: addrs.AbsProviderConfig{
 					Provider: n.importTargets[0].Config.Provider,
-					Alias:    n.importTargets[0].Config.ProviderConfigRef.Alias,
 					Module:   n.ModulePath(),
 				},
 			}
 
-			ref.Addr.Alias = n.importTargets[0].Config.ProviderConfigRef.Alias
+			// The import block may explicitly pin a provider configuration,
+			// in which case its alias must be preserved. Otherwise
+			// Config.Provider has already been resolved against the module's
+			// required_providers during decoding.
+			if n.importTargets[0].Config.ProviderConfigRef != nil {
+				ref.Addr.Alias = n.importTargets[0].Config.ProviderConfigRef.Alias
+			}
 			return ref
 		}
 	}
