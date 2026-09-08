@@ -43,31 +43,13 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 		defaults["use_cli"] = cliDefault
 
 		data := backendbase.NewSDKLikeData(configVal)
-		for _, pair := range [][2]string{
-			{"client_id", "client_id_file_path"},
-			{"client_secret", "client_secret_file_path"},
-			{"client_certificate", "client_certificate_path"},
-			{"oidc_token", "oidc_token_file_path"},
-		} {
-			if anyStringSet(data, pair[:]...) {
-				disableEnvironmentDefaults(defaults, pair[:]...)
-			}
-		}
-
-		// Explicit OIDC inputs select the method; conflicting explicit inputs remain for validation.
-		if anyStringSet(data, "oidc_token", "oidc_token_file_path") || data.Bool("use_aks_workload_identity") {
-			disableEnvironmentDefaults(defaults, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id")
-		}
-		if anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id") {
-			disableEnvironmentDefaults(defaults, "oidc_token", "oidc_token_file_path", "use_aks_workload_identity")
-		}
-
 		serviceConnectionID := backendbase.SDKLikeEnvDefault(
 			data.String("ado_pipeline_service_connection_id"),
 			defaults["ado_pipeline_service_connection_id"].EnvVars...,
 		)
 		if strings.TrimSpace(serviceConnectionID) != "" {
-			// A selected ADO connection can use the current job's native broker, after ARM request overrides.
+			// For a backend ADO connection, use the job's OIDC URL and access token
+			// after any backend request overrides.
 			for _, attr := range []string{"oidc_request_url", "oidc_request_token"} {
 				def := defaults[attr]
 				for _, name := range b.SDKLikeDefaults[attr].EnvVars {
@@ -83,36 +65,6 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 	prepared, err := defaults.ApplyTo(configVal)
 	if err != nil {
 		diags = diags.Append(err)
-		return prepared, diags
-	}
-	if strictMode {
-		data := backendbase.NewSDKLikeData(prepared)
-		hasAssertion := anyStringSet(data, "oidc_token", "oidc_token_file_path") || data.Bool("use_aks_workload_identity")
-		hasRequest := anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id")
-		if hasAssertion && hasRequest {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Conflicting OIDC authentication settings",
-				"When backend_environment_variable_strict_mode is enabled, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
-			))
-		}
 	}
 	return prepared, diags
-}
-
-func anyStringSet(data backendbase.SDKLikeData, attrs ...string) bool {
-	for _, attr := range attrs {
-		if data.String(attr) != "" {
-			return true
-		}
-	}
-	return false
-}
-
-func disableEnvironmentDefaults(defaults backendbase.SDKLikeDefaults, attrs ...string) {
-	for _, attr := range attrs {
-		def := defaults[attr]
-		def.EnvVars = nil
-		defaults[attr] = def
-	}
 }

@@ -28,7 +28,7 @@ func New() backend.Backend {
 					"backend_environment_variable_strict_mode": {
 						Type:        cty.Bool,
 						Optional:    true,
-						Description: "Require ARM_BACKEND_* environment defaults instead of provider defaults. A selected Azure Pipelines service connection can still use native broker defaults. Defaults to false.",
+						Description: "Use ARM_BACKEND_* environment variables instead of provider environment variables. When a service connection ID is provided for the backend, Terraform can use the Azure Pipelines job's SYSTEM_OIDCREQUESTURI (token request URL) and SYSTEM_ACCESSTOKEN (access token) to request an OIDC token. Defaults to false.",
 					},
 					"subscription_id": {
 						Type:        cty.String,

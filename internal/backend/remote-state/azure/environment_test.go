@@ -249,8 +249,10 @@ func TestBackendCredentialPairs(t *testing.T) {
 				want                         string
 				wantError                    bool
 			}{
-				{name: "explicit direct beats selected file", strictMode: true, configDirect: "explicit", selectedFile: "selected", want: "explicit"},
-				{name: "explicit file beats selected direct", strictMode: true, configFile: "explicit", selectedDirect: "selected", want: "explicit"},
+				{name: "explicit direct and backend file must match", strictMode: true, configDirect: "explicit", selectedFile: "selected", wantError: true},
+				{name: "explicit file and backend direct must match", strictMode: true, configFile: "explicit", selectedDirect: "selected", wantError: true},
+				{name: "matching explicit direct and backend file", strictMode: true, configDirect: "same", selectedFile: "same", want: "same"},
+				{name: "matching explicit file and backend direct", strictMode: true, configFile: "same", selectedDirect: "same", want: "same"},
 				{name: "matching explicit pair", strictMode: true, configDirect: "same", configFile: "same", want: "same"},
 				{name: "mismatching explicit pair", strictMode: true, configDirect: "direct", configFile: "file", wantError: true},
 				{name: "matching selected pair", strictMode: true, selectedDirect: "same", selectedFile: "same", want: "same"},
@@ -297,71 +299,89 @@ func TestBackendCredentialPairs(t *testing.T) {
 	}
 }
 
-func TestBackendStrictOIDCMethods(t *testing.T) {
+func TestBackendAuthenticationPriority(t *testing.T) {
 	tests := []struct {
-		name      string
-		config    map[string]interface{}
-		env       map[string]string
-		wantError bool
-		want      map[string]string
+		name   string
+		config map[string]interface{}
+		env    map[string]string
+		want   auth.Authorizer
 	}{
 		{
-			name:   "explicit assertion wins",
+			name:   "explicit assertion before request",
 			config: map[string]interface{}{"oidc_token": "explicit-assertion"},
-			env:    map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "selected-url", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "selected-bearer", "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "selected-connection"},
-			want:   map[string]string{"oidc_token": "explicit-assertion", "oidc_request_url": "", "oidc_request_token": "", "ado_pipeline_service_connection_id": ""},
+			env: map[string]string{
+				"ARM_BACKEND_OIDC_REQUEST_URL":                 "https://example.invalid/request",
+				"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "connection",
+			},
+			want: &auth.ClientAssertionAuthorizer{},
 		},
 		{
-			name:   "explicit request wins",
-			config: map[string]interface{}{"oidc_request_url": "explicit-url"},
-			env:    map[string]string{"ARM_BACKEND_OIDC_TOKEN": "selected-assertion", "ARM_BACKEND_OIDC_TOKEN_FILE_PATH": "selected-file", "ARM_BACKEND_OIDC_REQUEST_TOKEN": "selected-bearer", "ARM_BACKEND_USE_AKS_WORKLOAD_IDENTITY": "true"},
-			want:   map[string]string{"oidc_token": "", "oidc_token_file_path": "", "oidc_request_url": "explicit-url", "oidc_request_token": "selected-bearer"},
+			name:   "environment assertion before explicit request",
+			config: map[string]interface{}{"oidc_request_url": "https://example.invalid/request"},
+			env:    map[string]string{"ARM_BACKEND_OIDC_TOKEN": "backend-assertion"},
+			want:   &auth.ClientAssertionAuthorizer{},
 		},
 		{
-			name:      "explicit methods conflict",
-			config:    map[string]interface{}{"oidc_token": "explicit-assertion", "oidc_request_url": "explicit-url"},
-			wantError: true,
+			name:   "both explicit methods use SDK priority",
+			config: map[string]interface{}{"oidc_token": "explicit-assertion", "oidc_request_url": "https://example.invalid/request"},
+			want:   &auth.ClientAssertionAuthorizer{},
 		},
 		{
-			name:      "selected methods conflict",
-			env:       map[string]string{"ARM_BACKEND_OIDC_TOKEN": "selected-assertion", "ARM_BACKEND_OIDC_REQUEST_URL": "selected-url"},
-			wantError: true,
+			name: "both environment methods use SDK priority",
+			env: map[string]string{
+				"ARM_BACKEND_OIDC_TOKEN":       "backend-assertion",
+				"ARM_BACKEND_OIDC_REQUEST_URL": "https://example.invalid/request",
+			},
+			want: &auth.ClientAssertionAuthorizer{},
 		},
 		{
-			name:      "AKS and request conflict",
-			config:    map[string]interface{}{"use_aks_workload_identity": true, "ado_pipeline_service_connection_id": "explicit-connection"},
-			wantError: true,
+			name:   "AKS assertion before request",
+			config: map[string]interface{}{"use_aks_workload_identity": true, "ado_pipeline_service_connection_id": "connection"},
+			want:   &auth.ClientAssertionAuthorizer{},
 		},
 		{
-			name:   "legacy competing inputs unchanged",
-			config: map[string]interface{}{"backend_environment_variable_strict_mode": false, "oidc_token": "assertion", "oidc_request_url": "request-url"},
-			want:   map[string]string{"oidc_token": "assertion", "oidc_request_url": "request-url"},
+			name:   "ADO request before GitHub request",
+			config: map[string]interface{}{"ado_pipeline_service_connection_id": "connection"},
+			env:    map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "https://example.invalid/request"},
+			want:   &auth.ADOPipelineOIDCAuthorizer{},
+		},
+		{
+			name: "GitHub request",
+			env:  map[string]string{"ARM_BACKEND_OIDC_REQUEST_URL": "https://example.invalid/request"},
+			want: &auth.GitHubOIDCAuthorizer{},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clearBackendEnvironment(t)
-			config := map[string]interface{}{"backend_environment_variable_strict_mode": true}
-			maps.Copy(config, test.config)
-			for name, value := range test.env {
-				t.Setenv(name, value)
-			}
-			b := New()
-			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
-			if test.wantError {
-				if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "Conflicting OIDC authentication settings") {
-					t.Fatalf("expected conflict diagnostic, got %v", diags)
-				}
-				return
-			}
-			if diags.HasErrors() {
-				t.Fatal(diags.ErrWithWarnings())
-			}
-			data := backendbase.NewSDKLikeData(prepared)
-			for attr, want := range test.want {
-				if got := data.String(attr); got != want {
-					t.Errorf("%s: got %q, want %q", attr, got, want)
-				}
+			for _, strictMode := range []bool{false, true} {
+				t.Run(map[bool]string{false: "default", true: "strict"}[strictMode], func(t *testing.T) {
+					clearBackendEnvironment(t)
+					t.Setenv("ARM_BACKEND_CLIENT_ID", "client")
+					t.Setenv("ARM_BACKEND_TENANT_ID", "tenant")
+					t.Setenv("ARM_BACKEND_OIDC_REQUEST_TOKEN", "request-token")
+					t.Setenv("SYSTEM_OIDCREQUESTURI", "https://example.invalid/pipeline")
+					t.Setenv("AZURE_CLIENT_ID", "client")
+					t.Setenv("AZURE_TENANT_ID", "tenant")
+					t.Setenv("AZURE_FEDERATED_TOKEN_FILE", writeCredentialFile(t, "aks-assertion"))
+					for name, value := range test.env {
+						t.Setenv(name, value)
+					}
+					config := map[string]interface{}{
+						"backend_environment_variable_strict_mode": strictMode,
+						"use_oidc":         true,
+						"use_azuread_auth": true,
+						"use_cli":          false,
+					}
+					maps.Copy(config, test.config)
+					b := New().(*Backend)
+					if diags := b.Configure(prepareBackendConfig(t, b, config)); diags.HasErrors() {
+						t.Fatal(diags.ErrWithWarnings())
+					}
+					cached, ok := b.apiClient.azureAdStorageAuth.(*auth.CachedAuthorizer)
+					if !ok || reflect.TypeOf(cached.Source) != reflect.TypeOf(test.want) {
+						t.Fatalf("expected %T in cached authorizer, got %#v", test.want, b.apiClient.azureAdStorageAuth)
+					}
+				})
 			}
 		})
 	}
@@ -373,7 +393,6 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 		config                             map[string]interface{}
 		env                                map[string]string
 		wantConnection, wantURL, wantToken string
-		wantConflict                       bool
 	}{
 		{name: "no selected connection"},
 		{
@@ -457,22 +476,23 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
-			name:   "explicit assertion suppresses selected connection and native broker",
-			config: map[string]interface{}{"oidc_token": "explicit-assertion"},
-			env:    map[string]string{"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "ignored-connection"},
+			name:           "explicit assertion does not discard connection defaults",
+			config:         map[string]interface{}{"oidc_token": "explicit-assertion"},
+			env:            map[string]string{"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "selected-connection"},
+			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
-			name: "selected assertion and connection still conflict",
+			name: "environment assertion and connection are left to SDK selection",
 			env: map[string]string{
 				"ARM_BACKEND_OIDC_TOKEN":                       "selected-assertion",
 				"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID": "selected-connection",
 			},
-			wantConflict: true,
+			wantConnection: "selected-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
-			name:         "explicit assertion and connection still conflict",
-			config:       map[string]interface{}{"oidc_token": "explicit-assertion", "ado_pipeline_service_connection_id": "explicit-connection"},
-			wantConflict: true,
+			name:           "explicit assertion and connection are left to SDK selection",
+			config:         map[string]interface{}{"oidc_token": "explicit-assertion", "ado_pipeline_service_connection_id": "explicit-connection"},
+			wantConnection: "explicit-connection", wantURL: "native-url", wantToken: "native-token",
 		},
 		{
 			name:           "blank connection does not unlock native broker",
@@ -500,12 +520,6 @@ func TestBackendStrictADONativeBrokerDefaults(t *testing.T) {
 			maps.Copy(config, test.config)
 			b := New()
 			prepared, diags := b.PrepareConfig(decodeBackendConfig(t, b, config))
-			if test.wantConflict {
-				if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "Conflicting OIDC authentication settings") {
-					t.Fatalf("expected OIDC conflict, got %v", diags)
-				}
-				return
-			}
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
