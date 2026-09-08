@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: 'backend/azurerm: Add an optional environment variable suffix to isolate backend authentication and configuration from Azure providers'
+body: 'backend/azurerm: Add ARM_BACKEND_* environment variables and optional strict mode to configure backend authentication separately from Azure providers'
 time: 2026-09-07T14:05:05.820000+01:00
 custom:
     Issue: "36922"

@@ -20,46 +20,57 @@ import (
 )
 
 func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
+	enabled, disabled := true, false
 	tests := []struct {
-		name, suffix, control, nativeRequestToken     string
-		configSelector                                interface{}
+		name, control, nativeRequestToken             string
+		configStrict                                  *bool
+		backendCredentials, request                   bool
 		serviceConnectionEnv, configServiceConnection string
-		request                                       bool
 	}{
-		{name: "legacy assertion"},
-		{name: "explicit selector", suffix: "_STATE", configSelector: "_STATE"},
-		{name: "control selector", suffix: "_BACKEND", control: "_BACKEND"},
-		{name: "explicit empty selector", configSelector: "", control: "_BACKEND"},
-		{name: "selected broker", suffix: "_STATE", configSelector: "_STATE", request: true},
-		{name: "legacy GitHub broker", nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
-		{name: "legacy Azure Pipelines broker", nativeRequestToken: "SYSTEM_ACCESSTOKEN", request: true},
-		{name: "selected ADO native broker", suffix: "_STATE", configSelector: "_STATE", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_STATE", request: true},
-		{name: "explicit ADO native broker", suffix: "_STATE", configSelector: "_STATE", nativeRequestToken: "SYSTEM_ACCESSTOKEN", configServiceConnection: "backend-connection", request: true},
-		{name: "control-selected ADO native broker", suffix: "_BACKEND", control: "_BACKEND", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID_BACKEND", request: true},
+		{name: "generic assertion"},
+		{name: "backend assertion", backendCredentials: true},
+		{name: "strict backend assertion", configStrict: &enabled, backendCredentials: true},
+		{name: "strict control environment", control: "true", backendCredentials: true},
+		{name: "explicit false overrides control", configStrict: &disabled, control: "true", backendCredentials: true},
+		{name: "backend broker", backendCredentials: true, request: true},
+		{name: "strict backend broker", configStrict: &enabled, backendCredentials: true, request: true},
+		{name: "GitHub broker fallback", nativeRequestToken: "ACTIONS_ID_TOKEN_REQUEST_TOKEN", request: true},
+		{name: "ADO broker fallback", nativeRequestToken: "SYSTEM_ACCESSTOKEN", request: true},
+		{name: "backend ADO native broker", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", request: true},
+		{name: "strict backend ADO native broker", configStrict: &enabled, nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", request: true},
+		{name: "strict explicit ADO native broker", configStrict: &enabled, nativeRequestToken: "SYSTEM_ACCESSTOKEN", configServiceConnection: "backend-connection", request: true},
+		{name: "control-enabled ADO native broker", control: "true", nativeRequestToken: "SYSTEM_ACCESSTOKEN", serviceConnectionEnv: "ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", request: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			for _, def := range azure.New().(*azure.Backend).SDKLikeDefaults {
 				for _, name := range def.EnvVars {
 					t.Setenv(name, "")
-					t.Setenv(name+"_STATE", "")
-					t.Setenv(name+"_BACKEND", "")
 				}
 			}
-			t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", test.control)
-			if test.suffix != "" {
+			t.Setenv("ARM_BACKEND_STRICT_MODE", test.control)
+			wantStrict := test.control == "true"
+			if test.configStrict != nil {
+				wantStrict = *test.configStrict
+			}
+			if wantStrict {
 				t.Setenv("ARM_OIDC_TOKEN", "provider-assertion")
 				t.Setenv("ARM_OIDC_REQUEST_TOKEN", "provider-bearer")
 				t.Setenv("ARM_OIDC_REQUEST_URL", "https://example.invalid/provider-oidc")
 			}
-			tokenEnv := "ARM_OIDC_TOKEN" + test.suffix
+			tokenEnv, tokenFileEnv := "ARM_OIDC_TOKEN", "ARM_OIDC_TOKEN_FILE_PATH"
+			if test.backendCredentials {
+				tokenEnv, tokenFileEnv = "ARM_BACKEND_OIDC_TOKEN", "ARM_BACKEND_OIDC_TOKEN_FILE_PATH"
+			}
 			requestURLEnv := ""
 			attr := "oidc_token"
 			tokenFile := filepath.Join(t.TempDir(), "oidc-token")
 			if test.request {
 				attr = "oidc_request_token"
-				tokenEnv = "ARM_OIDC_REQUEST_TOKEN" + test.suffix
-				requestURLEnv = "ARM_OIDC_REQUEST_URL" + test.suffix
+				tokenEnv, requestURLEnv = "ARM_OIDC_REQUEST_TOKEN", "ARM_OIDC_REQUEST_URL"
+				if test.backendCredentials {
+					tokenEnv, requestURLEnv = "ARM_BACKEND_OIDC_REQUEST_TOKEN", "ARM_BACKEND_OIDC_REQUEST_URL"
+				}
 				switch test.nativeRequestToken {
 				case "ACTIONS_ID_TOKEN_REQUEST_TOKEN":
 					tokenEnv = test.nativeRequestToken
@@ -74,21 +85,21 @@ func TestMetaBackendAzureEnvironmentCredentialsNotPersisted(t *testing.T) {
 				if err := os.WriteFile(tokenFile, []byte("plan-credential"), 0600); err != nil {
 					t.Fatal(err)
 				}
-				t.Setenv("ARM_OIDC_TOKEN_FILE_PATH"+test.suffix, tokenFile)
+				t.Setenv(tokenFileEnv, tokenFile)
 			}
 			t.Setenv(tokenEnv, "plan-credential")
 			if test.serviceConnectionEnv != "" {
 				t.Setenv(test.serviceConnectionEnv, "backend-connection")
 			}
 
-			selectorConfig := ""
-			if test.configSelector != nil {
-				selectorConfig = fmt.Sprintf("environment_variable_suffix = %q\n", test.configSelector)
+			settings := ""
+			if test.configStrict != nil {
+				settings = fmt.Sprintf("strict_mode = %t\n", *test.configStrict)
 			}
 			if test.configServiceConnection != "" {
-				selectorConfig += fmt.Sprintf("ado_pipeline_service_connection_id = %q\n", test.configServiceConnection)
+				settings += fmt.Sprintf("ado_pipeline_service_connection_id = %q\n", test.configServiceConnection)
 			}
-			file, parseDiags := hclsyntax.ParseConfig([]byte(selectorConfig+`
+			file, parseDiags := hclsyntax.ParseConfig([]byte(settings+`
 storage_account_name = "testaccount"
 container_name       = "testcontainer"
 key                  = "test.tfstate"
@@ -107,11 +118,14 @@ client_id            = "configured-client"
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
+			if prepared.GetAttr("strict_mode").True() != wantStrict {
+				t.Fatal("incorrect strict-mode setting")
+			}
 			if !prepared.GetAttr(attr).RawEquals(cty.StringVal("plan-credential")) {
 				t.Fatalf("environment credential was not prepared for %s", attr)
 			}
 			if test.request && !prepared.GetAttr("oidc_request_url").RawEquals(cty.StringVal("https://example.invalid/oidc")) {
-				t.Fatal("broker URL did not come from the selected or permitted native environment")
+				t.Fatal("broker URL did not come from the expected environment")
 			}
 			if (test.serviceConnectionEnv != "" || test.configServiceConnection != "") &&
 				!prepared.GetAttr("ado_pipeline_service_connection_id").RawEquals(cty.StringVal("backend-connection")) {
@@ -138,12 +152,12 @@ client_id            = "configured-client"
 			if bytes.Contains(saved.ConfigRaw, []byte("plan-credential")) {
 				t.Fatal("saved backend configuration contains the environment credential")
 			}
-			wantSelector := cty.NullVal(cty.String)
-			if test.configSelector != nil {
-				wantSelector = cty.StringVal(test.configSelector.(string))
+			wantMode := cty.NullVal(cty.Bool)
+			if test.configStrict != nil {
+				wantMode = cty.BoolVal(*test.configStrict)
 			}
-			if !planConfig.GetAttr("environment_variable_suffix").RawEquals(wantSelector) {
-				t.Fatal("selector persistence differs from explicit configuration")
+			if !planConfig.GetAttr("strict_mode").RawEquals(wantMode) {
+				t.Fatal("strict-mode persistence differs from explicit configuration")
 			}
 			if !planConfig.GetAttr("client_id").RawEquals(cty.StringVal("configured-client")) {
 				t.Fatal("explicit identity was not retained in the plan")
@@ -159,21 +173,22 @@ client_id            = "configured-client"
 			t.Setenv(tokenEnv, "apply-credential")
 			if test.request {
 				t.Setenv(requestURLEnv, "https://example.invalid/apply-oidc")
-			} else {
-				if err := os.WriteFile(tokenFile, []byte("apply-credential"), 0600); err != nil {
-					t.Fatal(err)
-				}
+			} else if err := os.WriteFile(tokenFile, []byte("apply-credential"), 0600); err != nil {
+				t.Fatal(err)
 			}
-			if test.configSelector != nil {
-				t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", "_DIFFERENT")
+			if test.configStrict != nil {
+				t.Setenv("ARM_BACKEND_STRICT_MODE", fmt.Sprint(!*test.configStrict))
 			}
 			applyBackend := azure.New()
 			applyConfig, diags := applyBackend.PrepareConfig(planConfig)
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
+			if applyConfig.GetAttr("strict_mode").True() != wantStrict {
+				t.Fatal("saved plan did not retain the expected strict-mode setting")
+			}
 			if !applyConfig.GetAttr(attr).RawEquals(cty.StringVal("apply-credential")) {
-				t.Fatal("saved plan did not use fresh credentials from the selected environment")
+				t.Fatal("saved plan did not use fresh environment credentials")
 			}
 			if test.request && !applyConfig.GetAttr("oidc_request_url").RawEquals(cty.StringVal("https://example.invalid/apply-oidc")) {
 				t.Fatal("saved plan did not use the fresh broker URL")
@@ -181,14 +196,14 @@ client_id            = "configured-client"
 			if diags := applyBackend.Configure(applyConfig); diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
 			}
-			if test.control != "" && test.configSelector == nil {
-				t.Setenv("ARM_BACKEND_ENVIRONMENT_VARIABLE_SUFFIX", "")
+			if test.control == "true" && test.configStrict == nil {
+				t.Setenv("ARM_BACKEND_STRICT_MODE", "")
 				withoutControl, diags := azure.New().PrepareConfig(planConfig)
 				if diags.HasErrors() {
 					t.Fatal(diags.ErrWithWarnings())
 				}
-				if withoutControl.GetAttr("environment_variable_suffix").AsString() != "" {
-					t.Fatal("environment-derived selector unexpectedly survived in the saved plan")
+				if withoutControl.GetAttr("strict_mode").True() {
+					t.Fatal("environment-derived strict mode unexpectedly survived in the saved plan")
 				}
 			}
 		})

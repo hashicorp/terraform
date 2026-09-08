@@ -5,7 +5,6 @@ package azure
 
 import (
 	"maps"
-	"regexp"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -14,46 +13,25 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-var environmentVariableSuffixPattern = regexp.MustCompile(`^_[A-Z0-9_]+$`)
-
 func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	// Resolve strict mode before reading other environment defaults.
 	base := b.Base
-	base.SDKLikeDefaults = nil
+	base.SDKLikeDefaults = backendbase.SDKLikeDefaults{
+		"strict_mode": b.SDKLikeDefaults["strict_mode"],
+	}
 	configVal, diags := base.PrepareConfig(configVal)
 	if diags.HasErrors() {
 		return configVal, diags
 	}
 
-	// Unlike other string defaults, an explicitly empty selector must override its environment variable.
-	suffixVal := configVal.GetAttr("environment_variable_suffix")
-	if suffixVal.IsNull() {
-		suffixVal = cty.StringVal(backendbase.SDKLikeEnvDefault("", b.SDKLikeDefaults["environment_variable_suffix"].EnvVars...))
-	}
-	if !suffixVal.IsKnown() || (suffixVal.AsString() != "" && !environmentVariableSuffixPattern.MatchString(suffixVal.AsString())) {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid environment variable suffix",
-			"The environment_variable_suffix must be empty or match _[A-Z0-9_]+, for example _BACKEND.",
-			cty.GetAttrPath("environment_variable_suffix"),
-		))
-		return configVal, diags
-	}
-	attrs := configVal.AsValueMap()
-	attrs["environment_variable_suffix"] = suffixVal
-	configVal = cty.ObjectVal(attrs)
-
+	strictMode := configVal.GetAttr("strict_mode").True()
 	defaults := maps.Clone(b.SDKLikeDefaults)
-	selectorDefault := defaults["environment_variable_suffix"]
-	selectorDefault.EnvVars = nil
-	defaults["environment_variable_suffix"] = selectorDefault
-
-	suffix := suffixVal.AsString()
-	if suffix != "" {
+	if strictMode {
 		for attr, def := range defaults {
 			var envNames []string
 			for _, name := range def.EnvVars {
-				if strings.HasPrefix(name, "ARM_") {
-					envNames = append(envNames, name+suffix)
+				if strings.HasPrefix(name, "ARM_BACKEND_") {
+					envNames = append(envNames, name)
 				}
 			}
 			def.EnvVars = envNames
@@ -107,7 +85,7 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 		diags = diags.Append(err)
 		return prepared, diags
 	}
-	if suffix != "" {
+	if strictMode {
 		data := backendbase.NewSDKLikeData(prepared)
 		hasAssertion := anyStringSet(data, "oidc_token", "oidc_token_file_path") || data.Bool("use_aks_workload_identity")
 		hasRequest := anyStringSet(data, "oidc_request_url", "oidc_request_token", "ado_pipeline_service_connection_id")
@@ -115,7 +93,7 @@ func (b *Backend) PrepareConfig(configVal cty.Value) (cty.Value, tfdiags.Diagnos
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Conflicting OIDC authentication settings",
-				"When environment_variable_suffix is set, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
+				"When strict_mode is enabled, choose either an OIDC assertion (oidc_token, oidc_token_file_path, or use_aks_workload_identity) or an OIDC request (oidc_request_url, oidc_request_token, or ado_pipeline_service_connection_id), not both.",
 			))
 		}
 	}
