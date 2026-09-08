@@ -32,13 +32,14 @@ type Module struct {
 
 	ActiveExperiments experiments.Set
 
-	Backend              *Backend
-	StateStore           *StateStore
-	CloudConfig          *CloudConfig
-	ProviderConfigs      map[string]*Provider
-	ProviderRequirements *RequiredProviders
-	ProviderLocalNames   map[addrs.Provider]string
-	ProviderMetas        map[addrs.Provider]*ProviderMeta
+	Backend                  *Backend
+	StateStore               *StateStore
+	CloudConfig              *CloudConfig
+	ProviderConfigs          map[string]*Provider
+	ProviderRequirements     *RequiredProviders
+	ProviderRequirementExprs map[string]*ProviderRequirementExpr
+	ProviderLocalNames       map[addrs.Provider]string
+	ProviderMetas            map[addrs.Provider]*ProviderMeta
 
 	StateMigrationInstructions *StateMigrationInstructions
 
@@ -79,12 +80,13 @@ type File struct {
 
 	ActiveExperiments experiments.Set
 
-	Backends          []*Backend
-	StateStores       []*StateStore
-	CloudConfigs      []*CloudConfig
-	ProviderConfigs   []*Provider
-	ProviderMetas     []*ProviderMeta
-	RequiredProviders []*RequiredProviders
+	Backends              []*Backend
+	StateStores           []*StateStore
+	CloudConfigs          []*CloudConfig
+	ProviderConfigs       []*Provider
+	ProviderMetas         []*ProviderMeta
+	RequiredProviders     []*RequiredProviders
+	RequiredProviderExprs []*ProviderRequirementExpr
 
 	Variables []*Variable
 	Locals    []*Local
@@ -123,20 +125,21 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
-		ProviderConfigs:    map[string]*Provider{},
-		ProviderLocalNames: map[addrs.Provider]string{},
-		Variables:          map[string]*Variable{},
-		Locals:             map[string]*Local{},
-		Outputs:            map[string]*Output{},
-		ModuleCalls:        map[string]*ModuleCall{},
-		ManagedResources:   map[string]*Resource{},
-		EphemeralResources: map[string]*Resource{},
-		DataResources:      map[string]*Resource{},
-		ListResources:      map[string]*Resource{},
-		Checks:             map[string]*Check{},
-		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
-		Tests:              map[string]*TestFile{},
-		Actions:            map[string]*Action{},
+		ProviderConfigs:          map[string]*Provider{},
+		ProviderLocalNames:       map[addrs.Provider]string{},
+		Variables:                map[string]*Variable{},
+		Locals:                   map[string]*Local{},
+		Outputs:                  map[string]*Output{},
+		ModuleCalls:              map[string]*ModuleCall{},
+		ManagedResources:         map[string]*Resource{},
+		EphemeralResources:       map[string]*Resource{},
+		DataResources:            map[string]*Resource{},
+		ListResources:            map[string]*Resource{},
+		Checks:                   map[string]*Check{},
+		ProviderMetas:            map[addrs.Provider]*ProviderMeta{},
+		ProviderRequirementExprs: map[string]*ProviderRequirementExpr{},
+		Tests:                    map[string]*TestFile{},
+		Actions:                  map[string]*Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -174,6 +177,19 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		}
 	}
 
+	// Collect any deferred provider requirement expressions from all files.
+	for _, file := range primaryFiles {
+		for _, expr := range file.RequiredProviderExprs {
+			mod.ProviderRequirementExprs[expr.Name] = expr
+		}
+	}
+
+	for _, file := range overrideFiles {
+		for _, expr := range file.RequiredProviderExprs {
+			mod.ProviderRequirementExprs[expr.Name] = expr
+		}
+	}
+
 	for _, file := range primaryFiles {
 		fileDiags := mod.appendFile(file)
 		diags = append(diags, fileDiags...)
@@ -187,11 +203,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	diags = append(diags, checkModuleExperiments(mod)...)
 
 	// Generate the FQN -> LocalProviderName map
-	mod.gatherProviderLocalNames()
-
-	if mod.StateStore != nil {
-		diags = append(diags, mod.resolveStateStoreProviderType()...)
-	}
+	mod.GatherProviderLocalNames()
 
 	return mod, diags
 }
@@ -401,21 +413,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	// Data sources can either be defined at the module root level, or within a
@@ -447,21 +444,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.EphemeralResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	for _, c := range file.Checks {
@@ -491,24 +473,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		m.Checks[c.Name] = c
 	}
 
-	// Handle the provider associations for all data resources together.
-	for _, r := range m.DataResources {
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid data source name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
-	}
-
 	// "Moved" blocks just append, because they are all independent of one
 	// another at this level. (We handle any references between them at
 	// runtime.)
@@ -532,20 +496,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			}
 		}
 
-		if i.ProviderConfigRef != nil {
-			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
-				LocalName: i.ProviderConfigRef.Name,
-				Alias:     i.ProviderConfigRef.Alias,
-			})
-		} else {
-			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
-			if err == nil {
-				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
-
 		m.Import = append(m.Import, i)
 	}
 
@@ -562,20 +512,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 		m.Actions[key] = a
 
-		// set the provider FQN for the action
-		if a.ProviderConfigRef != nil {
-			a.Provider = m.ProviderForLocalConfig(a.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
-			if err == nil {
-				a.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	return diags
@@ -644,7 +580,6 @@ func (m *Module) appendQueryFile(file *QueryFile) hcl.Diagnostics {
 		}
 		// set the provider FQN for the resource
 		m.ListResources[key] = ql
-		ql.Provider = m.ProviderForLocalConfig(ql.ProviderConfigAddr())
 	}
 
 	return diags
@@ -935,11 +870,11 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	return diags
 }
 
-// gatherProviderLocalNames is a helper function that populates a map of
+// GatherProviderLocalNames is a helper function that populates a map of
 // provider FQNs -> provider local names. This information is useful for
 // user-facing output, which should include both the FQN and LocalName. It must
 // only be populated after the module has been parsed.
-func (m *Module) gatherProviderLocalNames() {
+func (m *Module) GatherProviderLocalNames() {
 	providers := make(map[addrs.Provider]string)
 	for k, v := range m.ProviderRequirements.RequiredProviders {
 		providers[v.Type] = k
@@ -947,12 +882,12 @@ func (m *Module) gatherProviderLocalNames() {
 	m.ProviderLocalNames = providers
 }
 
-// resolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
+// ResolveStateStoreProviderType uses the processed module to get tfaddr.Provider data for the provider
 // used for pluggable state storage, and assigns it to the ProviderAddr field in the module's state store data.
 //
 // See the reused function resolveStateStoreProviderType for details about logic.
 // If no match is found, an error diagnostic is returned.
-func (m *Module) resolveStateStoreProviderType() hcl.Diagnostics {
+func (m *Module) ResolveStateStoreProviderType() hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
 	providerType, typeDiags := resolveStateStoreProviderType(m.ProviderRequirements.RequiredProviders,

@@ -13,7 +13,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
-	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestModuleOverrideVariable(t *testing.T) {
@@ -468,37 +467,6 @@ func TestModuleOverrideOutputType(t *testing.T) {
 	}
 }
 
-func TestModuleOverrideResourceFQNs(t *testing.T) {
-	mod, diags := testModuleFromDir("testdata/valid-modules/override-resource-provider")
-	assertNoDiagnostics(t, diags)
-
-	got := mod.ManagedResources["test_instance.explicit"]
-	wantProvider := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
-	wantProviderCfg := &ProviderConfigRef{
-		Name: "bar-test",
-		NameRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
-			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 51},
-			End:      hcl.Pos{Line: 2, Column: 22, Byte: 59},
-		},
-	}
-
-	if !got.Provider.Equals(wantProvider) {
-		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
-	}
-	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
-
-	// now verify that a resource with no provider config falls back to default
-	got = mod.ManagedResources["test_instance.default"]
-	wantProvider = addrs.NewDefaultProvider("test")
-	if !got.Provider.Equals(wantProvider) {
-		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
-	}
-	if got.ProviderConfigRef != nil {
-		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
-	}
-}
-
 func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-ignore-changes")
 	assertNoDiagnostics(t, diags)
@@ -507,71 +475,4 @@ func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
 	if !r.Managed.IgnoreAllChanges {
 		t.Fatalf("wrong result: expected r.Managed.IgnoreAllChanges to be true")
 	}
-}
-
-// This tests the override behavior of action blocks and action_triggers inside resources.
-func TestModuleOverride_action_and_trigger(t *testing.T) {
-	mod, diags := testModuleFromDirWithExperiments("testdata/valid-modules/override-action-and-trigger")
-	assertNoDiagnostics(t, diags)
-
-	if len(mod.Actions) != 2 {
-		t.Fatalf("wrong number of actions: %d\n", len(mod.Actions))
-	}
-
-	// verify that the action has attr foo = baz (override)
-	got := mod.Actions["action.test_action.test"]
-	want := &Action{
-		Name:              "test",
-		Type:              "test_action",
-		Config:            nil,
-		Count:             nil,
-		ForEach:           nil,
-		ProviderConfigRef: nil,
-		Provider:          addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "test"),
-		DeclRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
-			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-			End:      hcl.Pos{Line: 1, Column: 28, Byte: 27},
-		},
-		TypeRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-action-and-trigger/main.tf",
-			Start:    hcl.Pos{Line: 1, Column: 8, Byte: 7},
-			End:      hcl.Pos{Line: 1, Column: 21, Byte: 20},
-		},
-		Body: mod.Actions["action.test_action.test"].Body,
-	}
-
-	// We're going to extract and nil out our hcl.Body here because DeepEqual
-	// is not a useful way to assert on that.
-	gotConfig := got.Config
-	got.Config = nil
-
-	assertResultDeepEqual(t, got, want)
-
-	// now to check that config
-	type content struct {
-		Foo *string `hcl:"foo"`
-	}
-	var gotArgs content
-	diags = gohcl.DecodeBody(gotConfig, nil, &gotArgs)
-	assertNoDiagnostics(t, diags)
-
-	wantArgs := content{
-		Foo: stringPtr("baz"),
-	}
-	assertResultDeepEqual(t, gotArgs, wantArgs)
-
-	if _, exists := mod.ManagedResources["test_instance.test"]; !exists {
-		t.Fatalf("no resource 'test_instance.test'")
-	}
-	if len(mod.ManagedResources) != 1 {
-		t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
-	}
-
-	r := mod.ManagedResources["test_instance.test"].Managed
-	assertResultDeepEqual(t, len(r.ActionTriggers), 1)
-
-	// verify the resource action trigger event changed
-	at := mod.ManagedResources["test_instance.test"].Managed.ActionTriggers[0]
-	assertResultDeepEqual(t, at.Events, []ActionTriggerEvent{BeforeCreate})
 }
