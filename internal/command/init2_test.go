@@ -776,7 +776,7 @@ func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
 		},
 		"resource reference in provider source": {
 			fixture:   "provider-source-with-resource-reference",
-			wantError: "Unknown provider source",
+			wantError: "Invalid provider source",
 		},
 		"required const variable not set": {
 			fixture:   "provider-source-with-variable-no-value",

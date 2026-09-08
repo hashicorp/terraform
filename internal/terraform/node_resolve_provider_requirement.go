@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -66,8 +67,7 @@ func (n *nodeResolveProviderRequirements) resolveProvider(
 	}
 
 	if expr.SourceExpr != nil {
-		sourceStr, sourceType, sourceDiags :=
-			evalProviderSource(expr.SourceExpr, ctx)
+		sourceStr, sourceType, sourceDiags := evalProviderSource(expr.SourceExpr, ctx)
 		diags = diags.Append(sourceDiags)
 		if sourceDiags.HasErrors() {
 			return nil, diags
@@ -119,8 +119,8 @@ func evalProviderSource(
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unknown provider source",
-				Detail:   "Only literal values and const variables can be evaluated during init.",
+				Summary:  "Invalid provider source",
+				Detail:   "The provider source can only reference constant input variables and local values.",
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return "", addrs.Provider{}, diags
@@ -133,6 +133,16 @@ func evalProviderSource(
 		return "", addrs.Provider{}, diags
 	}
 
+	if value.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unsuitable provider source",
+			Detail:   `Unsuitable value: null value is not allowed.`,
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return "", addrs.Provider{}, diags
+	}
+
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -142,6 +152,20 @@ func evalProviderSource(
 		})
 		return "", addrs.Provider{}, diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider source",
+			Detail:   "The provider source cannot be derived from a sensitive or ephemeral value.",
+			Subject:  sourceExpr.Range().Ptr(),
+		})
+		return "", addrs.Provider{}, diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	sourceStr := value.AsString()
 	fqn, sourceDiags := addrs.ParseProviderSourceString(sourceStr)
@@ -182,8 +206,8 @@ func evalProviderVersion(
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Unknown provider version",
-				Detail:   "Only literal values and const variables can be evaluated during init.",
+				Summary:  "Invalid provider version",
+				Detail:   "The provider version can only reference constant input variables and local values.",
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return ret, diags
@@ -196,6 +220,12 @@ func evalProviderVersion(
 		return ret, diags
 	}
 
+	if value.IsNull() {
+		// A null version constraint is strange, but we'll just treat it
+		// like an empty constraint set.
+		return ret, diags
+	}
+
 	if !value.IsWhollyKnown() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -205,6 +235,20 @@ func evalProviderVersion(
 		})
 		return ret, diags
 	}
+
+	if marks.Has(value, marks.Sensitive) || marks.Has(value, marks.Ephemeral) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider version",
+			Detail:   "The provider version cannot be derived from a sensitive or ephemeral value.",
+			Subject:  versionExpr.Range().Ptr(),
+		})
+		return ret, diags
+	}
+
+	// Strip any remaining marks (such as deprecation marks, which are allowed)
+	// so that AsString cannot panic.
+	value, _ = value.Unmark()
 
 	constraintStr := value.AsString()
 	constraints, err := version.NewConstraint(constraintStr)

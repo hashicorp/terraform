@@ -378,6 +378,75 @@ variable "provider_ver" {
 	}
 }
 
+func TestInit_DynamicProviderSource_invalidValues(t *testing.T) {
+	for name, tc := range map[string]struct {
+		config        string
+		expectedError string
+	}{
+		"null_source": {
+			config: `
+terraform {
+  required_providers {
+    test = {
+     source = null,
+    }
+  }
+}`,
+			expectedError: "Unsuitable provider source: Unsuitable value: null value is not allowed.",
+		},
+		"null_version": {
+			config: `
+terraform {
+  required_providers {
+    test = {
+      source  = "hashicorp/test"
+      version = null
+    }
+  }
+}`,
+			expectedError: "",
+		},
+		"sensitive_source": {
+			config: `
+terraform {
+  required_providers {
+    test = {
+      source = sensitive("hashicorp/test")
+    }
+  }
+}`,
+			expectedError: "Unknown provider source: The provider source cannot be derived from a sensitive or ephemeral value.",
+		},
+		"sensitive_version": {
+			config: `
+terraform {
+  required_providers {
+    test = {
+      source  = "hashicorp/test"
+      version = sensitive("1.0.0")
+    }
+  }
+}`,
+			expectedError: "Unknown provider version: The provider version cannot be derived from a sensitive or ephemeral value.",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			mod := testRootModuleInline(t, map[string]string{
+				"main.tf": tc.config,
+			}, false)
+
+			ctx := testContext2(t, &ContextOpts{Parallelism: 1})
+			_, diags := ctx.Init(mod, InitOpts{})
+
+			if tc.expectedError == "" && diags.HasErrors() {
+				t.Fatalf("unexpected error diagnostic: %s", diags.Err())
+			} else if tc.expectedError != "" && tc.expectedError != diags.Err().Error() {
+				t.Fatalf("error diagnostics doesn't match, got %s", diags.Err().Error())
+			}
+		})
+	}
+}
+
 func expectRequiredProviderInModule(
 	t *testing.T,
 	expect string,
