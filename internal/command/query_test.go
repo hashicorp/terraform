@@ -315,30 +315,24 @@ func TestQueryCommand_Validate(t *testing.T) {
 	missingPath := filepath.Join(t.TempDir(), "does-not-exist")
 
 	tests := []struct {
-		name             string
-		policyPaths      []string
-		allowExperiments bool
-		wantDiags        tfdiags.Diagnostics
+		name        string
+		policyPaths []string
+		wantDiags   tfdiags.Diagnostics
 	}{
 		{
-			name:             "no policies, flag omitted",
-			policyPaths:      nil,
-			allowExperiments: true,
+			name: "no policies, flag omitted",
 		},
 		{
-			name:             "single valid path",
-			policyPaths:      []string{td},
-			allowExperiments: true,
+			name:        "single valid path",
+			policyPaths: []string{td},
 		},
 		{
-			name:             "multiple valid paths",
-			policyPaths:      []string{td, td2},
-			allowExperiments: true,
+			name:        "multiple valid paths",
+			policyPaths: []string{td, td2},
 		},
 		{
-			name:             "non-existent path",
-			policyPaths:      []string{missingPath},
-			allowExperiments: true,
+			name:        "non-existent path",
+			policyPaths: []string{missingPath},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -351,7 +345,7 @@ func TestQueryCommand_Validate(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := &QueryCommand{Meta: Meta{AllowExperimentalFeatures: tc.allowExperiments}}
+			cmd := &QueryCommand{}
 			got := cmd.Validate(&arguments.Query{PolicyPaths: tc.policyPaths})
 			if tc.wantDiags == nil {
 				tfdiags.AssertNoDiagnostics(t, got)
@@ -398,8 +392,7 @@ func TestQueryCommand_policyClientRouting(t *testing.T) {
 
 			client := policy.NewTestMockClient(t)
 			cmd := &QueryCommand{Meta: Meta{
-				AllowExperimentalFeatures: true,
-				testingOverrides:          &testingOverrides{PolicyClient: client},
+				testingOverrides: &testingOverrides{PolicyClient: client},
 			}}
 			op := &backendrun.Operation{PolicyPaths: tc.policyPaths}
 			stop := cmd.configureQueryPolicyClient(be, op)
@@ -672,10 +665,9 @@ func TestQueryPolicyStatusReporting(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	view, done := testView(t)
 	meta := Meta{
-		testingOverrides:          overrides,
-		View:                      view,
-		AllowExperimentalFeatures: true,
-		ProviderSource:            providerSource,
+		testingOverrides: overrides,
+		View:             view,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{Meta: meta}
@@ -788,10 +780,9 @@ func TestQueryPolicyStatusReporting_NoPoliciesArgument(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	view, done := testView(t)
 	meta := Meta{
-		testingOverrides:          overrides,
-		View:                      view,
-		AllowExperimentalFeatures: true,
-		ProviderSource:            providerSource,
+		testingOverrides: overrides,
+		View:             view,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{Meta: meta}

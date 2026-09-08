@@ -34,6 +34,11 @@ Query Customization Options:
 
   The following options customize how Terraform will run the query.
 
+  -policies=path        Evaluate policies from a policy set directory against
+                        resources discovered by the query. Use this option more
+                        than once to include multiple policy set paths.
+                        The equivalent --policies=path spelling is also supported.
+
   -var 'foo=bar'        Set a value for one of the input variables in the query
                         file of the configuration. Use this option more than
                         once to set more than one variable.
