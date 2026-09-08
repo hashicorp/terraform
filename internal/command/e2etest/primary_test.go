@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -936,4 +937,124 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 			t.Fatalf("expected error about state store configuration changing, but got:\n%s", stderr)
 		}
 	})
+}
+
+// Test using dynamic provider sources in combination with pluggable state storage for multiple commands:
+// - init
+// - plan
+// - apply
+// - refresh
+// - query
+func TestPrimary_stateStore_dynamicProviderSources(t *testing.T) {
+	t.Parallel()
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-dyn-sourced-state-store-fs")
+
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+
+	// Build the simple6 provider binary and supply it to `init` via the -plugin-dir flag.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	// INIT
+	stdout, stderr, err := tf.Run(
+		"init",
+		"-enable-pluggable-state-storage-experiment",
+		"-plugin-dir=cache",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	expectedMsg := `Finding hashicorp/simple6 versions matching "0.0.1"...`
+	if !strings.Contains(stdout, expectedMsg) {
+		t.Fatalf("expected output %q, got %q", expectedMsg, stdout)
+	}
+
+	// Verify the lockfile includes expected provider and version
+	lockPath := filepath.Join(tf.WorkDir(), depsfile.LockFilePath)
+	locks, diags := depsfile.LoadLocksFromFile(lockPath)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %s", diags)
+	}
+	pAddr := addrs.MustParseProviderSourceString("hashicorp/simple6")
+	pLock := locks.Provider(pAddr)
+
+	expectedVersion := getproviders.MustParseVersion("0.0.1")
+	givenVersion := pLock.Version()
+	if expectedVersion.String() != givenVersion.String() {
+		t.Fatalf("mismatching version, expected %s, given %s", expectedVersion, givenVersion)
+	}
+
+	// PLAN
+	_, stderr, err = tf.Run(
+		"plan",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// APPLY
+	_, stderr, err = tf.Run(
+		"apply",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+		"-auto-approve",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// REFRESH
+	_, stderr, err = tf.Run(
+		"refresh",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// QUERY
+	// TODO: Need to check if the provider implements necessary logic for performing a query.
+
+	// Add a .tfquery.hcl file and then run the query command
+	queryFilePath := tf.Path("main.tfquery.hcl")
+	os.WriteFile(queryFilePath, []byte(`
+list "simple_resource" "test" {
+  provider = simple6
+  include_resource = true
+  config {
+    value = "dynamic_value"
+  }
+}
+`), 0644)
+	_, stderr, err = tf.Run(
+		"query",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
 }
