@@ -46,7 +46,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Parse variables early
+	// We need to collect variables early in this command to ensure that the
+	// values are available when preparing the backend. A PSS backend will need
+	// the values to resolve the provider requirements.
 	var varDiags tfdiags.Diagnostics
 	c.Meta.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
 		loader.Parser().ForceFileSource(filename, src)

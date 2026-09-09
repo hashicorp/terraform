@@ -39,6 +39,22 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	// diagnostics according to the desired view
 	view := views.NewRefresh(args.ViewType, c.View)
 
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// We need to collect variables early in this command to ensure that the
+	// values are available when preparing the backend. A PSS backend will need
+	// the values to resolve the provider requirements.
+	var varDiags tfdiags.Diagnostics
+	c.Meta.VariableValues, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		view.HelpPrompt()
@@ -46,7 +62,6 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	// Check for user-supplied plugin path
-	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		diags = diags.Append(err)
 		view.Diagnostics(diags)
@@ -82,12 +97,9 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// Collect variable value and add them to the operation request
-	var varDiags tfdiags.Diagnostics
-	opReq.Variables, varDiags = args.Vars.CollectValues(func(filename string, src []byte) {
-		opReq.ConfigLoader.Parser().ForceFileSource(filename, src)
-	})
-	diags = diags.Append(varDiags)
+	// Assign config loader and variables to the operation request
+	opReq.ConfigLoader = loader
+	opReq.Variables = c.Meta.VariableValues
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -129,7 +141,11 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType argument
 	return be, diags
 }
 
-func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
+func (c *RefreshCommand) OperationRequest(
+	be backendrun.OperationsBackend,
+	view views.Refresh,
+	viewType arguments.ViewType,
+	args *arguments.Operation,
 ) (*backendrun.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -152,13 +168,6 @@ func (c *RefreshCommand) OperationRequest(be backendrun.OperationsBackend, view 
 			"Failed to parse command-line flags",
 			"The -allow-deferral flag is only valid in experimental builds of Terraform.",
 		))
-		return nil, diags
-	}
-
-	var err error
-	opReq.ConfigLoader, err = c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
 		return nil, diags
 	}
 
