@@ -96,6 +96,8 @@ func loadTestModulesWithGraph(root *configs.Config, walker configs.ModuleWalker,
 
 func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues, modulePathPrefix addrs.Module) (*configs.Config, tfdiags.Diagnostics) {
 	ctx, ctxDiags := NewContext(&ContextOpts{
+		// To avoid access issues with manifest and lock files, we don't want to
+		// parallelize module installation/loading here
 		Parallelism: 1,
 	})
 	if ctxDiags.HasErrors() {
@@ -107,4 +109,34 @@ func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, v
 		SetVariables:     vars,
 		ModulePathPrefix: modulePathPrefix,
 	})
+}
+
+func BuildModuleWithGraph(mod *configs.Module, vars InputValues) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ctx, ctxDiags := NewContext(&ContextOpts{
+		// To avoid access issues with manifest and lock files, we don't want to
+		// parallelize module installation/loading here
+		Parallelism: 1,
+	})
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return nil, diags
+	}
+
+	cfg, initDiags := ctx.Init(mod, InitOpts{
+		SetVariables: vars,
+	})
+	diags = diags.Append(initDiags)
+	if diags.HasErrors() {
+		return mod, diags
+	}
+
+	providers := cfg.ResolveProviderTypes()
+	cfg.ResolveProviderTypesForTests(providers)
+	if cfg.Module != nil && cfg.Module.StateStore != nil {
+		stateProviderDiags := cfg.ResolveStateStoreProviderType()
+		diags = diags.Append(stateProviderDiags)
+	}
+
+	return cfg.Module, diags
 }

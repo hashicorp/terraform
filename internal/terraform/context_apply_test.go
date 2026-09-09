@@ -10262,6 +10262,87 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_ProviderMeta_plan_localName(t *testing.T) {
+	for name, source := range map[string]string{
+		"literal source":        `"acme/test"`,
+		"const variable source": `var.provider_source`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			vars := InputValues{
+				"provider_source": {
+					Value:      cty.StringVal("acme/test"),
+					SourceType: ValueFromCLIArg,
+				},
+			}
+			m := testModuleInlineWithVars(t, map[string]string{
+				"main.tf": fmt.Sprintf(`
+variable "provider_source" {
+  type  = string
+  const = true
+}
+
+terraform {
+  required_providers {
+    custom = {
+      source = %s
+    }
+  }
+
+  provider_meta "custom" {
+    baz = "quux"
+  }
+}
+
+resource "test_instance" "example" {
+  provider = custom
+  foo      = "bar"
+}
+`, source),
+			}, vars)
+
+			p := testProvider("test")
+			schema := getProviderSchema(p)
+			schema.ProviderMeta = &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"baz": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			}
+			p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
+			var gotMeta cty.Value
+			p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				gotMeta = req.ProviderMeta
+				return providers.PlanResourceChangeResponse{
+					PlannedState: req.ProposedNewState,
+				}
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "test"): testProviderFuncFixed(p),
+				},
+			})
+
+			_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+				Mode:         plans.NormalMode,
+				SetVariables: vars,
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			if !p.PlanResourceChangeCalled {
+				t.Fatal("PlanResourceChange not called")
+			}
+			wantMeta := cty.ObjectVal(map[string]cty.Value{
+				"baz": cty.StringVal("quux"),
+			})
+			if !gotMeta.RawEquals(wantMeta) {
+				t.Errorf("wrong ProviderMeta in PlanResourceChange\ngot:  %#v\nwant: %#v", gotMeta, wantMeta)
+			}
+		})
+	}
+}
+
 func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 	m := testModule(t, "provider-meta-unset")
 	p := testProvider("test")

@@ -22,11 +22,11 @@ func FinalizeConfig(cfg *Config, loader MockDataLoader) hcl.Diagnostics {
 
 	// Now that the config is built, we can connect the provider names to all
 	// the known types for validation.
-	providers := cfg.resolveProviderTypes()
-	cfg.resolveProviderTypesForTests(providers)
+	providers := cfg.ResolveProviderTypes()
+	cfg.ResolveProviderTypesForTests(providers)
 
 	if cfg.Module != nil && cfg.Module.StateStore != nil {
-		stateProviderDiags := cfg.resolveStateStoreProviderType()
+		stateProviderDiags := cfg.ResolveStateStoreProviderType()
 		diags = append(diags, stateProviderDiags...)
 	}
 
