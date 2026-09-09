@@ -1395,7 +1395,7 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 		lockVersion, err := providerreqs.GoVersionFromVersion(pLock.Version())
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
+				tfdiags.Error,
 				"Unable to determine version of the state store provider",
 				fmt.Sprintf("Failed to parse version of %s from the lock file: %s", cfg.ProviderAddr.ForDisplay(), err),
 			))
@@ -1432,7 +1432,7 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 	cachedProviderVal, err := cfgState.Provider.Config(ssBackend.ProviderSchema())
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
+			tfdiags.Error,
 			"Unable to decode state_store provider configuration",
 			fmt.Sprintf("Failed to decode configuration of the provider %q (%s): %s",
 				cfg.Provider.Name, cfg.ProviderAddr.ForDisplay(), err),
@@ -1452,7 +1452,7 @@ func (m *Meta) determineStateStoreInitReason(cfgState *workdir.StateStoreConfigS
 	cachedSsVal, err := cfgState.Config(ssBackend.ConfigSchema())
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
+			tfdiags.Error,
 			"Unable to decode state_store configuration",
 			fmt.Sprintf("Failed to decode configuration of state_store %q: %s",
 				cfg.Type, err),
