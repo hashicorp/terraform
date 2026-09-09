@@ -8590,7 +8590,30 @@ func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *tes
 	//
 	// This imagines a provider called `test` that contains
 	// a pluggable state store implementation called `store`.
-	mock := testing_provider.MockProvider{}
+	mock := testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"region": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+			DataSources: map[string]providers.Schema{},
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"input": {Type: cty.String, Optional: true},
+							"id":    {Type: cty.String, Computed: true},
+						},
+					},
+				},
+			},
+			ListResourceTypes: map[string]providers.Schema{},
+			StateStores:       schemas,
+		},
+	}
 	return addPluggableStateStoreToMockProvider(&mock, schemas)
 }
 
