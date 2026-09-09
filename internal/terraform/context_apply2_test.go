@@ -5197,7 +5197,7 @@ resource test_object default {}
 		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
 			t.Fatal("missing expected diagnostic")
 		}
-		assertPlan(t, plan, forget, plans.CreateThenForget)
+		assertPlan(t, plan, forget, plans.ForgetThenCreate)
 
 		state, applyDiags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, applyDiags)

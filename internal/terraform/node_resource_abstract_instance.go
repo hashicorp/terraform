@@ -212,7 +212,7 @@ func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.Resourc
 
 	preventDestroy := n.Config.Managed.PreventDestroy && !n.overridePreventDestroy
 
-	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
+	if (change.Action == plans.Delete || change.Action == plans.DeleteThenCreate || change.Action == plans.CreateThenDelete) && preventDestroy {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -1341,8 +1341,10 @@ func (n *NodeAbstractResourceInstance) plan(
 	forget := resourceLifecycleForget(n.Config)
 	if action == plans.Create && !priorValTainted.IsNull() {
 		switch {
-		case forget:
+		case forget && createBeforeDestroy:
 			action = plans.CreateThenForget
+		case forget:
+			action = plans.ForgetThenCreate
 		case createBeforeDestroy:
 			action = plans.CreateThenDelete
 		default:
@@ -1350,6 +1352,15 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 		priorVal = priorValTainted
 		actionReason = plans.ResourceInstanceReplaceBecauseTainted
+	}
+
+	if forget {
+		switch action {
+		case plans.CreateThenDelete:
+			action = plans.CreateThenForget
+		case plans.DeleteThenCreate:
+			action = plans.ForgetThenCreate
+		}
 	}
 
 	// If we plan to change the sensitivity on some portion of the value, this
