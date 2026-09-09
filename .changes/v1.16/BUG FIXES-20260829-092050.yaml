@@ -1,2 +1,0 @@
-kind: BUG FIXES
-body: 'state show: Fix a panic when given an attribute path instead of a resource instance address'
