@@ -785,7 +785,7 @@ func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
 		"invalid provider source after evaluation": {
 			fixture:   "provider-source-invalid-after-eval",
 			args:      []string{"-var", "provider_src=!!!invalid"},
-			wantError: "", // any error; the source string is invalid
+			wantError: "Invalid provider type",
 		},
 	}
 
