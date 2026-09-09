@@ -77,6 +77,10 @@ func NewAction(action plans.Action) Action {
 		return Action_CREATE_THEN_DELETE
 	case plans.Forget:
 		return Action_FORGET
+	case plans.ForgetThenCreate:
+		return Action_FORGET_THEN_CREATE
+	case plans.CreateThenForget:
+		return Action_CREATE_THEN_FORGET
 	default:
 		// The above should be exhaustive for all possible actions
 		panic(fmt.Sprintf("unsupported change action %s", action))
@@ -101,6 +105,10 @@ func FromAction(protoAction Action) (plans.Action, error) {
 		return plans.CreateThenDelete, nil
 	case Action_FORGET:
 		return plans.Forget, nil
+	case Action_FORGET_THEN_CREATE:
+		return plans.ForgetThenCreate, nil
+	case Action_CREATE_THEN_FORGET:
+		return plans.CreateThenForget, nil
 	default:
 		return plans.NoOp, fmt.Errorf("unsupported action %s", protoAction)
 	}
