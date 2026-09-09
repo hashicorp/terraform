@@ -260,6 +260,8 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		case plans.CreateThenDelete, plans.DeleteThenCreate:
 			cs.Add++
 			cs.Remove++
+		case plans.ForgetThenCreate, plans.CreateThenForget:
+			cs.Add++
 		}
 
 		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
