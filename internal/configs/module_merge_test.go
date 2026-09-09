@@ -76,6 +76,91 @@ func TestModuleOverrideVariable(t *testing.T) {
 	assertResultDeepEqual(t, got, want)
 }
 
+func TestModuleOverrideRequiredProviders(t *testing.T) {
+	for name, tc := range map[string]struct {
+		primary   string
+		overrides []string
+		wantExpr  bool
+	}{
+		"legacy to expression-based": {
+			primary:   `"~> 3.0"`,
+			overrides: []string{`{ source = "acme/random" }`},
+			wantExpr:  true,
+		},
+		"expression-based to legacy": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`"~> 2.0"`},
+		},
+		"expression-based to empty": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`{}`},
+		},
+		"last override is resolved": {
+			primary:   `"~> 3.0"`,
+			overrides: []string{`{ source = "acme/random" }`, `"~> 2.0"`},
+		},
+		"last override is expression-based": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`"~> 2.0"`, `{ source = "other/random" }`},
+			wantExpr:  true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			files := map[string]string{
+				"mod/main.tf": fmt.Sprintf(`
+terraform {
+  required_providers {
+    random = %s
+    legacy = "~> 1.0"
+    expression = { source = "acme/expression" }
+  }
+}
+`, tc.primary),
+			}
+			var wantFile string
+			for i, override := range tc.overrides {
+				wantFile = fmt.Sprintf("mod/%d_override.tf", i)
+				files[wantFile] = fmt.Sprintf(`
+terraform {
+  required_providers {
+    random = %s
+  }
+}
+`, override)
+			}
+
+			mod, diags := testParser(files).LoadConfigDir("mod")
+			assertNoDiagnostics(t, diags)
+
+			req, hasResolved := mod.ProviderRequirements.RequiredProviders["random"]
+			expr, hasExpr := mod.ProviderRequirementExprs["random"]
+			if hasResolved == hasExpr {
+				t.Fatalf("expected exactly one representation of the requirement: resolved=%t, expression-based=%t", hasResolved, hasExpr)
+			}
+			if hasExpr != tc.wantExpr {
+				t.Fatalf("wrong requirement representation: expression-based=%t, want %t", hasExpr, tc.wantExpr)
+			}
+			var gotFile string
+			if hasExpr {
+				gotFile = expr.DeclRange.Filename
+			} else {
+				gotFile = req.DeclRange.Filename
+			}
+			if gotFile != wantFile {
+				t.Errorf("wrong requirement declaration: got %q, want %q", gotFile, wantFile)
+			}
+
+			// Providers omitted from the overrides must retain their primary declarations.
+			if req, exists := mod.ProviderRequirements.RequiredProviders["legacy"]; !exists || req.DeclRange.Filename != "mod/main.tf" {
+				t.Error("override changed the unrelated legacy requirement")
+			}
+			if expr, exists := mod.ProviderRequirementExprs["expression"]; !exists || expr.DeclRange.Filename != "mod/main.tf" {
+				t.Error("override changed the unrelated expression-based requirement")
+			}
+		})
+	}
+}
+
 func TestModuleOverrideModule(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-module")
 	assertNoDiagnostics(t, diags)

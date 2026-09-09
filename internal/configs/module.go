@@ -157,6 +157,9 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 			}
 			mod.ProviderRequirements = r
 		}
+		for _, expr := range file.RequiredProviderExprs {
+			mod.ProviderRequirementExprs[expr.Name] = expr
+		}
 	}
 
 	// If no required_providers block is configured, create a useful empty
@@ -168,24 +171,17 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	}
 
 	// Any required_providers blocks in override files replace the entire
-	// block for each provider
+	// block for each provider. Process resolved and expression-based requirements
+	// in file order, removing superseded declarations from either representation.
 	for _, file := range overrideFiles {
 		for _, override := range file.RequiredProviders {
 			for name, rp := range override.RequiredProviders {
+				delete(mod.ProviderRequirementExprs, name)
 				mod.ProviderRequirements.RequiredProviders[name] = rp
 			}
 		}
-	}
-
-	// Collect any deferred provider requirement expressions from all files.
-	for _, file := range primaryFiles {
 		for _, expr := range file.RequiredProviderExprs {
-			mod.ProviderRequirementExprs[expr.Name] = expr
-		}
-	}
-
-	for _, file := range overrideFiles {
-		for _, expr := range file.RequiredProviderExprs {
+			delete(mod.ProviderRequirements.RequiredProviders, expr.Name)
 			mod.ProviderRequirementExprs[expr.Name] = expr
 		}
 	}

@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -316,6 +317,57 @@ func TestModule_required_provider_overrides(t *testing.T) {
 		t.Errorf("wrong provider addr for \"bar_thing.bt\"\ngot:  %s\nwant: %s",
 			got, want,
 		)
+	}
+}
+
+func TestModule_required_provider_overrides_legacy_and_empty(t *testing.T) {
+	for name, tc := range map[string]struct {
+		override    string
+		wantVersion string
+	}{
+		"legacy version string": {
+			override:    `"~> 2.0"`,
+			wantVersion: "~> 2.0",
+		},
+		"empty object": {
+			override: `{}`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := testModuleInline(t, map[string]string{
+				"main.tf": `
+terraform {
+  required_providers {
+    random = {
+      source  = "acme/random"
+      version = "~> 3.0"
+    }
+  }
+}
+`,
+				"override.tf": fmt.Sprintf(`
+terraform {
+  required_providers {
+    random = %s
+  }
+}
+`, tc.override),
+			})
+
+			req, exists := cfg.Module.ProviderRequirements.RequiredProviders["random"]
+			if !exists {
+				t.Fatal("no provider requirements found for \"random\"")
+			}
+			if req.Source != "" {
+				t.Errorf("wrong provider source: got %q, want no explicit source", req.Source)
+			}
+			if got := req.Requirement.Required.String(); got != tc.wantVersion {
+				t.Errorf("wrong provider version constraint: got %q, want %q", got, tc.wantVersion)
+			}
+			if want := addrs.NewDefaultProvider("random"); !req.Type.Equals(want) {
+				t.Errorf("wrong provider addr: got %s, want %s", req.Type, want)
+			}
+		})
 	}
 }
 
