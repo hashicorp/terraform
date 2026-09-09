@@ -43,7 +43,11 @@ type Module struct {
 	// Ony in the context of Terraform Stacks they are statically resolved.
 	ProviderRequirementExprs map[string]*ProviderRequirementExpr
 	ProviderLocalNames       map[addrs.Provider]string
-	ProviderMetas            map[addrs.Provider]*ProviderMeta
+
+	// ProviderMetaConfigs retains the original declarations from config
+	ProviderMetaConfigs []*ProviderMeta
+	// ProviderMetas is populated from ProviderMetaConfigs during provider type resolution
+	ProviderMetas map[addrs.Provider]*ProviderMeta
 
 	StateMigrationInstructions *StateMigrationInstructions
 
@@ -341,16 +345,18 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pm := range file.ProviderMetas {
-		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
-		if existing, exists := m.ProviderMetas[provider]; exists {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Duplicate provider_meta block",
-				Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
-				Subject:  &pm.DeclRange,
-			})
+		for _, existing := range m.ProviderMetaConfigs {
+			if existing.Provider == pm.Provider {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate provider_meta block",
+					Detail:   fmt.Sprintf("A provider_meta block for provider %q was already declared at %s. Providers may only have one provider_meta block per module.", existing.Provider, existing.DeclRange),
+					Subject:  &pm.DeclRange,
+				})
+				break
+			}
 		}
-		m.ProviderMetas[provider] = pm
+		m.ProviderMetaConfigs = append(m.ProviderMetaConfigs, pm)
 	}
 
 	for _, v := range file.Variables {

@@ -636,6 +636,14 @@ func (c *Config) ResolveProviderTypes() map[string]addrs.Provider {
 		child.ResolveProviderTypes()
 	}
 
+	// Resolve provider metas
+	metas := make(map[addrs.Provider]*ProviderMeta, len(c.Module.ProviderMetaConfigs))
+	for _, pm := range c.Module.ProviderMetaConfigs {
+		provider := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
+		metas[provider] = pm
+	}
+	c.Module.ProviderMetas = metas
+
 	// collect the required_providers, and then add any missing default providers
 	providers := map[string]addrs.Provider{}
 	for name, p := range c.Module.ProviderRequirements.RequiredProviders {
