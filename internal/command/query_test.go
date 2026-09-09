@@ -471,6 +471,12 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 		},
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Body: &configschema.Block{
