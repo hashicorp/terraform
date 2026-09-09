@@ -277,11 +277,13 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ForceCreateBeforeDestroy() {
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	if resourceLifecycleForget(n.Config) {
-		forget := &NodeForgetDeposedResourceInstanceObject{
-			NodeAbstractResourceInstance: n.NodeAbstractResourceInstance,
-			DeposedKey:                   n.DeposedKey,
+		_, forgetPlanDiags := n.planForget(ctx, nil, n.DeposedKey)
+		diags = diags.Append(forgetPlanDiags)
+		if diags.HasErrors() {
+			return diags
 		}
-		return forget.Execute(ctx, op)
+		ctx.State().ForgetResourceInstanceDeposed(n.Addr, n.DeposedKey)
+		return diags
 	}
 
 	// Read the state for the deposed resource instance
