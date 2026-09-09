@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
@@ -956,6 +957,12 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	t.Chdir(td)
 
 	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	// Make the mock provider have an empty schema body, matching the mock used below for the query command.
+	// Without this, Terraform will detect the change in the provider schema and think the state store configuration has changed.
+	mockProvider.GetProviderSchemaResponse.Provider.Body = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{},
+		BlockTypes: map[string]*configschema.NestedBlock{},
+	}
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"hashicorp/test": {"1.0.0"},
 	})
