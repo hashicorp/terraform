@@ -681,6 +681,9 @@ func (c *Config) ResolveProviderTypes() map[string]addrs.Provider {
 			if r.ProviderConfigRef != nil {
 				r.Provider = c.Module.ProviderForLocalConfig(r.ProviderConfigAddr())
 			} else {
+				// an invalid resource name (for e.g. "null resource" instead of
+				// "null_resource") can cause a panic down the line in addrs:
+				// https://github.com/hashicorp/terraform/issues/25560
 				implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
 				if err == nil {
 					r.Provider = c.Module.ImpliedProviderForUnqualifiedType(implied)
@@ -697,9 +700,6 @@ func (c *Config) ResolveProviderTypes() map[string]addrs.Provider {
 			if a.ProviderConfigRef != nil {
 				a.Provider = c.Module.ProviderForLocalConfig(a.ProviderConfigAddr())
 			} else {
-				// an invalid resource name (for e.g. "null resource" instead of
-				// "null_resource") can cause a panic down the line in addrs:
-				// https://github.com/hashicorp/terraform/issues/25560
 				implied, err := addrs.ParseProviderPart(a.Addr().ImpliedProvider())
 				if err == nil {
 					a.Provider = c.Module.ImpliedProviderForUnqualifiedType(implied)

@@ -96,6 +96,8 @@ func loadTestModulesWithGraph(root *configs.Config, walker configs.ModuleWalker,
 
 func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, vars InputValues, modulePathPrefix addrs.Module) (*configs.Config, tfdiags.Diagnostics) {
 	ctx, ctxDiags := NewContext(&ContextOpts{
+		// To avoid access issues with manifest and lock files, we don't want to
+		// parallelize module installation/loading here
 		Parallelism: 1,
 	})
 	if ctxDiags.HasErrors() {
@@ -112,6 +114,8 @@ func initConfigWithGraph(rootMod *configs.Module, walker configs.ModuleWalker, v
 func BuildModuleWithGraph(mod *configs.Module, vars InputValues) (*configs.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ctx, ctxDiags := NewContext(&ContextOpts{
+		// To avoid access issues with manifest and lock files, we don't want to
+		// parallelize module installation/loading here
 		Parallelism: 1,
 	})
 	diags = diags.Append(ctxDiags)

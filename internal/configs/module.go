@@ -32,11 +32,15 @@ type Module struct {
 
 	ActiveExperiments experiments.Set
 
-	Backend                  *Backend
-	StateStore               *StateStore
-	CloudConfig              *CloudConfig
-	ProviderConfigs          map[string]*Provider
-	ProviderRequirements     *RequiredProviders
+	Backend              *Backend
+	StateStore           *StateStore
+	CloudConfig          *CloudConfig
+	ProviderConfigs      map[string]*Provider
+	ProviderRequirements *RequiredProviders
+	// ProviderRequirementExprs is a map of expressions that have not yet been
+	// resolved to concrete provider requirements. Regardless of whether they
+	// contain variables they get resolved to ProviderRequirements in the init-graph.
+	// Ony in the context of Terraform Stacks they are statically resolved.
 	ProviderRequirementExprs map[string]*ProviderRequirementExpr
 	ProviderLocalNames       map[addrs.Provider]string
 	ProviderMetas            map[addrs.Provider]*ProviderMeta
