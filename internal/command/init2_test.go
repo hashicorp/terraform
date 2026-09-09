@@ -1018,7 +1018,7 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 			AllowExperimentalFeatures: true,
 		},
 	}
-	code = applyCmd.Run(varArgs)
+	code = applyCmd.Run(append([]string{"-auto-approve"}, varArgs...))
 	testOutput = done(t)
 	if code != 0 {
 		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
