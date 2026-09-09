@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -57,7 +58,7 @@ func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name strin
 	// gracefully throughout the evaluation system, whereas invalid data is
 	// harder to trace back to the source since it's usually only visible due to
 	// unexpected side-effects.
-	if !result.IsKnown() {
+	if !result.IsWhollyKnown() {
 		return nil
 	}
 
@@ -69,17 +70,14 @@ func (f *FunctionResults) CheckPriorProvider(provider addrs.Provider, name strin
 	io.WriteString(argSum, name)
 
 	for _, arg := range args {
-		// cty.Values have a Hash method, but it is not collision resistant. We
-		// are going to rely on the GoString formatting instead, which gives
-		// detailed results for all values.
-		io.WriteString(argSum, "|"+arg.GoString())
+		io.WriteString(argSum, "|"+ctyHashString(arg))
 	}
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
 	argHash := [sha256.Size]byte(argSum.Sum(nil))
-	resHash := sha256.Sum256([]byte(result.GoString()))
+	resHash := sha256.Sum256([]byte(ctyHashString(result)))
 
 	res, ok := f.results[argHash]
 	if !ok {
@@ -141,4 +139,27 @@ func (f *FunctionResults) GetHashes() []FunctionResultHash {
 		res = append(res, FunctionResultHash{Key: k[:], Result: r.hash[:]})
 	}
 	return res
+}
+
+// ctyHashString returns a stable string for hashing a cty value. cty.Values
+// have a Hash method, but it is not collision resistant. We are going to rely
+// on the GoString formatting instead, which gives detailed results for all
+// values. Marks however are iterated over from a map, so we need to account for
+// those separately.
+func ctyHashString(v cty.Value) string {
+	unmarked, pathMarks := v.UnmarkDeepWithPaths()
+	if len(pathMarks) == 0 {
+		return v.GoString()
+	}
+
+	marks := make([]string, 0, len(pathMarks))
+	for _, pathMark := range pathMarks {
+		path := fmt.Sprintf("%#v", pathMark.Path)
+		for mark := range pathMark.Marks {
+			marks = append(marks, fmt.Sprintf("<%s:%#v>", path, mark))
+		}
+	}
+	sort.Strings(marks)
+
+	return fmt.Sprintf("%#v|%#v", unmarked, marks)
 }
