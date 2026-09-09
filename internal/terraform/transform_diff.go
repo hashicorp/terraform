@@ -112,11 +112,18 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 
 		case plans.Delete:
 			delete = true
-		case plans.DeleteThenCreate, plans.CreateThenDelete:
+		case plans.DeleteThenCreate:
 			update = true
 			delete = true
-			createBeforeDestroy = (rc.Action == plans.CreateThenDelete)
+		case plans.CreateThenDelete:
+			update = true
+			delete = true
+			createBeforeDestroy = true
 		case plans.CreateThenForget:
+			update = true
+			forget = true
+			createBeforeDestroy = true
+		case plans.ForgetThenCreate:
 			update = true
 			forget = true
 		case plans.Forget:
@@ -137,12 +144,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// If we're going to do a create_before_destroy Replace operation then
-		// we need to allocate a DeposedKey to use to retain the
-		// not-yet-destroyed prior object, so that the delete node can destroy
-		// _that_ rather than the newly-created node, which will be current
-		// by the time the delete node is visited.
-		if update && delete && createBeforeDestroy {
+		// If we're going to do a create-before-remove replacement then we need
+		// to allocate a DeposedKey to retain the prior object, so that the
+		// removal node acts on that rather than the newly-created current
+		// object.
+		if update && (delete || forget) && createBeforeDestroy {
 			// In this case, variable dk will be the _pre-assigned_ DeposedKey
 			// that must be used if the update graph node deposes the current
 			// instance, which will then align with the same key we pass
