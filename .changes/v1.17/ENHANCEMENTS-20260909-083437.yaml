@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "providers schema: include provider_meta in the JSON output"
+time: 2026-09-09T08:34:47.000000Z
+custom:
+    Issue: "38824"
