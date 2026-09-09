@@ -991,6 +991,8 @@ func actionString(action string) []string {
 		return []string{"delete", "create"}
 	case action == "Forget":
 		return []string{"forget"}
+	case action == "ForgetThenCreate":
+		return []string{"forget", "create"}
 	case action == "CreateThenForget":
 		return []string{"create", "forget"}
 	default:
@@ -1011,6 +1013,10 @@ func UnmarshalActions(actions []string) plans.Action {
 
 		if actions[0] == "create" && actions[1] == "forget" {
 			return plans.CreateThenForget
+		}
+
+		if actions[0] == "forget" && actions[1] == "create" {
+			return plans.ForgetThenCreate
 		}
 	}
 
