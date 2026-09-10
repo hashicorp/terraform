@@ -1,0 +1,7 @@
+---
+kind: enhancement
+body: Prevent sensitive data leakage in Azure backend when TF_LOG=DEBUG is enabled by intercepting HTTP request/response bodies and stripping sensitive data patterns
+time: 2026-09-10T00:00:00Z
+author: sparkbountybot (https://github.com/sparkbountybot)
+issues: [39173]
+---
