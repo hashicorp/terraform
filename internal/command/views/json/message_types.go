@@ -98,4 +98,19 @@ const (
 	MessageMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
 	MessageMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
 	MessageMigrationDestinationInitializationComplete MessageType = "migration_destination_initialization_complete"
+
+	// Init-specific messages
+	//
+	// NOTE: These are not used to set the `type` field in the JSON output from the init command.
+	// Instead, the init command's JSON output was implemented so that some messages are logged with
+	// `"type": "init_output"` and a `message_code` field that takes the const values below.
+	// In a future major version we should make init's JSON output align with the conventions used
+	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
+	// and changes are potentially breaking.
+	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
+	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
+	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
+	MessageLockInfo                          MessageType = "lock_info"
+	MessageDependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
 )
