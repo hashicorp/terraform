@@ -297,6 +297,11 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		for _, rioAddr := range applied {
 			action := tfHook.ResourceInstanceObjectAppliedAction(rioAddr)
 			cic.CountNewAction(action)
+			if change, ok := stackPlan.ResourceInstancePlanned.GetOk(rioAddr); ok {
+				if change.Action == plans.ForgetThenCreate || change.Action == plans.CreateThenForget {
+					cic.Forget++
+				}
+			}
 		}
 
 		// The state management actions (move, import, forget) don't emit
@@ -332,7 +337,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 				if change.Moved() {
 					cic.Move++
 				}
-			case plans.Forget:
+			case plans.Forget, plans.ForgetThenCreate:
 				cic.Forget++
 			}
 		}
