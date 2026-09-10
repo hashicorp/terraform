@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
@@ -550,6 +551,17 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
 		n.setValue(nil, state, nil, ctx.Deferrals(), val)
+	}
+
+	// The globalref is built with the output's own module as the container.
+	ref := &globalref.Reference{
+		ContainerAddr: n.Addr.Module,
+		LocalRef: &addrs.Reference{
+			Subject: n.Addr.OutputValue,
+		},
+	}
+	if ref != nil {
+		ctx.ResourceAttrRefGraph().SetReference(ref, n.Config.Expr, n.Addr.Module)
 	}
 
 	return diags

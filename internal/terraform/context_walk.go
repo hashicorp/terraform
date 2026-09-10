@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -189,6 +191,14 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		deferred.SetExternalDependencyDeferred()
 	}
 
+	// Set up a reference graph that tracks resource attribute references
+	refGraph := simplerefs.NewReferenceGraph(func(ref *globalref.Reference) bool {
+		if _, ok := ref.ResourceAttr(); ok {
+			return true
+		}
+		return false
+	})
+
 	walker := &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -214,6 +224,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		PolicyClient:            opts.PolicyClient,
 		Deprecations:            deprecation.NewDeprecations(),
 		contexts:                collections.NewMap[evalContextScope, *BuiltinEvalContext](),
+		ResourceAttrRefGraph:    refGraph,
 		providerCache:           make(map[string]providers.Interface),
 		providerFuncCache:       make(map[string]providers.Interface),
 		providerSchemas:         make(map[string]providers.ProviderSchema),

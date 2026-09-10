@@ -57,6 +57,76 @@ func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRe
 	}, nil
 }
 
+func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedResourcesRequest) (*proto.RelatedResourcesResponse, error) {
+	functions, ok := s.Registry.Get(request.EvaluationRequestId)
+	if !ok {
+		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
+		return nil, err
+	}
+
+	relationship, err := relationshipFromProto(functions.ResourceType, request.Relationship)
+	if err != nil {
+		return nil, err
+	}
+	related, err := functions.RelatedResources(ctx, relationship)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([][]byte, 0, len(related.Related))
+	for _, resource := range related.Related {
+		result, err := msgpack.Marshal(resource.Value, cty.DynamicPseudoType)
+		if err != nil {
+			err = fmt.Errorf("failed to serialize resource: %w", err)
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	return &proto.RelatedResourcesResponse{
+		Results: results,
+		Partial: related.Partial,
+	}, nil
+}
+
+func relationshipFromProto(subjectType string, relationship *proto.RelatedResourcesRequest_Relationship) (*RelationshipBlock, error) {
+	blk := &RelationshipBlock{
+		SubjectType:    subjectType,
+		RelatedType:    relationship.Type,
+		Direction:      directionFromProto(relationship.Direction),
+		AttributePairs: make([]RelatedAttributePair, 0, len(relationship.AttributePairs)),
+	}
+
+	queryAttributes, err := msgpack.Unmarshal(relationship.QueryAttributes, cty.DynamicPseudoType)
+	if err != nil {
+		err = fmt.Errorf("failed to unserialize query attributes: %w", err)
+		return nil, err
+	}
+	blk.QueryAttributes = queryAttributes
+
+	for _, pair := range relationship.AttributePairs {
+		blk.AttributePairs = append(blk.AttributePairs, RelatedAttributePair{
+			SubjectAttribute: pair.SubjectAttribute,
+			RelatedAttribute: pair.RelatedAttribute,
+		})
+	}
+	if relationship.Nested != nil {
+		blk.Nested, err = relationshipFromProto(relationship.Type, relationship.Nested)
+	}
+	return blk, err
+}
+
+func directionFromProto(dir proto.RelatedResourcesRequest_Direction) Direction {
+	switch dir {
+	case proto.RelatedResourcesRequest_Inbound:
+		return DirectionInbound
+	case proto.RelatedResourcesRequest_Outbound:
+		return DirectionOutbound
+	}
+	// Defaults to inbound
+	return DirectionInbound
+}
+
 func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {
 	config, err := msgpack.Unmarshal(request.Config, cty.DynamicPseudoType)
 	if err != nil {

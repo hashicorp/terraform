@@ -198,9 +198,6 @@ func TestClientEvaluate(t *testing.T) {
 			}
 
 			// assert the registry functions that should have been called
-			if !registry.NextIDCalled {
-				t.Fatal("expected callback registry NextID to be called")
-			}
 			if !registry.RegisterCalled {
 				t.Fatal("expected callback registry Register to be called")
 			}

@@ -6,7 +6,11 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -18,6 +22,7 @@ type nodePolicyEval struct {
 }
 
 var _ GraphNodeDynamicExpandable = (*nodePolicyEval)(nil)
+var _ GraphNodeExecutable = (*nodePolicyEval)(nil)
 var _ dag.AlwaysRunVertex = (*nodePolicyEval)(nil)
 
 func (n *nodePolicyEval) Name() string {
@@ -43,6 +48,117 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 // AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
 // can proceed even if some resource instance nodes evaluated with error diagnostics.
 func (n *nodePolicyEval) AlwaysRun() {}
+
+// Execute builds the policy resource map (config bodies + decoded values) that
+// the relationship callback consumes for reference-based matching. It runs
+// before the dynamic subgraph is walked, so the map is fully populated before
+// any RelatedResources callback fires.
+func (n *nodePolicyEval) Execute(ctx EvalContext, walkOp walkOperation) tfdiags.Diagnostics {
+	policyGraph := ctx.PolicyGraph()
+	if policyGraph == nil {
+		log.Printf("[DEBUG] policyGraph is nil")
+		return nil
+	}
+
+	// Close the changes/state objects to prevent writes during policy evaluation.
+	// This is safe to do because policy evaluation is the final step in the
+	// plan/apply process. Reading is still permitted after Close.
+	ctx.Changes().Close()
+	ctx.State().Close()
+
+	var diags tfdiags.Diagnostics
+	state := ctx.State()
+	config := ctx.Config()
+	changes := ctx.Changes()
+
+	resourceConfigMap := n.resourceConfigMap(config)
+	getResourceConfig := func(config *configs.Config, addr addrs.ConfigResource) hcl.Body {
+		mod, ok := resourceConfigMap.GetOk(addr.Module)
+		if !ok {
+			return nil
+		}
+		resource, ok := mod.GetOk(addr)
+		if !ok {
+			return nil
+		}
+		return resource
+	}
+
+	// Read the state and plan changes to build the policy resource map. These
+	// are the resources that will be available during the callback evaluation.
+	if walkOp == walkApply {
+		resourceAddrs := state.Lock().AllManagedResourceInstanceObjectAddrs()
+		state.Unlock()
+		for _, resourceAddr := range resourceAddrs {
+			addr := resourceAddr.ResourceInstance
+			resource := state.Resource(addr.AffectedAbsResource())
+			if resource == nil {
+				continue
+			}
+			resourceInstance := resource.Instance(addr.Resource.Key)
+			if resourceInstance == nil {
+				continue
+			}
+
+			_, schema, err := getProvider(ctx, resource.ProviderConfig)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+			resourceSchema := schema.SchemaForResourceAddr(addr.Resource.Resource)
+
+			decoded, err := resourceInstance.Current.Decode(resourceSchema)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+
+			policyGraph.resourceMap.Put(addr, &PolicyResource{
+				Addr:       addr,
+				ConfigBody: getResourceConfig(config, addr.ConfigResource()),
+				Schema:     resourceSchema.Body,
+				Value:      decoded.Value,
+			})
+		}
+	} else {
+		for change := range plans.AllInstances(changes) {
+			_, schema, err := getProvider(ctx, change.ProviderAddr)
+			if err != nil {
+				diags = diags.Append(err)
+				continue
+			}
+			resourceSchema := schema.SchemaForResourceAddr(change.Addr.Resource.Resource)
+
+			policyGraph.resourceMap.Put(change.Addr, &PolicyResource{
+				Addr:       change.Addr,
+				ConfigBody: getResourceConfig(config, change.Addr.ConfigResource()),
+				Schema:     resourceSchema.Body,
+				Value:      change.After,
+			})
+		}
+	}
+
+	return diags
+}
+
+// resourceConfigMap returns a map of resource configurations for each module,
+// so that resource configs can be looked up in constant time.
+func (n *nodePolicyEval) resourceConfigMap(config *configs.Config) addrs.Map[addrs.Module, addrs.Map[addrs.ConfigResource, hcl.Body]] {
+	ret := addrs.MakeMap[addrs.Module, addrs.Map[addrs.ConfigResource, hcl.Body]]()
+	if config == nil {
+		return ret
+	}
+	for addr, resourceConfig := range config.AllResources() {
+		if moduleMap, ok := ret.GetOk(addr.Module); ok {
+			moduleMap.Put(addr, resourceConfig.Config)
+		} else {
+			moduleMap := addrs.MakeMap[addrs.ConfigResource, hcl.Body]()
+			moduleMap.Put(addr, resourceConfig.Config)
+			ret.Put(addr.Module, moduleMap)
+		}
+	}
+	return ret
+}
 
 // nodePolicyEvalFinish is a sentinel node appended to the policy subgraph that
 // runs after every policy node and ends the policy-execution phase span. It

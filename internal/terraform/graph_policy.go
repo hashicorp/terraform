@@ -6,6 +6,7 @@ package terraform
 import (
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -17,11 +18,19 @@ type policySubgraph struct {
 	// span carries the tracing information. We need the span itself so we can end it
 	// when the policy evaluation is finished
 	span trace.Span
+
+	// resourceMap is a map of resource addresses to their policy resources,
+	// populated at policy-eval time and consumed by the relationship callback
+	// for reference-based matching.
+	resourceMap addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
 }
 
 func newPolicySubgraph() *policySubgraph {
 	var g Graph
-	return &policySubgraph{graph: g}
+	return &policySubgraph{
+		graph:       g,
+		resourceMap: addrs.MakeMap[addrs.AbsResourceInstance, *PolicyResource](),
+	}
 }
 
 func (ps *policySubgraph) Add(node *nodeResourcePolicy) {
@@ -58,4 +67,8 @@ func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
 	}
 
 	return &ps.graph
+}
+
+func (ps *policySubgraph) GetResource(addr addrs.AbsResourceInstance) *PolicyResource {
+	return ps.resourceMap.Get(addr)
 }

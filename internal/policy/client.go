@@ -72,6 +72,20 @@ func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths [
 		return nil, diags
 	}
 
+	// Surface the de-duplicated relationship catalog reported at Setup. This is
+	// the Structural Requirement / Global Relationships signal: Core now knows
+	// the full relationship demand up front, before any evaluation, and
+	// identical shapes declared by many policies arrive collapsed to one entry.
+	if catalog := resp.RelationshipCatalog(); len(catalog) > 0 {
+		log.Printf("[DEBUG] Terraform Policy reported %d relationship shape(s) at setup", len(catalog))
+		for _, shape := range catalog {
+			for _, c := range shape.Connectors {
+				log.Printf("[DEBUG]   relationship %s -> %s via %s(%s -> %s)",
+					shape.SubjectType, shape.TargetType, c.Kind, c.SubjectAttr, c.TargetAttr)
+			}
+		}
+	}
+
 	var requiredVersions constraints.IntersectionSpec
 	for _, config := range resp.ServerConfigurations() {
 		version, err := constraints.ParseRubyStyleMulti(config.RequiredVersion)
@@ -186,6 +200,16 @@ type client struct {
 	client           proto.PolicyClient
 	callbackRegistry callback.Registry
 	cbServer         *callback.Server
+
+	// relationshipCatalog is the de-duplicated relationship catalog reported by
+	// the plugin at Setup. It is written once during Setup (before any
+	// evaluation) and read-only thereafter.
+	relationshipCatalog []RelationshipShape
+}
+
+// RelationshipCatalog returns the relationship shapes captured at Setup.
+func (c *client) RelationshipCatalog() []RelationshipShape {
+	return c.relationshipCatalog
 }
 
 func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server, Diagnostics) {
@@ -267,10 +291,15 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 		}}
 	}
 
-	return SetupResponse{
+	setupResp := SetupResponse{
 		serverCapabilities: response.ServerCapabilities,
+		relationships:      response.Relationships,
 		Diagnostics:        DiagsFromProto(response.Diagnostics, nil),
 	}
+	// Capture the catalog on the client so the resource-lookup callback can
+	// pre-index candidates by connector key during evaluation.
+	c.relationshipCatalog = setupResp.RelationshipCatalog()
+	return setupResp
 }
 
 func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {
@@ -302,7 +331,9 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	evalID := c.callbackRegistry.NextID()
+	// Store the callback functions with the internal registry, so that they are available
+	// for use during evaluation.
+	evalID := c.callbackRegistry.Register(req.Target, req.Callbacks)
 	request := &proto.PolicyEvaluateResourceRequest{
 		EvaluationId: evalID,
 		Resource:     req.Target,
@@ -310,10 +341,6 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		PriorAttrs:   priorAttrs,
 		Metadata:     req.Meta,
 	}
-
-	// Register the callback functions with the callback service, so that they are available
-	// for use during evaluation.
-	c.callbackRegistry.Register(evalID, req.Callbacks)
 
 	// We can unregister the callback functions after the evaluation is complete.
 	defer c.callbackRegistry.Unregister(evalID)

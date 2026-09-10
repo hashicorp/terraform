@@ -13,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -51,89 +52,108 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+func (cb *PolicyCallbackManager) GetResourcesCallback(ctx EvalContext, provider providers.Interface) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
 			attribute.String("policy.callback.getResources.type", target),
 		))
 		defer span.End()
 
-		found := make([]cty.Value, 0)
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
 		}
-		var isPartialResult bool
-		config.DeepEach(func(c *configs.Config) {
-			state := ctx.State()
-			for _, resource := range c.Module.ManagedResources {
-				if resource.Type != target {
-					continue
-				}
-				addr := resource.Addr().InModule(c.Path)
-				schema := schema.SchemaForResourceAddr(addr.Resource)
 
-				// Before checking the data to see if there is a match, check if there is a deferral for this address.
-				//
-				// If there is a deferral, we can't use the data to determine if there is a match so we'll indicate
-				// the callback return is a partial result.
-				deferred := ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{addr})
-				if deferred {
-					isPartialResult = true
-					continue
-				}
-
-				// Now we implement a generator function that yields resource instances
-				// from either the state or the config, depending on the walk operation.
-				var resourcesSeq iter.Seq[cty.Value]
-				if walkOperation == walkApply {
-					// Read each config resource instance from the state, decoding it into a cty.Value
-					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
-						if inst.Current == nil {
-							return cty.NilVal, false
-						}
-						rsc, err := inst.Current.Decode(schema)
-						if err != nil {
-							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
-							return cty.NilVal, false
-						}
-						return rsc.Value, true
-					})
-				} else {
-					// Read each config resource change from the plan, returning the corresponding cty.Value
-					resourcesSeq = func(yield func(cty.Value) bool) {
-						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
-							yield(change.After)
-						}
-					}
-				}
-
-				for resource := range resourcesSeq {
-					matched, unknown := resourceMatchesFilter(addr, schema.Body, filterMap, resource)
-					if matched {
-						resource, _ = resource.UnmarkDeep()
-						found = append(found, resource)
-						continue
-					}
-
-					// If the filtered attribute for matching is unknown for this resource instance,
-					// we can't determine whether it matches, so we'll mark the whole callback result as incomplete.
-					// We still continue to the next resource instance, so that we return all known objects as well.
-					isPartialResult = isPartialResult || unknown
-				}
+		found := make([]cty.Value, 0)
+		candidates, isPartialResult := collectPolicyCandidates(ctx, cb.WalkOperation, cb.Schema, cb.Config, target)
+		for _, cand := range candidates {
+			matched, unknown := resourceMatchesFilter(cand.addr, nil, filterMap, cand.value)
+			if matched {
+				resource, _ := cand.value.UnmarkDeep()
+				found = append(found, resource)
+				continue
 			}
-		})
+			// If the filtered attribute for matching is unknown for this resource
+			// instance, we can't determine whether it matches, so we mark the
+			// whole callback result as incomplete. We still return known objects.
+			isPartialResult = isPartialResult || unknown
+		}
 		span.SetAttributes(attribute.String("policy.callback.getResources.result_count", fmt.Sprintf("%d", len(found))))
 		return found, isPartialResult, nil
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
+// policyCandidate is a single candidate target resource instance collected for a
+// relationship/getresources lookup, paired with its address for diagnostics and
+// its config body for reference (provenance) verification.
+type policyCandidate struct {
+	addr   addrs.ConfigResource
+	value  cty.Value
+	config hcl.Body
+}
+
+// collectPolicyCandidates walks the configuration and returns every resource
+// instance of the requested type (from state during apply, from planned changes
+// otherwise), skipping addresses whose dependencies are deferred. The returned
+// bool reports whether any deferral was encountered, which makes the callback
+// result partial. This is the single iteration path shared by both the linear
+// matcher and the connector index so their semantics can't drift.
+func collectPolicyCandidates(ctx EvalContext, walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config, target string) ([]policyCandidate, bool) {
+	candidates := make([]policyCandidate, 0)
+	var isPartialResult bool
+	config.DeepEach(func(c *configs.Config) {
+		state := ctx.State()
+		for _, resource := range c.Module.ManagedResources {
+			if resource.Type != target {
+				continue
+			}
+			addr := resource.Addr().InModule(c.Path)
+			schema := schema.SchemaForResourceAddr(addr.Resource)
+			cfgBody := resource.Config
+
+			// Skip addresses with deferred dependencies: we can't use their data
+			// to determine a match, so the result is partial.
+			if ctx.Deferrals().DependenciesDeferred([]addrs.ConfigResource{addr}) {
+				isPartialResult = true
+				continue
+			}
+
+			var resourcesSeq iter.Seq[cty.Value]
+			if walkOperation == walkApply {
+				resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+					if inst.Current == nil {
+						return cty.NilVal, false
+					}
+					rsc, err := inst.Current.Decode(schema)
+					if err != nil {
+						log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
+						return cty.NilVal, false
+					}
+					return rsc.Value, true
+				})
+			} else {
+				resourcesSeq = func(yield func(cty.Value) bool) {
+					for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
+						yield(change.After)
+					}
+				}
+			}
+
+			for resource := range resourcesSeq {
+				candidates = append(candidates, policyCandidate{addr: addr, value: resource, config: cfgBody})
+			}
+		}
+	})
+	return candidates, isPartialResult
+}
+
+func (cb *PolicyCallbackManager) GetDataSourceCallback(ctx EvalContext, provider providers.Interface) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) (cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
 			attribute.String("policy.callback.getDataSource.type", target),
 		))
 		defer span.End()
+		schema := cb.Schema
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {

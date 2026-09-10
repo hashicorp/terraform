@@ -75,6 +75,34 @@ message PolicySetupResponse {
     map<string, TerraformConfiguration> configurations = 1;
   }
 
+  // RelationshipConnector maps a subject attribute to a target attribute and
+  // records how the two are compared (the static shape of a relationship,
+  // known at Setup time without evaluating any resource).
+  message RelationshipConnector {
+    string subject_attr = 1;
+    string target_attr = 2;
+    // kind is one of "scalar", "any_of", or "has".
+    string kind = 3;
+  }
+
+  // RelationshipShape is a single, name-independent relationship: which subject
+  // type relates to which target type, and by which connectors.
+  message RelationshipShape {
+    string subject_type = 1;
+    string target_type = 2;
+    repeated RelationshipConnector connectors = 3;
+    // require_reference asks Core to verify a real config reference between
+    // subject and target, not just value equality.
+    bool require_reference = 4;
+  }
+
+  // RelationshipCatalog is the de-duplicated set of relationship shapes across
+  // the whole policy set, reported once at Setup so Core can pre-index
+  // candidate resources.
+  message RelationshipCatalog {
+    repeated RelationshipShape shapes = 1;
+  }
+
   // service_capabilities will be populated by the server to indicate which
   // behaviours the client should expect from the server.
   ServerCapabilities server_capabilities = 1;
@@ -82,6 +110,10 @@ message PolicySetupResponse {
   // The diagnostics will contain any errors or warnings as a result of loading
   // the Terraform Policy files.
   repeated Diagnostic diagnostics = 2;
+
+  // relationships is the de-duplicated catalog of relationship shapes the
+  // loaded policies declare.
+  RelationshipCatalog relationships = 3;
 }
 
 

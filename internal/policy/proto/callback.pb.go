@@ -24,6 +24,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Direction indicates the direction of the reference relative to the subject.
+type RelatedResourcesRequest_Direction int32
+
+const (
+	RelatedResourcesRequest_Invalid RelatedResourcesRequest_Direction = 0
+	// Direction is Inbound if the related attribute is a reference to the subject.
+	RelatedResourcesRequest_Inbound RelatedResourcesRequest_Direction = 1
+	// Direction is Outbound if the subject is a reference to the related attribute.
+	RelatedResourcesRequest_Outbound RelatedResourcesRequest_Direction = 2
+)
+
+// Enum value maps for RelatedResourcesRequest_Direction.
+var (
+	RelatedResourcesRequest_Direction_name = map[int32]string{
+		0: "Invalid",
+		1: "Inbound",
+		2: "Outbound",
+	}
+	RelatedResourcesRequest_Direction_value = map[string]int32{
+		"Invalid":  0,
+		"Inbound":  1,
+		"Outbound": 2,
+	}
+)
+
+func (x RelatedResourcesRequest_Direction) Enum() *RelatedResourcesRequest_Direction {
+	p := new(RelatedResourcesRequest_Direction)
+	*p = x
+	return p
+}
+
+func (x RelatedResourcesRequest_Direction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RelatedResourcesRequest_Direction) Descriptor() protoreflect.EnumDescriptor {
+	return file_callback_proto_enumTypes[0].Descriptor()
+}
+
+func (RelatedResourcesRequest_Direction) Type() protoreflect.EnumType {
+	return &file_callback_proto_enumTypes[0]
+}
+
+func (x RelatedResourcesRequest_Direction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RelatedResourcesRequest_Direction.Descriptor instead.
+func (RelatedResourcesRequest_Direction) EnumDescriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{2, 0}
+}
+
 type GetResourcesRequest struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	Type       string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
@@ -140,6 +192,122 @@ func (x *GetResourcesResponse) GetPartial() bool {
 	return false
 }
 
+type RelatedResourcesRequest struct {
+	state        protoimpl.MessageState                `protogen:"open.v1"`
+	Type         string                                `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Relationship *RelatedResourcesRequest_Relationship `protobuf:"bytes,2,opt,name=relationship,proto3" json:"relationship,omitempty"`
+	// evaluation_request_id is the ID of the policy evaluation request that is
+	// making this callback request.
+	EvaluationRequestId uint32 `protobuf:"varint,3,opt,name=evaluation_request_id,json=evaluationRequestId,proto3" json:"evaluation_request_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RelatedResourcesRequest) Reset() {
+	*x = RelatedResourcesRequest{}
+	mi := &file_callback_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RelatedResourcesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RelatedResourcesRequest) ProtoMessage() {}
+
+func (x *RelatedResourcesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RelatedResourcesRequest.ProtoReflect.Descriptor instead.
+func (*RelatedResourcesRequest) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RelatedResourcesRequest) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RelatedResourcesRequest) GetRelationship() *RelatedResourcesRequest_Relationship {
+	if x != nil {
+		return x.Relationship
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest) GetEvaluationRequestId() uint32 {
+	if x != nil {
+		return x.EvaluationRequestId
+	}
+	return 0
+}
+
+type RelatedResourcesResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Results [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	// partial means that Terraform could not conclusively determine whether the
+	// relationship exists for all candidates.
+	Partial       bool `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RelatedResourcesResponse) Reset() {
+	*x = RelatedResourcesResponse{}
+	mi := &file_callback_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RelatedResourcesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RelatedResourcesResponse) ProtoMessage() {}
+
+func (x *RelatedResourcesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RelatedResourcesResponse.ProtoReflect.Descriptor instead.
+func (*RelatedResourcesResponse) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RelatedResourcesResponse) GetResults() [][]byte {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *RelatedResourcesResponse) GetPartial() bool {
+	if x != nil {
+		return x.Partial
+	}
+	return false
+}
+
 type GetDataSourceRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Type   string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
@@ -153,7 +321,7 @@ type GetDataSourceRequest struct {
 
 func (x *GetDataSourceRequest) Reset() {
 	*x = GetDataSourceRequest{}
-	mi := &file_callback_proto_msgTypes[2]
+	mi := &file_callback_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +333,7 @@ func (x *GetDataSourceRequest) String() string {
 func (*GetDataSourceRequest) ProtoMessage() {}
 
 func (x *GetDataSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_callback_proto_msgTypes[2]
+	mi := &file_callback_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +346,7 @@ func (x *GetDataSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDataSourceRequest.ProtoReflect.Descriptor instead.
 func (*GetDataSourceRequest) Descriptor() ([]byte, []int) {
-	return file_callback_proto_rawDescGZIP(), []int{2}
+	return file_callback_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetDataSourceRequest) GetType() string {
@@ -213,7 +381,7 @@ type GetDataSourceResponse struct {
 
 func (x *GetDataSourceResponse) Reset() {
 	*x = GetDataSourceResponse{}
-	mi := &file_callback_proto_msgTypes[3]
+	mi := &file_callback_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -225,7 +393,7 @@ func (x *GetDataSourceResponse) String() string {
 func (*GetDataSourceResponse) ProtoMessage() {}
 
 func (x *GetDataSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_callback_proto_msgTypes[3]
+	mi := &file_callback_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -238,7 +406,7 @@ func (x *GetDataSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDataSourceResponse.ProtoReflect.Descriptor instead.
 func (*GetDataSourceResponse) Descriptor() ([]byte, []int) {
-	return file_callback_proto_rawDescGZIP(), []int{3}
+	return file_callback_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDataSourceResponse) GetResult() []byte {
@@ -255,6 +423,135 @@ func (x *GetDataSourceResponse) GetDeferred() bool {
 	return false
 }
 
+type RelatedResourcesRequest_Relationship struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// type is the type of the related resource
+	Type            string                                   `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	AttributePairs  []*RelatedResourcesRequest_AttributePair `protobuf:"bytes,2,rep,name=attribute_pairs,json=attributePairs,proto3" json:"attribute_pairs,omitempty"`
+	Nested          *RelatedResourcesRequest_Relationship    `protobuf:"bytes,3,opt,name=nested,proto3" json:"nested,omitempty"`
+	QueryAttributes []byte                                   `protobuf:"bytes,4,opt,name=query_attributes,json=queryAttributes,proto3" json:"query_attributes,omitempty"`
+	Direction       RelatedResourcesRequest_Direction        `protobuf:"varint,5,opt,name=direction,proto3,enum=proto.RelatedResourcesRequest_Direction" json:"direction,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *RelatedResourcesRequest_Relationship) Reset() {
+	*x = RelatedResourcesRequest_Relationship{}
+	mi := &file_callback_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RelatedResourcesRequest_Relationship) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RelatedResourcesRequest_Relationship) ProtoMessage() {}
+
+func (x *RelatedResourcesRequest_Relationship) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RelatedResourcesRequest_Relationship.ProtoReflect.Descriptor instead.
+func (*RelatedResourcesRequest_Relationship) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{2, 0}
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetAttributePairs() []*RelatedResourcesRequest_AttributePair {
+	if x != nil {
+		return x.AttributePairs
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetNested() *RelatedResourcesRequest_Relationship {
+	if x != nil {
+		return x.Nested
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetQueryAttributes() []byte {
+	if x != nil {
+		return x.QueryAttributes
+	}
+	return nil
+}
+
+func (x *RelatedResourcesRequest_Relationship) GetDirection() RelatedResourcesRequest_Direction {
+	if x != nil {
+		return x.Direction
+	}
+	return RelatedResourcesRequest_Invalid
+}
+
+type RelatedResourcesRequest_AttributePair struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	SubjectAttribute string                 `protobuf:"bytes,1,opt,name=subject_attribute,json=subjectAttribute,proto3" json:"subject_attribute,omitempty"`
+	RelatedAttribute string                 `protobuf:"bytes,2,opt,name=related_attribute,json=relatedAttribute,proto3" json:"related_attribute,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RelatedResourcesRequest_AttributePair) Reset() {
+	*x = RelatedResourcesRequest_AttributePair{}
+	mi := &file_callback_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RelatedResourcesRequest_AttributePair) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RelatedResourcesRequest_AttributePair) ProtoMessage() {}
+
+func (x *RelatedResourcesRequest_AttributePair) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RelatedResourcesRequest_AttributePair.ProtoReflect.Descriptor instead.
+func (*RelatedResourcesRequest_AttributePair) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{2, 1}
+}
+
+func (x *RelatedResourcesRequest_AttributePair) GetSubjectAttribute() string {
+	if x != nil {
+		return x.SubjectAttribute
+	}
+	return ""
+}
+
+func (x *RelatedResourcesRequest_AttributePair) GetRelatedAttribute() string {
+	if x != nil {
+		return x.RelatedAttribute
+	}
+	return ""
+}
+
 var File_callback_proto protoreflect.FileDescriptor
 
 const file_callback_proto_rawDesc = "" +
@@ -268,6 +565,26 @@ const file_callback_proto_rawDesc = "" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"J\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
 	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\"\x86\x05\n" +
+	"\x17RelatedResourcesRequest\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12O\n" +
+	"\frelationship\x18\x02 \x01(\v2+.proto.RelatedResourcesRequest.RelationshipR\frelationship\x122\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\x1a\xb1\x02\n" +
+	"\fRelationship\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12U\n" +
+	"\x0fattribute_pairs\x18\x02 \x03(\v2,.proto.RelatedResourcesRequest.AttributePairR\x0eattributePairs\x12C\n" +
+	"\x06nested\x18\x03 \x01(\v2+.proto.RelatedResourcesRequest.RelationshipR\x06nested\x12)\n" +
+	"\x10query_attributes\x18\x04 \x01(\fR\x0fqueryAttributes\x12F\n" +
+	"\tdirection\x18\x05 \x01(\x0e2(.proto.RelatedResourcesRequest.DirectionR\tdirection\x1ai\n" +
+	"\rAttributePair\x12+\n" +
+	"\x11subject_attribute\x18\x01 \x01(\tR\x10subjectAttribute\x12+\n" +
+	"\x11related_attribute\x18\x02 \x01(\tR\x10relatedAttribute\"3\n" +
+	"\tDirection\x12\v\n" +
+	"\aInvalid\x10\x00\x12\v\n" +
+	"\aInbound\x10\x01\x12\f\n" +
+	"\bOutbound\x10\x02\"N\n" +
+	"\x18RelatedResourcesResponse\x12\x18\n" +
+	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
 	"\apartial\x18\x02 \x01(\bR\apartial\"v\n" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
@@ -275,9 +592,10 @@ const file_callback_proto_rawDesc = "" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"K\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
 	"\x06result\x18\x01 \x01(\fR\x06result\x12\x1a\n" +
-	"\bdeferred\x18\x02 \x01(\bR\bdeferred2\xa6\x01\n" +
+	"\bdeferred\x18\x02 \x01(\bR\bdeferred2\xfb\x01\n" +
 	"\x0fCallbackService\x12G\n" +
-	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12J\n" +
+	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12S\n" +
+	"\x10RelatedResources\x12\x1e.proto.RelatedResourcesRequest\x1a\x1f.proto.RelatedResourcesResponse\x12J\n" +
 	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
@@ -292,23 +610,35 @@ func file_callback_proto_rawDescGZIP() []byte {
 	return file_callback_proto_rawDescData
 }
 
-var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_callback_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_callback_proto_goTypes = []any{
-	(*GetResourcesRequest)(nil),   // 0: proto.GetResourcesRequest
-	(*GetResourcesResponse)(nil),  // 1: proto.GetResourcesResponse
-	(*GetDataSourceRequest)(nil),  // 2: proto.GetDataSourceRequest
-	(*GetDataSourceResponse)(nil), // 3: proto.GetDataSourceResponse
+	(RelatedResourcesRequest_Direction)(0),        // 0: proto.RelatedResourcesRequest.Direction
+	(*GetResourcesRequest)(nil),                   // 1: proto.GetResourcesRequest
+	(*GetResourcesResponse)(nil),                  // 2: proto.GetResourcesResponse
+	(*RelatedResourcesRequest)(nil),               // 3: proto.RelatedResourcesRequest
+	(*RelatedResourcesResponse)(nil),              // 4: proto.RelatedResourcesResponse
+	(*GetDataSourceRequest)(nil),                  // 5: proto.GetDataSourceRequest
+	(*GetDataSourceResponse)(nil),                 // 6: proto.GetDataSourceResponse
+	(*RelatedResourcesRequest_Relationship)(nil),  // 7: proto.RelatedResourcesRequest.Relationship
+	(*RelatedResourcesRequest_AttributePair)(nil), // 8: proto.RelatedResourcesRequest.AttributePair
 }
 var file_callback_proto_depIdxs = []int32{
-	0, // 0: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
-	2, // 1: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
-	1, // 2: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
-	3, // 3: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	7, // 0: proto.RelatedResourcesRequest.relationship:type_name -> proto.RelatedResourcesRequest.Relationship
+	8, // 1: proto.RelatedResourcesRequest.Relationship.attribute_pairs:type_name -> proto.RelatedResourcesRequest.AttributePair
+	7, // 2: proto.RelatedResourcesRequest.Relationship.nested:type_name -> proto.RelatedResourcesRequest.Relationship
+	0, // 3: proto.RelatedResourcesRequest.Relationship.direction:type_name -> proto.RelatedResourcesRequest.Direction
+	1, // 4: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
+	3, // 5: proto.CallbackService.RelatedResources:input_type -> proto.RelatedResourcesRequest
+	5, // 6: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
+	2, // 7: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
+	4, // 8: proto.CallbackService.RelatedResources:output_type -> proto.RelatedResourcesResponse
+	6, // 9: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_callback_proto_init() }
@@ -321,13 +651,14 @@ func file_callback_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_callback_proto_rawDesc), len(file_callback_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   4,
+			NumEnums:      1,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_callback_proto_goTypes,
 		DependencyIndexes: file_callback_proto_depIdxs,
+		EnumInfos:         file_callback_proto_enumTypes,
 		MessageInfos:      file_callback_proto_msgTypes,
 	}.Build()
 	File_callback_proto = out.File

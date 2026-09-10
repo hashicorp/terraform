@@ -44,6 +44,9 @@ type MockClient struct {
 	// Stop method tracking
 	StopCalled bool
 	StopFn     func()
+
+	// RelationshipCatalogValue is returned by RelationshipCatalog.
+	RelationshipCatalogValue []RelationshipShape
 }
 
 func (p *MockClient) beginWrite() func() {
@@ -65,6 +68,11 @@ func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupRes
 	}
 
 	return resp
+}
+
+// RelationshipCatalog returns the configured mock catalog.
+func (p *MockClient) RelationshipCatalog() []RelationshipShape {
+	return p.RelationshipCatalogValue
 }
 
 func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) (resp EvaluationResponse) {

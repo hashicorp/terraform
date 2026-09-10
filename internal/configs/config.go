@@ -166,6 +166,35 @@ func (c *Config) AllModules() iter.Seq[*Config] {
 	}
 }
 
+// AllResources returns an iterator of all the resources in the receiver and
+// all of its descendant nodes in the module tree until the iterator is exhausted or terminated.
+func (c *Config) AllResources() iter.Seq2[addrs.ConfigResource, *Resource] {
+	return func(yield func(addrs.ConfigResource, *Resource) bool) {
+		for moduleConfig := range c.AllModules() {
+			for _, rsc := range moduleConfig.Module.ManagedResources {
+				if !yield(rsc.Addr().InModule(moduleConfig.Path), rsc) {
+					return
+				}
+			}
+			for _, rsc := range moduleConfig.Module.ListResources {
+				if !yield(rsc.Addr().InModule(moduleConfig.Path), rsc) {
+					return
+				}
+			}
+			for _, rsc := range moduleConfig.Module.DataResources {
+				if !yield(rsc.Addr().InModule(moduleConfig.Path), rsc) {
+					return
+				}
+			}
+			for _, rsc := range moduleConfig.Module.EphemeralResources {
+				if !yield(rsc.Addr().InModule(moduleConfig.Path), rsc) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // Descendant returns the descendant config that has the given path beneath
 // the receiver, or nil if there is no such module.
 //

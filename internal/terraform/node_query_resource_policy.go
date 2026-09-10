@@ -126,11 +126,12 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 		ModulePath:   n.ResourceAddr.Module.String(),
 	}
 
-	getResources := getResourcesForPolicyCallback(ctx, op, provider, schema, config)
+	callbackManager := NewPolicyCallbackManager(op, schema, config)
+	getResources := callbackManager.GetResourcesCallback(ctx, provider)
 
 	callbacks := callback.Functions{
 		GetResources:  queryGetResourcesCallback(getResources),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
+		GetDataSource: callbackManager.GetDataSourceCallback(ctx, provider),
 	}
 
 	// Only actual policy evaluations consume the policy semaphore.

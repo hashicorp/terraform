@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
@@ -92,7 +93,9 @@ resource "test_resource" "b" {
 		DeferralsState: deferring.NewDeferred(false),
 	}
 
-	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
+	subjectAddr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "policy_subject", Name: "test"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	_ = subjectAddr
+	callback := NewPolicyCallbackManager(walkApply, providerSchema, config).GetResourcesCallback(ctx, nil)
 
 	tests := []struct {
 		name        string

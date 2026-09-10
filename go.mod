@@ -33,7 +33,8 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/hcl/v2 v2.24.0
+	// https://github.com/hashicorp/hcl/compare/sams/exp/simple_structure 
+	github.com/hashicorp/hcl/v2 v2.24.1-0.20260720125636-bb9f9cfcd5d1
 	github.com/hashicorp/jsonapi v1.4.3-0.20250220162346-81a76b606f3e
 	github.com/hashicorp/terraform-registry-address v0.5.0
 	github.com/hashicorp/terraform-svchost v0.2.1

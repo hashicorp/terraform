@@ -21,6 +21,14 @@ type Client interface {
 	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+
+	// RelationshipCatalog returns the de-duplicated relationship shapes the
+	// plugin reported at Setup. It is empty until Setup has been called (and
+	// when the loaded policies declare no relationships). Core uses it to
+	// pre-index candidate resources by connector key when serving relationship
+	// lookups.
+	RelationshipCatalog() []RelationshipShape
+
 	Stop()
 }
 
@@ -34,6 +42,10 @@ type (
 		// serverCapabilities contains the map of a policy path to the capabilities of the server.
 		serverCapabilities *proto.PolicySetupResponse_ServerCapabilities
 
+		// relationships is the de-duplicated catalog of relationship shapes the
+		// loaded policies declared, reported by the plugin at Setup.
+		relationships *proto.PolicySetupResponse_RelationshipCatalog
+
 		Diagnostics Diagnostics
 	}
 
@@ -43,6 +55,23 @@ type (
 
 		// RequiredVersion is the required version of the policy file.
 		RequiredVersion string
+	}
+
+	// RelationshipConnector maps a subject attribute to a target attribute and
+	// records the connector kind ("scalar", "any_of", or "has").
+	RelationshipConnector struct {
+		SubjectAttr string
+		TargetAttr  string
+		Kind        string
+	}
+
+	// RelationshipShape is a single, name-independent relationship declared by
+	// the loaded policies.
+	RelationshipShape struct {
+		SubjectType      string
+		TargetType       string
+		Connectors       []RelationshipConnector
+		RequireReference bool
 	}
 )
 
@@ -55,6 +84,32 @@ func (s *SetupResponse) ServerConfigurations() []ServerConfiguration {
 		ret = append(ret, ServerConfiguration{
 			File:            file,
 			RequiredVersion: capabilities.RequiredVersion,
+		})
+	}
+	return ret
+}
+
+// RelationshipCatalog returns the de-duplicated relationship shapes reported by
+// the plugin at Setup. It returns nil when the policy set declares none.
+func (s *SetupResponse) RelationshipCatalog() []RelationshipShape {
+	if s.relationships == nil {
+		return nil
+	}
+	ret := make([]RelationshipShape, 0, len(s.relationships.Shapes))
+	for _, shape := range s.relationships.Shapes {
+		connectors := make([]RelationshipConnector, 0, len(shape.Connectors))
+		for _, c := range shape.Connectors {
+			connectors = append(connectors, RelationshipConnector{
+				SubjectAttr: c.SubjectAttr,
+				TargetAttr:  c.TargetAttr,
+				Kind:        c.Kind,
+			})
+		}
+		ret = append(ret, RelationshipShape{
+			SubjectType:      shape.SubjectType,
+			TargetType:       shape.TargetType,
+			Connectors:       connectors,
+			RequireReference: shape.RequireReference,
 		})
 	}
 	return ret
