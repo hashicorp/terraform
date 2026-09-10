@@ -23,6 +23,39 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+func TestActionProtoRoundTrip_forgetThenCreate(t *testing.T) {
+	before, err := plans.NewDynamicValue(cty.StringVal("before"), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := plans.NewDynamicValue(cty.StringVal("after"), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := changeToTfplan(&plans.ChangeSrc{
+		Action: plans.ForgetThenCreate,
+		Before: before,
+		After:  after,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := changeFromTfplan(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Action != plans.ForgetThenCreate {
+		t.Fatalf("wrong action after round trip: got %s, want %s", got.Action, plans.ForgetThenCreate)
+	}
+	if !bytes.Equal(got.Before, before) {
+		t.Fatalf("wrong before value after round trip")
+	}
+	if !bytes.Equal(got.After, after) {
+		t.Fatalf("wrong after value after round trip")
+	}
+}
+
 // TestTFPlanRoundTrip writes a plan to a planfile, reads the contents of the planfile,
 // and asserts that the read data matches the written data.
 func TestTFPlanRoundTrip(t *testing.T) {

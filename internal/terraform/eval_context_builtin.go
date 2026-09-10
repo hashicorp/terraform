@@ -427,7 +427,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 		for _, c := range changes {
 			switch c.Change.Action {
 			// Only immediate changes to the resource will trigger replacement.
-			case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
+			case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete, plans.ForgetThenCreate, plans.CreateThenForget:
 				return ref, true, diags
 			}
 		}
@@ -443,7 +443,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	// Make sure the change is actionable. A create or delete action will have
 	// a change in value, but are not valid for our purposes here.
 	switch change.Change.Action {
-	case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
+	case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete, plans.ForgetThenCreate, plans.CreateThenForget:
 		// OK
 	default:
 		return nil, false, diags

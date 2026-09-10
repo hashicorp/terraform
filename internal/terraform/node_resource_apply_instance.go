@@ -193,7 +193,8 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
 	// Get the stored action for CBD if we have a plan already
-	createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete
+	createBeforeDestroyEnabled = diffApply.Change.Action == plans.CreateThenDelete ||
+		diffApply.Change.Action == plans.CreateThenForget
 
 	if destroy && n.CreateBeforeDestroy() {
 		createBeforeDestroyEnabled = true
