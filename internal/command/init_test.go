@@ -8623,10 +8623,16 @@ func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *tes
 			StateStores:       schemas,
 		},
 	}
+	return addPluggableStateStoreToMockProvider(&mock, schemas)
+}
+
+func addPluggableStateStoreToMockProvider(p *testing_provider.MockProvider, schemas map[string]providers.Schema) *testing_provider.MockProvider {
+	p.GetProviderSchemaResponse.StateStores = schemas
+
 	typeNames := slices.Sorted(maps.Keys(schemas))
-	mock.MockStates = testing_provider.NewMockStateBytesWithTypes(typeNames)
-	mock.GetStatesFn = func(req providers.GetStatesRequest) (resp providers.GetStatesResponse) {
-		stateIds, err := mock.MockStates.StateIds(req.TypeName)
+	p.MockStates = testing_provider.NewMockStateBytesWithTypes(typeNames)
+	p.GetStatesFn = func(req providers.GetStatesRequest) (resp providers.GetStatesResponse) {
+		stateIds, err := p.MockStates.StateIds(req.TypeName)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
@@ -8634,24 +8640,24 @@ func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *tes
 
 		return resp
 	}
-	mock.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
+	p.ConfigureStateStoreFn = func(req providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 		return providers.ConfigureStateStoreResponse{
 			Capabilities: providers.StateStoreServerCapabilities{
 				ChunkSize: 1234, // arbitrary number that isn't 0
 			},
 		}
 	}
-	mock.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
+	p.WriteStateBytesFn = func(req providers.WriteStateBytesRequest) (resp providers.WriteStateBytesResponse) {
 		// Workspaces exist once the artefact representing it is written
-		err := mock.MockStates.Write(req.TypeName, req.StateId, req.Bytes)
+		err := p.MockStates.Write(req.TypeName, req.StateId, req.Bytes)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 
 		return resp
 	}
-	mock.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
-		b, err := mock.MockStates.Read(req.TypeName, req.StateId)
+	p.ReadStateBytesFn = func(req providers.ReadStateBytesRequest) (resp providers.ReadStateBytesResponse) {
+		b, err := p.MockStates.Read(req.TypeName, req.StateId)
 		if err != nil {
 			if errors.Is(err, testing_provider.StateNotFoundErr{TypeName: req.TypeName, StateId: req.StateId}) {
 				warn := tfdiags.SimpleWarning(err.Error())
@@ -8664,14 +8670,14 @@ func mockPluggableStateStorageProvider(schemas map[string]providers.Schema) *tes
 
 		return resp
 	}
-	mock.DeleteStateFn = func(req providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
-		err := mock.MockStates.Delete(req.TypeName, req.StateId)
+	p.DeleteStateFn = func(req providers.DeleteStateRequest) (resp providers.DeleteStateResponse) {
+		err := p.MockStates.Delete(req.TypeName, req.StateId)
 		if err != nil {
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		return resp
 	}
-	return &mock
+	return p
 }
 
 func assertLockfileContents(t *testing.T, path string, expected string) {
