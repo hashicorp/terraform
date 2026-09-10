@@ -5,6 +5,8 @@ package terraform
 
 import (
 	"log"
+	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -252,6 +254,80 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	return nil
+}
+
+// OrphanDestroyEdgeTransformer orders in-place updates before deletion of their
+// former dependencies when this does not conflict with other graph edges.
+// Replacement and create_before_destroy ordering are left unchanged.
+type OrphanDestroyEdgeTransformer struct {
+	Changes *plans.ChangesSrc
+}
+
+func (t *OrphanDestroyEdgeTransformer) Transform(g *Graph) error {
+	if t.Changes == nil {
+		return nil
+	}
+
+	// A stable order makes the result deterministic when candidate reversals
+	// interact through other nodes in the graph.
+	vertices := g.VerticesSeq().Collect()
+	slices.SortFunc(vertices, func(a, b dag.Vertex) int {
+		return strings.Compare(a.Name(), b.Name())
+	})
+	for _, v := range vertices {
+		d, ok := v.(GraphNodeDestroyer)
+		if !ok || d.DestroyAddr() == nil {
+			continue
+		}
+		if _, ok := v.(GraphNodeDeposedResourceInstanceObject); ok {
+			continue
+		}
+		change := t.Changes.ResourceInstance(*d.DestroyAddr())
+		if change == nil || change.Action != plans.Delete {
+			continue
+		}
+		if cbd, ok := v.(GraphNodeCreateBeforeDestroy); ok && cbd.CreateBeforeDestroy() {
+			continue
+		}
+
+		var updates []dag.Vertex
+		for src := range g.EdgesTo(v).All() {
+			c, ok := src.(GraphNodeCreator)
+			if !ok || c.CreateAddr() == nil {
+				continue
+			}
+			update := t.Changes.ResourceInstance(*c.CreateAddr())
+			if update == nil || update.Action != plans.Update || !update.ProviderAddr.Equal(change.ProviderAddr) {
+				continue
+			}
+			ri, ok := src.(GraphNodeResourceInstance)
+			if !ok || !slices.ContainsFunc(ri.StateDependencies(), func(dep addrs.ConfigResource) bool {
+				return dep.Equal(d.DestroyAddr().ConfigResource())
+			}) {
+				continue
+			}
+			updates = append(updates, src)
+		}
+		for _, src := range updates {
+			g.RemoveEdge(src, v)
+		}
+
+		cycle := false
+		for _, src := range updates {
+			if g.Ancestors(src).Contains(v) {
+				cycle = true
+				break
+			}
+		}
+		for _, src := range updates {
+			if cycle {
+				g.Connect(src, v)
+			} else {
+				g.Connect(v, src)
+			}
+		}
+	}
 	return nil
 }
 

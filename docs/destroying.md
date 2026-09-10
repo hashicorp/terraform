@@ -181,6 +181,36 @@ digraph destroy_then_update {
     a -> b_d;
 }
 -->
+## Updating Former Dependents Before Deletion
+
+When an object is deleted without replacement, Terraform can update its former
+dependents before deleting it. For example, if a distribution stops referencing
+a policy and that policy is removed in the same plan, the distribution update
+can detach the policy before the provider attempts to delete it. No additional
+lifecycle setting is needed for this ordering.
+
+`OrphanDestroyEdgeTransformer` runs after the existing destroy and
+create-before-destroy transformers. It considers an incoming resource edge only
+when the source is an in-place update, its stored dependencies include the
+resource being deleted, and both changes use the same provider configuration.
+This distinction preserves the opposite case: an object being deleted must
+still be destroyed before updating an object on which it depended.
+
+For each deletion, the transformer removes the eligible incoming edges and
+checks whether reversing them would introduce a cycle through other graph
+edges. If so, it restores all of those edges for that deletion. Otherwise, the
+deletion waits for all eligible updates to complete successfully. Deletions are
+considered in a stable order so interacting candidates produce a deterministic
+result.
+
+This is a limited ordering preference, not a general solution for registration
+relationships. It does not change replacement actions, deposed-object cleanup,
+explicit create-before-destroy behavior, or directly reverse edges across
+provider configurations. Existing ordering also remains when a cycle prevents
+the reversal. Those cases can still require explicit lifecycle configuration.
+Dependencies stored in state are resource-level, so the ordering is conservative
+when only some instances of a resource are deleted.
+
 ## Create Before Destroy
 
 Currently, the only user-controllable method for changing the ordering of

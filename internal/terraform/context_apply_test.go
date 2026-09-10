@@ -1050,6 +1050,89 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_removeDependencyBeforeDestroy(t *testing.T) {
+	for _, parallelism := range []int{1, 10} {
+		for _, failUpdate := range []bool{false, true} {
+			t.Run(fmt.Sprintf("parallelism=%d/failUpdate=%t", parallelism, failUpdate), func(t *testing.T) {
+				m := testModuleInline(t, map[string]string{
+					"main.tf": `
+resource "aws_instance" "distribution" {
+  foo = "detached"
+}
+`,
+				})
+				p := testProvider("aws")
+				p.PlanResourceChangeFn = testDiffFn
+				var detached, deleted atomic.Bool
+				p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					if req.PlannedState.IsNull() {
+						deleted.Store(true)
+					}
+					if req.PlannedState.IsNull() && !detached.Load() {
+						return providers.ApplyResourceChangeResponse{
+							NewState:    req.PriorState,
+							Diagnostics: tfdiags.Diagnostics{}.Append(errors.New("policy is still attached to the distribution")),
+						}
+					}
+					if !req.PlannedState.IsNull() && failUpdate {
+						return providers.ApplyResourceChangeResponse{
+							NewState:    req.PriorState,
+							Diagnostics: tfdiags.Diagnostics{}.Append(errors.New("distribution update failed")),
+						}
+					}
+					resp := testApplyFn(req)
+					if !req.PlannedState.IsNull() && !resp.Diagnostics.HasErrors() {
+						detached.Store(true)
+					}
+					return resp
+				}
+				policyAddr := mustResourceInstanceAddr("aws_instance.policy")
+				distributionAddr := mustResourceInstanceAddr("aws_instance.distribution")
+				providerAddr := mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`)
+				state := states.BuildState(func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(policyAddr, &states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"policy","foo":"policy"}`),
+					}, providerAddr)
+					s.SetResourceInstanceCurrent(distributionAddr, &states.ResourceInstanceObjectSrc{
+						Status:       states.ObjectReady,
+						AttrsJSON:    []byte(`{"id":"distribution","foo":"policy"}`),
+						Dependencies: []addrs.ConfigResource{policyAddr.ContainingResource().Config()},
+					}, providerAddr)
+				})
+				ctx := testContext2(t, &ContextOpts{
+					Parallelism: parallelism,
+					Providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+					},
+				})
+				plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+				tfdiags.AssertNoErrors(t, diags)
+				if got := plan.Changes.ResourceInstance(policyAddr).Action; got != plans.Delete {
+					t.Fatalf("policy action = %s; want Delete", got)
+				}
+				if got := plan.Changes.ResourceInstance(distributionAddr).Action; got != plans.Update {
+					t.Fatalf("distribution action = %s; want Update", got)
+				}
+				state, diags = ctx.Apply(plan, m, nil)
+				if failUpdate {
+					if !diags.HasErrors() || !strings.Contains(diags.Err().Error(), "distribution update failed") {
+						t.Fatalf("expected update failure; got %s", diags.Err())
+					}
+					if deleted.Load() || state.ResourceInstance(policyAddr) == nil {
+						t.Fatal("policy deleted after failed distribution update")
+					}
+					return
+				}
+				tfdiags.AssertNoErrors(t, diags)
+				if state.ResourceInstance(policyAddr) != nil {
+					t.Fatal("policy remains in state after deletion")
+				}
+			})
+		}
+	}
+}
+
 // This tests that when a CBD resource depends on a non-CBD resource,
 // we can still properly apply changes that require new for both.
 func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
@@ -3977,8 +4060,9 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 					// Sleep to allow parallel execution
 					time.Sleep(50 * time.Millisecond)
 
-					// Verify that called is 0 (dep not called)
-					if atomic.LoadInt32(&called) != 1 {
+					// The update must remove the reference before the old
+					// instance is destroyed.
+					if atomic.LoadInt32(&called) != 0 {
 						resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("nothing else should be called"))
 						return
 					}

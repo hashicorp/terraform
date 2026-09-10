@@ -561,6 +561,90 @@ test_object.B
 	}
 }
 
+func TestOrphanDestroyEdgeTransformer(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		action            plans.Action
+		updateAction      plans.Action
+		crossProvider     bool
+		cycle             bool
+		cbd               bool
+		deposed           bool
+		reverseDependency bool
+		wantUpdateFirst   bool
+	}{
+		{name: "delete", action: plans.Delete, updateAction: plans.Update, wantUpdateFirst: true},
+		{name: "replace", action: plans.DeleteThenCreate, updateAction: plans.Update},
+		{name: "create before destroy replacement", action: plans.CreateThenDelete, updateAction: plans.Update},
+		{name: "forget", action: plans.Forget, updateAction: plans.Update},
+		{name: "unchanged dependent", action: plans.Delete, updateAction: plans.NoOp},
+		{name: "replaced dependent", action: plans.Delete, updateAction: plans.DeleteThenCreate},
+		{name: "cross provider", action: plans.Delete, updateAction: plans.Update, crossProvider: true},
+		{name: "cycle", action: plans.Delete, updateAction: plans.Update, cycle: true},
+		{name: "explicit lifecycle", action: plans.Delete, updateAction: plans.Update, cbd: true},
+		{name: "deposed", action: plans.Delete, updateAction: plans.Update, deposed: true},
+		{name: "destroy dependent before updating dependency", action: plans.Delete, updateAction: plans.Update, reverseDependency: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			policyAddr := mustResourceInstanceAddr("test_object.policy")
+			distributionAddr := mustResourceInstanceAddr("test_object.distribution")
+			providerAddr := mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`)
+			updateProviderAddr := providerAddr
+			if tc.crossProvider {
+				updateProviderAddr.Alias = "other"
+			}
+			var policy GraphNodeDestroyer = testDestroyNode(policyAddr.String())
+			if tc.deposed {
+				policy = &NodeDestroyDeposedResourceInstanceObject{
+					NodeAbstractResourceInstance: NewNodeAbstractResourceInstance(policyAddr),
+					DeposedKey:                   states.DeposedKey("12345678"),
+				}
+			}
+			if tc.cbd {
+				policy.(GraphNodeCreateBeforeDestroy).ForceCreateBeforeDestroy()
+			}
+			distribution := testUpdateNode(distributionAddr.String())
+			state := states.BuildState(func(s *states.SyncState) {
+				var deps []addrs.ConfigResource
+				if !tc.reverseDependency {
+					deps = []addrs.ConfigResource{policyAddr.ConfigResource()}
+				}
+				s.SetResourceInstanceCurrent(distributionAddr, &states.ResourceInstanceObjectSrc{
+					Status:       states.ObjectReady,
+					AttrsJSON:    []byte(`{"id":"distribution"}`),
+					Dependencies: deps,
+				}, updateProviderAddr)
+			})
+			g := &Graph{}
+			g.Add(policy)
+			g.Add(distribution)
+			g.Connect(distribution, policy)
+			if tc.cycle {
+				intermediate := testUpdateNode("test_object.intermediate")
+				g.Add(intermediate)
+				g.Connect(distribution, intermediate)
+				g.Connect(intermediate, policy)
+			}
+			if err := (&AttachStateTransformer{State: state}).Transform(g); err != nil {
+				t.Fatal(err)
+			}
+			changes := &plans.ChangesSrc{Resources: []*plans.ResourceInstanceChangeSrc{
+				{Addr: policyAddr, ProviderAddr: providerAddr, ChangeSrc: plans.ChangeSrc{Action: tc.action}},
+				{Addr: distributionAddr, ProviderAddr: updateProviderAddr, ChangeSrc: plans.ChangeSrc{Action: tc.updateAction}},
+			}}
+			if err := (&OrphanDestroyEdgeTransformer{Changes: changes}).Transform(g); err != nil {
+				t.Fatal(err)
+			}
+			if got := g.Ancestors(policy).Contains(distribution); got != tc.wantUpdateFirst {
+				t.Fatalf("update before delete = %t; want %t\n%s", got, tc.wantUpdateFirst, g.String())
+			}
+			if got := g.Ancestors(distribution).Contains(policy); got == tc.wantUpdateFirst {
+				t.Fatalf("delete before update = %t; want %t\n%s", got, !tc.wantUpdateFirst, g.String())
+			}
+		})
+	}
+}
+
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
 	inst := NewNodeAbstractResourceInstance(instAddr)

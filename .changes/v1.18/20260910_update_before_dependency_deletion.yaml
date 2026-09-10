@@ -1,0 +1,3 @@
+kind: ENHANCEMENTS
+body: Prefer in-place updates before deleting their former dependencies within the same provider configuration when the ordering does not introduce a graph cycle. Replacement and explicit create-before-destroy ordering are unchanged.
+time: 2026-09-10T00:00:00Z

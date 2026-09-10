@@ -611,8 +611,8 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 
 	expected := strings.TrimSpace(`
 test_object.a (destroy)
+  test_object.b
 test_object.b
-  test_object.a (destroy)
 `)
 
 	instanceGraph := filterInstances(g)
@@ -881,15 +881,14 @@ test_object.other (expand)
 const testApplyGraphBuilderDestroyCountStr = `
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
-  test_object.B
+  test_object.A[1] (destroy)
 root
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.A (expand)
   provider["registry.terraform.io/hashicorp/test"]
 test_object.A[1] (destroy)
-  provider["registry.terraform.io/hashicorp/test"]
+  test_object.B
 test_object.B
-  test_object.A[1] (destroy)
   test_object.B (expand)
 test_object.B (expand)
   test_object.A (expand)

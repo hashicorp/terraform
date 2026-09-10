@@ -243,6 +243,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			State:  b.State,
 		},
 
+		&OrphanDestroyEdgeTransformer{Changes: b.Changes},
+
 		// In a destroy, we need to remove configuration nodes that are not used
 		// at all, as they may not be able to evaluate. These include variables,
 		// locals, and instance expanders.
