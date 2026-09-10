@@ -57,13 +57,7 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("both"),
-			Marks: cty.NewValueMarks("sensitive", "other"),
-			// Note that this intentionally preserves the fact that the
-			// attribute was both sensitive _and_ had another mark, since
-			// that gives the caller the most possible information to
-			// potentially handle this combination in a special way in
-			// an error message, or whatever. It also conveniently avoids
-			// allocating a new mark set, which is nice.
+			Marks: cty.NewValueMarks("other"),
 		},
 		{
 			Path:  cty.GetAttrPath("neither"),
@@ -79,7 +73,7 @@ func TestPathsWithMark(t *testing.T) {
 		},
 		{
 			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
+			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", "")),
 		},
 	}
 
@@ -90,7 +84,7 @@ func TestPathsWithMark(t *testing.T) {
 		t.Errorf("wrong set of entries with other marks\n%s", diff)
 	}
 
-	gotPaths, gotOthers = PathsWithMark(input, Deprecation)
+	gotPaths, gotOthers = PathsWithMark(gotOthers, Deprecation)
 
 	wantPaths = []cty.Path{
 		cty.GetAttrPath("deprecated"),
@@ -99,24 +93,16 @@ func TestPathsWithMark(t *testing.T) {
 	}
 	wantOthers = []cty.PathValueMarks{
 		{
-			Path:  cty.GetAttrPath("sensitive"),
-			Marks: cty.NewValueMarks("sensitive"),
-		},
-		{
 			Path:  cty.GetAttrPath("other"),
 			Marks: cty.NewValueMarks("other"),
 		},
 		{
 			Path:  cty.GetAttrPath("both"),
-			Marks: cty.NewValueMarks("sensitive", "other"),
+			Marks: cty.NewValueMarks("other"),
 		},
 		{
 			Path:  cty.GetAttrPath("neither"),
 			Marks: cty.NewValueMarks("x", "y"),
-		},
-		{
-			Path:  cty.GetAttrPath("multipleDeprecationsAndSensitive"),
-			Marks: cty.NewValueMarks(NewDeprecation("this is deprecated", ""), NewDeprecation("this is also deprecated", ""), "sensitive"),
 		},
 	}
 
