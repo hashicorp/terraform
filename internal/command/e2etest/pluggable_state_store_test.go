@@ -469,7 +469,7 @@ func TestPrimary_stateStore_stateMigrateCmd_upgradeWithSchemaChange(t *testing.T
 	// Build v1.0.0 plugin
 	simpleProviderv1 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
 	simpleProviderv1Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
-		simpleProviderv1, "-ldflags", "-X 'github.com/hashicorp/terraform/internal/provider-simple-v6.AttributeName=attr_v1'")
+		simpleProviderv1, "-ldflags", "-X 'github.com/hashicorp/terraform/internal/provider-simple-v6.attributeName=attr_v1'")
 	providerv1MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "1.0.0")
 	if err := os.MkdirAll(filepath.Join(providerv1MirrorPath, platform), os.ModePerm); err != nil {
 		t.Fatal(err)
@@ -480,7 +480,7 @@ func TestPrimary_stateStore_stateMigrateCmd_upgradeWithSchemaChange(t *testing.T
 	// Build v2.0.0 plugin
 	simpleProviderv2 := filepath.Join(t.TempDir(), "terraform-provider-simple6")
 	simpleProviderv2Exe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main",
-		simpleProviderv2, "-ldflags", "-X 'github.com/hashicorp/terraform/internal/provider-simple-v6.AttributeName=attr_v2'")
+		simpleProviderv2, "-ldflags", "-X 'github.com/hashicorp/terraform/internal/provider-simple-v6.attributeName=attr_v2'")
 	providerv2MirrorPath := filepath.Join(mirrorPath, "registry.terraform.io", "hashicorp", "simple6", "2.0.0")
 	if err := os.MkdirAll(filepath.Join(providerv2MirrorPath, platform), os.ModePerm); err != nil {
 		t.Fatal(err)

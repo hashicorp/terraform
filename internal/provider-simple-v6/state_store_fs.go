@@ -55,7 +55,7 @@ func stateStoreFsGetSchema() providers.Schema {
 
 				// This attribute's name can be overridden at build time using -ldflags.
 				// This is a way to enable E2E tests using different versions of the provider with different schemas.
-				AttributeName: {
+				attributeName: {
 					Type:        cty.String,
 					Optional:    true,
 					Description: "A non-functional attribute whose name can be changed at build time to enable E2E tests using different provider versions, shown by changing schemas. The default attribute name is 'default'.",
