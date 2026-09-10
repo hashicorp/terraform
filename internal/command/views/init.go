@@ -54,6 +54,9 @@ type Init interface {
 	// LogCallToActionCLICloud is just like LogCallToActionCLI but uses HCP Terraform-specific language
 	LogCallToActionCLICloud()
 
+	// LogBackendConfiguredSuccess reports that the backend was successfully configured.
+	LogBackendConfiguredSuccess(backendType string)
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -154,6 +157,11 @@ func (v *InitHuman) LogCallToActionCLI() {
 
 func (v *InitHuman) LogCallToActionCLICloud() {
 	msg := strings.TrimSpace(outputInitSuccessCLICloud)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogBackendConfiguredSuccess(backendType string) {
+	msg := fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessHuman), backendType)
 	v.print(msg)
 }
 
@@ -399,6 +407,11 @@ func (v *InitJSON) LogCallToActionCLI() {
 func (v *InitJSON) LogCallToActionCLICloud() {
 	msg := strings.TrimSpace(outputInitSuccessCLICloudJSON)
 	v.initOutputLog(msg, json.MessageOutputInitSuccessCLICloudMessage)
+}
+
+func (v *InitJSON) LogBackendConfiguredSuccess(backendType string) {
+	msg := fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessJSON), backendType)
+	v.initOutputLog(msg, json.MessageBackendConfiguredSuccess)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -650,10 +663,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "Migrating from %q state store to %q backend.",
 		JSONValue:  "Migrating from %q state store to %q backend.",
 	},
-	"backend_configured_success": {
-		HumanValue: backendConfiguredSuccessHuman,
-		JSONValue:  backendConfiguredSuccessJSON,
-	},
 	"backend_configured_unset": {
 		HumanValue: backendConfiguredUnsetHuman,
 		JSONValue:  backendConfiguredUnsetJSON,
@@ -691,14 +700,8 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// Following message codes are used and documented EXTERNALLY
-	// Keep docs/internals/machine-readable-ui.mdx up to date with
-	// this list when making changes here.
-
 	//// Message codes below are ONLY used INTERNALLY (for now)
 
-	// BackendConfiguredSuccessMessage indicates successful backend configuration
-	BackendConfiguredSuccessMessage InitMessageCode = "backend_configured_success"
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
 	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
 	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
