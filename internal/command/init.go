@@ -146,7 +146,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	view.Output(views.InitializingTerraformCloudMessage)
+	view.LogInitializingHCPTerraformStart()
 
 	if len(extraConfig.AllItems()) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -176,9 +176,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	defer span.End()
 
 	if root.StateStore != nil {
-		view.Output(views.InitializingStateStoreMessage, root.StateStore.Type)
+		view.LogInitializingStateStoreStart(root.StateStore.Type)
 	} else {
-		view.Output(views.InitializingBackendMessage)
+		view.LogInitializingBackendStart()
 	}
 
 	earlyBdiags := c.earlyValidateBackend(root, initArgs)
