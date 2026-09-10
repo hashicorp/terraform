@@ -762,7 +762,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 			if stateStorageMode == StateStore {
 				// Raise an error if the user is attempting to override a provider block in a state_store block.
-				diags = diags.Append(checkIfConfigOverrideIncludesProviderBlock(newBody))
+				diags = diags.Append(checkIfConfigOverrideIncludesProviderBlock(newBody, item.Value))
 
 				// Allow to fall through to next check, which will also raise an "Unsupported block type" error
 				// related to the unexpected "provider" block, too. This is alongside any other errors the user
@@ -809,7 +809,7 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 // checkIfConfigOverrideIncludesProviderBlock checks if the HCL body created from a file
 // used to supply override configuration for a state store is attempting to override the provider block.
 // We do this by seeing if the HCL body contains any "provider" blocks.
-func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body) tfdiags.Diagnostics {
+func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body, filename string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	var s hcl.BodySchema
 	s.Blocks = append(s.Blocks, hcl.BlockHeaderSchema{
@@ -819,11 +819,16 @@ func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body) tfdiags.Diagno
 	bc, _, _ := newBody.PartialContent(&s)
 	for _, b := range bc.Blocks {
 		if b.Type == "provider" {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Cannot partially override provider configuration in a state store block.",
-				"The configuration arguments supplied by the override file attempts to override provider configuration, which is not allowed when using a state store.",
-			))
+			diags = diags.Append(
+				&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot partially override provider configuration in a state store block.",
+					Detail:   "The configuration arguments supplied by the override file attempts to override provider configuration, which is not allowed when using a state store.",
+					Subject: &hcl.Range{
+						Filename: filename,
+					},
+				},
+			)
 			break
 		}
 	}
