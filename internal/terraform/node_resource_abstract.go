@@ -376,6 +376,19 @@ func (n *NodeAbstractResource) Provider() ProviderRef {
 			ref.Addr.Alias = n.importTargets[0].Config.ProviderConfigRef.Alias
 			return ref
 		}
+
+		// The import target may not have an explicit provider reference, but
+		// as long as it has config the provider will have already been
+		// resolved (via required_providers, or implied by the resource type)
+		// at decode time, so we can use that directly.
+		if n.importTargets[0].Config != nil {
+			return ProviderRef{
+				Addr: addrs.AbsProviderConfig{
+					Provider: n.importTargets[0].Config.Provider,
+					Module:   n.ModulePath(),
+				},
+			}
+		}
 	}
 
 	// No provider configuration found; return a default address

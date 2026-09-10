@@ -1,5 +1,8 @@
 ## 1.18.0 (Unreleased)
 
+BUG FIXES:
+
+- `terraform plan -generate-config-out`: Resources that only exist via an `import` block (no matching `resource` block) once again resolve their provider from `required_providers` when the import block does not set an explicit `provider` argument, fixing a regression introduced in v1.16.0. ([issue #39144](https://github.com/hashicorp/terraform/issues/39144))
 
 EXPERIMENTS:
 

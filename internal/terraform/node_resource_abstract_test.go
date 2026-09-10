@@ -115,6 +115,50 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 	}
 }
 
+// TestNodeAbstractResourceProvider_ImportTargetImplicitProvider verifies that
+// an import-only resource (no matching config block, i.e. the
+// -generate-config-out case) resolves its provider using the import block's
+// Config.Provider -- which is already correctly resolved via
+// required_providers at decode time -- even when the import block does not
+// set an explicit `provider = x` reference. This is a regression test for
+// https://github.com/hashicorp/terraform/issues/39144.
+func TestNodeAbstractResourceProvider_ImportTargetImplicitProvider(t *testing.T) {
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "datahub_ingestion_source",
+		Name: "rt_source",
+	}.InModule(addrs.RootModule)
+
+	want := addrs.Provider{
+		Hostname:  addrs.DefaultProviderRegistryHost,
+		Namespace: "datahub-project",
+		Type:      "datahub",
+	}
+
+	node := &NodeAbstractResource{
+		// Just enough NodeAbstractResource for the Provider function.
+		// (This would not be valid for some other functions.)
+		Addr: addr,
+		// No n.Config, since this resource only exists via an import block
+		// (the config-generation case).
+		importTargets: []*ImportTarget{
+			{
+				Config: &configs.Import{
+					// No ProviderConfigRef: the import block does not set an
+					// explicit `provider = x` attribute, but Provider is
+					// still resolved correctly via required_providers.
+					Provider: want,
+				},
+			},
+		},
+	}
+
+	got := node.Provider()
+	if got.FQN() != want {
+		t.Errorf("wrong result\naddr:  %s\ngot:   %s\nwant:  %s", addr, got.FQN(), want)
+	}
+}
+
 // Make sure ProvideBy returns the final resolved provider
 func TestNodeAbstractResourceSetProvider(t *testing.T) {
 	node := &NodeAbstractResource{
