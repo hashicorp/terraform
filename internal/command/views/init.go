@@ -39,6 +39,21 @@ type Init interface {
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
+	// LogInitSuccess reports a successful init command completing
+	LogInitSuccess()
+
+	// LogInitSuccessCloud is just like LogInitSuccess but uses HCP Terraform-specific language
+	LogInitSuccessCloud()
+
+	// LogInitSuccessEmpty reports a successful init command completing, but notes that the config was empty
+	LogInitSuccessEmpty()
+
+	// LogCallToActionCLI is used when Terraform is not running in automation and prompt users about using the primary workflow
+	LogCallToActionCLI()
+
+	// LogCallToActionCLICloud is just like LogCallToActionCLI but uses HCP Terraform-specific language
+	LogCallToActionCLICloud()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
@@ -114,6 +129,31 @@ func (v *InitHuman) LogInitializingBackendStart() {
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
 	msg := "\n[reset][bold]Initializing HCP Terraform..."
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitSuccess() {
+	msg := strings.TrimSpace(outputInitSuccess)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitSuccessCloud() {
+	msg := strings.TrimSpace(outputInitSuccessCloud)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitSuccessEmpty() {
+	msg := strings.TrimSpace(outputInitEmpty)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogCallToActionCLI() {
+	msg := strings.TrimSpace(outputInitSuccessCLI)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogCallToActionCLICloud() {
+	msg := strings.TrimSpace(outputInitSuccessCLICloud)
 	v.print(msg)
 }
 
@@ -336,6 +376,31 @@ func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog(msg, json.MessageInitializingTerraformCloudMessage)
 }
 
+func (v *InitJSON) LogInitSuccess() {
+	msg := strings.TrimSpace(outputInitSuccessJSON)
+	v.initOutputLog(msg, json.MessageOutputInitSuccessMessage)
+}
+
+func (v *InitJSON) LogInitSuccessCloud() {
+	msg := strings.TrimSpace(outputInitSuccessCloudJSON)
+	v.initOutputLog(msg, json.MessageOutputInitSuccessCloudMessage)
+}
+
+func (v *InitJSON) LogInitSuccessEmpty() {
+	msg := strings.TrimSpace(outputInitEmptyJSON)
+	v.initOutputLog(msg, json.MessageOutputInitEmptyMessage)
+}
+
+func (v *InitJSON) LogCallToActionCLI() {
+	msg := strings.TrimSpace(outputInitSuccessCLI_JSON)
+	v.initOutputLog(msg, json.MessageOutputInitSuccessCLIMessage)
+}
+
+func (v *InitJSON) LogCallToActionCLICloud() {
+	msg := strings.TrimSpace(outputInitSuccessCLICloudJSON)
+	v.initOutputLog(msg, json.MessageOutputInitSuccessCLICloudMessage)
+}
+
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
 // New methods have since been added that replace the old `LogInitMessage` method,
 // but to ensure that the same JSON output is produced we keep `logInitMessage` to
@@ -541,26 +606,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"output_init_empty_message": {
-		HumanValue: outputInitEmpty,
-		JSONValue:  outputInitEmptyJSON,
-	},
-	"output_init_success_message": {
-		HumanValue: outputInitSuccess,
-		JSONValue:  outputInitSuccessJSON,
-	},
-	"output_init_success_cloud_message": {
-		HumanValue: outputInitSuccessCloud,
-		JSONValue:  outputInitSuccessCloudJSON,
-	},
-	"output_init_success_cli_message": {
-		HumanValue: outputInitSuccessCLI,
-		JSONValue:  outputInitSuccessCLI_JSON,
-	},
-	"output_init_success_cli_cloud_message": {
-		HumanValue: outputInitSuccessCLICloud,
-		JSONValue:  outputInitSuccessCLICloudJSON,
-	},
 	"provider_already_installed_message": {
 		HumanValue: logProviderVersionAlreadyInstalledHuman,
 		JSONValue:  logProviderVersionAlreadyInstalledJSON,
@@ -649,11 +694,6 @@ const (
 	// Following message codes are used and documented EXTERNALLY
 	// Keep docs/internals/machine-readable-ui.mdx up to date with
 	// this list when making changes here.
-	OutputInitEmptyMessage           InitMessageCode = "output_init_empty_message"
-	OutputInitSuccessMessage         InitMessageCode = "output_init_success_message"
-	OutputInitSuccessCloudMessage    InitMessageCode = "output_init_success_cloud_message"
-	OutputInitSuccessCLIMessage      InitMessageCode = "output_init_success_cli_message"
-	OutputInitSuccessCLICloudMessage InitMessageCode = "output_init_success_cli_cloud_message"
 
 	//// Message codes below are ONLY used INTERNALLY (for now)
 

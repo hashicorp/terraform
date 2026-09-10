@@ -108,6 +108,9 @@ const (
 	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
 	// and changes are potentially breaking.
 	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	MessageOutputInitSuccessMessage          MessageType = "output_init_success_message"
+	MessageOutputInitEmptyMessage            MessageType = "output_init_empty_message"
+	MessageOutputInitSuccessCloudMessage     MessageType = "output_init_success_cloud_message"
 	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
 	MessageInitializingTerraformCloudMessage MessageType = "initializing_terraform_cloud_message"
 	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
@@ -116,4 +119,7 @@ const (
 	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
 	MessageLockInfo                          MessageType = "lock_info"
 	MessageDependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
+	// TODO - Remove these and their JSON output; machine readable output does not need calls to action
+	MessageOutputInitSuccessCLIMessage      MessageType = "output_init_success_cli_message"
+	MessageOutputInitSuccessCLICloudMessage MessageType = "output_init_success_cli_cloud_message"
 )
