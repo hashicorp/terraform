@@ -39,6 +39,8 @@ func ChangeTypesForPlanAction(action plans.Action) ([]ChangeType, error) {
 		return []ChangeType{ChangeType_CREATE, ChangeType_DELETE}, nil
 	case plans.Forget:
 		return []ChangeType{ChangeType_FORGET}, nil
+	case plans.ForgetThenCreate:
+		return []ChangeType{ChangeType_FORGET, ChangeType_CREATE}, nil
 	case plans.CreateThenForget:
 		return []ChangeType{ChangeType_CREATE, ChangeType_FORGET}, nil
 	default:

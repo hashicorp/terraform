@@ -20,6 +20,8 @@ func DiffActionSymbol(action plans.Action) string {
 	switch action {
 	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset]"
+	case plans.ForgetThenCreate:
+		return "[red].[reset]/[green]+[reset]"
 	case plans.CreateThenDelete:
 		return "[green]+[reset]/[red]-[reset]"
 	case plans.Create:
