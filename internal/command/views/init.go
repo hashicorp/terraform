@@ -26,9 +26,12 @@ type Init interface {
 	// LogConfigurationCopyingStart describes the start of copying a module to create the root module in an empty directory.
 	LogConfigurationCopyingStart(moduleSource string)
 
-	// LogInitializingStateStoreProviderStart indicates progress during installation of a state store provider.
+	// LogInstallStateStoreProviderStart indicates progress during installation of a state store provider.
 	// This is signposted as distinct from general provider download, which may happen later in init.
 	LogInstallStateStoreProviderStart(providerAddr addrs.Provider, cons getproviders.VersionConstraints, storeType string)
+
+	// LogInitializingStateStoreStart indicates progress during initialization of a state store.
+	LogInitializingStateStoreStart(storeType string)
 
 	ModuleInstallationLogger
 	ProviderInstallationLogger
@@ -103,6 +106,12 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...)
+	v.print(msg)
+}
+
+func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
+	template := "\n[reset][bold]Initializing the state store %q..."
+	msg := fmt.Sprintf(template, storeType)
 	v.print(msg)
 }
 
@@ -334,6 +343,15 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 	)
 }
 
+func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
+	template := "Initializing the state store %q..."
+	msg := fmt.Sprintf(template, storeType)
+	v.view.log.Info(
+		msg,
+		"type", json.MessageStateStoreInitializationStart,
+	)
+}
+
 // Implements StateStoreProviderTrustLogger interface.
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
@@ -552,10 +570,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 		HumanValue: "\n[reset][bold]Initializing provider plugins...",
 		JSONValue:  "Initializing provider plugins...",
 	},
-	"initializing_state_store_message": {
-		HumanValue: "\n[reset][bold]Initializing the state store %q...",
-		JSONValue:  "Initializing the state store %q...",
-	},
 	"dependencies_lock_changes_info": {
 		HumanValue: dependenciesLockChangesInfo,
 		JSONValue:  dependenciesLockChangesInfo,
@@ -662,7 +676,6 @@ const (
 	InitializingTerraformCloudMessage InitMessageCode = "initializing_terraform_cloud_message"
 	InitializingModulesMessage        InitMessageCode = "initializing_modules_message"
 	InitializingBackendMessage        InitMessageCode = "initializing_backend_message"
-	InitializingStateStoreMessage     InitMessageCode = "initializing_state_store_message"
 	InitializingProviderPluginMessage InitMessageCode = "initializing_provider_plugin_message"
 	LockInfo                          InitMessageCode = "lock_info"
 	DependenciesLockChangesInfo       InitMessageCode = "dependencies_lock_changes_info"
