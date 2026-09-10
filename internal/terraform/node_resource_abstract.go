@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -16,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // ConcreteResourceNodeFunc is a callback type used to convert an
@@ -361,16 +362,18 @@ func (n *NodeAbstractResource) Provider() ProviderRef {
 		// The import targets should either all be defined via config or none
 		// of them should be. They should also all have the same provider, so it
 		// shouldn't matter which we check here, as they'll all give the same.
-		if n.importTargets[0].Config != nil && n.importTargets[0].Config.ProviderConfigRef != nil {
+		if n.importTargets[0].Config != nil {
+			imp := n.importTargets[0].Config
 			ref := ProviderRef{
 				Addr: addrs.AbsProviderConfig{
-					Provider: n.importTargets[0].Config.Provider,
-					Alias:    n.importTargets[0].Config.ProviderConfigRef.Alias,
+					Provider: imp.Provider,
 					Module:   n.ModulePath(),
 				},
 			}
 
-			ref.Addr.Alias = n.importTargets[0].Config.ProviderConfigRef.Alias
+			if imp.ProviderConfigRef != nil {
+				ref.Addr.Alias = imp.ProviderConfigRef.Alias
+			}
 			return ref
 		}
 	}
