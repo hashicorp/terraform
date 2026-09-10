@@ -268,6 +268,12 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 }
 
 func (c *Client) configureClient(client client.BaseClient, authorizer auth.Authorizer) {
+	// Wrap the underlying HTTP transport with sensitive data stripping before
+	// any API calls. This prevents Terraform state file contents from being
+	// leaked in debug logs when TF_LOG=DEBUG.
+	// See: https://github.com/hashicorp/terraform/issues/32382
+	wrapClient(client.Client)
+
 	client.SetAuthorizer(authorizer)
 	client.SetUserAgent(buildUserAgent(client.GetUserAgent()))
 }
