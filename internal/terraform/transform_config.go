@@ -48,6 +48,10 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	// SkipActions, when true, suppresses building lifecycle action triggers
+	// for configured resource nodes.
+	SkipActions bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -162,21 +166,23 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 		var diags tfdiags.Diagnostics
 
-		// Build the action triggers for the configured resource nodes,
-		// connecting them to the respective ConfigAction nodes.
-		triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
-		diags = diags.Append(triggerDiags)
-		if diags.HasErrors() {
-			return diags.Err()
-		}
+		if !t.SkipActions {
+			// Build the action triggers for the configured resource nodes,
+			// connecting them to the respective ConfigAction nodes.
+			triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
+			diags = diags.Append(triggerDiags)
+			if diags.HasErrors() {
+				return diags.Err()
+			}
 
-		abstract.actionTriggers = triggers
+			abstract.actionTriggers = triggers
 
-		// now record all the action nodes which were used by resources, so that
-		// they are not validated on their own since they may container "caller"
-		for _, trigger := range triggers {
-			for _, actionRef := range trigger.actionRefs {
-				referencedActionConfigs.Add(actionRef.actionNode.Addr)
+			// now record all the action nodes which were used by resources, so that
+			// they are not validated on their own since they may container "caller"
+			for _, trigger := range triggers {
+				for _, actionRef := range trigger.actionRefs {
+					referencedActionConfigs.Add(actionRef.actionNode.Addr)
+				}
 			}
 		}
 

@@ -16,9 +16,15 @@ import (
 type ActionDiffTransformer struct {
 	Changes *plans.ChangesSrc
 	Config  *configs.Config
+
+	// Skip, when true, causes the transformer to be a no-op (e.g. during test runs).
+	Skip bool
 }
 
 func (t *ActionDiffTransformer) Transform(g *Graph) error {
+	if t.Skip {
+		return nil
+	}
 	resourceInstanceNodes := addrs.MakeMap[addrs.AbsResourceInstance, []GraphNodeResourceInstance]()
 	actionConfigNodes := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
 

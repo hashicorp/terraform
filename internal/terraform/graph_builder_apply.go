@@ -92,6 +92,10 @@ type ApplyGraphBuilder struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// SkipActions, when true, suppresses all action invocations during apply.
+	// This should be set during test runs where actions must not have real side-effects.
+	SkipActions bool
+
 	// PolicyClient is the client for evaluating policies.
 	PolicyClient policy.Client
 }
@@ -133,8 +137,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// updated to reflect things such as whether the count argument is
 		// set in config, or which provider configuration manages each resource.
 		&ConfigTransformer{
-			Concrete: concreteResource,
-			Config:   b.Config,
+			Concrete:    concreteResource,
+			Config:      b.Config,
+			SkipActions: b.SkipActions,
 		},
 
 		// Add dynamic values
@@ -172,6 +177,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ActionDiffTransformer{
 			Changes: b.Changes,
 			Config:  b.Config,
+			Skip:    b.SkipActions,
 		},
 
 		// Creates nodes for all the deferred changes.

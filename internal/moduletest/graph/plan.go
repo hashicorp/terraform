@@ -135,6 +135,7 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 		Overrides:                 ctx.GetOverrides(run.Name),
 		DeferralAllowed:           ctx.deferralAllowed,
 		AllowRootEphemeralOutputs: true,
+		SkipActions:               true,
 	}
 
 	waiter.update(tfCtx, moduletest.Running, nil)
