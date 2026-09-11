@@ -103,14 +103,6 @@ or include the "-or-create" flag with the "select" subcommand.`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
 
-	envCreated = `
-[reset][green][bold]Created and switched to workspace %q![reset][green]
-
-You're now on a new, empty workspace. Workspaces isolate their state,
-so if you run "terraform plan" Terraform will not see any existing state
-for this configuration.
-`
-
 	envDeleted = `[reset][green]Deleted workspace %q!`
 
 	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty.

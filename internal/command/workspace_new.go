@@ -117,7 +117,7 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	}
 
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		strings.TrimSpace(envCreated), workspace)))
+		strings.TrimSpace(views.EnvCreated), workspace)))
 
 	if args.StatePath == "" {
 		// if we're not loading a state, then we're done
