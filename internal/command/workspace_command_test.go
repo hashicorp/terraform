@@ -352,10 +352,8 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 	}
 
 	args := []string{""}
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	newCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
@@ -368,7 +366,7 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
 	}
 
-	ui = testUiWrapped(t)
+	ui := testUiWrapped(t)
 	view, _ = testView(t)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: Meta{
@@ -409,11 +407,9 @@ func TestWorkspace_createAndList(t *testing.T) {
 
 	// create multiple workspaces
 	for _, env := range envs {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
-				Ui:         ui,
 				View:       view,
 				WorkingDir: workdir.NewDir("."),
 			},
@@ -424,10 +420,8 @@ func TestWorkspace_createAndList(t *testing.T) {
 	}
 
 	listCmd := &WorkspaceListCommand{}
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	listCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
@@ -488,9 +482,8 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	env := []string{"test_a"}
 
 	// create test_a workspace
-	ui = testUiWrapped(t)
+	view, _ = testView(t)
 	newCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
@@ -537,11 +530,9 @@ func TestWorkspace_createInvalid(t *testing.T) {
 
 	// create multiple workspaces
 	for _, env := range envs {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
-				Ui:         ui,
 				View:       view,
 				WorkingDir: workdir.NewDir("."),
 			},
@@ -553,10 +544,8 @@ func TestWorkspace_createInvalid(t *testing.T) {
 
 	// list workspaces to make sure none were created
 	listCmd := &WorkspaceListCommand{}
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	listCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
@@ -620,11 +609,9 @@ func TestWorkspace_createWithState(t *testing.T) {
 	workspace := "test_workspace"
 
 	args := []string{"-state", "test.tfstate", workspace}
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	newCmd := &WorkspaceNewCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: workdir.NewDir("."),
 		},
@@ -1023,11 +1010,9 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env new "foobar"` returns expected deprecation warning
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	newCmd = &WorkspaceNewCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: workdir.NewDir("."),
 		},
@@ -1047,7 +1032,7 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env select "default"` returns expected deprecation warning
-	ui = testUiWrapped(t)
+	ui := testUiWrapped(t)
 	view, _ = testView(t)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: Meta{
@@ -1070,11 +1055,9 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env list` returns expected deprecation warning
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	listCmd := &WorkspaceListCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: workdir.NewDir("."),
 		},
