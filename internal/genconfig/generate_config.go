@@ -645,20 +645,11 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 
 // hclEscapeString formats the input string into a format that is safe for
 // rendering within HCL.
-//
-// Note, this function doesn't actually do a very good job of this currently. We
-// need to expose some internal functions from HCL in a future version and call
-// them from here. For now, just use "%q" formatting.
-//
-// Note, the similar function in jsonformat/computed/renderers/map.go is doing
-// something similar.
 func hclEscapeString(str string) string {
-	// TODO: Replace this with more complete HCL logic instead of the simple
-	// go workaround.
-	if !hclsyntax.ValidIdentifier(str) {
-		return fmt.Sprintf("%q", str)
+	if hclsyntax.ValidIdentifier(str) {
+		return str
 	}
-	return str
+	return string(hclwrite.TokensForValue(cty.StringVal(str)).Bytes())
 }
 
 // ExtractLegacyConfigFromState takes the state value of a resource, and filters the

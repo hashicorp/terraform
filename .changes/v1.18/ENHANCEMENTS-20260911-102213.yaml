@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'genconfig: use hcl-native printing instead of falling back to go string'
+time: 2026-09-11T10:22:13.113278-04:00
+custom:
+    Issue: "39193"
