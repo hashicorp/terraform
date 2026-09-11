@@ -163,18 +163,20 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 
 	//// Show Workspace
 	ui = testUiWrapped(t)
+	view, done = testView(t)
 	meta.Ui = ui
+	meta.View = view
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
 	args = []string{}
 	code = showCmd.Run(args)
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedMsg = fmt.Sprintf("%s\n", selectedWorkspace)
-	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
-		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	if !strings.Contains(done(t).Stdout(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, done(t).Stdout())
 	}
 
 	current, _ = newCmd.Workspace()
@@ -459,19 +461,17 @@ func TestWorkspace_createAndShow(t *testing.T) {
 
 	// make sure current workspace show outputs "default"
 	showCmd := &WorkspaceShowCommand{}
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	showCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
 
 	if code := showCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	actual := strings.TrimSpace(done(t).Stdout())
 	expected := "default"
 
 	if actual != expected {
@@ -483,7 +483,7 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	env := []string{"test_a"}
 
 	// create test_a workspace
-	ui = testUiWrapped(t)
+	ui := testUiWrapped(t)
 	newCmd.Meta = Meta{
 		Ui:         ui,
 		View:       view,
@@ -491,11 +491,11 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	}
 
 	if code := newCmd.Run(env); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	selCmd := &WorkspaceSelectCommand{}
-	ui = testUiWrapped(t)
+	ui := testUiWrapped(t)
 	selCmd.Meta = Meta{
 		Ui:         ui,
 		View:       view,
@@ -506,14 +506,14 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	}
 
 	showCmd = &WorkspaceShowCommand{}
-	ui = testUiWrapped(t)
-	showCmd.Meta = Meta{Ui: ui, View: view}
+	view, done = testView(t)
+	showCmd.Meta = Meta{View: view}
 
 	if code := showCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
-	actual = strings.TrimSpace(ui.OutputWriter.String())
+	actual = strings.TrimSpace(done(t).Stdout())
 	expected = "test_a"
 
 	if actual != expected {
@@ -1181,13 +1181,13 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	}
 
 	// Show
-	meta, ui, _, _ = newMeta(false)
+	meta, _, _, done = newMeta(false)
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
 	args = []string{"extra-arg"} // The show subcommand does not accept any arguments, and doesn't have any logic detecting unexpected args.
 	if code := showCmd.Run(args); code != 0 {
-		t.Fatalf("expected command to succeed, got: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("expected command to succeed, got: %d\n\n%s", code, done(t).All())
 	}
 
 	// Select
@@ -1307,14 +1307,14 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color enabled
 	useColor = true
-	meta, ui, _, _ := newMeta(useColor)
+	meta, ui, _, done := newMeta(useColor)
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
 	if code := showCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	actual = ui.OutputWriter.String()
+	actual = done(t).Stdout()
 	expectedOutput = "test_f\n"
 	if actual != expectedOutput {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
@@ -1322,14 +1322,14 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color disabled
 	useColor = false
-	meta, ui, _, _ = newMeta(useColor)
+	meta, _, _, done = newMeta(useColor)
 	showCmd = &WorkspaceShowCommand{
 		Meta: meta,
 	}
 	if code := showCmd.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	actual = ui.OutputWriter.String()
+	actual = done(t).Stdout()
 	expectedOutput = "test_f\n"
 	if actual != expectedOutput {
 		t.Fatalf("\nexpected: %q\nactual:  %q", expectedOutput, actual)
