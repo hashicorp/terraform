@@ -8,6 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -842,6 +845,81 @@ resource "tfcoremock_sensitive_values" "values" {
 			want := strings.TrimSpace(tc.expected)
 			if diff := cmp.Diff(got, want); len(diff) > 0 {
 				t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+			}
+		})
+	}
+}
+
+func TestGenerateResourceContentsNestedMapKeysRoundTrip(t *testing.T) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"map": {
+				NestedType: &configschema.Object{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+					Nesting: configschema.NestingMap,
+				},
+				Required: true,
+			},
+		},
+	}
+	if err := schema.InternalValidate(); err != nil {
+		t.Fatalf("schema failed InternalValidate: %s", err)
+	}
+
+	tests := map[string]string{
+		"template interpolation": `${1 + 1}`,
+		"template directive":     `%{if true}changed%{endif}`,
+		"quote":                  `quote"key`,
+		"backslash":              `backslash\key`,
+		"newline":                "line\nbreak",
+	}
+	for name, key := range tests {
+		t.Run(name, func(t *testing.T) {
+			want := cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					key: cty.ObjectVal(map[string]cty.Value{
+						"value": cty.StringVal("test"),
+					}),
+				}),
+			})
+
+			generated, diags := GenerateResourceContents(
+				addrs.AbsResourceInstance{
+					Module: addrs.RootModuleInstance,
+					Resource: addrs.ResourceInstance{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "testing_resource",
+							Name: "resource",
+						},
+						Key: addrs.NoKey,
+					},
+				},
+				schema,
+				addrs.LocalProviderConfig{LocalName: "testing"},
+				want,
+				false,
+			)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected generation diagnostics: %s", diags.Err())
+			}
+
+			file, parseDiags := hclsyntax.ParseConfig(generated.Body, "generated.tf", hcl.InitialPos)
+			if parseDiags.HasErrors() {
+				t.Fatalf("generated configuration did not parse:\n%s\n%s", generated.Body, parseDiags.Error())
+			}
+
+			got, decodeDiags := hcldec.Decode(file.Body, schema.DecoderSpec(), nil)
+			if decodeDiags.HasErrors() {
+				t.Fatalf("generated configuration did not evaluate:\n%s\n%s", generated.Body, decodeDiags.Error())
+			}
+			if !got.RawEquals(want) {
+				t.Errorf("generated configuration did not round-trip\ngot:  %#v\nwant: %#v\nHCL:\n%s", got, want, generated.Body)
 			}
 		})
 	}
