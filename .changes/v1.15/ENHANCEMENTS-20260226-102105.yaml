@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/s3: Improved performance when using workspaces by replacing workspace listing with a direct state file check'
+time: 2026-02-26T10:21:05.578904Z
+custom:
+    Issue: "33137"
