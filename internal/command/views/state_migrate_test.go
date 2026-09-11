@@ -195,7 +195,7 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`Terraform has created a lock file .terraform.lock.hcl`, // @message - incomplete but sufficient
+		`"@message":"Terraform has created a lock file .terraform.lock.hcl to record the provider selections made during this command."`, // @message - incomplete but sufficient
 		`"@module":"terraform.ui"`,
 		`"type":"provider_lockfile_created"`,
 	}
@@ -217,7 +217,7 @@ func TestNewStateMigrate_LogDependencyLockfileUpdated_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`Terraform has made some changes to the provider dependency selections`, // @message - incomplete but sufficient
+		`"@message":"Terraform has made some changes to the provider dependency selections recorded in the .terraform.lock.hcl file."`,
 		`"@module":"terraform.ui"`,
 		`"type":"provider_lockfile_updated"`,
 	}
