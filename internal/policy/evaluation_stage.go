@@ -13,4 +13,5 @@ const (
 	InitEvaluationStage
 	PlanEvaluationStage
 	ApplyEvaluationStage
+	QueryEvaluationStage
 )
