@@ -57,6 +57,40 @@ func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRe
 	}, nil
 }
 
+func (s *Server) RelatedResources(ctx context.Context, request *proto.RelatedResourcesRequest) (*proto.RelatedResourcesResponse, error) {
+	functions, ok := s.Registry.Get(request.EvaluationRequestId)
+	if !ok {
+		err := fmt.Errorf("no callback registered for ID %d (request type: %s)", request.EvaluationRequestId, request.Type)
+		return nil, err
+	}
+	pairs := make([]RelatedAttributePair, 0, len(request.AttributePairs))
+	for _, pair := range request.AttributePairs {
+		pairs = append(pairs, RelatedAttributePair{
+			SourceAttribute:  pair.SourceAttribute,
+			RelatedAttribute: pair.RelatedAttribute,
+		})
+	}
+	resources, isPartialResult, err := functions.RelatedResources(ctx, request.Type, pairs)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([][]byte, 0, len(resources))
+	for _, resource := range resources {
+		result, err := msgpack.Marshal(resource, cty.DynamicPseudoType)
+		if err != nil {
+			err = fmt.Errorf("failed to serialize resource: %w", err)
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	return &proto.RelatedResourcesResponse{
+		Results: results,
+		Partial: isPartialResult,
+	}, nil
+}
+
 func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {
 	config, err := msgpack.Unmarshal(request.Config, cty.DynamicPseudoType)
 	if err != nil {

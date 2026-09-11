@@ -11,9 +11,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+type RelatedAttributePair struct {
+	SourceAttribute  string
+	RelatedAttribute string
+}
+
 type Functions struct {
-	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
-	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
+	GetResources func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
+	// RelatedResources returns candidate resources whose target attributes
+	// directly traverse to, or statically equal, the current resource attributes.
+	RelatedResources func(ctx context.Context, resource string, pairs []RelatedAttributePair) ([]cty.Value, bool, error)
+	GetDataSource    func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
 }
 
 // Registry is an interface for managing callback functions for resources and
