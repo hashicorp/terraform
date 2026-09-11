@@ -16,7 +16,17 @@ import (
 
 // The WorkspaceList view is used for the `workspace list` subcommand.
 type WorkspaceList interface {
+	// List is used to log the list of present workspaces and indicate which is currently selected
+	//
+	// This method is intended to be used when the command is successfully listing workspaces, and
+	// any diagnostics present will only be warnings.
 	List(selected string, list []string, diags tfdiags.Diagnostics)
+
+	// LogErrorDiagnostics renders any supplied diagnostics, but expects at least one error.
+	//
+	// This method is intended to only be used to display error diagnostics
+	// prior to the command returning early with a non-0 code.
+	LogErrorDiagnostics(diags tfdiags.Diagnostics)
 }
 
 func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
@@ -65,6 +75,10 @@ func (v *WorkspaceListHuman) List(selected string, list []string, diags tfdiags.
 	}
 }
 
+func (v *WorkspaceListHuman) LogErrorDiagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
 // The WorkspaceListJSON implementation renders machine-readable logs, suitable for
 // integrating with other software.
 //
@@ -72,6 +86,11 @@ func (v *WorkspaceListHuman) List(selected string, list []string, diags tfdiags.
 type WorkspaceListJSON struct {
 	view *View
 }
+
+// WorkspaceListJSONFormatVersion represents the version of the json format and will be
+// incremented for any change to this format that requires changes to a
+// consuming parser.
+const WorkspaceListJSONFormatVersion = "1.0"
 
 var _ WorkspaceList = (*WorkspaceListJSON)(nil)
 
@@ -86,18 +105,9 @@ type WorkspaceOutput struct {
 	IsCurrent bool   `json:"is_current,omitempty"`
 }
 
-// List is used to log the list of present workspaces and indicate which is currently selected
-//
-// If `workspace list` errors must return early with error diagnostics then the list will be empty and accompanied by errors.
-// If the command succeeds then the list will be populated and the diagnostics list will be either empty or contain warnings.
 func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
-
 	output := WorkspaceListOutput{
-		FormatVersion: FormatVersion,
+		FormatVersion: WorkspaceListJSONFormatVersion,
 	}
 
 	for _, item := range list {
@@ -113,6 +123,34 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 		// Zero workspaces being returned is a valid outcome. In that scenario a warning diagnostic is included,
 		// and that'll be easier to understand next to an empty workspace list.
 		output.Workspaces = []WorkspaceOutput{}
+	}
+
+	configSources := v.view.configSources()
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
+	}
+
+	if output.Diagnostics == nil {
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		output.Diagnostics = []*viewsjson.Diagnostic{}
+	}
+
+	jsonOutput, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		// Should never happen because we fully-control the input here
+		panic(fmt.Sprintf("failed to marshal workspace list json output: %v", err))
+	}
+
+	v.view.streams.Println(string(jsonOutput))
+}
+
+func (v *WorkspaceListJSON) LogErrorDiagnostics(diags tfdiags.Diagnostics) {
+	output := WorkspaceListOutput{
+		FormatVersion: WorkspaceListJSONFormatVersion,
+
+		// Make sure this always appears as an array in our output
+		Workspaces: []WorkspaceOutput{},
 	}
 
 	configSources := v.view.configSources()
