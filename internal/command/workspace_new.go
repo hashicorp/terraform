@@ -4,6 +4,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -28,15 +29,24 @@ type WorkspaceNewCommand struct {
 func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	// Process global flags and configure the view/UI.
-	rawArgs = c.Meta.process(rawArgs)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
 	// Process command-specific arguments.
 	// Currently there are no arguments for this command, so ignore the returned value for now.
-	args, diags := arguments.ParseWorkspaceNew(rawArgs)
+	args, argDiags := arguments.ParseWorkspaceNew(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewWorkspaceNew(args.ViewType, c.View)
+
+	// Warn against using `terraform env` commands, if needed
+	diags = diags.Append(envCommandWarningDiag(c.LegacyName))
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return cli.RunResultHelp
 	}
 
@@ -49,15 +59,18 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	// already due to it being set.
 	current, isOverridden, _ := c.WorkspaceOverridden()
 	if current != workspace && isOverridden {
-		c.Ui.Error(envIsOverriddenNewError)
+		err := errors.New(envIsOverriddenNewError)
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
 	configPath := c.WorkingDir.RootModuleDir()
-	b, diags := c.backend(configPath, args.ViewType)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, bDiags := c.backend(configPath, args.ViewType)
+	diags = diags.Append(bDiags)
+	if bDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -65,15 +78,17 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	workspaces, wDiags := b.Workspaces()
+	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", wDiags.Err()))
+		view.Diagnostics(diags)
 		return 1
 	}
-	c.showDiagnostics(diags) // output warnings, if any
 
 	for _, ws := range workspaces {
 		if workspace == ws {
-			c.Ui.Error(fmt.Sprintf(envExists, workspace))
+			err := fmt.Errorf(envExists, workspace)
+			diags = diags.Append(err)
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
@@ -86,8 +101,9 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	// The cloud backend also has logic in StateMgr for creating projects and
 	// workspaces if they don't already exist.
 	sMgr, sDiags := b.StateMgr(workspace)
+	diags = diags.Append(sDiags)
 	if sDiags.HasErrors() {
-		c.Ui.Error(sDiags.Err().Error())
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -100,11 +116,13 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 			// We only do this when the backend in use is pluggable, to avoid impacting users
 			// of remote-state backends.
 			if err := sMgr.WriteState(states.NewState()); err != nil {
-				c.Ui.Error(err.Error())
+				diags = diags.Append(err)
+				view.Diagnostics(diags)
 				return 1
 			}
 			if err := sMgr.PersistState(nil); err != nil {
-				c.Ui.Error(err.Error())
+				diags = diags.Append(err)
+				view.Diagnostics(diags)
 				return 1
 			}
 		}
@@ -112,12 +130,12 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 
 	// now set the current workspace locally
 	if err := c.SetWorkspace(workspace); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting new workspace: %s", err))
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		strings.TrimSpace(envCreated), workspace)))
+	view.LogWorkspaceCreationSuccess(workspace, diags)
 
 	if args.StatePath == "" {
 		// if we're not loading a state, then we're done
@@ -126,20 +144,21 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 
 	// load the new Backend state
 	stateMgr, sDiags := b.StateMgr(workspace)
+	diags = diags.Append(sDiags)
 	if sDiags.HasErrors() {
-		c.Ui.Error(sDiags.Err().Error())
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if args.Lock {
 		stateLocker := clistate.NewLocker(args.LockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "workspace-new"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -147,26 +166,30 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	// read the existing state file
 	f, err := os.Open(args.StatePath)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 	defer f.Close()
 
 	stateFile, err := statefile.Read(f)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// save the existing state in the new Backend.
 	err = stateMgr.WriteState(stateFile.State)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 	err = stateMgr.PersistState(nil)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
