@@ -25,6 +25,11 @@ func New() backend.Backend {
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 
+					"backend_environment_variable_strict_mode": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "Use ARM_BACKEND_* variables instead of provider environment variables. GitHub Actions and Azure Pipelines can still supply their job's OIDC token request URL and access token. Defaults to false.",
+					},
 					"subscription_id": {
 						Type:        cty.String,
 						Optional:    true,
@@ -198,122 +203,126 @@ func New() backend.Backend {
 				},
 			},
 			SDKLikeDefaults: backendbase.SDKLikeDefaults{
+				"backend_environment_variable_strict_mode": {
+					EnvVars:  []string{"ARM_BACKEND_ENVIRONMENT_VARIABLE_STRICT_MODE"},
+					Fallback: "false",
+				},
 				"subscription_id": {
-					EnvVars:  []string{"ARM_SUBSCRIPTION_ID"},
+					EnvVars:  []string{"ARM_BACKEND_SUBSCRIPTION_ID", "ARM_SUBSCRIPTION_ID"},
 					Fallback: "",
 				},
 				"lookup_blob_endpoint": {
-					EnvVars:  []string{"ARM_USE_DNS_ZONE_ENDPOINT"},
+					EnvVars:  []string{"ARM_BACKEND_USE_DNS_ZONE_ENDPOINT", "ARM_USE_DNS_ZONE_ENDPOINT"},
 					Fallback: "false",
 				},
 				"snapshot": {
-					EnvVars:  []string{"ARM_SNAPSHOT"},
+					EnvVars:  []string{"ARM_BACKEND_SNAPSHOT", "ARM_SNAPSHOT"},
 					Fallback: "false",
 				},
 				"environment": {
-					EnvVars:  []string{"ARM_ENVIRONMENT"},
+					EnvVars:  []string{"ARM_BACKEND_ENVIRONMENT", "ARM_ENVIRONMENT"},
 					Fallback: "public",
 				},
 				"metadata_host": {
-					EnvVars:  []string{"ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"}, // TODO: remove support for `METADATA_HOST` in a future version
+					EnvVars:  []string{"ARM_BACKEND_METADATA_HOSTNAME", "ARM_METADATA_HOSTNAME", "ARM_METADATA_HOST"}, // TODO: remove support for `METADATA_HOST` in a future version
 					Fallback: "",
 				},
 				"access_key": {
-					EnvVars:  []string{"ARM_ACCESS_KEY"},
+					EnvVars:  []string{"ARM_BACKEND_ACCESS_KEY", "ARM_ACCESS_KEY"},
 					Fallback: "",
 				},
 				"sas_token": {
-					EnvVars:  []string{"ARM_SAS_TOKEN"},
+					EnvVars:  []string{"ARM_BACKEND_SAS_TOKEN", "ARM_SAS_TOKEN"},
 					Fallback: "",
 				},
 				"tenant_id": {
-					EnvVars:  []string{"ARM_TENANT_ID"},
+					EnvVars:  []string{"ARM_BACKEND_TENANT_ID", "ARM_TENANT_ID"},
 					Fallback: "",
 				},
 				"client_id": {
-					EnvVars:  []string{"ARM_CLIENT_ID"},
+					EnvVars:  []string{"ARM_BACKEND_CLIENT_ID", "ARM_CLIENT_ID"},
 					Fallback: "",
 				},
 				"client_id_file_path": {
-					EnvVars: []string{"ARM_CLIENT_ID_FILE_PATH"},
+					EnvVars: []string{"ARM_BACKEND_CLIENT_ID_FILE_PATH", "ARM_CLIENT_ID_FILE_PATH"},
 					// no fallback
 				},
 
 				// Client Certificate specific fields
 				"client_certificate": {
-					EnvVars:  []string{"ARM_CLIENT_CERTIFICATE"},
+					EnvVars:  []string{"ARM_BACKEND_CLIENT_CERTIFICATE", "ARM_CLIENT_CERTIFICATE"},
 					Fallback: "",
 				},
 				"client_certificate_path": {
-					EnvVars:  []string{"ARM_CLIENT_CERTIFICATE_PATH"},
+					EnvVars:  []string{"ARM_BACKEND_CLIENT_CERTIFICATE_PATH", "ARM_CLIENT_CERTIFICATE_PATH"},
 					Fallback: "",
 				},
 				"client_certificate_password": {
-					EnvVars:  []string{"ARM_CLIENT_CERTIFICATE_PASSWORD"},
+					EnvVars:  []string{"ARM_BACKEND_CLIENT_CERTIFICATE_PASSWORD", "ARM_CLIENT_CERTIFICATE_PASSWORD"},
 					Fallback: "",
 				},
 
 				// Client Secret specific fields
 				"client_secret": {
-					EnvVars:  []string{"ARM_CLIENT_SECRET"},
+					EnvVars:  []string{"ARM_BACKEND_CLIENT_SECRET", "ARM_CLIENT_SECRET"},
 					Fallback: "",
 				},
 				"client_secret_file_path": {
-					EnvVars: []string{"ARM_CLIENT_SECRET_FILE_PATH"},
+					EnvVars: []string{"ARM_BACKEND_CLIENT_SECRET_FILE_PATH", "ARM_CLIENT_SECRET_FILE_PATH"},
 					// no fallback
 				},
 
 				// OIDC specific fields
 				"use_oidc": {
-					EnvVars:  []string{"ARM_USE_OIDC"},
+					EnvVars:  []string{"ARM_BACKEND_USE_OIDC", "ARM_USE_OIDC"},
 					Fallback: "false",
 				},
 				"ado_pipeline_service_connection_id": {
-					EnvVars: []string{"ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"},
+					EnvVars: []string{"ARM_BACKEND_OIDC_AZURE_SERVICE_CONNECTION_ID", "ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID", "ARM_OIDC_AZURE_SERVICE_CONNECTION_ID", "AZURESUBSCRIPTION_SERVICE_CONNECTION_ID"},
 					// no fallback
 				},
 				"oidc_request_token": {
-					EnvVars: []string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"},
+					EnvVars: []string{"ARM_BACKEND_OIDC_REQUEST_TOKEN", "ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN", "SYSTEM_ACCESSTOKEN"},
 					// no fallback
 				},
 				"oidc_request_url": {
-					EnvVars: []string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"},
+					EnvVars: []string{"ARM_BACKEND_OIDC_REQUEST_URL", "ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL", "SYSTEM_OIDCREQUESTURI"},
 					// no fallback
 				},
 				"oidc_token": {
-					EnvVars:  []string{"ARM_OIDC_TOKEN"},
+					EnvVars:  []string{"ARM_BACKEND_OIDC_TOKEN", "ARM_OIDC_TOKEN"},
 					Fallback: "",
 				},
 				"oidc_token_file_path": {
-					EnvVars:  []string{"ARM_OIDC_TOKEN_FILE_PATH"},
+					EnvVars:  []string{"ARM_BACKEND_OIDC_TOKEN_FILE_PATH", "ARM_OIDC_TOKEN_FILE_PATH"},
 					Fallback: "",
 				},
 
 				// Managed Identity specific fields
 				"use_msi": {
-					EnvVars:  []string{"ARM_USE_MSI"},
+					EnvVars:  []string{"ARM_BACKEND_USE_MSI", "ARM_USE_MSI"},
 					Fallback: "false",
 				},
 				"msi_endpoint": {
-					EnvVars:  []string{"ARM_MSI_ENDPOINT"},
+					EnvVars:  []string{"ARM_BACKEND_MSI_ENDPOINT", "ARM_MSI_ENDPOINT"},
 					Fallback: "",
 				},
 
 				// Azure CLI specific fields
 				"use_cli": {
-					EnvVars:  []string{"ARM_USE_CLI"},
+					EnvVars:  []string{"ARM_BACKEND_USE_CLI", "ARM_USE_CLI"},
 					Fallback: "true",
 				},
 
 				// Azure AKS Workload Identity fields
 				"use_aks_workload_identity": {
-					EnvVars:  []string{"ARM_USE_AKS_WORKLOAD_IDENTITY"},
+					EnvVars:  []string{"ARM_BACKEND_USE_AKS_WORKLOAD_IDENTITY", "ARM_USE_AKS_WORKLOAD_IDENTITY"},
 					Fallback: "false",
 				},
 
 				// Feature Flags
 				"use_azuread_auth": {
-					EnvVars:  []string{"ARM_USE_AZUREAD"},
+					EnvVars:  []string{"ARM_BACKEND_USE_AZUREAD", "ARM_USE_AZUREAD"},
 					Fallback: "false",
 				},
 			},
