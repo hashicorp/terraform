@@ -1,0 +1,3 @@
+kind: BUG FIXES
+body: 'core: Fixed panic when duplicate check status reports occur during concurrent resource evaluation, particularly during resource recreation with preconditions'
+time: 2026-01-22T06:15:00.000000Z
