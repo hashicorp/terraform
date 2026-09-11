@@ -178,6 +178,16 @@ Rules:
 - Do not return `cli.RunResultHelp` from a migrated command if it would bypass
   the view; return `1` after rendering diagnostics. If the existing behaviour
   showed help on bad flags, confirm with the user before dropping it.
+- Keep view calls explicit at each return site. Do not introduce a local helper
+  such as `render`, `finish`, or `returnWithView` to combine a view invocation
+  with returning an exit code. Keep the control flow flat: call the view method
+  directly, followed immediately by the corresponding `return`.
+  ```go
+  if diags.HasErrors() {
+      view.Result(items, false, diags)
+      return 1
+  }
+  ```
 - Drop now-unused imports (`fmt`, `github.com/hashicorp/cli`).
 
 ### 5. Tests
@@ -247,6 +257,7 @@ go run . -chdir=<dir> <cmd> -json | jq .
 - [ ] No `c.Meta.process` call remains in the command.
 - [ ] View is constructed before any diagnostics can be emitted.
 - [ ] Every `return` path renders through the view.
+- [ ] View calls and `return` statements are explicit at each exit point; no rendering/return helper obscures control flow.
 - [ ] For static JSON: exactly one view method call per path.
 - [ ] JSON output has `format_version`, and `[]` rather than `null` for slices.
 - [ ] Human output is byte-identical to before the refactor.
