@@ -564,80 +564,125 @@ func TestWorkspace_createInvalid(t *testing.T) {
 }
 
 func TestWorkspace_createWithState(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("inmem-backend"), td)
-	t.Chdir(td)
-	defer inmem.Reset()
+	t.Run("success", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("inmem-backend"), td)
+		t.Chdir(td)
+		defer inmem.Reset()
 
-	// init the backend
-	ui := testUiWrapped(t)
-	view, done := testView(t)
-	initCmd := &InitCommand{
-		Meta: Meta{
-			Ui:         ui,
-			View:       view,
-			WorkingDir: workdir.NewDir("."),
-		},
-	}
-	if code := initCmd.Run([]string{}); code != 0 {
-		t.Fatalf("bad: \n%s", done(t).All())
-	}
+		// init the backend
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		initCmd := &InitCommand{
+			Meta: Meta{
+				Ui:         ui,
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
+			},
+		}
+		if code := initCmd.Run([]string{}); code != 0 {
+			t.Fatalf("bad: \n%s", done(t).All())
+		}
 
-	originalState := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_instance",
-				Name: "foo",
-			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"bar"}`),
-				Status:    states.ObjectReady,
+		originalState := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_instance",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"id":"bar"}`),
+					Status:    states.ObjectReady,
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+			)
+		})
+
+		err := statemgr.NewFilesystem("test.tfstate").WriteState(originalState)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		workspace := "test_workspace"
+
+		args := []string{"-state", "test.tfstate", workspace}
+		view, done = testView(t)
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
 			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
-				Module:   addrs.RootModule,
-			},
-		)
+		}
+		if code := newCmd.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+		}
+
+		newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
+		envState := statemgr.NewFilesystem(newPath)
+		err = envState.RefreshState()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		b := backend.TestBackendConfig(t, inmem.New(), nil)
+		sMgr, sDiags := b.StateMgr(workspace)
+		if sDiags.HasErrors() {
+			t.Fatal(sDiags)
+		}
+
+		newState := sMgr.State()
+
+		if got, want := newState.String(), originalState.String(); got != want {
+			t.Fatalf("states not equal\ngot: %s\nwant: %s", got, want)
+		}
 	})
 
-	err := statemgr.NewFilesystem("test.tfstate").WriteState(originalState)
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("failure due to invalid -state value", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("inmem-backend"), td)
+		t.Chdir(td)
+		defer inmem.Reset()
 
-	workspace := "test_workspace"
+		// init the backend
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		initCmd := &InitCommand{
+			Meta: Meta{
+				Ui:         ui,
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
+			},
+		}
+		if code := initCmd.Run([]string{}); code != 0 {
+			t.Fatalf("bad: \n%s", done(t).All())
+		}
 
-	args := []string{"-state", "test.tfstate", workspace}
-	view, done = testView(t)
-	newCmd := &WorkspaceNewCommand{
-		Meta: Meta{
-			View:       view,
-			WorkingDir: workdir.NewDir("."),
-		},
-	}
-	if code := newCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
-	}
+		workspace := "test_workspace"
 
-	newPath := filepath.Join(local.DefaultWorkspaceDir, "test", DefaultStateFilename)
-	envState := statemgr.NewFilesystem(newPath)
-	err = envState.RefreshState()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	b := backend.TestBackendConfig(t, inmem.New(), nil)
-	sMgr, sDiags := b.StateMgr(workspace)
-	if sDiags.HasErrors() {
-		t.Fatal(sDiags)
-	}
-
-	newState := sMgr.State()
-
-	if got, want := newState.String(), originalState.String(); got != want {
-		t.Fatalf("states not equal\ngot: %s\nwant: %s", got, want)
-	}
+		args := []string{
+			"-state", "test.tfstate", // state doesn't exist
+			workspace,
+		}
+		view, done = testView(t)
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{
+				View:       view,
+				WorkingDir: workdir.NewDir("."),
+			},
+		}
+		if code := newCmd.Run(args); code != 1 {
+			t.Fatalf("expected code 1 but got %s: %d\n\n%s", args, code, done(t).All())
+		}
+		output := done(t)
+		expectedErrSnippet := fmt.Sprintf("Created and switched to workspace \"%s\", but failed to initialize the state.", workspace)
+		if !strings.Contains(output.All(), expectedErrSnippet) {
+			t.Fatalf("expected error message about missing state file, got: %s", output.All())
+		}
+	})
 }
 
 func TestWorkspace_delete(t *testing.T) {
