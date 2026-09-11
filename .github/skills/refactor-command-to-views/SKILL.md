@@ -156,6 +156,15 @@ Rules:
   be emitted, so that argument-parsing errors are rendered in the user's
   requested format. Parsing must therefore not be fatal: the parser returns a
   best-effort value alongside errors.
+- **Single accumulative `diags` collection**: Declare `var diags tfdiags.Diagnostics`
+  at the top of `Run` and append all subsequent diagnostics to it throughout the
+  execution of the command (e.g., `args, parseDiags := ...; diags = diags.Append(parseDiags)`).
+  The motivation is to ensure warning diagnostics are never dropped: when an
+  error occurs, all accumulated diagnostics (warnings and errors) are rendered
+  before exiting (`view.Diagnostics(diags)`), and when operations succeed, warnings
+  are preserved and passed down to the final view method call. If a single
+  accumulative `diags` variable is not appropriate for a specific command, explicitly
+  state the rationale.
 - Accumulate with `diags = diags.Append(...)` rather than printing as you go.
 - Errors previously reported as `c.Ui.Error(fmt.Sprintf(...))` become
   diagnostics appended to `diags`.
@@ -227,6 +236,7 @@ go run . -chdir=<dir> <cmd> -json | jq .
 
 ## Checklist before reporting done
 
+- [ ] Single `diags` variable declared at start of `Run` and accumulated throughout (or explicitly justified).
 - [ ] No `c.Ui.*`, `c.showDiagnostics`, or `fmt.Print*` remains in the command.
 - [ ] No `c.Meta.process` call remains in the command.
 - [ ] View is constructed before any diagnostics can be emitted.
