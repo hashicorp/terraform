@@ -147,6 +147,29 @@ func (c *XCommand) Run(rawArgs []string) int {
 }
 ```
 
+Refactored commands must retain these explanatory comments in `Run` (using
+the command-specific parser and view method names). They distinguish global
+view arguments from command-specific arguments and document why diagnostics
+are accumulated before rendering:
+
+```go
+// Parse and apply global view arguments
+common, rawArgs := arguments.ParseView(rawArgs)
+c.View.Configure(common)
+
+// Parse command-specific arguments.
+args, diags := arguments.ParseWorkspaceList(rawArgs)
+
+// Prepare the view
+view := views.NewWorkspaceList(args.ViewType, c.View)
+
+// Now the view is ready, process any error diagnostics from parsing arguments.
+if diags.HasErrors() {
+	view.List("", nil, diags)
+	return 1
+}
+```
+
 Rules:
 
 - Remove the `c.Meta.process(rawArgs)` call and replace it with
