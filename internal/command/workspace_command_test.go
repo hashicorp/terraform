@@ -582,7 +582,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 
 	// init the backend
 	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			Ui:         ui,
@@ -591,7 +591,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 		},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
 	originalState := states.BuildState(func(s *states.SyncState) {
