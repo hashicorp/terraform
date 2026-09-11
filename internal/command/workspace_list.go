@@ -35,7 +35,7 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		view.List("", nil, diags)
+		view.LogErrorDiagnostics(diags)
 		return 1
 	}
 
@@ -44,7 +44,7 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	b, bDiags := c.backend(configPath, args.ViewType)
 	diags = diags.Append(bDiags)
 	if bDiags.HasErrors() {
-		view.List("", nil, diags)
+		view.LogErrorDiagnostics(diags)
 		return 1
 	}
 
@@ -54,14 +54,14 @@ func (c *WorkspaceListCommand) Run(rawArgs []string) int {
 	states, wDiags := b.Workspaces()
 	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
-		view.List("", nil, diags)
+		view.LogErrorDiagnostics(diags)
 		return 1
 	}
 
 	env, isOverridden, err := c.WorkspaceOverridden()
 	if err != nil {
 		diags = diags.Append(err)
-		view.List("", nil, diags)
+		view.LogErrorDiagnostics(diags)
 		return 1
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestWorkspaceListHuman(t *testing.T) {
+func TestWorkspaceListHuman_List(t *testing.T) {
 	testCases := map[string]struct {
 		selected   string
 		list       []string
@@ -85,7 +85,7 @@ func TestWorkspaceListHuman(t *testing.T) {
 	}
 }
 
-func TestWorkspaceListJSON(t *testing.T) {
+func TestWorkspaceListJSON_List(t *testing.T) {
 	testCases := map[string]struct {
 		selected string
 		list     []string
@@ -140,9 +140,37 @@ func TestWorkspaceListJSON(t *testing.T) {
 				},
 			},
 		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewWorkspaceList(arguments.ViewJSON, view)
+
+			v.List(tc.selected, tc.list, tc.diags)
+
+			got := done(t).Stdout()
+
+			var result map[string]interface{}
+			if err := json.Unmarshal([]byte(got), &result); err != nil {
+				t.Fatal("expected to be able to unmarshal JSON, got error:", err)
+			}
+
+			// Assert contents
+			if diff := cmp.Diff(tc.wantLog, result); diff != "" {
+				t.Fatalf("unexpected diff in JSON output:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestWorkspaceListJSON_LogErrorDiagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diags   tfdiags.Diagnostics
+		wantLog map[string]interface{}
+	}{
 		"error": {
-			"foobar",
-			[]string{},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -170,7 +198,7 @@ func TestWorkspaceListJSON(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewWorkspaceList(arguments.ViewJSON, view)
 
-			v.List(tc.selected, tc.list, tc.diags)
+			v.LogErrorDiagnostics(tc.diags)
 
 			got := done(t).Stdout()
 
