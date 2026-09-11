@@ -135,10 +135,9 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.LogWorkspaceCreationSuccess(workspace, diags)
-
 	if args.StatePath == "" {
 		// if we're not loading a state, then we're done
+		view.LogWorkspaceCreationSuccess(workspace, diags)
 		return 0
 	}
 
@@ -146,14 +145,14 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	stateMgr, sDiags := b.StateMgr(workspace)
 	diags = diags.Append(sDiags)
 	if sDiags.HasErrors() {
-		view.Diagnostics(diags)
+		view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 		return 1
 	}
 
 	if args.Lock {
 		stateLocker := clistate.NewLocker(args.LockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateMgr, "workspace-new"); diags.HasErrors() {
-			view.Diagnostics(diags)
+			view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 			return 1
 		}
 		defer func() {
@@ -167,7 +166,7 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	f, err := os.Open(args.StatePath)
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(diags)
+		view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 		return 1
 	}
 	defer f.Close()
@@ -175,7 +174,7 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	stateFile, err := statefile.Read(f)
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(diags)
+		view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 		return 1
 	}
 
@@ -183,16 +182,17 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	err = stateMgr.WriteState(stateFile.State)
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(diags)
+		view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 		return 1
 	}
 	err = stateMgr.PersistState(nil)
 	if err != nil {
 		diags = diags.Append(err)
-		view.Diagnostics(diags)
+		view.LogWorkspaceCreationFromStateFailure(workspace, diags)
 		return 1
 	}
 
+	view.LogWorkspaceCreationSuccess(workspace, diags)
 	return 0
 }
 
