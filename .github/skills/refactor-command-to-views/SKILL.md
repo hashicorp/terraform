@@ -41,6 +41,9 @@ Establish and write down:
   (check `internal/command/arguments/<cmd>.go` for `ViewHuman` / `ViewJSON`).
 - Whether the command currently supports `-json` (check `Help()` and the parser).
 - Existing tests: `internal/command/<cmd>_test.go` and any golden output.
+- **JSON Output Shape Assessment & User Confirmation**:
+  - Assess whether this command would produce a **single JSON object** (static summary / document, e.g., `version`, `workspace list`, `state mv`, `state show`) or **multiple JSON log entries / streaming events** (multi-step progress over network or long operations, e.g., `init`, `apply`, `plan`).
+  - **Requirement:** Before proceeding with the refactoring or creating the view interface, you **must prompt the user** explaining your assessment and reasoning, and ask them to agree or disagree on whether the command should produce a single JSON object or multiple JSON log entries.
 
 **Do not change user-visible human output.** The human view must reproduce the
 existing bytes, including blank lines and error prefixes. Golden/CLI tests are
@@ -50,7 +53,7 @@ the contract.
 
 The interface method set is driven by the command's output shape, not by the
 number of existing `c.Ui` calls. Name methods after what the command *does*
-(`List`, `Show`, `New`), not after the format.
+(`List`, `Show`, `New`, `Result`), not after the format.
 
 Signature rule: each method takes everything needed to render the complete
 output for that code path, including `diags tfdiags.Diagnostics` last. The view
@@ -63,17 +66,18 @@ type WorkspaceList interface {
 }
 ```
 
-**Static JSON output rule.** If the command emits JSON as a single object
-(a "static log") rather than a stream of JSON events, then every path through
-`Run` must call **exactly one** view method **exactly once**. This is what
-guarantees a single well-formed JSON document on stdout. Structure `Run` by
-accumulating into a `diags` variable and calling the single view method
-immediately before each `return`. Never call a view method and then continue on
-to another one.
+#### Designing for Future JSON Compatibility
 
-If the command genuinely needs incremental/streaming JSON, say so explicitly and
-model it on the streaming views (e.g. `internal/command/views/json_view.go`)
-rather than the static pattern.
+Even when implementing only human-readable output (e.g., when `-json` is not yet supported), the view interface methods and command control flow **must be designed to seamlessly accommodate JSON output in the future without requiring large structural refactorings**.
+
+1. **For Single JSON Object Commands (Static Pattern):**
+   - **Single invocation per return path:** Every possible exit path through `Run` must call **exactly one** view method **once** immediately before `return`.
+   - **Pass complete data to the terminal method:** If the command processes multiple items (e.g. moved items, deleted resources, listed objects), accumulate them into a slice in `Run` and pass the entire collection to the final view method (`Result(items []Item, ..., diags)`).
+   - **Avoid streaming/incremental view methods for static commands:** Do not call intermediate progress methods (e.g. `ItemMoved(...)`) in a loop during execution if the command is a single-object command. Instead, pass the accumulated slice to the final method; the `Human` view implementation can loop over the slice to print individual progress lines before printing the summary.
+   - **Early exit diagnostics:** Early error returns should invoke the view with zero-values and accumulated diagnostics (e.g., `view.Result(nil, false, diags)` or a dedicated single-call error handler).
+
+2. **For Multi-step / Streaming JSON Commands:**
+   - Explicitly model the view on streaming interfaces (e.g., `internal/command/views/json_view.go`), where discrete lifecycle events or log entries are dispatched as they occur.
 
 ### 3. Write the view
 
@@ -236,6 +240,8 @@ go run . -chdir=<dir> <cmd> -json | jq .
 
 ## Checklist before reporting done
 
+- [ ] Assessed and confirmed with the user whether the command produces a single JSON object or multiple log entries.
+- [ ] View interface and command control flow are designed to be forward-compatible with future JSON output without major restructuring.
 - [ ] Single `diags` variable declared at start of `Run` and accumulated throughout (or explicitly justified).
 - [ ] No `c.Ui.*`, `c.showDiagnostics`, or `fmt.Print*` remains in the command.
 - [ ] No `c.Meta.process` call remains in the command.
