@@ -89,6 +89,9 @@ const (
 	MessageProviderInteractiveRejection MessageType = "provider_interactive_rejection"
 	MessageProviderAutomaticApproval    MessageType = "provider_automatic_approval"
 
+	// Backend/state store initialization messages
+	MessageStateStoreInitializationStart MessageType = "state_store_initialization_start"
+
 	// State migration-related messages
 	MessageMigrationStart                             MessageType = "migration_start"
 	MessageMigrationComplete                          MessageType = "migration_complete"
