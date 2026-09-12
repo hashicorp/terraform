@@ -11,76 +11,76 @@
 ## Abstract
 
 Terraform combines a data-flow configuration language with a runtime that plans
-and applies changes to external systems. Its behavior depends on several
-representations working together: references establish evaluation dependencies;
-typed values carry partial knowledge; addresses distinguish declarations from
-instances; and state records the objects Terraform manages. Providers connect
+and applies changes to external systems. Its behavior rests on several
+representations working together: references establish evaluation dependencies,
+typed values carry partial knowledge, addresses distinguish declarations from
+instances, and state records the objects Terraform manages. Providers connect
 these domain-independent mechanisms to particular remote systems.
 
-This paper describes those foundations in four layers: the programming model,
+This paper describes those foundations in four layers — the programming model,
 the configuration and value representations, the execution machinery, and the
-mechanisms for composition and evolution. It distinguishes expression evaluation
-from provider operations, a plan's value commitments from its authorized changes,
-and configuration structure from the instances created from it. Numbered
-principles and an architectural dependency table provide a reference for design
-discussions. They are an account of the system's assumptions and contracts, not
-a formal proof of the implementation.
+mechanisms for composition and evolution. Three distinctions recur throughout:
+expression evaluation versus provider operations, a plan's value commitments
+versus its authorized changes, and configuration structure versus the instances
+created from it. Numbered principles and an architectural dependency table give
+design discussions something concrete to cite. They are an account of the
+system's assumptions and contracts, not a formal proof of the implementation.
 
-The purpose is to support reasoning across feature boundaries. A proposed
-extension must be understood in terms of the assumptions it uses and changes,
-including consequences for planning, state, composition, and compatibility.
+The purpose is to support reasoning across feature boundaries, because a
+proposed extension has to be understood in terms of the assumptions it uses and
+the assumptions it changes — including the consequences for planning, state,
+composition, and compatibility.
 
 ## 0. Scope and Conventions
 
 ### 0.1 Architectural Reasoning
 
-A Terraform feature rarely belongs to only one subsystem. An expression may
-determine instance keys; those keys become addresses in a plan and state;
-references to those addresses establish evaluation dependencies; and saved
-dependency information helps order destruction after the configuration changes.
-Local behavior therefore needs to be understood in the context of the whole
-system.
+A Terraform feature rarely belongs to one subsystem. An expression determines
+instance keys; those keys become addresses in a plan and in state; references to
+those addresses establish evaluation dependencies; and saved dependency
+information orders destruction after the configuration changes. Local behavior
+has to be understood in the context of the whole system.
 
-The central design principle of this paper is that **an objection identifying a
-conflict with an established architectural premise requires an answer, even when
-the reviewer cannot predict a particular future failure**. The reviewer should
-identify the premise and explain where the proposal conflicts with it. The
-design response can show that the premise is preserved, replace it together
-with the contracts that depend on it, or define a separate contract with a clear
-boundary. A changed guarantee must be visible to its consumers.
+This paper's method rests on one claim: **an objection that identifies a
+conflict with an established architectural premise deserves an answer, even when
+the reviewer cannot name the specific future failure.** The reviewer's job is to
+identify the premise and show where the proposal conflicts with it. The
+designer's job is to respond in one of three ways — demonstrate that the premise
+still holds, replace it along with the contracts that depend on it, or define a
+separate contract with an explicit boundary. Whichever route the design takes, a
+changed guarantee has to be visible to the people relying on it.
 
-This is a method for examining designs, not a claim that Terraform's present
-architecture is immutable. Nor does a conflict establish that a particular
-failure is inevitable. It establishes work that the design must account for.
-The discussion of interacting language features in the supplied
-*Hitchhiker's Guide to Language Design* motivates this approach.
+This is a way of examining designs, not a claim that Terraform's architecture is
+fixed, and a conflict does not prove that failure is inevitable. It identifies
+work the design must account for. The discussion of interacting language
+features in the supplied *Hitchhiker's Guide to Language Design* is the direct
+motivation.
 
 ### 0.2 Three Kinds of Claim
 
 The numbered principles use three labels:
 
 | Label | Meaning in this paper |
-|---|---|
+| --- | --- |
 | **Axiom (A)** | An architectural assumption on which the present model is built. |
 | **Derived guarantee (D)** | A property supported by those assumptions and by the implementation contracts described alongside it. |
 | **Design policy (P)** | A deliberate choice about the language or its supported behavior. |
 
-These labels are explanatory, not a formal classification of the source code.
-An axiom here is not a mathematical axiom, and a derived guarantee is not a
-theorem proved solely from the other numbered statements. Guarantees have
-conditions: convergence, for example, requires stable inputs and a provider that
-can implement the desired result.
+The labels are explanatory, not a formal classification of the source code. An
+axiom here is not a mathematical axiom, and a derived guarantee is not a theorem
+proved from the other numbered statements. Guarantees come with conditions:
+convergence, for example, requires stable inputs and a provider capable of
+implementing the desired result.
 
-The labels also do not rank the importance of commitments. Ephemeral
-non-persistence is classified as a policy because it is a chosen language
-contract; violating it is not less serious for that reason. Any proposed change
-must consider the behavior promised to users and other components, whatever
-label this paper assigns it.
+Nor do the labels rank importance. Ephemeral non-persistence is a policy because
+it is a chosen language contract, and violating it is no less serious for that.
+Any proposed change has to consider what was promised to users and to other
+components, whatever label this paper attaches.
 
-Appendix A records architectural dependencies. Its entries identify assumptions
-that help explain or support a principle. They are neither exhaustive nor
-necessary-and-sufficient conditions, and removing one assumption does not prove
-that every possible implementation of the dependent property is impossible.
+Appendix A records architectural dependencies: assumptions that help explain or
+support a principle. The entries are neither exhaustive nor
+necessary-and-sufficient, and removing one assumption does not prove that every
+possible implementation of the dependent property is impossible.
 
 ### 0.3 Organization
 
@@ -99,53 +99,71 @@ coverage limits, and a source map.
 Implementation references use the `hashicorp/terraform` checkout at
 [`05cecbb315e87abc2c2bdb182963dd8e36d574fb`][core], dated 11 September 2026.
 Documentation references use the supplied Terraform **v1.16.x (RC)** and Plugin
-Framework **v1.18.x** trees. These are distinct source baselines: a capability in
-the implementation is not necessarily available in the documented CLI release.
-Version-sensitive behavior is identified where relevant.
+Framework **v1.18.x** trees. These are distinct baselines, so a capability
+present in the implementation is not necessarily available in the documented CLI
+release; version-sensitive behavior is flagged where it matters.
 
-Source links identify files at that revision, and symbol names locate the
-relevant implementation within them. Public documentation links are reading
-aids; the supplied versioned trees are the documentation baseline.
-Essays and issue discussions explain rationale. Proposals describe possible
-designs unless adoption is established separately. None of these source types
-should be substituted for another.
+The source types are not interchangeable. Source links identify files at that
+revision, with symbol names to locate the relevant implementation inside them.
+Public documentation links are reading aids, while the supplied versioned trees
+are the documentation baseline. Essays and issue discussions explain rationale.
+Proposals describe possible designs, and adoption has to be established
+separately.
 
-**Core** means Terraform's evaluation and planning runtime and its supporting
-packages, as distinct from the CLI command layer, providers, and surrounding
-automation. **Expression evaluation** means computation of a value from an
-expression and its evaluation context. A **graph walk** is a broader operation:
-it can evaluate expressions, call providers, and update working state.
+Two terms are used throughout in a specific sense. **Core** means Terraform's
+evaluation and planning runtime and its supporting packages, as distinct from
+the CLI command layer, providers, and surrounding automation. **Expression
+evaluation** means computing a value from an expression and its evaluation
+context — narrower than a **graph walk**, which can also call providers and
+update working state.
 
-The principles primarily describe the Terraform configuration language and Core.
-Related languages may use Core while adding their own evaluation or
-orchestration rules (§15). Their contracts must be considered separately.
+The principles describe the Terraform configuration language and Core. Related
+languages may use Core while adding evaluation or orchestration rules of their
+own (§15), and their contracts have to be considered separately.
 
 ---
 
 # Part I - Programming Model
+
+Three ideas underpin everything that follows. References rather than statement
+order determine what happens when. A plan makes two separable promises, one
+about values and one about scope. And convergence — the property most users
+have in mind when they describe what Terraform does — holds only under
+conditions worth naming precisely.
 
 ## 1. Data Flow and References
 
 ### 1.1 Declarative Programming
 
 Terraform is a programming language in the declarative tradition. A
-configuration describes desired objects and their relationships rather than an
-imperative procedure for constructing them. "Declarative" is useful at that
-level, but it is too broad to settle most language-design questions.
+configuration describes the objects an author wants and how they relate, not a
+procedure for building them. That much is true of many languages, and
+"declarative" by itself settles very few design questions.
 
-The more specific description is **data flow**. Expressions describe how values
-are obtained and combined, while references establish dependencies that Core
-uses to determine evaluation order. Martin Atkins develops this distinction in
+The sharper description is **data flow**. Expressions say how values are
+obtained and combined; references say which values depend on which. Core reads
+those references to decide what may be evaluated when. A single argument
+carries both meanings at once:
+
+```hcl
+resource "aws_subnet" "example" {
+  vpc_id = aws_vpc.main.id
+}
+```
+
+The subnet's `vpc_id` takes its value from the VPC's `id`, and because it does,
+Core must deal with the VPC first. Martin Atkins develops this distinction in
 [*Evolving the Terraform Language*][evolving-language] and
 [*Terraform is a Data Flow Language*][data-flow].
 
 ### 1.2 Evaluation Order
 
-Conditional expressions select values. `for` expressions construct values.
-`dynamic` blocks construct nested configuration, and resource or module
-`for_each` selects a set of instances. These constructs can affect the work
-Terraform needs to do, but they do not give the author an imperative sequence
-of execution steps.
+The constructs that look most like control flow all turn out to compute values
+instead of sequencing steps. A conditional expression selects between two
+values. A `for` expression builds one collection from another. A `dynamic`
+block builds nested configuration, and `for_each` on a resource or module
+selects which instances exist. Each of these changes the work Terraform has to
+do; none of them tells Terraform in what order to do it.
 
 > **P1 (A) - Data Flow.** A Terraform configuration describes objects, values,
 > and their relationships. Core derives an evaluation order from those
@@ -155,69 +173,90 @@ of execution steps.
 > references. A dependency requiring one configuration object to be evaluated
 > before another must be expressed through a reference.
 
-A reference is not itself a value. In `aws_instance.example.id`, the reference
-identifies `aws_instance.example`; the remaining traversal selects information
-from its value. In `depends_on = [aws_instance.example]`, the reference expresses
-a dependency without contributing an argument value. `depends_on` is therefore
-an application of P2, not an exception to it.
+Reading P2 correctly depends on separating a reference from a value. A
+reference names a subject. In `aws_instance.example.id` the reference is
+`aws_instance.example`; the trailing `.id` is a traversal that selects
+information out of whatever value that subject has. Only the first part creates
+a dependency, which is why the second part is optional:
 
-References must be resolvable before full evaluation of the objects they relate.
-An expression cannot make an otherwise invalid reference valid merely by
-putting it in a branch that happens not to be selected. James Bardin explains
-the connection between static reference analysis and graph construction in
-[Terraform issue #21953][static-references].
+```hcl
+depends_on = [aws_instance.example]
+```
 
-P2 concerns **evaluation order**, not every sequencing constraint in a Terraform
-operation. The execution graph also represents provider setup and shutdown,
-instance expansion, and the ordering of create and destroy operations.
-Lifecycle transformations and saved dependencies participate in that machinery
-(§7, §12), adding execution constraints beyond the references in expressions.
+Here the reference contributes no argument value at all. It contributes the
+dependency and nothing else. `depends_on` is an application of P2 rather than
+an exception to it.
+
+Because the graph is built from references, Core has to find them before it can
+evaluate anything, and it finds them by reading syntax rather than results.
+A conditional therefore cannot hide a reference in the branch it does not take:
+`var.enabled ? aws_instance.a.id : "none"` depends on `aws_instance.a` whatever
+`var.enabled` turns out to be. James Bardin explains how this static analysis
+feeds graph construction in [Terraform issue #21953][static-references].
+
+P2 governs evaluation order. The execution graph carries more than evaluation:
+it also sequences provider startup and shutdown, instance expansion, and the
+relative order of creates and destroys. Lifecycle transformations and
+dependencies recorded in state add constraints that no expression mentions
+(§7, §12). Both kinds of ordering are real; only the first comes from
+references.
 
 ### 1.3 A Useful Analogy
 
-A spreadsheet illustrates the distinction between specifying a dependency and
-choosing an execution order. A formula names the cells it uses; the calculation
-engine schedules work and detects cycles. Formula position is not an instruction
-to execute cells in that order.
+A spreadsheet shows the difference between declaring a dependency and choosing
+an execution order. A formula names the cells it uses, and the calculation
+engine works out the schedule and detects cycles. Moving a formula further down
+the sheet does not make it run later.
 
-Terraform adds concerns that a spreadsheet does not have: persistent object
-identity, provider operations, partial knowledge, and an approval boundary before
-managed-resource changes. The analogy explains the evaluation model, not the
-whole runtime. Other data-flow systems discussed in Atkins' essay are useful for
-the same limited purpose. [Source: [*Terraform is a Data Flow Language*][data-flow].]
+Terraform adds concerns a spreadsheet does not have: persistent object
+identity, provider operations, partial knowledge, and an approval step before
+managed-resource changes. The analogy explains the evaluation model and stops
+there. The other data-flow systems in Atkins' essay are useful within the same
+limit. [Source: [*Terraform is a Data Flow Language*][data-flow].]
 
 ### 1.4 Declarations and Conditional Instances
 
-A declaration and its instances are different things. With `count = 0` or an
-empty resource `for_each`, the declaration remains available to static analysis
-but denotes an empty collection of instances. Expressions can inspect that
-collection or derive other collections from it without making the declaration
-itself conditionally referenceable.
+A declaration and the instances it produces are different things. Setting
+`count = 0` does not remove the declaration; it gives the declaration an empty
+collection of instances, and the name still resolves:
 
-This representation explains why repetition is more than syntactic convenience.
-It gives absence a value-level representation while preserving a stable
-configuration namespace. A proposal for conditional declarations would need to
-define reference resolution and the value of an absent declaration explicitly;
-it cannot simply inherit the existing semantics of an empty instance collection.
-The discussion in [#21953][conditional-resources] explores this distinction.
+```hcl
+resource "aws_instance" "example" {
+  count = 0
+}
 
-Existence checks against remote systems are a separate concern. Some data
-sources require a particular object to exist and report its absence as an
-error; others return collections, empty results, or computed information.
-Those behaviors belong to the provider's data-source contract. Reading an
-object and deciding which configuration owns its lifecycle are not equivalent
-operations (§11).
+output "ids" {
+  value = aws_instance.example[*].id # [] - valid, and empty
+}
+```
+
+Static analysis still sees `aws_instance.example`, so the reference is legal.
+Evaluation finds no instances, so the result is an empty list.
+
+That is why repetition is more than syntactic convenience: it gives absence a
+value-level representation while keeping the configuration namespace stable.
+A proposal for genuinely conditional declarations would have to answer two
+questions this design already answers — how references to an absent declaration
+resolve, and what value such a declaration has — and it cannot borrow the
+answers from an empty instance collection. The discussion in
+[#21953][conditional-resources] works through the distinction.
+
+Checking whether a remote object exists is a separate concern. Some data
+sources require their object to exist and report absence as an error; others
+return collections, empty results, or computed information. Those behaviors
+belong to the provider's data-source contract. Reading an object and deciding
+which configuration owns its lifecycle remain different operations (§11).
 
 ### 1.5 Language-Design Preferences
 
-The v0.12 design work articulated three preferences: prioritize readers over
-writers, prefer explicit behavior, and keep simple tasks simple while allowing
-complex ones. They explain choices in expression syntax and language
-regularity, but they do not decide every tradeoff by themselves.
+The v0.12 design work stated three preferences: favor readers over writers,
+prefer explicit behavior, and keep simple tasks simple while allowing complex
+ones. They explain a good deal about expression syntax and the regularity of
+the language, and they do not decide every tradeoff on their own.
 
-For example, familiar shorthand can remain useful even when a more explicit
-form exists. The relevant question is whether the shorthand has a coherent
-meaning and composes with the rest of the language, not whether every construct
+Familiar shorthand, for instance, can stay useful even after a more explicit
+form exists. The question to ask is whether the shorthand has a coherent
+meaning and composes with the rest of the language — not whether each construct
 maximizes one preference in isolation. [Source:
 [*Evolving the Terraform Language*][evolving-language].]
 
@@ -225,43 +264,43 @@ maximizes one preference in isolation. [Source:
 
 ### 2.1 Expressions and Operations
 
-Terraform separates computing values from carrying out managed-resource
-changes. Expressions contribute desired values; Core compares configuration
-with prior and refreshed state; providers help determine the proposed changes.
-Apply then attempts those changes under the plan's constraints.
+Terraform keeps two things apart: computing a value and changing a remote
+object. Expressions produce the desired values. Core compares those values with
+prior and refreshed state, and providers help turn the comparison into proposed
+changes. Apply then attempts those changes within the plan's constraints.
 
 > **P3 (A) - Pure Evaluation.** Expression computation is distinct from
 > resource operations. Evaluating an expression is not an imperative request
 > to perform a managed-resource change; those changes belong to the runtime's
 > planning and application protocol.
 
-This scope is important. Planning is not free of external interactions: it can
-refresh managed resources, read data sources, and open ephemeral resources.
-Initialization and state operations have their own effects. Some functions also
-read external inputs or produce unpredictable results, which require specific
-handling (§5.3.4). P3 separates these operations from expression computation;
-it does not restrict all external interaction to apply.
+The scope of that claim matters, because planning is far from inert. A planning
+run can refresh managed resources, read data sources, and open ephemeral
+resources; initialization and state operations have effects of their own; and a
+few functions read external inputs or produce unpredictable results and need
+special handling (§5.3.4). P3 draws a line between expression computation and
+those operations. It does not confine every external interaction to apply.
 
-Apply also evaluates configuration. It does not execute a source-independent
-script containing every final value. As previously unknown inputs become known,
-Core evaluates dependent configuration and checks that the resulting values
-remain consistent with the plan.
+Apply evaluates configuration too. It does not replay a self-contained script
+of final values captured at plan time. As unknown inputs become known, Core
+re-evaluates the configuration that depends on them and checks that the results
+still agree with the plan.
 
-The design guidance in [`docs/planning-behaviors.md`][planning] favors the
-plan/apply process for externally visible changes while acknowledging existing
-operations outside that process.
+The guidance in [`docs/planning-behaviors.md`][planning] prefers the plan/apply
+process for externally visible changes, while acknowledging the operations that
+already sit outside it.
 
 ### 2.2 Core's Action Model
 
-For ordinary managed-resource changes, Core works with a small action model:
-creation, update, deletion, replacement, and no-op. Reads account for data-source
-operations. Replacement includes an ordering choice, normally delete-then-create
-or create-then-delete.
+Everyday managed-resource changes fit a small vocabulary: create, update,
+delete, replace, no-op, and read for data sources. Replacement carries an
+ordering choice with it, normally delete-then-create or create-then-delete.
 
-The implementation also represents other operations, including forgetting a
-binding and the open/renew/close lifecycle of ephemeral resources. The familiar
-CRUD list is therefore an introduction, not an exhaustive enumeration of
-`plans.Action`. [Sources: [planning behaviors][planning];
+The full enumeration in `plans.Action` is wider. Alongside the familiar cases
+it includes `Forget`, which drops a state binding without touching the remote
+object, the paired `ForgetThenCreate` and `CreateThenForget`, and `Open`,
+`Renew`, and `Close` for ephemeral resources. CRUD is a good introduction to
+the model and a poor inventory of it. [Sources: [planning behaviors][planning];
 [`internal/plans/action.go`][plan-actions].]
 
 > **P4 (P) - Closed Action Vocabulary.** Core defines the action classes used
@@ -269,29 +308,33 @@ CRUD list is therefore an introduction, not an exhaustive enumeration of
 > those operations; they do not independently add action classes to Core's
 > resource-change model.
 
-The provider may require replacement for a changed attribute or supply a more
-precise planned value. Core decides how the resulting change is represented and
-scheduled. Provider-defined capabilities must fit an explicit Core protocol;
-they do not acquire lifecycle semantics merely by being exposed by a plugin.
+A provider has real influence inside that vocabulary. It can declare that a
+changed attribute forces replacement, or return a more precise planned value
+than Core could compute on its own. What it cannot do is invent a new kind of
+change: Core decides how the resulting action is represented, ordered, and
+approved. A provider capability earns lifecycle semantics by fitting an
+explicit Core protocol, not by being reachable through a plugin.
 
 The planning design document distinguishes three common sources of special
 behavior:
 
 | Source | Scope | Examples |
-|---|---|---|
+| --- | --- | --- |
 | Configuration | Follows the module or resource declaration | `ignore_changes`, `create_before_destroy`, `moved` |
 | Provider | Reflects the remote system's requirements | Replacement requirements and planning adjustments |
 | Run options | Applies to the operator's particular invocation | `-replace`, `-refresh-only`, `-target` |
 
-These categories can overlap. Their value is to make the responsible party and
-lifetime of a decision explicit. A run option, for example, may require support
-from every UI that wraps Core, whereas a configuration setting travels with the
-module. [Source: [planning behaviors][planning].]
+The categories overlap in practice, and their value is in naming who owns a
+decision and how long it lasts. A configuration setting travels with the module
+and appears in review. A run option belongs to a single invocation, which means
+every UI wrapping Core has to expose it before operators can use it.
+[Source: [planning behaviors][planning].]
 
 ### 2.3 What a Plan Commits To
 
-A plan contains both proposed changes and statements about values. These are
-related but distinct commitments.
+A plan makes two kinds of promise at once, and separating them heads off a
+recurring confusion. It says what the values will be, and it says which changes
+are allowed to happen.
 
 > **P5 (D) - Value Fidelity.** Within the planned change contract, a value
 > recorded as known must remain equal when the change is applied. An unknown
@@ -302,90 +345,112 @@ related but distinct commitments.
 > that plan authorizes. Resolving unknown values does not authorize additional
 > subjects or a different class of change.
 
-P5 is a consistency rule. Core checks planned and actual object values using
-the compatibility checks in `internal/plans/objchange`. P24 describes the scope
-an operator approves. Those checks support the contract, but cannot establish
-that an arbitrary provider implemented every remote API call correctly.
-The plan describes Terraform-level changes, not a complete trace of provider
-implementation details.
+P5 is a consistency rule, enforced by the compatibility checks in
+`internal/plans/objchange`. If the plan shows `instance_type = "t3.micro"`,
+apply must produce `t3.micro`. If it shows `(known after apply)`, apply may
+produce any value the recorded constraints permit.
 
-Neither principle promises that apply will succeed. An API may reject a change,
-credentials may expire, or a provider may return an inconsistent result. Core
-must report the failure rather than silently substitute a different proposal.
-A reported failure also does not imply that no remote changes have occurred
+P24 is about scope rather than content. It is why an unknown value cannot
+quietly enlarge the blast radius: learning a VPC's real ID lets Core finish the
+subnet it already planned, and gives it no license to replace a database the
+operator never saw in the plan.
+
+Both rules are checked at Terraform's own boundaries, which bounds what they
+can establish. Core can compare the values a provider returns against the
+values it promised. It cannot verify that the provider made the right API calls
+to get there. A plan describes Terraform-level change, not a trace of provider
+implementation.
+
+Neither rule promises success. An API can reject a change, credentials can
+expire, a provider can return an inconsistent result. Core's obligation is then
+to report the failure rather than quietly substitute a different proposal — and
+a reported failure says nothing about whether remote changes already happened
 (§3.2, §11.4).
 
-Deferral concerns a third property: **completeness**. A partial plan can leave
-work for a later planning round without relaxing either its value commitments
-or the scope of its executable changes. Deferred work is not authorized for
-execution by the current plan; it must be planned subsequently (§8.3).
+Deferral introduces a third property alongside these two: **completeness**.
+A partial plan can leave work for a later round without loosening either its
+value commitments or the scope of what it authorizes. Deferred work is simply
+not authorized by the current plan, and a later round must plan it (§8.3).
 
 ## 3. Convergence and Its Limits
 
 ### 3.1 Stable Results
 
 Terraform aims to converge managed objects on the declared configuration.
-Under stable conditions, applying the proposed changes should leave no further
-changes to propose for that same desired result.
+Under stable conditions, applying the proposed changes should leave nothing
+further to propose for that same desired result.
 
 > **P6 (D) - Convergence.** Given stable configuration, inputs, and relevant
 > external conditions, a complete successful apply should leave the managed
 > objects consistent with the desired result, so that a subsequent plan
 > proposes no further changes to them.
 
-The qualifications are part of the principle. A changing input such as
-`timestamp()` can intentionally produce a new desired value on the next run.
-A provider may also need to account for API normalization or eventual
-consistency before the remote object can be represented stably.
+Every qualifier in that sentence is doing work. An input that changes on its
+own, such as `timestamp()`, produces a genuinely new desired value on the next
+run, and the resulting plan is correct rather than defective. A provider may
+also have to absorb API normalization or eventual consistency before a remote
+object can be represented stably at all.
 
-An unexpected recurring difference is useful evidence of a mismatch among
-configuration, provider planning, applied results, and refreshed state. It
-does not, by itself, identify which component is responsible. The relevant
-contracts are described in the [resource-instance lifecycle][resource-lifecycle]
-and the provider planning rules (§10).
+The recognizable symptom of failure is a plan that proposes the same change
+after every apply. A perpetual diff is good evidence that configuration,
+provider planning, applied results, and refreshed state disagree somewhere, and
+poor evidence about which of them is wrong. The contracts that narrow it down
+are in the [resource-instance lifecycle][resource-lifecycle] and the provider
+planning rules (§10).
 
 ### 3.2 Scope, Drift, and Partial Failure
 
-Terraform observes external systems during operations, not continuously.
-Changes made elsewhere between runs can produce **drift**, even after a
-previously convergent apply. Refresh establishes a new observation; it does not
-retroactively invalidate the earlier run.
+Terraform looks at external systems during an operation and at no other time.
+Whatever happens between runs — a console edit, an autoscaler, another pipeline
+— surfaces as **drift** at the next refresh, however convergent the previous
+apply was. Refresh is a fresh observation, not a retroactive verdict on the
+earlier run.
 
-Convergence is also bounded by ownership and scope. A configuration does not
-control every object a provider can observe. Targeting, deferral, or an
-interrupted apply may leave parts of the configuration unprocessed. Such an
-operation does not establish whole-configuration convergence, although the
-result may happen to require no further changes.
+Scope limits convergence a second way. A configuration owns some of the objects
+a provider can see, not all of them, and `-target`, deferral, or an interrupted
+apply can leave part of even that subset untouched. Such a run establishes
+nothing about whole-configuration convergence, even if it happens to end with
+no further changes to propose.
 
-Finally, apply is not an atomic transaction over all remote systems. Earlier
-changes can succeed before a later operation fails. Terraform records the
-results it can and reports the errors; recovery normally proceeds from that
-updated state rather than through a general rollback (§11.4).
+Apply is also not a transaction across remote systems. Early changes commit
+before a later one fails, and there is no general rollback. Terraform records
+what it can and reports the errors; recovery proceeds forward from that updated
+state (§11.4).
 
 ### 3.3 Representational Requirements
 
-These contracts explain the representations that follow. References must be
-available for dependency analysis before their values are necessarily known.
-Unknown values must preserve what a plan can and cannot promise. Addresses must
-distinguish a declaration from the concrete instances named in a change.
-State must preserve enough identity and lifecycle information to continue
-managing objects across runs and configuration revisions.
+The contracts in Part I set requirements the rest of the system has to meet,
+and each one explains a representation described next. Dependency analysis must
+work before values are known, so references have to be resolvable independently
+of what they evaluate to. A plan must record what it can and cannot promise, so
+the value model needs a first-class representation of missing information.
+A change must name a concrete object, so addresses have to distinguish a
+declaration from the instances it produces. And management must survive across
+runs and configuration revisions, so state has to carry identity and lifecycle
+information that the current configuration may no longer mention.
 
 ---
 
 # Part II - Configuration, Values, and Addresses
 
+Part I's contracts impose requirements, and three representations meet them:
+the configuration language authors write, the value model that carries partial
+knowledge through evaluation, and the addresses that let every subsystem name
+the same object. Most cross-cutting design questions turn out to be questions
+about one of these three.
+
 ## 4. The Configuration Language
 
 ### 4.1 Syntax and Schema
 
-Terraform uses HCL for two related purposes: a structural language of bodies,
-blocks, and arguments, and an expression language that computes argument values.
-Terraform v0.12 brought expression syntax into that common model, replacing the
-earlier separation between HCL structure and HIL string interpolation.
+HCL gives Terraform two languages in one file. The structural language
+describes bodies, blocks, and arguments; the expression language computes the
+values those arguments take. Terraform v0.12 unified them, replacing the older
+split between HCL structure and HIL string interpolation.
 [Source: [*Evolving the Terraform Language*][evolving-language].]
 
-Native syntax distinguishes a block from an attribute:
+In native syntax, a block and an attribute look almost alike and mean different
+things:
 
 ```hcl
 example {
@@ -397,56 +462,71 @@ example = {
 }
 ```
 
-The first form is a block named `example`; the second assigns an object
-expression to an argument named `example`. Parsing establishes that syntactic
-distinction. A schema establishes whether either form is permitted in the
-containing body and how its contents are interpreted.
+The first is a block named `example`. The second assigns an object value to an
+argument named `example`. Parsing settles which one an author wrote; only a
+schema settles whether that form is allowed here and what its contents mean.
 
 > **P7 (A) - Schema-Directed Interpretation.** Syntax alone does not determine
 > the full meaning of a configuration body. Its schema defines the permitted
 > arguments and block types, their value constraints, and their nesting rules.
 
-Core defines schemas for its own constructs. Providers supply the schemas for
-provider configurations and resource types. Consequently, tools can parse
-configuration and perform substantial structural and reference analysis without
-a provider schema, but cannot complete provider-specific validation without the
-corresponding schema information. Installing providers is the normal CLI route
-to obtaining that information; it is not a logical prerequisite for every form
-of static analysis.
+Core supplies the schemas for its own constructs; providers supply the schemas
+for provider configurations and resource types. That split determines how far a
+tool can get on its own. Parsing, structural analysis, and reference extraction
+all work without a provider schema, which is why an editor can offer navigation
+and dependency analysis before `terraform init` has run. Anything
+provider-specific — whether an argument exists, what type it takes, whether
+changing it forces replacement — waits for the schema. Installing providers is
+how the CLI obtains it, not a logical precondition for static analysis.
 
-In `internal/configs/configschema`, a `Block` contains attributes and nested
-block types. Attributes carry a type or nested object schema and flags such as
-`Required`, `Optional`, `Computed`, `Sensitive`, and `WriteOnly`. Nesting modes
-include single, group, list, set, and map. `DecoderSpec()` derives an HCL decoding
-specification, `ImpliedType()` derives a cty type, and `CoerceValue()` converts a
-value to the shape required by the schema. These are related operations, not
-interchangeable descriptions of parsing. [Source: [configuration schemas][schemas].]
+The representation lives in `internal/configs/configschema`. A `Block` holds
+attributes and nested block types. Each attribute carries a type or a nested
+object schema plus flags — `Required`, `Optional`, `Computed`, `Sensitive`,
+`WriteOnly` — and each nested block type carries a nesting mode: single, group,
+list, set, or map. Three derivations do most of the work, and they answer
+different questions. `DecoderSpec()` produces an HCL decoding specification and
+so governs how configuration is read. `ImpliedType()` produces a cty type and
+so governs the shape of the resulting value. `CoerceValue()` converts an
+existing value into that shape. [Source: [configuration schemas][schemas].]
 
 ### 4.2 Native and JSON Forms
 
-Terraform's JSON configuration syntax is another representation of the same
-language. It exists primarily for generators and tools. Its conventions for
-blocks and expressions must be interpreted according to the surrounding
-Terraform schema; a JSON object alone does not establish whether its contents
-represent a Terraform object value or nested configuration.
+Terraform's JSON syntax is the same language in a different notation, meant
+chiefly for generators and tools. Because a JSON object is just an object, the
+surrounding Terraform schema decides whether a given object represents a
+Terraform value or nested configuration; the notation alone cannot say.
 
-A language feature therefore needs a defined JSON representation as well as
-native syntax. This does not require identical notation or preservation of
+A language feature therefore needs a defined JSON representation as well as a
+native one. That does not require identical notation, nor preservation of
 comments and formatting. It requires that generated configuration can express
-the feature's semantics without relying on a native-only escape mechanism.
+the feature's semantics without falling back on a native-only escape hatch.
 [Source: [JSON configuration syntax][json-syntax].]
 
 ### 4.3 Restricted Evaluation Contexts
 
-Some expressions must be evaluated before the normal resource graph can run.
-Module installation is an example: Core needs to resolve a module's source
-before it can load that module's configuration.
+A few expressions have to be evaluated before the resource graph exists at all.
+Module installation is the clearest case: Core cannot load a module's
+configuration until it knows where that module comes from.
 
-In the supplied v1.16 documentation, module `source` and `version` can use
-constant expressions involving eligible variables and local values. Input
-variables used for this purpose must declare `const = true`. This provides
-limited early evaluation without permitting resource results to determine what
-configuration must first be installed. [Sources: [module blocks][module-doc];
+The v1.16 documentation allows module `source` and `version` to use constant
+expressions built from local values and from input variables declared
+`const = true`:
+
+```hcl
+variable "registry" {
+  type  = string
+  const = true
+}
+
+module "app" {
+  source  = "${var.registry}/example/app/aws"
+  version = "1.2.0"
+}
+```
+
+This buys a limited amount of early evaluation. What it deliberately does not
+buy is a path from a resource result back to the question of which
+configuration must be installed first. [Sources: [module blocks][module-doc];
 [input variables][variable-doc].]
 
 > **P8 (P) - One Evaluation Semantics.** Restricted evaluation contexts use
@@ -454,126 +534,152 @@ configuration must first be installed. [Sources: [module blocks][module-doc];
 > and capabilities; they must not silently give ordinary expressions a
 > different meaning.
 
-The contexts are not identical. A resource reference may be unavailable during
-initialization, and an unpredictable function may yield an unknown during
-planning. A design should specify those restrictions directly. Reusing the same
-surface syntax does not, by itself, establish a coherent relationship between
-evaluation phases.
+Restricted contexts still differ from one another, and a design has to say how.
+A resource reference is simply unavailable during initialization. An
+unpredictable function yields an unknown during planning rather than an error.
+Those restrictions belong in the specification, stated directly. Sharing the
+surface syntax is not by itself an account of how the phases relate.
 
 ## 5. The Value Model
 
-Terraform uses [`cty`][cty] to represent values and types. The model includes
-ordinary concrete values, nulls, unknowns, refinements, and marks. These are
-used in expression evaluation and in the contracts between Core and providers.
+Terraform represents values and types with [`cty`][cty]. Beyond ordinary
+concrete values the model has nulls, unknowns, refinements, and marks, and all
+of them appear both in expression evaluation and in the contracts between Core
+and providers.
 
 ### 5.1 Types and Conversion
 
-The primitive types are `string`, `number`, and `bool`. Lists, sets, and maps
-have a common element type. Objects describe named attributes that can have
-different types, while tuples describe positional elements that can have
-different types.
+The primitives are `string`, `number`, and `bool`. Collections come in two
+families, and the difference between them settles most conversion questions.
+Lists, sets, and maps hold elements of one common type. Objects and tuples hold
+elements of possibly different types — named for objects, positional for
+tuples.
 
-The distinction matters during conversion. A tuple can be converted to a list
-only if its elements can be converted to a common element type. An object can
-be converted to an object constraint with fewer attributes, but the omitted
-attributes do not remain available through the converted value. Module
-interfaces therefore use type constraints to define a view of a value, not
-merely to check its name.
+Conversion moves between those families, and it loses information doing so.
+`["a", "b"]` is a tuple of two strings, and converting it to `list(string)`
+succeeds because the elements already share a type; `["a", 1]` converts too, by
+turning `1` into `"1"`. Converting an object to a constraint naming fewer
+attributes also succeeds, and the omitted attributes are then simply gone:
 
-`any` in a Terraform type constraint is a placeholder for a type to be inferred,
-not a concrete type containing arbitrary unrelated values. For example,
-`list(any)` still requires a single element type. At the implementation level,
-`cty.DynamicPseudoType` represents the absence of a concrete type constraint;
-it should not be confused with a language-level universal type.
+```hcl
+variable "server" {
+  type = object({ name = string })
+}
+```
+
+Pass `{ name = "web", port = 8080 }` to that variable and `var.server` is
+`{ name = "web" }`. Nothing downstream can reach `port`, because the converted
+value no longer has it. A module's type constraints define a view of the
+caller's value, not merely a check on it.
+
+`any` is a placeholder for a type to be inferred, not a universal type that
+holds anything. `list(any)` still demands a single element type, so `["a", 1]`
+becomes a `list(string)` rather than a list of mixed values. The implementation
+spells this absence of constraint `cty.DynamicPseudoType`, which is a different
+thing from a language-level "any value."
 [Sources: [type constraints][type-constraints]; cty's `convert` package.]
 
-Terraform exposes one numeric type rather than separate integer and
-floating-point types. Conversion to a provider's API representation may impose
-additional range or precision restrictions. Those restrictions belong at the
-appropriate conversion boundary; the expression language does not infer an
-API's machine type merely from the spelling of a number.
+Numbers have one type, not an integer type and a float type. A provider's API
+may well require an integer within a range, and that restriction belongs at the
+conversion boundary where the value reaches the provider. The expression
+language does not infer a machine type from the way a number was spelled.
 
 ### 5.2 Null and Empty Values
 
-Null represents absence within the value model. An empty string, a zero, and an
-empty collection are present values and remain distinct from null. At an
-argument boundary, null generally means that no value was supplied, subject to
-the schema, defaults, and conversion rules of that context.
+Null means absence. `""`, `0`, and `[]` are all present values, and none of
+them is null — a distinction that matters whenever a provider has to tell "the
+author set this to empty" from "the author said nothing." At an argument
+boundary, null normally means no value was supplied, as interpreted by that
+context's schema, defaults, and conversion rules.
 
-The implementation distinguishes `cty.NullVal(type)` from `cty.NilVal`.
-The former is a Terraform-representable value; the latter is a Go-level sentinel
-used where no cty value is available. Confusing the two can turn an internal
-absence of a result into an unintended language-level null.
+Two Go-level spellings are easy to confuse. `cty.NullVal(type)` is a real
+Terraform value that happens to be null. `cty.NilVal` is a zero value meaning
+"no cty value here at all." Returning the second where the first was intended
+turns an internal gap into a language-level null.
 
-Null is also not the same as unknown. A known null is a specific statement
-about the value. An unknown can still have null among its possible results.
-Under the normal plan compatibility rules, a planned null cannot become a
-non-null value at apply without contradicting the plan. [Source:
+Null and unknown answer different questions. A known null says the value is
+absent, definitively. An unknown says Terraform does not know yet, and null may
+be among the possibilities. The asymmetry shows at apply: a planned null that
+becomes non-null contradicts the plan, while an unknown that resolves to null
+does not. [Source:
 [`internal/plans/objchange/compatible.go`][object-compatible].]
 
-For input variables, `nullable = false` excludes a null value at the variable's
-outer boundary. It does not recursively exclude nulls from all nested
-collections or object attributes. Defaults also participate in how a null input
-is handled. [Source: [input variables][variable-doc].]
+On an input variable, `nullable = false` rejects null for the variable itself
+and stops there. A variable of type `object({ name = string })` declared
+`nullable = false` still accepts `{ name = null }`; only the outer value is
+constrained. Defaults interact with this, since a default can replace a null
+the caller supplied. [Source: [input variables][variable-doc].]
 
 ### 5.3 Unknown Values
 
-An unknown represents information that Terraform does not yet have. It normally
-has a known type and may carry additional constraints, but neither is
-unconditional: `cty.DynamicVal` has no concrete type, and an unknown without a
-non-null refinement may later resolve to null.
+Unknowns are what let Terraform plan at all. A subnet configured with the ID of
+a VPC that does not exist yet has a perfectly describable desired state, except
+for that one value:
 
-Consider a subnet whose configuration uses the ID of a network that has not yet
-been created. Terraform can still describe the subnet's desired arguments,
-leaving the ID unknown. It need not invent a placeholder string and later hope
-that replacing it leaves the rest of the calculation unchanged. This is the
-role of unknowns in the plan/apply model described in
+```text
++ resource "aws_subnet" "example" {
+    + cidr_block = "10.0.1.0/24"
+    + vpc_id     = (known after apply)
+  }
+```
+
+The alternative — inventing a placeholder string and hoping that substituting
+the real value later changes nothing else — is precisely what unknowns exist to
+avoid. Martin Atkins develops the argument in
 [*Unknown Values: The Secret to Terraform Plan*][unknown-values].
 
-A compound value can be partly known. An object can have known attribute names
-and an unknown attribute value; a tuple can have known length but unknown
-elements. Core and providers must distinguish an unknown collection from a
-known collection containing unknown values. Those representations support
-different conclusions about shape and identity.
+An unknown usually carries a known type, and may carry further constraints, but
+neither is guaranteed: `cty.DynamicVal` is unknown with no type at all, and an
+unknown without a non-null refinement may still turn out to be null.
+
+Knowledge can also be partial within a single value. An object can have known
+attribute names and an unknown value for one of them; a tuple can have a known
+length and unknown elements. Core and providers must keep an unknown collection
+distinct from a known collection of unknown elements, because the second tells
+you how many elements there are and the first does not.
 
 #### 5.3.1 Unknowns and the Programming Model
 
-Unknowns are handled by the evaluator rather than exposed as promise objects
-that configuration must await or inspect.
+The evaluator handles unknowns on the configuration's behalf. There is no
+promise object to await and no handle to inspect; an unknown flows through
+expressions as an ordinary value.
 
 > **P9 (A) - Honest Unknown.** Evaluation must not substitute an unsupported
 > concrete value for missing information. It may produce a known result only
 > when the available information determines that result; otherwise it must
 > retain an appropriate unknown or report a justified error.
 
-For example, a result can be known even when an input contains unknown
-components: the length of a tuple with three elements is three regardless of
-the elements' values. Type information can also justify an error before a
-value is known. Accessing an attribute of an unknown string is invalid because
-strings do not have attributes.
+Both halves of that rule have teeth. A known result can come out of unknown
+inputs whenever the inputs settle it: `length(["a", b, c])` is `3` no matter
+what `b` and `c` become. And an error can be justified before any value
+arrives, because type information is enough — taking `.name` from an unknown
+string is invalid, since no string has attributes.
 
 > **P10 (A) - Knownness Is Not Observable.** Configuration cannot branch on
 > whether an ordinary value is currently known. The value's availability to
 > the runtime is not a separate input to the configuration's meaning.
 
-An `is_known` predicate would let a configuration choose one desired value
-during planning and another during apply solely because more information had
-arrived. Terraform instead evaluates the same expression with a more complete
-context.
+The temptation P10 rules out is an `is_known` predicate. With one, a
+configuration could describe one desired state during planning and a different
+one during apply, purely because more information had arrived in between, and
+the plan an operator approved would describe something that was never going to
+be built. Terraform instead evaluates the same expression again against a
+fuller context.
 
-P10 does not prohibit the host from inspecting knownness. Core must do so to
-render plans, determine which checks can run, diagnose unknown instance keys,
-and defer work in runtimes that support deferral. These decisions are not
-values on which the configuration can branch. [Source:
-[*Unknown Values*][unknown-values].]
+Core itself inspects knownness constantly, and must: to render
+`(known after apply)`, to decide which checks can run yet, to diagnose an
+unknown instance key, to defer work in runtimes that support deferral. P10
+constrains the configuration, not the host. The distinction is about who is
+permitted to branch on it. [Source: [*Unknown Values*][unknown-values].]
 
-Providers can improve plan precision by predicting a result when their API
-contract justifies doing so. An attribute is not inherently "known only after
-apply" merely because one provider version reports it that way. Conversely, an
-unknown does not mean "unchanged from the prior state." Core cannot assume
-equality that the provider has not established.
-The discussion in [Terraform issue #30937][unknown-discussion] explains both
-the opportunity for better prediction and the limits imposed by remote systems.
+How much stays unknown is partly a provider's choice. A provider that can
+derive an attribute from its inputs may return it as known, and plan precision
+improves for everything downstream; "known only after apply" describes one
+provider version's implementation rather than a property of the attribute.
+The converse error is the dangerous one. An unknown does not mean "unchanged
+from prior state," and Core will not assume an equality the provider never
+asserted. [Terraform issue #30937][unknown-discussion] covers both the
+opportunity and the limits remote systems impose.
 
 #### 5.3.2 Increasing Knowledge
 
@@ -582,40 +688,54 @@ the opportunity for better prediction and the limits imposed by remote systems.
 > result. A result already established as known must not become a different
 > known value merely because previously missing information became available.
 
-The context qualification excludes changes to configuration, external inputs,
-or the underlying operation. This is a rule about learning more about the same
-computation, not a claim that arbitrary evaluations at different times return
-the same result.
+Concretely: if planning determines that an output is `"web-prod"`, apply cannot
+decide it is `"web-staging"` after learning an unrelated instance ID. Knowledge
+accumulates; it is not revised.
 
-The precision need not increase on every evaluation. Learning one attribute
-may leave another result wholly unknown. The requirement is consistency with
-the earlier information. Terraform's plan/apply checks enforce the corresponding
-contract at important boundaries (§10.4); they do not constitute a proof of
-every expression implementation.
+"Same semantic context" carries the qualification. Changing the configuration,
+changing an external input, or running a different operation all put the second
+evaluation in a different context, and P11 says nothing about those. It governs
+learning more about one computation.
 
-cty's [compatibility policy][cty-compatibility] makes a related, separately
-scoped promise: later library versions can return more precise results for
-previously unknown operations when those results remain within the earlier
-range. That cross-version policy should not be confused with Terraform's
-within-run plan contract.
+Precision also need not increase at every step. Learning one attribute of an
+object can leave another result wholly unknown, which is consistent with a rule
+that demands agreement with earlier information rather than steady progress.
+Terraform's plan/apply checks enforce the corresponding contract at the
+boundaries that matter (§10.4) rather than proving it of every expression.
+
+cty's [compatibility policy][cty-compatibility] makes a similar-sounding
+promise on a different axis: a later library version may return a more precise
+result than an earlier one did, provided it stays inside the earlier result's
+range. That is a promise across library versions, not within a single run.
 
 #### 5.3.3 Known Shape and Instance Expansion
 
-The ordinary CLI workflow requires enough information during planning to
-enumerate resource and module instances. For `count`, this means a known count.
-For resource or module `for_each`, it means known map keys or known members of
-a set of strings. Map values may remain unknown.
+Expansion asks more of planning than ordinary expressions do. The CLI workflow
+has to enumerate instances while planning, so `count` must be known and
+`for_each` must have known map keys or known set members. Values may stay
+unknown; keys may not:
 
-This requirement is stronger than the requirement for many ordinary expression
-results. A `for` expression or a `dynamic` block can involve unknown structure
-that is carried forward for later evaluation. Such nested configuration is not
-a set of separately addressed resource instances.
+```hcl
+resource "aws_instance" "example" {
+  for_each = {
+    web = aws_ami.web.id # value unknown - fine
+    db  = aws_ami.db.id
+  }
+  ami = each.value
+}
+```
 
-An instance change needs an address; an argument value can often remain partly
-unknown. The boundaries therefore impose different planning requirements.
-Core also contains gated deferral machinery that represents incomplete
-expansion without guessing instance keys (§8.3). In ordinary CLI `for_each`,
-an unresolved instance set remains an error.
+This works because Terraform can name `aws_instance.example["web"]` and
+`aws_instance.example["db"]` without knowing either AMI. Derive the keys
+themselves from a resource result and the plan fails, because there is no way
+to write down which instances are changing.
+
+The requirement is stronger here because an instance change needs an address
+and an argument value does not. A `for` expression or a `dynamic` block can
+carry unknown structure forward to later evaluation precisely because nothing
+in it needs a separate address. Core does contain gated deferral machinery that
+records incomplete expansion without guessing keys (§8.3), but in ordinary CLI
+`for_each` an unresolved instance set is an error.
 [Sources: [unknown-value discussion][unknown-discussion];
 [`internal/instances`][instances].]
 
@@ -643,93 +763,99 @@ their lifetime across the plan/apply boundary. [Sources:
 
 ### 5.4 Refinements
 
-A refinement records a constraint on an unknown: non-nullness, a string prefix,
-a numeric bound, or bounds on collection length. It preserves useful knowledge
-without asserting a concrete value.
+A refinement records what is known about an unknown without claiming a value.
+The available constraints are modest — not null, a string prefix, a numeric
+bound, a range on collection length — and they pay off in deduction. An unknown
+ARN refined with the prefix `arn:aws:s3:::` is still unknown, yet
+`startswith(arn, "arn:aws:s3")` already evaluates to `true`, and so does
+`arn != null`.
 
 > **P12 (D) - Refinement Soundness.** A refinement must describe a range that
 > contains every result still legitimately possible. Additional knowledge may
 > narrow that range, but must not exclude a valid eventual result.
 
-Refinements belong to the value's possible meaning. They can enable deductions:
-knowing that an unknown is non-null can resolve a null comparison, and knowing
-collection shape can support further operations even when elements remain
-unknown.
+Producing a refinement is optional; honoring a committed one is not. An
+operation may ignore its inputs' refinements and return a sound but vaguer
+result, and some boundaries discard refinements entirely. Both are losses of
+internal precision, and neither breaks anything. Contradicting a refinement the
+plan has already recorded is a different matter, because that range is part of
+what apply is permitted to produce. Separating those two scopes is what lets
+refinement support be optional while P5 and P11 stay firm.
 
-An operation may ignore an input refinement and compute a less precise but still
-sound approximation. Some boundaries also discard refinements. This is distinct
-from contradicting a refinement already committed to by a plan: losing internal
-precision does not authorize an applied result outside the plan's permitted
-range. Keeping those scopes separate reconciles optional refinement support with
-P5 and P11.
-
-Terraform produces refinements in language functions and checks unknown ranges
-in `AssertValueCompatible`. The supported refinement kinds and their treatment
-are documented in [cty's refinement guide][refinements]; the compatibility check
-is in [`internal/plans/objchange/compatible.go`][object-compatible].
+Terraform produces refinements in its language functions and checks unknown
+ranges in `AssertValueCompatible`. The supported refinement kinds are
+documented in [cty's refinement guide][refinements]; the compatibility check is
+in [`internal/plans/objchange/compatible.go`][object-compatible].
 
 ### 5.5 Marks: Sensitive and Ephemeral
 
-Marks carry handling metadata with a value. Terraform uses them for sensitivity
-and ephemerality. Unlike a refinement, a mark does not narrow the set of values
-that an unknown might become. It describes how the value must be handled.
+A mark travels with a value and says how the value must be handled. Terraform
+uses two: sensitive and ephemeral. Unlike a refinement, a mark narrows nothing
+about what the value might be.
 
 > **P13 (A) - Mark Propagation.** Evaluation must preserve the handling
 > requirements of marked inputs in derived values unless an operation
 > explicitly defines and justifies their removal.
 
-Propagation is conservative because a general expression evaluator cannot
-determine whether every derivation has removed all sensitive information.
-Operations that temporarily unmark values for computation must preserve the
-relevant marks or marked paths when reconstructing the result. Explicit
-declassification, such as `nonsensitive`, is a separate language operation, not
-an incidental consequence of conversion. [Sources:
-[`internal/lang/marks`][marks]; [sensitive-data handling][sensitive-data].]
+Propagation is deliberately conservative, because a general expression
+evaluator has no way to tell whether `substr(var.password, 0, 4)` still
+discloses something worth protecting. It assumes it does. Operations that
+unmark values in order to compute must restore the marks, or the marked paths,
+when they rebuild the result. Stripping a mark is a language operation with a
+name — `nonsensitive` — rather than a side effect of conversion.
+[Sources: [`internal/lang/marks`][marks];
+[sensitive-data handling][sensitive-data].]
 
 **Sensitive** controls disclosure in supported output surfaces. It does not
-encrypt the value or exclude it from saved plans and state. Access to those
-artifacts must therefore be controlled independently. A storage backend may
-provide encryption, but that protection is not supplied by the sensitive mark.
+encrypt anything, and it does not keep the value out of saved plans or state
+files, which hold it in the clear. Access to those artifacts has to be
+controlled separately; a storage backend may encrypt them, but that protection
+comes from the backend and not from the mark.
 
-**Ephemeral** excludes a value from Terraform's persisted plan and state value
-storage. Ephemeral variables and resources can supply temporary credentials or
-other run-scoped inputs to contexts permitted to consume them. Such values
-must be supplied or obtained again when a later phase needs them; the saved
-plan is not their storage mechanism.
+**Ephemeral** keeps a value out of Terraform's persisted plan and state storage
+altogether. Ephemeral variables and resources carry temporary credentials and
+other run-scoped inputs into the contexts allowed to consume them. Because
+nothing is stored, a later phase that needs such a value must obtain it again —
+the saved plan is not a hiding place for it.
 
 > **P14 (P) - Ephemeral Non-Persistence.** Terraform must not persist
 > ephemeral values in plan or state storage. A context that contributes
 > persistent values must reject ephemeral input unless its contract explicitly
 > excludes that input from the persisted representation.
 
-This is not a claim that an ephemeral value can never leave the process.
-Permitted provider operations can consume it. The contract concerns Terraform's
-storage and the allowed flow of values through the language; it is not a
-substitute for provider-side handling or disclosure controls.
+The boundary is Terraform's storage, not the process. A permitted provider
+operation can consume an ephemeral value and send it to an API; that is the
+point of having them. What the contract governs is where values may come to
+rest and how they may flow through the language, and it does not substitute for
+the provider's own handling and disclosure controls.
 
-**Write-only attributes** define a provider-facing non-persistence boundary.
-They can accept ordinary or ephemeral inputs, but their values are represented
-as null in persisted resource data. Removing an ephemeral mark while retaining
-its underlying value would not satisfy that contract. Core's ephemeral helpers
-validate and strip write-only values at the relevant boundaries.
+**Write-only attributes** draw the same boundary on the provider side. They
+accept ordinary or ephemeral input and appear as null in persisted resource
+data, which is why merely removing an ephemeral mark while keeping the value
+would not satisfy them. Core's ephemeral helpers validate and strip write-only
+values where those boundaries fall.
 [Sources: [ephemeral values and variables][variable-doc];
 [write-only arguments][write-only-doc];
 [`internal/lang/ephemeral`][ephemeral-implementation].]
 
-Set handling needs particular care. The schema validator rejects write-only
-attributes nested inside set blocks or nested set attributes. Its implementation
-notes that marks within sets are promoted to the containing set, preventing the
-required per-attribute handling. Set element correlation imposes further
+Sets need particular care here, for a reason rooted in how marks compose. A
+set's elements are identified by their values, so a mark on one element cannot
+stay attached to that element alone; it is hoisted to the containing set. Mark
+one password inside a set of credential objects and the whole set becomes
+sensitive. That is tolerable for disclosure and fatal for write-only
+attributes, which need per-attribute nulling in the persisted object. The
+schema validator therefore rejects write-only attributes inside set blocks and
+nested set attributes outright. Set element correlation adds further
 constraints (§10.3).
 [Source: [`configschema/internal_validate.go`][schema-validation].]
 
 ### 5.6 Values at the Plan Boundary
 
-The value model lets a plan distinguish commitments that would otherwise be
-conflated:
+Taken together, these facilities let a plan distinguish commitments that a
+simpler value model would run together:
 
 | Representation | Information conveyed |
-|---|---|
+| --- | --- |
 | Known value | The result is fixed within the applicable plan contract. |
 | Null | Absence is known, subject to the surrounding schema's interpretation. |
 | Unknown | Some part of the result is not yet determined. |
@@ -743,18 +869,20 @@ adding new propagation or serialization behavior.
 
 ## 6. Addresses
 
-Addresses connect configuration, plans, state, diagnostics, and operator-facing
-commands. `internal/addrs` represents them as structured types with string
-forms. The type identifies what an address denotes; a string alone may be
-ambiguous without its context.
+An address is how every part of Terraform refers to the same thing. The
+configuration declares it, a plan proposes a change to it, state records what
+it manages, a diagnostic blames it, and an operator targets it. `internal/addrs`
+keeps addresses as structured types with string forms, and the type carries
+meaning that the string does not.
 
 ### 6.1 Declarations and Instances
 
-The address package distinguishes module call paths from expanded module
-instances, and resource declarations from resource instances.
+The central distinction is between what configuration declares and what
+expansion produces. The package draws it twice, once for modules and once for
+resources:
 
 | Address type | Meaning |
-|---|---|
+| --- | --- |
 | `Module` | A static path through module calls, such as `module.app.module.db`. |
 | `ModuleInstance` | A path that includes instance keys, such as `module.app["blue"]`. |
 | `Resource` | A resource mode, type, and name relative to a module. |
@@ -762,171 +890,181 @@ instances, and resource declarations from resource instances.
 | `AbsResource` | A resource within a particular module instance, before selecting a resource instance. |
 | `AbsResourceInstance` | A resource instance within a particular module instance. |
 
-Thus `module.app["blue"].aws_instance.server` can identify all `server`
-instances within one module instance, while
-`module.app["blue"].aws_instance.server[0]` selects one member. A singleton
-instance has no printed key, so its string form alone does not always reveal
-the distinction between a resource and an instance.
+So `module.app["blue"].aws_instance.server` names every `server` in one module
+instance, and `module.app["blue"].aws_instance.server[0]` names a single
+member. The trap is the singleton: with no `count` or `for_each` the instance
+prints no key at all, so `aws_instance.server` could be either kind of address
+and the string alone will not say which.
 
 > **P15 (A) - Static/Dynamic Separation.** Configuration declarations and
 > their expanded instances are distinct objects. Address-taking interfaces
 > must specify whether they identify declarations, collections, or concrete
 > instances; a managed remote object's state binding belongs to an instance.
 
-Some operations deliberately accept more than one address kind, such as a
-whole resource or a single instance. Their semantics must define how the broader
-address expands. That is different from treating the address kinds as
-interchangeable. [Source: [`internal/addrs`][addresses].]
+Some operations take more than one kind on purpose — `-target` accepts a whole
+resource or a single instance — and that is fine as long as the operation says
+what the broader address covers. Accepting both is not the same as treating
+them as interchangeable. [Source: [`internal/addrs`][addresses].]
 
 ### 6.2 Instance Keys
 
-`NoKey` identifies a singleton instance, `IntKey` is used for `count`, and
-`StringKey` is used for resource and module `for_each`. That `for_each` accepts
-a map or a set of strings; it is not general sequence iteration. The iteration
-rules for `dynamic` blocks are a separate matter.
+Three keys cover ordinary configurations. `NoKey` marks a singleton, `IntKey`
+comes from `count`, and `StringKey` comes from `for_each` on a resource or
+module. That last one takes a map or a set of strings and nothing else, which
+is why `for_each` is not general sequence iteration; `dynamic` blocks iterate
+under separate rules.
 
-Core also has `WildcardKey`, printed as `[*]`, for partially expanded address
-representations used with deferral. It does not invent a concrete instance key
-and is not an ordinary managed-object binding. More generally, a partial address
-describes the unresolved part of expansion without claiming to enumerate its
-members. [Sources: `internal/addrs/instance_key.go`; [`internal/instances`][instances].]
+A fourth key exists for deferral. `WildcardKey` prints as `[*]` and stands for
+expansion that has not been resolved, giving addresses such as
+`module.app.aws_instance.server[*]`. It is not a concrete key and never binds a
+managed object. A partial address of this kind describes the unresolved part of
+expansion without pretending to enumerate its members.
+[Sources: `internal/addrs/instance_key.go`; [`internal/instances`][instances].]
 
 ### 6.3 Provider Addresses
 
-A provider **source address** identifies a provider implementation, such as
-`registry.terraform.io/hashicorp/aws`. A provider **configuration address**
-identifies a configured use of that provider. The latter has a module context
-and may have an alias.
+Two different things are called provider addresses. A **source address** such
+as `registry.terraform.io/hashicorp/aws` identifies an implementation to
+install. A **configuration address** identifies a configured use of that
+implementation, and so has a module context and possibly an alias.
 
-Within a module, `LocalProviderConfig` uses the module's local provider name and
-alias. `AbsProviderConfig` uses the resolved provider source and module path.
-Its module path is static; parsing rejects module instance indexes in provider
+Inside a module, `LocalProviderConfig` uses the module's own local name and
+alias. `AbsProviderConfig` uses the resolved source and module path, and its
+module path is static — the parser rejects instance keys in provider
 configuration addresses. [Source: `internal/addrs/provider_config.go`.]
 
-Modules containing their own provider configurations are incompatible with
-module-call `count`, `for_each`, and `depends_on`. This restriction is enforced
-by provider validation. The static provider address model is relevant context,
-but does not by itself explain all three restrictions, particularly
-`depends_on`. Reusable modules should instead receive provider configurations
-through the supported caller-to-child association (§13.3).
+That staticness is why a module containing its own provider configurations
+cannot be called with `count`, `for_each`, or `depends_on`; provider validation
+enforces the restriction. The static address model explains part of this and
+not all of it, `depends_on` least of all. Reusable modules should take provider
+configurations from their caller through the supported association mechanism
+instead (§13.3).
 [Sources: [`internal/configs/provider_validation.go`][provider-validation];
 [providers within modules][module-providers].]
 
 ### 6.4 Address Capabilities
 
-Several interfaces describe uses of addresses. `Referenceable` identifies
-subjects supported by reference resolution. `Targetable` supplies the containment
-relationships needed by targeting. `UniqueKey` provides comparable keys for
-maps and sets.
+Three interfaces describe what can be done with an address, and each one is a
+commitment. `Referenceable` marks a subject that reference resolution supports,
+so adding one obliges the evaluation context to resolve it. `Targetable`
+supplies the containment relationships targeting needs, so adding one obliges
+the design to say what selecting it includes. `UniqueKey` yields comparable
+keys for maps and sets. None of the three follows from an address merely being
+printable.
 
-Adding a referenceable address requires corresponding resolution in the
-evaluation context. Adding a targetable address requires a clear account of
-what selecting it includes. Neither interface should be inferred from the
-existence of a printable address.
-
-Internal graph vertices are a wider category. Expansion and close nodes, for
-example, participate in execution without being objects a configuration can
-reference. P2 governs configuration evaluation dependencies; it does not require
-all runtime bookkeeping to appear in the configuration namespace.
+Graph vertices are a wider category than addresses. Expansion nodes and close
+nodes take part in execution without being anything a configuration can name.
+P2 governs the dependencies that configuration evaluation creates; it does not
+require every piece of runtime bookkeeping to appear in the configuration
+namespace.
 [Sources: `internal/addrs/referenceable.go`, `targetable.go`, and `unique_key.go`.]
 
 ---
 
 # Part III - Runtime and Persistence
 
+Here the representations become behavior. Core builds a graph for each
+operation, expands declarations into instances, drives each instance through a
+lifecycle, negotiates with providers over what a change means, and records the
+results in state. Destruction closes the loop: removal has its own ordering
+requirements and its own demands on how long information must survive.
+
 ## 7. Graph Construction and Execution
 
 ### 7.1 Operation-Specific Graphs
 
-Core builds execution graphs through ordered transformation pipelines. A
-transformer can introduce vertices, attach configuration or state, connect
-dependencies, or remove unnecessary work. The pipeline differs by operation:
-a planning graph must discover changes, while an apply graph must execute
-changes already described by a plan.
+There is no single Terraform graph. Core builds one per operation by running an
+ordered pipeline of transformers, each of which adds vertices, attaches
+configuration or state to them, draws edges, or prunes work that is not needed.
+The pipelines differ because the operations do: a planning graph has to
+discover what changes, while an apply graph executes changes a plan already
+describes.
 
-The builders combine several sources of information:
+The builders draw on several sources at once:
 
 | Information | Purpose |
-|---|---|
+| --- | --- |
 | Configuration | Declarations, expressions, references, and lifecycle settings |
 | Prior state | Existing objects, including objects no longer declared |
 | Provider schemas and associations | Interpretation and provider selection |
 | Planned changes, during apply | Concrete instance operations to execute |
 | Run options | Scope and mode, including targeting and destroy planning |
 
-`PlanGraphBuilder` and `ApplyGraphBuilder` specify the transformation order.
-`ReferenceTransformer` connects reference-derived evaluation dependencies.
-`AttachDependenciesTransformer` records resource dependency information for
-state and lifecycle use. Destroy and create-before-destroy transformations
-construct the operation-specific ordering required by lifecycle semantics. [Sources:
-[`graph_builder_plan.go`][plan-graph], [`graph_builder_apply.go`][apply-graph],
-and [`transform_reference.go`][reference-transform].]
+`PlanGraphBuilder` and `ApplyGraphBuilder` fix the transformation order.
+`ReferenceTransformer` draws the evaluation dependencies that come from
+references. `AttachDependenciesTransformer` records resource dependency
+information for state and lifecycle use. The destroy and create-before-destroy
+transformations build the operation-specific ordering that lifecycle semantics
+require. [Sources: [`graph_builder_plan.go`][plan-graph],
+[`graph_builder_apply.go`][apply-graph], and
+[`transform_reference.go`][reference-transform].]
 
-Transformation order matters because later stages rely on information attached
-by earlier ones. A design that adds graph behavior must identify where that
-information becomes available and how later pruning, targeting, and validation
-treat it. Cycle detection is a property of the resulting graph, not of whether
-an edge happened to originate in `ReferenceTransformer`.
+Order matters within these pipelines, because each stage consumes what earlier
+stages attached. Anything new added to the graph therefore has to say where its
+information becomes available and how the later pruning, targeting, and
+validation stages should treat it. Cycles in particular are a property of the
+finished graph: an edge drawn by a lifecycle transformer closes a loop just as
+surely as one drawn from a reference.
 
-Objects removed from configuration illustrate why configuration alone is
-insufficient. Their state still supplies vertices and information needed to
-plan their removal. Such objects are often called **orphans**: they lack a
-current declaration, not a managed identity.
+Deleting a resource block shows why the graph cannot come from configuration
+alone. The object still exists and still has to be destroyed, so its vertex and
+its dependency information come from state instead. Such objects are called
+**orphans**, a name for what they lack — a current declaration — rather than
+for what they still have, which is a managed identity.
 
 ### 7.2 Dependency Direction
 
-Core's graph edges represent dependencies. The walker uses those dependencies
-to determine when a vertex is eligible to run. A diagram of internal edges
-therefore need not point in the order operations execute.
+Edges mean dependency, not execution order. The walker uses them to decide when
+a vertex becomes eligible to run, which makes the two coincide during creation
+and diverge during destruction.
 
-For simple resource creation, if `B` depends on `A`, `A` must be ready before
-`B` can use it. For destruction of both, the required operation order is
-normally `B` before `A`. Core constructs the appropriate destroy relationships;
-it does not achieve this merely by traversing the unchanged create graph
-backwards. [Source: [resource destruction notes][destroying].]
+Take `B` depending on `A`. Creating both requires `A` first, so edge direction
+and execution order agree. Destroying both requires `B` first, and the
+dependency between them has not changed. Core gets the right order by building
+destroy relationships for the destroy operation rather than by walking the
+create graph backwards. The [destruction notes][destroying] state the rule
+directly: edges represent dependencies rather than order of operations.
 
-`TransitiveReductionTransformer` removes edges whose ordering is already
-implied by another path. Reachability is preserved, but the final direct edge
-set need not contain one edge for every original reference. Code examining
-the graph must distinguish direct edges, reachability, and source references.
+`TransitiveReductionTransformer` then removes edges whose ordering some other
+path already implies. Reachability survives, and the direct edge set no longer
+contains one edge per original reference. Anything inspecting the graph has to
+keep three things apart: which edges are direct, what is reachable, and what
+the configuration actually referenced.
 
 ### 7.3 Reconstructing the Apply Graph
 
-The in-memory plan records changes and the information needed to interpret
-them; it is not a serialized adjacency graph. `ApplyGraphBuilder` reconstructs
-execution ordering from the plan's changes together with configuration and
-state. `DiffTransformer` supplies operation vertices for recorded instance
-changes.
+A plan records changes, not edges. `ApplyGraphBuilder` rebuilds the execution
+ordering from those changes together with configuration and state, and
+`DiffTransformer` turns each recorded instance change into an operation vertex.
 
-A saved plan archive also contains configuration and state information.
-Consequently, saying that the change records do not contain graph edges does
-**not** mean the archive contains no ordering information. It contains inputs
-from which ordering is reconstructed. [Sources: [`internal/plans/plan.go`][plan-model];
+The saved plan archive carries configuration and state alongside the change
+records, so it holds everything the rebuild needs. It holds it as inputs rather
+than as a serialized graph.
+
+The consequence matters for any feature that has to survive `terraform plan
+-out` followed by an apply in a different process. Whatever the planning walk
+knew in memory is gone by then. Information apply still needs must either be
+written into the artifact or be derivable from what the artifact contains.
+[Sources: [`internal/plans/plan.go`][plan-model];
 [`internal/plans/planfile`][plan-files]; [apply graph builder][apply-graph].]
-
-This distinction matters for any behavior that must survive saving a plan and
-applying it in another process. Runtime-only information from the planning walk
-cannot be assumed to remain available. It must either be represented in the
-saved artifact or be reproducible from the artifact's inputs.
 
 ### 7.4 Walking and Dynamic Subgraphs
 
-The graph walker permits independent vertices to make progress concurrently.
-Core limits execution parallelism; the ordinary CLI default is ten, adjustable
-with `-parallelism`. A dependency establishes a readiness constraint, not a
-promise about the relative start times of unrelated operations.
+Independent vertices run concurrently, up to a limit that defaults to ten and
+moves with `-parallelism`. A dependency constrains readiness and says nothing
+about when unrelated operations start relative to one another.
 
-Diagnostics are associated with work performed during the walk. A failed
-dependency normally prevents dependent work from running, while independent work
-and required cleanup can still proceed. The `AlwaysRunVertex` mechanism supports
-vertices that must run despite upstream failures. This is one reason an apply
-can make partial progress before reporting an error.
+Failure does not stop the walk everywhere. Work downstream of a failed vertex
+is skipped, work independent of it continues, and vertices marked
+`AlwaysRunVertex` run regardless so that required cleanup still happens. This
+is one reason an apply can report an error after having already made real
+progress.
 
-Some vertices implement `GraphNodeDynamicExpandable`. During the walk they
-produce subgraphs after the information needed for expansion becomes available.
-Those subgraphs are validated and walked as part of the operation. Static
-reference analysis precedes the dependent evaluation, while concrete instance
-graphs are added as the walk progresses.
+Some vertices expand during the walk itself. A `GraphNodeDynamicExpandable`
+vertex produces a subgraph once the information it needs arrives, and that
+subgraph is validated and walked as part of the same operation. Static
+reference analysis comes first; concrete instance graphs appear as the walk
+proceeds.
 [Sources: [`internal/dag/walk.go`][graph-walker];
 [`internal/terraform/graph.go`][terraform-graph].]
 
@@ -934,166 +1072,166 @@ graphs are added as the walk progresses.
 
 ### 8.1 Registration and Enumeration
 
-`instances.Expander` coordinates module and resource repetition. After the
-repetition expression for a particular context has been evaluated, Core
-registers a singleton, count-based, or `for_each` expansion. Other parts of the
-runtime can then enumerate the corresponding instances.
+`instances.Expander` is the registry that turns repetition into instances, and
+it works in two beats. Once Core has evaluated the repetition expression for
+some context, it registers the result — singleton, count, or `for_each` — with
+the expander. Afterwards any part of the runtime can ask the expander to
+enumerate the instances that follow.
 
-The implementation provides registration methods such as `SetModuleCount` and
-`SetResourceForEach`, and enumeration methods such as `ExpandModule` and
-`ExpandResource`. Expansion modes are represented separately in
-`expansion_mode.go`. The ordering requirement is explicit: a caller must register
-the relevant expansion before asking the expander for its instances.
+The method names reflect those two beats. `SetModuleCount` and
+`SetResourceForEach` register; `ExpandModule` and `ExpandResource` enumerate;
+`expansion_mode.go` holds the modes themselves. The ordering between them is a
+hard requirement: nothing can be enumerated before it has been registered.
 [Source: [`internal/instances`][instances].]
 
-These are not two global passes that necessarily finish for the whole
-configuration at once. Expansion is coordinated with the graph walk: a child
-module's resource repetition may depend on values available only after that
-module instance has been established.
+That requirement does not make expansion two global passes over the whole
+configuration. It interleaves with the graph walk, because it must — a
+resource's `for_each` inside a child module may depend on a value that exists
+only once the module instance itself has been established.
 
 ### 8.2 Nested Expansion
 
-Every instance of a module uses the same static declarations, but can receive
-different input values. A resource inside the module can therefore expand
-differently in each module instance. The total number of resource instances is
-the total across those individual expansions, not necessarily one uniform
-resource count multiplied by the number of modules.
+Every instance of a module shares the same declarations and receives its own
+input values, so a resource inside the module can expand differently in each
+one. A module called with `for_each` over three regions might produce two
+subnets in the first and five in the second, making
+`module.net["us-east-1"].aws_subnet.this[0]` and
+`module.net["eu-west-1"].aws_subnet.this[4]` both ordinary addresses. The
+instance total is the sum across expansions, not a resource count multiplied by
+a module count.
 
-The static address model allows Core to analyze references before all those
-instance keys are known. Instance-aware logic is then used where the operation
-requires a concrete subject. Static analysis and instance execution use
-different levels of address granularity according to the work being performed
+Static addresses are what keep this tractable. Core can analyze references
+between declarations long before any of those keys exist, then switch to
+instance-level addresses wherever an operation needs a concrete subject
 (§6.1, §7).
 
-Changes to repetition also affect existing objects. If a key disappears from a
-known desired instance set, the object bound to that key remains in state until
-its planned removal is carried out. Expansion therefore participates in normal
-deletion and replacement behavior as well as creation.
+Repetition changes also reach existing objects. Drop a key from a `for_each`
+map and the object bound to that key does not disappear; it stays in state,
+becomes an orphan, and is planned for destruction. Expansion drives removal and
+replacement as much as it drives creation.
 
 ### 8.3 Unknown Expansion and Deferral
 
-In the ordinary CLI plan/apply workflow described here, an unknown `count` or
-an unknown resource or module `for_each` instance set is an error. Core cannot
-produce the required concrete instance changes. An unknown attribute within a
-known instance does not present the same addressing problem.
+In the CLI workflow, an unknown `count` or an unknown `for_each` instance set
+is an error, because Core cannot write down changes for instances it cannot
+name. An unknown attribute inside a known instance poses no such problem and is
+routine.
 
-Core also contains gated deferral support, used by Stacks. Unknown expansion
-modes, partial addresses, and deferred-change records allow the runtime to
-retain information about work that it cannot yet plan completely. This
-machinery is not ordinary CLI behavior in the version-specific account of this
-paper. [Sources: [`internal/instances`][instances];
-[`internal/plans`][plans-package]; [Stacks runtime][stacks].]
+Core also carries gated deferral machinery, used by Stacks. Unknown expansion
+modes, partial addresses, and deferred-change records let the runtime keep an
+account of work it cannot yet plan completely, instead of guessing or failing.
+[Sources: [`internal/instances`][instances]; [`internal/plans`][plans-package];
+[Stacks runtime][stacks].]
 
-Deferral separates **executable planned changes** from **work requiring another
-planning round**. The latter can include a resource whose instance set cannot
-yet be enumerated. Its representation must identify the unresolved scope
-without pretending to supply concrete instance addresses.
+What deferral buys is a split between **changes this round can execute** and
+**work that needs another round**. The second category can include a resource
+whose instance set is not yet enumerable, represented by its unresolved scope
+rather than by invented instance addresses.
 
-The current plan does not authorize execution of that deferred work. A later
-round must determine and plan it. Thus deferral changes the completeness of a
-single round, not value fidelity (P5) or plan authorization (P24). It also leaves
-the configuration's meaning independent of knownness (P10): the runtime reports
-incomplete work rather than making the configuration choose a different desired
-result.
+The current plan authorizes none of that deferred work; a later round has to
+determine and plan it. Deferral therefore affects the completeness of a round
+while leaving value fidelity (P5) and plan authorization (P24) intact. It
+leaves P10 intact as well: the runtime reports incomplete work rather than
+letting the configuration describe a different desired result because knowledge
+was thin.
 
-Consumers of partial plans need an explicit completion model. They must be able
-to distinguish "all desired work is complete" from "the executable portion of
-this round succeeded." Reporting, approval, persistence, and orchestration all
-need to preserve that distinction. The design background is discussed in
-[Terraform issue #30937][unknown-discussion].
+Anything consuming a partial plan needs an explicit completion model, because
+"the executable part of this round succeeded" and "all the desired work is
+done" are different statements and usually only one of them is true. Reporting,
+approval, persistence, and orchestration each have to preserve the difference.
+The design background is in [Terraform issue #30937][unknown-discussion].
 
 ## 9. The Resource Instance Lifecycle
 
 ### 9.1 Current, Deposed, and Tainted Objects
 
-A resource instance can have one **current** object and multiple **deposed**
-objects. A deposed object is an earlier object still tracked after another
-object has taken its place as current. Create-before-destroy replacement
-requires this representation because the old and new remote objects can coexist
-at one logical resource instance address.
+A resource instance holds one **current** object and any number of **deposed**
+ones. A deposed object is a former current object that Terraform still tracks
+because something has taken its place but it has not been destroyed yet.
+Create-before-destroy replacement needs this representation: for a while, two
+real remote objects belong to one resource instance address.
 
-Deposed keys distinguish those retained objects within the instance. They are
-not additional user-selected `count` or `for_each` keys.
+Deposed keys tell those retained objects apart. They are internal, and have
+nothing to do with the `count` or `for_each` keys an author chose.
 [Source: [`internal/states/resource.go`][state-resource].]
 
-**Tainted** is a status indicating that Terraform cannot treat an object as
-ready and complete, commonly after a partial creation failure. A tainted
-object is normally planned for replacement rather than accepted as a stable
-realization of configuration. Taint can also be set through explicit state
-operations.
-For an operator-requested replacement, `-replace` expresses the intent as a
-plan option instead of first editing the object's status.
-[Sources: [`internal/states/instance_object.go`][state-object];
+**Tainted** is a status meaning Terraform cannot treat an object as ready and
+complete — most often the residue of a create that failed partway through. A
+tainted object gets planned for replacement rather than accepted as a
+realization of the configuration. State operations can set the status
+explicitly, though an operator who simply wants a replacement should reach for
+`-replace`, which states the intent as a plan option instead of editing status
+first. [Sources: [`internal/states/instance_object.go`][state-object];
 [planning behaviors][planning].]
 
 ### 9.2 Replacement
 
-Replacement combines removal of the old object with creation of a new one.
-The ordinary lifecycle has two orderings:
+Replacement pairs the removal of an old object with the creation of a new one,
+in one of two orders:
 
 | Ordering | Consequence |
-|---|---|
+| --- | --- |
 | Delete then create | The old object is removed before the replacement is created. |
 | Create then delete | The replacement can become current while the old object remains tracked as deposed. |
 
-`create_before_destroy` selects the second ordering when replacement is needed.
-It does not itself require replacement. Replacement can instead follow from
-provider requirements, taint, `replace_triggered_by`, or an operator's
-`-replace` request. Core combines the reason for replacement with the applicable
-lifecycle ordering. [Sources: [planning behaviors][planning];
+Two decisions combine here, and they come from different places. Whether to
+replace at all comes from a provider requirement, a taint, a
+`replace_triggered_by`, or an operator's `-replace`. Which order to use comes
+from `create_before_destroy`, which selects the second ordering when a
+replacement is needed and never causes a replacement by itself.
+[Sources: [planning behaviors][planning];
 [lifecycle reference][lifecycle-doc].]
 
-Create-before-destroy also requires the remote system to permit temporary
-coexistence. Naming rules, capacity, and uniqueness constraints remain the
-provider and configuration author's concern. An ordering preference cannot make
-two objects coexist when the API forbids it.
+Create-before-destroy also needs the remote system to allow the two objects to
+coexist. Unique names, quotas, and exclusive attachments remain the provider's
+and the author's problem. A lifecycle setting cannot make an API accept two
+objects where it permits one.
 
 ### 9.3 Lifecycle Dependencies
 
-Create-before-destroy can affect dependencies, not just the resource on which it
-is written. If a dependent must remain alive until its replacement is ready,
-destroying one of its dependencies too early would contradict that lifecycle.
-Core propagates the required create-before-destroy behavior and rewrites the
-operation graph accordingly.
-
-`ForcedCBDTransformer` propagates the setting where required.
-`CBDEdgeTransformer` constructs the corresponding edge changes. Saved lifecycle
-metadata preserves relevant behavior when an object later has no configuration.
+`create_before_destroy` does not stay on the resource that declares it. If a
+dependent object has to survive until its replacement exists, then destroying
+something it depends on early would defeat the purpose — so Core propagates the
+setting to those dependencies and rewrites the operation graph to match.
+`ForcedCBDTransformer` does the propagation and `CBDEdgeTransformer` makes the
+corresponding edge changes. Lifecycle metadata saved in state preserves the
+behavior after an object loses its configuration.
 [Sources: [`transform_destroy_cbd.go`][cbd-transform];
 [resource destruction notes][destroying].]
 
-The resulting operation can interleave creation, dependent updates, and removal
-of deposed objects. A single-resource description of replacement is therefore
-only the starting point. The destruction notes give concrete dependency
-diagrams for these combinations; they should be consulted before changing
-lifecycle ordering.
+The resulting operation interleaves creation, dependent updates, and removal of
+deposed objects, which is why a single-resource picture of replacement is only
+a starting point. The destruction notes contain worked dependency diagrams for
+these combinations and are worth reading before changing lifecycle ordering.
 
 ## 10. The Core/Provider Contract
 
 ### 10.1 Domain Independence
 
-Core understands resource modes, addresses, values, schemas, and operation
-contracts. A provider understands how those operations map to an external
-system: which API calls are required, which changes need replacement, and which
-representations are semantically equivalent.
+The division of labor is sharp. Core knows about resource modes, addresses,
+values, schemas, and operation contracts. A provider knows what those
+operations mean against a particular system: which API calls to make, which
+attribute changes force replacement, which two spellings of a value mean the
+same thing.
 
 > **P16 (A) - Core Is Domain-Agnostic.** Core's resource behavior is expressed
 > through domain-independent contracts. Knowledge specific to an infrastructure
 > API belongs in the provider and must reach Core through an explicit protocol.
 
-Domain independence does not mean that Core knows nothing about resource
-behavior. Its protocol deliberately exposes concepts such as replacement,
-identity, and deferred work. The separation concerns who interprets the
-external system and how that interpretation is communicated.
-[Sources: [architecture overview][architecture]; [provider protocol][protocol].]
+Domain independence is not ignorance. Core's protocol deliberately talks about
+replacement, identity, and deferred work, because those concepts recur in every
+domain. What stays on the provider's side is the interpretation of one external
+system, and it reaches Core through the protocol rather than through special
+cases. [Sources: [architecture overview][architecture];
+[provider protocol][protocol].]
 
 ### 10.2 Managed-Resource Operations
 
-The provider interface divides a resource's lifecycle into operations with
-different inputs and obligations:
+The provider interface splits a resource's lifecycle into operations with
+different inputs and different obligations:
 
 | Operation | Role |
-|---|---|
+| --- | --- |
 | `UpgradeResourceState` | Convert stored data from an older schema to the current schema without treating the conversion as refresh. |
 | `ReadResource` | Observe the remote object and report its current state. |
 | `ValidateResourceConfig` | Diagnose configuration; do not rewrite it. |
@@ -1102,270 +1240,285 @@ different inputs and obligations:
 | `ImportResourceState` | Obtain initial state information for an object to bind to an address. |
 | `MoveResourceState` | Perform a supported provider-side state conversion for a move between resource types. |
 
-This is a division of responsibilities, not a universal fixed RPC sequence.
-For a changing instance, Core can call `PlanResourceChange` during planning and
-again during apply after upstream values are known. It checks the later result
-against the earlier plan. Replacement, no-op, deletion, and other paths differ;
-"exactly twice per run" is not a reliable call-count contract.
+The table divides responsibilities; it does not fix an RPC sequence. For an
+instance that is changing, Core typically calls `PlanResourceChange` once
+during planning and again during apply once upstream values are known, then
+checks the second result against the first. Replacement, no-op, and destroy
+paths differ, so "twice per run" is a useful expectation rather than a contract
+to code against.
 
-Validation must tolerate information that is legitimately unknown at the point
-of the call. A provider can reject an error already established by type or known
-values, but cannot generally reject an optional value merely because it is not
-yet known. Later evaluation provides an opportunity to validate the resolved
-configuration.
+Validation runs early, which makes its obligation unusual: it has to tolerate
+values that are legitimately not known yet. A provider may reject what type
+information or known values already prove wrong. It may not reject an optional
+value merely for being unknown, since evaluation gets another chance later.
 
-Successful applied state, refreshed state, and upgraded state must not introduce
-unknown values into persisted state. This requirement concerns representation,
-not complete observation of every remote fact (§11.1).
+Applied, refreshed, and upgraded state must all be free of unknown values when
+the operation succeeds. That is a requirement about representation rather than
+about knowledge. A provider that cannot observe some remote fact records null
+or its best available value, never an unknown (§11.1).
 [Sources: [resource-instance change lifecycle][resource-lifecycle];
 [`internal/providers/provider.go`][provider-interface].]
 
 ### 10.3 Proposed New State and Collection Correlation
 
-Before provider planning, Core computes a proposed new object from configuration
-and prior state. `ProposedNew` and its helpers encode how schema flags affect
-that merge.
+Core does not hand the provider a bare configuration. It first merges
+configuration with prior state into a **proposed new object**, and `ProposedNew`
+encodes how schema flags govern that merge.
 
-At the attribute level, a non-computed value normally comes from configuration.
-For an attribute marked computed and left null in configuration, the prior value
-is the usual starting point. The provider can then choose an appropriate
-planned value within the protocol rules. The starting proposal must not be
-confused with a final promise that the prior value will remain unchanged.
+The attribute-level rules are short. A non-computed attribute takes its value
+from configuration. A computed attribute left null in configuration starts from
+its prior value, on the theory that the remote system already chose something
+and probably still means it. The provider can then override that starting point
+within the protocol's rules, which is exactly why the proposal is a starting
+point and not a promise that the prior value survives.
 
-Nested optional-and-computed attributes have an additional case. If the prior
-nested value contains non-computed content, Core can infer that it previously
-depended on configuration. `optionalValueNotComputable` handles this case so
-that removing the configuration need not preserve the whole prior object.
-That rule is specific to the nested schema; it is not a generic rule for every
+Nested attributes add a case. When a prior nested value contains non-computed
+content, Core can tell that configuration once supplied it, and
+`optionalValueNotComputable` uses that fact to let removal of the configuration
+actually remove the nested object instead of resurrecting it wholesale. The
+rule is specific to nested types; it is not a general rule for every
 `Optional+Computed` scalar. [Source:
 [`internal/plans/objchange/objchange.go`][object-change].]
 
-The Plugin Framework adds its own ordered planning steps around the provider's
-implementation: defaults, unknown marking for computed values, attribute plan
-modifiers, and resource plan modifiers. These operate within Core's consistency
-contract. A modifier such as `UseStateForUnknown` is appropriate only when the
-provider can justify retaining the old value; it is not a general way to hide
-uncertainty. [Source: [Framework plan modification][framework-planning],
+The Plugin Framework wraps the provider's own implementation in further ordered
+steps: apply defaults, mark computed attributes unknown where configuration is
+null and the plan differs, run attribute plan modifiers, then run resource plan
+modifiers. All of it happens inside Core's consistency contract. That bounds
+what a modifier may do — `UseStateForUnknown` is right when the provider can
+justify keeping the old value, and wrong as a general way to make uncertainty
+disappear. [Source: [Framework plan modification][framework-planning],
 supplied v1.18 documentation.]
 
-Nesting mode determines how old and new elements are related. Lists provide
-positions, maps provide keys, and single objects can be compared recursively.
-Sets provide value-based identity rather than a separate stable key. A changed
-set element can look like one value disappearing and another appearing.
+Nesting mode also decides how old elements get matched to new ones. Lists match
+by position, maps by key, and a single nested object matches recursively. Sets
+have none of these, because a set element's identity is its own value. Change
+one field of one element and, as far as the set is concerned, an old value
+vanished and an unrelated new one appeared:
 
-Core therefore correlates set elements heuristically. `validPriorFromConfig`
-asks whether a prior element could have arisen from a configuration element
-with computed content filled in. This is useful but less informative than
-explicit keys. Provider schema design must take account of which values define
-element identity and which are expected to change. This limitation concerns
-nested collection correlation, not the instance-key model of resource
-`for_each`.
+```hcl
+ingress { from_port = 80 }   # prior
+ingress { from_port = 8080 } # config - a different element entirely
+```
+
+Core therefore falls back on a heuristic. `validPriorFromConfig` asks whether a
+prior element could have come from a given configuration element with its
+computed fields filled in, and pairs them if so. It works often, and it tells
+you less than a key would. Provider schema design has to account for which
+fields constitute element identity and which are expected to change. The
+limitation is confined to nested collections and says nothing about the
+instance keys of resource `for_each`.
 
 ### 10.4 Plan Validity and Applied Compatibility
 
-Core checks different relationships at different boundaries.
+Two checks guard two different boundaries, and confusing them makes provider
+bugs hard to diagnose.
 
-**`AssertPlanValid`** checks the provider's planned object against configuration
-and prior state. Configured non-null attributes must normally retain their
-configured values. A provider may retain the corresponding prior value when the
-new spelling is functionally equivalent; Core can check the value relationship,
-but relies on the provider to judge semantic equivalence. Computed values have
-different latitude when configuration leaves them unset. Write-only values
-must be null in the planned representation.
+**`AssertPlanValid`** runs after the provider plans, comparing its planned
+object against configuration and prior state. A non-null configured attribute
+must normally survive into the plan with its configured value. The provider may
+substitute the prior value when the new spelling means the same thing — Core
+can compare values but has no way to judge semantic equivalence, so it takes
+the provider's word. Computed attributes get more latitude wherever
+configuration leaves them unset, and write-only attributes must be null.
 
-Nested-block validation depends on nesting mode and schema flags. Configured
-list and map blocks have structural correspondence rules. Set blocks allow
-less complete correlation. The cited implementation also has separate handling
-for computed blocks and unknown `dynamic` block results. These details are
-version-sensitive and must be read from the applicable schema and protocol.
-Nested blocks are not independent resource graph nodes, so their restrictions
-cannot be explained by simply equating block count with resource instance count.
+Nested blocks are checked according to nesting mode. Configured list and map
+blocks have structural correspondence rules, set blocks permit weaker
+correlation for the reasons in §10.3, and computed blocks and unknown `dynamic`
+results are handled separately again. The check also rejects an unknown block
+element outright, directing providers to make a nested attribute's values
+unknown rather than the element itself. These details move between versions and
+are better read from the applicable schema and protocol than remembered.
+Nested blocks are not independent graph nodes, so none of this follows from
+equating block count with resource instance count.
 [Source: [`internal/plans/objchange/plan_valid.go`][plan-valid].]
 
-**`AssertObjectCompatible`** checks whether a later object is compatible with
-the planned object. Known values must remain equal. Unknowns can become known
-within their type and refinement constraints. Collection structure and
-correlation affect how the comparison is made; sets require different treatment
-from indexed or keyed collections. [Source:
+**`AssertObjectCompatible`** runs after apply, comparing the result against the
+plan. Known values must be equal. Unknowns may become known within their type
+and refinement constraints. Collection structure again governs how the
+comparison proceeds, with sets treated differently from indexed or keyed
+collections. [Source:
 [`internal/plans/objchange/compatible.go`][object-compatible].]
 
-The corresponding diagnostics include "Provider produced invalid plan" and
-"Provider produced inconsistent result after apply." They report a broken
-contract, not merely an unusual result. Their location also limits what they
-can establish: a mismatch can originate in earlier evaluation or changing
-external inputs, and an error after an RPC does not undo remote work already
-performed.
+The diagnostics these produce — "Provider produced invalid plan" and "Provider
+produced inconsistent result after apply" — report a broken contract rather
+than an unusual outcome. Their position also bounds what they prove. The real
+cause may lie earlier in evaluation or in an external input that changed, and
+an error raised after an RPC returns cannot undo remote work already done.
 
 ### 10.5 Provider-Defined Functions
 
-Provider-defined functions extend expression evaluation, not the resource
-lifecycle. Their contract requires deterministic results for the same arguments
-and no observable side effects. Core can detect some inconsistent results,
-but cannot prove purity from the behavior it observes.
+A provider-defined function extends expression evaluation, and that is all it
+extends. Its contract requires the same result for the same arguments and no
+observable side effects — a requirement Core can spot-check but cannot prove
+from the behavior it observes.
 
-This distinction separates two provider extension points. A resource operation
-is expected to interact with an external system according to its lifecycle
-contract; a function is expected to compute a value. Putting an operation behind
-function syntax would not give it resource planning, state, or recovery
-semantics. [Sources: [provider-defined functions][provider-functions-doc];
+The two provider extension points are therefore not interchangeable. A resource
+operation is expected to touch an external system, under a lifecycle contract
+that gives it planning, state, and recovery. A function is expected to compute
+a value. Wrapping an operation in function syntax gains none of that machinery;
+it only conceals the absence of it.
+[Sources: [provider-defined functions][provider-functions-doc];
 [provider protocol][protocol].]
 
-Functions use the namespace `provider::name::function`. Keeping provider-defined
-names separate from built-ins reduces collisions as either side evolves.
-The compatibility implications of shared namespaces are discussed in §16.3.
+Functions live in their own namespace, `provider::name::function`, which keeps
+a new built-in function from colliding with a provider's existing one. §16.3
+takes up the general namespace problem.
 
 ### 10.6 Legacy Compatibility
 
-Provider protocol versions 5 and 6 coexist, with clients in `internal/plugin`
-and `internal/plugin6`. Protocol version alone does not describe every
-compatibility behavior. In particular, `legacy_type_system` supports restricted
-concessions for providers built with the original SDK.
+Protocol versions 5 and 6 coexist, with clients in `internal/plugin` and
+`internal/plugin6`. Version 6 is a complete superset of version 5 and can
+replace it entirely once every supported legacy provider has migrated.
 
-Those concessions are not permission for new implementations to disregard the
-provider contract. They preserve interoperability with legacy value handling
-and are accompanied by normalization and validation paths, including
-`NormalizeObjectFromLegacySDK`. New schema features must account for whether
-the participating protocol and SDK can represent them correctly.
+Protocol version does not account for all compatibility behavior, though. The
+`legacy_type_system` flag carries restricted concessions for providers built on
+the original SDK. Those concessions exist to keep older value handling
+interoperable, not to excuse new implementations from the contract, and they
+bring normalization and validation paths of their own including
+`NormalizeObjectFromLegacySDK`. A new schema feature has to account for whether
+the participating protocol and SDK can represent it at all.
 [Sources: [provider protocol definitions][protocol];
 [`internal/plans/objchange/normalize_obj.go`][legacy-normalization].]
 
-For design work, the useful distinction is between the intended modern contract
-and the compatibility path that preserves older behavior. Both must be
-understood, but neither should be silently substituted for the other.
+For design work the distinction to hold onto is between the modern contract and
+the compatibility path that preserves older behavior. Both are real, and
+neither should be quietly substituted for the other.
 
 ## 11. State
 
 ### 11.1 Bindings and Known Values
 
-State records the association between a Terraform resource instance and the
-object it manages. Attribute values support planning and refresh, but cannot
-replace that association. A remote API may enumerate objects without knowing
-which Terraform configuration address is responsible for each one.
+The most important thing in state is not the attribute values. It is the
+binding: this resource instance address manages that remote object. Attribute
+values help with planning and refresh and cannot substitute for the binding,
+because a remote API can enumerate its objects all day without knowing which
+Terraform address, in which configuration, is responsible for any of them.
 
 > **P17 (A) - One Address, One Object.** The management model assumes one
 > resource instance address for each managed remote object and at most one
 > current object at an instance address. Replacement may temporarily retain
 > additional, deposed objects at that instance.
 
-The current-object slot is part of Core's state representation. Uniqueness of
-remote ownership is a broader modeling obligation: Core cannot generally
-recognize that two addresses, even within one state, identify the same remote
-object. It also has no global registry across independent states. A configuration
-must not rely on duplicate management being detected automatically.
+Only half of P17 is enforced. The single current-object slot is a fact about
+Core's state representation. Unique ownership is an obligation on whoever
+models the system, because Core cannot generally recognize that two addresses
+refer to the same remote object — not across independent states, and not even
+within one. Nothing detects duplicate management on a configuration's behalf.
 [Sources: [state purpose][state-purpose]; [`internal/states`][states].]
 
 > **P23 (A) - State Is Wholly Known.** Persisted state snapshots contain no
 > unknown values. In-memory planning representations can carry unknown planned
 > values, but those must not be mistaken for persisted observations.
 
-Concrete state does not mean complete knowledge of an object. Providers record
-only what their schemas and API access support; write-only values are excluded.
-Null may represent absence according to the schema, not a promise that Core
-has discovered every fact about the remote system.
+Wholly known is not the same as wholly observed. A provider records what its
+schema and API access allow, write-only values are excluded by design, and a
+null means what the schema says it means rather than "Core looked and found
+nothing there."
 
-The implementation makes the distinction explicit. `ObjectPlanned` represents
-transient placeholders during planning. State encoding cannot preserve their
-unknowns, so expression evaluation must consult the corresponding planned value
-when it needs that information. This internal encoding behavior is not license
-for a provider to return unknown applied state.
+The implementation marks the boundary with a status. `ObjectPlanned` holds
+transient planning placeholders that may contain unknowns. State encoding
+cannot preserve those unknowns — it writes them as null — so evaluation that
+needs the real planned value has to consult the plan rather than the encoded
+state. That internal accommodation is not license for a provider to return
+unknowns in applied state.
 [Sources: [`internal/states/instance_object.go`][state-object];
 [discussion in #30937][unknown-discussion].]
 
-State also records lifecycle and interpretation metadata: dependencies,
-create-before-destroy status, schema versions, provider-private data, and
-resource identity. Dependencies use configuration-resource addresses so that
-relevant relationships remain available after a declaration is removed.
-[Source: `internal/states/instance_object_src.go`.]
+State carries interpretation and lifecycle metadata alongside the values:
+dependencies, create-before-destroy status, schema versions, provider-private
+data, and resource identity. Dependencies are recorded as configuration-resource
+addresses so that the relationships survive removal of the declaration that
+created them. [Source: `internal/states/instance_object_src.go`.]
 
 ### 11.2 Snapshots, Lineage, and Interfaces
 
-A state file includes the state snapshot and metadata about its history.
-`Serial` identifies successive modifications within that history.
-`Lineage` identifies the history itself. Serial numbers are meaningful for
-comparison only when the lineages match; a greater serial from an unrelated
-lineage is not a newer version of the same state.
+A state file wraps the snapshot in two pieces of history. `Serial` counts
+modifications; `Lineage` identifies which history those modifications belong
+to. The pair only works together: serial 12 supersedes serial 11 within one
+lineage and means nothing at all against a serial from a different one.
 
-Lineage is opaque. Consumers should compare it for equality, not infer meaning
-from its spelling. State readers also distinguish format versions and diagnose
-unsupported formats rather than interpreting them as a known version.
-[Sources: [`internal/states/statefile`][state-files].]
+Lineage is opaque, set once, and never updated. Compare it byte for byte and
+infer nothing from its spelling. State readers likewise check the format
+version and report an unsupported format rather than guessing at it.
+[Source: [`internal/states/statefile`][state-files].]
 
-The raw state file and the documented JSON output of `terraform show -json`
-are different interfaces. The existence of external tools that read raw state
-does not make every internal field a supported public API. Automation should
-use the documented interface appropriate to its task and respect its format
-version. State backends and migration tools have additional responsibilities
-that are not defined merely by the JSON output schema.
+The raw state file and the JSON from `terraform show -json` are different
+interfaces with different stability. That external tools read raw state does
+not promote its internal fields to public API. Automation should use the
+documented interface for its task and honor that interface's format version;
+backends and migration tools carry further responsibilities the JSON schema
+does not describe.
 [Sources: [JSON output format][json-format];
 [compatibility promises][compatibility].]
 
 ### 11.3 Refresh and Drift
 
-Refresh asks providers for updated observations of managed objects. The
-provider must distinguish a material change from an equivalent normalization.
-If a remote API returns equivalent JSON with different whitespace, retaining
-the prior spelling can avoid a meaningless difference. If the remote value has
-actually changed, preserving the old value would hide drift.
+Refresh asks each provider for a new observation of its objects, which puts the
+provider in an awkward position: it has to tell a meaningful change from a
+meaningless one. An API returning the same JSON policy document with different
+whitespace has changed nothing, and reporting it would produce a perpetual
+diff. An API returning a genuinely different value has changed something, and
+hiding that behind the prior spelling would conceal drift.
 
-Core cannot make that semantic distinction for an arbitrary domain. The
-`ReadResource` contract therefore gives the provider responsibility for it.
+Core cannot make that judgment for an arbitrary domain, so `ReadResource`
+assigns it to the provider.
 [Source: [resource-instance change lifecycle][resource-lifecycle].]
 
-The plan retains two relevant snapshots. `PrevRunState` represents the previous
-run's recorded state; `PriorState` represents the refreshed state used for
-planning. Comparing them supports drift reporting, while comparing desired
-configuration with the refreshed state supports the proposed changes. These
-are different questions, even when displayed in the same plan.
-[Source: [`internal/plans/plan.go`][plan-model].]
+A plan keeps two snapshots so it can answer two questions. `PrevRunState` is
+what the last run recorded; `PriorState` is what refresh just observed.
+Comparing those two produces the drift report. Comparing `PriorState` against
+the desired configuration produces the proposed changes. Plan output shows both
+results together, which makes it easy to forget they answer different
+questions. [Source: [`internal/plans/plan.go`][plan-model].]
 
-Updated observations must also reach downstream evaluation. A resource can
-require no corrective action while one of its observed attributes has changed.
-Outputs and other expressions referring to that attribute must see the
-refreshed value rather than a stale copy.
+Refreshed observations have to reach downstream evaluation as well. A resource
+may need no corrective action while one of its observed attributes has changed,
+and an output or expression reading that attribute must see the new value
+rather than a stale copy.
 
-Refresh-only mode lets the operator review the proposed state and output updates
-without planning ordinary changes to remote objects. The standalone
-`terraform refresh` command is deprecated in favor of the reviewable
-`terraform apply -refresh-only` workflow. This is a change in how state updates
-are approved, not the point at which Terraform first began reading remote state
-during planning. [Source: [refresh command documentation][refresh-doc].]
+Refresh-only mode lets an operator review proposed state and output updates
+without planning changes to remote objects. The standalone `terraform refresh`
+command is deprecated in favor of the reviewable `terraform apply
+-refresh-only` workflow — a change in how state updates get approved, not a
+change in when Terraform first started reading remote state during planning.
+[Source: [refresh command documentation][refresh-doc].]
 
 ### 11.4 Coordination and Partial Failure
 
-State coordinates successive operations on managed bindings, but is not a
-transaction log capable of rolling back every provider's external effects.
-When apply partly succeeds, its resulting state must preserve the progress
-Terraform can report. Discarding that progress would make subsequent planning
-operate from an account known to be obsolete.
+State coordinates one operation with the next. It is not a transaction log, and
+it cannot roll back a provider's external effects. When an apply half succeeds,
+the state it writes has to keep whatever progress Terraform can account for;
+discarding that would leave the next plan reasoning from a record already known
+to be wrong.
 
-Provider responses and state persistence can themselves fail. Recovery must
-distinguish a failed remote operation, an incomplete account of its result, and
-a failure to save state that Core already holds. These are different failure
-boundaries; a single "apply failed" message is not enough to infer the state of
-the external system.
+Failures come in kinds that recovery has to tell apart. A remote operation can
+fail. A remote operation can succeed while Terraform's account of the result is
+incomplete. State that Core holds correctly can fail to save. "Apply failed"
+covers all three and distinguishes none of them, which is why it is not enough
+to infer the condition of the external system.
 
-Backend locking, where supported and enabled, coordinates cooperating operations
-using the same state. Saved-plan checks also reject plans whose state history
-no longer matches the assumptions under which they were produced. Neither
-mechanism locks the remote world or prevents another independent state from
-managing the same object. Disabling locking or performing manual state
-operations changes the coordination assumptions and requires corresponding
-care. [Sources: [state locking][state-locking]; [`internal/backend`][backends].]
+Backend locking, where supported and enabled, coordinates operations that share
+a state. Saved-plan checks add a second guard, rejecting a plan whose state
+history no longer matches the one it was produced against. Neither mechanism
+locks the remote world, and neither prevents a second independent state from
+managing the same object. Turning locking off or running manual state commands
+changes those assumptions and deserves corresponding care.
+[Sources: [state locking][state-locking]; [`internal/backend`][backends].]
 
 ### 11.5 Resource Identity
 
-Structured resource identity gives a provider an object-typed representation
-for identifying a remote object, separate from its ordinary attributes.
-The state representation stores identity data and an identity schema version;
-the provider protocol includes identity schemas and upgrade operations.
-Configuration-driven import can use an `identity` object.
+Structured resource identity gives a provider an object-typed way to say which
+remote object a binding refers to, kept separate from ordinary attributes.
+State stores the identity data with an identity schema version, the protocol
+carries identity schemas and upgrade operations, and configuration-driven
+import can supply an `identity` object instead of a string.
 
-This is useful when an API's identity is naturally composite, such as an
-account, region, and name. It avoids making a single import string the only
-representation of that structure. Structured identity does not remove the
-distinction between a Terraform address and a remote identity: the state
-binding still associates the two. Nor does it automatically establish global
-uniqueness of management.
+The value shows where an API's identity is genuinely composite — an account, a
+region, and a name — and where cramming all three into one import string was
+never a good representation. What structured identity does not do is collapse
+the distinction between a Terraform address and a remote identity. The state
+binding still associates the two, and a richer identity establishes nothing
+about globally unique management.
 [Sources: [import blocks][import-doc]; [provider protocol][protocol];
 `internal/states/instance_object_src.go`.]
 
@@ -1373,38 +1526,39 @@ uniqueness of management.
 
 ### 12.1 The Reversal Principle
 
-For a simple dependency, destruction reverses the normal creation requirement:
-if `B` needs `A`, remove `B` before removing `A`. This applies during routine
-configuration changes as well as a full `terraform destroy`.
+For a simple dependency, destruction reverses the creation requirement: if `B`
+needs `A`, remove `B` before removing `A`. This applies to routine
+configuration changes as much as to a full `terraform destroy`.
 
 > **P18 (D) - Destroy Is Reversal.** Resource removal derives its dependency
 > constraints from the relationships used to manage the objects. Simple
 > destruction reverses their creation order; mixed operations and lifecycle
 > settings require the corresponding operation-specific graph transformations.
 
-The short name is a mnemonic, not an algorithm for reversing every edge in the
-runtime graph. Provider configuration, expansion, cleanup, replacement, and
-dependent updates have different lifetime requirements. Their vertices cannot
-all be treated as if they were ordinary resource creations.
-[Source: [resource destruction notes][destroying].]
+The name is a mnemonic and not an algorithm. Reversing every edge in the
+runtime graph would be wrong, because provider configuration, expansion,
+cleanup, replacement, and dependent updates each carry their own lifetime
+requirements, and none of them behaves like an ordinary resource creation run
+backwards. [Source: [resource destruction notes][destroying].]
 
 ### 12.2 Configured and Recorded Dependencies
 
-`DestroyEdgeTransformer` connects destruction with other planned operations
-using both current configuration relationships and recorded dependencies.
-Recorded information is especially important for removed declarations and
-deposed objects, whose original configuration may no longer be available.
+`DestroyEdgeTransformer` connects destruction to the rest of the planned
+operations using two sources: the relationships in the current configuration,
+and the dependencies recorded in state. The second source does the heavy
+lifting for removed declarations and deposed objects, whose original
+configuration may not exist any more.
 
-Provider lifetime is part of the same problem. A provider configuration may
-depend on an object that is itself being destroyed. Core must retain the
-information and ordering necessary to configure and use the provider until its
-remaining operations are finished. Create-before-destroy introduces additional
-constraints on when old objects can be released.
+Provider lifetime is the same problem one level up. A provider configuration
+can depend on an object that is itself being destroyed, and Core has to keep
+enough information and ordering to configure and use that provider until its
+last operation finishes. Create-before-destroy adds further constraints on when
+old objects may be released.
 
-These interactions explain why removal behavior must be designed alongside
-creation and update behavior. A declaration's disappearance is a normal input
-to Terraform, not an exceptional condition under which its dependencies and
-provider association can be forgotten. [Sources:
+This is why removal behavior has to be designed alongside creation and update
+behavior. A declaration disappearing is a normal input to Terraform, not an
+exceptional condition that excuses forgetting the object's dependencies and
+provider association. [Sources:
 [`transform_destroy_edge.go`][destroy-transform];
 [`transform_destroy_cbd.go`][cbd-transform]; §14.3.]
 
@@ -1412,129 +1566,144 @@ provider association can be forgotten. [Sources:
 
 # Part IV - Composition and Evolution
 
+Configurations grow, addresses move, related runtimes reuse the same machinery,
+and Terraform has to keep older configurations working throughout. This part
+covers the mechanisms for each: modules for composition, refactoring
+declarations for address and management transitions, the boundaries separating
+Test, Stacks, Query, Actions, and policy from Core, and the compatibility
+promises that constrain them all.
+
 ## 13. Modules
 
 ### 13.1 Scope Without an Independent Transaction
 
-A module is a unit of authorship, distribution, configuration scope, and reuse.
-Its inputs and outputs expose selected values while keeping internal names
-private. It does not, by default, create an independent plan/apply transaction.
+A module is a unit of authorship, distribution, scope, and reuse. Its inputs
+and outputs expose chosen values while keeping internal names private. What it
+is not, by default, is a separate plan/apply transaction.
 
 > **P19 (P) - Modules Are Namespaces.** Module boundaries organize
 > configuration and control visibility. A child module participates in its
 > caller's overall Core operation rather than executing as an isolated
 > lifecycle unit.
 
-Core can evaluate independent resources in different modules concurrently.
-A module output can become available once its own dependencies are satisfied,
-without waiting for every unrelated resource in that module. Consequently,
-module-level diagrams can appear circular even when the actual value and
-resource dependencies are acyclic: two modules can exchange values if those
-particular calculations do not depend cyclically on one another.
+The practical consequence is that module boundaries do not gate execution.
+Independent resources in different modules run concurrently, and a module
+output becomes available as soon as its own dependencies are satisfied rather
+than when the module "finishes." Two modules can therefore pass values to each
+other, which looks like a cycle on a module-level diagram and is perfectly
+acyclic at the level where the dependencies actually exist.
 
-This is sometimes described as flattening the module tree. The description
-concerns evaluation semantics, not the literal absence of module-related graph
-vertices. The implementation has module expansion and close nodes, and uses
-dynamic subgraphs. A module boundary also does not imply separate persisted
-state for that child. [Sources: [architecture overview][architecture];
+This is sometimes called flattening the module tree. The phrase describes
+evaluation semantics rather than the graph, which does contain module expansion
+and close nodes and does use dynamic subgraphs. Nor does a module boundary
+imply separate persisted state for the child.
+[Sources: [architecture overview][architecture];
 [`internal/terraform`][terraform-runtime].]
 
 ### 13.2 Inputs, Outputs, and Dependencies
 
-Ordinary values cross module boundaries through input variables and output
-values. A caller cannot directly traverse into a child module's resource
-namespace, and a child cannot directly name arbitrary objects in its caller.
-Expressions supplying inputs and consuming outputs establish the corresponding
-references.
+Values cross a module boundary through input variables and output values, and
+through nothing else. A caller cannot reach into the child's resource
+namespace, and a child cannot name arbitrary objects in its caller. The
+expressions that supply inputs and consume outputs create the references, and
+the references create the dependencies.
 
-An explicit `depends_on` on a module call expresses a broader dependency than
-passing a particular value. It can delay work throughout the child module,
-including reads that could otherwise occur earlier. Where a dependency is
-already expressed by the relevant input and output references, those references
-give Core more precise information than a whole-module dependency.
+`depends_on` on a module call is a blunter instrument than it looks. It makes
+the whole child depend on the subject, delaying work throughout the module
+including reads that could have happened much earlier. Where the relevant input
+and output references already express the dependency, they give Core something
+more precise than a whole-module edge.
 [Source: [`depends_on` reference][depends-on-doc].]
 
-Type constraints, nullability, and sensitive or ephemeral declarations define
-additional parts of the interface. They determine what values a module accepts,
-what information survives conversion, and what handling obligations cross the
-boundary. Modules therefore compose through more than matching attribute names.
-Their contracts include the value semantics described in §5.
+The interface is more than a list of names. Type constraints decide what a
+module accepts and what survives conversion into it (§5.1), `nullable` decides
+whether absence is allowed, and sensitive or ephemeral declarations carry
+handling obligations across the boundary. Two modules compose when these agree,
+not when their attribute names happen to match.
 
 ### 13.3 Provider Association
 
-Provider configurations cross module boundaries through a dedicated association
-mechanism, not as ordinary input-variable values. A reusable child module
-declares its provider requirements; the caller supplies suitable configurations.
-Default configurations can be inherited, while aliases require explicit
-association through the `providers` meta-argument.
+Provider configurations cross module boundaries through a dedicated mechanism
+rather than as ordinary input values. A reusable child module declares the
+provider requirements it has; the caller supplies configurations that satisfy
+them. Default configurations are inherited automatically, and aliases must be
+associated explicitly through the `providers` meta-argument.
 
-Local provider names are interpreted within each module. The association must
-resolve to a compatible provider source even when callers and children use
-different local names. Version requirements and configured instances also have
-different roles: selecting an implementation does not itself supply credentials,
-region settings, or an alias configuration.
+Local provider names are interpreted per module, so the association has to
+resolve to a compatible provider source even when caller and child use
+different local names. Version requirements and configured instances play
+different roles here: selecting an implementation is not the same as supplying
+credentials, a region, or an aliased configuration.
 
 Root-owned provider configurations are the normal design for reusable modules.
-Legacy child modules with their own provider blocks remain supported with
-restrictions, including the incompatibility with module-call `count`,
-`for_each`, and `depends_on` described in §6.3. Provider configurations must also
-remain available while objects associated with them still need operations,
-including removal. [Source: [providers within modules][module-providers].]
+Legacy child modules with their own provider blocks remain supported under the
+restrictions in §6.3, including incompatibility with module-call `count`,
+`for_each`, and `depends_on`. Provider configurations must also stay available
+while any object associated with them still needs operations — removal
+included. [Source: [providers within modules][module-providers].]
 
 ### 13.4 Custom Conditions
 
-Variable validation, preconditions, postconditions, and `check` blocks express
-author-supplied assertions. Their placement determines what they can observe
-and what a failure prevents.
+Variable validation, preconditions, postconditions, and `check` blocks all
+express assumptions an author wants enforced. Where each one sits determines
+what it can see and what its failure stops.
 
-Resource preconditions run after instance expansion and before evaluation of
-the resource's configuration arguments. They can therefore use `count.index`
-or `each` information, but cannot guard the repetition expression that was
-needed to establish the instance. Postconditions check resulting information
-and can prevent dependent work from proceeding. Unknown condition inputs can
-delay a check until enough information is available.
-[Sources: [custom conditions][conditions-doc]; [lifecycle reference][lifecycle-doc].]
+A resource precondition runs after instance expansion and before the resource's
+arguments are evaluated. It can therefore read `count.index` and `each`, and it
+cannot guard the repetition expression that produced them, since by the time it
+runs that decision is already made. A postcondition runs afterward, checks
+results, and can stop dependent work. Unknown inputs push a check later, until
+enough is known to decide it.
+[Sources: [custom conditions][conditions-doc];
+[lifecycle reference][lifecycle-doc].]
 
-Failure severity is part of the contract. A failed precondition or postcondition
-blocks the applicable operation. An ordinary `check` assertion failure is a
-warning and does not serve as an execution gate. Terraform Test incorporates
-these results into its own assertion and expected-failure handling; its outcome
-must not be inferred directly from the ordinary CLI warning severity.
+Severity is part of each contract. A failed precondition or postcondition
+blocks the operation. A failed `check` assertion is a warning and gates
+nothing. Terraform Test folds both into its own assertion and expected-failure
+handling, so a test outcome cannot be read off the CLI's warning severity.
 [Sources: [check blocks][check-doc]; [`internal/moduletest/run.go`][test-run].]
 
-These constructs let module authors document and enforce assumptions close to
-the values and objects involved. Separately enforced governance policy has a
-different authority boundary: an assertion that an author can remove from the
-same configuration is not an independent approval control.
+These constructs let a module author state assumptions next to the values they
+concern. Governance policy answers to a different authority: an assertion the
+author can delete from the same file is documentation with teeth, not an
+independent approval control.
 
 ## 14. Refactoring and Management Transitions
 
 ### 14.1 Addresses Change While Objects Remain
 
-Without refactoring information, renaming a resource can look like removal of
-one declaration and addition of another. State still associates the existing
-object with the old address. A `moved` block tells Core how to reinterpret that
-binding before ordinary planning.
+Rename a resource and Terraform sees two unrelated events: one declaration
+vanished and another appeared. State still binds the existing object to the old
+address, so the plan would destroy and recreate. A `moved` block tells Core to
+reinterpret the binding before ordinary planning starts:
 
-An ordinary address move can preserve the remote object. It does not guarantee
-that the remainder of the plan will be a no-op: the new configuration may also
-require an update or replacement. Supported moves between resource types can
-ask a provider to convert state. It is therefore inaccurate to describe every
-move, or every run containing one, as making no provider calls.
+```hcl
+moved {
+  from = aws_instance.app
+  to   = aws_instance.web
+}
+```
+
+The object survives the rename. What the move does not promise is that the rest
+of the plan is a no-op, since the new configuration may still call for an
+update or a replacement. A supported move between resource types goes further
+and asks the provider to convert state, which is a provider call. Neither
+"a move is free" nor "a move is a destroy" describes the mechanism.
 [Sources: [moved blocks][moved-doc]; [`internal/refactoring`][refactoring].]
 
-The related constructs have distinct purposes:
+Three constructs handle management transitions, and they differ in what they do
+to the remote object:
 
 | Construct | Management transition |
-|---|---|
+| --- | --- |
 | `moved` | Associate an existing binding with a new configuration address. |
 | `removed` | End management of the selected object or objects, with the declared removal behavior. |
 | `import` | Establish management of an existing remote object at an address. |
 
-For `removed`, the default behavior includes destruction. Setting
-`lifecycle { destroy = false }` instead removes the state binding without
-destroying the remote object. Import can call the provider and read the remote
-object; it is not an API-free assignment of an address to arbitrary data.
+`removed` destroys by default. Adding `lifecycle { destroy = false }` drops the
+state binding and leaves the remote object alone — the difference between "this
+should not exist" and "this should not be mine." `import` calls the provider
+and reads the object rather than assigning arbitrary data to an address.
 [Sources: [removed blocks][removed-doc]; [import blocks][import-doc].]
 
 ### 14.2 Persistent Declarations, Not Repeated Commands
@@ -1544,169 +1713,170 @@ object; it is not an API-free assignment of an address to arbitrary data.
 > that transition has been satisfied, retaining the declaration must not by
 > itself repeat the completed operation.
 
-"Inert" describes this relationship to history. It does not mean that
-processing the declaration can never cause provider operations or state
-changes. Invalid or contradictory declarations can also produce diagnostics
-rather than silently doing nothing.
+"Inert" describes the relationship to history, not an absence of effects.
+Processing a declaration can call a provider and change state, and an invalid
+or contradictory one produces diagnostics rather than quietly doing nothing.
+What it will not do is perform a completed transition a second time.
 
-This property allows a module to retain a sequence of `moved` declarations so
-that users upgrading from different prior versions can reach the current
-address structure. The declaration becomes part of the module's migration
-contract. Removing it too early can break an upgrade path even though the
-current configuration is otherwise unchanged.
+That property is what lets a module accumulate a chain of `moved` declarations
+so that users upgrading from any earlier version arrive at the current address
+structure. The declarations become part of the module's migration contract, and
+deleting one too early breaks an upgrade path even though the current
+configuration is otherwise unchanged.
 
-Core validates move relationships for conflicts and cycles and orders valid
-move chains before applying them to the working state. The relevant code is in
-`move_validate.go` and `move_execute.go`. Configuration-driven transitions can
-then be shared in version control and reviewed through a plan.
-Imperative state commands remain separate administrative operations; they do
-not acquire those properties merely because they can achieve a similar final
-binding. [Sources: [`internal/refactoring`][refactoring];
+Core validates move relationships for conflicts and cycles, orders the valid
+chains, and applies them to the working state; `move_validate.go` and
+`move_execute.go` hold that logic. Because the transitions live in
+configuration, they can be reviewed in a pull request and previewed in a plan.
+Imperative state commands reach a similar final binding and acquire none of
+those properties. [Sources: [`internal/refactoring`][refactoring];
 [module refactoring documentation][module-refactoring].]
 
 ### 14.3 Metadata Lifetime
 
-A removed declaration may have contained information needed to remove its
-object: provider association, dependency relationships, and optional
-destroy-time configuration. The desired-state declaration can disappear before
-the remote object does.
+Deleting a resource block also deletes the information needed to remove its
+object: which provider configuration to use, what it depended on, what
+destroy-time configuration applied. The declaration of desired state disappears
+well before the remote object does.
 
 > **P21 (P) - Metadata Lifetime.** Information required by an object's
 > remaining operations must survive until those operations are complete,
 > including when the declaration that originally supplied it has been removed.
 
-State preserves some of that information, including dependencies and lifecycle
-metadata. Provider configurations may need to remain in configuration until
-their objects are removed. A `removed` block can retain removal-specific intent
-and configuration without continuing to declare the object as desired.
-The lifetime argument is developed in the *removed blocks* design proposal;
-current behavior is described in the [removed-block reference][removed-doc].
+Three mechanisms share the work. State preserves dependencies and lifecycle
+metadata. Provider configurations have to stay in the configuration until the
+objects using them are gone. And a `removed` block holds removal-specific
+intent — including `connection` and destroy-time `provisioner` blocks — without
+continuing to declare the object as desired. The lifetime argument is developed
+in the *removed blocks* design proposal; current behavior is in the
+[removed-block reference][removed-doc].
 
-This does not imply that all former configuration should be copied into state.
-Some information is unsuitable for persistence, particularly ephemeral values.
-The design must distinguish what is stored, what can be reconstructed, and what
-must be supplied again. The same lifetime analysis applies to deposed objects,
-provider cleanup, and recovery after a partially completed operation.
+None of this argues for copying every former declaration into state. Some
+information must not be persisted at all, ephemeral values above all. The
+design question is which information is stored, which is reconstructed, and
+which has to be supplied again — and the same question applies to deposed
+objects, provider cleanup, and recovery from a partially completed operation.
 
 ## 15. Related Languages and Runtimes
 
-HCL syntax and cty values are shared by several Terraform-related systems.
-Shared libraries do not imply identical evaluation, state, or approval
-boundaries. This section identifies the relationships needed to reason about
-cross-cutting features; it is not a complete specification of each language.
+Several systems around Terraform share its syntax and its value model, which
+makes them look more alike than they are. Shared libraries say nothing about
+where evaluation, state, and approval boundaries fall. This section maps the
+relationships well enough to reason about a cross-cutting feature; it does not
+specify any of these systems.
 
 ### 15.1 Terraform Test
 
-Terraform Test adds `run` blocks that plan or apply a configuration and evaluate
-assertions. Mocks and overrides let tests replace selected provider or module
-behavior. The test framework invokes the normal Core runtime for the operation
-under test, while supplying its own orchestration, evaluation contexts, state
-management, and result handling.
+Terraform Test adds `run` blocks that plan or apply a configuration and check
+assertions against the result, with mocks and overrides to replace selected
+provider or module behavior. Each `run` invokes the ordinary Core runtime.
+Everything around it — orchestration, evaluation contexts, state management,
+result handling — belongs to the test framework.
 
-Calling Test "the same runtime" is therefore only partly informative. The
-resource behavior is exercised through Core, but setup, assertions, expected
-failures, and cleanup also belong to the testing layer. A cross-cutting feature
-must specify which parts run normally and how tests can supply inputs and
-observe outcomes. [Sources: [Terraform tests][tests-doc];
-[`internal/moduletest`][module-test].]
+So "Test uses the same runtime" is half the story. Resource behavior really is
+exercised through Core, and setup, assertions, expected failures, and cleanup
+are not. A cross-cutting feature has to say which half it lands in, and how a
+test can supply inputs to it and observe its outcome.
+[Sources: [Terraform tests][tests-doc]; [`internal/moduletest`][module-test].]
 
 ### 15.2 Stacks
 
 Stacks is an orchestration layer over trees of Terraform modules. Its address,
-configuration, plan, state, and runtime packages have roles analogous to the
-corresponding Core packages, while component evaluation invokes the module
-runtime beneath them.
+configuration, plan, state, and runtime packages play roles analogous to Core's,
+and component evaluation calls down into the module runtime underneath.
 
-A component is a distinct planning and state boundary in a way that an ordinary
-child module is not. Stacks coordinates those component operations and supports
-deferred work when information is insufficient for a complete round. The
-executable changes still have a plan contract; orchestration determines how
-later planning rounds complete the remaining work.
+The key difference from §13 is that a component *is* a planning and state
+boundary, which an ordinary child module is not. Stacks coordinates operations
+across those components and supports deferred work when a round cannot be
+completed. Executable changes still carry a plan contract; orchestration
+decides how later rounds finish the rest.
 [Source: [`internal/stacks/README.md` and runtime packages][stacks].]
 
-The distinction is architectural, not an exemption from compatibility.
-Different boundaries allow different contracts, but those contracts still have
-consumers. A rule about a single module-tree operation cannot simply be applied
-to an entire Stack without identifying the corresponding scope.
+A different boundary permits a different contract. It does not grant an
+exemption from having one, because these contracts have consumers too. A rule
+about a single module-tree operation transfers to a Stack only once someone has
+identified the corresponding scope.
 
 ### 15.3 Query
 
-Query uses provider-backed `list` operations to discover existing objects and
-can support generation of configuration for their subsequent management.
-The query configuration has its own decoding and command integration, while
-reusing provider and planning infrastructure.
+Query uses provider-backed `list` operations to discover existing objects, and
+can generate configuration for managing them afterwards. It has its own
+configuration decoding and command integration while reusing provider and
+planning infrastructure.
 
-Discovery is distinct from the state binding that establishes ownership.
-A data source can also return a collection or an empty result, so the
-distinction is not "data reads one existing object, Query reads many." It lies
-in the discovery and configuration-generation contract of `list`, compared with
-the provider-defined value returned by a data source.
+Discovery is not the state binding that establishes ownership, and the line
+between Query and a data source is not about cardinality — a data source can
+return a collection or an empty result too. What separates them is the
+contract. `list` is defined around discovery and configuration generation; a
+data source returns a provider-defined value.
 [Sources: `internal/configs/query_file.go`;
 [`internal/command/query.go`][query-command].]
 
 ### 15.4 Actions
 
-An `action` block describes a provider-defined operation. Declaring an action and
-invoking it are separate parts of the language. Invocation can be requested
-directly or associated with a resource lifecycle trigger.
+An `action` block declares a provider-defined operation, and declaring one is
+separate from invoking it. Invocation can be requested directly or attached to
+a resource lifecycle trigger.
 
-Actions have their own invocation protocol rather than the persistent
-object-management contract of a managed resource. An action declaration should
-therefore be understood through its documented invocation behavior, not assumed
-to have resource attributes, refresh, or convergence semantics merely because
-it shares provider configuration and repetition mechanisms.
+Actions run under their own invocation protocol rather than the persistent
+object-management contract that governs a managed resource. They share provider
+configuration and repetition mechanisms with resources, which is not enough to
+give them resource attributes, refresh, or convergence. An action declaration
+should be read through its documented invocation behavior.
 [Sources: [action blocks][action-doc]; [invoking actions][invoke-actions-doc];
 `internal/configs/action.go`.]
 
 ### 15.5 Policy Integration
 
-Governance policy evaluates acceptability under rules whose authority can be
-separate from the module author. Its relationship to Core includes the values
-and metadata made available for evaluation, the point at which evaluation
-occurs, and how enforcement results affect the operation.
+Governance policy judges whether an operation is acceptable under rules that
+can answer to someone other than the module author. Three things define its
+relationship to Core: which values and metadata are available to evaluate, when
+evaluation happens, and what an enforcement result does to the operation.
 
-At the cited source revision, `internal/policy` defines a client with setup and
-resource, provider, and module evaluation requests. Requests distinguish current
-attributes, prior attributes, metadata, and redaction information.
+At the cited revision, `internal/policy` defines a client with `Setup` and with
+resource, provider, and module evaluation requests. Those requests distinguish
+current attributes from prior attributes, and carry metadata and redaction
+information alongside them.
 [Source: [`internal/policy/policy.go`][policy-client].]
 
-This section covers the Core-side integration. Release availability, language
-semantics, and deployment requirements must be established from the policy
+That is the Core-side integration and nothing more. Release availability,
+policy language semantics, and deployment requirements come from the policy
 product's own versioned documentation.
 
 ### 15.6 Shared Features, Explicit Boundaries
 
-A new value mark, provider capability, or artifact field may have consumers in
-several of these systems. Each consumer needs an intentional treatment:
-inherit the Core behavior, translate it at a defined boundary, or reject the
-unsupported use with an appropriate diagnostic.
+A new value mark, provider capability, or artifact field can have consumers in
+several of these systems at once, and each consumer needs a deliberate answer:
+inherit Core's behavior, translate it at a defined boundary, or reject the use
+with a diagnostic that explains why.
 
-Identical syntax is not always desirable, and different syntax is not
-automatically a semantic divergence. The useful comparison is the contract:
-what is evaluated, which state it uses, what is planned, what is approved, and
-what is persisted. Appendix B includes these questions in the interaction
+Identical syntax is not always the right goal, and different syntax is not by
+itself a semantic divergence. The comparison worth making is of contracts —
+what is evaluated, against which state, what is planned, what is approved, and
+what is persisted. Appendix B carries these questions into the interaction
 checklist.
 
 ## 16. Compatibility
 
 ### 16.1 The Documented Promise
 
-Terraform's v1.x compatibility promises cover a substantial part of the
-language, a specified set of CLI workflows, provider communication, and
-installation protocols. They aim to preserve valid configurations and protected
-automation across v1.x upgrades. Provider-specific behavior is independently
-versioned and is not covered by Core's promise.
+Terraform's v1.x compatibility promises cover much of the language, a specified
+set of CLI workflows, provider communication, and installation protocols, with
+the aim of keeping valid configurations and protected automation working across
+v1.x upgrades. Provider behavior is versioned separately and is not part of
+Core's promise.
 
-For automation, the documented interfaces include JSON output modes and exit
-status codes. Natural-language output and logs are not stable parsing
-interfaces. Compatibility also does not imply that an older Terraform release
-can read every newer state format or understand a newly introduced language
-feature. [Source: [v1.x compatibility promises][compatibility].]
+Automation gets JSON output modes and exit status codes as documented
+interfaces. Human-readable output and logs are neither, and parsing them means
+tracking an unstable surface by choice. Compatibility does not run backwards
+either: an older Terraform release is under no obligation to read a newer state
+format or understand a newly introduced language feature.
+[Source: [v1.x compatibility promises][compatibility].]
 
-The published policy includes important qualifications:
+The published policy carries important qualifications:
 
 | Area | Qualification |
-|---|---|
+| --- | --- |
 | Validity | The promise generally concerns configurations that can plan and apply without errors. |
 | Invalid configuration | Error handling may change; errors can be detected earlier. |
 | Implementation bugs | Documented behavior may take precedence, with care to limit compatibility impact. |
@@ -1714,9 +1884,9 @@ The published policy includes important qualifications:
 | Existing deprecations | Explicit deprecation cycles may end during v1.x. |
 | Exceptional changes | Critical security issues or changes in external dependencies can justify changes outside the usual expectation. |
 
-Diagnostic changes must be assessed by their effect on protected behavior.
-The policy permits changes to invalid-configuration handling and prefers earlier
-detection; phase alone does not determine compatibility.
+Changes to diagnostics are judged by their effect on protected behavior, not by
+which phase emits them. The policy explicitly permits changes to
+invalid-configuration handling and favors detecting errors earlier.
 
 ### 16.2 Supported Behavior Becomes a Contract
 
@@ -1725,65 +1895,66 @@ detection; phase alone does not determine compatibility.
 > obligations for later versions. A design must account for the behaviors it
 > permits, not only the examples it intends to encourage.
 
-This principle does not make every implementation detail permanent.
-It asks designers to identify which choices become observable commitments.
-Accepting several forms of an argument, exposing an address syntax, or allowing
-a combination of features can create dependencies that are difficult to
-discover later.
+P22 does not freeze every implementation detail. It asks which choices become
+*observable*, because those are the ones that turn into commitments. Accepting
+several spellings of an argument, exposing an address syntax, permitting a
+combination of features — each can create a dependency that nobody notices
+until removing it is expensive.
 
-Restricting an initially unsupported combination can preserve room for a later,
-well-defined extension. Once a combination is supported, narrowing it requires
-attention to compatibility rather than merely a simpler implementation.
-Explicit errors and documented boundaries are useful when the intended
-semantics are not yet settled. This is one of the principal design lessons of
-the supplied *Hitchhiker's Guide to Language Design*.
+The practical consequence favors restraint. An unsupported combination that
+errors clearly leaves room for a well-defined extension later; a supported
+combination can be narrowed only with careful attention to compatibility, and
+"the implementation would be simpler" is not sufficient reason. Explicit errors
+and documented boundaries are the right tools while intended semantics are
+still unsettled. This is among the central lessons of the supplied
+*Hitchhiker's Guide to Language Design*.
 
 ### 16.3 Namespaces
 
-Some Terraform namespaces combine Core-defined names with names supplied by
-modules or providers. A new resource meta-argument can collide with a provider's
-existing argument. A new module meta-argument can collide with an input
-variable. Similar concerns arise where predefined expression roots share syntax
-with resource type names.
+Several Terraform namespaces mix Core-defined names with names that modules and
+providers supply. A new resource meta-argument competes with every provider's
+existing arguments. A new module meta-argument competes with every input
+variable anyone has declared. Predefined expression roots raise the same issue
+against resource type names.
 
-These collisions must be considered before reserving a new word. A name that is
-unused in Core is not necessarily unused in the ecosystem. The discussion of
-`enabled` in [#21953][conditional-resources] gives a concrete account of the
-module and provider compatibility concern without requiring any conclusion
-about the feature's other merits.
+A word unused in Core is not a word unused in the ecosystem, which makes
+reserving one a compatibility decision before it is a design decision. The
+discussion of `enabled` in [#21953][conditional-resources] works through the
+module and provider exposure concretely, independently of whether the feature
+itself was a good idea.
 
-Separate namespaces can reduce that exposure. Provider-defined functions use
-`provider::name::function`, so adding a built-in function does not reserve a
-provider's function name. The broader namespace analysis also appears in the
-*Language Editions* proposal.
+Separate namespaces reduce the exposure. Provider-defined functions live under
+`provider::name::function`, so adding a built-in function cannot collide with a
+provider's. The broader namespace analysis appears in the *Language Editions*
+proposal.
 
 ### 16.4 Editions and Versioned Semantics
 
 The *Language Editions* proposal explores selecting language semantics per
-module so that different editions could coexist in a configuration. That is
-design background, not a general upgrade mechanism available to practitioners.
-At the cited revision, the parser recognizes only the default `TF2021` edition.
+module, so that different editions could coexist in one configuration. That is
+design background rather than an upgrade mechanism available to practitioners:
+at the cited revision, the parser recognizes only the default `TF2021` edition.
 [Source: [`internal/configs/experiments.go`][editions-parser].]
 
-A future edition mechanism would need to define what changes at a module
-boundary and what remains shared, including values, provider association,
-addresses, and artifacts. A new syntax selector alone would not resolve those
-cross-version interactions. Stacks defines a different orchestration boundary
-and must be evaluated against its own compatibility commitments.
+A future edition mechanism would have to define what changes at a module
+boundary and what stays shared — values, provider association, addresses,
+artifacts. A syntax selector alone does not answer those cross-version
+questions. Stacks defines a different orchestration boundary again, and has to
+be evaluated against its own compatibility commitments.
 
 ### 16.5 Evolution of the Model
 
-Terraform has added capabilities while retaining the plan/apply model, typed
-partial values, and persistent management bindings. Those foundations explain
-how features can fit together, but do not make the current set of abstractions
-the only possible design.
+Terraform has added a great deal while keeping three things fixed: the
+plan/apply model, typed partial values, and persistent management bindings.
+Those foundations explain how new features fit alongside old ones. They do not
+establish that the current abstractions are the only workable ones.
 
-A useful architectural reference makes assumptions explicit enough to examine.
-When a design preserves them, the existing contracts help explain its behavior.
-When it changes them, the work includes identifying affected consumers and
-establishing the replacement contract. That is the role of the numbered
-principles and dependency table, rather than a presumption that an earlier
-decision must remain unchanged.
+What an architectural reference can do is make assumptions explicit enough to
+argue with. A design that preserves them inherits the existing contracts as
+explanation. A design that changes them takes on the work of identifying the
+affected consumers and establishing the replacement contract. That is what the
+numbered principles and the dependency table are for — not to presume that an
+earlier decision must stand.
 
 ---
 
@@ -1791,19 +1962,19 @@ decision must remain unchanged.
 
 ## Appendix A - Principle Index and Architectural Dependencies
 
-The table summarizes the numbered principles; their full statements and
-qualifications are in the referenced sections. **A**, **D**, and **P** mean
-architectural axiom, derived guarantee, and design policy, as defined in §0.2.
-The labels do not rank the seriousness of a contract violation.
+The table summarizes the numbered principles. Full statements and their
+qualifications are in the sections cited. **A**, **D**, and **P** are
+architectural axiom, derived guarantee, and design policy, as defined in §0.2;
+they do not rank how serious a violation would be.
 
-**Dependencies in this model** identifies supporting assumptions in the account
-given here. It is not a necessary-and-sufficient dependency relation, an
-exhaustive list of implementation dependencies, or a proof that replacing an
-assumption makes the supported property impossible. A blank entry means that
-the table does not identify another numbered principle as support.
+**Dependencies in this model** names the supporting assumptions used by the
+account given here, and nothing stronger. It is not a necessary-and-sufficient
+relation, not an exhaustive list of implementation dependencies, and not a proof
+that replacing an assumption makes the supported property impossible. A blank
+entry means this table identifies no other numbered principle as support.
 
 | ID | Kind | Name | Summary | Section | Dependencies in this model |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | P1 | A | Data Flow | Configuration describes relationships; Core determines evaluation order. | 1.2 | - |
 | P2 | A | Reference Order | References alone establish configuration evaluation dependencies. | 1.2 | - |
 | P3 | A | Pure Evaluation | Expression computation is distinct from managed-resource operations. | 2.1 | - |
@@ -1829,23 +2000,24 @@ the table does not identify another numbered principle as support.
 | P23 | A | State Is Wholly Known | Persisted snapshots contain no unknowns; planning representations are different. | 11.1 | - |
 | P24 | D | Plan Authorization | Resolving unknowns does not authorize changes beyond the current plan. | 2.3 | P4, P15 |
 
-For example, P18 cites P21 because destruction needs dependency information
-after configuration has changed. P14 cites P13 because propagating the ephemeral
-mark is part of enforcing its storage boundary. P6 additionally needs stable
-inputs, adequate scope, and conforming provider behavior; those conditions are
-not exhausted by the numbered entries in its row.
+Reading a row: P18 cites P21 because destruction needs dependency information
+that outlives the configuration. P14 cites P13 because propagating the ephemeral
+mark is how its storage boundary gets enforced. P6's row is deliberately
+incomplete — convergence also requires stable inputs, adequate scope, and
+conforming provider behavior, none of which is a numbered principle.
 
-The table is useful for tracing a design question into other sections. It does
-not replace the explanation of why a particular proposal affects a particular
-contract.
+Use the table to trace a design question into the sections that discuss it. It
+will not tell you *why* a particular proposal affects a particular contract;
+that argument still has to be made.
 
 ## Appendix B - Feature Interaction Checklist
 
-The checklist covers recurring architectural questions. Its purpose is to
-organize investigation, not to certify completeness by checking every row.
+These are the architectural questions that come up again and again. The
+checklist organizes an investigation; it does not certify a design by having
+every row ticked.
 
 | Area | What the design should establish |
-|---|---|
+| --- | --- |
 | Evaluation dependencies | Identify referenced subjects and their resolution rules. Distinguish those dependencies from internal lifecycle, provider-lifetime, and cleanup ordering. |
 | Values | Specify type conversion, null handling, partial values, refinements, and mark propagation. Keep runtime decisions about unknowns separate from configuration-observable behavior. |
 | Planning | Identify the authorized changes and value commitments. Define whether planning must be complete and, if not, how deferred work is reported and subsequently planned. |
@@ -1859,19 +2031,18 @@ organize investigation, not to certify completeness by checking every row.
 | User and automation interfaces | Cover native and JSON configuration, human-readable presentation, documented JSON outputs, exit behavior, and the environments intended to support the feature. |
 | Compatibility | Identify newly reserved names, newly supported combinations, and changes to valid configurations or protected workflows. Assess diagnostic changes by their actual effect rather than by text alone. |
 
-Evidence should include the relevant implementation paths and representative
-interactions, especially across phases. Testing an isolated successful create
-path cannot establish a saved-plan contract, removal behavior, or preservation
-of sensitive and ephemeral handling.
+Evidence means implementation paths and representative interactions, especially
+interactions that cross phases. A passing test of an isolated, successful create
+path establishes nothing about the saved-plan contract, about removal, or about
+whether sensitive and ephemeral handling survives.
 
 ## Appendix C - Scope Notes
 
-Several boundaries recur throughout the paper. They are collected here to
-prevent the short principle names from being read more broadly than their
-definitions.
+The principle names are short, which makes them easy to cite and easy to
+over-read. These are the boundaries that matter most, collected in one place.
 
 | Boundary | Scope |
-|---|---|
+| --- | --- |
 | Expression computation and graph operations | P3 does not claim that planning has no external interactions. Refresh, data-source reads, and ephemeral-resource operations are distinct from expression computation. |
 | Partial operations | Targeting and deferral limit what a round establishes about the whole configuration. They do not themselves authorize unplanned changes or contradict the executable plan's known values. |
 | External inputs | Filesystem contents and other changing inputs need a lifetime model. P11 concerns refined knowledge of the same computation, not arbitrary reevaluation against a changed world. |
@@ -1879,15 +2050,16 @@ definitions.
 | Legacy providers | Compatibility paths preserve particular older behaviors. They are not the default contract for new provider implementations. |
 | Related languages | The principles apply at identified boundaries. A Stack component operation and a complete Stack are not the same scope; neither is a test run and its surrounding test orchestration. |
 
-Provisioner behavior is documented in the [provisioner reference][provisioners-doc].
+Provisioner behavior is documented in the
+[provisioner reference][provisioners-doc].
 The other boundaries are developed in the sections cited by their principle
 numbers.
 
 ## Appendix D - Limits of This Reference
 
-This paper does not provide a complete operational specification for backends,
-provider SDKs, or the related language family. Three areas require more detailed
-references for implementation work.
+This paper is not an operational specification for backends, provider SDKs, or
+the related language family. Three areas in particular need more detailed
+references before implementation work.
 
 **Persistence and recovery:** backend-specific locking and write guarantees,
 saved-plan validation, cancellation, and recovery when remote progress cannot
@@ -1912,7 +2084,7 @@ of these details, the applicable versioned source remains necessary.
 All implementation links use the revision identified in §0.4.
 
 | Source | Main use in this paper |
-|---|---|
+| --- | --- |
 | [`docs/architecture.md`][architecture] | Subsystem roles and the relationship between configuration, graphs, providers, and state |
 | [`docs/planning-behaviors.md`][planning] | Default resource planning and configuration-, provider-, and run-driven adjustments |
 | [`docs/resource-instance-change-lifecycle.md`][resource-lifecycle] | Values and obligations across resource RPCs |
@@ -1927,8 +2099,9 @@ supplies operation-specific paths and details of versioned capabilities.
 `internal/configs` and [`configschema`][schemas] cover configuration decoding
 and schemas. [`internal/addrs`][addresses] defines address kinds.
 `internal/lang`, [`marks`][marks], and [`ephemeral`][ephemeral-implementation]
-cover evaluation and handling metadata. [`internal/plans/objchange`][object-change-package]
-contains proposed-state construction and consistency checks.
+cover evaluation and handling metadata.
+[`internal/plans/objchange`][object-change-package] contains proposed-state
+construction and consistency checks.
 
 [`internal/terraform`][terraform-runtime], [`internal/dag`][dag-package], and
 [`internal/instances`][instances] contain graph construction, walking, and
