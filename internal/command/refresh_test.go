@@ -295,7 +295,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	actual := newState.RootModule().Resources["test_instance.foo"].Instances[addrs.NoKey].Current
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
-		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
+		AttrsJSON:    []byte(`{"ami":null,"id":"yes"}`),
 		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -365,7 +365,7 @@ func TestRefresh_outPath(t *testing.T) {
 	actual := newState.RootModule().Resources["test_instance.foo"].Instances[addrs.NoKey].Current
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
-		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
+		AttrsJSON:    []byte(`{"ami":null,"id":"yes"}`),
 		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -660,7 +660,7 @@ func TestRefresh_backup(t *testing.T) {
 	actual := newState.RootModule().Resources["test_instance.foo"].Instances[addrs.NoKey].Current
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
-		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"changed\"\n          }"),
+		AttrsJSON:    []byte(`{"ami":null,"id":"changed"}`),
 		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
@@ -732,7 +732,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	actual := newState.RootModule().Resources["test_instance.foo"].Instances[addrs.NoKey].Current
 	expected := &states.ResourceInstanceObjectSrc{
 		Status:       states.ObjectReady,
-		AttrsJSON:    []byte("{\n            \"ami\": null,\n            \"id\": \"yes\"\n          }"),
+		AttrsJSON:    []byte(`{"ami":null,"id":"yes"}`),
 		Dependencies: []addrs.ConfigResource{},
 	}
 	if !reflect.DeepEqual(actual, expected) {
