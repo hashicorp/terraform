@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"os"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/zclconf/go-cty/cty"
@@ -90,6 +91,11 @@ func New() backend.Backend {
 						Optional:    true,
 						Description: "The maximum time in seconds to wait between HTTP request attempts",
 					},
+					"ca_file": {
+						Type:        cty.String,
+						Optional:    true,
+						Description: "Path to a PEM-encoded CA certificate bundle to use when verifying server TLS certificates. May be set via TF_HTTP_CA_FILE.",
+					},
 					"client_ca_certificate_pem": {
 						Type:        cty.String,
 						Optional:    true,
@@ -116,6 +122,21 @@ type Backend struct {
 
 	client *httpClient
 }
+
+func loadCACertsFromFile(path string) (*x509.CertPool, error) {
+	pemData, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read ca_file %q: %w", path, err)
+	}
+
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(pemData) {
+		return nil, fmt.Errorf("failed to parse CA certificates in %q", path)
+	}
+
+	return pool, nil
+}
+
 
 func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	address := backendbase.GetAttrEnvDefaultFallback(
@@ -257,6 +278,10 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 	skipCertVerification := backendbase.MustBoolValue(
 		backendbase.GetAttrDefault(configVal, "skip_cert_verification", cty.False),
 	)
+	caFile := backendbase.GetAttrEnvDefaultFallback(
+		configVal, "ca_file",
+		"TF_HTTP_CA_FILE", cty.StringVal(""),
+	).AsString()
 	clientCACertificatePem := backendbase.GetAttrEnvDefaultFallback(
 		configVal, "client_ca_certificate_pem",
 		"TF_HTTP_CLIENT_CA_CERTIFICATE_PEM", cty.StringVal(""),
@@ -269,7 +294,12 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 		configVal, "client_private_key_pem",
 		"TF_HTTP_CLIENT_PRIVATE_KEY_PEM", cty.StringVal(""),
 	).AsString()
-	if !skipCertVerification && clientCACertificatePem == "" && clientCertificatePem == "" && clientPrivateKeyPem == "" {
+	// No TLS customization required
+	if !skipCertVerification &&
+		caFile == "" &&
+		clientCACertificatePem == "" &&
+		clientCertificatePem == "" &&
+		clientPrivateKeyPem == "" {
 		return nil
 	}
 	if clientCertificatePem != "" && clientPrivateKeyPem == "" {
@@ -278,25 +308,43 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, configVal cty.Value
 	if clientPrivateKeyPem != "" && clientCertificatePem == "" {
 		return fmt.Errorf("client_private_key_pem is set but client_certificate_pem is not")
 	}
+	transport, ok := client.HTTPClient.Transport.(*http.Transport)
+	if !ok {
+		return fmt.Errorf("unexpected HTTP transport type")
+	}
 
 	// TLS configuration is needed; create an object and configure it
-	var tlsConfig tls.Config
-	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
+	tlsConfig := &tls.Config{}
+	transport.TLSClientConfig = tlsConfig
 
 	if skipCertVerification {
 		// ignores TLS verification
 		tlsConfig.InsecureSkipVerify = true
 	}
-	if clientCACertificatePem != "" {
-		// trust servers based on a CA
-		tlsConfig.RootCAs = x509.NewCertPool()
-		if !tlsConfig.RootCAs.AppendCertsFromPEM([]byte(clientCACertificatePem)) {
-			return errors.New("failed to append certs")
+	// trust servers based on a CA
+	if caFile != "" || clientCACertificatePem != "" {
+		rootCAs := x509.NewCertPool()
+
+		if caFile != "" {
+			filePool, err := loadCACertsFromFile(caFile)
+			if err != nil {
+				return err
+			}
+			rootCAs = filePool
 		}
+		if clientCACertificatePem != "" {
+			if !rootCAs.AppendCertsFromPEM([]byte(clientCACertificatePem)) {
+				return errors.New("failed to append certs")
+			}
+		}
+		tlsConfig.RootCAs = rootCAs
 	}
 	if clientCertificatePem != "" && clientPrivateKeyPem != "" {
 		// attach a client certificate to the TLS handshake (aka mTLS)
-		certificate, err := tls.X509KeyPair([]byte(clientCertificatePem), []byte(clientPrivateKeyPem))
+		certificate, err := tls.X509KeyPair(
+			[]byte(clientCertificatePem),
+			[]byte(clientPrivateKeyPem),
+		)
 		if err != nil {
 			return fmt.Errorf("cannot load client certificate: %w", err)
 		}
