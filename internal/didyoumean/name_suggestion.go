@@ -7,6 +7,11 @@ import (
 	"github.com/agext/levenshtein"
 )
 
+// maxCost refers to the max cost tolerated by the Levenshtein distance before
+// it stops calculating. 3 was chosen as an experimental figure 6 years ago and has
+// evidently been satisfactory since.
+const maxCost = 3
+
 // NameSuggestion tries to find a name from the given slice of suggested names
 // that is close to the given name and returns it if found. If no suggestion
 // is close enough, returns the empty string.
@@ -18,8 +23,8 @@ import (
 // suggestions. It's not optimized for hundreds or thousands of them.
 func NameSuggestion(given string, suggestions []string) string {
 	for _, suggestion := range suggestions {
-		dist := levenshtein.Distance(given, suggestion, nil)
-		if dist < 3 { // threshold determined experimentally
+		dist := levenshtein.Distance(given, suggestion, (levenshtein.NewParams()).MaxCost(maxCost))
+		if dist < maxCost {
 			return suggestion
 		}
 	}
