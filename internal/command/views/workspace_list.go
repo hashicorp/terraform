@@ -92,16 +92,26 @@ type WorkspaceOutput struct {
 
 // List is used to log the list of present workspaces and indicate which is currently selected
 //
-// If `workspace list` errors must return early with error diagnostics then the list will be empty and accompanied by errors.
-// If the command succeeds then the list will be populated and the diagnostics list will be either empty or contain warnings.
+// If the `workspace list` command succeeds then the list will be populated and the diagnostics list will be either empty or contain warnings.
 func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
+	v.print(current, list, diags)
+}
 
+// Diagnostics logs only the diagnostics without listing any workspaces, and is intended to be used
+// only when the `workspace list` command returns early with errors.
+// The rendered diagnostics are presented in the same JSON object schema as the output when the command
+// completes successfully.
+func (v *WorkspaceListJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.print("", []string{}, diags)
+}
+
+func (v *WorkspaceListJSON) print(current string, list []string, diags tfdiags.Diagnostics) {
 	output := WorkspaceListOutput{
 		FormatVersion: FormatVersion,
+		// Make sure these fields always appear as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
+		Workspaces:  []WorkspaceOutput{},
 	}
 
 	for _, item := range list {
@@ -112,56 +122,12 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 		output.Workspaces = append(output.Workspaces, workspace)
 	}
 
-	if output.Workspaces == nil {
-		// Make sure this always appears as an array in our output
-		// Zero workspaces being returned is a valid outcome. In that scenario a warning diagnostic is included,
-		// and that'll be easier to understand next to an empty workspace list.
-		output.Workspaces = []WorkspaceOutput{}
-	}
-
 	configSources := v.view.view.configSources()
 	for _, diag := range diags {
 		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
-	}
-
-	if output.Diagnostics == nil {
-		// Make sure this always appears as an array in our output, since
-		// this is easier to consume for dynamically-typed languages.
-		output.Diagnostics = []*viewsjson.Diagnostic{}
 	}
 
 	v.view.Print(output)
-}
-
-// Diagnostics logs only the diagnostics without listing any workspaces, and is intended to be used
-// only when the command returns early with errors. This method ensured that the diagnostics are presented
-// in the same JSON object schema as the output when the command completes successfully.
-//
-// This method is mainly here to try and discourage developers from using the underlying View's
-// Diagnostics method, which produces human-readable output instead of JSON.
-func (v *WorkspaceListJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
-
-	output := WorkspaceListOutput{
-		FormatVersion: FormatVersion,
-
-		// Make sure this always appears as an array in our output, since
-		// this is easier to consume for dynamically-typed languages.
-		Diagnostics: []*viewsjson.Diagnostic{},
-
-		// Make sure this always appears as an array in our output
-		Workspaces: []WorkspaceOutput{},
-	}
-
-	configSources := v.view.view.configSources()
-	for _, diag := range diags {
-		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
-	}
-
-	v.view.Diagnostics(output)
 }
 
 // warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
