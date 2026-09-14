@@ -5,6 +5,9 @@ package views
 
 import (
 	"encoding/json"
+
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func NewJSONStaticView[T any](view *View) *JSONStaticView[T] {
@@ -32,4 +35,13 @@ func (v *JSONStaticView[T]) Print(data T) {
 	}
 
 	v.view.streams.Println(string(b))
+}
+
+func (v *JSONStaticView[T]) prepareDiagnostics(diags tfdiags.Diagnostics) []*viewsjson.Diagnostic {
+	configSources := v.view.configSources()
+	result := []*viewsjson.Diagnostic{}
+	for _, diag := range diags {
+		result = append(result, viewsjson.NewDiagnostic(diag, configSources))
+	}
+	return result
 }
