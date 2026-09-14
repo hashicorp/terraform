@@ -98,6 +98,15 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 
 	output := WorkspaceListOutput{
 		FormatVersion: FormatVersion,
+
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
+
+		// Make sure this always appears as an array in our output
+		// Zero workspaces being returned is a valid outcome. In that scenario a warning diagnostic is included,
+		// and that'll be easier to understand next to an empty workspace list.
+		Workspaces: []WorkspaceOutput{},
 	}
 
 	for _, item := range list {
@@ -108,22 +117,9 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 		output.Workspaces = append(output.Workspaces, workspace)
 	}
 
-	if output.Workspaces == nil {
-		// Make sure this always appears as an array in our output
-		// Zero workspaces being returned is a valid outcome. In that scenario a warning diagnostic is included,
-		// and that'll be easier to understand next to an empty workspace list.
-		output.Workspaces = []WorkspaceOutput{}
-	}
-
 	configSources := v.view.configSources()
 	for _, diag := range diags {
 		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
-	}
-
-	if output.Diagnostics == nil {
-		// Make sure this always appears as an array in our output, since
-		// this is easier to consume for dynamically-typed languages.
-		output.Diagnostics = []*viewsjson.Diagnostic{}
 	}
 
 	jsonOutput, err := json.MarshalIndent(output, "", "  ")
