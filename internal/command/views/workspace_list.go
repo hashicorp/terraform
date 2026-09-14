@@ -16,6 +16,7 @@ import (
 // The WorkspaceList view is used for the `workspace list` subcommand.
 type WorkspaceList interface {
 	List(selected string, list []string, diags tfdiags.Diagnostics)
+	Diagnostics(diags tfdiags.Diagnostics)
 }
 
 func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
@@ -62,6 +63,10 @@ func (v *WorkspaceListHuman) List(selected string, list []string, diags tfdiags.
 		// Warn that no states exist
 		v.view.Diagnostics(warnNoEnvsExistDiag(selected))
 	}
+}
+
+func (v *WorkspaceListHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
 
 // The WorkspaceListJSON implementation renders machine-readable logs, suitable for
@@ -126,6 +131,37 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 	}
 
 	v.view.Print(output)
+}
+
+// Diagnostics logs only the diagnostics without listing any workspaces, and is intended to be used
+// only when the command returns early with errors. This method ensured that the diagnostics are presented
+// in the same JSON object schema as the output when the command completes successfully.
+//
+// This method is mainly here to try and discourage developers from using the underlying View's
+// Diagnostics method, which produces human-readable output instead of JSON.
+func (v *WorkspaceListJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const FormatVersion = "1.0"
+
+	output := WorkspaceListOutput{
+		FormatVersion: FormatVersion,
+
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
+
+		// Make sure this always appears as an array in our output
+		Workspaces: []WorkspaceOutput{},
+	}
+
+	configSources := v.view.view.configSources()
+	for _, diag := range diags {
+		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
+	}
+
+	v.view.Diagnostics(output)
 }
 
 // warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
