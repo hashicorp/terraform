@@ -179,8 +179,8 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 	if op.PlanMinimalRefresh {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Minimal refresh mode is currently not supported",
-			`The "remote" backend does not support -minimal-refresh mode for `+
+			"Minimal refresh planning option is currently not supported",
+			`The "remote" backend does not support the -minimal-refresh option for `+
 				`remote plans at this time.`,
 		))
 	}
