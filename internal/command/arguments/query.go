@@ -22,7 +22,6 @@ type Query struct {
 	// be written to.
 	GenerateConfigPath string
 
-	// EXPERIMENTAL
 	// PolicyPaths contains optional paths to policy set directories that should
 	// be evaluated during this query operation.
 	PolicyPaths []string
