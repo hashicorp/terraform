@@ -90,8 +90,8 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 	if op.PlanMinimalRefresh {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Minimal refresh mode is currently not supported",
-			fmt.Sprintf("%s does not support -minimal-refresh mode for ", b.appName)+
+			"Minimal refresh planning option is currently not supported",
+			fmt.Sprintf("%s does not support the -minimal-refresh option for ", b.appName)+
 				"plans at this time.",
 		))
 	}
