@@ -5,7 +5,6 @@ package views
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -27,7 +26,7 @@ func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
 		}
 	case arguments.ViewJSON:
 		return &WorkspaceListJSON{
-			view: view,
+			view: NewJSONStaticView[WorkspaceListOutput](view),
 		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
@@ -70,7 +69,7 @@ func (v *WorkspaceListHuman) List(selected string, list []string, diags tfdiags.
 //
 // This JSON output is a 'static log'; the command should produce a single JSON object containing all the available information.
 type WorkspaceListJSON struct {
-	view *View
+	view *JSONStaticView[WorkspaceListOutput]
 }
 
 var _ WorkspaceList = (*WorkspaceListJSON)(nil)
@@ -115,7 +114,7 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 		output.Workspaces = []WorkspaceOutput{}
 	}
 
-	configSources := v.view.configSources()
+	configSources := v.view.view.configSources()
 	for _, diag := range diags {
 		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
 	}
@@ -126,13 +125,7 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 		output.Diagnostics = []*viewsjson.Diagnostic{}
 	}
 
-	jsonOutput, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		// Should never happen because we fully-control the input here
-		panic(fmt.Sprintf("failed to marshal workspace list json output: %v", err))
-	}
-
-	v.view.streams.Println(string(jsonOutput))
+	v.view.Print(output)
 }
 
 // warnNoEnvsExistDiag creates a warning diagnostic saying that no workspaces exist,
