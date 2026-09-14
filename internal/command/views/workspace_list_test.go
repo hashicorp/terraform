@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestWorkspaceListHuman(t *testing.T) {
+func TestWorkspaceListHuman_List(t *testing.T) {
 	testCases := map[string]struct {
 		selected   string
 		list       []string
@@ -41,20 +41,6 @@ func TestWorkspaceListHuman(t *testing.T) {
 			},
 			"Warning: Example warning\n\nThis is an example warning message.\n* default\n  other",
 			"",
-		},
-		"error": {
-			"foobar",
-			[]string{},
-			tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Example error",
-					"This is an example error message.",
-				),
-			},
-			"Warning: Terraform cannot find any existing workspaces.\n\n" +
-				"The \"foobar\" workspace is selected in your working directory. You can create\nthis workspace by using the \"terraform workspace new\" subcommand or including\nthe \"-or-create\" flag with the \"terraform workspace select\" subcommand.",
-			"Error: Example error\n\nThis is an example error message.\n\n",
 		},
 	}
 	for name, tc := range testCases {
@@ -85,7 +71,43 @@ func TestWorkspaceListHuman(t *testing.T) {
 	}
 }
 
-func TestWorkspaceListJSON(t *testing.T) {
+func TestWorkspaceListHuman_Diagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diags   tfdiags.Diagnostics
+		wantLog string
+	}{
+		"error": {
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Example error",
+					"This is an example error message.",
+				),
+			},
+			"Error: Example error\n\nThis is an example error message.\n\n",
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewWorkspaceList(arguments.ViewHuman, view)
+
+			v.Diagnostics(tc.diags)
+
+			got := strings.TrimSpace(done(t).All())
+			want := strings.TrimSpace(tc.wantLog)
+
+			// Assert contents
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("unexpected diff in human output:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestWorkspaceListJSON_List(t *testing.T) {
 	testCases := map[string]struct {
 		selected string
 		list     []string
@@ -140,9 +162,37 @@ func TestWorkspaceListJSON(t *testing.T) {
 				},
 			},
 		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewWorkspaceList(arguments.ViewJSON, view)
+
+			v.List(tc.selected, tc.list, tc.diags)
+
+			got := done(t).Stdout()
+
+			var result map[string]interface{}
+			if err := json.Unmarshal([]byte(got), &result); err != nil {
+				t.Fatal("expected to be able to unmarshal JSON, got error:", err)
+			}
+
+			// Assert contents
+			if diff := cmp.Diff(tc.wantLog, result); diff != "" {
+				t.Fatalf("unexpected diff in JSON output:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestWorkspaceListJSON_Diagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diags   tfdiags.Diagnostics
+		wantLog map[string]interface{}
+	}{
 		"error": {
-			"foobar",
-			[]string{},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -170,7 +220,7 @@ func TestWorkspaceListJSON(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewWorkspaceList(arguments.ViewJSON, view)
 
-			v.List(tc.selected, tc.list, tc.diags)
+			v.Diagnostics(tc.diags)
 
 			got := done(t).Stdout()
 
