@@ -135,10 +135,7 @@ func (v *WorkspaceListJSON) print(current string, list []string, diags tfdiags.D
 		output.Workspaces = append(output.Workspaces, workspace)
 	}
 
-	configSources := v.view.view.configSources()
-	for _, diag := range diags {
-		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
-	}
+	output.Diagnostics = v.view.prepareDiagnostics(diags)
 
 	v.view.Print(output)
 }
