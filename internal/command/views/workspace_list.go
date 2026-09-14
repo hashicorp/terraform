@@ -26,9 +26,7 @@ func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
 			view: view,
 		}
 	case arguments.ViewJSON:
-		return &WorkspaceListJSON{
-			view: NewJSONStaticView[WorkspaceListOutput](view),
-		}
+		return NewWorkspaceListJSON(view)
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
 	}
@@ -75,9 +73,24 @@ func (v *WorkspaceListHuman) Diagnostics(diags tfdiags.Diagnostics) {
 // This JSON output is a 'static log'; the command should produce a single JSON object containing all the available information.
 type WorkspaceListJSON struct {
 	view *JSONStaticView[WorkspaceListOutput]
+
+	// formatVersion contains data used to populate the format_version field in the JSON output.
+	formatVersion string
 }
 
 var _ WorkspaceList = (*WorkspaceListJSON)(nil)
+
+func NewWorkspaceListJSON(view *View) *WorkspaceListJSON {
+	// FormatVersionWorkspaceListJSON represents the version of the json format
+	// for the `workspace list` JSON output and will be incremented for any change
+	// to this format that requires changes to a consuming parser.
+	const FormatVersionWorkspaceListJSON = "1.0"
+
+	return &WorkspaceListJSON{
+		view:          NewJSONStaticView[WorkspaceListOutput](view),
+		formatVersion: FormatVersionWorkspaceListJSON,
+	}
+}
 
 type WorkspaceListOutput struct {
 	FormatVersion string                  `json:"format_version"`
@@ -94,13 +107,8 @@ type WorkspaceOutput struct {
 //
 // If the `workspace list` command succeeds then the list will be populated and the diagnostics list will be either empty or contain warnings.
 func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
-
 	output := WorkspaceListOutput{
-		FormatVersion: FormatVersion,
+		FormatVersion: v.formatVersion,
 		// Make sure these fields always appear as an array in our output, since
 		// this is easier to consume for dynamically-typed languages.
 		Diagnostics: []*viewsjson.Diagnostic{},
@@ -128,13 +136,8 @@ func (v *WorkspaceListJSON) List(current string, list []string, diags tfdiags.Di
 // The rendered diagnostics are presented in the same JSON object schema as the output when the command
 // completes successfully.
 func (v *WorkspaceListJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
-
 	output := WorkspaceListOutput{
-		FormatVersion: FormatVersion,
+		FormatVersion: v.formatVersion,
 
 		// Make sure these fields always appear as an array in our output, since
 		// this is easier to consume for dynamically-typed languages.
