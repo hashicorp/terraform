@@ -5,7 +5,6 @@ package views
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -36,7 +35,8 @@ func NewVersion(vt arguments.ViewType, view *View) Version {
 	switch vt {
 	case arguments.ViewJSON:
 		return &VersionJSON{
-			view: view,
+			view:       NewJSONStaticView[VersionOutput](view),
+			legacyView: view,
 		}
 	case arguments.ViewHuman:
 		return &VersionHuman{
@@ -90,14 +90,22 @@ func (v *VersionHuman) LogVersion(version string, platform string, providerSelec
 }
 
 type VersionJSON struct {
-	view *View
+	view *JSONStaticView[VersionOutput]
+
+	// Legacy view for logging warnings in human-readable format
+	// The `version` command's JSON output was implemented in a way that still produces
+	// human-readable output when diagnostics are logged. This is preserved, as updating
+	// it is a breaking change, but this should be amended in a future major version.
+	legacyView *View
 }
 
+// Diagnostics produces human-readable output, despite the -json flag being used.
+// This was a bug in the original implementation of JSON output and should be updated in future.
 func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		return
 	}
-	v.view.Diagnostics(diags)
+	v.legacyView.Diagnostics(diags)
 }
 
 // LogVersion prints the version information in JSON format.
@@ -108,7 +116,7 @@ func (v *VersionJSON) LogVersion(version string, platform string, providerSelect
 	// consuming parser.
 	const FormatVersion = "1.0"
 
-	v.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
+	v.legacyView.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
 
 	output := VersionOutput{
 		FormatVersion:      FormatVersion,
@@ -122,14 +130,5 @@ func (v *VersionJSON) LogVersion(version string, platform string, providerSelect
 		output.ProviderSelections[provider.String()] = lock.Version().String()
 	}
 
-	v.view.streams.Println(v.marshal(&output))
-}
-
-func (v *VersionJSON) marshal(output *VersionOutput) string {
-	j, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		// Should never happen because we fully-control the input here
-		panic(err)
-	}
-	return string(j)
+	v.view.Print(output)
 }
