@@ -109,14 +109,16 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 	if init {
 		// optionally execute the get command to fetch local modules if the
 		// test case needs them
+		view, done := testView(t)
 		c := &GetCommand{
 			Meta: Meta{
-				Ui: new(cli.MockUi),
+				Ui:   new(cli.MockUi),
+				View: view,
 			},
 		}
 		code := c.Run(nil)
 		if code != 0 {
-			t.Fatal("failed get command")
+			t.Fatalf("failed get command: %s", done(t).All())
 		}
 	}
 
@@ -224,7 +226,6 @@ func TestProvidersLock_constVariable(t *testing.T) {
 }
 
 func TestProvidersLock_args(t *testing.T) {
-
 	t.Run("mirror collision", func(t *testing.T) {
 		ui := testUiWrapped(t)
 		c := &ProvidersLockCommand{
