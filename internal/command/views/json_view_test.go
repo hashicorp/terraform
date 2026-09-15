@@ -42,6 +42,20 @@ func TestNewJSONView(t *testing.T) {
 	testJSONViewOutputEqualsFull(t, done(t).Stdout(), want)
 }
 
+// Calling NewJSONViewNoVersionLog should not output a version message.
+func TestNewJSONViewNoVersionLog(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	NewJSONViewNoVersionLog(NewView(streams))
+
+	output := done(t)
+	if output.Stdout() != "" {
+		t.Errorf("expected no output, got %q", output.Stdout())
+	}
+	if output.Stderr() != "" {
+		t.Errorf("expected no output, got %q", output.Stderr())
+	}
+}
+
 func TestJSONView_Log(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	jv := NewJSONView(NewView(streams))
