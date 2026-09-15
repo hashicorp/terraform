@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -17,17 +18,30 @@ type GetCommand struct {
 	Meta
 }
 
-func (c *GetCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseGet(c.Meta.process(args))
+func (c *GetCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseGet(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewGet(arguments.ViewHuman, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -37,7 +51,7 @@ func (c *GetCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -47,13 +61,14 @@ func (c *GetCommand) Run(args []string) int {
 
 	path, err := ModulePath(nil)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -61,7 +76,7 @@ func (c *GetCommand) Run(args []string) int {
 
 	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update)
 	diags = diags.Append(moreDiags)
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
 	}
