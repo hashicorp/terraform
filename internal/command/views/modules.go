@@ -4,7 +4,6 @@
 package views
 
 import (
-	encJson "encoding/json"
 	"fmt"
 	"sort"
 
@@ -77,7 +76,13 @@ func (v *ModulesHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ModulesJSON struct {
-	view *View
+	view *JSONStaticView[ModulesOutput]
+
+	// Legacy view for logging warnings in human-readable format
+	// The `modules` command's JSON output was implemented in a way that still produces
+	// human-readable output when diagnostics are logged. This is preserved, as updating
+	// it is a breaking change, but this should be amended in a future major version.
+	legacyView *View
 
 	formatVersion string
 }
@@ -89,46 +94,51 @@ func NewModulesJSON(view *View) *ModulesJSON {
 	const formatVersion = "1.0"
 
 	return &ModulesJSON{
-		view:          view,
+		view:          NewJSONStaticView[ModulesOutput](view),
+		legacyView:    view,
 		formatVersion: formatVersion,
 	}
+}
+
+type ModulesOutput struct {
+	FormatVersion string         `json:"format_version"`
+	Modules       []ModuleOutput `json:"modules"`
+	// TODO: Add Diagnostics field
+}
+
+type ModuleOutput struct {
+	Key     string `json:"key"`
+	Source  string `json:"source"`
+	Version string `json:"version"`
 }
 
 var _ Modules = (*ModulesJSON)(nil)
 
 func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
-	var bytes []byte
-	var err error
-
 	flattenedManifest := flattenManifest(manifest, v.formatVersion)
-	if bytes, err = encJson.Marshal(flattenedManifest); err != nil {
-		v.view.streams.Eprintf("error marshalling manifest: %v", err)
-		return 1
-	}
-
-	v.view.streams.Println(string(bytes))
+	v.view.Print(flattenedManifest)
 	return 0
 }
 
-// FlattenManifest returns the nested contents of a moduleref.Manifest in
-// a flattened format with the VersionConstraints and Children attributes
+// FlattenManifest returns the nested contents of a moduleref.Manifest as
+// a ModulesOutput with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
-func flattenManifest(m moduleref.Manifest, formatVersion string) map[string]interface{} {
+func flattenManifest(m moduleref.Manifest, formatVersion string) ModulesOutput {
 	var flatten func(records []*moduleref.Record)
-	var recordList []map[string]string
+	recordList := make([]ModuleOutput, 0) // Ensure non-nil slice for JSON output
 	flatten = func(records []*moduleref.Record) {
 		for _, record := range records {
 			if record.Version != nil {
-				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
-					"source":  record.Source.String(),
-					"version": record.Version.String(),
+				recordList = append(recordList, ModuleOutput{
+					Key:     record.Key,
+					Source:  record.Source.String(),
+					Version: record.Version.String(),
 				})
 			} else {
-				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
-					"source":  record.Source.String(),
-					"version": "",
+				recordList = append(recordList, ModuleOutput{
+					Key:     record.Key,
+					Source:  record.Source.String(),
+					Version: "",
 				})
 			}
 
@@ -139,13 +149,16 @@ func flattenManifest(m moduleref.Manifest, formatVersion string) map[string]inte
 	}
 
 	flatten(m.Records)
-	ret := map[string]interface{}{
-		"format_version": formatVersion,
-		"modules":        recordList,
+	ret := ModulesOutput{
+		FormatVersion: formatVersion,
+		Modules:       recordList,
 	}
 	return ret
 }
 
+// Diagnostics produces human-readable output, despite the -json flag being used.
+// This was a bug in the original implementation of JSON output and should be updated in future.
+// TODO: Make diagnostics be rendered using the `ModuleOutput` struct, instead of human-readable format.
 func (v *ModulesJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	v.legacyView.Diagnostics(diags)
 }
