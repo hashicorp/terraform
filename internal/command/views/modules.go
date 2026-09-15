@@ -25,7 +25,7 @@ type Modules interface {
 func NewModules(vt arguments.ViewType, view *View) Modules {
 	switch vt {
 	case arguments.ViewJSON:
-		return &ModulesJSON{view: view}
+		return NewModulesJSON(view)
 	case arguments.ViewHuman:
 		return &ModulesHuman{view: view}
 	default:
@@ -78,15 +78,29 @@ func (v *ModulesHuman) Diagnostics(diags tfdiags.Diagnostics) {
 
 type ModulesJSON struct {
 	view *View
+
+	formatVersion string
 }
 
-var _ Modules = (*ModulesHuman)(nil)
+func NewModulesJSON(view *View) *ModulesJSON {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const formatVersion = "1.0"
+
+	return &ModulesJSON{
+		view:          view,
+		formatVersion: formatVersion,
+	}
+}
+
+var _ Modules = (*ModulesJSON)(nil)
 
 func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
 	var bytes []byte
 	var err error
 
-	flattenedManifest := flattenManifest(manifest)
+	flattenedManifest := flattenManifest(manifest, v.formatVersion)
 	if bytes, err = encJson.Marshal(flattenedManifest); err != nil {
 		v.view.streams.Eprintf("error marshalling manifest: %v", err)
 		return 1
@@ -99,7 +113,7 @@ func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
 // FlattenManifest returns the nested contents of a moduleref.Manifest in
 // a flattened format with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
-func flattenManifest(m moduleref.Manifest) map[string]interface{} {
+func flattenManifest(m moduleref.Manifest, formatVersion string) map[string]interface{} {
 	var flatten func(records []*moduleref.Record)
 	var recordList []map[string]string
 	flatten = func(records []*moduleref.Record) {
@@ -126,7 +140,7 @@ func flattenManifest(m moduleref.Manifest) map[string]interface{} {
 
 	flatten(m.Records)
 	ret := map[string]interface{}{
-		"format_version": m.FormatVersion,
+		"format_version": formatVersion,
 		"modules":        recordList,
 	}
 	return ret
