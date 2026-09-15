@@ -4472,16 +4472,53 @@ resource "test_object" "a" {
 			"after_create trigger not planned when SkipActions is set": {
 				module: map[string]string{
 					"main.tf": `
-action "test_action" "hello" {}
-resource "test_object" "a" {
-		lifecycle {
-			 action_trigger {
-			   events  = [after_create]
-			   actions = [action.test_action.hello]
-			 }
-		}
-}
-`,
+	action "test_action" "hello" {}
+	resource "test_object" "a" {
+			lifecycle {
+				 action_trigger {
+				   events  = [after_create]
+				   actions = [action.test_action.hello]
+				 }
+			}
+	}
+	`,
+				},
+				planOpts: &PlanOpts{
+					Mode:        plans.NormalMode,
+					SkipActions: true,
+				},
+				expectPlanActionCalled: false,
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected no action invocations when SkipActions is set, got %d", len(p.Changes.ActionInvocations))
+					}
+				},
+			},
+
+			// Regression test: when SkipActions is true, an action that uses the
+			// "caller" symbol in a resource trigger must not fail validation.
+			// Previously, skipping action trigger construction left
+			// referencedActionConfigs empty, so every action was wrapped as a
+			// NodeValidatableAction and validated without caller context, causing
+			// an "Invalid caller reference" error.
+			"caller symbol in trigger action passes validation when SkipActions is set": {
+				module: map[string]string{
+					"main.tf": `
+	action "test_action" "hello" {
+			config {
+			  attr = caller.name
+			}
+	}
+	resource "test_object" "a" {
+			name = "test_name"
+			lifecycle {
+			  action_trigger {
+			    events  = [after_create]
+			    actions = [action.test_action.hello]
+			  }
+			}
+	}
+	`,
 				},
 				planOpts: &PlanOpts{
 					Mode:        plans.NormalMode,
@@ -4646,7 +4683,8 @@ resource "test_object" "a" {
 					})
 
 					diags := ctx.Validate(m, &ValidateOpts{
-						Query: opts.Query,
+						Query:       opts.Query,
+						SkipActions: opts.SkipActions,
 					})
 					if tc.expectValidateDiagnostics != nil {
 						tfdiags.AssertDiagnosticsMatch(t, diags, tc.expectValidateDiagnostics(m))
