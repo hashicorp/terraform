@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views/json"
 )
 
 // The StateLocker view is used to display locking/unlocking status messages
@@ -61,7 +62,7 @@ func (v *StateLockerJSON) Locking() {
 
 	v.view.log.Info(
 		message,
-		"type", "state_lock_acquire",
+		"type", json.MessageStateLockAcquire,
 	)
 }
 
@@ -70,6 +71,6 @@ func (v *StateLockerJSON) Unlocking() {
 
 	v.view.log.Info(
 		message,
-		"type", "state_lock_release",
+		"type", json.MessageStateLockRelease,
 	)
 }
