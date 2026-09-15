@@ -18,23 +18,18 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	stdinArg = "-"
-)
-
-var (
-	fmtSupportedExts = []string{
-		".tf",
-		".tfvars",
-		".tftest.hcl",
-		".tfmock.hcl",
-		".tfquery.hcl",
-	}
-)
+var fmtSupportedExts = []string{
+	".tf",
+	".tfvars",
+	".tftest.hcl",
+	".tfmock.hcl",
+	".tfquery.hcl",
+}
 
 // FmtCommand is a Command implementation that rewrites Terraform config
 // files to a canonical format and style.
@@ -49,34 +44,25 @@ type FmtCommand struct {
 }
 
 func (c *FmtCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	if c.input == nil {
 		c.input = os.Stdin
 	}
 
 	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("fmt")
-	cmdFlags.BoolVar(&c.list, "list", true, "list")
-	cmdFlags.BoolVar(&c.write, "write", true, "write")
-	cmdFlags.BoolVar(&c.diff, "diff", false, "diff")
-	cmdFlags.BoolVar(&c.check, "check", false, "check")
-	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	parsedArgs, parseDiags := arguments.ParseFmt(args)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
-
-	var paths []string
-	if len(args) == 0 {
-		paths = []string{"."}
-	} else if args[0] == stdinArg {
-		c.list = false
-		c.write = false
-	} else {
-		paths = args
-	}
+	c.list = parsedArgs.List
+	c.write = parsedArgs.Write
+	c.diff = parsedArgs.Diff
+	c.check = parsedArgs.Check
+	c.recursive = parsedArgs.Recursive
 
 	var output io.Writer
 	list := c.list // preserve the original value of -list
@@ -90,9 +76,10 @@ func (c *FmtCommand) Run(args []string) int {
 		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
-	diags := c.fmt(paths, c.input, output)
+	fileDiags := c.fmt(parsedArgs.Paths, c.input, output)
+	diags = diags.Append(fileDiags)
 	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	if fileDiags.HasErrors() {
 		return 2
 	}
 

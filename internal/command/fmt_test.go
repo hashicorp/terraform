@@ -526,6 +526,36 @@ func TestFmt_stdinArg(t *testing.T) {
 	}
 }
 
+// This test defines current behaviour, and doesn't mean this is correct behaviour.
+// In future we should add validation in the arguments packages to prevent this being
+// silently ignored, but that will be a breaking change.
+func TestFmt_stdinArgIgnoresFurtherArguments(t *testing.T) {
+	t.Parallel()
+	input := new(bytes.Buffer)
+	input.Write(fmtFixture.input)
+
+	ui := testUiWrapped(t)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+		input: input,
+	}
+
+	args := []string{
+		"-",
+		"does-not-exist.tf", // Ignored, so it doesn't cause usual error "No file or directory at does-not-exist.tf"
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+	}
+
+	if actual := ui.OutputWriter.Bytes(); !bytes.Equal(actual, fmtFixture.golden) {
+		t.Fatalf("got: %q\nexpected: %q", actual, fmtFixture.golden)
+	}
+}
+
 func TestFmt_nonDefaultOptions(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
