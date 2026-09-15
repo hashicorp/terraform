@@ -7993,3 +7993,129 @@ func TestContext2Plan_deprecated_child_output_attr_in_root(t *testing.T) {
 		}))
 	}
 }
+
+// When planning with -target, a resource in a non-targeted module instance is
+// still expanded, but its instances are pruned from the graph and never
+// planned. References to such a resource (for example a module input in the
+// non-targeted module instance) must not fail with a spurious "Invalid index"
+// error; the missing instances should be treated as unknown values instead.
+func TestContext2Plan_targetExcludedModuleInstanceReference(t *testing.T) {
+	// variables are evaluated in the context of their parent module, so it's
+	// possible that they are being evaluated within module instances which have
+	// been pruned out during other node's dynamic expansion.
+	t.Run("variable-expansion", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+locals {
+  vals = {
+    a = { enabled = false }
+    b = { enabled = true }
+  }
+}
+
+module "child" {
+  source   = "./child"
+  for_each = local.vals
+  enabled  = each.value.enabled
+}
+`,
+
+			"./child/main.tf": `
+variable "enabled" {
+  type = bool
+}
+
+resource "test_object" "test" {
+  count = var.enabled ? 1 : 0
+}
+
+module "sub" {
+  source = "./sub"
+  input  = var.enabled ? test_object.test[0].test_string : null
+}
+`,
+
+			"./child/sub/main.tf": `
+variable "input" {
+  type = string
+}
+
+resource "test_object" "test" {
+  test_string = var.input
+}
+`,
+		})
+
+		p := simpleMockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
+		// We target module.child["a"], which has enabled = false. The other
+		// instance module.child["b"] has enabled = true, so its
+		// module.sub.var.input expression indexes test_object.test[0]. That
+		// instance is pruned by targeting, and must evaluate to unknown rather
+		// than an empty tuple.
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode:    plans.NormalMode,
+			Targets: []addrs.Targetable{mustModuleInstance(`module.child["a"]`)},
+		})
+		tfdiags.AssertNoErrors(t, diags)
+	})
+
+	// A resource meta-argument example of the above case. Each resource is
+	// initially expanded for all module instances, but some may not be pruned
+	// out before they are evaluated. This test also checks that our fix tracks
+	// the unknown instances correctly so that deferral works. This example
+	// would previously fail with an unknown index error even though deferrals
+	// are allowed.
+	t.Run("resource-expansion", func(t *testing.T) {
+		m := testModuleInline(t, map[string]string{
+			"main.tf": `
+locals {
+  vals = {
+    a = { enabled = false }
+    b = { enabled = true }
+  }
+}
+
+module "child" {
+  source   = "./child"
+  for_each = local.vals
+  enabled  = each.value.enabled
+}
+`,
+
+			"./child/main.tf": `
+variable "enabled" {
+  type = bool
+}
+
+resource "test_object" "a" {
+  count = var.enabled ? 1 : 0
+}
+
+resource "test_object" "b" {
+  count = var.enabled ? test_object.a[0].test_number : 0
+}
+`,
+		})
+
+		p := simpleMockProvider()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode:            plans.NormalMode,
+			Targets:         []addrs.Targetable{mustModuleInstance(`module.child["a"]`)},
+			DeferralAllowed: true,
+		})
+		if assertNoDiagnostics(t, diags.ErrorsOnly()) {
+			t.Fatal(diags.Err())
+		}
+	})
+}
