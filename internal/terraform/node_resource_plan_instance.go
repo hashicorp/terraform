@@ -385,7 +385,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if change.Action == plans.NoOp {
-			log.Printf("[DEBUG] Minimal refresh mode: skipping refresh as the initial plan is a no-op for %s", addr)
+			log.Printf("[DEBUG] Minimal refresh: skipping refresh as the initial plan is a no-op for %s", addr)
 
 			if updatedCBD {
 				// CreateBeforeDestroy must be set correctly in the state which is used
@@ -412,12 +412,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 			return diags.Append(initialPlanDiags)
 		} else {
-			log.Printf("[DEBUG] Minimal refresh mode: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
+			log.Printf("[DEBUG] Minimal refresh: refreshing resource as the initial plan produced a %s change for %s", change.Action, addr)
 		}
 	}
 
 	if n.minimalRefresh && resourceDataUpgraded {
-		log.Printf("[DEBUG] Minimal refresh mode: refreshing resource as the schema version for either the state or identity has been updated for %s", addr)
+		log.Printf("[DEBUG] Minimal refresh: refreshing resource as the schema version for either the state or identity has been updated for %s", addr)
 	}
 
 	// Refresh, maybe
