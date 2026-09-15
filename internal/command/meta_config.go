@@ -324,7 +324,9 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // The given hooks object will be notified of installation progress, which
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
-// via a provided cli.Ui.
+// via a provided View.
+//
+// This method uses the Meta's cli.Ui to log if the installation is interrupted.
 func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ...initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install modules")
 	defer span.End()
