@@ -33,6 +33,12 @@ type Init interface {
 	// LogInitializingStateStoreStart indicates progress during initialization of a state store.
 	LogInitializingStateStoreStart(storeType string)
 
+	// LogModuleUpgrade describes the start of upgrading a module during init.
+	LogModuleUpgrade()
+
+	// LogModuleInitialization describes the start of initializing a module during init.
+	LogModuleInitialization()
+
 	ModuleInstallationLogger
 	ProviderInstallationLogger
 	ProviderLockingLogger
