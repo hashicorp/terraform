@@ -66,6 +66,10 @@ const (
 	MessagePolicyEvaluationResult MessageType = "policy_result"
 	MessagePolicyQuerySummary     MessageType = "policy_query_summary"
 
+	// State Locker messages
+	MessageStateLockAcquire MessageType = "state_lock_acquire"
+	MessageStateLockRelease MessageType = "state_lock_release"
+
 	// Provider installation messages
 	MessageProviderInstallationStart           MessageType = "provider_installation_start"
 	MessageStateStoreProviderInstallationStart MessageType = "state_store_provider_installation_start"
