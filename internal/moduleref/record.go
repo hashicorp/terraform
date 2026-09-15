@@ -18,7 +18,7 @@ type Record struct {
 	Children           Records
 }
 
-// ModuleRecordManifest is the view implementation of module entries declared
+// Manifest describes all module entries declared
 // in configuration
 type Manifest struct {
 	Records Records
