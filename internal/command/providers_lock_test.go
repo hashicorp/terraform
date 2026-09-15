@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -112,7 +110,6 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 		view, done := testView(t)
 		c := &GetCommand{
 			Meta: Meta{
-				Ui:   new(cli.MockUi),
 				View: view,
 			},
 		}
