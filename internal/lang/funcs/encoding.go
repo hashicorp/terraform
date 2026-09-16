@@ -14,8 +14,22 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/ianaindex"
 )
+
+// decodedFaithfully reports whether decoded is a faithful decoding of src.
+//
+// A decoder substitutes U+FFFD for bytes it cannot decode rather than
+// reporting them, so the presence of that character is the only signal that
+// something was lost. It is not a reliable one on its own: a source may spell
+// out U+FFFD itself, which decodes perfectly well. Encoding the result again
+// tells the two apart, because a substituted U+FFFD does not reproduce the
+// bytes it replaced.
+func decodedFaithfully(enc encoding.Encoding, src, decoded []byte) bool {
+	reencoded, err := enc.NewEncoder().Bytes(decoded)
+	return err == nil && bytes.Equal(reencoded, src)
+}
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
 //
@@ -174,7 +188,10 @@ var TextDecodeBase64Func = function.New(&function.Spec{
 
 		decoder := encoding.NewDecoder()
 		decoded, err := decoder.Bytes(sDec)
-		if err != nil || bytes.ContainsRune(decoded, '�') {
+		if err != nil {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given string contains symbols that are not defined for %s", encName)
+		}
+		if bytes.ContainsRune(decoded, utf8.RuneError) && !decodedFaithfully(encoding, sDec, decoded) {
 			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given string contains symbols that are not defined for %s", encName)
 		}
 

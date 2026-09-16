@@ -332,6 +332,21 @@ func TestBase64TextDecode(t *testing.T) {
 			`the given string contains symbols that are not defined for windows-1250`,
 		},
 		{
+			// U+FFFD is a character like any other once it is in the source:
+			// the decoder has nothing to substitute here, so the value has to
+			// come back as it went in.
+			cty.StringVal("Y2Fm77+9"), // "caf\ufffd" in UTF-8
+			cty.StringVal("UTF-8"),
+			cty.StringVal("caf\ufffd"),
+			``,
+		},
+		{
+			cty.StringVal("/f8="), // U+FFFD alone in UTF-16LE
+			cty.StringVal("UTF-16LE"),
+			cty.StringVal("\ufffd"),
+			``,
+		},
+		{
 			cty.UnknownVal(cty.String),
 			cty.StringVal("windows-1250"),
 			cty.UnknownVal(cty.String).RefineNotNull(),
@@ -365,5 +380,38 @@ func TestBase64TextDecode(t *testing.T) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
 			}
 		})
+	}
+}
+
+// TestBase64TextEncodeDecodeRoundTrip covers the case that made the
+// replacement-character check unsound on its own: a string that contains
+// U+FFFD itself encodes without complaint, so it has to decode again.
+func TestBase64TextEncodeDecodeRoundTrip(t *testing.T) {
+	strings := []string{
+		"�",
+		"caf�",
+		"� at the start",
+		"plain ascii",
+	}
+	encodings := []string{"UTF-8", "UTF-16LE"}
+
+	for _, encName := range encodings {
+		for _, str := range strings {
+			t.Run(fmt.Sprintf("%s/%q", encName, str), func(t *testing.T) {
+				enc, err := TextEncodeBase64Func.Call([]cty.Value{cty.StringVal(str), cty.StringVal(encName)})
+				if err != nil {
+					t.Fatalf("textencodebase64 failed: %s", err)
+				}
+
+				got, err := TextDecodeBase64Func.Call([]cty.Value{enc, cty.StringVal(encName)})
+				if err != nil {
+					t.Fatalf("textdecodebase64 failed: %s", err)
+				}
+
+				if want := cty.StringVal(str); !got.RawEquals(want) {
+					t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+				}
+			})
+		}
 	}
 }
