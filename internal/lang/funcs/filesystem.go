@@ -5,8 +5,10 @@ package funcs
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -275,6 +277,16 @@ func MakeFileSetFunc(baseDir string, wrap ImplWrapper) function.Function {
 			var matchVals []cty.Value
 			for _, match := range matches {
 				fi, err := os.Stat(match)
+
+				if errors.Is(err, fs.ErrNotExist) {
+					// The glob found a name that does not resolve to anything:
+					// a symlink whose target is missing, or an entry removed
+					// between the glob and this stat. Such a name cannot be a
+					// regular file, so it is skipped just like a directory
+					// rather than failing the whole call and discarding every
+					// other match.
+					continue
+				}
 
 				if err != nil {
 					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat %s: %w", redactIfSensitive(match, marks...), err)

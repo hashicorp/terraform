@@ -533,6 +533,30 @@ func TestFileSet(t *testing.T) {
 	}
 }
 
+// TestFileSetDanglingSymlink covers a single unresolvable name discarding every
+// other match: a symlink whose target is missing cannot be a regular file, so
+// it belongs in the same "skip it" branch as a directory.
+func TestFileSetDanglingSymlink(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "real.txt"), []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "missing.txt"), filepath.Join(dir, "dangling.txt")); err != nil {
+		t.Skipf("cannot create symlinks on this system: %s", err)
+	}
+
+	got, err := testFileSet(dir, cty.StringVal("."), cty.StringVal("*.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	want := cty.SetVal([]cty.Value{cty.StringVal("real.txt")})
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
 func TestFileBase64(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
