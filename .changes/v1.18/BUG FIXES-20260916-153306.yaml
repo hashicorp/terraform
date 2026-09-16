@@ -1,0 +1,6 @@
+kind: BUG FIXES
+body: "`textdecodebase64` no longer rejects a string that contains a U+FFFD replacement
+    character, so it can decode the values `textencodebase64` produces for such strings"
+time: 2026-09-16T15:33:06.000000+02:00
+custom:
+    Issue: "39229"
