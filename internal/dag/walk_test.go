@@ -121,3 +121,90 @@ func walkCbRecord(order *[]any) walkFunc {
 		return nil
 	}
 }
+
+func BenchmarkWalker_Walk_Linear(b *testing.B) {
+	sizes := []int{10, 100, 1000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+			var g AcyclicGraph
+			for i := 0; i < size; i++ {
+				g.Add(testV(i))
+				if i > 0 {
+					g.Connect(testV(i), testV(i-1))
+				}
+			}
+			noopCb := func(v Vertex) tfdiags.Diagnostics { return nil }
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				w := NewWalker(noopCb)
+				_ = w.Walk(&g)
+			}
+		})
+	}
+}
+
+func BenchmarkWalker_Walk_Diamond(b *testing.B) {
+	sizes := []int{10, 100, 1000}
+	for _, size := range sizes {
+		b.Run(fmt.Sprintf("size_%d", size), func(b *testing.B) {
+			var g AcyclicGraph
+			root := testV(0)
+			sink := testV(size + 1)
+			g.Add(root)
+			g.Add(sink)
+
+			for i := 1; i <= size; i++ {
+				v := testV(i)
+				g.Add(v)
+				g.Connect(v, root)
+				g.Connect(sink, v)
+			}
+			noopCb := func(v Vertex) tfdiags.Diagnostics { return nil }
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				w := NewWalker(noopCb)
+				_ = w.Walk(&g)
+			}
+		})
+	}
+}
+
+func BenchmarkWalker_Walk_Grid(b *testing.B) {
+	sizes := []int{10, 30, 50}
+	for _, dim := range sizes {
+		b.Run(fmt.Sprintf("%dx%d", dim, dim), func(b *testing.B) {
+			var g AcyclicGraph
+			for r := 0; r < dim; r++ {
+				for c := 0; c < dim; c++ {
+					nodeID := r*dim + c
+					v := testV(nodeID)
+					g.Add(v)
+
+					if r > 0 {
+						upNode := testV((r-1)*dim + c)
+						g.Connect(v, upNode)
+					}
+					if c > 0 {
+						leftNode := testV(r*dim + (c - 1))
+						g.Connect(v, leftNode)
+					}
+				}
+			}
+			noopCb := func(v Vertex) tfdiags.Diagnostics { return nil }
+
+			b.ResetTimer()
+			b.ReportAllocs()
+
+			for i := 0; i < b.N; i++ {
+				w := NewWalker(noopCb)
+				_ = w.Walk(&g)
+			}
+		})
+	}
+}

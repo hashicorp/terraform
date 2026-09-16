@@ -91,7 +91,7 @@ type walkerVertex struct {
 	// Below is not safe to read/write in parallel. This behavior is
 	// enforced by changes only happening in Update. Nothing else should
 	// ever modify these.
-	deps         map[Vertex]chan struct{}
+	deps         map[Vertex]<-chan struct{}
 	depsCancelCh chan struct{}
 }
 
@@ -107,9 +107,17 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 	}
 	w.started.Store(true)
 
-	// Initialize fields
+	numV := g.vertices.Len()
+
+	// Initialize fields with capacity hints
 	if w.vertexMap == nil {
-		w.vertexMap = make(map[Vertex]*walkerVertex)
+		w.vertexMap = make(map[Vertex]*walkerVertex, numV)
+	}
+	if w.diagsMap == nil {
+		w.diagsMap = make(map[Vertex]tfdiags.Diagnostics, numV)
+	}
+	if w.upstreamFailed == nil {
+		w.upstreamFailed = make(map[Vertex]struct{}, numV)
 	}
 
 	// Add the new vertices
@@ -120,11 +128,16 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 		// Add to our own set so we know about it already
 		w.vertices.Add(v)
 
+		depCount := 0
+		if depsSet, ok := g.edgesFrom[v]; ok {
+			depCount = depsSet.Len()
+		}
+
 		// Initialize the vertex info
 		info := &walkerVertex{
 			DoneCh:   make(chan struct{}),
 			CancelCh: make(chan struct{}),
-			deps:     make(map[Vertex]chan struct{}),
+			deps:     make(map[Vertex]<-chan struct{}, depCount),
 		}
 
 		// Add it to the map and kick off the walk
@@ -157,8 +170,8 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 	// kick off a new waiter and notify the vertex of the changes.
 	for v := range g.edgesFrom {
 		info, ok := w.vertexMap[v]
-		if !ok {
-			// Vertex doesn't exist... shouldn't be possible but ignore.
+		if !ok || len(info.deps) == 0 {
+			// Vertex doesn't exist or has no dependencies... continue.
 			continue
 		}
 
@@ -167,12 +180,6 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 
 		// Create the channel we close for cancellation
 		cancelCh := make(chan struct{})
-
-		// Build a new deps copy
-		deps := make(map[Vertex]<-chan struct{})
-		for k, v := range info.deps {
-			deps[k] = v
-		}
 
 		info.DepsCh = doneCh
 
@@ -183,7 +190,7 @@ func (w *Walker) Walk(g *AcyclicGraph) tfdiags.Diagnostics {
 		info.depsCancelCh = cancelCh
 
 		// Start the waiter
-		go w.waitDeps(v, deps, doneCh, cancelCh)
+		go w.waitDeps(v, info.deps, doneCh, cancelCh)
 	}
 
 	// Start all the new vertices. We do this at the end so that all
@@ -219,27 +226,18 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	// When we're done, always close our done channel
 	defer close(info.DoneCh)
 
-	// Wait for our dependencies. We create a [closed] deps channel so
-	// that we can immediately fall through to load our actual DepsCh.
-	var depsSuccess bool
-
-	// if there are no deps we have a nil chan, so we need to initialize
-	// something that won't block
-	depsCh := make(chan bool, 1)
-	depsCh <- true
-	close(depsCh)
+	// Wait for our dependencies if any exist.
+	depsSuccess := true
 
 	if info.DepsCh != nil {
-		depsCh = info.DepsCh
-	}
+		select {
+		case <-info.CancelCh:
+			// Cancel
+			return
 
-	select {
-	case <-info.CancelCh:
-		// Cancel
-		return
-
-	case depsSuccess = <-depsCh:
-		// New deps, reloop
+		case depsSuccess = <-info.DepsCh:
+			// New deps, reloop
+		}
 	}
 
 	// If we passed dependencies, we just want to check once more that
