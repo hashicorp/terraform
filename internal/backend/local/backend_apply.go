@@ -425,11 +425,16 @@ func (b *Local) opApply(
 	// If the user erroneously included any plan options flags when they supplied a plan file,
 	// we'll return an error if the flag values don't match the plan file.
 	if len(op.Targets) != 0 {
-		// Do target flags all match targets in the plan?
+		// Do target flags all match targets in the plan? Containment runs
+		// from the saved plan target toward the CLI target: a plan that
+		// targeted module.foo already covers
+		// -target=module.foo.null_resource.bar, while a CLI target broader
+		// than anything in the plan matches nothing. See issue #39139.
+		// Warning-only by design: apply always honors the saved plan as-is.
 		for _, target := range op.Targets {
 			found := false
 			for _, planTarget := range plan.TargetAddrs {
-				if target.TargetContains(planTarget) {
+				if planTarget.TargetContains(target) {
 					found = true
 					break
 				}

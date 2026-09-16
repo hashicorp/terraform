@@ -2126,6 +2126,47 @@ func TestApply_changedPlanOptions_applyTime(t *testing.T) {
 			t.Fatalf("missing detail from warning:\n%s", output.All())
 		}
 	})
+	// A CLI target covered by a broader plan target must not warn: a plan
+	// that targeted module.foo already encompasses
+	// -target=module.foo.test_instance.foo, so the flag changes nothing.
+	// Guards the containment direction (issue #39139:
+	// planTarget.TargetContains(target), not the reverse).
+	t.Run("covered target does not warn", func(t *testing.T) {
+		_, snap := testModuleWithSnapshot(t, "apply")
+		plan := testPlan(t)
+		planTarget, diags := addrs.ParseTargetStr("module.foo")
+		if diags.HasErrors() {
+			t.Fatalf("bad plan target: %s", diags.Err())
+		}
+		plan.TargetAddrs = []addrs.Targetable{planTarget.Subject}
+		planPath := testPlanFile(t, snap, states.NewState(), plan)
+		statePath := testTempFile(t)
+
+		p := applyFixtureProvider()
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-target", "module.foo.test_instance.foo",
+			"-state-out", statePath,
+			planPath,
+		}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+		}
+
+		if strings.Contains(output.Stdout(), `Can't change resource targeting when applying a saved plan`) {
+			t.Fatalf("unexpected targeting warning for a covered target:\n%s", output.All())
+		}
+	})
 	t.Run("change to -destroy", func(t *testing.T) {
 		planPath := applyFixturePlanFile(t)
 		statePath := testTempFile(t)
