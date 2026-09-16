@@ -1,0 +1,7 @@
+kind: BUG FIXES
+body: "`fileset` no longer fails when one of the matched names is a symlink whose
+    target is missing, or a file removed while the pattern was being evaluated;
+    such a name is skipped and the other matches are returned"
+time: 2026-09-16T15:39:27.000000+02:00
+custom:
+    Issue: "39231"
