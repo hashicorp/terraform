@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'dag/walk: optimize memory allocations and execution throughput during graph walks'
+time: 2026-09-16T19:48:00.000000+05:30
+custom:
+    Issue: "39232"
