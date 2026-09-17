@@ -195,7 +195,10 @@ func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBacken
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
-	return diags.Append(validatePolicyPaths(args.PolicyPaths))
+	// The query command's -policies option takes policy set directories, so we
+	// reject anything that isn't a directory here rather than letting it reach
+	// the policy client.
+	return diags.Append(validatePolicySetDirs(args.PolicyPaths))
 }
 
 func (c *QueryCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backendrun.OperationsBackend, tfdiags.Diagnostics) {

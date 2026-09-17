@@ -1,0 +1,3 @@
+kind: BUG FIXES
+body: 'query: `terraform query -policies` now rejects a path that is not a directory, instead of passing it on to the policy engine'
+time: 2026-09-17T09:15:00.000000-04:00
