@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: Fix invalid deferred error triggered by provider returning a deferral when a resource also has an unknown count/for_each.'
+time: 2026-09-17T10:29:39.079771-04:00
+custom:
+    Issue: "TODO"
