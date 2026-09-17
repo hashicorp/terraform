@@ -5,8 +5,10 @@ package funcs
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -277,6 +279,11 @@ func MakeFileSetFunc(baseDir string, wrap ImplWrapper) function.Function {
 				fi, err := os.Stat(match)
 
 				if err != nil {
+					if errors.Is(err, fs.ErrNotExist) {
+						// Dangling symlink or file removed between glob and stat.
+						// In either case it cannot be a regular file, so skip it.
+						continue
+					}
 					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat %s: %w", redactIfSensitive(match, marks...), err)
 				}
 

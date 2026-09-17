@@ -533,6 +533,32 @@ func TestFileSet(t *testing.T) {
 	}
 }
 
+func TestFileSet_danglingSymlink(t *testing.T) {
+	tempDir := t.TempDir()
+
+	realFile := filepath.Join(tempDir, "real.txt")
+	if err := os.WriteFile(realFile, []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	danglingLink := filepath.Join(tempDir, "dangling.txt")
+	if err := os.Symlink(filepath.Join(tempDir, "nonexistent.txt"), danglingLink); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := testFileSet(".", cty.StringVal(tempDir), cty.StringVal("*.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	want := cty.SetVal([]cty.Value{
+		cty.StringVal("real.txt"),
+	})
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
 func TestFileBase64(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
