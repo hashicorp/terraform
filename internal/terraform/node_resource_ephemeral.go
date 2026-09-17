@@ -127,8 +127,9 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 		return h.PreEphemeralOp(rId, plans.Open)
 	})
 	resp := provider.OpenEphemeralResource(providers.OpenEphemeralResourceRequest{
-		TypeName: inp.addr.ContainingResource().Resource.Type,
-		Config:   unmarkedConfigVal,
+		TypeName:           inp.addr.ContainingResource().Resource.Type,
+		Config:             unmarkedConfigVal,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 	ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostEphemeralOp(rId, plans.Open, resp.Diagnostics.Err())

@@ -3761,23 +3761,6 @@ func TestContextApply_deferredActions(t *testing.T) {
 			for ix, stage := range test.stages {
 				t.Run(fmt.Sprintf("round-%d", ix), func(t *testing.T) {
 
-					provider := &deferredActionsProvider{
-						plannedChanges: &deferredActionsChanges{
-							changes: make(map[string]cty.Value),
-						},
-						appliedChanges: &deferredActionsChanges{
-							changes: make(map[string]cty.Value),
-						},
-					}
-					other := simpleMockProvider()
-
-					ctx := testContext2(t, &ContextOpts{
-						Providers: map[addrs.Provider]providers.Factory{
-							addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
-							addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
-						},
-					})
-
 					opts := &PlanOpts{
 						Mode:            plans.NormalMode,
 						DeferralAllowed: true,
@@ -3796,6 +3779,25 @@ func TestContextApply_deferredActions(t *testing.T) {
 					if stage.buildOpts != nil {
 						stage.buildOpts(opts)
 					}
+
+					provider := &deferredActionsProvider{
+						t:               t,
+						deferralAllowed: opts.DeferralAllowed,
+						plannedChanges: &deferredActionsChanges{
+							changes: make(map[string]cty.Value),
+						},
+						appliedChanges: &deferredActionsChanges{
+							changes: make(map[string]cty.Value),
+						},
+					}
+					other := simpleMockProvider()
+
+					ctx := testContext2(t, &ContextOpts{
+						Providers: map[addrs.Provider]providers.Factory{
+							addrs.NewDefaultProvider("test"):  testProviderFuncFixed(provider.Provider()),
+							addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
+						},
+					})
 
 					var plan *plans.Plan
 					t.Run("plan", func(t *testing.T) {
@@ -3943,8 +3945,10 @@ func (d *deferredActionsChanges) Test(t *testing.T, expected map[string]cty.Valu
 // deferredActionsProvider is a wrapper around the mock provider that keeps
 // track of its own planned changes.
 type deferredActionsProvider struct {
-	plannedChanges *deferredActionsChanges
-	appliedChanges *deferredActionsChanges
+	t               *testing.T
+	deferralAllowed bool
+	plannedChanges  *deferredActionsChanges
+	appliedChanges  *deferredActionsChanges
 }
 
 func (provider *deferredActionsProvider) Provider() providers.Interface {
@@ -4003,7 +4007,32 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 				},
 			},
 		},
+		ConfigureProviderFn: func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, req.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in ConfigureProvider: \n%s", diff)
+			}
+
+			return providers.ConfigureProviderResponse{}
+		},
 		ReadResourceFn: func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, req.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in ReadResource: \n%s", diff)
+			}
+
 			if key := req.PriorState.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
 				return providers.ReadResourceResponse{
 					NewState: req.PriorState,
@@ -4018,6 +4047,17 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ReadDataSourceFn: func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, req.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in ReadDataSource: \n%s", diff)
+			}
+
 			if key := req.Config.GetAttr("name"); key.IsKnown() && key.AsString() == "deferred_read" {
 				return providers.ReadDataSourceResponse{
 					State: req.Config,
@@ -4034,6 +4074,17 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		PlanResourceChangeFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, req.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in PlanResourceChange: \n%s", diff)
+			}
+
 			var deferred *providers.Deferred
 			var requiresReplace []cty.Path
 			if req.ProposedNewState.IsNull() {
@@ -4093,6 +4144,17 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ImportResourceStateFn: func(request providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, request.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in ImportResourceState: \n%s", diff)
+			}
+
 			if request.ID == "deferred" {
 				return providers.ImportResourceStateResponse{
 					ImportedResources: []providers.ImportedResource{},
@@ -4116,6 +4178,17 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		OpenEphemeralResourceFn: func(op providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+			// client capabilities should always be set
+			want := providers.ClientCapabilities{
+				DeferralAllowed:            provider.deferralAllowed,
+				WriteOnlyAttributesAllowed: true,
+				StorePlannedPrivate:        true,
+				ComputedBlocksAllowed:      true,
+			}
+			if diff := cmp.Diff(want, op.ClientCapabilities); diff != "" {
+				provider.t.Errorf("wrong client capabilities sent to provider in OpenEphemeralResource: \n%s", diff)
+			}
+
 			name := op.Config.GetAttr("name").AsString()
 
 			res := providers.OpenEphemeralResourceResponse{
