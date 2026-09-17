@@ -80,12 +80,10 @@ func TestModuleOverrideRequiredProviders(t *testing.T) {
 	for name, tc := range map[string]struct {
 		primary   string
 		overrides []string
-		wantExpr  bool
 	}{
 		"legacy to expression-based": {
 			primary:   `"~> 3.0"`,
 			overrides: []string{`{ source = "acme/random" }`},
-			wantExpr:  true,
 		},
 		"expression-based to legacy": {
 			primary:   `{ source = "acme/random" }`,
@@ -102,7 +100,6 @@ func TestModuleOverrideRequiredProviders(t *testing.T) {
 		"last override is expression-based": {
 			primary:   `{ source = "acme/random" }`,
 			overrides: []string{`"~> 2.0"`, `{ source = "other/random" }`},
-			wantExpr:  true,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -132,30 +129,14 @@ terraform {
 			mod, diags := testParser(files).LoadConfigDir("mod")
 			assertNoDiagnostics(t, diags)
 
-			req, hasResolved := mod.ProviderRequirements.RequiredProviders["random"]
-			expr, hasExpr := mod.ProviderRequirementExprs["random"]
-			if hasResolved == hasExpr {
-				t.Fatalf("expected exactly one representation of the requirement: resolved=%t, expression-based=%t", hasResolved, hasExpr)
-			}
-			if hasExpr != tc.wantExpr {
-				t.Fatalf("wrong requirement representation: expression-based=%t, want %t", hasExpr, tc.wantExpr)
-			}
-			var gotFile string
-			if hasExpr {
-				gotFile = expr.DeclRange.Filename
-			} else {
-				gotFile = req.DeclRange.Filename
-			}
-			if gotFile != wantFile {
-				t.Errorf("wrong requirement declaration: got %q, want %q", gotFile, wantFile)
+			req := mod.ProviderRequirements.RequiredProviders["random"]
+			if req.DeclRange.Filename != wantFile {
+				t.Errorf("wrong requirement declaration: got %q, want %q", req.DeclRange.Filename, wantFile)
 			}
 
 			// Providers omitted from the overrides must retain their primary declarations.
 			if req, exists := mod.ProviderRequirements.RequiredProviders["legacy"]; !exists || req.DeclRange.Filename != "mod/main.tf" {
 				t.Error("override changed the unrelated legacy requirement")
-			}
-			if expr, exists := mod.ProviderRequirementExprs["expression"]; !exists || expr.DeclRange.Filename != "mod/main.tf" {
-				t.Error("override changed the unrelated expression-based requirement")
 			}
 		})
 	}

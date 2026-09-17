@@ -33,22 +33,14 @@ var (
 		if x.DeclRange != y.DeclRange {
 			return false
 		}
+		if !providerExpressionsEqual(x.SourceExpr, y.SourceExpr) {
+			return false
+		}
+		if !providerExpressionsEqual(x.RequirementExpr, y.RequirementExpr) {
+			return false
+		}
+
 		return true
-	})
-	providerExprComparer = cmp.Comparer(func(x, y ProviderRequirementExpr) bool {
-		if x.Name != y.Name || x.DeclRange != y.DeclRange {
-			return false
-		}
-		if len(x.ConfigAliases) != len(y.ConfigAliases) {
-			return false
-		}
-		for i := range x.ConfigAliases {
-			if x.ConfigAliases[i] != y.ConfigAliases[i] {
-				return false
-			}
-		}
-		return providerExpressionsEqual(x.SourceExpr, y.SourceExpr) &&
-			providerExpressionsEqual(x.VersionExpr, y.VersionExpr)
 	})
 	blockRange = hcl.Range{
 		Filename: "mock.tf",
@@ -62,10 +54,9 @@ var (
 
 func TestDecodeRequiredProvidersBlock(t *testing.T) {
 	tests := map[string]struct {
-		Block     *hcl.Block
-		Want      *RequiredProviders
-		WantExprs map[string]*ProviderRequirementExpr
-		Error     string
+		Block *hcl.Block
+		Want  *RequiredProviders
+		Error string
 	}{
 		"legacy": {
 			Block: &hcl.Block{
@@ -109,16 +100,15 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
-				DeclRange:         blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"my-test": {
-					Name:        "my-test",
-					SourceExpr:  hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
-					VersionExpr: hcltest.MockExprLiteral(cty.StringVal("2.0.0")),
-					DeclRange:   mockRange,
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:            "my-test",
+						SourceExpr:      hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
+						RequirementExpr: hcltest.MockExprLiteral(cty.StringVal("2.0.0")),
+						DeclRange:       mockRange,
+					},
 				},
+				DeclRange: blockRange,
 			},
 		},
 		"mixed": {
@@ -149,16 +139,14 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
 					},
+					"my-test": {
+						Name:            "my-test",
+						SourceExpr:      hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
+						RequirementExpr: hcltest.MockExprLiteral(cty.StringVal("2.0.0")),
+						DeclRange:       mockRange,
+					},
 				},
 				DeclRange: blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"my-test": {
-					Name:        "my-test",
-					SourceExpr:  hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
-					VersionExpr: hcltest.MockExprLiteral(cty.StringVal("2.0.0")),
-					DeclRange:   mockRange,
-				},
 			},
 		},
 		"version-only block": {
@@ -177,15 +165,15 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
-				DeclRange:         blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"test": {
-					Name:        "test",
-					VersionExpr: hcltest.MockExprLiteral(cty.StringVal("~>2.0.0")),
-					DeclRange:   mockRange,
+				RequiredProviders: map[string]*RequiredProvider{
+					"test": {
+						Name:            "test",
+						Type:            addrs.NewDefaultProvider("test"),
+						RequirementExpr: hcltest.MockExprLiteral(cty.StringVal("~>2.0.0")),
+						DeclRange:       mockRange,
+					},
 				},
+				DeclRange: blockRange,
 			},
 		},
 		"invalid source": {
@@ -205,16 +193,15 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
-				DeclRange:         blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"my-test": {
-					Name:        "my-test",
-					SourceExpr:  hcltest.MockExprLiteral(cty.StringVal("some/invalid/provider/source/test")),
-					VersionExpr: hcltest.MockExprLiteral(cty.StringVal("~>2.0.0")),
-					DeclRange:   mockRange,
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:            "my-test",
+						SourceExpr:      hcltest.MockExprLiteral(cty.StringVal("some/invalid/provider/source/test")),
+						RequirementExpr: hcltest.MockExprLiteral(cty.StringVal("~>2.0.0")),
+						DeclRange:       mockRange,
+					},
 				},
+				DeclRange: blockRange,
 			},
 		},
 		"invalid localname": {
@@ -276,16 +263,15 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
-				DeclRange:         blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"my-test": {
-					Name:        "my-test",
-					SourceExpr:  hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
-					VersionExpr: hcltest.MockExprLiteral(cty.StringVal("invalid")),
-					DeclRange:   mockRange,
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:            "my-test",
+						SourceExpr:      hcltest.MockExprLiteral(cty.StringVal("mycloud/test")),
+						RequirementExpr: hcltest.MockExprLiteral(cty.StringVal("invalid")),
+						DeclRange:       mockRange,
+					},
 				},
+				DeclRange: blockRange,
 			},
 		},
 		"invalid required_providers attribute value": {
@@ -323,15 +309,14 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{},
-				DeclRange:         blockRange,
-			},
-			WantExprs: map[string]*ProviderRequirementExpr{
-				"my-test": {
-					Name:       "my-test",
-					SourceExpr: hcltest.MockExprLiteral(cty.DynamicVal),
-					DeclRange:  mockRange,
+				RequiredProviders: map[string]*RequiredProvider{
+					"my-test": {
+						Name:       "my-test",
+						SourceExpr: hcltest.MockExprLiteral(cty.DynamicVal),
+						DeclRange:  mockRange,
+					},
 				},
+				DeclRange: blockRange,
 			},
 		},
 		"additional attributes": {
@@ -361,7 +346,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, gotExprs, diags := decodeRequiredProvidersBlock(test.Block)
+			got, diags := decodeRequiredProvidersBlock(test.Block)
 			if diags.HasErrors() {
 				if test.Error == "" {
 					t.Fatalf("unexpected error: %v", diags)
@@ -375,9 +360,6 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 			if !cmp.Equal(got, test.Want, ignoreUnexported, comparer) {
 				t.Fatalf("wrong result:\n %s", cmp.Diff(got, test.Want, ignoreUnexported, comparer))
-			}
-			if !cmp.Equal(gotExprs, test.WantExprs, providerExprComparer) {
-				t.Fatalf("wrong expressions:\n %s", cmp.Diff(gotExprs, test.WantExprs, providerExprComparer))
 			}
 		})
 	}

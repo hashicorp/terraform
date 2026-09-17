@@ -371,6 +371,91 @@ terraform {
 	}
 }
 
+func TestModule_required_provider_overrides_same_file(t *testing.T) {
+	const expression = `{ source = "acme/test", version = "~> 3.0" }`
+	for layout, template := range map[string]string{
+		"one terraform block": `
+terraform {
+  required_providers {
+    test = %s
+  }
+  required_providers {
+    test = %s
+  }
+}
+`,
+		"separate terraform blocks": `
+terraform {
+  required_providers {
+    test = %s
+  }
+}
+terraform {
+  required_providers {
+    test = %s
+  }
+}
+`,
+	} {
+		t.Run(layout, func(t *testing.T) {
+			for name, tc := range map[string]struct {
+				first       string
+				second      string
+				wantSource  string
+				wantVersion string
+				wantAliases []addrs.LocalProviderConfig
+			}{
+				"expression-based then legacy": {
+					first:       expression,
+					second:      `"~> 2.0"`,
+					wantVersion: "~> 2.0",
+				},
+				"expression-based then empty": {
+					first:  expression,
+					second: `{}`,
+				},
+				"expression-based then aliases-only": {
+					first:       expression,
+					second:      `{ configuration_aliases = [test.extra] }`,
+					wantAliases: []addrs.LocalProviderConfig{{LocalName: "test", Alias: "extra"}},
+				},
+				"legacy then expression-based": {
+					first:       `"~> 2.0"`,
+					second:      expression,
+					wantSource:  "acme/test",
+					wantVersion: "~> 3.0",
+				},
+			} {
+				t.Run(name, func(t *testing.T) {
+					cfg := testModuleInline(t, map[string]string{
+						"main.tf":     "",
+						"override.tf": fmt.Sprintf(template, tc.first, tc.second),
+					})
+
+					req, exists := cfg.Module.ProviderRequirements.RequiredProviders["test"]
+					if !exists {
+						t.Fatal("no provider requirements found for \"test\"")
+					}
+					if req.Source != tc.wantSource {
+						t.Errorf("wrong provider source: got %q, want %q", req.Source, tc.wantSource)
+					}
+					if got := req.Requirement.Required.String(); got != tc.wantVersion {
+						t.Errorf("wrong provider version constraint: got %q, want %q", got, tc.wantVersion)
+					}
+					wantProvider := addrs.NewDefaultProvider("test")
+					if tc.wantSource != "" {
+						wantProvider = addrs.MustParseProviderSourceString(tc.wantSource)
+					}
+					if !req.Type.Equals(wantProvider) {
+						t.Errorf("wrong provider addr: got %s, want %s", req.Type, wantProvider)
+					}
+					assertResultDeepEqual(t, req.Aliases, tc.wantAliases)
+				})
+			}
+		})
+	}
+}
+
 // Resources without explicit provider configuration are assigned a provider
 // implied based on the resource type. For example, this resource:
 //

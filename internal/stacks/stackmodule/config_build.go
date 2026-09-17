@@ -34,7 +34,11 @@ func BuildConfig(root *configs.Module, walker configs.ModuleWalker, loader confi
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
-	diags = append(diags, resolveStaticProviderRequirements(cfg)...)
+	providerDiags := resolveStaticProviderRequirements(cfg)
+	diags = append(diags, providerDiags...)
+	if providerDiags.HasErrors() {
+		return cfg, diags
+	}
 	diags = append(diags, configs.FinalizeConfig(cfg, loader)...)
 
 	return cfg, diags
@@ -47,30 +51,13 @@ func resolveStaticProviderRequirements(cfg *configs.Config) hcl.Diagnostics {
 	}
 
 	cfg.DeepEach(func(cfg *configs.Config) {
-		if cfg.Module == nil || len(cfg.Module.ProviderRequirementExprs) == 0 {
+		if cfg.Module == nil || cfg.Module.ProviderRequirements == nil {
 			return
 		}
 
-		if cfg.Module.ProviderRequirements == nil {
-			cfg.Module.ProviderRequirements = &configs.RequiredProviders{}
-		}
-		if cfg.Module.ProviderRequirements.RequiredProviders == nil {
-			cfg.Module.ProviderRequirements.RequiredProviders = make(map[string]*configs.RequiredProvider)
-		}
-
-		for _, name := range slices.Sorted(maps.Keys(cfg.Module.ProviderRequirementExprs)) {
-			expr := cfg.Module.ProviderRequirementExprs[name]
-			if expr == nil {
-				continue
-			}
-
-			rp, exprDiags := resolveProviderRequirement(name, expr)
-			diags = append(diags, exprDiags...)
-			if exprDiags.HasErrors() {
-				continue
-			}
-
-			cfg.Module.ProviderRequirements.RequiredProviders[name] = rp
+		reqs := cfg.Module.ProviderRequirements.RequiredProviders
+		for _, name := range slices.Sorted(maps.Keys(reqs)) {
+			diags = append(diags, resolveProviderRequirement(reqs[name])...)
 		}
 
 		cfg.Module.GatherProviderLocalNames()
@@ -79,23 +66,17 @@ func resolveStaticProviderRequirements(cfg *configs.Config) hcl.Diagnostics {
 	return diags
 }
 
-func resolveProviderRequirement(name string, expr *configs.ProviderRequirementExpr) (*configs.RequiredProvider, hcl.Diagnostics) {
+func resolveProviderRequirement(req *configs.RequiredProvider) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	rp := &configs.RequiredProvider{
-		Name:      name,
-		Aliases:   expr.ConfigAliases,
-		DeclRange: expr.DeclRange,
-	}
-
-	if expr.SourceExpr != nil {
-		source, sourceDiags := expr.SourceExpr.Value(nil)
-		if sourceDiags.HasErrors() || !source.IsKnown() || !source.Type().Equals(cty.String) {
+	if req.SourceExpr != nil {
+		source, sourceDiags := req.SourceExpr.Value(nil)
+		if sourceDiags.HasErrors() || !source.IsKnown() || source.IsNull() || !source.Type().Equals(cty.String) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid source",
 				Detail:   "Source must be specified as a string.",
-				Subject:  expr.SourceExpr.Range().Ptr(),
+				Subject:  req.SourceExpr.Range().Ptr(),
 			})
 		} else {
 			sourceStr := source.AsString()
@@ -104,37 +85,28 @@ func resolveProviderRequirement(name string, expr *configs.ProviderRequirementEx
 				hclDiags := sourceDiags.ToHCL()
 				for _, diag := range hclDiags {
 					if diag.Subject == nil {
-						diag.Subject = expr.SourceExpr.Range().Ptr()
+						diag.Subject = req.SourceExpr.Range().Ptr()
 					}
 				}
 				diags = append(diags, hclDiags...)
 			} else {
-				rp.Source = sourceStr
-				rp.Type = fqn
+				req.Source = sourceStr
+				req.Type = fqn
 			}
 		}
-	} else {
-		pType, err := addrs.ParseProviderPart(name)
-		if err != nil {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid provider name",
-				Detail:   err.Error(),
-				Subject:  expr.DeclRange.Ptr(),
-			})
-		} else {
-			rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
-		}
 	}
-	if expr.VersionExpr != nil {
-		versionRaw, versionDiags := expr.VersionExpr.Value(nil)
-		if versionDiags.HasErrors() || !versionRaw.IsKnown() || !versionRaw.Type().Equals(cty.String) {
+	if req.RequirementExpr != nil {
+		versionRaw, versionDiags := req.RequirementExpr.Value(nil)
+		if versionDiags.HasErrors() || !versionRaw.IsKnown() || (!versionRaw.IsNull() && !versionRaw.Type().Equals(cty.String)) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid version constraint",
 				Detail:   "Version must be specified as a string.",
-				Subject:  expr.VersionExpr.Range().Ptr(),
+				Subject:  req.RequirementExpr.Range().Ptr(),
 			})
+		} else if versionRaw.IsNull() {
+			// Match core's treatment of null as an empty version constraint.
+			req.Requirement = configs.VersionConstraint{DeclRange: req.RequirementExpr.Range()}
 		} else {
 			constraints, err := version.NewConstraint(versionRaw.AsString())
 			if err != nil {
@@ -142,21 +114,18 @@ func resolveProviderRequirement(name string, expr *configs.ProviderRequirementEx
 					Severity: hcl.DiagError,
 					Summary:  "Invalid version constraint",
 					Detail:   "This string does not use correct version constraint syntax.",
-					Subject:  expr.VersionExpr.Range().Ptr(),
+					Subject:  req.RequirementExpr.Range().Ptr(),
 				})
 			} else {
-				rp.Requirement = configs.VersionConstraint{
+				req.Requirement = configs.VersionConstraint{
 					Required:  constraints,
-					DeclRange: expr.VersionExpr.Range(),
+					DeclRange: req.RequirementExpr.Range(),
 				}
 			}
 		}
 	}
 
-	if diags.HasErrors() {
-		return nil, diags
-	}
-	return rp, diags
+	return diags
 }
 
 // sourceHelper is used to decode module sources from the old-style

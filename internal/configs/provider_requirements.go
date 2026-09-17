@@ -16,12 +16,18 @@ import (
 // is used in child modules that expect a provider to be passed in from their
 // parent.
 type RequiredProvider struct {
-	Name        string
-	Source      string
+	Name   string
+	Source string
+	// SourceExpr is the raw HCL expression for the source, it will be used to
+	// resolve `Source`
+	SourceExpr  hcl.Expression
 	Type        addrs.Provider
 	Requirement VersionConstraint
-	DeclRange   hcl.Range
-	Aliases     []addrs.LocalProviderConfig
+	// RequirementExpr is the raw HCL expression for the version constraint, if any.
+	// It will be used to resolve `Requirement`
+	RequirementExpr hcl.Expression
+	DeclRange       hcl.Range
+	Aliases         []addrs.LocalProviderConfig
 }
 
 type RequiredProviders struct {
@@ -29,21 +35,16 @@ type RequiredProviders struct {
 	DeclRange         hcl.Range
 }
 
-func decodeRequiredProvidersBlock(block *hcl.Block) (
-	*RequiredProviders,
-	map[string]*ProviderRequirementExpr,
-	hcl.Diagnostics,
-) {
+func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
-		return nil, nil, diags
+		return nil, diags
 	}
 
 	ret := &RequiredProviders{
 		RequiredProviders: make(map[string]*RequiredProvider),
 		DeclRange:         block.DefRange,
 	}
-	var deferredExprs map[string]*ProviderRequirementExpr
 
 	for name, attr := range attrs {
 		rp := &RequiredProvider{
@@ -93,14 +94,6 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 			continue
 		}
 
-		providerExpr := &ProviderRequirementExpr{
-			Name:        name,
-			SourceExpr:  nil,
-			VersionExpr: nil,
-			DeclRange:   attr.Expr.Range(),
-		}
-		var sourceExpr, versionExpr hcl.Expression
-
 	LOOP:
 		for _, kv := range kvs {
 			key, keyDiags := kv.Key.Value(nil)
@@ -121,12 +114,10 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 
 			switch key.AsString() {
 			case "version":
-				versionExpr = kv.Value
-				providerExpr.VersionExpr = kv.Value
+				rp.RequirementExpr = kv.Value
 
 			case "source":
-				sourceExpr = kv.Value
-				providerExpr.SourceExpr = kv.Value
+				rp.SourceExpr = kv.Value
 
 			case "configuration_aliases":
 				exprs, listDiags := hcl.ExprList(kv.Value)
@@ -182,32 +173,9 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 			continue
 		}
 
-		// Provider Expression contains either source or version expression.
-		// Hydrate the rest, store it into the result map and skip adding it to
-		// required providers.
-		if !providerExpr.IsEmpty() {
-			providerExpr.ConfigAliases = rp.Aliases
-
-			if providerExpr.SourceExpr == nil {
-				providerExpr.SourceExpr = sourceExpr
-			}
-
-			if providerExpr.VersionExpr == nil {
-				providerExpr.VersionExpr = versionExpr
-			}
-
-			if deferredExprs == nil {
-				deferredExprs = map[string]*ProviderRequirementExpr{}
-			}
-			deferredExprs[name] = providerExpr
-
-			// Skip adding it to required providers.
-			continue
-		}
-
 		// We can add the required provider when there are no errors.
 		// If a source was not given, create an implied type.
-		if rp.Type.IsZero() {
+		if rp.Type.IsZero() && rp.SourceExpr == nil {
 			pType, err := addrs.ParseProviderPart(rp.Name)
 			if err != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -224,5 +192,5 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 		ret.RequiredProviders[rp.Name] = rp
 	}
 
-	return ret, deferredExprs, diags
+	return ret, diags
 }

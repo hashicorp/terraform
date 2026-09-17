@@ -18,11 +18,11 @@ import (
 
 func TestNodeResolveProviderRequirements_References(t *testing.T) {
 	for name, tc := range map[string]struct {
-		nodeExprs      map[string]*configs.ProviderRequirementExpr
+		requirements   map[string]*configs.RequiredProvider
 		validationFunc func(t *testing.T, r []*addrs.Reference)
 	}{
 		"No references": {
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{
+			requirements: map[string]*configs.RequiredProvider{
 				"testProvider": {},
 			},
 			validationFunc: func(t *testing.T, r []*addrs.Reference) {
@@ -32,9 +32,9 @@ func TestNodeResolveProviderRequirements_References(t *testing.T) {
 			},
 		},
 		"Resolve references for version": {
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{
+			requirements: map[string]*configs.RequiredProvider{
 				"testProvider": {
-					VersionExpr: testMockExprWith("var.some_version"),
+					RequirementExpr: testMockExprWith("var.some_version"),
 				},
 			},
 			validationFunc: func(t *testing.T, r []*addrs.Reference) {
@@ -50,7 +50,7 @@ func TestNodeResolveProviderRequirements_References(t *testing.T) {
 			},
 		},
 		"Resolve references for source": {
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{
+			requirements: map[string]*configs.RequiredProvider{
 				"testProvider": {
 					SourceExpr: testMockExprWith("var.some_source"),
 				},
@@ -68,14 +68,14 @@ func TestNodeResolveProviderRequirements_References(t *testing.T) {
 			},
 		},
 		"Resolve all references for multiple providers": {
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{
+			requirements: map[string]*configs.RequiredProvider{
 				"testProvider_1": {
-					VersionExpr: testMockExprWith("var.version_1"),
-					SourceExpr:  testMockExprWith("var.source_1"),
+					RequirementExpr: testMockExprWith("var.version_1"),
+					SourceExpr:      testMockExprWith("var.source_1"),
 				},
 				"testProvider_2": {
-					VersionExpr: testMockExprWith("var.version_2"),
-					SourceExpr:  testMockExprWith("var.source_2"),
+					RequirementExpr: testMockExprWith("var.version_2"),
+					SourceExpr:      testMockExprWith("var.source_2"),
 				},
 			},
 			validationFunc: func(t *testing.T, r []*addrs.Reference) {
@@ -108,10 +108,12 @@ func TestNodeResolveProviderRequirements_References(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			mod := testModule(t, "empty")
 			n := nodeResolveProviderRequirements{
-				Module: mod.Module,
-				Exprs:  tc.nodeExprs,
+				Module: &configs.Module{
+					ProviderRequirements: &configs.RequiredProviders{
+						RequiredProviders: tc.requirements,
+					},
+				},
 			}
 
 			r := n.References()
@@ -145,83 +147,75 @@ func testMockExprWith(variable string) mockHCLExpression {
 
 func TestNodeResolveProviderRequirements_Execute(t *testing.T) {
 	for name, tc := range map[string]struct {
-		ctx            EvalContext
-		module         *configs.Module
-		nodeExprs      map[string]*configs.ProviderRequirementExpr
-		validationFunc func(
-			t *testing.T,
-			n nodeResolveProviderRequirements,
-			diags tfdiags.Diagnostics,
-		)
+		addr        addrs.ModuleInstance
+		wantVersion string
 	}{
 		"Resolve root required providers successfully": {
-			ctx:       &MockEvalContext{},
-			module:    testRequiredProvidersConfig(t).Module,
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{},
-			validationFunc: func(
-				t *testing.T,
-				n nodeResolveProviderRequirements,
-				diags tfdiags.Diagnostics,
-			) {
-				if diags.HasErrors() {
-					t.Fatalf("got errors, expected none: %v", diags)
-				}
-				providers := n.Module.ProviderRequirements.RequiredProviders
-				if len(providers) != 1 {
-					t.Fatalf("got %d providers, expected 1", len(providers))
-				}
-
-				rp, ok := providers["testprovider"]
-				if !ok {
-					t.Fatalf("provider testprovider not found")
-				}
-				if rp.Requirement.Required.String() != "0.0.7-james" {
-					t.Errorf("got %s, expected 0.0.7-james", rp.Requirement.Required)
-				}
-			},
+			addr:        addrs.RootModuleInstance,
+			wantVersion: "0.0.7-james",
 		},
 		"Resolve children required providers successfully": {
-			ctx:       &MockEvalContext{},
-			module:    testRequiredProvidersConfig(t).Children["child"].Module,
-			nodeExprs: map[string]*configs.ProviderRequirementExpr{},
-			validationFunc: func(
-				t *testing.T,
-				n nodeResolveProviderRequirements,
-				diags tfdiags.Diagnostics,
-			) {
-				if diags.HasErrors() {
-					t.Fatalf("got errors, expected none: %v", diags)
-				}
-				providers := n.Module.ProviderRequirements.RequiredProviders
-				if len(providers) != 1 {
-					t.Fatalf("got %d providers, expected 1", len(providers))
-				}
-
-				rp, ok := providers["testprovider"]
-				if !ok {
-					t.Fatalf("provider testprovider not found")
-				}
-				if rp.Requirement.Required.String() != "0.0.8-bill" {
-					t.Errorf("got %s, expected 0.0.8-bill", rp.Requirement.Required)
-				}
-			},
+			addr:        addrs.RootModuleInstance.Child("child", addrs.NoKey),
+			wantVersion: "0.0.8-bill",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			n := nodeResolveProviderRequirements{
-				Module: tc.module,
-				Exprs:  tc.nodeExprs,
+				Addr:   tc.addr,
+				Module: testRequiredProvidersModule(t),
+			}
+			req, ok := n.Module.ProviderRequirements.RequiredProviders["testprovider"]
+			if !ok {
+				t.Fatal("provider testprovider not found")
 			}
 
-			diags := n.Execute(tc.ctx, walkInit)
+			evalCtx := &hcl.EvalContext{
+				Variables: map[string]cty.Value{
+					"var": cty.ObjectVal(map[string]cty.Value{
+						"testprovider_src": cty.StringVal("hashicorp/testprovider"),
+						"testprovider_ver": cty.StringVal(tc.wantVersion),
+					}),
+				},
+			}
+			ctx := &MockEvalContext{
+				EvaluateExprResultFunc: func(expr hcl.Expression, _ cty.Type, _ addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
+					value, diags := expr.Value(evalCtx)
+					return value, tfdiags.Diagnostics{}.Append(diags)
+				},
+			}
 
-			tc.validationFunc(t, n, diags)
+			diags := n.Execute(ctx, walkInit)
+			if diags.HasErrors() {
+				t.Fatalf("got errors, expected none: %v", diags)
+			}
+			providers := n.Module.ProviderRequirements.RequiredProviders
+			if len(providers) != 1 {
+				t.Fatalf("got %d providers, expected 1", len(providers))
+			}
+			if providers["testprovider"] != req {
+				t.Error("provider requirement was not updated in place")
+			}
+			if req.Source != "hashicorp/testprovider" {
+				t.Errorf("got source %q, expected hashicorp/testprovider", req.Source)
+			}
+			wantType := addrs.NewDefaultProvider("testprovider")
+			if !req.Type.Equals(wantType) {
+				t.Errorf("got provider type %s, expected %s", req.Type, wantType)
+			}
+			if got := req.Requirement.Required.String(); got != tc.wantVersion {
+				t.Errorf("got version %q, expected %q", got, tc.wantVersion)
+			}
+			if got := n.Module.ProviderLocalNames[wantType]; got != "testprovider" {
+				t.Errorf("got provider local name %q, expected testprovider", got)
+			}
 		})
 	}
 }
 
-func testRequiredProvidersConfig(t *testing.T) *configs.Config {
-	return testModuleInlineWithVars(t,
+func testRequiredProvidersModule(t *testing.T) *configs.Module {
+	t.Helper()
+	// Leave the expressions unresolved so Execute is responsible for evaluating them.
+	return testRootModuleInline(t,
 		map[string]string{
 			"main.tf": `
 terraform {
@@ -242,41 +236,7 @@ variable "testprovider_ver" {
 	type = string
 	const = true
 }
-
-module "child" {
-	source = "./local_module"
-	testprovider_src = var.testprovider_src
-	testprovider_ver = "0.0.8-bill"
-}
-`,
-			"local_module/main.tf": `
-terraform {
-	required_providers {
-		testprovider = {
-			source  = "${var.testprovider_src}"
-			version = "${var.testprovider_ver}"
-		}
-	}
-}
-
-variable "testprovider_src" {
-	type = string
-	const = true
-}
-
-variable "testprovider_ver" {
-	type = string
-	const = true
-}
-`},
-		map[string]*InputValue{
-			"testprovider_src": {
-				Value: cty.StringVal("hashicorp/testprovider"),
-			},
-			"testprovider_ver": {
-				Value: cty.StringVal("0.0.7-james"),
-			},
-		})
+`}, false)
 }
 
 type mockHCLExpression struct {

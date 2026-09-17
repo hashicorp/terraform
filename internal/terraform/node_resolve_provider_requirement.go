@@ -18,7 +18,6 @@ import (
 type nodeResolveProviderRequirements struct {
 	Addr   addrs.ModuleInstance
 	Module *configs.Module
-	Exprs  map[string]*configs.ProviderRequirementExpr
 }
 
 var (
@@ -38,14 +37,12 @@ func (n *nodeResolveProviderRequirements) Execute(
 ) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	for name, expr := range n.Exprs {
-		rp, rpDiags := n.resolveProvider(name, expr, ctx)
+	for name, req := range n.Module.ProviderRequirements.RequiredProviders {
+		rpDiags := n.resolveProvider(name, req, ctx)
 		diags = append(diags, rpDiags...)
 		if rpDiags.HasErrors() {
 			continue
 		}
-
-		n.Module.ProviderRequirements.RequiredProviders[name] = rp
 	}
 
 	n.Module.GatherProviderLocalNames()
@@ -55,25 +52,19 @@ func (n *nodeResolveProviderRequirements) Execute(
 
 func (n *nodeResolveProviderRequirements) resolveProvider(
 	name string,
-	expr *configs.ProviderRequirementExpr,
+	req *configs.RequiredProvider,
 	ctx EvalContext,
-) (*configs.RequiredProvider, tfdiags.Diagnostics) {
+) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	rp := &configs.RequiredProvider{
-		Name:      name,
-		Aliases:   expr.ConfigAliases,
-		DeclRange: expr.DeclRange,
-	}
-
-	if expr.SourceExpr != nil {
-		sourceStr, sourceType, sourceDiags := evalProviderSource(expr.SourceExpr, ctx)
+	if req.SourceExpr != nil {
+		sourceStr, sourceType, sourceDiags := evalProviderSource(req.SourceExpr, ctx)
 		diags = diags.Append(sourceDiags)
 		if sourceDiags.HasErrors() {
-			return nil, diags
+			return diags
 		}
-		rp.Source = sourceStr
-		rp.Type = sourceType
+		req.Source = sourceStr
+		req.Type = sourceType
 	} else { // Regular string parsing (no vars)
 		pType, err := addrs.ParseProviderPart(name)
 		if err != nil {
@@ -82,21 +73,21 @@ func (n *nodeResolveProviderRequirements) resolveProvider(
 				"Invalid provider name",
 				err.Error(),
 			))
-			return nil, diags
+			return diags
 		}
-		rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+		req.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
 	}
 
-	if expr.VersionExpr != nil {
-		vc, vcDiags := evalProviderVersion(expr.VersionExpr, ctx)
+	if req.RequirementExpr != nil {
+		vc, vcDiags := evalProviderVersion(req.RequirementExpr, ctx)
 		diags = diags.Append(vcDiags)
 		if vcDiags.HasErrors() {
-			return nil, diags
+			return diags
 		}
-		rp.Requirement = vc
+		req.Requirement = vc
 	}
 
-	return rp, diags
+	return diags
 }
 
 func evalProviderSource(
@@ -268,17 +259,17 @@ func evalProviderVersion(
 
 func (n *nodeResolveProviderRequirements) References() []*addrs.Reference {
 	var refs []*addrs.Reference
-	for _, expr := range n.Exprs {
-		if expr.SourceExpr != nil {
+	for _, req := range n.Module.ProviderRequirements.RequiredProviders {
+		if req.SourceExpr != nil {
 			sourceRefs, _ := langrefs.ReferencesInExpr(
-				addrs.ParseRef, expr.SourceExpr,
+				addrs.ParseRef, req.SourceExpr,
 			)
 			refs = append(refs, sourceRefs...)
 		}
 
-		if expr.VersionExpr != nil {
+		if req.RequirementExpr != nil {
 			versionRefs, _ := langrefs.ReferencesInExpr(
-				addrs.ParseRef, expr.VersionExpr,
+				addrs.ParseRef, req.RequirementExpr,
 			)
 			refs = append(refs, versionRefs...)
 		}

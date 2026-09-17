@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -102,6 +104,79 @@ func TestBuildingEvalContextInitProvider(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("error initializing provider test.mock: %s", err)
+	}
+}
+
+func TestBuiltinEvalContextEvaluationScopeProviderFunctions(t *testing.T) {
+	providerAddr := addrs.NewDefaultProvider("scope-functions")
+	for name, tc := range map[string]struct {
+		operation     walkOperation
+		provider      addrs.Provider
+		wantFunctions bool
+	}{
+		"init with unresolved provider": {
+			operation: walkInit,
+		},
+		"init with resolved provider": {
+			operation: walkInit,
+			provider:  providerAddr,
+		},
+		"plan with resolved provider": {
+			operation:     walkPlan,
+			provider:      providerAddr,
+			wantFunctions: true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			cfg := configs.NewEmptyConfig()
+			cfg.Module.ProviderRequirements = &configs.RequiredProviders{
+				RequiredProviders: map[string]*configs.RequiredProvider{
+					"custom": {Name: "custom", Type: tc.provider},
+				},
+			}
+			p := &testing_provider.MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					Functions: map[string]providers.FunctionDecl{
+						"example": {ReturnType: cty.String},
+					},
+				},
+				CallFunctionFn: func(req providers.CallFunctionRequest) providers.CallFunctionResponse {
+					return providers.CallFunctionResponse{Result: cty.StringVal("result")}
+				},
+			}
+			ctx := testBuiltinEvalContext(t, tc.operation, cfg, nil, nil)
+			ctx = ctx.withScope(evalContextModuleInstance{Addr: addrs.RootModuleInstance}).(*BuiltinEvalContext)
+			ctx.Plugins = newContextPlugins(map[addrs.Provider]providers.Factory{
+				providerAddr: providers.FactoryFixed(p),
+			}, nil, nil)
+
+			scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
+			if _, exists := scope.ExternalFuncs.Provider["custom"]["example"]; exists != tc.wantFunctions {
+				t.Errorf("provider function available = %t, want %t", exists, tc.wantFunctions)
+			}
+
+			expr, hclDiags := hclsyntax.ParseExpression([]byte(`provider::custom::example()`), "test.tf", hcl.InitialPos)
+			if hclDiags.HasErrors() {
+				t.Fatal(hclDiags.Error())
+			}
+			got, diags := scope.EvalExpr(expr, cty.String)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			want := cty.UnknownVal(cty.String)
+			if tc.wantFunctions {
+				want = cty.StringVal("result")
+			}
+			if !got.RawEquals(want) {
+				t.Errorf("wrong function result: got %#v, want %#v", got, want)
+			}
+			if p.GetProviderSchemaCalled != tc.wantFunctions {
+				t.Errorf("provider schema requested = %t, want %t", p.GetProviderSchemaCalled, tc.wantFunctions)
+			}
+			if p.CallFunctionCalled != tc.wantFunctions {
+				t.Errorf("provider function called = %t, want %t", p.CallFunctionCalled, tc.wantFunctions)
+			}
+		})
 	}
 }
 

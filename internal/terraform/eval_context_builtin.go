@@ -485,6 +485,13 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+	var externalFuncs lang.ExternalFuncs
+	if ctx.Evaluator.Operation != walkInit {
+		// Init evaluates provider requirements before their addresses and versions
+		// are resolved. Provider functions are only available in subsequent walks.
+		externalFuncs = ctx.evaluationExternalFunctions()
+	}
+
 	switch scope := ctx.scope.(type) {
 	case evalContextModuleInstance:
 		data := &evaluationStateData{
@@ -496,7 +503,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			InstanceKeyData: keyData,
 			Operation:       ctx.Evaluator.Operation,
 		}
-		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+		evalScope := ctx.Evaluator.Scope(data, self, source, externalFuncs)
 
 		// ctx.PathValue is the path of the module that contains whatever
 		// expression the caller will be trying to evaluate, so this will
@@ -520,7 +527,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 			EachAvailable:  keyData.EachKey != cty.NilVal,
 			Operation:      ctx.Evaluator.Operation,
 		}
-		evalScope := ctx.Evaluator.Scope(data, self, source, ctx.evaluationExternalFunctions())
+		evalScope := ctx.Evaluator.Scope(data, self, source, externalFuncs)
 		if mc := ctx.Evaluator.Config.Descendant(scope.Addr.Module()); mc != nil {
 			evalScope.SetActiveExperiments(mc.Module.ActiveExperiments)
 		}

@@ -37,12 +37,7 @@ type Module struct {
 	CloudConfig          *CloudConfig
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements *RequiredProviders
-	// ProviderRequirementExprs is a map of expressions that have not yet been
-	// resolved to concrete provider requirements. Regardless of whether they
-	// contain variables they get resolved to ProviderRequirements in the init-graph.
-	// Ony in the context of Terraform Stacks they are statically resolved.
-	ProviderRequirementExprs map[string]*ProviderRequirementExpr
-	ProviderLocalNames       map[addrs.Provider]string
+	ProviderLocalNames   map[addrs.Provider]string
 
 	// ProviderMetaConfigs retains the original declarations from config
 	ProviderMetaConfigs []*ProviderMeta
@@ -88,13 +83,12 @@ type File struct {
 
 	ActiveExperiments experiments.Set
 
-	Backends              []*Backend
-	StateStores           []*StateStore
-	CloudConfigs          []*CloudConfig
-	ProviderConfigs       []*Provider
-	ProviderMetas         []*ProviderMeta
-	RequiredProviders     []*RequiredProviders
-	RequiredProviderExprs []*ProviderRequirementExpr
+	Backends          []*Backend
+	StateStores       []*StateStore
+	CloudConfigs      []*CloudConfig
+	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
+	RequiredProviders []*RequiredProviders
 
 	Variables []*Variable
 	Locals    []*Local
@@ -133,21 +127,20 @@ func NewModuleWithTests(primaryFiles, overrideFiles []*File, testFiles map[strin
 func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	mod := &Module{
-		ProviderConfigs:          map[string]*Provider{},
-		ProviderLocalNames:       map[addrs.Provider]string{},
-		Variables:                map[string]*Variable{},
-		Locals:                   map[string]*Local{},
-		Outputs:                  map[string]*Output{},
-		ModuleCalls:              map[string]*ModuleCall{},
-		ManagedResources:         map[string]*Resource{},
-		EphemeralResources:       map[string]*Resource{},
-		DataResources:            map[string]*Resource{},
-		ListResources:            map[string]*Resource{},
-		Checks:                   map[string]*Check{},
-		ProviderMetas:            map[addrs.Provider]*ProviderMeta{},
-		ProviderRequirementExprs: map[string]*ProviderRequirementExpr{},
-		Tests:                    map[string]*TestFile{},
-		Actions:                  map[string]*Action{},
+		ProviderConfigs:    map[string]*Provider{},
+		ProviderLocalNames: map[addrs.Provider]string{},
+		Variables:          map[string]*Variable{},
+		Locals:             map[string]*Local{},
+		Outputs:            map[string]*Output{},
+		ModuleCalls:        map[string]*ModuleCall{},
+		ManagedResources:   map[string]*Resource{},
+		EphemeralResources: map[string]*Resource{},
+		DataResources:      map[string]*Resource{},
+		ListResources:      map[string]*Resource{},
+		Checks:             map[string]*Check{},
+		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Tests:              map[string]*TestFile{},
+		Actions:            map[string]*Action{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -165,9 +158,6 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 			}
 			mod.ProviderRequirements = r
 		}
-		for _, expr := range file.RequiredProviderExprs {
-			mod.ProviderRequirementExprs[expr.Name] = expr
-		}
 	}
 
 	// If no required_providers block is configured, create a useful empty
@@ -179,18 +169,12 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	}
 
 	// Any required_providers blocks in override files replace the entire
-	// block for each provider. Process resolved and expression-based requirements
-	// in file order, removing superseded declarations from either representation.
+	// block for each provider.
 	for _, file := range overrideFiles {
 		for _, override := range file.RequiredProviders {
 			for name, rp := range override.RequiredProviders {
-				delete(mod.ProviderRequirementExprs, name)
 				mod.ProviderRequirements.RequiredProviders[name] = rp
 			}
-		}
-		for _, expr := range file.RequiredProviderExprs {
-			delete(mod.ProviderRequirements.RequiredProviders, expr.Name)
-			mod.ProviderRequirementExprs[expr.Name] = expr
 		}
 	}
 
