@@ -16,21 +16,21 @@ func TestGet(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 			WorkingDir:       wd,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	if !strings.Contains(output, "- foo in") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
@@ -40,11 +40,11 @@ func TestGet_multipleArgs(t *testing.T) {
 	wd := tempWorkingDir(t)
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 			WorkingDir:       wd,
 		},
 	}
@@ -54,7 +54,7 @@ func TestGet_multipleArgs(t *testing.T) {
 		"bad",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+		t.Fatalf("bad: \n%s", done(t).All())
 	}
 }
 
@@ -62,11 +62,11 @@ func TestGet_update(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "get")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 			WorkingDir:       wd,
 		},
 	}
@@ -75,10 +75,10 @@ func TestGet_update(t *testing.T) {
 		"-update",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	if !strings.Contains(output, `- foo in`) {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
@@ -97,21 +97,24 @@ func TestGet_cancel(t *testing.T) {
 	close(shutdownCh)
 
 	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &GetCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			Ui:               ui, // Ui is needed for handling the interrupt signal
+			View:             view,
 			WorkingDir:       wd,
 			ShutdownCh:       shutdownCh,
 		},
 	}
 
-	args := []string{}
+	args := []string{"-no-color"}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("succeeded; wanted error\n%s", ui.OutputWriter.String())
+		t.Fatalf("succeeded; wanted error\n%s", done(t).All())
 	}
 
-	if got, want := ui.ErrorWriter.String(), `Module installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
+	output := done(t)
+	if got, want := output.Stderr(), `Module installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
 		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
@@ -122,11 +125,11 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -136,7 +139,7 @@ func TestGet_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -147,21 +150,21 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{"-var", "module_name=example"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			t.Fatalf("bad: \n%s", done(t).Stderr())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		if !strings.Contains(output, "- example in") {
 			t.Fatalf("doesn't look like get: %s", output)
 		}
@@ -180,11 +183,11 @@ func TestGet_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &GetCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 				Services:         d,
 			},
@@ -192,10 +195,10 @@ func TestGet_constVariable(t *testing.T) {
 
 		args := []string{}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			t.Fatalf("bad: \n%s", done(t).Stderr())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		if !strings.Contains(output, "- example in") {
 			t.Fatalf("doesn't look like get: %s", output)
 		}
