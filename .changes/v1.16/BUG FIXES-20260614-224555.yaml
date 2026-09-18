@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Remove extra quoting in import error messages for resource addresses
+time: 2026-06-14T22:30:00Z
+custom:
+    Issue: "34124"
