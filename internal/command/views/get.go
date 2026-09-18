@@ -4,6 +4,9 @@
 package views
 
 import (
+	"fmt"
+
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,11 +33,23 @@ type GetHuman struct {
 
 var _ Get = (*GetHuman)(nil)
 
-func (v *GetHuman) LogModuleDownload(message string) {
+func (v *GetHuman) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
+	var message string
+	if version == nil {
+		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+	}
 	v.view.streams.Println(message)
 }
 
-func (v *GetHuman) LogModuleInstallation(message string) {
+func (v *GetHuman) LogModuleInstallation(modulePath, localDir string) {
+	var message string
+	if localDir == "" {
+		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
+	}
 	v.view.streams.Println(message)
 }
 

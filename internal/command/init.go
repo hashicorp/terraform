@@ -104,7 +104,6 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	}
 
 	uiHook := uiModuleInstallHooks{
-		Ui:             c.Ui,
 		ShowLocalPaths: true,
 		View:           view,
 	}

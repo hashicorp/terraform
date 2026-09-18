@@ -79,7 +79,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		view.LogConfigurationCopyingStart(src)
 
 		hooks := uiModuleInstallHooks{
-			Ui:             c.Ui,
 			ShowLocalPaths: false, // since they are in a weird location for init
 			View:           view,
 		}

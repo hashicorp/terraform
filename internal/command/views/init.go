@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -201,14 +202,26 @@ func (v *InitHuman) LogProviderLockfileUpdated() {
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitHuman) LogModuleDownload(message string) {
+func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
+	var message string
+	if version == nil {
+		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+	}
 	v.print(strings.TrimSpace(message))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitHuman) LogModuleInstallation(message string) {
+func (v *InitHuman) LogModuleInstallation(modulePath, localDir string) {
+	var message string
+	if localDir == "" {
+		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
+	}
 	v.print(message)
 }
 
@@ -480,14 +493,28 @@ func (v *InitJSON) LogProviderLockfileUpdated() {
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitJSON) LogModuleDownload(message string) {
+func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
+	var message string
+	if version == nil {
+		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+	}
+
 	v.view.Log(message)
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitJSON) LogModuleInstallation(message string) {
+func (v *InitJSON) LogModuleInstallation(modulePath, localDir string) {
+	var message string
+	if localDir == "" {
+		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
+	} else {
+		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
+	}
+
 	v.view.Log(message)
 }
 
