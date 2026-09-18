@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend: Fixed a bug where backends began to ignore empty string values set in the backend configuration.'
+time: 2025-11-05T13:11:22.098037Z
+custom:
+    Issue: "37846"
