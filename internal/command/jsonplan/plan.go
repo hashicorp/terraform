@@ -165,6 +165,56 @@ type Change struct {
 	AfterIdentity  json.RawMessage `json:"after_identity,omitempty"`
 }
 
+func redactedSensitiveFromObject(obj json.RawMessage) (json.RawMessage, error) {
+	var unmarshaled any
+	if err := json.Unmarshal(obj, &unmarshaled); err != nil {
+		return nil, err
+	}
+
+	var sensitive any
+	if s, ok := unmarshaled.([]any); ok {
+		tmp := make([]bool, len(s))
+		for i, _ := range s {
+			tmp[i] = true
+		}
+		sensitive = tmp
+	} else if m, ok := unmarshaled.(map[string]any); ok {
+		tmp := make(map[string]any, len(m))
+		for key, _ := range m {
+			tmp[key] = true
+		}
+		sensitive = tmp
+	} else if unmarshaled == nil {
+		sensitive = map[string]any{}
+	} else {
+		sensitive = true
+	}
+
+	marshaled, err := json.Marshal(sensitive)
+	if err != nil {
+		return nil, err
+	}
+	return marshaled, nil
+}
+
+func (change Change) Redacted() (Change, error) {
+	output := change
+
+	beforeSensitive, err := redactedSensitiveFromObject(change.Before)
+	if err != nil {
+		return Change{}, err
+	}
+	output.BeforeSensitive = beforeSensitive
+
+	afterSensitive, err := redactedSensitiveFromObject(change.After)
+	if err != nil {
+		return Change{}, err
+	}
+	output.AfterSensitive = afterSensitive
+
+	return output, nil
+}
+
 // Importing is a nested object for the resource import metadata.
 type Importing struct {
 	// The original ID of this resource used to target it as part of planned
