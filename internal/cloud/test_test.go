@@ -84,7 +84,7 @@ func TestTest(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -170,7 +170,7 @@ func TestTest_Parallelism(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -240,7 +240,7 @@ func TestTest_JSON(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -347,7 +347,7 @@ func TestTest_Verbose(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -510,7 +510,7 @@ func TestTest_Cancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test(false)
+		_, diags = runner.Test()
 	}()
 
 	stop() // immediately cancel
@@ -633,7 +633,7 @@ func TestTest_DelayedCancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test(false)
+		_, diags = runner.Test()
 	}()
 
 	// Wait for finish!
@@ -765,7 +765,7 @@ func TestTest_ForceCancel(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	go func() {
 		defer done()
-		_, diags = runner.Test(false)
+		_, diags = runner.Test()
 	}()
 
 	stop()
@@ -915,7 +915,7 @@ func TestTest_LongRunningTest(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
@@ -999,7 +999,7 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 		clientOverride: client,
 	}
 
-	_, diags := runner.Test(false)
+	_, diags := runner.Test()
 	if len(diags) > 0 {
 		t.Errorf("found diags and expected none: %s", diags.ErrWithWarnings())
 	}
