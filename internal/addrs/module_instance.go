@@ -5,6 +5,7 @@ package addrs
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -305,16 +306,7 @@ func (mk moduleInstanceKey) uniqueKeySigil() {}
 // Equal returns true if the receiver and the given other value
 // contains the exact same parts.
 func (m ModuleInstance) Equal(o ModuleInstance) bool {
-	if len(m) != len(o) {
-		return false
-	}
-
-	for i := range m {
-		if m[i] != o[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(m, o)
 }
 
 // Less returns true if the receiver should sort before the given other value
