@@ -27,17 +27,28 @@ func TestParseShow_valid(t *testing.T) {
 		"json": {
 			[]string{"-json"},
 			&Show{
-				Path:     "",
-				ViewType: ViewJSON,
-				Vars:     &Vars{},
+				Path:            "",
+				ViewType:        ViewJSON,
+				RedactSensitive: false,
+				Vars:            &Vars{},
+			},
+		},
+		"json redacted": {
+			[]string{"-json-redacted"},
+			&Show{
+				Path:            "",
+				ViewType:        ViewJSON,
+				RedactSensitive: true,
+				Vars:            &Vars{},
 			},
 		},
 		"path": {
 			[]string{"-json", "foo"},
 			&Show{
-				Path:     "foo",
-				ViewType: ViewJSON,
-				Vars:     &Vars{},
+				Path:            "foo",
+				ViewType:        ViewJSON,
+				RedactSensitive: false,
+				Vars:            &Vars{},
 			},
 		},
 	}
@@ -66,9 +77,10 @@ func TestParseShow_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-boop"},
 			&Show{
-				Path:     "",
-				ViewType: ViewHuman,
-				Vars:     &Vars{},
+				Path:            "",
+				ViewType:        ViewHuman,
+				RedactSensitive: false,
+				Vars:            &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -81,15 +93,32 @@ func TestParseShow_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"-json", "bar", "baz"},
 			&Show{
-				Path:     "bar",
-				ViewType: ViewJSON,
-				Vars:     &Vars{},
+				Path:            "bar",
+				ViewType:        ViewJSON,
+				RedactSensitive: false,
+				Vars:            &Vars{},
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Too many command line arguments",
 					"Expected at most one positional argument.",
+				),
+			},
+		},
+		"incompatible flags": {
+			[]string{"-json", "-json-redacted"},
+			&Show{
+				Path:            "",
+				ViewType:        ViewJSON,
+				RedactSensitive: true,
+				Vars:            &Vars{},
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incompatible command-line flags",
+					"The -json and -json-redacted options cannot be used together.",
 				),
 			},
 		},
