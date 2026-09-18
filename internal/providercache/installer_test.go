@@ -2881,3 +2881,62 @@ func tmpDir(t *testing.T) string {
 	}
 	return filepath.Clean(unlinked)
 }
+
+// TestEnsureProviderVersions_readsCachedPackageOnce checks that linking a
+// provider from the global cache hashes the cached package at most once, and
+// not at all when the result isn't needed. Hashing reads the whole package,
+// which is slow for large providers.
+func TestEnsureProviderVersions_readsCachedPackageOnce(t *testing.T) {
+	beep := addrs.MustParseProviderSourceString("example.com/foo/beep")
+	platform := getproviders.Platform{OS: "bleep", Arch: "bloop"}
+	version := getproviders.MustParseVersion("2.1.0")
+	constraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
+	hash := getproviders.HashScheme1.New("2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=")
+	meta := getproviders.PackageMeta{
+		Provider:       beep,
+		Version:        version,
+		TargetPlatform: platform,
+		Location:       getproviders.PackageLocalDir("testdata/beep-provider"),
+	}
+
+	tests := map[string]struct {
+		locked, mayBreak bool
+		wantReads        int
+	}{
+		"lock entry matches the cache":        {locked: true, wantReads: 1},
+		"no lock entry, cache may break lock": {mayBreak: true, wantReads: 1},
+		// Not eligible without a lock entry: reinstalled, and the linked copy is hashed instead.
+		"no lock entry": {wantReads: 0},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			cacheDir := NewDirWithPlatform(tmpDir(t), platform)
+			if _, err := cacheDir.InstallPackage(context.Background(), meta, nil); err != nil {
+				t.Fatal(err)
+			}
+			cached := cacheDir.ProviderVersion(beep, version)
+
+			reads := 0
+			testPackageReadHook = func(dir string) {
+				if dir == cached.PackageDir {
+					reads++
+				}
+			}
+			t.Cleanup(func() { testPackageReadHook = nil })
+
+			inst := NewInstaller(NewDirWithPlatform(tmpDir(t), platform), getproviders.NewMockSource([]getproviders.PackageMeta{meta}, nil))
+			inst.SetGlobalCacheDir(cacheDir)
+			inst.SetGlobalCacheDirMayBreakDependencyLockFile(test.mayBreak)
+			locks := depsfile.NewLocks()
+			if test.locked {
+				locks.SetProvider(beep, version, constraints, []getproviders.Hash{hash})
+			}
+			if _, err := inst.EnsureProviderVersions(context.Background(), locks, getproviders.Requirements{beep: constraints}, InstallNewProvidersOnly); err != nil {
+				t.Fatal(err)
+			}
+			if reads != test.wantReads {
+				t.Errorf("cached package was read %d times; want %d", reads, test.wantReads)
+			}
+		})
+	}
+}
