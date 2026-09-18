@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -47,6 +48,8 @@ type RemoteClient struct {
 	serverSideEncryption  bool
 	customerEncryptionKey []byte
 	acl                   string
+	stateTags             map[string]string
+	lockTags              map[string]string
 	kmsKeyID              string
 	ddbTable              string
 	skipS3Checksum        bool
@@ -229,6 +232,7 @@ func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 	if c.acl != "" {
 		input.ACL = s3types.ObjectCannedACL(c.acl)
 	}
+	c.configurePutObjectTags(input, c.lockTags)
 
 	log.Info("Uploading remote state")
 
@@ -382,6 +386,7 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 	if c.acl != "" {
 		input.ACL = s3types.ObjectCannedACL(c.acl)
 	}
+	c.configurePutObjectTags(input, c.lockTags)
 
 	log.Debug("Uploading lock file")
 
@@ -586,6 +591,17 @@ func (c *RemoteClient) unlockWithDynamoDB(ctx context.Context, id string, lockEr
 		return err
 	}
 	return nil
+}
+
+func (c *RemoteClient) configurePutObjectTags(i *s3.PutObjectInput, tags map[string]string) {
+	if len(tags) == 0 {
+		return
+	}
+	headers := url.Values{}
+	for k, v := range tags {
+		headers.Add(k, v)
+	}
+	i.Tagging = aws.String(headers.Encode())
 }
 
 func (c *RemoteClient) getMD5(ctx context.Context) ([]byte, error) {
