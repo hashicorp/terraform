@@ -4,7 +4,6 @@
 package views
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -27,7 +26,7 @@ type Validate interface {
 func NewValidate(vt arguments.ViewType, view *View) Validate {
 	switch vt {
 	case arguments.ViewJSON:
-		return &ValidateJSON{view: view}
+		return NewValidateJSON(view)
 	case arguments.ViewHuman:
 		return &ValidateHuman{view: view}
 	default:
@@ -75,37 +74,56 @@ func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 // This object includes top-level fields summarizing the result, and an array
 // of JSON diagnostic objects.
 type ValidateJSON struct {
-	view *View
+	view *JSONStaticView[ValidateOutput]
+
+	// Legacy view for logging warnings in human-readable format
+	// The `version` command's JSON output was implemented in a way that still produces
+	// human-readable output when diagnostics are logged. This is preserved, as updating
+	// it is a breaking change, but this should be amended in a future major version.
+	legacyView *View
+
+	formatVersion string
 }
 
 var _ Validate = (*ValidateJSON)(nil)
 
-func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
+func NewValidateJSON(view *View) *ValidateJSON {
 	// FormatVersion represents the version of the json format and will be
 	// incremented for any change to this format that requires changes to a
 	// consuming parser.
-	const FormatVersion = "1.0"
+	const formatVersion = "1.0"
 
-	type Output struct {
-		FormatVersion string `json:"format_version"`
-
-		// We include some summary information that is actually redundant
-		// with the detailed diagnostics, but avoids the need for callers
-		// to re-implement our logic for deciding these.
-		Valid        bool                    `json:"valid"`
-		ErrorCount   int                     `json:"error_count"`
-		WarningCount int                     `json:"warning_count"`
-		Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
+	return &ValidateJSON{
+		view:          NewJSONStaticView[ValidateOutput](view),
+		legacyView:    view,
+		formatVersion: formatVersion,
 	}
+}
 
-	output := Output{
-		FormatVersion: FormatVersion,
+type ValidateOutput struct {
+	FormatVersion string `json:"format_version"`
+
+	// We include some summary information that is actually redundant
+	// with the detailed diagnostics, but avoids the need for callers
+	// to re-implement our logic for deciding these.
+	Valid        bool                    `json:"valid"`
+	ErrorCount   int                     `json:"error_count"`
+	WarningCount int                     `json:"warning_count"`
+	Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
+}
+
+func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
+	output := ValidateOutput{
+		FormatVersion: v.formatVersion,
 		Valid:         true, // until proven otherwise
-	}
-	configSources := v.view.configSources()
-	for _, diag := range diags {
-		output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
 
+		// Make sure this always appears as an array in our output, since
+		// this is easier to consume for dynamically-typed languages.
+		Diagnostics: []*viewsjson.Diagnostic{},
+	}
+
+	// Collect counts
+	for _, diag := range diags {
 		switch diag.Severity() {
 		case tfdiags.Error:
 			output.ErrorCount++
@@ -114,18 +132,11 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 			output.WarningCount++
 		}
 	}
-	if output.Diagnostics == nil {
-		// Make sure this always appears as an array in our output, since
-		// this is easier to consume for dynamically-typed languages.
-		output.Diagnostics = []*viewsjson.Diagnostic{}
-	}
 
-	j, err := json.MarshalIndent(&output, "", "  ")
-	if err != nil {
-		// Should never happen because we fully-control the input here
-		panic(err)
-	}
-	v.view.streams.Println(string(j))
+	// Convert diagnostics to JSON-friendly format
+	output.Diagnostics = v.view.prepareDiagnostics(diags)
+
+	v.view.Print(output)
 
 	if diags.HasErrors() {
 		return 1
@@ -137,5 +148,5 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 // In this case, we choose to render human-readable diagnostic output,
 // primarily for backwards compatibility.
 func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	v.legacyView.Diagnostics(diags)
 }
