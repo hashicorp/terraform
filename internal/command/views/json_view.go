@@ -21,7 +21,22 @@ import (
 // command/views/json package.
 const JSON_UI_VERSION = "1.3"
 
+// NewJSONView creates a new JSONView instance and logs the version upon creation.
+// This should be used at the start of a command when the view is first initialized.
 func NewJSONView(view *View) *JSONView {
+	return newJSONView(view, true)
+}
+
+// NewJSONViewNoVersionLog creates a new JSONView instance without logging the version upon creation.
+// This should be used partway though command when a second (or more) view is initialized.
+// Otherwise, JSON output will start with a version log and then include a second version log unexpectedly later.
+func NewJSONViewNoVersionLog(view *View) *JSONView {
+	return newJSONView(view, false)
+}
+
+// newJSONView creates a new JSONView instance.
+// The versionLog parameter controls whether the JSON view should log its version upon creation.
+func newJSONView(view *View, versionLog bool) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
 		Name:       "terraform.ui",
 		Output:     view.streams.Stdout.File,
@@ -31,7 +46,9 @@ func NewJSONView(view *View) *JSONView {
 		log:  log,
 		view: view,
 	}
-	jv.Version()
+	if versionLog {
+		jv.Version()
+	}
 	return jv
 }
 
