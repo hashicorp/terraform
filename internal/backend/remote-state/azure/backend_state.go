@@ -36,23 +36,31 @@ func (b *Backend) Workspaces() ([]string, tfdiags.Diagnostics) {
 	if err != nil {
 		return nil, diags.Append(fmt.Errorf("retrieving container client: %v", err))
 	}
-	resp, err := client.ListBlobs(ctx, b.containerName, params)
-	if err != nil {
-		return nil, diags.Append(fmt.Errorf("listing blobs: %v", err))
-	}
 
 	envs := map[string]struct{}{}
-	for _, obj := range resp.Blobs.Blobs {
-		key := obj.Name
-		if strings.HasPrefix(key, prefix) {
-			name := strings.TrimPrefix(key, prefix)
-			// we store the state in a key, not a directory
-			if strings.Contains(name, "/") {
-				continue
-			}
-
-			envs[name] = struct{}{}
+	for {
+		resp, err := client.ListBlobs(ctx, b.containerName, params)
+		if err != nil {
+			return nil, diags.Append(fmt.Errorf("listing blobs: %v", err))
 		}
+
+		for _, obj := range resp.Blobs.Blobs {
+			key := obj.Name
+			if strings.HasPrefix(key, prefix) {
+				name := strings.TrimPrefix(key, prefix)
+				// we store the state in a key, not a directory
+				if strings.Contains(name, "/") {
+					continue
+				}
+
+				envs[name] = struct{}{}
+			}
+		}
+
+		if resp.NextMarker == nil || *resp.NextMarker == "" || (params.Marker != nil && *params.Marker == *resp.NextMarker) {
+			break
+		}
+		params.Marker = resp.NextMarker
 	}
 
 	result := []string{backend.DefaultStateName}

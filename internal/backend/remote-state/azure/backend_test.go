@@ -4,10 +4,14 @@
 package azure
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
 
 func TestBackend_impl(t *testing.T) {
@@ -39,6 +43,75 @@ func TestBackendConfig(t *testing.T) {
 	}
 	if b.snapshot != false {
 		t.Fatalf("Incorrect snapshot was populated")
+	}
+}
+
+func TestBackendWorkspaces_pagination(t *testing.T) {
+	t.Parallel()
+
+	page1XML := `<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="https://testaccount.blob.core.windows.net/" ContainerName="testcontainer">
+  <Prefix>stateenv:</Prefix>
+  <Blobs>
+    <Blob>
+      <Name>stateenv:workspace-one</Name>
+    </Blob>
+  </Blobs>
+  <NextMarker>token-page-2</NextMarker>
+</EnumerationResults>`
+
+	page2XML := `<?xml version="1.0" encoding="utf-8"?>
+<EnumerationResults ServiceEndpoint="https://testaccount.blob.core.windows.net/" ContainerName="testcontainer">
+  <Prefix>stateenv:</Prefix>
+  <Blobs>
+    <Blob>
+      <Name>stateenv:workspace-two</Name>
+    </Blob>
+  </Blobs>
+</EnumerationResults>`
+
+	var requests []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.URL.RequestURI())
+		marker := r.URL.Query().Get("marker")
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+		if marker == "" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(page1XML))
+		} else if marker == "token-page-2" {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(page2XML))
+		} else {
+			http.Error(w, "unexpected marker", http.StatusBadRequest)
+		}
+	}))
+	defer server.Close()
+
+	containersClient, err := containers.NewWithBaseUri(server.URL)
+	if err != nil {
+		t.Fatalf("failed to create containers client: %v", err)
+	}
+
+	b := &Backend{
+		apiClient: &Client{
+			containersClient: containersClient,
+		},
+		containerName: "testcontainer",
+		keyName:       "state",
+	}
+
+	workspaces, diags := b.Workspaces()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Err())
+	}
+
+	expected := []string{"default", "workspace-one", "workspace-two"}
+	if diff := cmp.Diff(expected, workspaces); diff != "" {
+		t.Fatalf("unexpected workspaces (-want +got):\n%s", diff)
+	}
+
+	if len(requests) != 2 {
+		t.Fatalf("expected 2 requests to follow NextMarker, got %d: %v", len(requests), requests)
 	}
 }
 

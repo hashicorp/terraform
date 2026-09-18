@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/azure: Follow NextMarker to list all workspaces across paginated results.'
+time: 2026-09-18T10:02:00.000000-04:00
+custom:
+    Issue: "35703"
