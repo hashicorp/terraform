@@ -167,6 +167,7 @@ const (
 	EvaluationStage_INIT_EVALUATION_STAGE    EvaluationStage = 1
 	EvaluationStage_PLAN_EVALUATION_STAGE    EvaluationStage = 2
 	EvaluationStage_APPLY_EVALUATION_STAGE   EvaluationStage = 3
+	EvaluationStage_QUERY_EVALUATION_STAGE   EvaluationStage = 4
 )
 
 // Enum value maps for EvaluationStage.
@@ -176,12 +177,14 @@ var (
 		1: "INIT_EVALUATION_STAGE",
 		2: "PLAN_EVALUATION_STAGE",
 		3: "APPLY_EVALUATION_STAGE",
+		4: "QUERY_EVALUATION_STAGE",
 	}
 	EvaluationStage_value = map[string]int32{
 		"INVALID_EVALUATION_STAGE": 0,
 		"INIT_EVALUATION_STAGE":    1,
 		"PLAN_EVALUATION_STAGE":    2,
 		"APPLY_EVALUATION_STAGE":   3,
+		"QUERY_EVALUATION_STAGE":   4,
 	}
 )
 
@@ -443,12 +446,13 @@ const file_types_proto_rawDesc = "" +
 	"\x06UPDATE\x10\x01\x12\n" +
 	"\n" +
 	"\x06DELETE\x10\x02\x12\t\n" +
-	"\x05NO_OP\x10\x03*\x81\x01\n" +
+	"\x05NO_OP\x10\x03*\x9d\x01\n" +
 	"\x0fEvaluationStage\x12\x1c\n" +
 	"\x18INVALID_EVALUATION_STAGE\x10\x00\x12\x19\n" +
 	"\x15INIT_EVALUATION_STAGE\x10\x01\x12\x19\n" +
 	"\x15PLAN_EVALUATION_STAGE\x10\x02\x12\x1a\n" +
-	"\x16APPLY_EVALUATION_STAGE\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\x16APPLY_EVALUATION_STAGE\x10\x03\x12\x1a\n" +
+	"\x16QUERY_EVALUATION_STAGE\x10\x04B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_types_proto_rawDescOnce sync.Once
