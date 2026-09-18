@@ -3020,14 +3020,14 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	// Create new env
 	{
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
-			t.Fatal("error creating workspace")
+			t.Fatalf("error creating workspace: %s", done(t).All())
 		}
 	}
 
