@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform init` now warns when the plugin cache directory is also a filesystem mirror'
+time: 2026-09-21T17:10:00.000000-04:00
+custom:
+    Issue: "39255"
