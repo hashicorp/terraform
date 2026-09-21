@@ -5,10 +5,13 @@ package funcs
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"syscall"
 	"unicode/utf8"
 
 	"github.com/bmatcuk/doublestar"
@@ -277,6 +280,13 @@ func MakeFileSetFunc(baseDir string, wrap ImplWrapper) function.Function {
 				fi, err := os.Stat(match)
 
 				if err != nil {
+					if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) {
+						// The match does not resolve to a filesystem object. This can
+						// happen for a dangling symlink or when an entry changes between
+						// the glob and this stat. It cannot be a regular file, so omit it
+						// just as we do other non-regular matches below.
+						continue
+					}
 					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat %s: %w", redactIfSensitive(match, marks...), err)
 				}
 
