@@ -302,6 +302,18 @@ func TestBase64TextDecode(t *testing.T) {
 			``,
 		},
 		{
+			cty.StringVal("Y2Fm77+9"), // "caf\ufffd" in UTF-8
+			cty.StringVal("UTF-8"),
+			cty.StringVal("caf\ufffd"),
+			``,
+		},
+		{
+			cty.StringVal("77+9/w=="), // literal U+FFFD followed by invalid UTF-8
+			cty.StringVal("UTF-8"),
+			cty.UnknownVal(cty.String).RefineNotNull(),
+			`the given string contains symbols that are not defined for UTF-8`,
+		},
+		{
 			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
 			cty.StringVal("UTF-16LE"),
 			cty.StringVal("abc123!?$*&()'-=@~"),

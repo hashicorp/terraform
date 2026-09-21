@@ -171,6 +171,12 @@ var TextDecodeBase64Func = function.New(&function.Spec{
 			}
 
 		}
+		if encName == "UTF-8" {
+			if !utf8.Valid(sDec) {
+				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given string contains symbols that are not defined for %s", encName)
+			}
+			return cty.StringVal(string(sDec)), nil
+		}
 
 		decoder := encoding.NewDecoder()
 		decoded, err := decoder.Bytes(sDec)
