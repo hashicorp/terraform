@@ -2122,7 +2122,7 @@ func TestApply_changedPlanOptions_applyTime(t *testing.T) {
 		if !strings.Contains(output.Stdout(), `Warning: Can't change resource targeting when applying a saved plan`) {
 			t.Fatalf("missing warning text:\n%s", output.All())
 		}
-		if !strings.Contains(output.Stdout(), `target address "test_instance.foo"`) {
+		if !strings.Contains(output.Stdout(), `-target address(es) supplied to the apply command`) {
 			t.Fatalf("missing detail from warning:\n%s", output.All())
 		}
 	})
@@ -2190,6 +2190,87 @@ func TestApply_changedPlanOptions_applyTime(t *testing.T) {
 			t.Fatalf("missing flag name from warning:\n%s", output.All())
 		}
 	})
+}
+
+func TestApply_changedTargets_applyTime(t *testing.T) {
+	tests := map[string]struct {
+		planTargets  []string
+		applyTargets []string
+		wantWarning  bool
+	}{
+		"same target": {
+			planTargets:  []string{"test_instance.foo"},
+			applyTargets: []string{"test_instance.foo"},
+			wantWarning:  false,
+		},
+		"same targets in different order": {
+			planTargets:  []string{"test_instance.foo", "test_instance.bar"},
+			applyTargets: []string{"test_instance.bar", "test_instance.foo"},
+			wantWarning:  false,
+		},
+		"narrower target": {
+			planTargets:  []string{"module.foo"},
+			applyTargets: []string{"module.foo.test_instance.bar"},
+			wantWarning:  true,
+		},
+		"broader target": {
+			planTargets:  []string{"module.foo.test_instance.bar"},
+			applyTargets: []string{"module.foo"},
+			wantWarning:  true,
+		},
+		"omitted target": {
+			planTargets:  []string{"test_instance.foo", "test_instance.bar"},
+			applyTargets: []string{"test_instance.foo"},
+			wantWarning:  true,
+		},
+		"additional target": {
+			planTargets:  []string{"test_instance.foo"},
+			applyTargets: []string{"test_instance.foo", "test_instance.bar"},
+			wantWarning:  true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, snap := testModuleWithSnapshot(t, "apply")
+			plan := testPlan(t)
+			for _, rawTarget := range test.planTargets {
+				target, diags := addrs.ParseTargetStr(rawTarget)
+				if diags.HasErrors() {
+					t.Fatalf("invalid plan target %q: %s", rawTarget, diags.Err())
+				}
+				plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+			}
+			planPath := testPlanFile(t, snap, states.NewState(), plan)
+			statePath := testTempFile(t)
+
+			p := applyFixtureProvider()
+			view, done := testView(t)
+			c := &ApplyCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			}
+
+			args := []string{"-no-color", "-state-out", statePath}
+			for _, target := range test.applyTargets {
+				args = append(args, "-target", target)
+			}
+			args = append(args, planPath)
+
+			code := c.Run(args)
+			output := done(t)
+			if code != 0 {
+				t.Fatalf("unexpected exit code %d:\n\n%s", code, output.All())
+			}
+
+			gotWarning := strings.Contains(output.Stdout(), `Warning: Can't change resource targeting when applying a saved plan`)
+			if gotWarning != test.wantWarning {
+				t.Fatalf("unexpected targeting warning result (got %t, want %t):\n%s", gotWarning, test.wantWarning, output.All())
+			}
+		})
+	}
 }
 
 // we should be able to apply a plan file with no other file dependencies
