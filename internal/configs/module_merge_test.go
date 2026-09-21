@@ -5,6 +5,7 @@ package configs
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -157,6 +158,203 @@ terraform {
 			if expr, exists := mod.ProviderRequirementExprs["expression"]; !exists || expr.DeclRange.Filename != "mod/main.tf" {
 				t.Error("override changed the unrelated expression-based requirement")
 			}
+		})
+	}
+}
+
+func TestModuleOverrideRequiredProvidersSameFile(t *testing.T) {
+	const (
+		expression      = `required_providers { random = { source = var.provider_source, version = var.provider_version, configuration_aliases = [random.old] } }`
+		laterExpression = `required_providers { random = { source = "other/random", version = "~> 4.0" } }`
+		legacy          = `required_providers { random = "~> 2.0" }`
+		emptyObject     = `required_providers { random = {} }`
+		aliasesOnly     = `required_providers { random = { configuration_aliases = [random.next] } }`
+		emptyBlock      = `required_providers {}`
+	)
+
+	tests := []struct {
+		name      string
+		blocks    []string
+		wantBlock int
+	}{
+		{
+			name:      "expression-based to legacy",
+			blocks:    []string{expression, legacy},
+			wantBlock: 1,
+		},
+		{
+			name:      "expression-based to empty object",
+			blocks:    []string{expression, emptyObject},
+			wantBlock: 1,
+		},
+		{
+			name:      "expression-based to aliases-only",
+			blocks:    []string{expression, aliasesOnly},
+			wantBlock: 1,
+		},
+		{
+			name:      "legacy to expression-based",
+			blocks:    []string{legacy, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "empty object to expression-based",
+			blocks:    []string{emptyObject, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "aliases-only to expression-based clears aliases",
+			blocks:    []string{aliasesOnly, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "alternating declarations ending resolved",
+			blocks:    []string{`required_providers { random = "~> 3.0" }`, expression, legacy},
+			wantBlock: 2,
+		},
+		{
+			name:      "alternating declarations ending expression-based",
+			blocks:    []string{expression, legacy, laterExpression},
+			wantBlock: 2,
+		},
+		{
+			name:      "aliases-only to legacy clears aliases",
+			blocks:    []string{aliasesOnly, legacy},
+			wantBlock: 1,
+		},
+		{
+			name:      "aliases-only to empty object clears aliases",
+			blocks:    []string{aliasesOnly, emptyObject},
+			wantBlock: 1,
+		},
+		{
+			name:      "empty block retains expression-based requirement",
+			blocks:    []string{expression, emptyBlock},
+			wantBlock: 0,
+		},
+		{
+			name:      "empty block retains resolved requirement",
+			blocks:    []string{legacy, emptyBlock},
+			wantBlock: 0,
+		},
+		{
+			name:      "empty block between declarations",
+			blocks:    []string{expression, emptyBlock, legacy},
+			wantBlock: 2,
+		},
+	}
+
+	for layout, separator := range map[string]string{
+		"one terraform block":       "\n",
+		"separate terraform blocks": "\n}\nterraform {\n",
+	} {
+		t.Run(layout, func(t *testing.T) {
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					parser := testParser(map[string]string{
+						"mod/override.tf": "terraform {\n" + strings.Join(tc.blocks, separator) + "\n}",
+					})
+					override, diags := parser.LoadConfigFileOverride("mod/override.tf")
+					assertNoDiagnostics(t, diags)
+
+					// The whole declaration must come from the winning block,
+					// including its aliases, expressions, and source ranges.
+					want := override.RequiredProviders[tc.wantBlock]
+					mod, diags := NewModule(nil, []*File{override})
+					assertNoDiagnostics(t, diags)
+
+					req, hasResolved := mod.ProviderRequirements.RequiredProviders["random"]
+					expr, hasExpr := mod.ProviderRequirementExprs["random"]
+					if hasResolved == hasExpr {
+						t.Fatalf("expected exactly one representation of the requirement: resolved=%t, expression-based=%t", hasResolved, hasExpr)
+					}
+					assertResultDeepEqual(t, req, want.RequiredProviders["random"])
+					assertResultDeepEqual(t, expr, want.RequiredProviderExprs["random"])
+				})
+			}
+		})
+	}
+}
+
+func TestModuleOverrideRequiredProvidersSameFileRetainsUnrelated(t *testing.T) {
+	parser := testParser(map[string]string{
+		"mod/main.tf": `
+terraform {
+  required_providers {
+    legacy = "~> 1.0"
+    expression = { source = "acme/expression" }
+  }
+}
+`,
+		"mod/override.tf": `
+terraform {
+  required_providers {
+    random = { source = "acme/random" }
+    retainedlegacy = "~> 1.0"
+    retainedexpression = { source = "acme/expression" }
+  }
+  required_providers {
+    random = "~> 2.0"
+  }
+}
+`,
+	})
+	primary, diags := parser.LoadConfigFile("mod/main.tf")
+	assertNoDiagnostics(t, diags)
+	override, diags := parser.LoadConfigFileOverride("mod/override.tf")
+	assertNoDiagnostics(t, diags)
+
+	wantResolved := map[string]*RequiredProvider{
+		"legacy":         primary.RequiredProviders[0].RequiredProviders["legacy"],
+		"retainedlegacy": override.RequiredProviders[0].RequiredProviders["retainedlegacy"],
+		"random":         override.RequiredProviders[1].RequiredProviders["random"],
+	}
+	wantExprs := map[string]*ProviderRequirementExpr{
+		"expression":         primary.RequiredProviders[0].RequiredProviderExprs["expression"],
+		"retainedexpression": override.RequiredProviders[0].RequiredProviderExprs["retainedexpression"],
+	}
+
+	mod, diags := NewModule([]*File{primary}, []*File{override})
+	assertNoDiagnostics(t, diags)
+	assertResultDeepEqual(t, mod.ProviderRequirements.RequiredProviders, wantResolved)
+	assertResultDeepEqual(t, mod.ProviderRequirementExprs, wantExprs)
+}
+
+func TestModuleRequiredProvidersDuplicateEmptyBlocks(t *testing.T) {
+	for name, tc := range map[string]struct {
+		first  string
+		second string
+	}{
+		"two empty blocks": {},
+		"empty then legacy": {
+			second: `    random = "~> 2.0"`,
+		},
+		"legacy then empty": {
+			first: `    random = "~> 2.0"`,
+		},
+		"empty then expression-based": {
+			second: `    random = { source = "acme/random" }`,
+		},
+		"expression-based then empty": {
+			first: `    random = { source = "acme/random" }`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := testParser(map[string]string{
+				"mod/main.tf": fmt.Sprintf(`terraform {
+  required_providers {
+%s
+  }
+  required_providers {
+%s
+  }
+}
+`, tc.first, tc.second),
+			}).LoadConfigDir("mod")
+			assertDiagnosticCount(t, diags, 1)
+			assertExactDiagnostics(t, diags, []string{
+				"mod/main.tf:5,3-21: Duplicate required providers configuration; A module may have only one required providers configuration. The required providers were previously configured at mod/main.tf:2,3-21.",
+			})
 		})
 	}
 }
