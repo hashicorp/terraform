@@ -88,13 +88,12 @@ type File struct {
 
 	ActiveExperiments experiments.Set
 
-	Backends              []*Backend
-	StateStores           []*StateStore
-	CloudConfigs          []*CloudConfig
-	ProviderConfigs       []*Provider
-	ProviderMetas         []*ProviderMeta
-	RequiredProviders     []*RequiredProviders
-	RequiredProviderExprs []*ProviderRequirementExpr
+	Backends          []*Backend
+	StateStores       []*StateStore
+	CloudConfigs      []*CloudConfig
+	ProviderConfigs   []*Provider
+	ProviderMetas     []*ProviderMeta
+	RequiredProviders []*RequiredProvidersBlock
 
 	Variables []*Variable
 	Locals    []*Local
@@ -163,10 +162,13 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 				})
 				continue
 			}
-			mod.ProviderRequirements = r
-		}
-		for _, expr := range file.RequiredProviderExprs {
-			mod.ProviderRequirementExprs[expr.Name] = expr
+			mod.ProviderRequirements = &RequiredProviders{
+				RequiredProviders: r.RequiredProviders,
+				DeclRange:         r.DeclRange,
+			}
+			for name, expr := range r.RequiredProviderExprs {
+				mod.ProviderRequirementExprs[name] = expr
+			}
 		}
 	}
 
@@ -179,18 +181,18 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 	}
 
 	// Any required_providers blocks in override files replace the entire
-	// block for each provider. Process resolved and expression-based requirements
-	// in file order, removing superseded declarations from either representation.
+	// block for each provider. Process blocks in file and source order, removing
+	// superseded declarations from either representation before evaluation.
 	for _, file := range overrideFiles {
 		for _, override := range file.RequiredProviders {
 			for name, rp := range override.RequiredProviders {
 				delete(mod.ProviderRequirementExprs, name)
 				mod.ProviderRequirements.RequiredProviders[name] = rp
 			}
-		}
-		for _, expr := range file.RequiredProviderExprs {
-			delete(mod.ProviderRequirements.RequiredProviders, expr.Name)
-			mod.ProviderRequirementExprs[expr.Name] = expr
+			for name, expr := range override.RequiredProviderExprs {
+				delete(mod.ProviderRequirements.RequiredProviders, name)
+				mod.ProviderRequirementExprs[name] = expr
+			}
 		}
 	}
 

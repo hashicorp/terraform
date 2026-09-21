@@ -478,6 +478,41 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	}
 }
 
+func TestModule_required_provider_override_discards_expression(t *testing.T) {
+	// These undeclared variables must not contribute graph dependencies or be
+	// evaluated, because the later declaration replaces the entire requirement.
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": "",
+		"override.tf": `
+terraform {
+  required_providers {
+    test = {
+      source  = var.undeclared_source
+      version = var.undeclared_version
+    }
+  }
+  required_providers {
+    test = "~> 2.0"
+  }
+}
+`,
+	})
+
+	req, exists := cfg.Module.ProviderRequirements.RequiredProviders["test"]
+	if !exists {
+		t.Fatal("no provider requirements found for \"test\"")
+	}
+	if req.Source != "" {
+		t.Errorf("wrong provider source: got %q, want no explicit source", req.Source)
+	}
+	if got := req.Requirement.Required.String(); got != "~> 2.0" {
+		t.Errorf("wrong provider version constraint: got %q, want %q", got, "~> 2.0")
+	}
+	if want := addrs.NewDefaultProvider("test"); !req.Type.Equals(want) {
+		t.Errorf("wrong provider addr: got %s, want %s", req.Type, want)
+	}
+}
+
 // testNestedModuleConfigFromDir reads configuration from the given directory path as
 // a module with (optional) submodules and returns its configuration. This is a
 // helper for use in unit tests.
