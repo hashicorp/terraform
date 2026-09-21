@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`terraform state` help no longer claims default output is for machine parsing'
+time: 2026-09-21T16:50:00.000000-04:00
+custom:
+    Issue: "39254"
