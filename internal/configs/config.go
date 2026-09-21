@@ -155,15 +155,23 @@ func (c *Config) DeepEach(cb func(c *Config)) {
 // nodes in the module tree until the iterator is exhausted or terminated.
 func (c *Config) AllModules() iter.Seq[*Config] {
 	return func(yield func(*Config) bool) {
-		if !yield(c) {
-			return
-		}
-		for _, ch := range c.Children {
-			if !yield(ch) {
-				return
-			}
+		c.allModules(yield)
+	}
+}
+
+// allModules yields the receiver and every descendant module in the tree,
+// stopping early if yield returns false. It returns false to propagate an
+// early stop up through the recursion.
+func (c *Config) allModules(yield func(*Config) bool) bool {
+	if !yield(c) {
+		return false
+	}
+	for _, ch := range c.Children {
+		if !ch.allModules(yield) {
+			return false
 		}
 	}
+	return true
 }
 
 // AllResources returns an iterator of all the resources in the receiver and

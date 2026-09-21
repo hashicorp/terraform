@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
+	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
@@ -96,19 +97,25 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAdd
 		if matched.IsWhollyKnown() && matched.True() {
 			resourceValue, _ = related.Value.UnmarkDeep()
 
-			// If the resource matched, and the relationship block has a block itself,
-			// we recursively get the related resources
-			var relatedRes callback.RelatedResource
+			// If the resource matched and the relationship has a nested block,
+			// this is a multi-hop relationship: recurse with the matched
+			// candidate as the new subject and collapse the recursion to the
+			// terminal targets of the deepest hop. An outer candidate that
+			// reaches no terminal (a broken chain) therefore contributes
+			// nothing to related.<name>, which is the correct multi-hop
+			// existence semantic. When there is no nested block, the matched
+			// candidate itself is the terminal target.
 			if blk.Nested != nil {
-				relatedRes, err = cb.GetRelatedResources(ctx, related.Addr, blk.Nested, resourceValue)
-				if err != nil {
+				nestedRes, nestedErr := cb.GetRelatedResources(ctx, related.Addr, blk.Nested, resourceValue)
+				if nestedErr != nil {
+					err = nestedErr
 					continue
 				}
+				found = append(found, nestedRes.Related...)
+				partial = partial || nestedRes.Partial
 			} else {
-				relatedRes = callback.RelatedResource{Value: resourceValue}
+				found = append(found, callback.RelatedResource{Value: resourceValue})
 			}
-
-			found = append(found, relatedRes)
 		}
 		partial = partial || !matched.IsWhollyKnown()
 	}
@@ -120,132 +127,263 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAdd
 	}, err
 }
 
+// matchOutcome is the result of checking one reference direction of a
+// relationship connector. It is a four-valued logic so the two directions can
+// be combined without a "not evaluable" direction (a missing config body)
+// spuriously forcing the overall result to unknown.
+type matchOutcome int
+
+const (
+	// matchNA means this direction could not be evaluated at all (the config
+	// body it needs is unavailable). It is ignored when combining directions.
+	matchNA matchOutcome = iota
+	matchTrue
+	matchFalse
+	matchUnknown
+)
+
+// Match reports whether the related candidate is genuinely connected to the
+// subject by a config reference on the connector's attribute pairs.
+//
+// A connector is an *undirected* reference edge: the reference may live on
+// either resource. We therefore check both directions and OR the outcomes:
+//   - Inbound: the target (related) config references the subject
+//     (e.g. aws_s3_bucket_acl.bucket = aws_s3_bucket.this.id).
+//   - Outbound: the subject config references the target (related)
+//     (e.g. aws_instance.subnet_id = aws_subnet.this.id).
+//
+// This makes provenance hold regardless of which side holds the reference, and
+// lets multi-hop chains verify each hop structurally in either direction
+// (Terraform Core's GetRelatedResources recursion calls Match per hop).
 func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock) cty.Value {
-	// we will return unknown if we cannot determine whether the resource matches
-	unknown := cty.UnknownVal(cty.Bool)
-
-	currentValue := subject.Value
-
-	// if there is no related body. What to do?
-	if related.ConfigBody == nil {
-		return unknown
-	}
-
-	// First try to match by values
+	// Value fallback (direction-agnostic): a non-null QueryAttributes filter
+	// matches the candidate by value, bypassing the reference comparison.
 	if !conn.QueryAttributes.IsNull() {
 		filterMap := conn.QueryAttributes.AsValueMap()
-		matches, _ := resourceMatchesFilter(related.Addr.ConfigResource(), related.Schema, filterMap, related.Value)
-		if matches {
+		if matches, _ := resourceMatchesFilter(related.Addr.ConfigResource(), related.Schema, filterMap, related.Value); matches {
 			return cty.True
 		}
 	}
 
-	// Parse the resource config as a simple body that contains only attributes that are either
-	// simple traversals or literal values.
-	relatedBody, diags := hclsyntax.ParseSimpleBody(related.ConfigBody)
+	inbound := c.checkDirection(ctx, subject, related, conn, false)
+	if inbound == matchTrue {
+		return cty.True
+	}
+	outbound := c.checkDirection(ctx, subject, related, conn, true)
+	return combineMatch(inbound, outbound)
+}
+
+// checkDirection verifies a single reference direction of the connector. When
+// outbound is false (inbound) it parses the related (target) config and expects
+// each connector's related attribute to reference the subject's subject
+// attribute. When outbound is true it parses the subject config and expects the
+// subject attribute to reference the related (target) attribute. All attribute
+// pairs must match (logical AND).
+func (c *PolicyCallbackManager) checkDirection(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock, outbound bool) matchOutcome {
+	bodyResource := related
+	if outbound {
+		bodyResource = subject
+	}
+	if bodyResource.ConfigBody == nil {
+		return matchNA
+	}
+
+	bodySimple, diags := hclsyntax.ParseSimpleBody(bodyResource.ConfigBody)
 	if diags.HasErrors() {
-		return unknown
+		return matchUnknown
 	}
 
 	for _, pair := range conn.AttributePairs {
-		// If the current resource is null or does not have the source attribute,
-		// we cannot compare the literal to the current value.
-		if !currentValue.Type().IsObjectType() || !currentValue.Type().HasAttribute(pair.SubjectAttribute) {
-			// TODO: Is this unknown or false?
-			return unknown
+		// Assign the attribute-on-body and the attribute-on-target for this
+		// direction. Inbound: body=related.RelatedAttribute -> subject.SubjectAttribute.
+		// Outbound: body=subject.SubjectAttribute -> related.RelatedAttribute.
+		bodyAttr, targetAttr := pair.RelatedAttribute, pair.SubjectAttribute
+		targetResource := subject
+		if outbound {
+			bodyAttr, targetAttr = pair.SubjectAttribute, pair.RelatedAttribute
+			targetResource = related
 		}
 
-		relatedTraversal, _ := hclsyntax.ParseTraversalAbs([]byte(pair.RelatedAttribute), "", hcl.InitialPos)
-		// get the attribute's expression from the body
-		path, _ := traversalToPath(relatedTraversal)
-		relatedExpr, found := getAttributeFromBody(relatedBody, path, related.Schema)
+		// The target must actually have the attribute we compare against.
+		if !targetResource.Value.Type().IsObjectType() || !targetResource.Value.Type().HasAttribute(targetAttr) {
+			return matchUnknown
+		}
+
+		bodyTraversal, _ := hclsyntax.ParseTraversalAbs([]byte(bodyAttr), "", hcl.InitialPos)
+		path, _ := traversalToPath(bodyTraversal)
+		bodyExpr, found := getAttributeFromBody(bodySimple, path, bodyResource.Schema)
 		if !found {
-			// related attribute or block not found. Then it is not a match.
-			return cty.False
+			// The connector attribute is not set in this config, so it cannot
+			// carry a reference in this direction.
+			return matchFalse
 		}
 
-		// If the related expression is not a plain traversal, it cannot be a
-		// reference to the subject. A literal (constant) value is definitively
-		// not a config reference, so under require_reference it must not match —
-		// this is what rejects a hardcoded value that merely coincides with the
-		// subject's attribute. Genuinely ambiguous expressions (templates,
-		// function calls that may embed references) remain unknown.
-		if !relatedExpr.IsTraversal() {
-			if relatedExpr.IsLiteral() {
-				return cty.False
-			}
-			return unknown
-		}
-
-		// Walk the reference tree to resolve the related attribute reference to a
-		// resource attribute reference.
-		relatedRef, refDiags := globalref.ParseRef(related.Addr.Module, relatedExpr.Traversal)
-		if refDiags.HasErrors() {
-			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
-			return unknown
-		}
-		tree := ctx.ResourceAttrRefGraph()
-		attrRef, found := tree.ResolveReference(relatedRef)
-		if !found {
-			return unknown
-		}
-
-		// Compare the resolved attribute reference to the source reference, including
-		// the module instance where both are resolved.
-		sourceRef := &globalref.Reference{
-			ContainerAddr: subject.Addr.Module,
+		// Compare at config-address granularity (see equalRef).
+		targetRef := &globalref.Reference{
+			ContainerAddr: targetResource.Addr.Module,
 			LocalRef: &addrs.Reference{
-				Subject:   subject.Addr.Resource,
-				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: pair.SubjectAttribute}},
+				Subject:   targetResource.Addr.Resource,
+				Remaining: hcl.Traversal{hcl.TraverseAttr{Name: targetAttr}},
 			},
 		}
 
-		if !equalRef(sourceRef, attrRef) {
-			srcStr := sourceRef.DebugString()
-			resStr := attrRef.DebugString()
-			log.Printf("[TRACE] global ref comparison failed: source=%s resolved=%s", srcStr, resStr)
-			return cty.False
+		switch c.connectorRefOutcome(ctx, bodyResource.Addr.Module, bodyExpr, targetRef) {
+		case matchFalse:
+			return matchFalse
+		case matchUnknown:
+			return matchUnknown
+		}
+		// matchTrue: this pair holds; continue to the next pair (AND semantics).
+	}
+
+	return matchTrue
+}
+
+// connectorRefOutcome decides, for a single connector attribute pair, whether
+// the body expression genuinely references the target resource attribute. It
+// reduces the connector expression to the set of resource-attribute references
+// it can yield (handling plain traversals, index/expansion steps, splats,
+// conditionals, and allowlisted reference-preserving functions), resolves each
+// through the reference graph, and applies the decidability rule:
+//   - a single homogeneous resource reference, no constant branch -> compare to
+//     the target (matchTrue / matchFalse);
+//   - only constant branches -> matchFalse (a hardcoded value is not a
+//     reference);
+//   - two or more distinct references, a reference mixed with a constant, or an
+//     unresolved/opaque expression -> matchUnknown (undecidable, defer).
+func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule addrs.ModuleInstance, bodyExpr hclsyntax.SimpleAttribute, targetRef *globalref.Reference) matchOutcome {
+	if bodyExpr.IsLiteral() {
+		return matchFalse
+	}
+
+	var traversals []hcl.Traversal
+	hasNonRef := false
+	if bodyExpr.IsTraversal() {
+		traversals = []hcl.Traversal{bodyExpr.Traversal}
+	} else {
+		var ok bool
+		traversals, hasNonRef, ok = simplerefs.DecomposeTraversals(bodyExpr.Expr)
+		if !ok {
+			return matchUnknown
 		}
 	}
 
-	return cty.True
+	tree := ctx.ResourceAttrRefGraph()
+	var resolved []*globalref.Reference
+	for _, tr := range traversals {
+		ref, refDiags := globalref.ParseRef(bodyModule, tr)
+		if refDiags.HasErrors() {
+			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
+			return matchUnknown
+		}
+		attrRef, ok := tree.ResolveReference(ref)
+		if ok {
+			resolved = append(resolved, attrRef)
+			continue
+		}
+		// A reference that resolves through the graph to a constant is a
+		// definitive non-reference branch (a hardcoded value laundered through a
+		// local/output); anything else unresolved is genuinely unknown.
+		if tree.ResolvesToLiteral(ref) {
+			hasNonRef = true
+			continue
+		}
+		return matchUnknown
+	}
+
+	distinct := dedupRefs(resolved)
+	if hasNonRef {
+		if len(distinct) == 0 {
+			return matchFalse
+		}
+		return matchUnknown
+	}
+	switch len(distinct) {
+	case 0:
+		return matchUnknown
+	case 1:
+		if equalRef(targetRef, distinct[0]) {
+			return matchTrue
+		}
+		return matchFalse
+	default:
+		// Multiple distinct resources reachable: the value could come from any
+		// of them, so we cannot decide whether it is the target.
+		return matchUnknown
+	}
 }
 
+// dedupRefs returns the input references de-duplicated at config-address
+// granularity.
+func dedupRefs(refs []*globalref.Reference) []*globalref.Reference {
+	out := make([]*globalref.Reference, 0, len(refs))
+	for _, r := range refs {
+		seen := false
+		for _, o := range out {
+			if equalRef(r, o) {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
+// combineMatch ORs the outcomes of the two reference directions into a
+// three-valued cty.Bool. A direction that could not be evaluated (matchNA) is
+// ignored so it never forces the result to unknown; unknown only wins over a
+// definitive false.
+func combineMatch(a, b matchOutcome) cty.Value {
+	if a == matchTrue || b == matchTrue {
+		return cty.True
+	}
+	sawFalse := false
+	for _, o := range [...]matchOutcome{a, b} {
+		switch o {
+		case matchUnknown:
+			return cty.UnknownVal(cty.Bool)
+		case matchFalse:
+			sawFalse = true
+		}
+	}
+	if sawFalse {
+		return cty.False
+	}
+	// Both directions were not-applicable: we genuinely cannot tell.
+	return cty.UnknownVal(cty.Bool)
+}
+
+// equalRef reports whether two references point at the same resource attribute
+// at **config-address granularity**: the module *config* path plus the resource
+// type.name plus the attribute path, with module-call instance keys and resource
+// instance keys (and expansion index expressions such as count.index/each.key,
+// which are dropped before parsing) normalized away.
+//
+// This granularity is what makes provenance detection work uniformly across
+// module boundaries and expansion (count/for_each on either the resource or an
+// enclosing module call): a genuine reference to the subject resource is
+// detected regardless of which specific instances are involved. Instance-key
+// precision (e.g. requiring acl[0] to reference bucket[0] specifically) is an
+// explicit non-goal of this prototype.
 func equalRef(ref *globalref.Reference, other *globalref.Reference) bool {
 	if ref == nil || other == nil {
 		return false
 	}
-	if ref.ContainerAddr == nil || other.ContainerAddr == nil {
+	refAttr, ok := ref.ResourceAttr()
+	if !ok {
 		return false
 	}
-	if !addrs.Equivalent(ref.ContainerAddr, other.ContainerAddr) {
+	otherAttr, ok := other.ResourceAttr()
+	if !ok {
 		return false
 	}
-
-	localRef1 := ref.LocalRef
-	localRef2 := other.LocalRef
-	if !addrs.Equivalent(localRef1.Subject, localRef2.Subject) {
+	if !refAttr.Resource.ConfigResource().Equal(otherAttr.Resource.ConfigResource()) {
 		return false
 	}
-	if len(localRef1.Remaining) != len(localRef2.Remaining) {
-		return false
-	}
-	for i := range localRef1.Remaining {
-		ref := localRef1.Remaining[i]
-		otherRef := localRef2.Remaining[i]
-		refAttr, ok := ref.(hcl.TraverseAttr)
-		if !ok {
-			return false
-		}
-		otherRefAttr, ok := otherRef.(hcl.TraverseAttr)
-		if !ok {
-			return false
-		}
-		if refAttr.Name != otherRefAttr.Name {
-			return false
-		}
-	}
-	return true
+	return refAttr.Attr.Equals(otherAttr.Attr)
 }
 
 // getAttributeFromBody looks up an attribute expression inside a parsed simple body

@@ -596,3 +596,38 @@ func TestConfigActionInResourceDependsOn(t *testing.T) {
 		`main.tf:5,17-42: Invalid depends_on Action Reference; The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.`,
 	})
 }
+
+func TestConfigAllModulesRecursesToDescendants(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/nested-module-resources")
+	assertNoDiagnostics(t, diags)
+
+	var paths []string
+	for mod := range cfg.AllModules() {
+		paths = append(paths, mod.Path.String())
+	}
+
+	want := []string{"", "module.child", "module.child.module.grandchild"}
+	if diff := cmp.Diff(want, paths); diff != "" {
+		t.Fatalf("AllModules did not reach every descendant module\n%s", diff)
+	}
+}
+
+func TestConfigAllResourcesReachesDeeplyNestedModules(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/nested-module-resources")
+	assertNoDiagnostics(t, diags)
+
+	got := make(map[string]bool)
+	for addr := range cfg.AllResources() {
+		got[addr.String()] = true
+	}
+
+	for _, want := range []string{
+		"aws_instance.root",
+		"module.child.aws_instance.child",
+		"module.child.module.grandchild.aws_instance.grandchild",
+	} {
+		if !got[want] {
+			t.Errorf("AllResources did not include %q", want)
+		}
+	}
+}
