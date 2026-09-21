@@ -559,6 +559,23 @@ func TestStateShow_json(t *testing.T) {
 	}
 }
 
+func TestStateShow_docs(t *testing.T) {
+	c := &StateShowCommand{}
+	help := c.Help()
+
+	if got, want := help, "Usage: terraform [global options] state show"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected help text\nwant: %s\nfull output:\n%s", want, got)
+	}
+
+	if !strings.Contains(help, `terraform show -json`) {
+		t.Fatalf("help text should mention terraform show -json for machine-readable state:\n%s", help)
+	}
+
+	if got, want := c.Synopsis(), "Show a resource in the state"; got != want {
+		t.Fatalf("unexpected synopsis\nwant: %s\ngot: %s", want, got)
+	}
+}
+
 const testStateShowJsonOutput = `{
   "format_version": "1.0",
   "resource": {

@@ -173,13 +173,16 @@ Usage: terraform [global options] state show [options] ADDRESS
   state. The address argument must be used to specify a single resource.
   You can view the list of available resources with "terraform state list".
 
+  This command's default output is for humans. For machine-readable output
+  of the entire state, use "terraform show -json" rather than this command.
+
 Options:
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
-  -json               If specified, output the resource state in a 
-               		  machine-readable form.
+  -json               If specified, output the resource state in a
+                      machine-readable form.
 
 `
 	return strings.TrimSpace(helpText)

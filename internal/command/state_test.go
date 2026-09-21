@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -26,6 +27,23 @@ func testStateBackups(t *testing.T, dir string) []string {
 	sort.Strings(list)
 
 	return list
+}
+
+func TestStateCommand_docs(t *testing.T) {
+	c := &StateCommand{}
+	help := c.Help()
+
+	if got, want := help, "Usage: terraform [global options] state <subcommand>"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected help text\nwant: %s\nfull output:\n%s", want, got)
+	}
+
+	if strings.Contains(help, "specifically tailored to work") || strings.Contains(help, "grep, awk") {
+		t.Fatalf("help text still claims default state command output is for machines:\n%s", help)
+	}
+
+	if got, want := c.Synopsis(), "Advanced state management"; got != want {
+		t.Fatalf("unexpected synopsis\nwant: %s\ngot: %s", want, got)
+	}
 }
 
 func TestStateDefaultBackupExtension(t *testing.T) {
