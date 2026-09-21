@@ -363,6 +363,11 @@ Options:
   -upgrade                         Trigger upgrade of the provider used for state storage.
 
   -input=true                      Enable input for interactive prompts (defaults to true, set to false in automation).
+
+  -force-copy                      Suppress and auto-approve prompts about copying state data.
+                                   Enables state migrations when interactive prompts are disabled via -input=false.
+
+  -json                            If specified, machine readable output will be printed in JSON format
 `
 	return strings.TrimSpace(helpText)
 }
