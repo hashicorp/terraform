@@ -361,7 +361,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got, gotExprs, diags := decodeRequiredProvidersBlock(test.Block)
+			got, diags := decodeRequiredProvidersBlock(test.Block)
 			if diags.HasErrors() {
 				if test.Error == "" {
 					t.Fatalf("unexpected error: %v", diags)
@@ -373,11 +373,13 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				t.Fatalf("expected error")
 			}
 
-			if !cmp.Equal(got, test.Want, ignoreUnexported, comparer) {
-				t.Fatalf("wrong result:\n %s", cmp.Diff(got, test.Want, ignoreUnexported, comparer))
+			want := &RequiredProvidersBlock{
+				RequiredProviders:     test.Want.RequiredProviders,
+				RequiredProviderExprs: test.WantExprs,
+				DeclRange:             test.Want.DeclRange,
 			}
-			if !cmp.Equal(gotExprs, test.WantExprs, providerExprComparer) {
-				t.Fatalf("wrong expressions:\n %s", cmp.Diff(gotExprs, test.WantExprs, providerExprComparer))
+			if diff := cmp.Diff(want, got, ignoreUnexported, comparer, providerExprComparer); diff != "" {
+				t.Fatalf("wrong result (-want +got):\n %s", diff)
 			}
 		})
 	}

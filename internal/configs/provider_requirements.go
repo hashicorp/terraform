@@ -29,21 +29,24 @@ type RequiredProviders struct {
 	DeclRange         hcl.Range
 }
 
-func decodeRequiredProvidersBlock(block *hcl.Block) (
-	*RequiredProviders,
-	map[string]*ProviderRequirementExpr,
-	hcl.Diagnostics,
-) {
+// RequiredProvidersBlock retains both resolved and deferred declarations from a
+// single required_providers block so that overrides can be applied in block order.
+type RequiredProvidersBlock struct {
+	RequiredProviders     map[string]*RequiredProvider
+	RequiredProviderExprs map[string]*ProviderRequirementExpr
+	DeclRange             hcl.Range
+}
+
+func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProvidersBlock, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {
-		return nil, nil, diags
+		return nil, diags
 	}
 
-	ret := &RequiredProviders{
+	ret := &RequiredProvidersBlock{
 		RequiredProviders: make(map[string]*RequiredProvider),
 		DeclRange:         block.DefRange,
 	}
-	var deferredExprs map[string]*ProviderRequirementExpr
 
 	for name, attr := range attrs {
 		rp := &RequiredProvider{
@@ -196,10 +199,10 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 				providerExpr.VersionExpr = versionExpr
 			}
 
-			if deferredExprs == nil {
-				deferredExprs = map[string]*ProviderRequirementExpr{}
+			if ret.RequiredProviderExprs == nil {
+				ret.RequiredProviderExprs = map[string]*ProviderRequirementExpr{}
 			}
-			deferredExprs[name] = providerExpr
+			ret.RequiredProviderExprs[name] = providerExpr
 
 			// Skip adding it to required providers.
 			continue
@@ -224,5 +227,5 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (
 		ret.RequiredProviders[rp.Name] = rp
 	}
 
-	return ret, deferredExprs, diags
+	return ret, diags
 }
