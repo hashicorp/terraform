@@ -811,6 +811,6 @@ func writeTestFile(t *testing.T, path string) {
 func symlinkTestFile(t *testing.T, target, link string) {
 	t.Helper()
 	if err := os.Symlink(target, link); err != nil {
-		t.Skipf("cannot create symlink: %s", err)
+		t.Fatalf("cannot create symlink: %s", err)
 	}
 }
