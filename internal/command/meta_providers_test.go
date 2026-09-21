@@ -4,7 +4,10 @@
 package command
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -16,6 +19,75 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
 )
+
+func TestPluginCacheFilesystemMirrorWarnings(t *testing.T) {
+	t.Run("no warning when cache dir is unset", func(t *testing.T) {
+		dir := t.TempDir()
+		meta := Meta{}
+		source := getproviders.NewFilesystemMirrorSource(dir)
+
+		diags := meta.pluginCacheFilesystemMirrorWarnings(source)
+		if diags != nil {
+			t.Fatalf("expected no diagnostics, got %#v", diags)
+		}
+	})
+
+	t.Run("warning when cache dir matches a filesystem mirror", func(t *testing.T) {
+		dir := t.TempDir()
+		meta := Meta{PluginCacheDir: dir}
+		source := getproviders.MultiSource{
+			{Source: getproviders.NewFilesystemMirrorSource(dir)},
+		}
+
+		diags := meta.pluginCacheFilesystemMirrorWarnings(source)
+		if diags == nil {
+			t.Fatal("expected diagnostics, got nil")
+		}
+		if diags.HasErrors() {
+			t.Fatalf("expected only warning diagnostics, got errors: %s", diags.ErrWithWarnings())
+		}
+
+		got := diags.ErrWithWarnings().Error()
+		if !strings.Contains(got, "Plugin cache directory matches a filesystem mirror") {
+			t.Fatalf("unexpected warning: %s", got)
+		}
+		if !strings.Contains(got, dir) {
+			t.Fatalf("warning should mention cache dir %s, got: %s", dir, got)
+		}
+	})
+
+	t.Run("no warning when cache dir is a different directory", func(t *testing.T) {
+		cacheDir := t.TempDir()
+		mirrorDir := t.TempDir()
+		meta := Meta{PluginCacheDir: cacheDir}
+		source := getproviders.NewFilesystemMirrorSource(mirrorDir)
+
+		diags := meta.pluginCacheFilesystemMirrorWarnings(source)
+		if diags != nil {
+			t.Fatalf("expected no diagnostics, got %#v", diags)
+		}
+	})
+
+	t.Run("matches via os.SameFile when paths differ lexically", func(t *testing.T) {
+		dir := t.TempDir()
+		// A cleaned path with extra separators should still refer to the same directory.
+		if err := os.MkdirAll(filepath.Join(dir, "sub"), 0755); err != nil {
+			t.Fatal(err)
+		}
+		otherPath := filepath.Join(dir, ".", "sub", "..")
+
+		meta := Meta{PluginCacheDir: dir}
+		source := getproviders.NewFilesystemMirrorSource(otherPath)
+
+		diags := meta.pluginCacheFilesystemMirrorWarnings(source)
+		if diags == nil {
+			t.Fatal("expected diagnostics, got nil")
+		}
+		if diags.HasErrors() {
+			t.Fatalf("expected only warning diagnostics, got errors: %s", diags.ErrWithWarnings())
+		}
+	})
+}
 
 func TestProviderUnmanagedWarnings(t *testing.T) {
 	t.Run("no warnings with no unmanaged providers", func(t *testing.T) {

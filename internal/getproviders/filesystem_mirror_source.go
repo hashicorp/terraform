@@ -129,3 +129,30 @@ func (s *FilesystemMirrorSource) scanAllVersions() error {
 func (s *FilesystemMirrorSource) ForDisplay(provider addrs.Provider) string {
 	return s.baseDir
 }
+
+// FilesystemMirrorDirs returns the base directories of any filesystem mirror
+// sources nested inside the given source. The result may be empty.
+//
+// This is a best-effort inspection used to detect unsupported overlap with
+// the provider plugin cache directory. Unknown wrapper types are ignored.
+func FilesystemMirrorDirs(source Source) []string {
+	if source == nil {
+		return nil
+	}
+	var dirs []string
+	collectFilesystemMirrorDirs(source, &dirs)
+	return dirs
+}
+
+func collectFilesystemMirrorDirs(source Source, dirs *[]string) {
+	switch s := source.(type) {
+	case MultiSource:
+		for _, sel := range s {
+			collectFilesystemMirrorDirs(sel.Source, dirs)
+		}
+	case *MemoizeSource:
+		collectFilesystemMirrorDirs(s.underlying, dirs)
+	case *FilesystemMirrorSource:
+		*dirs = append(*dirs, s.baseDir)
+	}
+}

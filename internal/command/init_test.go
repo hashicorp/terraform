@@ -99,6 +99,36 @@ func TestInit_empty(t *testing.T) {
 	}
 }
 
+func TestInit_pluginCacheMatchesFilesystemMirror(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init"), td)
+	t.Chdir(td)
+
+	cacheDir := t.TempDir()
+	source := getproviders.NewFilesystemMirrorSource(cacheDir)
+
+	ui := testUiWrapped(t)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+			PluginCacheDir:   cacheDir,
+			ProviderSource:   source,
+		},
+	}
+
+	if code := c.Run([]string{"-input=false"}); code != 0 {
+		t.Fatalf("got exit status %d; want 0 so overlap is a warning rather than an error\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), done(t).Stdout())
+	}
+
+	out := done(t).All()
+	if !strings.Contains(out, "Warning: Plugin cache directory matches a filesystem mirror") {
+		t.Fatalf("expected plugin cache / filesystem mirror warning, got:\n%s", out)
+	}
+}
+
 func TestInit_only_test_files(t *testing.T) {
 	// Create a temporary working directory that has only test files and no tf configuration
 	td := t.TempDir()

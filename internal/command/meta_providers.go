@@ -170,6 +170,47 @@ func (m *Meta) providerInstallSource() getproviders.Source {
 	return m.ProviderSource
 }
 
+// pluginCacheFilesystemMirrorWarnings returns a warning diagnostic if the
+// configured provider plugin cache directory refers to the same physical
+// directory as one of the filesystem mirror sources used for installation.
+//
+// This is a warning rather than an error so that existing automation which
+// happens to use the same directory (often in a fresh container filesystem)
+// can continue while operators correct the configuration independently.
+func (m *Meta) pluginCacheFilesystemMirrorWarnings(source getproviders.Source) tfdiags.Diagnostics {
+	if m.PluginCacheDir == "" || source == nil {
+		return nil
+	}
+
+	cacheInfo, err := os.Stat(m.PluginCacheDir)
+	if err != nil {
+		// plugin_cache_dir must already exist to be used. If we cannot
+		// inspect it, skip this heuristic; false negatives are acceptable.
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+	for _, dir := range getproviders.FilesystemMirrorDirs(source) {
+		mirrorInfo, err := os.Stat(dir)
+		if err != nil {
+			continue
+		}
+		if os.SameFile(cacheInfo, mirrorInfo) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Plugin cache directory matches a filesystem mirror",
+				fmt.Sprintf(
+					"The configured provider plugin cache directory %s is also being used as a filesystem mirror directory.\n\nThe plugin cache directory must not also be one of the configured or implied filesystem mirror directories, since the cache management logic conflicts with the filesystem mirror logic when operating on the same directory.\n\nTerraform will continue, but this configuration is unsupported.",
+					m.PluginCacheDir,
+				),
+			))
+			// One warning is enough even if several selectors share the directory.
+			break
+		}
+	}
+	return diags
+}
+
 // providerDevOverrideInitWarnings returns a diagnostics that contains at
 // least one warning if and only if there is at least one provider development
 // override in effect. If not, the result is always empty. The result never

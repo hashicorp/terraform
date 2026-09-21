@@ -622,6 +622,12 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
 
+	// Warn (but do not fail) if the plugin cache directory is also used as a
+	// filesystem mirror. That combination is unsupported because the cache
+	// management logic conflicts with filesystem mirror logic, but it can
+	// still work when automation starts from a fresh container filesystem.
+	diags = diags.Append(c.pluginCacheFilesystemMirrorWarnings(inst.ProviderSource()))
+
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI

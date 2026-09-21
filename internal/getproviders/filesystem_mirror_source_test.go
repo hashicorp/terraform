@@ -203,3 +203,28 @@ var happycloudProvider = addrs.Provider{
 	Type:      "happycloud",
 }
 var legacyProvider = addrs.NewLegacyProvider("legacy")
+
+func TestFilesystemMirrorDirs(t *testing.T) {
+	fsA := NewFilesystemMirrorSource("mirror-a")
+	fsB := NewFilesystemMirrorSource("mirror-b")
+	memoizedRegistry := NewMemoizeSource(NewRegistrySource(nil))
+	multi := MultiSource{
+		{Source: fsA},
+		{Source: memoizedRegistry},
+		{Source: fsB},
+	}
+
+	got := FilesystemMirrorDirs(multi)
+	want := []string{"mirror-a", "mirror-b"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("unexpected filesystem mirror dirs\n%s", diff)
+	}
+
+	if got := FilesystemMirrorDirs(nil); got != nil {
+		t.Fatalf("nil source should return nil, got %#v", got)
+	}
+
+	if got := FilesystemMirrorDirs(memoizedRegistry); len(got) != 0 {
+		t.Fatalf("registry source should have no filesystem mirrors, got %#v", got)
+	}
+}
