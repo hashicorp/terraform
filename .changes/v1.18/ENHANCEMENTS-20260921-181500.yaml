@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'terraform init: Requests to a provider registry now reuse a single connection instead of opening a new one for every request'
+time: 2026-09-21T18:15:00+02:00
+custom:
+    Issue: "39262"
