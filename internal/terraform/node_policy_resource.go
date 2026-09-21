@@ -83,6 +83,15 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	}
 
 	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+
+	// Closed-by-default (M11): if a require_reference relationship could not be
+	// fully resolved at plan time, halt the plan with an error citing the exact
+	// configuration expressions responsible, rather than silently evaluating the
+	// policy's enforce blocks on incomplete (unknown) information.
+	if partial, refs := callbackManager.UndecidableResult(); partial {
+		return diags.Append(undecidableRelationshipDiagnostics(n.ResourceAddr, refs))
+	}
+
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

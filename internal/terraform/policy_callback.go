@@ -5,7 +5,9 @@ package terraform
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -16,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/simplerefs"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -26,6 +29,13 @@ type PolicyCallbackManager struct {
 
 	// resources is a map of resource addresses to their policy resources.
 	resources addrs.Map[addrs.AbsResourceInstance, *PolicyResource]
+
+	// closed-by-default (M11) accounting, populated while the reference callback
+	// runs. mu guards them because a policy's relationships may be resolved
+	// concurrently within a single subject evaluation.
+	mu           sync.Mutex
+	sawPartial   bool
+	undecidables []undecidableRef
 }
 
 func NewPolicyCallbackManager(walkOperation walkOperation, schema providers.GetProviderSchemaResponse, config *configs.Config) *PolicyCallbackManager {
@@ -46,13 +56,50 @@ type PolicyResource struct {
 
 func (cb *PolicyCallbackManager) RelatedResourcesCallback(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, val cty.Value) func(context.Context, *callback.RelationshipBlock) (callback.RelatedResource, error) {
 	return func(_ context.Context, blk *callback.RelationshipBlock) (callback.RelatedResource, error) {
-		related, err := cb.GetRelatedResources(ctx, subjectAddr, blk, val)
-		return related, err
+		// Closed-by-default (M11): a require_reference relationship must be fully
+		// decidable at plan time so the policy's enforce blocks evaluate on
+		// complete information. We collect the source location of every connector
+		// expression that could not be statically resolved. If the relationship
+		// comes back partial, we record it so node_policy_resource can halt the
+		// plan (with those exact locations) rather than silently deferring.
+		var undecidable []undecidableRef
+		related, err := cb.getRelatedResources(ctx, subjectAddr, blk, val, &undecidable)
+		if err != nil {
+			return related, err
+		}
+		if related.Partial {
+			cb.mu.Lock()
+			cb.sawPartial = true
+			cb.undecidables = append(cb.undecidables, undecidable...)
+			cb.mu.Unlock()
+		}
+		return related, nil
 	}
 }
 
-// GetRelatedResources returns the related resources for the given target resource type and connection.
+// UndecidableResult reports whether a require_reference relationship could not be
+// fully resolved at plan time during this manager's evaluation, along with the
+// located undecidable connector expressions (deduplicated). node_policy_resource
+// uses this to enforce the closed-by-default rule: if true, planning halts.
+func (cb *PolicyCallbackManager) UndecidableResult() (bool, []undecidableRef) {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	return cb.sawPartial, cb.undecidables
+}
+
+// GetRelatedResources returns the related resources for the given target
+// resource type and connection. It does not enforce the closed-by-default rule
+// (that lives in the RelatedResourcesCallback wrapper); callers that need the
+// undecidable-expression locations use getRelatedResources directly.
 func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, blk *callback.RelationshipBlock, val cty.Value) (callback.RelatedResource, error) {
+	return cb.getRelatedResources(ctx, subjectAddr, blk, val, nil)
+}
+
+// getRelatedResources is the resolution core. When undecidable is non-nil, the
+// source range of every connector expression that resolves to a structurally
+// undecidable outcome is appended to it, so the caller can report the exact
+// lines responsible for an unknown relationship.
+func (cb *PolicyCallbackManager) getRelatedResources(ctx EvalContext, subjectAddr addrs.AbsResourceInstance, blk *callback.RelationshipBlock, val cty.Value, undecidable *[]undecidableRef) (callback.RelatedResource, error) {
 	found := make([]callback.RelatedResource, 0)
 	partial := false
 	var err error
@@ -93,7 +140,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAdd
 		// If it is a literal value, we check if it matches relationship.QueryAttributes.
 		// If it is a traversal, we check if the traversal points to aws_s3_bucket.example.id.
 		resourceValue := related.Value
-		matched := cb.Match(ctx, subjectResource, related, blk)
+		matched := cb.matchWithAcc(ctx, subjectResource, related, blk, undecidable)
 		if matched.IsWhollyKnown() && matched.True() {
 			resourceValue, _ = related.Value.UnmarkDeep()
 
@@ -106,7 +153,7 @@ func (cb *PolicyCallbackManager) GetRelatedResources(ctx EvalContext, subjectAdd
 			// existence semantic. When there is no nested block, the matched
 			// candidate itself is the terminal target.
 			if blk.Nested != nil {
-				nestedRes, nestedErr := cb.GetRelatedResources(ctx, related.Addr, blk.Nested, resourceValue)
+				nestedRes, nestedErr := cb.getRelatedResources(ctx, related.Addr, blk.Nested, resourceValue, undecidable)
 				if nestedErr != nil {
 					err = nestedErr
 					continue
@@ -140,7 +187,24 @@ const (
 	matchTrue
 	matchFalse
 	matchUnknown
+	// matchUndecidable means the connector expression is *structurally* too
+	// complex to resolve statically (an opaque function, a value that may
+	// reference more than one resource, or a reference mixed with a constant).
+	// Unlike matchUnknown (a value not yet known), this is a config-complexity
+	// problem the author can fix. It is treated like matchUnknown when combining
+	// directions, but the closed-by-default check (M11) turns it into an error
+	// citing the exact source lines rather than silently deferring.
+	matchUndecidable
 )
+
+// undecidableRef locates a connector expression that could not be statically
+// resolved, so the closed-by-default check can report the exact lines.
+type undecidableRef struct {
+	resource addrs.AbsResourceInstance
+	attr     string
+	reason   string
+	rng      hcl.Range
+}
 
 // Match reports whether the related candidate is genuinely connected to the
 // subject by a config reference on the connector's attribute pairs.
@@ -156,6 +220,12 @@ const (
 // lets multi-hop chains verify each hop structurally in either direction
 // (Terraform Core's GetRelatedResources recursion calls Match per hop).
 func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock) cty.Value {
+	return c.matchWithAcc(ctx, subject, related, conn, nil)
+}
+
+// matchWithAcc is Match with an optional accumulator for the source locations of
+// connector expressions that resolve to a structurally undecidable outcome.
+func (c *PolicyCallbackManager) matchWithAcc(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock, undecidable *[]undecidableRef) cty.Value {
 	// Value fallback (direction-agnostic): a non-null QueryAttributes filter
 	// matches the candidate by value, bypassing the reference comparison.
 	if !conn.QueryAttributes.IsNull() {
@@ -165,11 +235,11 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyR
 		}
 	}
 
-	inbound := c.checkDirection(ctx, subject, related, conn, false)
+	inbound := c.checkDirection(ctx, subject, related, conn, false, undecidable)
 	if inbound == matchTrue {
 		return cty.True
 	}
-	outbound := c.checkDirection(ctx, subject, related, conn, true)
+	outbound := c.checkDirection(ctx, subject, related, conn, true, undecidable)
 	return combineMatch(inbound, outbound)
 }
 
@@ -179,7 +249,7 @@ func (c *PolicyCallbackManager) Match(ctx EvalContext, subject, related *PolicyR
 // attribute. When outbound is true it parses the subject config and expects the
 // subject attribute to reference the related (target) attribute. All attribute
 // pairs must match (logical AND).
-func (c *PolicyCallbackManager) checkDirection(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock, outbound bool) matchOutcome {
+func (c *PolicyCallbackManager) checkDirection(ctx EvalContext, subject, related *PolicyResource, conn *callback.RelationshipBlock, outbound bool, undecidable *[]undecidableRef) matchOutcome {
 	bodyResource := related
 	if outbound {
 		bodyResource = subject
@@ -227,7 +297,27 @@ func (c *PolicyCallbackManager) checkDirection(ctx EvalContext, subject, related
 			},
 		}
 
-		switch c.connectorRefOutcome(ctx, bodyResource.Addr.Module, bodyExpr, targetRef) {
+		// Choose the decidability rule by connector shape. A collection-valued
+		// connector expression (a tuple/list literal, a splat, a `for`, or a
+		// set-preserving function) is a *membership* (expansion) connector:
+		// every coexisting element is a real member, so the target matches when
+		// it is among them. Anything else is scalar (exactly-one) semantics.
+		var outcome matchOutcome
+		var reason string
+		if isMembershipExpr(bodyExpr) {
+			outcome, reason = c.connectorMembershipOutcome(ctx, bodyResource.Addr.Module, bodyExpr, targetRef)
+		} else {
+			outcome, reason = c.connectorRefOutcome(ctx, bodyResource.Addr.Module, bodyExpr, targetRef)
+		}
+		if outcome == matchUndecidable {
+			// Record the exact source location of the complex expression so the
+			// closed-by-default check can report it, then treat it as unknown
+			// for the four-valued match logic (so the relationship is marked
+			// partial rather than silently matched/denied).
+			recordUndecidable(undecidable, bodyResource.Addr, bodyAttr, reason, bodyExpr)
+			return matchUnknown
+		}
+		switch outcome {
 		case matchFalse:
 			return matchFalse
 		case matchUnknown:
@@ -249,11 +339,14 @@ func (c *PolicyCallbackManager) checkDirection(ctx EvalContext, subject, related
 //     the target (matchTrue / matchFalse);
 //   - only constant branches -> matchFalse (a hardcoded value is not a
 //     reference);
+//   - an unresolved single reference (a value not yet known) -> matchUnknown
+//     (defer, not a config-complexity problem);
 //   - two or more distinct references, a reference mixed with a constant, or an
-//     unresolved/opaque expression -> matchUnknown (undecidable, defer).
-func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule addrs.ModuleInstance, bodyExpr hclsyntax.SimpleAttribute, targetRef *globalref.Reference) matchOutcome {
+//     opaque/value-derived expression -> matchUndecidable, with a short reason
+//     describing why (used to report the exact source lines under M11).
+func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule addrs.ModuleInstance, bodyExpr hclsyntax.SimpleAttribute, targetRef *globalref.Reference) (matchOutcome, string) {
 	if bodyExpr.IsLiteral() {
-		return matchFalse
+		return matchFalse, ""
 	}
 
 	var traversals []hcl.Traversal
@@ -264,7 +357,7 @@ func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule 
 		var ok bool
 		traversals, hasNonRef, ok = simplerefs.DecomposeTraversals(bodyExpr.Expr)
 		if !ok {
-			return matchUnknown
+			return matchUndecidable, "uses an unsupported function or a value-derived expression that cannot be statically resolved to a resource reference"
 		}
 	}
 
@@ -274,7 +367,7 @@ func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule 
 		ref, refDiags := globalref.ParseRef(bodyModule, tr)
 		if refDiags.HasErrors() {
 			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
-			return matchUnknown
+			return matchUnknown, ""
 		}
 		attrRef, ok := tree.ResolveReference(ref)
 		if ok {
@@ -283,34 +376,162 @@ func (c *PolicyCallbackManager) connectorRefOutcome(ctx EvalContext, bodyModule 
 		}
 		// A reference that resolves through the graph to a constant is a
 		// definitive non-reference branch (a hardcoded value laundered through a
-		// local/output); anything else unresolved is genuinely unknown.
+		// local/output); anything else unresolved is genuinely unknown (a value
+		// not yet known), which defers rather than erroring.
 		if tree.ResolvesToLiteral(ref) {
 			hasNonRef = true
 			continue
 		}
-		return matchUnknown
+		return matchUnknown, ""
 	}
 
 	distinct := dedupRefs(resolved)
 	if hasNonRef {
 		if len(distinct) == 0 {
-			return matchFalse
+			return matchFalse, ""
 		}
-		return matchUnknown
+		// A resource reference mixed with a constant branch: the value depends
+		// on inputs not known until apply, so provenance cannot be decided.
+		return matchUndecidable, "may be a resource reference or a constant value depending on inputs not known until apply"
 	}
 	switch len(distinct) {
 	case 0:
-		return matchUnknown
+		return matchUnknown, ""
 	case 1:
 		if equalRef(targetRef, distinct[0]) {
-			return matchTrue
+			return matchTrue, ""
 		}
-		return matchFalse
+		return matchFalse, ""
 	default:
 		// Multiple distinct resources reachable: the value could come from any
-		// of them, so we cannot decide whether it is the target.
-		return matchUnknown
+		// of them, so the specific target cannot be determined.
+		return matchUndecidable, "may reference more than one resource, so the specific target cannot be determined"
 	}
+}
+
+// isMembershipExpr reports whether the connector body expression is a
+// collection-producing construct — a tuple/list literal, a splat, a `for`
+// expression, or a set-preserving function (concat/flatten/tolist/…). These are
+// the expansion (`any_of`/`has`) connectors, where every coexisting element is a
+// genuine member. A bare traversal, a scalar function, or a conditional is not a
+// membership expression (it is handled by the scalar rule), so scalar connectors
+// — including ones that use element()/one()/try() to select a single reference —
+// are unaffected.
+func isMembershipExpr(bodyExpr hclsyntax.SimpleAttribute) bool {
+	if bodyExpr.IsLiteral() || bodyExpr.IsTraversal() || bodyExpr.Expr == nil {
+		return false
+	}
+	switch e := hcl.UnwrapExpression(bodyExpr.Expr).(type) {
+	case *hclsyntax.TupleConsExpr, *hclsyntax.SplatExpr, *hclsyntax.ForExpr:
+		return true
+	case *hclsyntax.FunctionCallExpr:
+		return simplerefs.IsMembershipPreservingFunc(e.Name)
+	default:
+		return false
+	}
+}
+
+// connectorMembershipOutcome decides an expansion (membership) connector: the
+// body is a collection whose coexisting element references are decomposed, and
+// the target matches if it is among them. Unlike the scalar rule, many distinct
+// references are expected (each element is a real member), so this never returns
+// undecidable for "multiple resources" — only for a *choice* construct that the
+// membership decomposition rejects (a conditional or a selection function), which
+// cannot be resolved to a fixed set at plan time.
+func (c *PolicyCallbackManager) connectorMembershipOutcome(ctx EvalContext, bodyModule addrs.ModuleInstance, bodyExpr hclsyntax.SimpleAttribute, targetRef *globalref.Reference) (matchOutcome, string) {
+	traversals, _, ok := simplerefs.DecomposeMembershipTraversals(bodyExpr.Expr)
+	if !ok {
+		return matchUndecidable, "is a collection built from a conditional or a selection function (element/one/try/coalesce/slice), so its members cannot be determined until apply"
+	}
+
+	tree := ctx.ResourceAttrRefGraph()
+	sawUnknown := false
+	for _, tr := range traversals {
+		ref, refDiags := globalref.ParseRef(bodyModule, tr)
+		if refDiags.HasErrors() {
+			log.Printf("[TRACE] global ref parse error: %s", refDiags.Err())
+			sawUnknown = true
+			continue
+		}
+		attrRef, resolved := tree.ResolveReference(ref)
+		if resolved {
+			if equalRef(targetRef, attrRef) {
+				// The target is genuinely a member of the collection.
+				return matchTrue, ""
+			}
+			continue
+		}
+		// A member that resolves to a constant is a definitive non-reference and
+		// cannot be the target; any other unresolved member is a value not yet
+		// known, so we cannot rule out that it is the target.
+		if !tree.ResolvesToLiteral(ref) {
+			sawUnknown = true
+		}
+	}
+	if sawUnknown {
+		return matchUnknown, ""
+	}
+	return matchFalse, ""
+}
+
+// recordUndecidable appends the source location of a structurally undecidable
+// connector expression to acc (deduplicated), so the closed-by-default check can
+// cite the exact lines. A nil acc (the plain GetRelatedResources entrypoint)
+// records nothing.
+func recordUndecidable(acc *[]undecidableRef, resource addrs.AbsResourceInstance, attr, reason string, bodyExpr hclsyntax.SimpleAttribute) {
+	if acc == nil {
+		return
+	}
+	rng := bodyExpr.Range
+	if bodyExpr.Expr != nil {
+		rng = bodyExpr.Expr.Range()
+	}
+	for _, existing := range *acc {
+		if existing.resource.Equal(resource) && existing.attr == attr && existing.rng == rng {
+			return
+		}
+	}
+	*acc = append(*acc, undecidableRef{resource: resource, attr: attr, reason: reason, rng: rng})
+}
+
+// undecidableRelationshipDiagnostics builds the closed-by-default diagnostics for
+// a require_reference relationship that could not be fully resolved at plan time.
+// Each located undecidable connector expression becomes an error whose Subject is
+// the exact source range of the offending expression, so the practitioner sees a
+// snippet of the precise lines to rewrite. When no specific expression was
+// located (a rare value-unknown/deferred case) a single generic error is
+// returned so planning still halts.
+func undecidableRelationshipDiagnostics(subject addrs.AbsResourceInstance, refs []undecidableRef) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if len(refs) == 0 {
+		return diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Relationship cannot be verified at plan time",
+			Detail: fmt.Sprintf(
+				"The require_reference relationship for %s could not be fully determined at plan time because a related resource is deferred or has a value that is not known yet. require_reference requires the relationship to be resolvable during planning; remove require_reference to allow value-based matching, or adjust the configuration so the related resources are known at plan time.",
+				subject,
+			),
+		})
+	}
+	seen := make(map[string]bool, len(refs))
+	for _, r := range refs {
+		key := r.rng.String() + "|" + r.attr
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		rng := r.rng
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Relationship cannot be verified at plan time",
+			Detail: fmt.Sprintf(
+				"The require_reference relationship for %s cannot be verified because this expression, which sets %s attribute %q, %s.\n\nPlanning cannot continue because require_reference requires every hop of the relationship to be resolvable to a genuine reference at plan time. Rewrite this to a direct reference (for example, aws_subnet.example.id), or remove require_reference to allow value-based matching.",
+				subject, r.resource, r.attr, r.reason,
+			),
+			Subject: rng.Ptr(),
+		})
+	}
+	return diags
 }
 
 // dedupRefs returns the input references de-duplicated at config-address
