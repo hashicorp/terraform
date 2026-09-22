@@ -267,7 +267,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// a remote backend API and to get the version constraints.
 	service, constraints, err := b.discover(serviceID)
 
-	// First check any contraints we might have received.
+	// First check any constraints we might have received.
 	if constraints != nil {
 		diags = diags.Append(b.checkConstraints(constraints))
 		if diags.HasErrors() {
@@ -442,7 +442,7 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Find out what action (upgrade/downgrade) we should advice.
+	// Find out what action (upgrade/downgrade) we should advise.
 	minimum, err := version.NewVersion(c.Minimum)
 	if err != nil {
 		return diags.Append(checkConstraintsWarning(err))
@@ -808,7 +808,7 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 	b.opLock.Lock()
 
 	// Build our running operation
-	// the runninCtx is only used to block until the operation returns.
+	// the runningCtx is only used to block until the operation returns.
 	runningCtx, done := context.WithCancel(context.Background())
 	runningOp := &backendrun.RunningOperation{
 		Context:   runningCtx,
@@ -841,6 +841,9 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 			return
 		}
 
+		// Cancellation can occur before the remote operation creates a run.
+		// In that case there is no run to retrieve or cancel. Treat the
+		// operation as failed and return without dereferencing the nil run.
 		if r == nil && opErr == context.Canceled {
 			runningOp.Result = backendrun.OperationFailure
 			return
@@ -862,7 +865,7 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 			if opErr == context.Canceled {
 				if err := b.cancel(cancelCtx, op, r); err != nil {
 					var diags tfdiags.Diagnostics
-					diags = diags.Append(generalError("Failed to retrieve run", err))
+					diags = diags.Append(generalError("Failed to cancel run", err))
 					op.ReportResult(runningOp, diags)
 					return
 				}
@@ -879,7 +882,14 @@ func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*back
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backendrun.Operation, r *tfe.Run) error {
-	if r.Actions.IsCancelable {
+	// Be defensive if cancellation is requested before a remote run exists.
+	// Operation handles the expected nil-run cancellation path, but this
+	// prevents a nil pointer dereference if cancel is called independently.
+	if r == nil {
+		return nil
+	}
+
+	if r.Actions != nil && r.Actions.IsCancelable {
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
 		if !op.AutoApprove {
@@ -899,7 +909,7 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backendrun.Operation, r *
 			}
 		} else {
 			if b.CLI != nil {
-				// Insert a blank line to separate the ouputs.
+				// Insert a blank line to separate the outputs.
 				b.CLI.Output("")
 			}
 		}
@@ -931,7 +941,7 @@ func (b *Remote) IgnoreVersionConflict() {
 // the workspace's configured Terraform version. If they are equal, this means
 // that there are no compatibility concerns, so it returns no diagnostics.
 //
-// If the versions differ,
+// If the versions differ, this will return an error diagnostic.
 func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
