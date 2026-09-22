@@ -16,7 +16,7 @@ import (
 
 // The Apply view is used for the apply command.
 type Apply interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	ResourceCount(stateOutPath string)
 	Outputs(outputValues map[string]*states.OutputValue)

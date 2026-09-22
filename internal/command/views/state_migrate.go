@@ -72,7 +72,7 @@ const (
 )
 
 type StateMigrate interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	Diagnostics(diags tfdiags.Diagnostics)
 
