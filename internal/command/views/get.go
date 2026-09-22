@@ -43,13 +43,13 @@ func (v *GetHuman) LogModuleDownload(packageAddr string, version *version.Versio
 	v.view.streams.Println(message)
 }
 
-func (v *GetHuman) LogModuleInstallation(modulePath, localDir string) {
-	var message string
-	if localDir == "" {
-		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
-	} else {
-		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	}
+func (v *GetHuman) LogModuleInstallation(modulePath string) {
+	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
+	v.view.streams.Println(message)
+}
+
+func (v *GetHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
+	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
 	v.view.streams.Println(message)
 }
 

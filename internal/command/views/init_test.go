@@ -823,55 +823,52 @@ func TestNewInit_LogModuleDownload_json(t *testing.T) {
 }
 
 func TestNewInit_LogModuleInstallation_json(t *testing.T) {
-	t.Run("show local paths", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-		view := NewView(streams)
-		initView := NewInit(arguments.ViewJSON, view)
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
 
-		modulePath := "module.network"
-		localDir := "/local/dir"
-		initView.LogModuleInstallation(modulePath, localDir)
+	modulePath := "module.network"
+	initView.LogModuleInstallation(modulePath)
 
-		// Assert output
-		output := done(t)
-		expectedOutputFields := []string{
-			`"@level":"info"`,
-			`"@message":"- module.network in /local/dir"`,
-			`"@module":"terraform.ui"`,
-			//@timestamp is dynamic
-			`"type":"log"`,
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"- module.network"`,
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
 		}
-		for _, snippet := range expectedOutputFields {
-			if !strings.Contains(output.Stdout(), snippet) {
-				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-			}
-		}
-	})
+	}
+}
 
-	t.Run("don't show local paths", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-		view := NewView(streams)
-		initView := NewInit(arguments.ViewJSON, view)
+func TestNewInit_LogModuleInstallationWithLocalPath_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
 
-		modulePath := "module.network"
-		localDir := ""
-		initView.LogModuleInstallation(modulePath, localDir)
+	modulePath := "module.network"
+	localDir := "/local/dir"
+	initView.LogModuleInstallationWithLocalPath(modulePath, localDir)
 
-		// Assert output
-		output := done(t)
-		expectedOutputFields := []string{
-			`"@level":"info"`,
-			`"@message":"- module.network"`,
-			`"@module":"terraform.ui"`,
-			//@timestamp is dynamic
-			`"type":"log"`,
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"- module.network in /local/dir"`,
+		`"@module":"terraform.ui"`,
+		//@timestamp is dynamic
+		`"type":"log"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
 		}
-		for _, snippet := range expectedOutputFields {
-			if !strings.Contains(output.Stdout(), snippet) {
-				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
-			}
-		}
-	})
+	}
 }
 
 func TestNewInit_LogModuleUpgrade_json(t *testing.T) {

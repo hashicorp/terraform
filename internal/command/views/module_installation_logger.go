@@ -12,9 +12,11 @@ type ModuleInstallationLogger interface {
 	// This may or may not include a version (nil versions impact the output format)
 	LogModuleDownload(packageAddr string, version *version.Version, modulePath string)
 
-	// LogModuleInstallation logs the completion of a module installation.
-	// The localDir may be empty depending on whether calling code wants to show the local path.
-	LogModuleInstallation(modulePath, localDir string)
+	// LogModuleInstallation logs the completion of a module installation without showing details about where it's downloaded to.
+	LogModuleInstallation(modulePath string)
+
+	// LogModuleInstallationWithLocalPath logs the completion of a module installation including the local path.
+	LogModuleInstallationWithLocalPath(modulePath, localDir string)
 }
 
 const (
