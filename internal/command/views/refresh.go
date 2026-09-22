@@ -15,7 +15,7 @@ import (
 
 // The Refresh view is used for the refresh command.
 type Refresh interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	Outputs(outputValues map[string]*states.OutputValue)
 

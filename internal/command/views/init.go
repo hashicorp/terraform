@@ -18,7 +18,7 @@ import (
 
 // The Init view is used for the init command.
 type Init interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	Diagnostics(diags tfdiags.Diagnostics)
 	PolicyResult(addr string, resp policy.EvaluationResponse)

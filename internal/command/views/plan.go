@@ -13,7 +13,7 @@ import (
 
 // The Plan view is used for the plan command.
 type Plan interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	Operation() Operation
 	Hooks() []terraform.Hook

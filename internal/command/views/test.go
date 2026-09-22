@@ -31,7 +31,7 @@ import (
 
 // Test renders outputs for test executions.
 type Test interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	// Abstract should print an early summary of the tests that will be
 	// executed. This will be called before the tests have been executed so

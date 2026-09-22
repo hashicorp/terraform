@@ -14,7 +14,7 @@ import (
 
 // Query renders outputs for query executions.
 type Query interface {
-	VersionLogger
+	JSONOutputVersionLogger
 
 	Operation() Operation
 	Hooks() []terraform.Hook
