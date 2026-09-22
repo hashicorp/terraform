@@ -56,6 +56,9 @@ func (c *InitCommand) Run(args []string) int {
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
+	// Log version output
+	view.Version()
+
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)

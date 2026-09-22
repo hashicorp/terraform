@@ -91,6 +91,9 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	// diagnostics according to the desired view
 	view := views.NewQuery(args.ViewType, c.View)
 
+	// Log version output
+	view.Version()
+
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))

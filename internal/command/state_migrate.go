@@ -46,6 +46,9 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 	view := views.NewStateMigrate(args.ViewType, c.View)
 
+	// Log version output
+	view.Version()
+
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1

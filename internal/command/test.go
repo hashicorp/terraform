@@ -298,6 +298,9 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	view := views.NewTest(preparation.Args.ViewType, m.View)
 	preparation.View = view
 
+	// Log version output
+	view.Version()
+
 	// EXPERIMENTAL: maybe enable deferred actions
 	if !m.AllowExperimentalFeatures && preparation.Args.DeferralAllowed {
 		diags = diags.Append(tfdiags.Sourceless(

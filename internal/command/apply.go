@@ -52,6 +52,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	// diagnostics according to the desired view
 	view := views.NewApply(args.ViewType, c.Destroy, c.View)
 
+	// Log version output
+	view.Version()
+
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
@@ -256,7 +259,6 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 		}
 		be, beDiags = c.BackendForLocalPlan(plan)
 	} else {
-
 		// Load the backend
 		//
 		// Note: Both new plans and saved cloud plans load their backend from config,
