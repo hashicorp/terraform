@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'remote: prevent a nil pointer dereference when canceling runs without actions'
+time: 2026-09-22T09:00:00+01:00
+custom:
+    Issue: "39214"
