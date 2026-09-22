@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'init: Terraform will no longer produce an additional version log in JSON output when configuring a backend for the first time.'
+time: 2026-09-22T14:22:03.746839+01:00
+custom:
+    Issue: "39266"
