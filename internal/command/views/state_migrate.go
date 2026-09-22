@@ -72,6 +72,8 @@ const (
 )
 
 type StateMigrate interface {
+	VersionLogger
+
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	LogStateMigrationStart(source, destination string)
@@ -116,6 +118,8 @@ var (
 type StateMigrateHuman struct {
 	view *View
 }
+
+func (s *StateMigrateHuman) Version() {}
 
 func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)
@@ -327,6 +331,10 @@ var (
 	_ StateStoreProviderTrustLogger = (*StateMigrateJSON)(nil)
 	_ Spacer                        = (*StateMigrateJSON)(nil)
 )
+
+func (s *StateMigrateJSON) Version() {
+	s.view.Version()
+}
 
 func (s *StateMigrateJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	s.view.Diagnostics(diags)

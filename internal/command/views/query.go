@@ -14,6 +14,8 @@ import (
 
 // Query renders outputs for query executions.
 type Query interface {
+	VersionLogger
+
 	Operation() Operation
 	Hooks() []terraform.Hook
 
@@ -46,6 +48,8 @@ type QueryHuman struct {
 
 var _ Query = (*QueryHuman)(nil)
 
+func (v *QueryHuman) Version() {}
+
 func (v *QueryHuman) Operation() Operation {
 	return v.op
 }
@@ -68,6 +72,10 @@ type QueryJSON struct {
 }
 
 var _ Query = (*QueryJSON)(nil)
+
+func (v *QueryJSON) Version() {
+	v.view.Version()
+}
 
 func (v *QueryJSON) Operation() Operation {
 	return v.op

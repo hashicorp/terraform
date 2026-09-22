@@ -13,6 +13,8 @@ import (
 
 // The Plan view is used for the plan command.
 type Plan interface {
+	VersionLogger
+
 	Operation() Operation
 	Hooks() []terraform.Hook
 
@@ -45,6 +47,8 @@ type PlanHuman struct {
 	inAutomation bool
 }
 
+func (v *PlanHuman) Version() {}
+
 var _ Plan = (*PlanHuman)(nil)
 
 func (v *PlanHuman) Operation() Operation {
@@ -72,6 +76,10 @@ type PlanJSON struct {
 }
 
 var _ Plan = (*PlanJSON)(nil)
+
+func (v *PlanJSON) Version() {
+	v.view.Version()
+}
 
 func (v *PlanJSON) Operation() Operation {
 	return &OperationJSON{view: v.view}

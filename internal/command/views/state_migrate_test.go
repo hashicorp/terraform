@@ -4,6 +4,7 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestNewStateMigrate_LogInstallProviderVersionComplete(t *testing.T) {
@@ -700,4 +702,38 @@ func TestNewStateMigrate_LogMigrationDestinationInitializationComplete_json(t *t
 			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
 		}
 	}
+}
+
+func TestNewStateMigrate_Version(t *testing.T) {
+	t.Run("json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewStateMigrate(arguments.ViewJSON, NewView(streams))
+
+		v.Version()
+
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version.String()),
+				"@module":   "terraform.ui",
+				"type":      "version",
+				"terraform": version.String(),
+				"ui":        JSON_UI_VERSION,
+			},
+		}
+		testJSONViewOutputEquals(t, done(t).Stdout(), want)
+	})
+
+	t.Run("human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewStateMigrate(arguments.ViewHuman, NewView(streams))
+
+		v.Version()
+
+		got := done(t).Stdout()
+		want := ""
+		if got != want {
+			t.Fatalf("expected output %q, got %q", want, got)
+		}
+	})
 }

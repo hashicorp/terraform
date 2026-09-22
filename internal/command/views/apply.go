@@ -16,6 +16,8 @@ import (
 
 // The Apply view is used for the apply command.
 type Apply interface {
+	VersionLogger
+
 	ResourceCount(stateOutPath string)
 	Outputs(outputValues map[string]*states.OutputValue)
 
@@ -57,6 +59,8 @@ type ApplyHuman struct {
 
 	countHook *countHook
 }
+
+func (v *ApplyHuman) Version() {}
 
 var _ Apply = (*ApplyHuman)(nil)
 
@@ -135,6 +139,10 @@ type ApplyJSON struct {
 }
 
 var _ Apply = (*ApplyJSON)(nil)
+
+func (v *ApplyJSON) Version() {
+	v.view.Version()
+}
 
 func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 	operation := json.OperationApplied
