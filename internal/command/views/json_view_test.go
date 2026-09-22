@@ -21,11 +21,19 @@ import (
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
-// Calling NewJSONView should also always output a version message, which is a
-// convenient way to test that NewJSONView works.
 func TestNewJSONView(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	NewJSONView(NewView(streams))
+
+	if got := done(t).Stdout(); got != "" {
+		t.Fatalf("unexpected output: %s", got)
+	}
+}
+
+func TestJSONView_Version(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+	jv.Version()
 
 	version := tfversion.String()
 	want := []map[string]interface{}{
@@ -590,11 +598,5 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 // This helper is not appropriate for testing single, static log output from views.
 func testJSONViewOutputEquals(t *testing.T, output string, want []map[string]interface{}, options ...cmp.Option) {
 	t.Helper()
-
-	// Remove up to the first newline
-	index := strings.Index(output, "\n")
-	if index >= 0 {
-		output = output[index+1:]
-	}
 	testJSONViewOutputEqualsFull(t, output, want, options...)
 }

@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestNewInit_jsonViewDiagnostics(t *testing.T) {
@@ -33,16 +32,7 @@ func TestNewInit_jsonViewDiagnostics(t *testing.T) {
 	diags := getTestDiags(t)
 	newInit.Diagnostics(diags)
 
-	version := tfversion.String()
 	want := []map[string]interface{}{
-		{
-			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version),
-			"@module":   "terraform.ui",
-			"terraform": version,
-			"type":      "version",
-			"ui":        JSON_UI_VERSION,
-		},
 		{
 			"@level":   "error",
 			"@message": "Error: Error selecting workspace",
@@ -156,16 +146,7 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		},
 	)
 
-	version := tfversion.String()
 	want := []map[string]interface{}{
-		{
-			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version),
-			"@module":   "terraform.ui",
-			"terraform": version,
-			"type":      "version",
-			"ui":        JSON_UI_VERSION,
-		},
 		{
 			"@level":   "error",
 			"@message": "Error: module policy denied",
@@ -951,14 +932,10 @@ func TestNewInit_Spacer_json(t *testing.T) {
 
 	initView.Spacer()
 
-	// Assert output
+	// Assert no output
 	output := done(t)
-
-	// We cannot simply assert no output as the JSON view logs the version message on initialization
-	// Splitting on \n when there's only the version log will get an array of the log and an empty string.
-	// If there are more logs there'll be >2 elements.
-	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
-		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
+	if output.Stdout() != "" {
+		t.Fatalf("expected only a spacer line, got: %s", output.Stdout())
 	}
 }
 

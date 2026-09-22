@@ -27,12 +27,10 @@ func NewJSONView(view *View) *JSONView {
 		Output:     view.streams.Stdout.File,
 		JSONFormat: true,
 	})
-	jv := &JSONView{
+	return &JSONView{
 		log:  log,
 		view: view,
 	}
-	jv.Version()
-	return jv
 }
 
 type JSONView struct {
