@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -904,4 +905,23 @@ func TestNewInit_Spacer_json(t *testing.T) {
 	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
 		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
 	}
+}
+
+func TestInitJSON_Version(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewInit(arguments.ViewJSON, NewView(streams))
+
+	v.Version()
+
+	want := []map[string]interface{}{
+		{
+			"@level":    "info",
+			"@message":  fmt.Sprintf("Terraform %s", version.String()),
+			"@module":   "terraform.ui",
+			"type":      "version",
+			"terraform": version.String(),
+			"ui":        JSON_UI_VERSION,
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }

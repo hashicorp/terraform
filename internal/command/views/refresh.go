@@ -15,6 +15,8 @@ import (
 
 // The Refresh view is used for the refresh command.
 type Refresh interface {
+	VersionLogger
+
 	Outputs(outputValues map[string]*states.OutputValue)
 
 	Operation() Operation
@@ -54,6 +56,8 @@ type RefreshHuman struct {
 
 var _ Refresh = (*RefreshHuman)(nil)
 
+func (v *RefreshHuman) Version() {}
+
 func (v *RefreshHuman) Outputs(outputValues map[string]*states.OutputValue) {
 	if len(outputValues) > 0 {
 		v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\nOutputs:\n\n"))
@@ -87,6 +91,10 @@ type RefreshJSON struct {
 }
 
 var _ Refresh = (*RefreshJSON)(nil)
+
+func (v *RefreshJSON) Version() {
+	v.view.Version()
+}
 
 func (v *RefreshJSON) Outputs(outputValues map[string]*states.OutputValue) {
 	outputs, diags := json.OutputsFromMap(outputValues)

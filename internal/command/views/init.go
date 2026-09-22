@@ -18,6 +18,8 @@ import (
 
 // The Init view is used for the init command.
 type Init interface {
+	VersionLogger
+
 	Diagnostics(diags tfdiags.Diagnostics)
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
@@ -71,6 +73,8 @@ func NewInit(vt arguments.ViewType, view *View) Init {
 type InitHuman struct {
 	view *View
 }
+
+func (v *InitHuman) Version() {}
 
 var (
 	_ Init                       = (*InitHuman)(nil)
@@ -263,6 +267,10 @@ var (
 	_ Init                       = (*InitJSON)(nil)
 	_ ProviderInstallationLogger = (*InitJSON)(nil)
 )
+
+func (v *InitJSON) Version() {
+	v.view.Version()
+}
 
 func (v *InitJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)

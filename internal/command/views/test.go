@@ -31,6 +31,8 @@ import (
 
 // Test renders outputs for test executions.
 type Test interface {
+	VersionLogger
+
 	// Abstract should print an early summary of the tests that will be
 	// executed. This will be called before the tests have been executed so
 	// the status for everything within suite will be test.Pending.
@@ -103,6 +105,8 @@ type TestHuman struct {
 }
 
 var _ Test = (*TestHuman)(nil)
+
+func (t *TestHuman) Version() {}
 
 func (t *TestHuman) Abstract(_ *moduletest.Suite) {
 	// Do nothing, we don't print an abstract for the human view.
@@ -393,6 +397,10 @@ type TestJSON struct {
 }
 
 var _ Test = (*TestJSON)(nil)
+
+func (t *TestJSON) Version() {
+	t.view.Version()
+}
 
 func (t *TestJSON) Abstract(suite *moduletest.Suite) {
 	var fileCount, runCount int
