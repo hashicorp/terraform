@@ -133,6 +133,7 @@ func BuildModuleWithGraph(mod *configs.Module, vars InputValues) (*configs.Modul
 
 	providers := cfg.ResolveProviderTypes()
 	cfg.ResolveProviderTypesForTests(providers)
+	diags = diags.Append(cfg.ValidateProviderMetas())
 	if cfg.Module != nil && cfg.Module.StateStore != nil {
 		stateProviderDiags := cfg.ResolveStateStoreProviderType()
 		diags = diags.Append(stateProviderDiags)
