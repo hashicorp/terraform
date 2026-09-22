@@ -25,8 +25,8 @@ func (h uiModuleInstallHooks) Download(modulePath, packageAddr string, v *versio
 
 func (h uiModuleInstallHooks) Install(modulePath string, v *version.Version, localDir string) {
 	if h.ShowLocalPaths {
-		h.View.LogModuleInstallation(modulePath, localDir)
+		h.View.LogModuleInstallationWithLocalPath(modulePath, localDir)
 	} else {
-		h.View.LogModuleInstallation(modulePath, "")
+		h.View.LogModuleInstallation(modulePath)
 	}
 }

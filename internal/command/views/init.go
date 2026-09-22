@@ -215,13 +215,16 @@ func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Versi
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitHuman) LogModuleInstallation(modulePath, localDir string) {
-	var message string
-	if localDir == "" {
-		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
-	} else {
-		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	}
+func (v *InitHuman) LogModuleInstallation(modulePath string) {
+	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
+	v.print(message)
+}
+
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
+	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
 	v.print(message)
 }
 
@@ -507,14 +510,16 @@ func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Versio
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
-func (v *InitJSON) LogModuleInstallation(modulePath, localDir string) {
-	var message string
-	if localDir == "" {
-		message = fmt.Sprintf(moduleInstallationHuman, modulePath)
-	} else {
-		message = fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	}
+func (v *InitJSON) LogModuleInstallation(modulePath string) {
+	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
+	v.view.Log(message)
+}
 
+// Implements ModuleInstallationLogger
+//
+// See logging in hook_module_install.go
+func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
+	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
 	v.view.Log(message)
 }
 

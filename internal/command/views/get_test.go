@@ -35,43 +35,40 @@ func TestGetHuman_LogModuleDownload(t *testing.T) {
 }
 
 func TestGetHuman_LogModuleInstallation(t *testing.T) {
-	t.Run("show local paths", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-		view := NewView(streams)
-		view.Configure(&arguments.View{NoColor: true})
-		v := NewGet(arguments.ViewHuman, view)
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	view.Configure(&arguments.View{NoColor: true})
+	v := NewGet(arguments.ViewHuman, view)
 
-		modulePath := "module.network"
-		localDir := "/local/dir"
-		v.LogModuleInstallation(modulePath, localDir)
+	modulePath := "module.network"
+	v.LogModuleInstallation(modulePath)
 
-		output := done(t)
-		expected := "- module.network in /local/dir"
-		if diff := cmp.Diff(expected, strings.TrimSpace(output.Stdout())); diff != "" {
-			t.Fatalf("unexpected stdout diff:\n%s", diff)
-		}
-		if diff := cmp.Diff(strings.TrimSpace(""), strings.TrimSpace(output.Stderr())); diff != "" {
-			t.Fatalf("unexpected stderr diff:\n%s", diff)
-		}
-	})
+	output := done(t)
+	expected := "- module.network"
+	if diff := cmp.Diff(expected, strings.TrimSpace(output.Stdout())); diff != "" {
+		t.Fatalf("unexpected stdout diff:\n%s", diff)
+	}
+	if diff := cmp.Diff(strings.TrimSpace(""), strings.TrimSpace(output.Stderr())); diff != "" {
+		t.Fatalf("unexpected stderr diff:\n%s", diff)
+	}
+}
 
-	t.Run("don't show local paths", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-		view := NewView(streams)
-		view.Configure(&arguments.View{NoColor: true})
-		v := NewGet(arguments.ViewHuman, view)
+func TestGetHuman_LogModuleInstallationWithLocalPath(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	view.Configure(&arguments.View{NoColor: true})
+	v := NewGet(arguments.ViewHuman, view)
 
-		modulePath := "module.network"
-		localDir := ""
-		v.LogModuleInstallation(modulePath, localDir)
+	modulePath := "module.network"
+	localDir := "/local/dir"
+	v.LogModuleInstallationWithLocalPath(modulePath, localDir)
 
-		output := done(t)
-		expected := "- module.network"
-		if diff := cmp.Diff(expected, strings.TrimSpace(output.Stdout())); diff != "" {
-			t.Fatalf("unexpected stdout diff:\n%s", diff)
-		}
-		if diff := cmp.Diff(strings.TrimSpace(""), strings.TrimSpace(output.Stderr())); diff != "" {
-			t.Fatalf("unexpected stderr diff:\n%s", diff)
-		}
-	})
+	output := done(t)
+	expected := "- module.network in /local/dir"
+	if diff := cmp.Diff(expected, strings.TrimSpace(output.Stdout())); diff != "" {
+		t.Fatalf("unexpected stdout diff:\n%s", diff)
+	}
+	if diff := cmp.Diff(strings.TrimSpace(""), strings.TrimSpace(output.Stderr())); diff != "" {
+		t.Fatalf("unexpected stderr diff:\n%s", diff)
+	}
 }
