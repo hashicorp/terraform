@@ -14,7 +14,7 @@ import (
 
 // Input returns whether or not input asking is enabled.
 func (m *Meta) Input() bool {
-	if test || !m.input {
+	if test || !m.testingOverrides.Input() || !m.input {
 		return false
 	}
 

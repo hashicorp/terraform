@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/command/workdir"
@@ -294,6 +295,17 @@ type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 	PolicyClient policy.Client
+	UIInput      *ui.UIInput
+}
+
+func (to *testingOverrides) Input() bool {
+	if to == nil {
+		return true
+	}
+	if to.UIInput == nil {
+		return true
+	}
+	return !to.UIInput.TestInputDisabled
 }
 
 // initStatePaths is used to initialize the default values for
@@ -359,7 +371,7 @@ const (
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
-	if test || !m.input {
+	if test || !m.testingOverrides.Input() || !m.input {
 		return 0
 	}
 
@@ -379,6 +391,12 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 // UIInput returns a UIInput object to be used for asking for input.
 func (m *Meta) UIInput() terraform.UIInput {
+	// Tests can override the UIInput object.
+	if m.testingOverrides != nil &&
+		m.testingOverrides.UIInput != nil {
+		return m.testingOverrides.UIInput
+	}
+
 	return &UIInput{
 		Colorize: m.Colorize(),
 	}
