@@ -124,6 +124,9 @@ func TestApply_destroy(t *testing.T) {
 }
 
 func TestApply_destroyApproveNo(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -150,10 +153,11 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-
-	_ = testInputMapLegacy(t, map[string]string{
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "no",
 	})
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -162,7 +166,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -192,6 +196,9 @@ func TestApply_destroyApproveNo(t *testing.T) {
 }
 
 func TestApply_destroyApproveYes(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -219,9 +226,11 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	_ = testInputMapLegacy(t, map[string]string{
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "yes",
 	})
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
@@ -230,7 +239,7 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
