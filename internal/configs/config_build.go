@@ -24,6 +24,7 @@ func FinalizeConfig(cfg *Config, loader MockDataLoader) hcl.Diagnostics {
 	// the known types for validation.
 	providers := cfg.ResolveProviderTypes()
 	cfg.ResolveProviderTypesForTests(providers)
+	diags = append(diags, cfg.ValidateProviderMetas()...)
 
 	if cfg.Module != nil && cfg.Module.StateStore != nil {
 		stateProviderDiags := cfg.ResolveStateStoreProviderType()
