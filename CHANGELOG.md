@@ -1,4 +1,4 @@
-## 1.17.0 (Unreleased)
+## 1.17.0-beta2 (September 23, 2026)
 
 
 NEW FEATURES:
@@ -7,7 +7,7 @@ NEW FEATURES:
 
 * A new `-minimal-refresh` planning option has been added, which will only refresh resources that have proposed changes. ([#35290](https://github.com/hashicorp/terraform/issues/35290))
 
-* policy: Terraform Policy is now generally available. The `-policies` flag for `plan`, `apply`, and `init` no longer requires the `-allow-experimental-features` flag. See https://developer.hashicorp.com/terraform/policy for more information. ([#38970](https://github.com/hashicorp/terraform/issues/38970))
+* policy: Terraform Policy is now generally available. The `-policies` flag for `plan`, `apply`, and `query` no longer requires an experimental build or the `-allow-experimental-features` flag. Query policies evaluate resources discovered by list blocks and report human-readable or JSON results. See https://developer.hashicorp.com/terraform/policy for more information. ([#38970](https://github.com/hashicorp/terraform/issues/38970))
 
 
 ENHANCEMENTS:
@@ -29,22 +29,13 @@ BUG FIXES:
 
 * query: report Unknown and N/A results for policy evaluations of discovered resources ([#39058](https://github.com/hashicorp/terraform/issues/39058))
 
+* query: `terraform query -policies` now rejects a path that is not a directory, instead of passing it on to the policy engine ([#39238](https://github.com/hashicorp/terraform/issues/39238))
+
 
 NOTES:
 
 * version: JSON output now includes a new `format_version` field, which will enable safer future changes of the command's JSON output format. It is assumed existing tooling ignores unknown fields and therefore this change should not be breaking in itself but we advice consumers to pay attention to `format_version` in future releases and/or use latest version of hashicorp/terraform-json & hashicorp/terraform-exec which does. ([#38930](https://github.com/hashicorp/terraform/issues/38930))
 
-
-EXPERIMENTS:
-
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
-
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
-- `terraform test cleanup`: The experimental `test cleanup` command. In experimental builds of Terraform, a manifest file and state files for each failed cleanup operation during test operations are saved within the `.terraform` local directory. The `test cleanup` command will attempt to clean up the local state files left behind automatically, without requiring manual intervention.
-- `terraform test`: `backend` blocks and `skip_cleanup` attributes:
-  - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
-  - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
-- `terraform query`: The experimental `-policies` flag permits specifying one or more policy set directory paths to evaluate policies against resources discovered by list blocks during a query operation.
 
 ## Previous Releases
 
