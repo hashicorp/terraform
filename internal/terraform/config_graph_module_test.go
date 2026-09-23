@@ -229,6 +229,52 @@ func TestProviderForLocalConfig(t *testing.T) {
 	}
 }
 
+func TestModule_provider_meta_duplicate_provider(t *testing.T) {
+	for name, source := range map[string]string{
+		"literal source":        `"acme/test"`,
+		"const variable source": `var.provider_source`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := testModuleInlineWithVarsReturnDiags(t, map[string]string{
+				"main.tf": fmt.Sprintf(`
+variable "provider_source" {
+  type    = string
+  const   = true
+  default = "acme/test"
+}
+
+terraform {
+  required_providers {
+    first = {
+      source = "acme/test"
+    }
+    second = {
+      source = %s
+    }
+  }
+
+  provider_meta "first" {
+    value = "first"
+  }
+  provider_meta "second" {
+    value = "second"
+  }
+}
+`, source),
+			}, nil)
+
+			// Different local names must not allow multiple metadata blocks for
+			// the same resolved provider. A duplicate-requirement warning is not enough.
+			for _, diag := range diags.ToHCL() {
+				if diag.Severity == hcl.DiagError && diag.Summary == "Duplicate provider_meta block" {
+					return
+				}
+			}
+			t.Fatalf("expected Duplicate provider_meta block error, got: %v", diags.Err())
+		})
+	}
+}
+
 // At most one required_providers block per module is permitted.
 func TestModule_required_providers_multiple(t *testing.T) {
 	_, diags := testModuleFromDirWithInitGraph("testdata/config-graph/invalid-modules/multiple-required-providers")
