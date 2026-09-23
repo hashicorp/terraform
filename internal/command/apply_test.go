@@ -113,7 +113,7 @@ func TestApply_approveNo(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"approve": "no",
 	})
 
@@ -158,7 +158,7 @@ func TestApply_approveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"approve": "yes",
 	})
 
@@ -1765,7 +1765,7 @@ foo = "bar"
 		},
 
 		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
+			close := testInteractiveInputLegacy(t, []string{"bar"})
 			defer close()
 
 			args := []string{
@@ -1856,7 +1856,7 @@ foo = "bar"
 		},
 
 		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
+			close := testInteractiveInputLegacy(t, []string{"bar"})
 			defer close()
 
 			args := []string{

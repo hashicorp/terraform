@@ -4496,7 +4496,7 @@ Initializing provider plugins...
 
 		// Allow the test to respond to the prompt to pick an
 		// existing workspace, given the selected one doesn't exist.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"select-workspace": "1", // foobar1 in numbered list
 		})
 
@@ -4884,7 +4884,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		inputWriter := testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 
@@ -5030,7 +5030,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		inputWriter := testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 
@@ -5110,7 +5110,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		inputWriter := testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3": "no",
 		})
 
@@ -5207,7 +5207,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 
 		// Init number 1 - reject the provider
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3": "no",
 		})
 		args := []string{
@@ -5249,7 +5249,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 
 		// Init number 2 - re-prompted for approval
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 		args = []string{
@@ -5819,7 +5819,7 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 
 	// Allow the test to respond to the pause in provider installation for
 	// checking the state storage provider.
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 

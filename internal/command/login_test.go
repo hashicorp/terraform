@@ -133,7 +133,7 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
@@ -166,7 +166,7 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
@@ -191,7 +191,7 @@ func TestLogin(t *testing.T) {
 		setOrgsMaxTTLEnabled(t, true)
 
 		// Enter "yes" at the consent prompt.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 		})
 		status := c.Run([]string{"example.com"})
@@ -226,7 +226,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 		})
 		status := c.Run([]string{"with-scopes.example.com"})
@@ -271,7 +271,7 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
@@ -305,7 +305,7 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
@@ -325,7 +325,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "yes",
 			"token":   "good-tok",
 		})
@@ -365,7 +365,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "no" at the consent prompt
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "no",
 		})
 		status := c.Run(nil)
@@ -384,7 +384,7 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "y" at the consent prompt
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve": "y",
 		})
 		status := c.Run(nil)

@@ -151,7 +151,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"approve": "no",
 	})
 
@@ -219,7 +219,7 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"approve": "yes",
 	})
 
