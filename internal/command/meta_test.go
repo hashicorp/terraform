@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -78,10 +79,17 @@ func TestMetaColorize(t *testing.T) {
 }
 
 func TestMetaInputMode(t *testing.T) {
-	test = false
-	defer func() { test = true }()
+	// Ensure prompting for input is enabled
+	inputDisabled := false
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil, inputDisabled,
+	)
 
 	m := new(Meta)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 	args := []string{}
 
 	fs := m.extendedFlagSet("foo")
@@ -95,10 +103,17 @@ func TestMetaInputMode(t *testing.T) {
 }
 
 func TestMetaInputMode_envVar(t *testing.T) {
-	test = false
-	defer func() { test = true }()
+	// Ensure prompting for input is enabled
+	inputDisabled := false
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil, inputDisabled,
+	)
 
 	m := new(Meta)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 	args := []string{}
 
 	fs := m.extendedFlagSet("foo")
@@ -127,10 +142,17 @@ func TestMetaInputMode_envVar(t *testing.T) {
 }
 
 func TestMetaInputMode_disable(t *testing.T) {
-	test = false
-	defer func() { test = true }()
+	// Ensure prompting for input is enabled
+	inputDisabled := false
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil, inputDisabled,
+	)
 
 	m := new(Meta)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 	args := []string{"-input=false"}
 
 	fs := m.extendedFlagSet("foo")
@@ -338,9 +360,6 @@ func TestMeta_Workspace_invalidSelected(t *testing.T) {
 }
 
 func TestMeta_process(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary directory for our cwd
 	d := t.TempDir()
 	os.MkdirAll(d, 0755)
@@ -420,7 +439,19 @@ func TestMeta_process(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
+			// Ensure prompting for input is enabled
+			inputDisabled := false
+			uiInput := ui.NewUIInputForTests(
+				ui.UIInputOptions{},
+				nil,
+				nil,
+				inputDisabled,
+			)
+
 			m := new(Meta)
+			m.testingOverrides = &testingOverrides{
+				UIInput: uiInput,
+			}
 			m.Color = true // this is the default also for normal use, overridden by -no-color
 			args := test.GivenArgs
 			args = m.process(args)

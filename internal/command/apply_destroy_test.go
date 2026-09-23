@@ -225,7 +225,6 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-
 	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "yes",
 	})
