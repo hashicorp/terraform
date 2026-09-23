@@ -1,0 +1,217 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package ui
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"unicode"
+
+	"github.com/bgentry/speakeasy"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/mattn/go-isatty"
+	"github.com/mitchellh/colorstring"
+)
+
+// UIInput is an implementation of terraform.UIInput that asks the CLI
+// for input stdin.
+type UIInput struct {
+	// Colorize will color the output.
+	Colorize *colorstring.Colorize
+
+	// Reader and Writer for IO. If these aren't set, they will default to
+	// Stdin and Stdout respectively.
+	Reader io.Reader
+	Writer io.Writer
+
+	// Test input responses for automated testing.
+	TestInputResponse    []string
+	TestInputResponseMap map[string]string
+	TestInputDisabled    bool
+
+	listening int32
+	result    chan string
+	err       chan string
+
+	interrupted bool
+	l           sync.Mutex
+	once        sync.Once
+}
+
+type UIInputOptions struct {
+	Colorize *colorstring.Colorize
+	Reader   io.Reader
+	Writer   io.Writer
+}
+
+func NewUIInput(opts UIInputOptions) *UIInput {
+	i := &UIInput{
+		Colorize: opts.Colorize,
+		Reader:   opts.Reader,
+		Writer:   opts.Writer,
+	}
+
+	i.once.Do(i.init)
+
+	// If a Reader or Writer wasn't provided, fall back to the OS standard streams.
+	r := i.Reader
+	w := i.Writer
+	if r == nil {
+		r = os.Stdin
+	}
+	if w == nil {
+		w = os.Stdout
+	}
+
+	i.Reader = r
+	i.Writer = w
+
+	return i
+}
+
+func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string, disableInput bool) *UIInput {
+	i := NewUIInput(opts)
+	i.TestInputResponse = testInputResponse
+	i.TestInputResponseMap = testInputResponseMap
+	i.TestInputDisabled = disableInput
+
+	return i
+}
+
+func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
+	// Make sure we only ask for input once at a time. Terraform
+	// should enforce this, but it doesn't hurt to verify.
+	i.l.Lock()
+	defer i.l.Unlock()
+
+	// If we're interrupted, then don't ask for input
+	if i.interrupted {
+		return "", errors.New("interrupted")
+	}
+
+	log.Printf("[DEBUG] command: asking for input: %q", opts.Query)
+
+	// Listen for interrupts so we can cancel the input ask
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt)
+	defer signal.Stop(sigCh)
+
+	// Build the output format for asking
+	var buf bytes.Buffer
+	buf.WriteString("[reset]")
+	buf.WriteString(fmt.Sprintf("[bold]%s[reset]\n", opts.Query))
+	if opts.Description != "" {
+		s := bufio.NewScanner(strings.NewReader(opts.Description))
+		for s.Scan() {
+			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
+		}
+		buf.WriteString("\n")
+	}
+	if opts.Default != "" {
+		buf.WriteString("  [bold]Default:[reset] ")
+		buf.WriteString(opts.Default)
+		buf.WriteString("\n")
+	}
+	buf.WriteString("  [bold]Enter a value:[reset] ")
+
+	// Ask the user for their input
+	if _, err := fmt.Fprint(i.Writer, i.Colorize.Color(buf.String())); err != nil {
+		return "", err
+	}
+
+	// If we have test results, return those. testInputResponse is the
+	// "old" way of doing it and we should remove that.
+	if len(i.TestInputResponse) != 0 {
+		v := i.TestInputResponse[0]
+		i.TestInputResponse = i.TestInputResponse[1:]
+		return v, nil
+	}
+
+	// testInputResponseMap is the new way for test responses, based on
+	// the query ID.
+	if len(i.TestInputResponseMap) != 0 {
+		v, ok := i.TestInputResponseMap[opts.Id]
+		if !ok {
+			return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+		}
+
+		delete(i.TestInputResponseMap, opts.Id)
+		return v, nil
+	}
+
+	// Listen for the input in a goroutine. This will allow us to
+	// interrupt this if we are interrupted (SIGINT).
+	go func() {
+		if !atomic.CompareAndSwapInt32(&i.listening, 0, 1) {
+			return // We are already listening for input.
+		}
+		defer atomic.CompareAndSwapInt32(&i.listening, 1, 0)
+
+		var line string
+		var err error
+		if opts.Secret && isatty.IsTerminal(os.Stdin.Fd()) {
+			line, err = speakeasy.Ask("")
+		} else {
+			buf := bufio.NewReader(i.Reader)
+			line, err = buf.ReadString('\n')
+		}
+		if err != nil {
+			log.Printf("[ERR] UIInput scan err: %s", err)
+			i.err <- string(err.Error())
+		} else {
+			i.result <- strings.TrimRightFunc(line, unicode.IsSpace)
+		}
+	}()
+
+	select {
+	case err := <-i.err:
+		return "", errors.New(err)
+
+	case line := <-i.result:
+		fmt.Fprint(i.Writer, "\n")
+
+		if line == "" {
+			line = opts.Default
+		}
+
+		return line, nil
+	case <-ctx.Done():
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(i.Writer)
+
+		return "", ctx.Err()
+	case <-sigCh:
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(i.Writer)
+
+		// Mark that we were interrupted so future Ask calls fail.
+		i.interrupted = true
+
+		return "", errors.New("interrupted")
+	}
+}
+
+func (i *UIInput) init() {
+	i.result = make(chan string)
+	i.err = make(chan string)
+
+	if i.Colorize == nil {
+		i.Colorize = &colorstring.Colorize{
+			Colors:  colorstring.DefaultColors,
+			Disable: true,
+		}
+	}
+}
