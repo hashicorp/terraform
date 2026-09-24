@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestNewInit_jsonViewDiagnostics(t *testing.T) {
@@ -893,10 +893,10 @@ func TestInitJSON_Version(t *testing.T) {
 	want := []map[string]interface{}{
 		{
 			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version.String()),
+			"@message":  fmt.Sprintf("Terraform %s", tfversion.String()),
 			"@module":   "terraform.ui",
 			"type":      "version",
-			"terraform": version.String(),
+			"terraform": tfversion.String(),
 			"ui":        JSON_UI_VERSION,
 		},
 	}
