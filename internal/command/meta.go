@@ -371,7 +371,7 @@ const (
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
-	if test || !m.testingOverrides.Input() || !m.input {
+	if !m.testingOverrides.Input() || !m.input {
 		return 0
 	}
 

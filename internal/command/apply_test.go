@@ -107,9 +107,6 @@ func TestApply_path(t *testing.T) {
 }
 
 func TestApply_approveNo(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -156,9 +153,6 @@ func TestApply_approveNo(t *testing.T) {
 }
 
 func TestApply_approveYes(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -543,9 +537,6 @@ func TestApply_error(t *testing.T) {
 }
 
 func TestApply_input(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input"), td)
@@ -600,9 +591,6 @@ result = foo
 // When only a partial set of the variables are set, Terraform
 // should still ask for the unset ones by default (with -input=true)
 func TestApply_inputPartial(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input-partial"), td)
@@ -686,9 +674,6 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Don't disable input, so input would be asked
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: new(bytes.Buffer),
@@ -1052,9 +1037,6 @@ output "foobar" {
 
 // Test unhappy paths when applying a plan file describing a state store.
 func TestApply_plan_stateStore_errorCases(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
 		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
@@ -1722,9 +1704,6 @@ func TestApply_planWithSensitiveEnvVars(t *testing.T) {
 // In the fixture used for this test foo is a required ephemeral variable, whereas bar is
 // an optional one.
 func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	for name, tc := range map[string]func(*testing.T, *ApplyCommand, string, string, func(*testing.T) *terminal.TestOutput){
 		"with planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			args := []string{

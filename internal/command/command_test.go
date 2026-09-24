@@ -64,8 +64,6 @@ var (
 )
 
 func init() {
-	test = true
-
 	// Initialize the backends
 	backendInit.Init(nil)
 
