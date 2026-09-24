@@ -31,7 +31,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -5666,4 +5668,149 @@ resource "test_object" "forget" {
 	if len(replaced[0].Instances[addrs.NoKey].Deposed) != 0 {
 		t.Fatal("should be no deposed instances")
 	}
+}
+
+// A create that fails with a partial state must never be visible in the
+// working state with an invalid status, because concurrent nodes may be
+// persisting state snapshots at any time.
+func TestContext2Apply_failedCreateStatusVisibleToConcurrentStateUpdate(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "a"
+  provisioner "shell" {}
+}
+
+resource "test_object" "b" {
+  test_string = "b"
+}
+`,
+	})
+
+	// b is held until a is either provisioning or complete
+	releaseB := make(chan struct{})
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(releaseB) }) }
+	bPersisted := make(chan struct{})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		if req.PlannedState.GetAttr("test_string").AsString() == "a" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("create failed"))
+		}
+		return resp
+	}
+
+	pr := testProvisioner()
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		release()
+		select {
+		case <-bPersisted:
+		case <-time.After(5 * time.Second):
+			panic("timeout")
+		}
+		return resp
+	}
+
+	hook := &stateSerializingTestHook{
+		onPreApply: func(addr addrs.AbsResourceInstance) {
+			if addr.Equal(mustResourceInstanceAddr("test_object.b")) {
+				select {
+				case <-releaseB:
+				case <-time.After(5 * time.Second):
+					panic("timeout")
+				}
+			}
+		},
+		onPostApply: func(addr addrs.AbsResourceInstance) {
+			if addr.Equal(mustResourceInstanceAddr("test_object.a")) {
+				release()
+			}
+		},
+		onUpdate: func(s *states.State) {
+			if s.ResourceInstance(mustResourceInstanceAddr("test_object.b")) != nil {
+				select {
+				case <-bPersisted:
+				default:
+					close(bPersisted)
+				}
+			}
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected apply error")
+	}
+
+	for _, err := range hook.errs() {
+		t.Errorf("state snapshot could not be serialized: %s", err)
+	}
+
+	if pr.ProvisionResourceCalled {
+		t.Error("provisioner should not run for a failed create")
+	}
+
+	a := state.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
+	if a == nil || a.Current == nil || a.Current.Status != states.ObjectTainted {
+		t.Fatalf("expected test_object.a to be tainted, got %#v", a)
+	}
+}
+
+// stateSerializingTestHook serializes every state snapshot, as the local backend's
+// StateHook does via statemgr.Filesystem.
+type stateSerializingTestHook struct {
+	NilHook
+
+	mu          sync.Mutex
+	serErrs     []error
+	onPreApply  func(addrs.AbsResourceInstance)
+	onPostApply func(addrs.AbsResourceInstance)
+	onUpdate    func(*states.State)
+}
+
+func (h *stateSerializingTestHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
+	if h.onPostApply != nil {
+		h.onPostApply(id.Addr)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	if h.onPreApply != nil {
+		h.onPreApply(id.Addr)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) PostStateUpdate(s *states.State) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if err := statefile.Write(&statefile.File{State: s}, &bytes.Buffer{}); err != nil {
+		h.serErrs = append(h.serErrs, err)
+	}
+	if h.onUpdate != nil {
+		h.onUpdate(s)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) errs() []error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.serErrs
 }
