@@ -796,7 +796,7 @@ func testInputMapLegacy(t *testing.T, answers map[string]string) *bytes.Buffer {
 // testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent
 // in order to interactive prompts.
 // Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
-func testInteractiveInput(t *testing.T, answers []string) *ui.UIInput {
+func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTest {
 	t.Helper()
 
 	// Don't disable input, so input is called
@@ -823,7 +823,7 @@ func testInteractiveInput(t *testing.T, answers []string) *ui.UIInput {
 // Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
 // Calling code can optionally use the returned buffer to make assertions
 // about the prompts shown the to the user.
-func testInputMap(t *testing.T, answers map[string]string) (*ui.UIInput, *bytes.Buffer) {
+func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterForTest, *bytes.Buffer) {
 	t.Helper()
 
 	// Ensure input is called
@@ -844,7 +844,7 @@ func testInputMap(t *testing.T, answers map[string]string) (*ui.UIInput, *bytes.
 
 	// Queue the cleanup for the end of the test
 	t.Cleanup(func() {
-		unusedAnswers := ret.TestInputResponseMap
+		unusedAnswers := ret.RemainingTestInputResponses()
 
 		if len(unusedAnswers) > 0 {
 			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)

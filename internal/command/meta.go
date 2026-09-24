@@ -295,7 +295,7 @@ type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 	PolicyClient policy.Client
-	UIInput      *ui.UIInput
+	UIInput      ui.InputRequester
 }
 
 func (to *testingOverrides) Input() bool {
@@ -305,7 +305,7 @@ func (to *testingOverrides) Input() bool {
 	if to.UIInput == nil {
 		return true
 	}
-	return !to.UIInput.TestInputDisabled
+	return !to.UIInput.InputDisabled()
 }
 
 // initStatePaths is used to initialize the default values for

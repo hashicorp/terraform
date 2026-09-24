@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -17,7 +16,9 @@ import (
 
 func TestUIInput_impl(t *testing.T) {
 	t.Parallel()
-	var _ terraform.UIInput = new(UIInput)
+	var _ terraform.UIInput = new(uIInput)
+	var _ InputRequester = new(uIInput)
+	var _ InputRequesterForTest = new(uIInput)
 }
 
 func TestNewUIInput_Input(t *testing.T) {
@@ -130,10 +131,15 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 func TestUIInputInput_canceled(t *testing.T) {
 	t.Parallel()
 	r, w := io.Pipe()
-	i := NewUIInput(UIInputOptions{
-		Reader: r,
-		Writer: bytes.NewBuffer(nil),
-	})
+	i := NewUIInputForTests(
+		UIInputOptions{
+			Reader: r,
+			Writer: bytes.NewBuffer(nil),
+		},
+		nil,
+		nil,
+		false,
+	)
 
 	// Make a context that can be canceled.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -156,7 +162,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 	}
 
 	// As the context was canceled we should still be listening.
-	listening := atomic.LoadInt32(&i.listening)
+	listening := i.getListening()
 	if listening != 1 {
 		t.Fatalf("expected listening to be 1, got: %d", listening)
 	}

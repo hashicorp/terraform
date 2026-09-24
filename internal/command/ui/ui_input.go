@@ -24,9 +24,9 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-// UIInput is an implementation of terraform.UIInput that asks the CLI
+// uIInput is an implementation of terraform.UIInput that asks the CLI
 // for input stdin.
-type UIInput struct {
+type uIInput struct {
 	// Colorize will color the output.
 	Colorize *colorstring.Colorize
 
@@ -36,9 +36,9 @@ type UIInput struct {
 	Writer io.Writer
 
 	// Test input responses for automated testing.
-	TestInputResponse    []string
-	TestInputResponseMap map[string]string
-	TestInputDisabled    bool
+	testInputResponse    []string
+	testInputResponseMap map[string]string
+	testInputDisabled    bool
 
 	listening int32
 	result    chan string
@@ -49,14 +49,35 @@ type UIInput struct {
 	once        sync.Once
 }
 
+// The InputRequester interface is used by calling code to interact with the UI input system.
+//
+// To force use of constructors and enable uiInput not being exported,
+// we make calling code use interfaces.
+type InputRequester interface {
+	terraform.UIInput
+
+	InputDisabled() bool
+}
+
+type InputRequesterForTest interface {
+	terraform.UIInput
+	InputRequester
+
+	// Used for integration testing external to the ui package.
+	RemainingTestInputResponses() map[string]string
+
+	// Used for testing internal to the ui package.
+	getListening() int32
+}
+
 type UIInputOptions struct {
 	Colorize *colorstring.Colorize
 	Reader   io.Reader
 	Writer   io.Writer
 }
 
-func NewUIInput(opts UIInputOptions) *UIInput {
-	i := &UIInput{
+func NewUIInput(opts UIInputOptions) InputRequester {
+	i := &uIInput{
 		Colorize: opts.Colorize,
 		Reader:   opts.Reader,
 		Writer:   opts.Writer,
@@ -80,16 +101,33 @@ func NewUIInput(opts UIInputOptions) *UIInput {
 	return i
 }
 
-func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string, disableInput bool) *UIInput {
-	i := NewUIInput(opts)
-	i.TestInputResponse = testInputResponse
-	i.TestInputResponseMap = testInputResponseMap
-	i.TestInputDisabled = disableInput
+func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string, disableInput bool) InputRequesterForTest {
+	i := NewUIInput(opts).(*uIInput)
+	i.testInputResponse = testInputResponse
+	i.testInputResponseMap = testInputResponseMap
+	i.testInputDisabled = disableInput
 
 	return i
 }
 
-func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
+// Implements Foo.
+func (i *uIInput) InputDisabled() bool {
+	return i.testInputDisabled
+}
+
+// Implements InputRequesterForTest.
+func (i *uIInput) RemainingTestInputResponses() map[string]string {
+	// Entries are deleted as they are consumed.
+	return i.testInputResponseMap
+}
+
+// Implements InputRequesterForTest.
+func (i *uIInput) getListening() int32 {
+	return atomic.LoadInt32(&i.listening)
+}
+
+// Implements terraform.UIInput.
+func (i *uIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	// Make sure we only ask for input once at a time. Terraform
 	// should enforce this, but it doesn't hurt to verify.
 	i.l.Lock()
@@ -132,21 +170,21 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 
 	// If we have test results, return those. testInputResponse is the
 	// "old" way of doing it and we should remove that.
-	if len(i.TestInputResponse) != 0 {
-		v := i.TestInputResponse[0]
-		i.TestInputResponse = i.TestInputResponse[1:]
+	if len(i.testInputResponse) != 0 {
+		v := i.testInputResponse[0]
+		i.testInputResponse = i.testInputResponse[1:]
 		return v, nil
 	}
 
 	// testInputResponseMap is the new way for test responses, based on
 	// the query ID.
-	if len(i.TestInputResponseMap) != 0 {
-		v, ok := i.TestInputResponseMap[opts.Id]
+	if len(i.testInputResponseMap) != 0 {
+		v, ok := i.testInputResponseMap[opts.Id]
 		if !ok {
 			return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
 		}
 
-		delete(i.TestInputResponseMap, opts.Id)
+		delete(i.testInputResponseMap, opts.Id)
 		return v, nil
 	}
 
@@ -204,7 +242,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 	}
 }
 
-func (i *UIInput) init() {
+func (i *uIInput) init() {
 	i.result = make(chan string)
 	i.err = make(chan string)
 
