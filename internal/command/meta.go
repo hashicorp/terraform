@@ -397,9 +397,10 @@ func (m *Meta) UIInput() terraform.UIInput {
 		return m.testingOverrides.UIInput
 	}
 
-	return &UIInput{
+	opts := ui.UIInputOptions{
 		Colorize: m.Colorize(),
 	}
+	return ui.NewUIInput(opts)
 }
 
 // OutputColumns returns the number of columns that normal (non-error) UI
