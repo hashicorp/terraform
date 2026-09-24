@@ -35,7 +35,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	t.Parallel()
 
 	// This test reaches out to releases.hashicorp.com to download the
-	// template and null providers, so it can only run if network access is
+	// local and null providers, so it can only run if network access is
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
@@ -50,8 +50,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "Installing hashicorp/template v") {
-		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
+	if !strings.Contains(stdout, "Installing hashicorp/local v") {
+		t.Errorf("local provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 	if !strings.Contains(stdout, "Installing hashicorp/null v") {
@@ -65,8 +65,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "1 to add, 0 to change, 0 to destroy") {
-		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
+	if !strings.Contains(stdout, "2 to add, 0 to change, 0 to destroy") {
+		t.Errorf("incorrect plan tally; want 2 to add:\n%s", stdout)
 	}
 
 	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
@@ -82,11 +82,12 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	diffResources := plan.Changes.Resources
-	if len(diffResources) != 1 {
-		t.Errorf("incorrect number of resources in plan")
+	if len(diffResources) != 2 {
+		t.Errorf("incorrect number of resources in plan, want %d, got %d", 2, len(diffResources))
 	}
 
 	expected := map[string]plans.Action{
+		"local_file.hello":   plans.Create,
 		"null_resource.test": plans.Create,
 	}
 
@@ -106,8 +107,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
-		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 2 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 2 added:\n%s", stdout)
 	}
 
 	state, err := tf.LocalState()
@@ -123,7 +124,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	sort.Strings(gotResources)
 
 	wantResources := []string{
-		"data.template_file.test",
+		"local_file.hello",
 		"null_resource.test",
 	}
 
@@ -137,8 +138,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 1 destroyed") {
-		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
 	}
 
 	state, err = tf.LocalState()
