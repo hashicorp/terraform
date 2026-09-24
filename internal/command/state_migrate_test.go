@@ -24,74 +24,149 @@ import (
 )
 
 func TestStateMigrate_fromBackendToBackend(t *testing.T) {
-	fixture := "state-migrate-backend-to-backend"
-	wd := tempWorkingDirFixture(t, fixture)
-	t.Chdir(wd.RootModuleDir())
+	t.Run("interactive approval", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-backend"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
-	view, done := testView(t)
-	c := &StateMigrateCommand{
-		Meta: Meta{
-			Ui:                        ui,
-			View:                      view,
-			WorkingDir:                wd,
-			AllowExperimentalFeatures: true,
-		},
-	}
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+			},
+		}
 
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
+		_ = testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
 
-	args := []string{"-no-color"}
-	code := c.Run(args)
-	out := done(t)
-	if code != 0 {
-		t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
-	}
+		args := []string{
+			"-no-color",
+		}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
+		}
 
-	// Assert expected human output is made
-	checkGoldenReferenceHumanOutput(t, out, fixture)
+		// Assert expected human output is made
+		checkGoldenReferenceHumanOutput(t, out, fixture)
 
-	// Assert the migrated state contains expected content
-	f, err := os.Open("destination-backend.tfstate")
-	if err != nil {
-		t.Fatalf("failed to read migrated state: %s", err)
-	}
-	t.Cleanup(func() {
-		err := f.Close()
+		// Assert the migrated state contains expected content
+		f, err := os.Open("destination-backend.tfstate")
+		if err != nil {
+			t.Fatalf("failed to read migrated state: %s", err)
+		}
+		t.Cleanup(func() {
+			err := f.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+		s, err := statefile.Read(f)
 		if err != nil {
 			t.Fatal(err)
 		}
-	})
-	s, err := statefile.Read(f)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, ok := s.State.RootOutputValues["test"]
-	if !ok {
-		t.Fatalf("unable to find test output in migrated state")
-	}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
 
-	// Assert the backend state file describes the new backend location,
-	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
-	sMgr := &clistate.LocalState{Path: statePath}
-	if err := sMgr.RefreshState(); err != nil {
-		t.Fatal(err)
-	}
-	backendState := sMgr.State()
-	if backendState.StateStore != nil {
-		t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
-	}
-	if backendState.Backend == nil {
-		t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
-	}
-	if backendState.Backend.Type != "local" {
-		t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
-	}
-	if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
-		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
-	}
+		// Assert the backend state file describes the new backend location,
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		backendState := sMgr.State()
+		if backendState.StateStore != nil {
+			t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
+		}
+		if backendState.Backend == nil {
+			t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
+		}
+		if backendState.Backend.Type != "local" {
+			t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
+		}
+		if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("approval via -force-copy CLI flag", func(t *testing.T) {
+		fixture := "state-migrate-backend-to-backend"
+		wd := tempWorkingDirFixture(t, fixture)
+		t.Chdir(wd.RootModuleDir())
+
+		ui := testUiWrapped(t)
+		view, done := testView(t)
+		c := &StateMigrateCommand{
+			Meta: Meta{
+				Ui:                        ui,
+				View:                      view,
+				WorkingDir:                wd,
+				AllowExperimentalFeatures: true,
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			"-force-copy", // This auto-approves migrating state and suppresses interactive prompts
+			// NOTE: -input=false isn't necessary
+		}
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("expected exit code 1, got %d\nstderr: %q", code, out.Stderr())
+		}
+
+		// Assert expected human output is made
+		checkGoldenReferenceHumanOutput(t, out, fixture)
+
+		// Assert the migrated state contains expected content
+		f, err := os.Open("destination-backend.tfstate")
+		if err != nil {
+			t.Fatalf("failed to read migrated state: %s", err)
+		}
+		t.Cleanup(func() {
+			err := f.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+		s, err := statefile.Read(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, ok := s.State.RootOutputValues["test"]
+		if !ok {
+			t.Fatalf("unable to find test output in migrated state")
+		}
+
+		// Assert the backend state file describes the new backend location,
+		statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
+		sMgr := &clistate.LocalState{Path: statePath}
+		if err := sMgr.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		backendState := sMgr.State()
+		if backendState.StateStore != nil {
+			t.Fatalf("expected backend state file to not describe a state_store during backend=>backend, but it's set")
+		}
+		if backendState.Backend == nil {
+			t.Fatalf("expected backend state file to describe a backend during backend=>backend, but it's nil")
+		}
+		if backendState.Backend.Type != "local" {
+			t.Fatalf("expected backend state file to describe the destination backend \"local\", but got %q", backendState.Backend.Type)
+		}
+		if got, want := normalizeJSON(t, backendState.Backend.ConfigRaw), `{"path":"destination-backend.tfstate","workspace_dir":null}`; got != want {
+			t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+		}
+	})
 }
 
 func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
