@@ -48,6 +48,10 @@ type ConfigTransformer struct {
 	// try to delete the imported resource unless the config is updated
 	// manually.
 	generateConfigPathForImportTargets string
+
+	// SkipActions, when true, suppresses building lifecycle action triggers
+	// for configured resource nodes.
+	SkipActions bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -162,22 +166,31 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		}
 		var diags tfdiags.Diagnostics
 
-		// Build the action triggers for the configured resource nodes,
-		// connecting them to the respective ConfigAction nodes.
-		triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
-		diags = diags.Append(triggerDiags)
-		if diags.HasErrors() {
-			return diags.Err()
-		}
-
-		abstract.actionTriggers = triggers
-
-		// now record all the action nodes which were used by resources, so that
-		// they are not validated on their own since they may container "caller"
-		for _, trigger := range triggers {
-			for _, actionRef := range trigger.actionRefs {
-				referencedActionConfigs.Add(actionRef.actionNode.Addr)
+		if !t.SkipActions {
+			// Build the action triggers for the configured resource nodes,
+			// connecting them to the respective ConfigAction nodes.
+			triggers, triggerDiags := buildActionTriggers(r, config.Path, allConfigActions)
+			diags = diags.Append(triggerDiags)
+			if diags.HasErrors() {
+				return diags.Err()
 			}
+
+			abstract.actionTriggers = triggers
+
+			// now record all the action nodes which were used by resources, so that
+			// they are not validated on their own since they may contain "caller"
+			for _, trigger := range triggers {
+				for _, actionRef := range trigger.actionRefs {
+					referencedActionConfigs.Add(actionRef.actionNode.Addr)
+				}
+			}
+		} else {
+			// When SkipActions is set we still need to identify which action
+			// configs are referenced by resource triggers, so that the
+			// validation step below does not wrap them as standalone
+			// NodeValidatableAction nodes. Actions validated standalone have no
+			// caller context, causing "caller" symbol references to fail.
+			markTriggerActionsReferenced(r, config.Path, allConfigActions, referencedActionConfigs)
 		}
 
 		// If any of the import targets can apply to this node's instances,
@@ -364,4 +377,34 @@ func buildActionTriggers(resource *configs.Resource, path addrs.Module, allConfi
 		actionTriggers = append(actionTriggers, resActTrig)
 	}
 	return actionTriggers, diags
+}
+
+// markTriggerActionsReferenced marks all action configs referenced in the
+// given resource's action triggers as referenced. This is used when
+// SkipActions is set to prevent those actions from being validated as
+// standalone nodes (which would fail for actions that use the "caller"
+// symbol, since no caller context is available outside of a trigger).
+func markTriggerActionsReferenced(resource *configs.Resource, path addrs.Module, allConfigActions addrs.Map[addrs.ConfigAction, *NodeActionConfig], referenced addrs.Set[addrs.ConfigAction]) {
+	if resource.Managed == nil {
+		return
+	}
+	for _, at := range resource.Managed.ActionTriggers {
+		for _, action := range at.Actions {
+			refs, _ := langrefs.ReferencesInExpr(addrs.ParseRef, action.Expr)
+			for _, ref := range refs {
+				var configAction addrs.ConfigAction
+				switch a := ref.Subject.(type) {
+				case addrs.Action:
+					configAction = a.InModule(path)
+				case addrs.ActionInstance:
+					configAction = a.Action.InModule(path)
+				default:
+					continue
+				}
+				if allConfigActions.Has(configAction) {
+					referenced.Add(configAction)
+				}
+			}
+		}
+	}
 }
