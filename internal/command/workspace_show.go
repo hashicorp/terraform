@@ -33,14 +33,14 @@ func (c *WorkspaceShowCommand) Run(rawArgs []string) int {
 
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		view.Show("", diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	workspace, err := c.Workspace()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
-		view.Show("", diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 

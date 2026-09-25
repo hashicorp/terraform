@@ -13,6 +13,7 @@ import (
 // The WorkspaceShow view is used for the `workspace show` subcommand.
 type WorkspaceShow interface {
 	Show(workspace string, diags tfdiags.Diagnostics)
+	Diagnostics(diags tfdiags.Diagnostics)
 }
 
 func NewWorkspaceShow(viewType arguments.ViewType, view *View) WorkspaceShow {
@@ -36,4 +37,8 @@ func (v *WorkspaceShowHuman) Show(workspace string, diags tfdiags.Diagnostics) {
 	if workspace != "" {
 		v.view.streams.Println(workspace)
 	}
+}
+
+func (v *WorkspaceShowHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
