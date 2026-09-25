@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hashicorp/go-azure-helpers/lang/response"
@@ -22,7 +23,6 @@ import (
 )
 
 const (
-	leaseHeader = "x-ms-lease-id"
 	// Must be lower case
 	lockInfoMetaKey = "terraformlockid"
 )
@@ -41,19 +41,14 @@ type RemoteClient struct {
 	accountName        string
 	containerName      string
 	keyName            string
-	leaseID            string
 	snapshot           bool
+	lockInfo           *statemgr.LockInfo
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	options := blobs.GetInput{}
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
-	}
-
 	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, options)
+	blob, err := c.giovanniBlobClient.Get(ctx, c.containerName, c.keyName, blobs.GetInput{})
 	if err != nil {
 		if response.WasNotFound(blob.HttpResponse) {
 			return nil, nil
@@ -80,22 +75,13 @@ func (c *RemoteClient) Get() (*remote.Payload, tfdiags.Diagnostics) {
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	getOptions := blobs.GetPropertiesInput{}
-	setOptions := blobs.SetPropertiesInput{}
-	putOptions := blobs.PutBlockBlobInput{}
-
-	options := blobs.GetInput{}
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
-		getOptions.LeaseID = &c.leaseID
-		setOptions.LeaseID = &c.leaseID
-		putOptions.LeaseID = &c.leaseID
-	}
-
 	ctx := newCtx()
 
 	if c.snapshot {
-		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
+		snapshotInput := blobs.SnapshotInput{}
+		if c.lockInfo != nil {
+			snapshotInput.LeaseID = &c.lockInfo.ID
+		}
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
 		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.containerName, c.keyName, snapshotInput); err != nil {
@@ -105,20 +91,22 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 		log.Print("[DEBUG] Created blob snapshot")
 	}
 
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)
-	if err != nil {
-		if !response.WasNotFound(blob.HttpResponse) {
-			return diags.Append(err)
+	contentType := "application/json"
+	putOptions := blobs.PutBlockBlobInput{
+		Content:     &data,
+		ContentType: &contentType,
+	}
+	if c.lockInfo != nil {
+		putOptions.LeaseID = &c.lockInfo.ID
+		putOptions.MetaData = map[string]string{
+			lockInfoMetaKey: base64.StdEncoding.EncodeToString(c.lockInfo.Marshal()),
 		}
 	}
+	if _, err := c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions); err != nil {
+		return diags.Append(err)
+	}
 
-	contentType := "application/json"
-	putOptions.Content = &data
-	putOptions.ContentType = &contentType
-	putOptions.MetaData = blob.MetaData
-	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putOptions)
-
-	return diags.Append(err)
+	return nil
 }
 
 func (c *RemoteClient) Delete() tfdiags.Diagnostics {
@@ -126,8 +114,8 @@ func (c *RemoteClient) Delete() tfdiags.Diagnostics {
 
 	options := blobs.DeleteInput{}
 
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
+	if c.lockInfo != nil {
+		options.LeaseID = &c.lockInfo.ID
 	}
 
 	ctx := newCtx()
@@ -144,15 +132,17 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	stateName := fmt.Sprintf("%s/%s", c.containerName, c.keyName)
 	info.Path = stateName
 
-	if info.ID == "" {
-		lockID, err := uuid.GenerateUUID()
+	proposedLockID := info.ID
+	if proposedLockID == "" {
+		var err error
+		proposedLockID, err = uuid.GenerateUUID()
 		if err != nil {
 			return "", err
 		}
-
-		info.ID = lockID
 	}
 
+	// This error wrap function is to return a statemgr.LockError in case the blob is locked by someone else.
+	// The statemgr.LockError will then result into retry if -lock-timeout is specified.
 	getLockInfoErr := func(err error) error {
 		lockInfo, infoErr := c.getLockInfo()
 		if infoErr != nil {
@@ -166,45 +156,60 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 
 	leaseOptions := blobs.AcquireLeaseInput{
-		ProposedLeaseID: &info.ID,
+		ProposedLeaseID: &proposedLockID,
 		LeaseDuration:   -1,
 	}
 	ctx := newCtx()
 
-	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
-	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
+	resp, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
 	if err != nil {
-		// error if we had issues getting the blob
-		if !response.WasNotFound(properties.HttpResponse) {
+		if resp.HttpResponse == nil {
+			return "", err
+		}
+		switch resp.HttpResponse.StatusCode {
+		case http.StatusNotFound:
+			// This indicates the state blob not exists yet, need to create it first.
+			// Note that in this case, there is still a window that someone else create and lock the same blob,
+			// hence we need to try to wrap the error to be statemgr.LockInfo.
+			contentType := "application/json"
+			putGOptions := blobs.PutBlockBlobInput{
+				ContentType: &contentType,
+			}
+
+			_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
+			if err != nil {
+				return "", getLockInfoErr(err)
+			}
+
+			resp, err = c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
+			if err != nil {
+				return "", getLockInfoErr(err)
+			}
+		case http.StatusConflict:
+			// This indicates the state blob is already locked.
 			return "", getLockInfoErr(err)
-		}
-		// if we don't find the blob, we need to build it
-
-		contentType := "application/json"
-		putGOptions := blobs.PutBlockBlobInput{
-			ContentType: &contentType,
-		}
-
-		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.containerName, c.keyName, putGOptions)
-		if err != nil {
-			return "", getLockInfoErr(err)
+		default:
+			return "", err
 		}
 	}
 
-	// if the blob is already locked then error
-	if properties.LeaseStatus == blobs.Locked {
-		return "", getLockInfoErr(fmt.Errorf("state blob is already locked"))
+	// Cache the lockinfo with the actual lock id (i.e. lease id)
+	info.ID = resp.LeaseID
+	c.lockInfo = info
+
+	// Update the lock info in the blob metadata
+	opts := blobs.SetMetaDataInput{
+		LeaseID: &info.ID,
+		MetaData: map[string]string{
+			lockInfoMetaKey: base64.StdEncoding.EncodeToString(info.Marshal()),
+		},
 	}
-
-	leaseID, err := c.giovanniBlobClient.AcquireLease(ctx, c.containerName, c.keyName, leaseOptions)
-	if err != nil {
-		return "", getLockInfoErr(err)
-	}
-
-	info.ID = leaseID.LeaseID
-	c.leaseID = leaseID.LeaseID
-
-	if err := c.writeLockInfo(info); err != nil {
+	if _, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
+		err = fmt.Errorf("failed to set metadata: %v", err)
+		// Try to release the lock before error out
+		if _, rerr := c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: info.ID}); rerr != nil {
+			err = errors.Join(err, fmt.Errorf("failed to lease %q, may need manual release: %w", info.ID, err))
+		}
 		return "", err
 	}
 
@@ -212,13 +217,8 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 }
 
 func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
-	options := blobs.GetPropertiesInput{}
-	if c.leaseID != "" {
-		options.LeaseID = &c.leaseID
-	}
-
 	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, options)
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
 		return nil, err
 	}
@@ -242,62 +242,28 @@ func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	return lockInfo, nil
 }
 
-// writes info to blob meta data, deletes metadata entry if info is nil
-func (c *RemoteClient) writeLockInfo(info *statemgr.LockInfo) error {
-	ctx := newCtx()
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, blobs.GetPropertiesInput{LeaseID: &c.leaseID})
-	if err != nil {
-		return err
-	}
-	if err != nil {
-		return err
-	}
-
-	if info == nil {
-		delete(blob.MetaData, lockInfoMetaKey)
-	} else {
-		value := base64.StdEncoding.EncodeToString(info.Marshal())
-		blob.MetaData[lockInfoMetaKey] = value
-	}
-
-	opts := blobs.SetMetaDataInput{
-		LeaseID:  &c.leaseID,
-		MetaData: blob.MetaData,
-	}
-
-	_, err = c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts)
-	return err
-}
-
 func (c *RemoteClient) Unlock(id string) error {
-	lockErr := &statemgr.LockError{}
-
-	lockInfo, err := c.getLockInfo()
-	if err != nil {
-		lockErr.Err = fmt.Errorf("failed to retrieve lock info: %s", err)
-		return lockErr
-	}
-	lockErr.Info = lockInfo
-
-	if lockInfo.ID != id {
-		lockErr.Err = fmt.Errorf("lock id %q does not match existing lock", id)
-		return lockErr
-	}
-
-	c.leaseID = lockInfo.ID
-	if err := c.writeLockInfo(nil); err != nil {
-		lockErr.Err = fmt.Errorf("failed to delete lock info from metadata: %s", err)
-		return lockErr
-	}
-
 	ctx := newCtx()
-	_, err = c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id})
-	if err != nil {
-		lockErr.Err = err
-		return lockErr
+
+	if c.lockInfo != nil && c.lockInfo.ID != id {
+		return fmt.Errorf("lock id %q does not match the current lock %q", id, c.lockInfo.ID)
 	}
 
-	c.leaseID = ""
+	// Clear the lockinfo from the blob metadata prior to release the lease.
+	opts := blobs.SetMetaDataInput{
+		LeaseID:  &id,
+		MetaData: map[string]string{},
+	}
+
+	if _, err := c.giovanniBlobClient.SetMetaData(ctx, c.containerName, c.keyName, opts); err != nil {
+		return fmt.Errorf("failed to clear lock info from metadata: %s", err)
+	}
+
+	if _, err := c.giovanniBlobClient.ReleaseLease(ctx, c.containerName, c.keyName, blobs.ReleaseLeaseInput{LeaseID: id}); err != nil {
+		return err
+	}
+
+	c.lockInfo = nil
 
 	return nil
 }
