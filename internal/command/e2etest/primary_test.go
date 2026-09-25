@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -138,6 +139,96 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
+	}
+
+	state, err = tf.LocalState()
+	if err != nil {
+		t.Fatalf("failed to read state file after destroy: %s", err)
+	}
+
+	stateResources = state.RootModule().Resources
+	if len(stateResources) != 0 {
+		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
+	}
+}
+
+func TestPrimary_promptApproval(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to releases.hashicorp.com to download the
+	// local and null providers, so it can only run if network access is
+	// allowed.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	//// INIT
+	_, stderr, err := tf.Run("init")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	//// PLAN - there is no separate plan step in this test, instead apply generates a plan to be approved.
+
+	//// APPLY
+
+	// The test should respond "yes" to the approval prompt.
+	applyInput := strings.NewReader("yes\n")
+
+	applyCmd := tf.Cmd("apply")
+	applyCmd.Stdin = applyInput
+	applyCmd.Stdout = &bytes.Buffer{}
+	applyCmd.Stderr = &bytes.Buffer{}
+	err = applyCmd.Run()
+	stdout := applyCmd.Stdout.(*bytes.Buffer).String()
+	if err != nil {
+		stderr := applyCmd.Stderr.(*bytes.Buffer).String()
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 2 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 2 added:\n%s", stdout)
+	}
+
+	state, err := tf.LocalState()
+	if err != nil {
+		t.Fatalf("failed to read state file: %s", err)
+	}
+
+	stateResources := state.RootModule().Resources
+	var gotResources []string
+	for n := range stateResources {
+		gotResources = append(gotResources, n)
+	}
+	sort.Strings(gotResources)
+
+	wantResources := []string{
+		"local_file.hello",
+		"null_resource.test",
+	}
+
+	if !reflect.DeepEqual(gotResources, wantResources) {
+		t.Errorf("wrong resources in state\ngot: %#v\nwant: %#v", gotResources, wantResources)
+	}
+
+	//// DESTROY
+
+	// The test should respond "yes" to the approval prompt.
+	destroyInput := strings.NewReader("yes\n")
+
+	destroyCmd := tf.Cmd("destroy")
+	destroyCmd.Stdin = destroyInput
+	destroyCmd.Stdout = &bytes.Buffer{}
+	destroyCmd.Stderr = &bytes.Buffer{}
+	err = destroyCmd.Run()
+	stdout = destroyCmd.Stdout.(*bytes.Buffer).String()
+	if err != nil {
+		stderr := destroyCmd.Stderr.(*bytes.Buffer).String()
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+	}
 	if !strings.Contains(stdout, "Resources: 2 destroyed") {
 		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
 	}
