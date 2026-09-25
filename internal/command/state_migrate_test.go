@@ -39,7 +39,7 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 		},
 	}
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
@@ -118,7 +118,7 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		},
 	}
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
@@ -251,7 +251,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -339,7 +339,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -485,7 +485,7 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -613,7 +613,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -724,7 +724,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
@@ -864,7 +864,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "yes",
 			// Test doesn't assert approval of any providers
 		})
@@ -985,7 +985,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3":   "yes",
 			"backend-migrate-copy-to-empty": "yes",
 		})
@@ -1092,7 +1092,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve-provider-test2-3.2.1":  "yes",
 			"backend-migrate-copy-to-empty": "yes",
 		})
@@ -1220,7 +1220,7 @@ provider "registry.terraform.io/hashicorp/test2" {
 			},
 		}
 
-		_ = testInputMap(t, map[string]string{
+		_ = testInputMapLegacy(t, map[string]string{
 			"approve-provider-test-1.2.3":   "yes",
 			"approve-provider-test2-3.2.1":  "yes",
 			"backend-migrate-copy-to-empty": "yes",
@@ -1913,7 +1913,7 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		},
 	}
 
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 

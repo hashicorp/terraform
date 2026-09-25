@@ -1021,7 +1021,7 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	// This will (helpfully) panic if more than one variable is requested during plan:
 	// https://github.com/hashicorp/terraform/issues/26027
-	close := testInteractiveInput(t, []string{"bar"})
+	close := testInteractiveInputLegacy(t, []string{"bar"})
 	defer close()
 
 	p := planVarsFixtureProvider()

@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -106,6 +107,9 @@ func TestApply_path(t *testing.T) {
 }
 
 func TestApply_approveNo(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -113,19 +117,22 @@ func TestApply_approveNo(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	_ = testInputMap(t, map[string]string{
+	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "no",
 	})
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
 	ui := testUiWrapped(t, new(cli.MockUi))
-
-	p := applyFixtureProvider()
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -149,6 +156,9 @@ func TestApply_approveNo(t *testing.T) {
 }
 
 func TestApply_approveYes(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -156,20 +166,22 @@ func TestApply_approveYes(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	p := applyFixtureProvider()
-
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "yes",
 	})
+
+	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
 	ui := testUiWrapped(t, new(cli.MockUi))
-
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -531,34 +543,41 @@ func TestApply_error(t *testing.T) {
 }
 
 func TestApply_input(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
+	// Set up the UI input for the test
+	//
 	// The configuration for this test includes a declaration of variable
 	// "foo" with no default, and we don't set it on the command line below,
 	// so the apply command will produce an interactive prompt for the
 	// value of var.foo. We'll answer "foo" here, and we expect the output
 	// value "result" to echo that back to us below.
-	defaultInputReader = bytes.NewBufferString("foo\n")
-	defaultInputWriter = new(bytes.Buffer)
-
-	statePath := testTempFile(t)
+	//
+	// Don't disable input, so input would be asked
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: bytes.NewBufferString("foo\n"),
+		Writer: new(bytes.Buffer),
+	}, nil, nil, false)
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
 
+	statePath := testTempFile(t)
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
@@ -581,30 +600,33 @@ result = foo
 // When only a partial set of the variables are set, Terraform
 // should still ask for the unset ones by default (with -input=true)
 func TestApply_inputPartial(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-input-partial"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	// Set some default reader/writers for the inputs
-	defaultInputReader = bytes.NewBufferString("one\ntwo\n")
-	defaultInputWriter = new(bytes.Buffer)
-
-	statePath := testTempFile(t)
+	// Don't disable input, so input would be asked
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: bytes.NewBufferString("one\ntwo\n"),
+		Writer: new(bytes.Buffer),
+	}, nil, nil, false)
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
 
+	statePath := testTempFile(t)
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
@@ -664,22 +686,26 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
 
-	// Set some default reader/writers for the inputs
-	defaultInputReader = new(bytes.Buffer)
-	defaultInputWriter = new(bytes.Buffer)
+	// Don't disable input, so input would be asked
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: new(bytes.Buffer),
+		Writer: new(bytes.Buffer),
+	}, nil, nil, false)
 
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1026,14 +1052,16 @@ output "foobar" {
 
 // Test unhappy paths when applying a plan file describing a state store.
 func TestApply_plan_stateStore_errorCases(t *testing.T) {
-	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
 
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
+		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		defaultInputReader = new(bytes.Buffer)
-		defaultInputWriter = new(bytes.Buffer)
+		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+			Reader: new(bytes.Buffer),
+			Writer: new(bytes.Buffer),
+		}, nil, nil, false)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1093,6 +1121,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
+					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1114,9 +1143,12 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	})
 
 	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
+		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		defaultInputReader = new(bytes.Buffer)
-		defaultInputWriter = new(bytes.Buffer)
+		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+			Reader: new(bytes.Buffer),
+			Writer: new(bytes.Buffer),
+		}, nil, nil, false)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1176,6 +1208,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
+					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1275,9 +1308,6 @@ func TestApply_plan_noBackup(t *testing.T) {
 }
 
 func TestApply_plan_remoteState(t *testing.T) {
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
@@ -1285,9 +1315,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Don't disable input, so input would be asked
 	// Set some default reader/writers for the inputs
-	defaultInputReader = new(bytes.Buffer)
-	defaultInputWriter = new(bytes.Buffer)
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: new(bytes.Buffer),
+		Writer: new(bytes.Buffer),
+	}, nil, nil, false)
 
 	// Create a remote state
 	state := testState()
@@ -1326,10 +1359,13 @@ func TestApply_plan_remoteState(t *testing.T) {
 	})
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1686,6 +1722,9 @@ func TestApply_planWithSensitiveEnvVars(t *testing.T) {
 // In the fixture used for this test foo is a required ephemeral variable, whereas bar is
 // an optional one.
 func TestApply_planVarsEphemeral_applyTime(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	for name, tc := range map[string]func(*testing.T, *ApplyCommand, string, string, func(*testing.T) *terminal.TestOutput){
 		"with planfile only passing ephemeral variable": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
 			args := []string{
@@ -1765,8 +1804,8 @@ foo = "bar"
 		},
 
 		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
-			defer close()
+			inputUi := testInteractiveInput(t, []string{"bar"})
+			c.testingOverrides.UIInput = inputUi
 
 			args := []string{
 				"-state", statePath,
@@ -1856,8 +1895,8 @@ foo = "bar"
 		},
 
 		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
-			defer close()
+			uiInput := testInteractiveInput(t, []string{"bar"})
+			c.Meta.testingOverrides.UIInput = uiInput
 
 			args := []string{
 				"-state", statePath,

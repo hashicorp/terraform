@@ -334,7 +334,7 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"yes"})()
+	defer testInteractiveInputLegacy(t, []string{"yes"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -461,7 +461,7 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	defer testInteractiveInputLegacy(t, []string{"no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -576,7 +576,7 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	defer testInteractiveInputLegacy(t, []string{"no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -689,7 +689,7 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	defer testInteractiveInputLegacy(t, []string{"no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -823,7 +823,7 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
-	terminalPrompts := testInputMap(t, map[string]string{
+	terminalPrompts := testInputMapLegacy(t, map[string]string{
 		"select-workspace": "2",
 	})
 
@@ -920,7 +920,7 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	defer testInteractiveInputLegacy(t, []string{"yes", "yes"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -971,7 +971,7 @@ func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
@@ -1025,7 +1025,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
@@ -1078,7 +1078,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
@@ -1147,7 +1147,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *test
 	defer backendInit.Set("local-single", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
@@ -1208,7 +1208,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
@@ -1308,7 +1308,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	defer backendInit.Set("local-no-default", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 		"new-state-name": "env1",
 	})
@@ -1386,7 +1386,7 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	defer backendInit.Set("local-no-default", nil)
 
 	// Ask input
-	_ = testInputMap(t, map[string]string{
+	_ = testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
@@ -1457,7 +1457,7 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	defer testInteractiveInputLegacy(t, []string{"no"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
@@ -1519,7 +1519,7 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	defer testInteractiveInputLegacy(t, []string{"yes", "yes"})()
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)

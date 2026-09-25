@@ -735,10 +735,10 @@ func testStdoutCapture(t *testing.T, dst io.Writer) func() {
 	}
 }
 
-// testInteractiveInput configures tests so that the answers given are sent
+// testInteractiveInputLegacy configures tests so that the answers given are sent
 // in order to interactive prompts. The returned function must be called
 // in a defer to clean up.
-func testInteractiveInput(t *testing.T, answers []string) func() {
+func testInteractiveInputLegacy(t *testing.T, answers []string) func() {
 	t.Helper()
 
 	// Disable test mode so input is called
@@ -756,13 +756,13 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 	}
 }
 
-// testInputMap configures tests so that the given answers are returned
+// testInputMapLegacy configures tests so that the given answers are returned
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
 //
 // Calling code can optionally use the returned buffer to make assertions
 // about the prompts shown the to the user.
-func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
+func testInputMapLegacy(t *testing.T, answers map[string]string) *bytes.Buffer {
 	t.Helper()
 
 	// Disable test mode so input is called
@@ -791,6 +791,67 @@ func testInputMap(t *testing.T, answers map[string]string) *bytes.Buffer {
 	})
 
 	return inputWriter
+}
+
+// testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent
+// in order to interactive prompts.
+// Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
+func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTest {
+	t.Helper()
+
+	// Don't disable input, so input is called
+	disableInput := false
+
+	// Set up reader/writers
+	testInputResponse := answers
+	inputReader := bytes.NewBufferString("")
+	inputWriter := new(bytes.Buffer)
+
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: inputReader,
+		Writer: inputWriter,
+	}, testInputResponse, nil, disableInput)
+
+	// Return the UIInput for use in the test
+	return uiInput
+}
+
+// testInputMap configures a *ui.UIInput for tests so that the given answers are returned
+// for calls to Input when the right question is asked. The key is the
+// question "Id" that is used.
+//
+// Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
+// Calling code can optionally use the returned buffer to make assertions
+// about the prompts shown the to the user.
+func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterForTest, *bytes.Buffer) {
+	t.Helper()
+
+	// Ensure input is called
+	inputDisabled := false
+
+	// Set up reader/writers
+	inputReader := bytes.NewBufferString("")
+	inputWriter := new(bytes.Buffer)
+
+	// Setup answers
+	var testInputResponse []string
+	var testInputResponseMap map[string]string = answers
+
+	ret := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: inputReader,
+		Writer: inputWriter,
+	}, testInputResponse, testInputResponseMap, inputDisabled)
+
+	// Queue the cleanup for the end of the test
+	t.Cleanup(func() {
+		unusedAnswers := ret.RemainingTestInputResponses()
+
+		if len(unusedAnswers) > 0 {
+			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
+		}
+	})
+
+	return ret, inputWriter
 }
 
 // testBackendState is used to make a test HTTP server to test a configured

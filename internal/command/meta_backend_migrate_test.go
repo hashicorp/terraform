@@ -34,7 +34,7 @@ func Test_backendMigrateState_S_S(t *testing.T) {
 		Destination:     destination,
 	}
 
-	inputWriter := testInputMap(t, map[string]string{
+	inputWriter := testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "no", // We're only testing the prompt, no is sufficient
 	})
 
@@ -73,7 +73,7 @@ func Test_backendMigrateState_S_s(t *testing.T) {
 		Destination:     destination,
 	}
 
-	inputWriter := testInputMap(t, map[string]string{
+	inputWriter := testInputMapLegacy(t, map[string]string{
 		"backend-migrate-multistate-to-single": "no", // We're only testing the prompt, no is sufficient
 	})
 
@@ -130,7 +130,7 @@ func Test_backendMigrateState_s_s(t *testing.T) {
 			sourceWorkspace: workspaceName,
 		}
 
-		inputWriter := testInputMap(t, map[string]string{
+		inputWriter := testInputMapLegacy(t, map[string]string{
 			"backend-migrate-copy-to-empty": "no", // We're only testing the prompt, no is sufficient
 		})
 
@@ -208,7 +208,7 @@ func Test_backendMigrateState_s_s(t *testing.T) {
 			sourceWorkspace: workspaceName,
 		}
 
-		inputWriter := testInputMap(t, map[string]string{
+		inputWriter := testInputMapLegacy(t, map[string]string{
 			"backend-migrate-to-backend": "no", // We're only testing the prompt, no is sufficient
 		})
 
@@ -273,7 +273,7 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 		t.Log("Test: ", name)
 		m := testMetaBackend(t, nil)
 		input := map[string]string{}
-		inputWriter := testInputMap(t, input)
+		inputWriter := testInputMapLegacy(t, input)
 		if tc.renamePrompt != "" {
 			input["backend-migrate-multistate-to-tfc"] = tc.renamePrompt
 		}
