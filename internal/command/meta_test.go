@@ -79,11 +79,9 @@ func TestMetaColorize(t *testing.T) {
 }
 
 func TestMetaInputMode(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -103,11 +101,10 @@ func TestMetaInputMode(t *testing.T) {
 }
 
 func TestMetaInputMode_envVar(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
+	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -142,11 +139,10 @@ func TestMetaInputMode_envVar(t *testing.T) {
 }
 
 func TestMetaInputMode_disable(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
+	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -439,13 +435,10 @@ func TestMeta_process(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
-			// Ensure prompting for input is enabled
-			inputDisabled := false
 			uiInput := ui.NewUIInputForTests(
 				ui.UIInputOptions{},
 				nil,
 				nil,
-				inputDisabled,
 			)
 
 			m := new(Meta)
@@ -492,5 +485,42 @@ func TestCommand_checkRequiredVersion(t *testing.T) {
 	}
 	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
 		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
+}
+
+func TestTestingOverrides_Input(t *testing.T) {
+	cases := []struct {
+		name             string
+		testingOverrides *testingOverrides
+		expected         bool
+	}{
+		{
+			name:             "nil testingOverrides",
+			testingOverrides: nil,
+			expected:         true,
+		},
+		{
+			name: "UIInput set",
+			testingOverrides: &testingOverrides{
+				UIInput: ui.NewUIInputForTests(ui.UIInputOptions{}, nil, nil),
+			},
+			expected: true,
+		},
+		{
+			name: "UIInput not set in testingOverrides",
+			testingOverrides: &testingOverrides{
+				UIInput: nil,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.testingOverrides.Input()
+			if got != tc.expected {
+				t.Errorf("got %v; want %v", got, tc.expected)
+			}
+		})
 	}
 }

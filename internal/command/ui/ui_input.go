@@ -38,7 +38,6 @@ type uIInput struct {
 	// Test input responses for automated testing.
 	testInputResponse    []string
 	testInputResponseMap map[string]string
-	testInputDisabled    bool
 
 	listening int32
 	result    chan string
@@ -55,8 +54,6 @@ type uIInput struct {
 // we make calling code use interfaces.
 type InputRequester interface {
 	terraform.UIInput
-
-	InputDisabled() bool
 }
 
 type InputRequesterForTest interface {
@@ -101,18 +98,12 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 	return i
 }
 
-func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string, disableInput bool) InputRequesterForTest {
+func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
 	i.testInputResponse = testInputResponse
 	i.testInputResponseMap = testInputResponseMap
-	i.testInputDisabled = disableInput
 
 	return i
-}
-
-// Implements Foo.
-func (i *uIInput) InputDisabled() bool {
-	return i.testInputDisabled
 }
 
 // Implements InputRequesterForTest.
