@@ -734,3 +734,29 @@ func testFileBase64(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileFunc(baseDir, true, noopWrapper)
 	return fn.Call([]cty.Value{path})
 }
+
+// TestFileSetDanglingSymlink is a regression test for
+// https://github.com/hashicorp/terraform/issues/39230: a dangling symlink
+// that matches the glob pattern must not abort the whole fileset call. Since
+// a name that doesn't resolve can't be a regular file, it's skipped like any
+// other non-regular entry while every other match is still returned.
+func TestFileSetDanglingSymlink(t *testing.T) {
+	dir := t.TempDir()
+
+	if err := os.WriteFile(filepath.Join(dir, "real.txt"), []byte("hi"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(dir, "gone.txt"), filepath.Join(dir, "dangling.txt")); err != nil {
+		t.Skipf("cannot create symlinks on this platform: %s", err)
+	}
+
+	got, err := testFileSet(dir, cty.StringVal("."), cty.StringVal("*.txt"))
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+
+	want := cty.SetVal([]cty.Value{cty.StringVal("real.txt")})
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
