@@ -2725,6 +2725,10 @@ func (n *NodeAbstractResourceInstance) apply(
 			}
 		}
 	} else {
+		plannedIdentity := change.AfterIdentity
+		if change.Action == plans.Delete || change.Action == plans.Forget {
+			plannedIdentity = change.BeforeIdentity
+		}
 		resp = provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
 			TypeName:        n.Addr.Resource.Resource.Type,
 			PriorState:      unmarkedBefore,
@@ -2732,7 +2736,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			PlannedState:    unmarkedAfter,
 			PlannedPrivate:  change.Private,
 			ProviderMeta:    metaConfigVal,
-			PlannedIdentity: change.AfterIdentity,
+			PlannedIdentity: plannedIdentity,
 		})
 
 		if !resp.NewIdentity.IsNull() {

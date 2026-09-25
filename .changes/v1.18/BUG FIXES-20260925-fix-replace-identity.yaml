@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'resource identity: Pass BeforeIdentity to provider during Delete/Forget apply actions so that identity is available for providers during requires-replace destroy'
+time: 2026-09-25T12:00:00.0000-00:00
+custom:
+    Issue: "39285"
