@@ -13,6 +13,16 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
+// testPackageReadHook, when set by tests, is called each time a method below
+// reads a package's contents to hash it.
+var testPackageReadHook func(packageDir string)
+
+func (cp *CachedProvider) notePackageRead() {
+	if testPackageReadHook != nil {
+		testPackageReadHook(cp.PackageDir)
+	}
+}
+
 // CachedProvider represents a provider package in a cache directory.
 type CachedProvider struct {
 	// Provider and Version together identify the specific provider version
@@ -47,6 +57,7 @@ func (cp *CachedProvider) PackageLocation() getproviders.PackageLocalDir {
 // current default, call that version's corresponding method (e.g. HashV1)
 // directly instead.
 func (cp *CachedProvider) Hash() (getproviders.Hash, error) {
+	cp.notePackageRead()
 	return getproviders.PackageHash(cp.PackageLocation())
 }
 
@@ -58,6 +69,7 @@ func (cp *CachedProvider) Hash() (getproviders.Hash, error) {
 // MatchesHash may accept hashes in a number of different formats. Over time
 // the set of supported formats may grow and shrink.
 func (cp *CachedProvider) MatchesHash(want getproviders.Hash) (bool, error) {
+	cp.notePackageRead()
 	return getproviders.PackageMatchesHash(cp.PackageLocation(), want)
 }
 
@@ -68,6 +80,7 @@ func (cp *CachedProvider) MatchesHash(want getproviders.Hash) (bool, error) {
 // Unlike the singular MatchesHash, MatchesAnyHash considers unsupported hash
 // formats as successfully non-matching, rather than returning an error.
 func (cp *CachedProvider) MatchesAnyHash(allowed []getproviders.Hash) (bool, error) {
+	cp.notePackageRead()
 	return getproviders.PackageMatchesAnyHash(cp.PackageLocation(), allowed)
 }
 
@@ -83,6 +96,7 @@ func (cp *CachedProvider) MatchesAnyHash(allowed []getproviders.Hash) (bool, err
 // HashV1 always begins with the prefix "h1:" so that callers can distinguish
 // the results of potentially multiple different hash algorithms in future.
 func (cp *CachedProvider) HashV1() (getproviders.Hash, error) {
+	cp.notePackageRead()
 	return getproviders.PackageHashV1(cp.PackageLocation())
 }
 
