@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: FIx crash when tainted instance state is seen without a valid status
+time: 2026-09-25T09:18:45.683653-04:00
+custom:
+    Issue: "39287"
