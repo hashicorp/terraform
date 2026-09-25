@@ -55,7 +55,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 			},
 			nil,
 			nil,
-			false,
 		)
 
 		v, err := i.Input(context.Background(), &terraform.InputOpts{})
@@ -79,7 +78,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 			},
 			testInputResponse,
 			nil,
-			false,
 		)
 
 		v, err := i.Input(context.Background(), &terraform.InputOpts{})
@@ -112,7 +110,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 			},
 			nil,
 			testInputResponseMap,
-			false,
 		)
 
 		v, err := i.Input(context.Background(), &terraform.InputOpts{
@@ -138,7 +135,6 @@ func TestUIInputInput_canceled(t *testing.T) {
 		},
 		nil,
 		nil,
-		false,
 	)
 
 	// Make a context that can be canceled.

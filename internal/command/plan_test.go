@@ -879,12 +879,10 @@ func TestPlan_stateDefault(t *testing.T) {
 }
 
 func TestPlan_validate(t *testing.T) {
-	// This is triggered by not asking for input so we have to
-	// ensure that input is not disabled
-	inputDisabled := false
+	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	td := t.TempDir()
@@ -1061,13 +1059,11 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("plan"), td)
 	t.Chdir(td)
 
-	// Ensure input would be asked
-	disableInput := false
 	// The plan command will prompt for interactive input of provider.test.region
 	reader := bytes.NewBufferString("us-east-1\n")
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: reader,
-	}, nil, nil, disableInput)
+	}, nil, nil)
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument
@@ -1145,13 +1141,11 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 	testCopyDir(t, testFixturePath("plan-provider-input"), td)
 	t.Chdir(td)
 
-	// Ensure input would be asked
-	disableInput := false
 	// The plan command will prompt for interactive input of provider.test.region
 	reader := bytes.NewBufferString("us-east-1\n")
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: reader,
-	}, nil, nil, disableInput)
+	}, nil, nil)
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument and a nested block

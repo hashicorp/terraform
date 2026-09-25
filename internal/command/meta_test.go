@@ -79,11 +79,9 @@ func TestMetaColorize(t *testing.T) {
 }
 
 func TestMetaInputMode(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -103,11 +101,10 @@ func TestMetaInputMode(t *testing.T) {
 }
 
 func TestMetaInputMode_envVar(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
+	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -142,11 +139,10 @@ func TestMetaInputMode_envVar(t *testing.T) {
 }
 
 func TestMetaInputMode_disable(t *testing.T) {
-	// Ensure prompting for input is enabled
-	inputDisabled := false
+	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil, inputDisabled,
+		nil, nil,
 	)
 
 	m := new(Meta)
@@ -439,13 +435,10 @@ func TestMeta_process(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
-			// Ensure prompting for input is enabled
-			inputDisabled := false
 			uiInput := ui.NewUIInputForTests(
 				ui.UIInputOptions{},
 				nil,
 				nil,
-				inputDisabled,
 			)
 
 			m := new(Meta)

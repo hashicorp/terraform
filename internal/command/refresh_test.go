@@ -549,12 +549,11 @@ func TestRefresh_varsUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("refresh-unset-var"), td)
 	t.Chdir(td)
 
-	// Ensure input would be asked
-	disableInput := false
+	// Ask for input
 	reader := bytes.NewBufferString("bar\n")
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: reader,
-	}, []string{}, map[string]string{}, disableInput)
+	}, []string{}, map[string]string{})
 
 	state := testState()
 	statePath := testStateFile(t, state)

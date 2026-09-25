@@ -739,9 +739,6 @@ func testStdoutCapture(t *testing.T, dst io.Writer) func() {
 func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTest {
 	t.Helper()
 
-	// Don't disable input, so input is called
-	disableInput := false
-
 	// Set up reader/writers
 	testInputResponse := answers
 	inputReader := bytes.NewBufferString("")
@@ -750,7 +747,7 @@ func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTe
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: inputReader,
 		Writer: inputWriter,
-	}, testInputResponse, nil, disableInput)
+	}, testInputResponse, nil)
 
 	// Return the UIInput for use in the test
 	return uiInput
@@ -766,9 +763,6 @@ func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTe
 func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterForTest, *bytes.Buffer) {
 	t.Helper()
 
-	// Ensure input is called
-	inputDisabled := false
-
 	// Set up reader/writers
 	inputReader := bytes.NewBufferString("")
 	inputWriter := new(bytes.Buffer)
@@ -780,7 +774,7 @@ func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterFor
 	ret := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: inputReader,
 		Writer: inputWriter,
-	}, testInputResponse, testInputResponseMap, inputDisabled)
+	}, testInputResponse, testInputResponseMap)
 
 	// Queue the cleanup for the end of the test
 	t.Cleanup(func() {

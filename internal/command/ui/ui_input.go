@@ -98,7 +98,7 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 	return i
 }
 
-func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string, disableInput bool) InputRequesterForTest {
+func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
 	i.testInputResponse = testInputResponse
 	i.testInputResponseMap = testInputResponseMap

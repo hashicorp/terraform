@@ -554,7 +554,7 @@ func TestApply_input(t *testing.T) {
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: bytes.NewBufferString("foo\n"),
 		Writer: new(bytes.Buffer),
-	}, nil, nil, false)
+	}, nil, nil)
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -600,7 +600,7 @@ func TestApply_inputPartial(t *testing.T) {
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: bytes.NewBufferString("one\ntwo\n"),
 		Writer: new(bytes.Buffer),
-	}, nil, nil, false)
+	}, nil, nil)
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -678,7 +678,7 @@ func TestApply_plan(t *testing.T) {
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: new(bytes.Buffer),
 		Writer: new(bytes.Buffer),
-	}, nil, nil, false)
+	}, nil, nil)
 
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
@@ -1043,7 +1043,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 			Reader: new(bytes.Buffer),
 			Writer: new(bytes.Buffer),
-		}, nil, nil, false)
+		}, nil, nil)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1130,7 +1130,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 			Reader: new(bytes.Buffer),
 			Writer: new(bytes.Buffer),
-		}, nil, nil, false)
+		}, nil, nil)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1302,7 +1302,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
 		Reader: new(bytes.Buffer),
 		Writer: new(bytes.Buffer),
-	}, nil, nil, false)
+	}, nil, nil)
 
 	// Create a remote state
 	state := testState()
