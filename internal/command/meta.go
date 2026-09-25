@@ -295,17 +295,23 @@ type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 	PolicyClient policy.Client
-	UIInput      ui.InputRequester
+
+	// UIInput is used to override the default input mechanism for tests.
+	// By setting a value here, input will become enabled.
+	// If this is not set, input will be considered disabled.
+	UIInput ui.InputRequester
 }
 
 func (to *testingOverrides) Input() bool {
 	if to == nil {
+		// This path covers non-test scenarios and also tests where no overrides are present.
 		return true
 	}
-	if to.UIInput == nil {
-		return true
-	}
-	return !to.UIInput.InputDisabled()
+
+	// If a test's testingOverrides provides a UIInput we say input is enabled.
+	// If a test's testingOverrides hasn't provided a UIInput we say input is disabled, as this
+	// prevents those tests from timing out waiting for input.
+	return to.UIInput != nil
 }
 
 // initStatePaths is used to initialize the default values for
