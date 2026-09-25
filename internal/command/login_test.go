@@ -133,10 +133,14 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"app.terraform.io"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -166,10 +170,14 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"app.terraform.io"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -191,9 +199,13 @@ func TestLogin(t *testing.T) {
 		setOrgsMaxTTLEnabled(t, true)
 
 		// Enter "yes" at the consent prompt.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"example.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -226,9 +238,13 @@ func TestLogin(t *testing.T) {
 
 	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"with-scopes.example.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -271,10 +287,14 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -305,10 +325,14 @@ func TestLogin(t *testing.T) {
 
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -325,10 +349,14 @@ func TestLogin(t *testing.T) {
 
 	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "good-tok",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -365,9 +393,13 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "no" at the consent prompt
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "no",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run(nil)
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
@@ -384,9 +416,13 @@ func TestLogin(t *testing.T) {
 
 	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
 		// Enter "y" at the consent prompt
-		_ = testInputMapLegacy(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "y",
 		})
+		c.Meta.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		status := c.Run(nil)
 		if status != 1 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())

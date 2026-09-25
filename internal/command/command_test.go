@@ -64,8 +64,6 @@ var (
 )
 
 func init() {
-	test = true
-
 	// Initialize the backends
 	backendInit.Init(nil)
 
@@ -733,64 +731,6 @@ func testStdoutCapture(t *testing.T, dst io.Writer) func() {
 		// Wait for the data copy to complete to avoid a race reading data
 		<-doneCh
 	}
-}
-
-// testInteractiveInputLegacy configures tests so that the answers given are sent
-// in order to interactive prompts. The returned function must be called
-// in a defer to clean up.
-func testInteractiveInputLegacy(t *testing.T, answers []string) func() {
-	t.Helper()
-
-	// Disable test mode so input is called
-	test = false
-
-	// Set up reader/writers
-	testInputResponse = answers
-	defaultInputReader = bytes.NewBufferString("")
-	defaultInputWriter = new(bytes.Buffer)
-
-	// Return the cleanup
-	return func() {
-		test = true
-		testInputResponse = nil
-	}
-}
-
-// testInputMapLegacy configures tests so that the given answers are returned
-// for calls to Input when the right question is asked. The key is the
-// question "Id" that is used.
-//
-// Calling code can optionally use the returned buffer to make assertions
-// about the prompts shown the to the user.
-func testInputMapLegacy(t *testing.T, answers map[string]string) *bytes.Buffer {
-	t.Helper()
-
-	// Disable test mode so input is called
-	test = false
-
-	// Set up reader/writers
-	defaultInputReader = bytes.NewBufferString("")
-	inputWriter := new(bytes.Buffer)
-	defaultInputWriter = inputWriter
-
-	// Setup answers
-	testInputResponse = nil
-	testInputResponseMap = answers
-
-	// Queue the cleanup for the end of the test
-	t.Cleanup(func() {
-		unusedAnswers := testInputResponseMap
-
-		// First, clean up!
-		test = true
-		testInputResponseMap = nil
-
-		if len(unusedAnswers) > 0 {
-			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
-		}
-	})
-
-	return inputWriter
 }
 
 // testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent

@@ -124,9 +124,6 @@ func TestApply_destroy(t *testing.T) {
 }
 
 func TestApply_destroyApproveNo(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -196,9 +193,6 @@ func TestApply_destroyApproveNo(t *testing.T) {
 }
 
 func TestApply_destroyApproveYes(t *testing.T) {
-	test = false
-	defer func() { test = true }()
-
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
@@ -225,7 +219,6 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-
 	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "yes",
 	})
