@@ -545,6 +545,12 @@ func TestParserLoadTestFiles_Invalid(t *testing.T) {
 		"skip_cleanup_after_backend": {
 			"skip_cleanup_after_backend.tftest.hcl:13,3-15: Duplicate \"skip_cleanup\" block; The run \"skip_cleanup\" has a skip_cleanup attribute set, but shares state with an earlier run \"backend\" that has a backend defined. The later run takes precedence, but the backend will still be used to manage this state.",
 		},
+		"duplicate_terraform_blocks": {
+			"duplicate_terraform_blocks.tftest.hcl:10,1-10: Multiple \"terraform\" blocks; This test file already has a \"terraform\" block defined at duplicate_terraform_blocks.tftest.hcl:1,1-10.",
+		},
+		"unsupported_terraform_setting": {
+			"unsupported_terraform_setting.tftest.hcl:2,3-19: Unsupported argument; An argument named \"required_version\" is not expected here.",
+		},
 	}
 
 	for name, expected := range tcs {

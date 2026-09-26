@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -191,6 +192,25 @@ func TestParseTest(t *testing.T) {
 			},
 			wantDiags: nil,
 		},
+		"override-provider": {
+			args: []string{"-override-provider=hashicorp/aws=5.70.0"},
+			want: &Test{
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+				RunParallelism:       10,
+				OverrideProviders: []ProviderVersionOverride{
+					{
+						Raw:     "hashicorp/aws=5.70.0",
+						Addr:    addrs.NewDefaultProvider("aws"),
+						Version: "5.70.0",
+					},
+				},
+			},
+			wantDiags: nil,
+		},
 		"unknown flag": {
 			args: []string{"-boop"},
 			want: &Test{
@@ -206,6 +226,32 @@ func TestParseTest(t *testing.T) {
 					tfdiags.Error,
 					"Failed to parse command-line flags",
 					"flag provided but not defined: -boop",
+				),
+			},
+		},
+		"incompatible flags: -override-provider and -cloud-run": {
+			args: []string{"-override-provider=hashicorp/aws=5.70.0", "-cloud-run=foobar"},
+			want: &Test{
+				CloudRunSource:       "foobar",
+				Filter:               nil,
+				TestDirectory:        "tests",
+				ViewType:             ViewHuman,
+				Vars:                 &Vars{},
+				OperationParallelism: 10,
+				RunParallelism:       10,
+				OverrideProviders: []ProviderVersionOverride{
+					{
+						Raw:     "hashicorp/aws=5.70.0",
+						Addr:    addrs.NewDefaultProvider("aws"),
+						Version: "5.70.0",
+					},
+				},
+			},
+			wantDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incompatible command-line flags",
+					"The -override-provider option is currently not compatible with remote test execution via the -cloud-run flag.",
 				),
 			},
 		},
@@ -231,7 +277,10 @@ func TestParseTest(t *testing.T) {
 		},
 	}
 
-	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+	cmpOpts := cmp.Options{
+		cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{}),
+		cmpopts.IgnoreFields(ProviderVersionOverride{}, "Constraint"),
+	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

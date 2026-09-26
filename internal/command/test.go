@@ -73,6 +73,16 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
+  -override-provider=source=version
+                        Override the version constraint for a provider for this
+                        test run only. The dependency lock file is not updated.
+                        Use this option more than once to override more than
+                        one provider. Example:
+                        -override-provider=hashicorp/aws=5.70.0
+
+                        Test files can also override versions with:
+                        terraform { required_providers { ... } }
+
   -parallelism=n        Limit the number of concurrent operations within the 
   						plan/apply operation of a test run. Defaults to 10.
 
@@ -436,6 +446,16 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 		diags = diags.Append(err)
 		view.Diagnostics(nil, nil, diags)
 		return
+	}
+
+	overrides := collectTestProviderVersionOverrides(preparation.Config, preparation.Args.OverrideProviders, preparation.Args.Filter)
+	if len(overrides) > 0 {
+		overrideDiags := m.applyTestProviderVersionOverrides(opts, overrides)
+		diags = diags.Append(overrideDiags)
+		if overrideDiags.HasErrors() {
+			view.Diagnostics(nil, nil, diags)
+			return
+		}
 	}
 	preparation.Opts = opts
 
