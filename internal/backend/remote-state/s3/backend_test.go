@@ -192,6 +192,13 @@ func TestBackendConfig_withLockfile(t *testing.T) {
 		t.Fatalf("Expected useLockFile to be true")
 	}
 
+	if len(b.stateTags) == 0 {
+		t.Fatalf("Expected stateTags not to be set")
+	}
+	if len(b.lockTags) == 0 {
+		t.Fatalf("Expected lockTags not to be set")
+	}
+
 	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
@@ -224,6 +231,84 @@ func TestBackendConfig_withLockfile(t *testing.T) {
 		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
 	}
 }
+
+
+func TestBackendConfig_withLockfileAndTags(t *testing.T) {
+	testACC(t)
+
+	ctx := context.TODO()
+
+	region := "us-west-1"
+
+	config := map[string]interface{}{
+		"region":       region,
+		"bucket":       "tf-test",
+		"key":          "state",
+		"encrypt":      true,
+		"use_lockfile": true,
+		"state_tags": map[string]string{"type": "state", "tag2": "value2"},
+		"lock_tags": map[string]string{"type": "lock", "tag2": "value2", "tag3": "value3"},
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.awsConfig.Region != region {
+		t.Fatalf("Incorrect region was populated")
+	}
+	if b.awsConfig.RetryMaxAttempts != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
+	if b.bucketName != "tf-test" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+
+	if b.useLockFile != true {
+		t.Fatalf("Expected useLockFile to be true")
+	}
+
+	if len(b.stateTags) == 2 {
+		t.Fatalf("Expected stateTags to be set")
+	}
+	if len(b.lockTags) == 3 {
+		t.Fatalf("Expected lockTags to be set")
+	}
+
+	credentials, err := b.awsConfig.Credentials.Retrieve(ctx)
+	if err != nil {
+		t.Fatalf("Error when requesting credentials")
+	}
+	if credentials.AccessKeyID == "" {
+		t.Fatalf("No Access Key Id was populated")
+	}
+	if credentials.SecretAccessKey == "" {
+		t.Fatalf("No Secret Access Key was populated")
+	}
+
+	// Check S3 Endpoint
+	expectedS3Endpoint := defaultEndpointS3(region)
+	var s3Endpoint string
+	_, err = b.s3Client.ListBuckets(ctx, &s3.ListBucketsInput{},
+		func(opts *s3.Options) {
+			opts.APIOptions = append(opts.APIOptions,
+				addRetrieveEndpointURLMiddleware(t, &s3Endpoint),
+				addCancelRequestMiddleware(),
+			)
+		},
+	)
+	if err == nil {
+		t.Fatal("Checking S3 Endpoint: Expected an error, got none")
+	} else if !errors.Is(err, errCancelOperation) {
+		t.Fatalf("Checking S3 Endpoint: Unexpected error: %s", err)
+	}
+
+	if s3Endpoint != expectedS3Endpoint {
+		t.Errorf("Checking S3 Endpoint: expected endpoint %q, got %q", expectedS3Endpoint, s3Endpoint)
+	}
+}
+
 
 func TestBackendConfig_multiLock(t *testing.T) {
 	testACC(t)
