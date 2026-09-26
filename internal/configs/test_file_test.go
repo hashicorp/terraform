@@ -9,6 +9,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestTestRun_Validate(t *testing.T) {
@@ -83,6 +85,56 @@ func TestTestRun_Validate(t *testing.T) {
 				t.Fatalf("unexpected diff:\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestLoadTestFile_RequiredProvidersOverride(t *testing.T) {
+	parser := testParser(map[string]string{
+		"latest.tftest.hcl": `
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+}
+
+run "compat" {
+  command = plan
+}
+`,
+	})
+
+	file, diags := parser.LoadTestFile("latest.tftest.hcl")
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Error())
+	}
+	if file.RequiredProviders == nil {
+		t.Fatal("expected required_providers to be parsed")
+	}
+
+	aws, ok := file.RequiredProviders.RequiredProviders["aws"]
+	if !ok {
+		t.Fatal("missing aws required provider")
+	}
+	if aws.Type != addrs.NewDefaultProvider("aws") {
+		t.Fatalf("wrong aws address: %s", aws.Type)
+	}
+	if aws.Requirement.Required.String() != ">= 5.0.0" {
+		t.Fatalf("wrong aws constraint: %s", aws.Requirement.Required)
+	}
+
+	random, ok := file.RequiredProviders.RequiredProviders["random"]
+	if !ok {
+		t.Fatal("missing random required provider")
+	}
+	if random.Type != addrs.NewDefaultProvider("random") {
+		t.Fatalf("wrong random address: %s", random.Type)
 	}
 }
 

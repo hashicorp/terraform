@@ -1,0 +1,3 @@
+kind: ENHANCEMENTS
+body: '`terraform test`: allow overriding provider versions for a test run via `-override-provider=SOURCE=VERSION` and via `terraform { required_providers { ... } }` blocks in `.tftest.hcl` files, without updating the dependency lock file'
+time: 2026-09-24T11:30:00.000000-04:00

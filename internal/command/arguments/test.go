@@ -54,6 +54,10 @@ type Test struct {
 
 	// These flags are only relevant to the "test cleanup" command.
 	Repair bool
+
+	// OverrideProviders replaces the version constraints used for the named
+	// providers during this test run. The dependency lock file is not updated.
+	OverrideProviders []ProviderVersionOverride
 }
 
 func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
@@ -64,6 +68,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	}
 
 	var jsonOutput bool
+	var overrideProviders FlagStringSlice
 	cmdFlags := extendedFlagSet("test", nil, nil, test.Vars)
 	cmdFlags.Var((*FlagStringSlice)(&test.Filter), "filter", "filter")
 	cmdFlags.StringVar(&test.TestDirectory, "test-directory", configs.DefaultTestDirectory, "test-directory")
@@ -74,6 +79,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.IntVar(&test.RunParallelism, "run-parallelism", DefaultParallelism, "run-parallelism")
 	cmdFlags.BoolVar(&test.DeferralAllowed, "allow-deferral", false, "allow-deferral")
 	cmdFlags.BoolVar(&test.Repair, "repair", false, "repair")
+	cmdFlags.Var(&overrideProviders, "override-provider", "override-provider")
 
 	// TODO: Finalise the name of this flag.
 	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")
@@ -85,11 +91,22 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 			err.Error()))
 	}
 
+	parsedOverrides, overrideDiags := ParseProviderVersionOverrides(overrideProviders)
+	diags = diags.Append(overrideDiags)
+	test.OverrideProviders = parsedOverrides
+
 	if len(test.JUnitXMLFile) > 0 && len(test.CloudRunSource) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Incompatible command-line flags",
 			"The -junit-xml option is currently not compatible with remote test execution via the -cloud-run flag. If you are interested in JUnit XML output for remotely-executed tests please open an issue in GitHub."))
+	}
+
+	if len(test.OverrideProviders) > 0 && len(test.CloudRunSource) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible command-line flags",
+			"The -override-provider option is currently not compatible with remote test execution via the -cloud-run flag."))
 	}
 
 	// Only set the default parallelism if this is not a cloud-run test.

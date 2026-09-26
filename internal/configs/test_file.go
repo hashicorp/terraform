@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
@@ -86,6 +87,12 @@ type TestFile struct {
 	Runs []*TestRun
 
 	Config *TestFileConfig
+
+	// RequiredProviders contains provider source/version overrides declared in
+	// a terraform { required_providers { ... } } block in this test file.
+	// These replace the module-under-test constraints for the duration of
+	// terraform test and do not modify the dependency lock file.
+	RequiredProviders *RequiredProviders
 
 	VariablesDeclRange hcl.Range
 }
@@ -611,6 +618,22 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 				}
 				tf.Overrides.Put(subject, override)
 			}
+		case "terraform":
+			if tf.RequiredProviders != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"terraform\" blocks",
+					Detail:   fmt.Sprintf(`This test file already has a "terraform" block defined at %s.`, tf.RequiredProviders.DeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+
+			reqs, terraformDiags := decodeTestTerraformBlock(block)
+			diags = append(diags, terraformDiags...)
+			if !terraformDiags.HasErrors() {
+				tf.RequiredProviders = reqs
+			}
 		}
 	}
 
@@ -1108,6 +1131,154 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 	return &opts, diags
 }
 
+func decodeTestTerraformBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	content, contentDiags := block.Body.Content(testFileTerraformBlockSchema)
+	diags = append(diags, contentDiags...)
+	if content == nil {
+		return nil, diags
+	}
+
+	ret := &RequiredProviders{
+		RequiredProviders: make(map[string]*RequiredProvider),
+		DeclRange:         block.DefRange,
+	}
+
+	for _, reqBlock := range content.Blocks {
+		if reqBlock.Type != "required_providers" {
+			continue
+		}
+
+		decoded, decodeDiags := decodeRequiredProvidersBlock(reqBlock)
+		diags = append(diags, decodeDiags...)
+		if decoded == nil {
+			continue
+		}
+
+		resolved, resolveDiags := resolveStaticRequiredProviders(decoded)
+		diags = append(diags, resolveDiags...)
+		if resolved == nil {
+			continue
+		}
+
+		for name, rp := range resolved.RequiredProviders {
+			if previous, exists := ret.RequiredProviders[name]; exists {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate required provider",
+					Detail:   fmt.Sprintf("A required_providers entry for %q has already been defined at %s.", name, previous.DeclRange),
+					Subject:  rp.DeclRange.Ptr(),
+				})
+				continue
+			}
+			ret.RequiredProviders[name] = rp
+		}
+	}
+
+	return ret, diags
+}
+
+// resolveStaticRequiredProviders evaluates source and version expressions in a
+// required_providers block without an evaluation context. Test files only
+// support constant version overrides.
+func resolveStaticRequiredProviders(block *RequiredProvidersBlock) (*RequiredProviders, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	ret := &RequiredProviders{
+		RequiredProviders: make(map[string]*RequiredProvider),
+		DeclRange:         block.DeclRange,
+	}
+
+	for name, rp := range block.RequiredProviders {
+		ret.RequiredProviders[name] = rp
+	}
+
+	for name, expr := range block.RequiredProviderExprs {
+		rp, rpDiags := resolveStaticProviderRequirement(name, expr)
+		diags = append(diags, rpDiags...)
+		if rpDiags.HasErrors() {
+			continue
+		}
+		ret.RequiredProviders[name] = rp
+	}
+
+	return ret, diags
+}
+
+func resolveStaticProviderRequirement(name string, expr *ProviderRequirementExpr) (*RequiredProvider, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	rp := &RequiredProvider{
+		Name:      name,
+		Aliases:   expr.ConfigAliases,
+		DeclRange: expr.DeclRange,
+	}
+
+	if expr.SourceExpr != nil {
+		val, valDiags := expr.SourceExpr.Value(nil)
+		diags = append(diags, valDiags...)
+		if valDiags.HasErrors() {
+			return rp, diags
+		}
+		if !val.Type().Equals(cty.String) || val.IsNull() || !val.IsWhollyKnown() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider source",
+				Detail:   "Provider source addresses in test files must be constant strings.",
+				Subject:  expr.SourceExpr.Range().Ptr(),
+			})
+			return rp, diags
+		}
+
+		source := val.AsString()
+		addr, addrDiags := addrs.ParseProviderSourceString(source)
+		if addrDiags.HasErrors() {
+			hclDiags := addrDiags.ToHCL()
+			for _, diag := range hclDiags {
+				if diag.Subject == nil {
+					diag.Subject = expr.SourceExpr.Range().Ptr()
+				}
+			}
+			diags = append(diags, hclDiags...)
+			return rp, diags
+		}
+		rp.Source = source
+		rp.Type = addr
+	}
+
+	if expr.VersionExpr != nil {
+		vc, vcDiags := decodeVersionConstraint(&hcl.Attribute{
+			Name: "version",
+			Expr: expr.VersionExpr,
+			Range: func() hcl.Range {
+				if expr.VersionExpr != nil {
+					return expr.VersionExpr.Range()
+				}
+				return expr.DeclRange
+			}(),
+		})
+		diags = append(diags, vcDiags...)
+		rp.Requirement = vc
+	}
+
+	if rp.Type.IsZero() {
+		pType, err := addrs.ParseProviderPart(name)
+		if err != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid provider name",
+				Detail:   err.Error(),
+				Subject:  expr.DeclRange.Ptr(),
+			})
+			return rp, diags
+		}
+		rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+	}
+
+	return rp, diags
+}
+
 var testFileSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
@@ -1137,6 +1308,17 @@ var testFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "override_module",
+		},
+		{
+			Type: "terraform",
+		},
+	},
+}
+
+var testFileTerraformBlockSchema = &hcl.BodySchema{
+	Blocks: []hcl.BlockHeaderSchema{
+		{
+			Type: "required_providers",
 		},
 	},
 }
