@@ -4496,7 +4496,7 @@ Initializing provider plugins...
 
 		// Allow the test to respond to the prompt to pick an
 		// existing workspace, given the selected one doesn't exist.
-		_ = testInputMap(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"select-workspace": "1", // foobar1 in numbered list
 		})
 
@@ -4510,6 +4510,7 @@ Initializing provider plugins...
 				Providers: map[addrs.Provider]providers.Factory{
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
+				UIInput: uiInput,
 			},
 			ProviderSource: providerSource,
 		}
@@ -4884,7 +4885,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		uiInput, inputWriter := testInputMap(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 
@@ -4898,6 +4899,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 				Providers: map[addrs.Provider]providers.Factory{
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
+				UIInput: uiInput,
 			},
 			ProviderSource: source,
 		}
@@ -5030,7 +5032,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		uiInput, inputWriter := testInputMap(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 
@@ -5044,6 +5046,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 				Providers: map[addrs.Provider]providers.Factory{
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
+				UIInput: uiInput,
 			},
 			ProviderSource: source,
 		}
@@ -5110,7 +5113,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 
 		// Allow the test to respond to the pause in provider installation for
 		// checking the state storage provider.
-		inputWriter := testInputMap(t, map[string]string{
+		uiInput, inputWriter := testInputMap(t, map[string]string{
 			"approve-provider-test-1.2.3": "no",
 		})
 
@@ -5124,6 +5127,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 				Providers: map[addrs.Provider]providers.Factory{
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
+				UIInput: uiInput,
 			},
 			ProviderSource: source,
 		}
@@ -5207,12 +5211,13 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 
 		// Init number 1 - reject the provider
-		_ = testInputMap(t, map[string]string{
+		uiInput, _ := testInputMap(t, map[string]string{
 			"approve-provider-test-1.2.3": "no",
 		})
 		args := []string{
 			"-enable-pluggable-state-storage-experiment=true",
 		}
+		c.Meta.testingOverrides.UIInput = uiInput
 		code := c.Run(args)
 		testOutput := done(t)
 		if code != 1 {
@@ -5249,7 +5254,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 
 		// Init number 2 - re-prompted for approval
-		_ = testInputMap(t, map[string]string{
+		uiInput, _ = testInputMap(t, map[string]string{
 			"approve-provider-test-1.2.3": "yes",
 		})
 		args = []string{
@@ -5257,6 +5262,7 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		}
 		ui = testUiWrapped(t)
 		view, done = testView(t)
+		c.Meta.testingOverrides.UIInput = uiInput
 		c.Ui = ui
 		c.View = view
 		code = c.Run(args)
@@ -5800,6 +5806,12 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
+	// Allow the test to respond to the pause in provider installation for
+	// checking the state storage provider.
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
+
 	ui := testUiWrapped(t)
 	view, done := testView(t)
 	meta := Meta{
@@ -5810,6 +5822,7 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 			Providers: map[addrs.Provider]providers.Factory{
 				mockProviderAddress: providers.FactoryFixed(mockProvider),
 			},
+			UIInput: uiInput,
 		},
 		ProviderSource: source,
 	}
@@ -5817,16 +5830,11 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 		Meta: meta,
 	}
 
-	// Allow the test to respond to the pause in provider installation for
-	// checking the state storage provider.
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
-
 	args := []string{
 		"-reconfigure",
 		"-enable-pluggable-state-storage-experiment",
 	}
+
 	code := c.Run(args)
 	testOutput := done(t)
 	if code != 0 {

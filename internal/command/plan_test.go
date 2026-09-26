@@ -23,6 +23,7 @@ import (
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -878,9 +879,11 @@ func TestPlan_stateDefault(t *testing.T) {
 }
 
 func TestPlan_validate(t *testing.T) {
-	// This is triggered by not asking for input so we have to set this to false
-	test = false
-	defer func() { test = true }()
+	// Ask for input
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil,
+	)
 
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-invalid"), td)
@@ -903,10 +906,14 @@ func TestPlan_validate(t *testing.T) {
 			PlannedState: req.ProposedNewState,
 		}
 	}
+
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1021,14 +1028,16 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	// This will (helpfully) panic if more than one variable is requested during plan:
 	// https://github.com/hashicorp/terraform/issues/26027
-	close := testInteractiveInput(t, []string{"bar"})
-	defer close()
+	uiInput := testInteractiveInput(t, []string{"bar"})
 
 	p := planVarsFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1050,12 +1059,11 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("plan"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
 	// The plan command will prompt for interactive input of provider.test.region
-	defaultInputReader = bytes.NewBufferString("us-east-1\n")
+	reader := bytes.NewBufferString("us-east-1\n")
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: reader,
+	}, nil, nil)
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument
@@ -1105,10 +1113,14 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 			},
 		},
 	}
+
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1129,12 +1141,11 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 	testCopyDir(t, testFixturePath("plan-provider-input"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
 	// The plan command will prompt for interactive input of provider.test.region
-	defaultInputReader = bytes.NewBufferString("us-east-1\n")
+	reader := bytes.NewBufferString("us-east-1\n")
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: reader,
+	}, nil, nil)
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument and a nested block
@@ -1169,10 +1180,13 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 		},
 	}
 
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1209,7 +1223,6 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 	if !got.RawEquals(want) {
 		t.Fatal("wrong provider config")
 	}
-
 }
 
 func TestPlan_varFile(t *testing.T) {

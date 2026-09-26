@@ -6,13 +6,18 @@ package getproviders
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -244,4 +249,42 @@ func TestSourcePackageMeta(t *testing.T) {
 		})
 	}
 
+}
+
+// TestRegistrySourceReusesHTTPConnection checks that a RegistrySource makes its
+// requests to one host over a single connection, rather than opening a new one
+// (and repeating the TLS handshake) for every request.
+func TestRegistrySourceReusesHTTPConnection(t *testing.T) {
+	var mu sync.Mutex
+	newConns := 0
+
+	server := httptest.NewUnstartedServer(http.HandlerFunc(fakeRegistryHandler))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			mu.Lock()
+			newConns++
+			mu.Unlock()
+		}
+	}
+	server.Start()
+	defer server.Close()
+
+	services := disco.New()
+	services.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
+		"providers.v1": server.URL + "/providers/v1/",
+	})
+	source := NewRegistrySource(services)
+
+	for _, name := range []string{"example.com/awesomesauce/happycloud", "example.com/weaksauce/protocol-six"} {
+		provider := addrs.MustParseProviderSourceString(name)
+		if _, _, err := source.AvailableVersions(context.Background(), provider); err != nil {
+			t.Fatalf("AvailableVersions for %s: %s", provider, err)
+		}
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if newConns != 1 {
+		t.Errorf("opened %d connections for 2 requests; want 1", newConns)
+	}
 }

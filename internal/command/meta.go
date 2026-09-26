@@ -30,6 +30,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/command/workdir"
@@ -294,6 +295,23 @@ type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 	PolicyClient policy.Client
+
+	// UIInput is used to override the default input mechanism for tests.
+	// By setting a value here, input will become enabled.
+	// If this is not set, input will be considered disabled.
+	UIInput ui.InputRequester
+}
+
+func (to *testingOverrides) Input() bool {
+	if to == nil {
+		// This path covers non-test scenarios and also tests where no overrides are present.
+		return true
+	}
+
+	// If a test's testingOverrides provides a UIInput we say input is enabled.
+	// If a test's testingOverrides hasn't provided a UIInput we say input is disabled, as this
+	// prevents those tests from timing out waiting for input.
+	return to.UIInput != nil
 }
 
 // initStatePaths is used to initialize the default values for
@@ -359,7 +377,7 @@ const (
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
-	if test || !m.input {
+	if !m.testingOverrides.Input() || !m.input {
 		return 0
 	}
 
@@ -379,9 +397,16 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 // UIInput returns a UIInput object to be used for asking for input.
 func (m *Meta) UIInput() terraform.UIInput {
-	return &UIInput{
+	// Tests can override the UIInput object.
+	if m.testingOverrides != nil &&
+		m.testingOverrides.UIInput != nil {
+		return m.testingOverrides.UIInput
+	}
+
+	opts := ui.UIInputOptions{
 		Colorize: m.Colorize(),
 	}
+	return ui.NewUIInput(opts)
 }
 
 // OutputColumns returns the number of columns that normal (non-error) UI

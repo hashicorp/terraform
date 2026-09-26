@@ -33,14 +33,17 @@ func Test_backendMigrateState_S_S(t *testing.T) {
 		DestinationType: "local",
 		Destination:     destination,
 	}
-
-	inputWriter := testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, inputWriter := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "no", // We're only testing the prompt, no is sufficient
 	})
 
 	meta := Meta{
 		input: true,
 		Ui:    testUiWrapped(t),
+		testingOverrides: &testingOverrides{
+			UIInput: uiInput,
+		},
 	}
 	err = meta.backendMigrateState_S_S(opts)
 	if err == nil {
@@ -73,13 +76,17 @@ func Test_backendMigrateState_S_s(t *testing.T) {
 		Destination:     destination,
 	}
 
-	inputWriter := testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, inputWriter := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "no", // We're only testing the prompt, no is sufficient
 	})
 
 	meta := Meta{
 		input: true,
 		Ui:    testUiWrapped(t),
+		testingOverrides: &testingOverrides{
+			UIInput: uiInput,
+		},
 	}
 	err = meta.backendMigrateState_S_s(opts)
 	if err == nil {
@@ -130,13 +137,17 @@ func Test_backendMigrateState_s_s(t *testing.T) {
 			sourceWorkspace: workspaceName,
 		}
 
-		inputWriter := testInputMap(t, map[string]string{
+		// Ask for input
+		uiInput, inputWriter := testInputMap(t, map[string]string{
 			"backend-migrate-copy-to-empty": "no", // We're only testing the prompt, no is sufficient
 		})
 
 		meta := Meta{
 			input: true,
 			Ui:    testUiWrapped(t),
+			testingOverrides: &testingOverrides{
+				UIInput: uiInput,
+			},
 		}
 		err = meta.backendMigrateState_s_s(opts)
 		if err != nil {
@@ -208,13 +219,17 @@ func Test_backendMigrateState_s_s(t *testing.T) {
 			sourceWorkspace: workspaceName,
 		}
 
-		inputWriter := testInputMap(t, map[string]string{
+		// Ask for input
+		uiInput, inputWriter := testInputMap(t, map[string]string{
 			"backend-migrate-to-backend": "no", // We're only testing the prompt, no is sufficient
 		})
 
 		meta := Meta{
 			input: true,
 			Ui:    testUiWrapped(t),
+			testingOverrides: &testingOverrides{
+				UIInput: uiInput,
+			},
 		}
 		err = meta.backendMigrateState_s_s(opts)
 		if err != nil {
@@ -272,8 +287,14 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 	for name, tc := range cases {
 		t.Log("Test: ", name)
 		m := testMetaBackend(t, nil)
+
+		// Ask for input
 		input := map[string]string{}
-		inputWriter := testInputMap(t, input)
+		uiInput, inputWriter := testInputMap(t, input)
+		m.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
 		if tc.renamePrompt != "" {
 			input["backend-migrate-multistate-to-tfc"] = tc.renamePrompt
 		}

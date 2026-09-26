@@ -71,6 +71,14 @@ type registryClient struct {
 }
 
 func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registryClient {
+	return &registryClient{
+		baseURL:    baseURL,
+		creds:      creds,
+		httpClient: newRegistryHTTPClient(),
+	}
+}
+
+func newRegistryHTTPClient() *retryablehttp.Client {
 	httpClient := httpclient.New()
 	httpClient.Timeout = requestTimeout
 
@@ -82,11 +90,7 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 
 	retryableClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
 
-	return &registryClient{
-		baseURL:    baseURL,
-		creds:      creds,
-		httpClient: retryableClient,
-	}
+	return retryableClient
 }
 
 // ProviderVersions returns the raw version and protocol strings produced by the

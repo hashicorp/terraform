@@ -333,11 +333,14 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// This combination should not require the extra -migrate-state flag, since
 	// there is no existing backend config
@@ -460,11 +463,14 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -575,11 +581,14 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -688,11 +697,14 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -820,12 +832,16 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
 	t.Chdir(td)
 
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	terminalPrompts := testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, terminalPrompts := testInputMap(t, map[string]string{
 		"select-workspace": "2",
 	})
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	_, diags := m.Backend(&BackendOpts{Init: true})
@@ -919,11 +935,14 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -970,13 +989,16 @@ func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1024,13 +1046,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1077,14 +1102,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1146,14 +1174,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *test
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Change env
 	if err := m.SetWorkspace("env2"); err != nil {
@@ -1207,13 +1238,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change-multi-to-multi"), td)
 	t.Chdir(td)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1307,14 +1341,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
 	defer backendInit.Set("local-no-default", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 		"new-state-name": "env1",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1385,13 +1422,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
 	defer backendInit.Set("local-no-default", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1456,11 +1496,14 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-unset"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1518,11 +1561,14 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-unset"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
 
 	// Setup the meta
 	m := testMetaBackend(t, nil)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
