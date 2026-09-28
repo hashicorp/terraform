@@ -26,12 +26,6 @@ func TestLog_valid(t *testing.T) {
 			cty.NumberFloatVal(10),
 			cty.NumberFloatVal(1),
 		},
-
-		{
-			cty.NumberFloatVal(0),
-			cty.NumberFloatVal(10),
-			cty.NegativeInfinity,
-		},
 		{
 			cty.NumberFloatVal(10),
 			cty.NumberFloatVal(0),
@@ -68,11 +62,16 @@ func TestLog_invalid(t *testing.T) {
 			cty.NumberFloatVal(-1),
 			cty.NumberFloatVal(10),
 		},
-		// {
-		// 	// -Infinity result: log(0, 10)
-		// 	cty.NumberFloatVal(0),
-		// 	cty.NumberFloatVal(10),
-		// },
+		{
+			// Negative infinity result
+			cty.NumberFloatVal(0),
+			cty.NumberFloatVal(10),
+		},
+		{
+			// Positive infinity result
+			cty.PositiveInfinity,
+			cty.NumberFloatVal(2),
+		},
 	}
 
 	for _, test := range tests {
@@ -160,8 +159,19 @@ func TestPow_invalid(t *testing.T) {
 		Power cty.Value
 	}{
 		{
+			// NaN result
 			cty.NumberFloatVal(-2),
 			cty.NumberFloatVal(0.5),
+		},
+		{
+			// Positive Infinity result
+			cty.NumberFloatVal(10),
+			cty.NumberFloatVal(1000),
+		},
+		{
+			// Negative Infinity result
+			cty.NegativeInfinity,
+			cty.NumberFloatVal(1),
 		},
 	}
 
