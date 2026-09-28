@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'fmt: The original content of a file is now preserved if Terraform experiences an error writing to the original file.'
+time: 2026-09-28T11:43:38.199353+01:00
+custom:
+    Issue: "39303"
