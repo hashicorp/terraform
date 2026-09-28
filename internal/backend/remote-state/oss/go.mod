@@ -4,7 +4,7 @@ go 1.26.8
 
 require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501
-	github.com/aliyun/aliyun-oss-go-sdk v2.2.7+incompatible
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-uuid v1.0.3
