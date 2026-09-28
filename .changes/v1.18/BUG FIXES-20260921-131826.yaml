@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'fix(fileset): skip dangling symlinks and other matched paths that no longer resolve, while continuing to return other regular-file matches.'
+time: 2026-09-21T13:18:26.249147-04:00
+custom:
+    Issue: "39260"
