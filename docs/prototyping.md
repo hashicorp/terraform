@@ -47,7 +47,8 @@ An important distinction is between prototypes that test **feasibility** (can we
 ### Exploratory Prototypes
 
 When the project is in the early stages and the specific API design or user experience is not yet clear, we can create exploratory prototypes. The goal of these prototypes is to have something tangible to discuss and iterate on; ideally something we can show to users for feedback.
-We will for sure throw these prototypes away after we have learned what we need to learn.
+
+Exploration prototypes are an artifact to facilitate the above, and should be thrown away after we have learned what we need to learn.
 
 These prototypes can be quick and dirty, focusing on the core functionality or user experience. It's okay to put them in a separate (private) repository and even to mock the implementation completely.
 
