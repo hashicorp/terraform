@@ -189,6 +189,19 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			fmt.Fprintln(w, path)
 		}
 		if c.write {
+			if fi, err := os.Lstat(path); err == nil {
+				if fi.Mode().Type() == os.ModeSymlink {
+					log.Printf("[TRACE] terraform fmt: the file at %s is a symlink", path)
+					symLinkTarget, err := os.Readlink(path)
+					if err != nil {
+						diags = diags.Append(fmt.Errorf("Failed to read symlink target for %s: %w", path, err))
+					}
+
+					// Format the underlying file.
+					// This avoids accidentally replacing the symlink with a new, formatted copy of the target file.
+					path = symLinkTarget
+				}
+			}
 			err := replacefile.AtomicWriteFile(path, result, 0644)
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
