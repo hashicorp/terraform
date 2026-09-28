@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'oss backend: use Signature V4 so new Alibaba Cloud UIDs and buckets can initialize remote state'
+time: 2026-09-27T23:38:36-07:00
+custom:
+    Issue: "39301"
