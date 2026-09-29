@@ -31,6 +31,14 @@ import (
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 
+// MinimalRefreshMinAPIVersion is the minimum TFP-API-Version a server must
+// report for Terraform to send the -minimal-refresh option. It is shared with
+// the legacy "remote" backend.
+//
+// TODO: PROVISIONAL. The real minimum has not been decided yet; it is expected
+// to be the next minor version after 2.6. Update this before release.
+const MinimalRefreshMinAPIVersion = "2.7"
+
 func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
 	log.Printf("[INFO] cloud: starting Plan operation")
 
@@ -86,15 +94,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 		))
 	}
 
-	// TODO:@austinvalle: This will eventually be added to HCPT / go-tfe and should be removed
-	if op.PlanMinimalRefresh {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Minimal refresh planning option is currently not supported",
-			fmt.Sprintf("%s does not support the -minimal-refresh option for ", b.appName)+
-				"plans at this time.",
-		))
-	}
+	diags = diags.Append(b.checkMinimalRefreshAPIVersion(op))
 
 	if len(op.GenerateConfigOut) > 0 {
 		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
@@ -156,6 +156,12 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operatio
 		Workspace:            w,
 		AutoApply:            tfe.Bool(op.AutoApprove),
 		SavePlan:             tfe.Bool(op.PlanOutPath != ""),
+	}
+
+	// Only send the minimal-refresh attribute when requested, so that it is
+	// never included for ordinary runs.
+	if op.PlanMinimalRefresh {
+		runOptions.MinimalRefresh = tfe.Bool(true)
 	}
 
 	switch op.PlanMode {
@@ -593,3 +599,32 @@ const lockTimeoutErr = `
 [reset][red]Lock timeout exceeded, sending interrupt to cancel the remote operation.
 [reset]
 `
+
+// checkMinimalRefreshAPIVersion returns an error diagnostic if -minimal-refresh
+// was requested but the server's API version is too old to support it. Older
+// servers silently ignore unknown run attributes, so this must be checked
+// before any run is created.
+func (b *Cloud) checkMinimalRefreshAPIVersion(op *backendrun.Operation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if !op.PlanMinimalRefresh {
+		return diags
+	}
+
+	// For API versions prior to 2.3, RemoteAPIVersion will return an empty
+	// string, so a parse error is treated as an unsupported version.
+	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+	desiredAPIVersion, _ := version.NewVersion(MinimalRefreshMinAPIVersion)
+	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Minimal refresh is not supported",
+			fmt.Sprintf(
+				`The host %s does not support the -minimal-refresh option. `+
+					`If you use Terraform Enterprise, upgrade to a version that `+
+					`supports minimal refresh. Otherwise, run without -minimal-refresh.`,
+				b.Hostname,
+			),
+		))
+	}
+	return diags
+}
