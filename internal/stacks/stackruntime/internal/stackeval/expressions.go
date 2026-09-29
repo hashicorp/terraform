@@ -311,10 +311,30 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 		})
 	}
 
+	// TODO:@austinvalle: see comment above about defaults not marking ephemeral / sensitive
+	// var marksToAdd []cty.PathValueMarks
 	if v.IsKnown() && !v.IsNull() {
 		var markDiags tfdiags.Diagnostics
 		for varName, varDecl := range decls {
 			varVal := v.GetAttr(varName)
+
+			// TODO:@austinvalle: Currently, input variables aren't explictly marked via the configuration definition, so default values
+			// don't actually retain the marks of their variable definitions (both sensitive + ephemeral have this problem).
+			//
+			// I need to figure out if this is actually a problem we need to fix, it feels like we do, since PlannedInputValue do get stored
+			//
+			// if varDecl.Ephemeral {
+			// 	marksToAdd = append(marksToAdd, cty.PathValueMarks{
+			// 		Path:  cty.GetAttrPath(varName),
+			// 		Marks: cty.NewValueMarks(marks.Ephemeral),
+			// 	})
+			// }
+			// if varDecl.Sensitive {
+			// 	marksToAdd = append(marksToAdd, cty.PathValueMarks{
+			// 		Path:  cty.GetAttrPath(varName),
+			// 		Marks: cty.NewValueMarks(marks.Sensitive),
+			// 	})
+			// }
 
 			if !varDecl.Ephemeral {
 				// If the variable isn't declared as being ephemeral then we
@@ -361,6 +381,9 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 			// the type constraint so that we can do type checking downstream.
 			return cty.UnknownVal(v.Type()), diags
 		}
+
+		// TODO:@austinvalle: see comment above about defaults not marking ephemeral / sensitive
+		// v = v.MarkWithPaths(marksToAdd)
 	}
 
 	return v, diags

@@ -26,7 +26,7 @@ type RefreshInstance struct {
 	component *ComponentInstance
 
 	result         promising.Once[map[string]cty.Value]
-	moduleTreePlan promising.Once[withDiagnostics[*plans.Plan]]
+	moduleTreePlan promising.Once[withDiagnostics[ComponentInstancePlanResult]]
 }
 
 func newRefreshInstance(component *ComponentInstance) *RefreshInstance {
@@ -40,7 +40,8 @@ func (r *RefreshInstance) Result(ctx context.Context) map[string]cty.Value {
 	result, err := r.result.Do(ctx, r.component.Addr().String()+" result", func(ctx context.Context) (map[string]cty.Value, error) {
 		config := r.component.ModuleTree(ctx)
 
-		plan, _ := r.Plan(ctx)
+		planResult, _ := r.Plan(ctx)
+		plan := planResult.Plan
 		if plan == nil {
 			// Then we'll return dynamic values for all outputs, and the error
 			// from the plan will be raised elsewhere.
@@ -50,7 +51,17 @@ func (r *RefreshInstance) Result(ctx context.Context) map[string]cty.Value {
 			}
 			return outputs, nil
 		}
-		return stackplan.OutputsFromPlan(config, plan), nil
+
+		componentOutputs := stackplan.OutputsFromPlan(config, plan)
+
+		// Add root ephemeral output values from the core runtime, as they don't exist in the plan. These output values
+		// were retrieved via the module runtime scope after plan and are already marked as ephemeral.
+		ephOutputVals := planResult.EphemeralOutputValues
+		for name, v := range ephOutputVals {
+			componentOutputs[name] = v
+		}
+
+		return componentOutputs, nil
 	})
 	if err != nil {
 		// This should never happen as we do not return an error from within
@@ -61,11 +72,11 @@ func (r *RefreshInstance) Result(ctx context.Context) map[string]cty.Value {
 	return result
 }
 
-func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
-	return doOnceWithDiags(ctx, r.component.Addr().String()+" plan", &r.moduleTreePlan, func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+func (r *RefreshInstance) Plan(ctx context.Context) (ComponentInstancePlanResult, tfdiags.Diagnostics) {
+	return doOnceWithDiags(ctx, r.component.Addr().String()+" plan", &r.moduleTreePlan, func(ctx context.Context) (ComponentInstancePlanResult, tfdiags.Diagnostics) {
 		opts, diags := r.component.PlanOpts(ctx, plans.NormalMode, false)
 		if opts == nil {
-			return nil, diags
+			return ComponentInstancePlanResult{}, diags
 		}
 
 		// For now, the refresh option is only used to separate the refresh
@@ -74,7 +85,7 @@ func (r *RefreshInstance) Plan(ctx context.Context) (*plans.Plan, tfdiags.Diagno
 		// compatible with the destroy operation.
 		opts.PreDestroyRefresh = true
 
-		plan, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, nil, r.component)
-		return plan, diags.Append(moreDiags)
+		planResult, moreDiags := PlanComponentInstance(ctx, r.component.main, r.component.PlanPrevState(), opts, nil, r.component)
+		return planResult, diags.Append(moreDiags)
 	})
 }

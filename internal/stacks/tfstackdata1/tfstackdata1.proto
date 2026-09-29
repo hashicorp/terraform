@@ -215,6 +215,12 @@ message PlanComponentInstance {
     // planning phase for this component instance. These results are used
     // to ensure that the same results are returned during the apply phase.
     repeated tfplan.FunctionCallHash function_results = 11;
+
+    // Names of variables whose values must be re-supplied during the apply phase.
+    //
+    // These are ephemeral variables that were set (non-null) during the planning phase and
+    // must be re-supplied, potentially with a different value.
+    repeated string apply_time_input_variables = 12;
 }
 
 // Represents a planned change to a particular resource instance within a

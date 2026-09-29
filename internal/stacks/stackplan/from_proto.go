@@ -198,6 +198,11 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 			}
 		}
 
+		applyTimeInputVariables := collections.NewSetCmp[string]()
+		for _, name := range msg.ApplyTimeInputVariables {
+			applyTimeInputVariables.Add(name)
+		}
+
 		outputVals := make(map[addrs.OutputValue]cty.Value)
 		for name, rawVal := range msg.PlannedOutputValues {
 			v, err := tfstackdata1.DynamicValueFromTFStackData1(rawVal, cty.DynamicPseudoType)
@@ -221,17 +226,18 @@ func (l *Loader) AddRaw(rawMsg *anypb.Any) error {
 		}
 
 		c := l.ret.GetOrCreate(addr, &Component{
-			PlannedAction:          plannedAction,
-			Mode:                   mode,
-			PlanApplyable:          msg.PlanApplyable,
-			PlanComplete:           msg.PlanComplete,
-			Dependencies:           dependencies,
-			Dependents:             collections.NewSet[stackaddrs.AbsComponent](),
-			PlannedInputValues:     inputVals,
-			PlannedInputValueMarks: inputValMarks,
-			PlannedOutputValues:    outputVals,
-			PlannedChecks:          checkResults,
-			PlannedFunctionResults: functionResults,
+			PlannedAction:           plannedAction,
+			Mode:                    mode,
+			PlanApplyable:           msg.PlanApplyable,
+			PlanComplete:            msg.PlanComplete,
+			Dependencies:            dependencies,
+			Dependents:              collections.NewSet[stackaddrs.AbsComponent](),
+			ApplyTimeInputVariables: applyTimeInputVariables,
+			PlannedInputValues:      inputVals,
+			PlannedInputValueMarks:  inputValMarks,
+			PlannedOutputValues:     outputVals,
+			PlannedChecks:           checkResults,
+			PlannedFunctionResults:  functionResults,
 
 			ResourceInstancePlanned:         addrs.MakeMap[addrs.AbsResourceInstanceObject, *plans.ResourceInstanceChangeSrc](),
 			ResourceInstancePriorState:      addrs.MakeMap[addrs.AbsResourceInstanceObject, *states.ResourceInstanceObjectSrc](),

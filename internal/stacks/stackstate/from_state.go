@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/ephemeral"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -168,7 +169,7 @@ func FromState(ctx context.Context, state *states.State, plan *stackplan.Compone
 			ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
 		}
 		for name, value := range applyTimeInputs.AsValueMap() {
-			ourChange.InputVariables[addrs.InputVariable{Name: name}] = value
+			ourChange.InputVariables[addrs.InputVariable{Name: name}] = ephemeral.RemoveEphemeralValues(value)
 		}
 		changes = append(changes, ourChange)
 	}

@@ -44,19 +44,32 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 
 	const invalidForEachSummary = "Invalid for_each value"
 	invalidForEachDetail := fmt.Sprintf("The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this %s.", callerDiagName)
-	const sensitiveForEachDetail = "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key."
 	switch {
 	case marks.Has(result.Value, marks.Sensitive):
 		// Sensitive values are not allowed as for_each arguments because
 		// they could be exposed as resource instance keys.
-		// TODO: This should have Extra: tdiagnosticCausedBySensitive(true),
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     invalidForEachSummary,
-			Detail:      sensitiveForEachDetail,
+			Severity: hcl.DiagError,
+			Summary:  invalidForEachSummary,
+			Detail: "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. " +
+				"If used, the sensitive value could be exposed as a resource instance key.",
 			Subject:     result.Expression.Range().Ptr(),
 			Expression:  result.Expression,
 			EvalContext: result.EvalContext,
+			Extra:       diagnosticCausedBySensitive(true),
+		})
+		return result, diags
+	case marks.Has(result.Value, marks.Ephemeral):
+		// Ephemeral values are not allowed as for_each arguments because they cannot be stored.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  invalidForEachSummary,
+			Detail: `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot ` +
+				`persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+			Subject:     result.Expression.Range().Ptr(),
+			Expression:  result.Expression,
+			EvalContext: result.EvalContext,
+			Extra:       diagnosticCausedByEphemeral(true),
 		})
 		return result, diags
 

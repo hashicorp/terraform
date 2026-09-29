@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type PlanOpts struct {
@@ -123,7 +126,7 @@ func ReportComponentInstance(ctx context.Context, plan *plans.Plan, h *Hooks, se
 	hookMore(ctx, seq, h.ReportComponentInstancePlanned, cic)
 }
 
-func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, tfHooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (*plans.Plan, tfdiags.Diagnostics) {
+func PlanComponentInstance(ctx context.Context, main *Main, state *states.State, opts *terraform.PlanOpts, tfHooks []terraform.Hook, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (ComponentInstancePlanResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// This is our main bridge from the stacks language into the main Terraform
@@ -137,13 +140,13 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 		// we can't create a plan and the relevant diagnostics will
 		// get reported when the plan driver visits the ComponentConfig
 		// object.
-		return nil, diags
+		return ComponentInstancePlanResult{}, diags
 	}
 
 	providerSchemas, moreDiags, _ := neededProviderSchemas(ctx, main, PlanPhase, scope)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return nil, diags
+		return ComponentInstancePlanResult{}, diags
 	}
 
 	// We're actually going to provide two sets of providers to Core
@@ -191,7 +194,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 			"Failed to instantiate Terraform modules runtime",
 			fmt.Sprintf("Could not load the main Terraform language runtime: %s.\n\nThis is a bug in Terraform; please report it!", err),
 		))
-		return nil, diags
+		return ComponentInstancePlanResult{}, diags
 	}
 
 	// When our given context is cancelled, we want to instruct the
@@ -207,8 +210,30 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 		}
 	}()
 
-	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)
+	plan, planScope, moreDiags := tfCtx.PlanAndEval(moduleTree, state, opts, addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 
-	return plan, diags
+	ephOutputVals := ephemeralOutputValuesFromScope(ctx, moduleTree, planScope)
+
+	return ComponentInstancePlanResult{Plan: plan, EphemeralOutputValues: ephOutputVals}, diags
+}
+
+func ephemeralOutputValuesFromScope(ctx context.Context, config *configs.Config, scope *lang.Scope) map[string]cty.Value {
+	if config == nil || scope == nil {
+		return nil
+	}
+
+	ephOutputVals := make(map[string]cty.Value, 0)
+	for _, oc := range config.Module.Outputs {
+		if !oc.Ephemeral {
+			continue
+		}
+
+		// The only diagnostic that can be returned here is if the output address
+		// doesn't exist, which should be impossible here.
+		v, _ := scope.Data.GetOutput(oc.Addr(), tfdiags.SourceRangeFromHCL(oc.DeclRange))
+		ephOutputVals[oc.Name] = v
+	}
+
+	return ephOutputVals
 }

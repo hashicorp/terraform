@@ -87,6 +87,13 @@ type Component struct {
 	PlannedOutputValues map[addrs.OutputValue]cty.Value
 
 	PlannedChecks *states.CheckResults
+
+	// ApplyTimeInputVariables are the names of the root input variables
+	// whose values must be re-supplied during the apply phase.
+	//
+	// These are ephemeral variables that were set (non-null) during the planning phase and
+	// must be re-supplied, potentially with a different value.
+	ApplyTimeInputVariables collections.Set[string]
 }
 
 // ForModulesRuntime translates the component instance plan into the form
@@ -151,15 +158,21 @@ func (c *Component) ForModulesRuntime() (*plans.Plan, error) {
 	}
 
 	variableValues := make(map[string]plans.DynamicValue, len(c.PlannedInputValues))
-	variableMarks := make(map[string][]cty.PathValueMarks, len(c.PlannedInputValueMarks))
 	for k, v := range c.PlannedInputValues {
 		variableValues[k.Name] = v
 	}
 	plan.VariableValues = variableValues
+
+	variableMarks := make(map[string][]cty.PathValueMarks, len(c.PlannedInputValueMarks))
 	for k, v := range c.PlannedInputValueMarks {
 		variableMarks[k.Name] = v
 	}
 	plan.VariableMarks = variableMarks
+
+	plan.ApplyTimeVariables = collections.NewSetCmp[string]()
+	for v := range c.ApplyTimeInputVariables.All() {
+		plan.ApplyTimeVariables.Add(v)
+	}
 
 	plan.PriorState = priorState
 	plan.PrevRunState = priorState.DeepCopy() // This is just here to complete the data structure; we don't really do anything with it

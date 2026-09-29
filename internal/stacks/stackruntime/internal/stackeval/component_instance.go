@@ -40,8 +40,18 @@ type ComponentInstance struct {
 
 	repetition instances.RepetitionData
 
-	moduleTreePlan      promising.Once[withDiagnostics[*plans.Plan]] // moduleTreePlan is only called during the plan phase
+	moduleTreePlan      promising.Once[withDiagnostics[ComponentInstancePlanResult]] // moduleTreePlan is only called during the plan phase
 	inputVariableValues perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+}
+
+type ComponentInstancePlanResult struct {
+	// Plan is the plan for the component instance
+	Plan *plans.Plan
+
+	// EphemeralOutputValues are the root ephemeral output values read from the module
+	// runtime scope after the plan has completed. These values are marked as ephemeral
+	// and thus cannot serialized.
+	EphemeralOutputValues map[string]cty.Value
 }
 
 var _ Applyable = (*ComponentInstance)(nil)
@@ -173,7 +183,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalProviders:          providerClients,
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
-		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		AllowRootEphemeralOutputs:  true,
 		PolicyClient:               c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language
@@ -183,17 +193,22 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 
 func (c *ComponentInstance) ModuleTreePlan(ctx context.Context) *plans.Plan {
 	ret, _ := c.CheckModuleTreePlan(ctx)
-	return ret
+	return ret.Plan
 }
 
-func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *ComponentInstance) ModuleTreePlanEphemeralOutputValues(ctx context.Context) map[string]cty.Value {
+	ret, _ := c.CheckModuleTreePlan(ctx)
+	return ret.EphemeralOutputValues
+}
+
+func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (ComponentInstancePlanResult, tfdiags.Diagnostics) {
 	if !c.main.Planning() {
 		panic("called CheckModuleTreePlan with an evaluator not instantiated for planning")
 	}
 
 	return doOnceWithDiags(
 		ctx, c.tracingName()+" modules", &c.moduleTreePlan,
-		func(ctx context.Context) (*plans.Plan, tfdiags.Diagnostics) {
+		func(ctx context.Context) (ComponentInstancePlanResult, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
 			h := hooksFromContext(ctx)
 
@@ -214,13 +229,15 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						Addr: c.Addr(),
 					})
 					hookMore(ctx, seq, h.EndComponentInstancePlan, c.Addr())
-					return &plans.Plan{
-						UIMode:    plans.DestroyMode,
-						Complete:  true,
-						Applyable: true,
-						Errored:   false,
-						Timestamp: c.main.PlanTimestamp(),
-						Changes:   plans.NewChangesSrc(), // no changes
+					return ComponentInstancePlanResult{
+						Plan: &plans.Plan{
+							UIMode:    plans.DestroyMode,
+							Complete:  true,
+							Applyable: true,
+							Errored:   false,
+							Timestamp: c.main.PlanTimestamp(),
+							Changes:   plans.NewChangesSrc(), // no changes
+						},
 					}, nil
 				}
 
@@ -233,7 +250,8 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
 				seq, planCtx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
 
-				refresh, moreDiags := c.refresh.Plan(ctx)
+				refreshPlanResult, moreDiags := c.refresh.Plan(ctx)
+				refresh := refreshPlanResult.Plan
 				var filteredDiags tfdiags.Diagnostics
 				for _, diag := range moreDiags {
 					if _, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok && diag.Severity() == tfdiags.Warning {
@@ -247,7 +265,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				diags = diags.Append(filteredDiags)
 				if refresh == nil {
 					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
-					return nil, diags
+					return ComponentInstancePlanResult{}, diags
 				}
 
 				// For the actual destroy plan, we'll skip the refresh and
@@ -256,7 +274,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				diags = diags.Append(moreDiags)
 				if opts == nil {
 					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
-					return nil, diags
+					return ComponentInstancePlanResult{}, diags
 				}
 
 				// If we're destroying this instance, then the dependencies
@@ -285,7 +303,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 					}
 				}
 
-				plan, moreDiags := PlanComponentInstance(planCtx, c.main, refresh.PriorState, opts, []terraform.Hook{
+				planResult, moreDiags := PlanComponentInstance(planCtx, c.main, refresh.PriorState, opts, []terraform.Hook{
 					&componentInstanceTerraformHook{
 						ctx:   ctx,
 						seq:   seq,
@@ -293,6 +311,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 						addr:  c.Addr(),
 					},
 				}, c)
+				plan := planResult.Plan
 				if plan != nil {
 					ReportComponentInstance(ctx, plan, h, seq, c)
 					if plan.Complete {
@@ -303,13 +322,13 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				} else {
 					hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 				}
-				return plan, diags.Append(moreDiags)
+				return planResult, diags.Append(moreDiags)
 			}
 
 			opts, moreDiags := c.PlanOpts(ctx, c.mode, false)
 			diags = diags.Append(moreDiags)
 			if opts == nil {
-				return nil, diags
+				return ComponentInstancePlanResult{}, diags
 			}
 
 			// If any of our upstream components have incomplete plans then
@@ -347,7 +366,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 
 			hookSingle(ctx, h.PendingComponentInstancePlan, c.Addr())
 			seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, c.Addr())
-			plan, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, []terraform.Hook{
+			planResult, moreDiags := PlanComponentInstance(ctx, c.main, c.PlanPrevState(), opts, []terraform.Hook{
 				&componentInstanceTerraformHook{
 					ctx:   ctx,
 					seq:   seq,
@@ -356,6 +375,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 				},
 			}, c)
 
+			plan := planResult.Plan
 			if plan != nil {
 				ReportComponentInstance(ctx, plan, h, seq, c)
 				if plan.Complete {
@@ -368,7 +388,7 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 			} else {
 				hookMore(ctx, seq, h.ErrorComponentInstancePlan, c.Addr())
 			}
-			return plan, diags.Append(moreDiags)
+			return planResult, diags.Append(moreDiags)
 		},
 	)
 }
@@ -462,7 +482,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, c.call.config.config.ProviderConfigs, c)
+	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, inputValues, c.call.config.config.ProviderConfigs, c)
 	return result, diags.Append(moreDiags)
 }
 
@@ -537,6 +557,24 @@ func (c *ComponentInstance) PlaceholderApplyResultForSkippedApply(plan *plans.Pl
 	}
 }
 
+// ApplyResultEphemeralOutputValues returns the root ephemeral values resulting from applying a plan for
+// this object using [ApplyModuleTreePlan], or nil if the apply failed and so there are no ephemeral values to return.
+func (c *ComponentInstance) ApplyResultEphemeralOutputValues(ctx context.Context) map[string]cty.Value {
+	ret, _ := c.CheckApplyResultEphemeralOutputValues(ctx)
+	return ret
+}
+
+// CheckApplyResultEphemeralOutputValues returns the root ephemeral values resulting from applying a plan for
+// this object using [ApplyModuleTreePlan] and diagnostics describing any problems encountered when applying it.
+func (c *ComponentInstance) CheckApplyResultEphemeralOutputValues(ctx context.Context) (map[string]cty.Value, tfdiags.Diagnostics) {
+	result, diags := c.CheckApplyResult(ctx)
+	ephOutputVals := make(map[string]cty.Value, 0)
+	if result != nil {
+		ephOutputVals = result.EphemeralOutputValues
+	}
+	return ephOutputVals, diags
+}
+
 // ApplyResultState returns the new state resulting from applying a plan for
 // this object using [ApplyModuleTreePlan], or nil if the apply failed and
 // so there is no new state to return.
@@ -582,7 +620,17 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			// result types.
 			return cty.DynamicVal
 		}
-		return cty.ObjectVal(stackplan.OutputsFromPlan(c.ModuleTree(ctx), plan))
+
+		componentOutputs := stackplan.OutputsFromPlan(c.ModuleTree(ctx), plan)
+
+		// Add root ephemeral output values from the core runtime, as they don't exist in the plan. These output values
+		// were retrieved via the module runtime scope after plan and are already marked as ephemeral.
+		ephOutputVals := c.ModuleTreePlanEphemeralOutputValues(ctx)
+		for name, v := range ephOutputVals {
+			componentOutputs[name] = v
+		}
+
+		return cty.ObjectVal(componentOutputs)
 
 	case ApplyPhase, InspectPhase:
 		// As a special case, if we're applying and the planned action is
@@ -611,9 +659,11 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 		}
 
 		var state *states.State
+		var ephOutputVals map[string]cty.Value
 		switch phase {
 		case ApplyPhase:
 			state = c.ApplyResultState(ctx)
+			ephOutputVals = c.ApplyResultEphemeralOutputValues(ctx)
 		case InspectPhase:
 			state = c.InspectingState()
 		default:
@@ -667,6 +717,12 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 			if _, ok := attrs[output.Name]; !ok {
 				attrs[output.Name] = cty.DynamicVal
 			}
+		}
+
+		// Add root ephemeral output values from the core runtime, as they don't exist in state. These output values
+		// were retrieved via the module runtime scope after apply and are already marked as ephemeral.
+		for name, v := range ephOutputVals {
+			attrs[name] = v
 		}
 
 		return cty.ObjectVal(attrs)
@@ -727,7 +783,8 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.config.config.ProviderConfigs, PlanPhase, c)
 	diags = diags.Append(moreDiags)
 
-	corePlan, moreDiags := c.CheckModuleTreePlan(ctx)
+	planResult, moreDiags := c.CheckModuleTreePlan(ctx)
+	corePlan := planResult.Plan
 	diags = diags.Append(moreDiags)
 	if corePlan != nil {
 		existedBefore := false
@@ -754,7 +811,8 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 			// if we're in destroy mode, then we did a separate refresh plan
 			// so we'll make sure to pass that in as extra information the
 			// FromPlan function can use.
-			refreshPlan, _ = c.refresh.Plan(ctx)
+			refreshPlanResult, _ := c.refresh.Plan(ctx)
+			refreshPlan = refreshPlanResult.Plan
 		}
 
 		changes, moreDiags = stackplan.FromPlan(ctx, c.ModuleTree(ctx), corePlan, refreshPlan, action, c)

@@ -8,10 +8,12 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -95,7 +97,7 @@ type ApplyableComponentInstance interface {
 	PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult
 }
 
-func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
+func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, inputValues terraform.InputValues, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// NOTE WELL: This function MUST either successfully apply the component
@@ -239,8 +241,22 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 	providerClients := configuredProviderClients(ctx, main, known, unknown, ApplyPhase)
 
 	var newState *states.State
+	var ephOutputVals map[string]cty.Value
 
-	if plan.Applyable {
+	containsEphemeralOutput := false
+	for _, o := range moduleTree.Module.Outputs {
+		if o.Ephemeral {
+			containsEphemeralOutput = true
+			break
+		}
+	}
+
+	// If the plan has no changes (Applyable = false), we still need to apply if ephemeral
+	// outputs exist in the component as the ephemeral data needs to be re-calculated.
+	//
+	// TODO:@austinvalle: need to verify with the stacks team that this is okay (always applying
+	// components with ephemeral outputs but not communicating that in the plan).
+	if plan.Applyable || (containsEphemeralOutput && !plan.Errored) {
 		// When our given context is cancelled, we want to instruct the
 		// modules runtime to stop the running operation. We use this
 		// nested context to ensure that we don't leak a goroutine when the
@@ -254,16 +270,31 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			}
 		}()
 
+		var applyScope *lang.Scope
+
+		// We can only provide the ephemeral input values during apply
+		ephemeralInputValues := make(terraform.InputValues)
+		for k, v := range moduleTree.Module.Variables {
+			if v.Ephemeral {
+				if iv, ok := inputValues[k]; ok {
+					ephemeralInputValues[k] = iv
+				}
+			}
+		}
+
 		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
 		// works, and so code after this point should not make any further use
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
-		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
+		newState, applyScope, moreDiags = tfCtx.ApplyAndEval(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
-			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
+			AllowRootEphemeralOutputs: true,
+			SetVariables:              ephemeralInputValues,
 		})
 		diags = diags.Append(moreDiags)
+
+		ephOutputVals = ephemeralOutputValuesFromScope(ctx, moduleTree, applyScope)
 	} else {
 		// For a non-applyable plan, we just skip trying to apply it altogether
 		// and just propagate the prior state (including any refreshing we
@@ -361,6 +392,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 
 	return &ComponentInstanceApplyResult{
 		FinalState:                      newState,
+		EphemeralOutputValues:           ephOutputVals,
 		AffectedResourceInstanceObjects: affectedResourceInstanceObjects,
 
 		// Currently our definition of "complete" is that the apply phase

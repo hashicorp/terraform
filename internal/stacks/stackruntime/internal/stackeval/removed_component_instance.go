@@ -135,7 +135,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			DeferralAllowed:            true,
 			ExternalDependencyDeferred: deferred,
 			Forget:                     forget,
-			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+			AllowRootEphemeralOutputs:  true,
 			PolicyClient:               r.main.PolicyClient(),
 
 			// We want the same plantimestamp between all components and the stacks language
@@ -145,7 +145,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 		h := hooksFromContext(ctx)
 		hookSingle(ctx, h.PendingComponentInstancePlan, r.Addr())
 		seq, ctx := hookBegin(ctx, h.BeginComponentInstancePlan, h.ContextAttach, r.Addr())
-		plan, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, []terraform.Hook{
+		planResult, moreDiags := PlanComponentInstance(ctx, r.main, r.PlanPrevState(), opts, []terraform.Hook{
 			&componentInstanceTerraformHook{
 				ctx:   ctx,
 				seq:   seq,
@@ -153,6 +153,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 				addr:  r.Addr(),
 			},
 		}, r)
+		plan := planResult.Plan
 		if plan != nil {
 			ReportComponentInstance(ctx, plan, h, seq, r)
 			if plan.Complete {
@@ -231,7 +232,7 @@ func (r *RemovedComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan
 	// unknown variables. With that in mind, we can just the plan directly
 	// onto the shared function with no modifications.
 
-	return ApplyComponentPlan(ctx, r.main, plan, r.call.config.config.ProviderConfigs, r)
+	return ApplyComponentPlan(ctx, r.main, plan, nil, r.call.config.config.ProviderConfigs, r)
 }
 
 func (r *RemovedComponentInstance) ApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {

@@ -69,6 +69,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		PlanApplyable:                  plan.Applyable,
 		PlanComplete:                   plan.Complete,
 		RequiredComponents:             producer.RequiredComponents(ctx),
+		ApplyTimeInputVariables:        plan.ApplyTimeVariables,
 		PlannedInputValues:             plan.VariableValues,
 		PlannedInputValueMarks:         plan.VariableMarks,
 		PlannedOutputValues:            outputs,
@@ -396,12 +397,12 @@ func OutputsFromPlan(config *configs.Config, plan *plans.Plan) map[string]cty.Va
 	}
 
 	if config != nil {
-		// If the plan only ran partially then we might be missing
-		// some planned changes for output values, which could
-		// cause "attrs" to have an incomplete set of attributes.
-		// To avoid confusing downstream errors we'll insert unknown
-		// values for any declared output values that don't yet
-		// have a final value.
+		// We use the configuration to fill in any missing outputs, which could
+		// be caused by a partial plan or a module that has root ephemeral outputs
+		// (which are not stored in the plan, but will be populated for evaluation later).
+		//
+		// To avoid confusing downstream errors we'll insert unknown values for any
+		// declared output values that don't yet have a final value.
 		for name := range config.Module.Outputs {
 			if _, ok := attrs[name]; !ok {
 				// We can't do any better than DynamicVal because

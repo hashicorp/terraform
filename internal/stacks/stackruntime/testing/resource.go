@@ -5,6 +5,7 @@ package testing
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -361,6 +362,19 @@ func (w *writeOnlyResource) Apply(request providers.ApplyResourceChangeRequest, 
 		return
 	}
 
+	woStr := request.Config.GetAttr("write_only").AsString()
+	if !strings.Contains(woStr, "secret") {
+		response.Diagnostics = append(
+			response.Diagnostics,
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"writeOnlyResource error",
+				fmt.Sprintf(`Expected "write_only" attribute in configuration to contain "secret" string during apply, got %q`, woStr),
+			),
+		)
+		return
+	}
+
 	value := applyEnsureId(request.PlannedState)
 	replace, err := validateId(value, request.PriorState, store)
 	if err != nil {
@@ -492,10 +506,8 @@ func setKnown(value cty.Value, attr string, attrValue cty.Value) cty.Value {
 }
 
 func setNull(value cty.Value, attr string) cty.Value {
-	if v := value.GetAttr(attr); !v.IsKnown() {
-		vals := value.AsValueMap()
-		vals[attr] = cty.NullVal(v.Type())
-		return cty.ObjectVal(vals)
-	}
-	return value
+	v := value.GetAttr(attr)
+	vals := value.AsValueMap()
+	vals[attr] = cty.NullVal(v.Type())
+	return cty.ObjectVal(vals)
 }

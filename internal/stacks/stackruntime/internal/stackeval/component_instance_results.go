@@ -7,9 +7,15 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type ComponentInstanceApplyResult struct {
+	// EphemeralOutputValues are the root ephemeral output values read from the module
+	// runtime scope after the apply has completed. These values are marked as ephemeral
+	// and thus cannot serialized.
+	EphemeralOutputValues map[string]cty.Value
+
 	// FinalState is the final state snapshot returned by the modules runtime
 	// after the apply phase completed.
 	FinalState *states.State

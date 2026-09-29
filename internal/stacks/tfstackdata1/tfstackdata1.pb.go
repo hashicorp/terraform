@@ -631,8 +631,13 @@ type PlanComponentInstance struct {
 	// planning phase for this component instance. These results are used
 	// to ensure that the same results are returned during the apply phase.
 	FunctionResults []*planproto.FunctionCallHash `protobuf:"bytes,11,rep,name=function_results,json=functionResults,proto3" json:"function_results,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Names of variables whose values must be re-supplied during the apply phase.
+	//
+	// These are ephemeral variables that were set (non-null) during the planning phase and
+	// must be re-supplied, potentially with a different value.
+	ApplyTimeInputVariables []string `protobuf:"bytes,12,rep,name=apply_time_input_variables,json=applyTimeInputVariables,proto3" json:"apply_time_input_variables,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *PlanComponentInstance) Reset() {
@@ -738,6 +743,13 @@ func (x *PlanComponentInstance) GetPlannedCheckResults() []*planproto.CheckResul
 func (x *PlanComponentInstance) GetFunctionResults() []*planproto.FunctionCallHash {
 	if x != nil {
 		return x.FunctionResults
+	}
+	return nil
+}
+
+func (x *PlanComponentInstance) GetApplyTimeInputVariables() []string {
+	if x != nil {
+		return x.ApplyTimeInputVariables
 	}
 	return nil
 }
@@ -1390,7 +1402,7 @@ const file_tfstackdata1_proto_rawDesc = "" +
 	"\x10DeletedComponent\x126\n" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\"V\n" +
 	"\x0fFunctionResults\x12C\n" +
-	"\x10function_results\x18\x01 \x03(\v2\x18.tfplan.FunctionCallHashR\x0ffunctionResults\"\x8f\a\n" +
+	"\x10function_results\x18\x01 \x03(\v2\x18.tfplan.FunctionCallHashR\x0ffunctionResults\"\xcc\a\n" +
 	"\x15PlanComponentInstance\x126\n" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x12%\n" +
 	"\x0eplan_timestamp\x18\x02 \x01(\tR\rplanTimestamp\x12m\n" +
@@ -1403,7 +1415,8 @@ const file_tfstackdata1_proto_rawDesc = "" +
 	"\x1adepends_on_component_addrs\x18\x05 \x03(\tR\x17dependsOnComponentAddrs\x12p\n" +
 	"\x15planned_output_values\x18\x06 \x03(\v2<.tfstackdata1.PlanComponentInstance.PlannedOutputValuesEntryR\x13plannedOutputValues\x12H\n" +
 	"\x15planned_check_results\x18\t \x03(\v2\x14.tfplan.CheckResultsR\x13plannedCheckResults\x12C\n" +
-	"\x10function_results\x18\v \x03(\v2\x18.tfplan.FunctionCallHashR\x0ffunctionResults\x1aa\n" +
+	"\x10function_results\x18\v \x03(\v2\x18.tfplan.FunctionCallHashR\x0ffunctionResults\x12;\n" +
+	"\x1aapply_time_input_variables\x18\f \x03(\tR\x17applyTimeInputVariables\x1aa\n" +
 	"\x17PlannedInputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x120\n" +
 	"\x05value\x18\x02 \x01(\v2\x1a.tfstackdata1.DynamicValueR\x05value:\x028\x01\x1ab\n" +
