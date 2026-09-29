@@ -1161,6 +1161,12 @@ func testUiWrapped(t *testing.T, testUi ...*cli.MockUi) *ui.WrappedMockUi {
 	return &ui.WrappedMockUi{MockUi: wrappedMock}
 }
 
+// testView returns a view for a command under test, along with a function
+// that closes the view's streams and returns everything written to them.
+//
+// When running a command within a synctest bubble, the view must be created
+// outside of the bubble. The goroutines capturing the output are blocked on
+// I/O until done is called, so the bubble could otherwise never complete.
 func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 	streams, done := terminal.StreamsForTesting(t)

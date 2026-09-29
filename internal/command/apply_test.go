@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -2439,67 +2440,79 @@ func TestApply_shutdown(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
 	t.Chdir(td)
 
-	cancelled := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
 	statePath := testTempFile(t)
-	p := testProvider()
-
 	view, done := testView(t)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-			ShutdownCh:       shutdownCh,
-		},
-	}
 
-	p.StopFn = func() error {
-		close(cancelled)
-		return nil
-	}
+	// The channels must be created within the bubble, so that the command
+	// blocking on ShutdownCh is durably blocked.
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		cancelled := make(chan struct{})
+		shutdownCh := make(chan struct{})
 
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-		resp.PlannedState = req.ProposedNewState
-		return
-	}
+		p := testProvider()
 
-	var once sync.Once
-	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
-		// only cancel once
-		once.Do(func() {
-			shutdownCh <- struct{}{}
-		})
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				ShutdownCh:       shutdownCh,
+			},
+		}
 
-		// Because of the internal lock in the MockProvider, we can't
-		// coordiante directly with the calling of Stop, and making the
-		// MockProvider concurrent is disruptive to a lot of existing tests.
-		// Wait here a moment to help make sure the main goroutine gets to the
-		// Stop call before we exit, or the plan may finish before it can be
-		// canceled.
-		time.Sleep(200 * time.Millisecond)
+		p.StopFn = func() error {
+			close(cancelled)
+			return nil
+		}
 
-		resp.NewState = req.PlannedState
-		return
-	}
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			resp.PlannedState = req.ProposedNewState
+			return
+		}
 
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"ami": {Type: cty.String, Optional: true},
+		var once sync.Once
+		p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+			// only cancel once
+			once.Do(func() {
+				shutdownCh <- struct{}{}
+			})
+
+			// Because of the internal lock in the MockProvider, we can't
+			// coordiante directly with the calling of Stop, and making the
+			// MockProvider concurrent is disruptive to a lot of existing tests.
+			// Wait here a moment to help make sure the main goroutine gets to the
+			// Stop call before we exit, or the plan may finish before it can be
+			// canceled.
+			time.Sleep(200 * time.Millisecond)
+
+			resp.NewState = req.PlannedState
+			return
+		}
+
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"-auto-approve",
-	}
-	code := c.Run(args)
+		args := []string{
+			"-state", statePath,
+			"-auto-approve",
+		}
+		code = c.Run(args)
+
+		select {
+		case <-cancelled:
+		default:
+			t.Error("command not cancelled")
+		}
+	})
 	output := done(t)
 	if code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
@@ -2507,12 +2520,6 @@ func TestApply_shutdown(t *testing.T) {
 
 	if _, err := os.Stat(statePath); err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	select {
-	case <-cancelled:
-	default:
-		t.Fatal("command not cancelled")
 	}
 
 	state := testStateRead(t, statePath)
@@ -3410,7 +3417,10 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	code := c.Run(args)
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(args)
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())

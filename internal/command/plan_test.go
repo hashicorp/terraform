@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -1450,67 +1451,73 @@ func TestPlan_shutdown(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
 	t.Chdir(td)
 
-	cancelled := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
-	p := testProvider()
 	view, done := testView(t)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-			ShutdownCh:       shutdownCh,
-		},
-	}
 
-	p.StopFn = func() error {
-		close(cancelled)
-		return nil
-	}
+	// The channels must be created within the bubble, so that the command
+	// blocking on ShutdownCh is durably blocked.
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		cancelled := make(chan struct{})
+		shutdownCh := make(chan struct{})
 
-	var once sync.Once
+		p := testProvider()
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				ShutdownCh:       shutdownCh,
+			},
+		}
 
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-		once.Do(func() {
-			shutdownCh <- struct{}{}
-		})
+		p.StopFn = func() error {
+			close(cancelled)
+			return nil
+		}
 
-		// Because of the internal lock in the MockProvider, we can't
-		// coordinate directly with the calling of Stop, and making the
-		// MockProvider concurrent is disruptive to a lot of existing tests.
-		// Wait here a moment to help make sure the main goroutine gets to the
-		// Stop call before we exit, or the plan may finish before it can be
-		// canceled.
-		time.Sleep(200 * time.Millisecond)
+		var once sync.Once
 
-		s := req.ProposedNewState.AsValueMap()
-		s["ami"] = cty.StringVal("bar")
-		resp.PlannedState = cty.ObjectVal(s)
-		return
-	}
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			once.Do(func() {
+				shutdownCh <- struct{}{}
+			})
 
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"ami": {Type: cty.String, Optional: true},
+			// Because of the internal lock in the MockProvider, we can't
+			// coordinate directly with the calling of Stop, and making the
+			// MockProvider concurrent is disruptive to a lot of existing tests.
+			// Wait here a moment to help make sure the main goroutine gets to the
+			// Stop call before we exit, or the plan may finish before it can be
+			// canceled.
+			time.Sleep(200 * time.Millisecond)
+
+			s := req.ProposedNewState.AsValueMap()
+			s["ami"] = cty.StringVal("bar")
+			resp.PlannedState = cty.ObjectVal(s)
+			return
+		}
+
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	code := c.Run([]string{})
+		code = c.Run([]string{})
+
+		select {
+		case <-cancelled:
+		default:
+			t.Error("command not cancelled")
+		}
+	})
 	output := done(t)
 	if code != 1 {
 		t.Errorf("wrong exit code %d; want 1\noutput:\n%s", code, output.Stdout())
-	}
-
-	select {
-	case <-cancelled:
-	default:
-		t.Error("command not cancelled")
 	}
 }
 
@@ -1865,7 +1872,10 @@ func TestPlan_jsonGoldenReference(t *testing.T) {
 	args := []string{
 		"-json",
 	}
-	code := c.Run(args)
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(args)
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
