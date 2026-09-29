@@ -174,8 +174,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
-
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
 	var deferred *providers.Deferred
@@ -195,12 +193,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// sometimes not have a reason.)
 	change.ActionReason = n.deleteActionReason(ctx)
 
-	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
-		return diags
-	} else if shouldDefer {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
-		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+	if n.deferPlannedChange(ctx, deferred, change) {
 		return diags
 	}
 

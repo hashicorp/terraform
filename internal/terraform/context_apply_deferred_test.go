@@ -4386,6 +4386,13 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			if req.PlannedState.IsNull() {
+				// Deletes are not recorded as applied changes.
+				return providers.ApplyResourceChangeResponse{
+					NewState: req.PlannedState,
+				}
+			}
+
 			key := req.Config.GetAttr("name").AsString()
 			newState := req.PlannedState
 
@@ -4531,5 +4538,94 @@ resource "test" "b" {
 	}
 	if len(provider.appliedChanges.changes) != 0 {
 		t.Fatalf("expected nothing to be applied, got %d changes", len(provider.appliedChanges.changes))
+	}
+}
+
+// TestContextApply_deferredWithDeposedObject verifies that a deposed object
+// which was planned for destruction is destroyed during apply, even though
+// the current object of the same resource instance was deferred.
+func TestContextApply_deferredWithDeposedObject(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "each" {
+  type = set(string)
+}
+
+resource "test" "a" {
+  for_each = var.each
+  name     = "a:${each.key}"
+}
+
+resource "test" "b" {
+  name           = "b"
+  upstream_names = [for v in test.a : v.name]
+}
+`,
+	})
+
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.b"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: mustParseJson(map[string]interface{}{"name": "b"}),
+		}, providerAddr)
+		s.SetResourceInstanceDeposed(mustResourceInstanceAddr("test.b"), states.DeposedKey("00000001"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: mustParseJson(map[string]interface{}{"name": "b-old"}),
+		}, providerAddr)
+	})
+
+	provider := &deferredActionsProvider{
+		t:               t,
+		deferralAllowed: true,
+		plannedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+		appliedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+		},
+	})
+
+	plan, diags := ctx.Plan(cfg, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		SetVariables: InputValues{
+			"each": &InputValue{
+				Value:      cty.UnknownVal(cty.Set(cty.String)),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	gotDeferred := make(map[string]providers.DeferredReason)
+	for _, dc := range plan.DeferredResources {
+		gotDeferred[dc.ChangeSrc.Addr.String()] = dc.DeferredReason
+	}
+	wantDeferred := map[string]providers.DeferredReason{
+		"test.a[*]": providers.DeferredReasonInstanceCountUnknown,
+		"test.b":    providers.DeferredReasonDeferredPrereq,
+	}
+	if diff := cmp.Diff(wantDeferred, gotDeferred); diff != "" {
+		t.Fatalf("wrong deferred resources\n%s", diff)
+	}
+	deposedChange := plan.Changes.ResourceInstanceDeposed(mustResourceInstanceAddr("test.b"), states.DeposedKey("00000001"))
+	if deposedChange == nil || deposedChange.Action != plans.Delete {
+		t.Fatalf("expected a planned delete for the deposed object, got %#v", deposedChange)
+	}
+
+	newState, diags := ctx.Apply(plan, cfg, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	instance := newState.ResourceInstance(mustResourceInstanceAddr("test.b"))
+	if instance == nil || instance.Current == nil {
+		t.Fatal("expected the current object for test.b to remain")
+	}
+	if len(instance.Deposed) != 0 {
+		t.Fatalf("expected the deposed object to be destroyed, got %d deposed objects", len(instance.Deposed))
 	}
 }

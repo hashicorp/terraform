@@ -3171,7 +3171,34 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	return reqRep, diags
 }
 
-func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalContext, reason providers.DeferredReason) {
+// deferPlannedChange decides whether the planned change for this resource
+// instance must be deferred, either because the provider deferred it or
+// because one of the instance's dependencies was already deferred. When
+// deferred, the change and all of the instance's action triggers are reported
+// to the deferrals tracker, and the caller must not record the change in the
+// plan.
+func (n *NodeAbstractResourceInstance) deferPlannedChange(ctx EvalContext, providerDeferred *providers.Deferred, change *plans.ResourceInstanceChange) bool {
+	deferrals := ctx.Deferrals()
+
+	var reason providers.DeferredReason
+	switch {
+	case providerDeferred != nil:
+		reason = providerDeferred.Reason
+	case deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies):
+		reason = providers.DeferredReasonDeferredPrereq
+	default:
+		return false
+	}
+
+	deferrals.ReportResourceInstanceDeferred(n.Addr, reason, change)
+	n.reportDeferredActionTriggers(ctx)
+	return true
+}
+
+// reportDeferredActionTriggers reports all of the action invocations triggered
+// by this resource instance as deferred, because the resource instance itself
+// was deferred.
+func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalContext) {
 	deferrals := ctx.Deferrals()
 
 	for blockIdx, trigger := range n.actionTriggers {
@@ -3184,7 +3211,7 @@ func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalCont
 					ActionsListIndex:        listIdx,
 				},
 				Caller: n.Addr.Resource,
-			}, reason)
+			}, providers.DeferredReasonDeferredPrereq)
 		}
 	}
 }
@@ -3236,7 +3263,7 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 					ctx.Changes().RemoveResourceInstanceChange(n.Addr, addrs.NotDeposed)
 					ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonAbsentPrereq, change)
 					// this defers all action triggers at once
-					n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+					n.reportDeferredActionTriggers(ctx)
 					return diags
 				}
 

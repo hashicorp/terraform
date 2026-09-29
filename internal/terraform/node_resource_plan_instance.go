@@ -587,7 +587,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					After:  instanceRefreshState.Value,
 				},
 			})
-			n.reportDeferredActionTriggers(ctx, deferred.Reason)
+			n.reportDeferredActionTriggers(ctx)
 		}
 	}
 
@@ -596,7 +596,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 func (n *NodePlannableResourceInstance) reportPlan(ctx EvalContext, deferred, planDeferred *providers.Deferred, importing bool, change *plans.ResourceInstanceChange, instanceRefreshState, instancePlanState *states.ResourceInstanceObject, repData instances.RepetitionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	addr := n.ResourceInstanceAddr()
 
 	checkRuleSeverity := tfdiags.Error
 	if n.skipPlanChanges || n.preDestroyRefresh {
@@ -626,15 +625,12 @@ func (n *NodePlannableResourceInstance) reportPlan(ctx EvalContext, deferred, pl
 		change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 	}
 
-	deferrals := ctx.Deferrals()
-	if deferred != nil {
-		// Then this resource has been deferred either during the import,
-		// refresh or planning stage. We'll report the deferral and
-		// store what we could produce in the deferral tracker.
-		deferrals.ReportResourceInstanceDeferred(addr, deferred.Reason, change)
-		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
-
-	} else if !deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
+	// If this resource was deferred by the provider during import, refresh or
+	// planning, or depends on something which was deferred, then the change is
+	// recorded as deferred rather than being added to the plan or working
+	// state. In that case the expression evaluator will use the deferred
+	// change as the value of this resource instance.
+	if !n.deferPlannedChange(ctx, deferred, change) {
 		// We intentionally write the change before the subsequent checks, because
 		// all of the checks below this point are for problems caused by the
 		// context surrounding the change, rather than the change itself, and
@@ -681,18 +677,6 @@ func (n *NodePlannableResourceInstance) reportPlan(ctx EvalContext, deferred, pl
 			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
-	} else {
-		// The deferrals tracker says that we must defer changes for
-		// this resource instance, presumably due to a dependency on an
-		// upstream object that was already deferred. Therefore we just
-		// report our own deferral (capturing a placeholder value in the
-		// deferral tracker) and don't add anything to the plan or
-		// working state.
-		// In this case, the expression evaluator should use the placeholder
-		// value registered here as the value of this resource instance,
-		// instead of using the plan.
-		deferrals.ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
-		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
 	}
 
 	// Now that the instance is planned we can plan any triggered actions.
