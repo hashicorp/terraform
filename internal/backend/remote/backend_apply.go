@@ -14,6 +14,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -161,12 +162,20 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backendrun.Oper
 	}
 
 	if op.PlanMinimalRefresh {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Minimal refresh planning option is currently not supported",
-			`The "remote" backend does not support the -minimal-refresh option for `+
-				`remote plans at this time.`,
-		))
+		desiredAPIVersion, _ := version.NewVersion(cloud.MinimalRefreshMinAPIVersion)
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Minimal refresh is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -minimal-refresh option. `+
+						`If you use Terraform Enterprise, upgrade to a version that `+
+						`supports minimal refresh. Otherwise, run without -minimal-refresh.`,
+					b.hostname,
+				),
+			))
+		}
 	}
 
 	// Return if there are any errors.
