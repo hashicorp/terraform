@@ -464,6 +464,9 @@ func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance
 //
 // Use the most precise partial-expanded module address possible.
 func (d *Deferred) ReportModuleExpansionDeferred(addr addrs.PartialExpandedModule) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.partialExpandedModulesDeferred.Has(addr) {
 		// This indicates a bug in the caller, since our graph walk should
 		// ensure that we visit and evaluate each distinct partial-expanded

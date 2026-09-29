@@ -2549,6 +2549,106 @@ resource "test" "a" {
 		},
 	}
 
+	// moduleUnknownExpansionWithoutResources verifies that a module call with
+	// unknown expansion causes the plan to be incomplete, even when there are
+	// no resources beneath it which could be reported as deferred.
+	moduleUnknownExpansionWithoutResources = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "keys" {
+  type = set(string)
+}
+
+variable "n" {
+  type = number
+}
+
+module "a" {
+  source   = "./leaf"
+  for_each = var.keys
+  value    = each.key
+}
+
+module "b" {
+  source = "./counted"
+  n      = var.n
+}
+
+output "a" {
+  value = [for m in module.a : m.value]
+}
+
+output "b" {
+  value = module.b.count
+}
+`,
+			"leaf/main.tf": `
+variable "value" {
+  type = string
+}
+
+output "value" {
+  value = var.value
+}
+`,
+			"counted/main.tf": `
+variable "n" {
+  type = number
+}
+
+module "c" {
+  source = "../leaf"
+  count  = var.n
+  value  = "c"
+}
+
+output "count" {
+  value = length(module.c)
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Unknown for_each on a module call in the root module.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.UnknownVal(cty.Set(cty.String)),
+					"n":    cty.NumberIntVal(1),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+			},
+			// Unknown count on a module call within a known module instance.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.SetVal([]cty.Value{cty.StringVal("x")}),
+					"n":    cty.UnknownVal(cty.Number),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+			},
+			// Everything is known, so the plan is complete.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.SetVal([]cty.Value{cty.StringVal("x")}),
+					"n":    cty.NumberIntVal(2),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied:  map[string]cty.Value{},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.TupleVal([]cty.Value{cty.StringVal("x")}),
+					"b": cty.NumberIntVal(2),
+				},
+				complete: true,
+			},
+		},
+	}
+
 	moduleInnerResourceInstanceDeferred = deferredActionsTest{
 		configs: map[string]string{
 			"main.tf": `
@@ -3867,6 +3967,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"data_read_but_forbidden":                                 readDataSourceButForbiddenTest,
 		"plan_destroy_resource_change_but_forbidden":              planDestroyResourceChangeButForbidden,
 		"module_deferred_for_each_value":                          moduleDeferredForEachValue,
+		"module_unknown_expansion_without_resources":              moduleUnknownExpansionWithoutResources,
 		"module_inner_resource_instance_deferred":                 moduleInnerResourceInstanceDeferred,
 		"unknown_import_id":                                       unknownImportId,
 		"unknown_import_defers_config_generation":                 unknownImportDefersConfigGeneration,
