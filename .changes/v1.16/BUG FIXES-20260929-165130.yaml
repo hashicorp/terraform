@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'funcs: The `log` and `pow` functions now raise errors when they return +/- Infinity, as this result is not usable in downstream code.'
+time: 2026-09-29T16:51:30.773193+01:00
+custom:
+    Issue: "39304"
