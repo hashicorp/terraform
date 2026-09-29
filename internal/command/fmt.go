@@ -202,7 +202,16 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 					path = symLinkTarget
 				}
 			}
-			err := replacefile.AtomicWriteFile(path, result, 0644)
+
+			// Ensure existing file permissions are preserved when writing the formatted content.
+			fi, err := os.Lstat(path)
+			if err != nil {
+				diags = diags.Append(fmt.Errorf("Failed to stat %s: %w", path, err))
+				return diags
+			}
+			originalPermissions := fi.Mode().Perm()
+
+			err = replacefile.AtomicWriteFile(path, result, originalPermissions)
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
 				return diags
