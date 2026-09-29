@@ -8,6 +8,7 @@ import (
 	"os"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
@@ -312,7 +313,10 @@ func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
 	}
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color", "-json"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color", "-json"))
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
@@ -403,7 +407,10 @@ func TestPlan_WithPolicyUnknown(t *testing.T) {
 	policyClient.EvaluateResponse = &resp
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color"))
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
@@ -606,7 +613,10 @@ func TestPlan_WithPolicySuccessInfo(t *testing.T) {
 	}
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color"))
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
@@ -775,7 +785,10 @@ func TestPlan_WithPolicySuccessInfoJSON(t *testing.T) {
 	}
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color", "-json"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color", "-json"))
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
@@ -860,7 +873,10 @@ func TestPlan_Policy_Destroy(t *testing.T) {
 	}
 
 	args := []string{"-destroy", "-state", statePath, "-policies", td, "-parallelism=1", "-no-color"}
-	code := c.Run(args)
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(args)
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
@@ -990,7 +1006,10 @@ func TestPlan_WithPolicySetupFailure(t *testing.T) {
 	}
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color"))
+	})
 	output := done(t)
 	// expect the operation to be a success
 	if code != 0 {
@@ -1071,7 +1090,10 @@ func TestPlan_WithPolicySetupFailureJSON(t *testing.T) {
 	}
 
 	args := []string{"-policies", td}
-	code := c.Run(append(args, "-no-color", "-json"))
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(append(args, "-no-color", "-json"))
+	})
 	output := done(t)
 	// expect the operation to be a success
 	if code != 0 {
