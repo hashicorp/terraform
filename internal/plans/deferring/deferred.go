@@ -104,8 +104,9 @@ type Deferred struct {
 }
 
 // NewDeferred constructs a new empty [Deferred] object. The enabled argument
-// controls whether the receiver will actually track any deferrals. If false,
-// all methods will return false and no deferrals will be recorded.
+// controls whether deferrals are supported. If false, all query methods will
+// behave as if nothing has been deferred. The Report methods still record
+// what they're given, so that duplicate reports are detected either way.
 func NewDeferred(enabled bool) *Deferred {
 	return &Deferred{
 		deferralAllowed:                  enabled,
@@ -120,15 +121,14 @@ func NewDeferred(enabled bool) *Deferred {
 // GetDeferredChanges returns a slice of all the deferred changes that have
 // been reported to the receiver.
 func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange {
+	if !d.deferralAllowed {
+		return nil
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	var changes []*plans.DeferredResourceInstanceChange
-
-	if !d.deferralAllowed {
-		return changes
-	}
-
 	for _, configMapElem := range d.resourceInstancesDeferred.Elems {
 		for _, changeElem := range configMapElem.Value.Elems {
 			changes = append(changes, changeElem.Value)
@@ -144,6 +144,10 @@ func (d *Deferred) GetDeferredChanges() []*plans.DeferredResourceInstanceChange 
 
 // GetDeferredActionInvocations returns a list of all deferred action invocations.
 func (d *Deferred) GetDeferredActionInvocations() []*plans.DeferredActionInvocation {
+	if !d.deferralAllowed {
+		return nil
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -181,16 +185,19 @@ func (d *Deferred) DeferralAllowed() bool {
 // as having their own changes deferred without having to duplicate the
 // modules runtime's rules for what counts as a deferral.
 func (d *Deferred) HaveAnyDeferrals() bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	return d.deferralAllowed &&
-		(d.externalDependencyDeferred ||
-			d.resourceInstancesDeferred.Len() != 0 ||
-			len(d.actionInvocationDeferred) != 0 ||
-			d.partialExpandedResourcesDeferred.Len() != 0 ||
-			d.partialExpandedActionsDeferred.Len() != 0 ||
-			len(d.partialExpandedModulesDeferred) != 0)
+	return d.externalDependencyDeferred ||
+		d.resourceInstancesDeferred.Len() != 0 ||
+		len(d.actionInvocationDeferred) != 0 ||
+		d.partialExpandedResourcesDeferred.Len() != 0 ||
+		d.partialExpandedActionsDeferred.Len() != 0 ||
+		len(d.partialExpandedModulesDeferred) != 0
 }
 
 // GetDeferredResourceInstanceValue returns the deferred value for the given
@@ -245,18 +252,6 @@ func (d *Deferred) GetDeferredResourceInstances(addr addrs.AbsResource) map[addr
 		}
 	}
 	return result
-}
-
-func (d *Deferred) GetDeferredPartialExpandedResource(addr addrs.PartialExpandedResource) *plans.DeferredResourceInstanceChange {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	item, ok := d.partialExpandedResourcesDeferred.GetOk(addr.ConfigResource())
-	if !ok {
-		return nil
-	}
-
-	return item.Get(addr)
 }
 
 // ShouldDeferResourceInstanceChanges returns true if the receiver knows some
@@ -385,19 +380,7 @@ func (d *Deferred) ReportResourceExpansionDeferred(addr addrs.PartialExpandedRes
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	configAddr := addr.ConfigResource()
-	if !d.partialExpandedResourcesDeferred.Has(configAddr) {
-		d.partialExpandedResourcesDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedResource, *plans.DeferredResourceInstanceChange]())
-	}
-
-	configMap := d.partialExpandedResourcesDeferred.Get(configAddr)
-	if configMap.Has(addr) {
-		// This indicates a bug in the caller, since our graph walk should
-		// ensure that we visit and evaluate each distinct partial-expanded
-		// prefix only once.
-		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
-	}
-	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
+	putUnique(d.partialExpandedResourcesDeferred, addr.ConfigResource(), addr, &plans.DeferredResourceInstanceChange{
 		DeferredReason: providers.DeferredReasonInstanceCountUnknown,
 		Change:         change,
 	})
@@ -411,19 +394,7 @@ func (d *Deferred) ReportActionExpansionDeferred(addr addrs.PartialExpandedActio
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	configAddr := addr.ConfigAction()
-	if !d.partialExpandedActionsDeferred.Has(configAddr) {
-		d.partialExpandedActionsDeferred.Put(configAddr, addrs.MakeMap[addrs.PartialExpandedAction, providers.DeferredReason]())
-	}
-
-	configMap := d.partialExpandedActionsDeferred.Get(configAddr)
-	if configMap.Has(addr) {
-		// This indicates a bug in the caller, since our graph walk should
-		// ensure that we visit and evaluate each distinct partial-expanded
-		// prefix only once.
-		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
-	}
-	configMap.Put(addr, providers.DeferredReasonInstanceCountUnknown)
+	putUnique(d.partialExpandedActionsDeferred, addr.ConfigAction(), addr, providers.DeferredReasonInstanceCountUnknown)
 }
 
 // ReportResourceInstanceDeferred records that a fully-expanded resource
@@ -441,18 +412,7 @@ func (d *Deferred) ReportResourceInstanceDeferred(addr addrs.AbsResourceInstance
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	configAddr := addr.ConfigResource()
-	if !d.resourceInstancesDeferred.Has(configAddr) {
-		d.resourceInstancesDeferred.Put(configAddr, addrs.MakeMap[addrs.AbsResourceInstance, *plans.DeferredResourceInstanceChange]())
-	}
-
-	configMap := d.resourceInstancesDeferred.Get(configAddr)
-	if configMap.Has(addr) {
-		// This indicates a bug in the caller, since our graph walk should
-		// ensure that we visit and evaluate each resource instance only once.
-		panic(fmt.Sprintf("duplicate deferral report for %s", addr))
-	}
-	configMap.Put(addr, &plans.DeferredResourceInstanceChange{
+	putUnique(d.resourceInstancesDeferred, addr.ConfigResource(), addr, &plans.DeferredResourceInstanceChange{
 		DeferredReason: reason,
 		Change:         change,
 	})
@@ -501,6 +461,10 @@ func (d *Deferred) ReportActionInvocationDeferred(ai plans.ActionInvocationInsta
 // ShouldDeferActionInvocation returns true if there is a reason to defer the
 // action invocation instance.
 func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstance) bool {
+	if !d.deferralAllowed {
+		return false
+	}
+
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -528,6 +492,21 @@ func (d *Deferred) ShouldDeferActionInvocation(ai *plans.ActionInvocationInstanc
 		}
 	}
 	return false
+}
+
+// putUnique records value under key in the inner map for configAddr, creating
+// that inner map if needed. Each object should only be reported once during a
+// graph walk, so a duplicate key indicates a bug in the caller and will panic.
+func putUnique[C, K addrs.UniqueKeyer, V any](m addrs.Map[C, addrs.Map[K, V]], configAddr C, key K, value V) {
+	inner, ok := m.GetOk(configAddr)
+	if !ok {
+		inner = addrs.MakeMap[K, V]()
+		m.Put(configAddr, inner)
+	}
+	if inner.Has(key) {
+		panic(fmt.Sprintf("duplicate deferral report for %#v", key))
+	}
+	inner.Put(key, value)
 }
 
 // reachableDependencyPath returns true if a resource instance within src can

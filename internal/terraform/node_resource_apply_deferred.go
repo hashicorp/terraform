@@ -28,19 +28,30 @@ type nodeApplyableDeferredInstance struct {
 }
 
 func (n *nodeApplyableDeferredInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	if n.Schema == nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", "Terraform failed to decode a deferred change due to the schema not being present. This is a bug in Terraform; please report it!"))
+	change, diags := n.decodeChange()
+	if diags.HasErrors() {
 		return diags
-	}
-
-	change, err := n.ChangeSrc.Decode(*n.Schema)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
 	}
 
 	ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, n.Reason, change)
 	return diags
+}
+
+// decodeChange decodes the deferred change recorded in the plan, so that it
+// can be reported back into the deferrals tracker for use during evaluation.
+func (n *nodeApplyableDeferredInstance) decodeChange() (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if n.Schema == nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", "Terraform failed to decode a deferred change due to the schema not being present. This is a bug in Terraform; please report it!"))
+		return nil, diags
+	}
+
+	change, err := n.ChangeSrc.Decode(*n.Schema)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
+		return nil, diags
+	}
+	return change, diags
 }
 
 // nodeApplyableDeferredPartialInstance is a node that represents a deferred
@@ -54,18 +65,11 @@ type nodeApplyableDeferredPartialInstance struct {
 }
 
 func (n *nodeApplyableDeferredPartialInstance) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	if n.Schema == nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode", "Terraform failed to decode a deferred change due to the schema not being present. This is a bug in Terraform; please report it!"))
+	change, diags := n.decodeChange()
+	if diags.HasErrors() {
 		return diags
 	}
 
-	change, err := n.ChangeSrc.Decode(*n.Schema)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Failed to decode ", fmt.Sprintf("Terraform failed to decode a deferred change: %v\n\nThis is a bug in Terraform; please report it!", err)))
-	}
-
 	ctx.Deferrals().ReportResourceExpansionDeferred(n.PartialAddr, change)
-
 	return diags
 }
