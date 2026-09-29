@@ -2622,6 +2622,58 @@ resource "test_object" "a" {
 					}
 				},
 			},
+			"action expansion with unknown instances in multiple module instances": {
+				// Each module instance must record its own deferred action
+				// expansion, and the triggering resources in every instance
+				// must be deferred as a result.
+				module: map[string]string{
+					"main.tf": `
+variable "actions" {
+  type = set(string)
+}
+module "mod" {
+  source  = "./mod"
+  count   = 2
+  actions = var.actions
+}
+`,
+					"mod/mod.tf": `
+variable "actions" {
+  type = set(string)
+}
+action "test_action" "hello" {
+  for_each = var.actions
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_action.hello["a"]]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				planOpts: &PlanOpts{
+					Mode:            plans.NormalMode,
+					DeferralAllowed: true,
+					SetVariables: InputValues{
+						"actions": &InputValue{
+							Value:      cty.UnknownVal(cty.Set(cty.String)),
+							SourceType: ValueFromCLIArg,
+						},
+					},
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if got := len(p.DeferredResources); got != 2 {
+						t.Fatalf("expected 2 deferred resources, got %d", got)
+					}
+					if got := len(p.Changes.ActionInvocations); got != 0 {
+						t.Fatalf("expected 0 planned action invocations, got %d", got)
+					}
+				},
+			},
 			"action with unknown module expansion": {
 				// We have an unknown module expansion (for_each over an unknown value). The
 				// action and its triggering resource both live inside the (currently

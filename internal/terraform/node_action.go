@@ -110,7 +110,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 
 			} else {
 				expander.SetActionCountUnknown(module, n.Addr.Action)
-				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
+				ctx.Deferrals().ReportActionExpansionDeferred(module.UnexpandedAction(n.Addr.Action))
 			}
 
 		case n.Config.ForEach != nil:
@@ -123,7 +123,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 				expander.SetActionForEach(module, n.Addr.Action, forEach)
 			} else {
 				expander.SetActionForEachUnknown(module, n.Addr.Action)
-				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
+				ctx.Deferrals().ReportActionExpansionDeferred(module.UnexpandedAction(n.Addr.Action))
 			}
 
 		default:
