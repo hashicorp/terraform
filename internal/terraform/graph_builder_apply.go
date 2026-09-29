@@ -31,10 +31,6 @@ type ApplyGraphBuilder struct {
 	// Changes describes the changes that we need apply.
 	Changes *plans.ChangesSrc
 
-	// DeferredChanges describes the changes that were deferred during the plan
-	// and should not be applied.
-	DeferredChanges []*plans.DeferredResourceInstanceChangeSrc
-
 	// State is the current state
 	State *states.State
 
@@ -172,11 +168,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ActionDiffTransformer{
 			Changes: b.Changes,
 			Config:  b.Config,
-		},
-
-		// Creates nodes for all the deferred changes.
-		&DeferredTransformer{
-			DeferredChanges: b.DeferredChanges,
 		},
 
 		// Add nodes and edges for check block assertions. Check block data

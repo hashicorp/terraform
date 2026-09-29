@@ -606,3 +606,56 @@ func TestDeferred_duplicateReports(t *testing.T) {
 		})
 	}
 }
+
+func TestDeferred_loadPlannedDeferrals(t *testing.T) {
+	resourceAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test",
+		Name: "a",
+	}
+	childModule := addrs.RootModuleInstance.Child("child", addrs.IntKey(0))
+	instAddr := resourceAddr.Absolute(childModule).Instance(addrs.StringKey("x"))
+	partialAddr := childModule.UnexpandedResource(resourceAddr)
+	instValue := cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("x")})
+
+	deferred := NewDeferred(true)
+	deferred.LoadPlannedDeferrals([]*plans.DeferredResourceInstanceChange{
+		{
+			DeferredReason: providers.DeferredReasonProviderConfigUnknown,
+			Change: &plans.ResourceInstanceChange{
+				Addr:   instAddr,
+				Change: plans.Change{Action: plans.Create, After: instValue},
+			},
+		},
+		{
+			DeferredReason: providers.DeferredReasonInstanceCountUnknown,
+			Change: &plans.ResourceInstanceChange{
+				Addr:   partialAddr.UnknownResourceInstance(),
+				Change: plans.Change{Action: plans.Create, After: cty.DynamicVal},
+			},
+		},
+	})
+
+	got, ok := deferred.GetDeferredResourceInstanceValue(instAddr)
+	if !ok {
+		t.Fatalf("expected a deferred value for %s", instAddr)
+	}
+	if !got.RawEquals(instValue) {
+		t.Fatalf("wrong value for %s\ngot:  %#v\nwant: %#v", instAddr, got, instValue)
+	}
+
+	partials := deferred.PartialExpandedResources(resourceAddr.InModule(childModule.Module()))
+	if len(partials) != 1 || partials[0].String() != partialAddr.String() {
+		t.Fatalf("wrong partial-expanded resources\ngot:  %s\nwant: [%s]", partials, partialAddr)
+	}
+	if !partials[0].MatchesResource(resourceAddr.Absolute(childModule)) {
+		t.Fatalf("expected %s to match %s", partials[0], resourceAddr.Absolute(childModule))
+	}
+
+	if got := len(deferred.GetDeferredChanges()); got != 2 {
+		t.Fatalf("expected 2 deferred changes, got %d", got)
+	}
+	if !deferred.HaveAnyDeferrals() {
+		t.Fatal("expected deferrals to be reported")
+	}
+}

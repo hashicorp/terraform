@@ -166,6 +166,25 @@ func (d *Deferred) SetExternalDependencyDeferred() {
 	d.externalDependencyDeferred = true
 }
 
+// LoadPlannedDeferrals records all of the given resource changes which were
+// deferred during planning, so that they are available during the apply walk.
+// This makes values for deferred resources available to the evaluator, and
+// lets resources with deferred expansion skip evaluating their instances.
+//
+// This must be called before the receiver is used in a graph walk.
+func (d *Deferred) LoadPlannedDeferrals(deferrals []*plans.DeferredResourceInstanceChange) {
+	for _, deferral := range deferrals {
+		addr := deferral.Change.Addr
+		// A partial-expanded resource is recorded in the plan using an
+		// instance address with wildcard keys.
+		if addr.Resource.Key == addrs.WildcardKey {
+			d.ReportResourceExpansionDeferred(addr.PartialResource(), deferral.Change)
+			continue
+		}
+		d.ReportResourceInstanceDeferred(addr, deferral.DeferredReason, deferral.Change)
+	}
+}
+
 // DeferralAllowed checks whether deferred actions are supported by the current
 // runtime.
 func (d *Deferred) DeferralAllowed() bool {
@@ -252,6 +271,21 @@ func (d *Deferred) GetDeferredResourceInstances(addr addrs.AbsResource) map[addr
 		}
 	}
 	return result
+}
+
+// PartialExpandedResources returns all of the partial-expanded addresses that
+// were reported for the given resource configuration.
+func (d *Deferred) PartialExpandedResources(addr addrs.ConfigResource) []addrs.PartialExpandedResource {
+	// Like DeferralAllowed, this is tolerant of a nil receiver for tests using
+	// MockEvalContext without a real Deferred.
+	if !d.DeferralAllowed() {
+		return nil
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	return slices.Collect(d.partialExpandedResourcesDeferred.Get(addr).Keys().Iter())
 }
 
 // ShouldDeferResourceInstanceChanges returns true if the receiver knows some

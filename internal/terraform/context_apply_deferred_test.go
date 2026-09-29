@@ -6,6 +6,7 @@ package terraform
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -4471,4 +4472,64 @@ func mustParseJson(values map[string]interface{}) []byte {
 		panic(err)
 	}
 	return data
+}
+
+func TestContextApply_deferredChangeDecodeError(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "each" {
+  type = set(string)
+}
+
+resource "test" "a" {
+  for_each = var.each
+  name     = "a:${each.key}"
+}
+
+resource "test" "b" {
+  name = "b"
+}
+`,
+	})
+
+	provider := &deferredActionsProvider{
+		t:               t,
+		deferralAllowed: true,
+		plannedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+		appliedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+		},
+	})
+
+	plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		SetVariables: InputValues{
+			"each": &InputValue{
+				Value:      cty.UnknownVal(cty.Set(cty.String)),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+	if len(plan.DeferredResources) != 1 {
+		t.Fatalf("expected 1 deferred resource, got %d", len(plan.DeferredResources))
+	}
+
+	// Corrupt the deferred change so that it can't be decoded.
+	plan.DeferredResources[0].ChangeSrc.After = plans.DynamicValue([]byte{0xff})
+
+	_, diags = ctx.Apply(plan, cfg, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected apply to fail")
+	}
+	if got, want := diags.Err().Error(), "Failed to decode deferred change"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+	}
+	if len(provider.appliedChanges.changes) != 0 {
+		t.Fatalf("expected nothing to be applied, got %d changes", len(provider.appliedChanges.changes))
+	}
 }
