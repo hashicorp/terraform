@@ -618,6 +618,7 @@ func TestFmt_check(t *testing.T) {
 // * The symlink itself remains a symlink
 // * The target file's permissions are unchanged
 func TestFmt_symlinkedFileAreEdited(t *testing.T) {
+	t.Run("root directory symlink", func(t *testing.T) {
 	workingDir := tempWorkingDir(t)
 	t.Chdir(workingDir.RootModuleDir())
 
@@ -643,8 +644,13 @@ c =   "y"
 	}
 
 	// Create the symlink pointing to the target file.
+		// Use a relative path for the target of the symlink.
 	link := filepath.Join(workingDir.RootModuleDir(), "main.tf")
-	if err := os.Symlink(target, link); err != nil {
+		relTarget, err := filepath.Rel(workingDir.RootModuleDir(), target)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(relTarget, link); err != nil {
 		t.Fatal(err)
 	}
 
@@ -688,6 +694,7 @@ c =   "y"
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
+	})
 }
 
 func TestFmt_checkStdin(t *testing.T) {
