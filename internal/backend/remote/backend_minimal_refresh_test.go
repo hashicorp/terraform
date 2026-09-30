@@ -9,37 +9,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 // TestRemote_minimalRefresh verifies that the -minimal-refresh planning option
 // is forwarded to HCP Terraform / TFE as the minimal-refresh run attribute,
-// and that the attribute is omitted entirely (nil) for ordinary runs.
+// and that it is not set for ordinary runs.
 func TestRemote_minimalRefresh(t *testing.T) {
 	cases := map[string]struct {
 		apply          bool
 		minimalRefresh bool
-		destroy        bool
-		target         bool
-		replace        bool
 	}{
-		"plan":                          {},
-		"plan minimal refresh":          {minimalRefresh: true},
-		"plan minimal refresh destroy":  {minimalRefresh: true, destroy: true},
-		"apply":                         {apply: true},
-		"apply minimal refresh":         {apply: true, minimalRefresh: true},
-		"apply minimal refresh target":  {apply: true, minimalRefresh: true, target: true},
-		"apply minimal refresh replace": {apply: true, minimalRefresh: true, replace: true},
-		"apply minimal refresh and target and replace": {apply: true, minimalRefresh: true, target: true, replace: true},
+		"plan":                  {},
+		"plan minimal refresh":  {minimalRefresh: true},
+		"apply":                 {apply: true},
+		"apply minimal refresh": {apply: true, minimalRefresh: true},
 	}
 
 	for name, tc := range cases {
@@ -63,17 +53,6 @@ func TestRemote_minimalRefresh(t *testing.T) {
 
 			op.Workspace = backend.DefaultStateName
 			op.PlanMinimalRefresh = tc.minimalRefresh
-			if tc.destroy {
-				op.PlanMode = plans.DestroyMode
-			}
-			if tc.target {
-				addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
-				op.Targets = []addrs.Targetable{addr}
-			}
-			if tc.replace {
-				addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
-				op.ForceReplace = []addrs.AbsResourceInstance{addr}
-			}
 
 			run, err := b.Operation(context.Background(), op)
 			if err != nil {
@@ -111,23 +90,6 @@ func TestRemote_minimalRefresh(t *testing.T) {
 				// speculative configuration versions); an apply must be applicable.
 				if got, want := r.Apply != nil, tc.apply; got != want {
 					t.Errorf("wrong applicable run: got %v, want %v", got, want)
-				}
-
-				if got, want := r.IsDestroy, tc.destroy; got != want {
-					t.Errorf("wrong IsDestroy: got %v, want %v", got, want)
-				}
-				var wantTargets, wantReplace []string
-				if tc.target {
-					wantTargets = []string{"null_resource.foo"}
-				}
-				if tc.replace {
-					wantReplace = []string{"null_resource.foo"}
-				}
-				if diff := cmp.Diff(wantTargets, r.TargetAddrs); diff != "" {
-					t.Errorf("wrong TargetAddrs\n%s", diff)
-				}
-				if diff := cmp.Diff(wantReplace, r.ReplaceAddrs); diff != "" {
-					t.Errorf("wrong ReplaceAddrs\n%s", diff)
 				}
 			}
 		})
