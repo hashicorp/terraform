@@ -74,7 +74,7 @@ Even when implementing only human-readable output (e.g., when `-json` is not yet
    - **Single invocation per return path:** Every possible exit path through `Run` must call **exactly one** view method **once** immediately before `return`.
    - **Pass complete data to the terminal method:** If the command processes multiple items (e.g. moved items, deleted resources, listed objects), accumulate them into a slice in `Run` and pass the entire collection to the final view method (`Result(items []Item, ..., diags)`).
    - **Avoid streaming/incremental view methods for static commands:** Do not call intermediate progress methods (e.g. `ItemMoved(...)`) in a loop during execution if the command is a single-object command. Instead, pass the accumulated slice to the final method; the `Human` view implementation can loop over the slice to print individual progress lines before printing the summary.
-   - **Early exit diagnostics:** Early error returns should invoke the view with zero-values and accumulated diagnostics (e.g., `view.Result(nil, false, diags)` or a dedicated single-call error handler).
+   - **Early exit diagnostics:** Early error returns should call the interface's `Diagnostics(diags)` method exactly once. For a static command that supports JSON, the JSON implementation of `Diagnostics` must emit the same single JSON document schema as the successful result, with zero-value result fields and the accumulated diagnostics. The command must not render or format diagnostics itself.
 
 2. **For Multi-step / Streaming JSON Commands:**
    - Explicitly model the view on streaming interfaces (e.g., `internal/command/views/json_view.go`), where discrete lifecycle events or log entries are dispatched as they occur.
@@ -84,6 +84,7 @@ Even when implementing only human-readable output (e.g., when `-json` is not yet
 Create/extend `internal/command/views/<cmd>.go`:
 
 - The interface, documented with which subcommand it serves.
+- The interface must always include `Diagnostics(diags tfdiags.Diagnostics)`. This is the terminal method for early exits before the command has a successful result. For static commands, every JSON implementation must render diagnostics through this method in the command's normal machine-readable output format.
 - A `New<Cmd>(viewType arguments.ViewType, view *View) <Cmd>` constructor that
   switches on the view type and `panic`s on an unsupported type.
 - `<Cmd>Human` struct with a `view *View` field, plus
@@ -106,6 +107,11 @@ JSON implementation:
 - Define an output struct with a `FormatVersion string \`json:"format_version"\``
   field, set to `"1.0"` for a new format, and a
   `Diagnostics []*viewsjson.Diagnostic \`json:"diagnostics"\`` field.
+- Implement `Diagnostics(diags)` by emitting one complete JSON document using
+  the same output schema as the successful result, with zero-value result
+  fields and the converted diagnostics. This method is used for every early
+  error return, so JSON errors are never emitted as human-readable text or as
+  a separate ad hoc shape.
 - Convert diagnostics with
   `viewsjson.NewDiagnostic(diag, v.view.configSources())`.
 - Normalise `nil` slices to empty slices so they serialise as `[]`, not `null`.
@@ -136,7 +142,7 @@ func (c *XCommand) Run(rawArgs []string) int {
 
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		view.X(/* zero values */, diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -165,7 +171,7 @@ view := views.NewWorkspaceList(args.ViewType, c.View)
 
 // Now the view is ready, process any error diagnostics from parsing arguments.
 if diags.HasErrors() {
-	view.List("", nil, diags)
+	view.Diagnostics(diags)
 	return 1
 }
 ```
@@ -207,7 +213,7 @@ Rules:
   directly, followed immediately by the corresponding `return`.
   ```go
   if diags.HasErrors() {
-      view.Result(items, false, diags)
+    view.Diagnostics(diags)
       return 1
   }
   ```
@@ -233,6 +239,9 @@ output := done(t)
 
 - Assert stdout and stderr **separately**; `output.All()` interleaves them.
 - Table-driven, covering at minimum: success, success with warning, and error.
+- Exercise the interface's `Diagnostics` method directly for early-error
+  rendering, including its JSON implementation when the command supports
+  `-json`.
 - For the JSON view, unmarshal the output and compare structs (or compare
   against a formatted JSON string), and assert the output is a single valid
   JSON document.
@@ -275,6 +284,7 @@ go run . -chdir=<dir> <cmd> -json | jq .
 
 - [ ] Assessed and confirmed with the user whether the command produces a single JSON object or multiple log entries.
 - [ ] View interface and command control flow are designed to be forward-compatible with future JSON output without major restructuring.
+- [ ] Every command view interface includes `Diagnostics(tfdiags.Diagnostics)`, and early error paths call it exactly once.
 - [ ] Single `diags` variable declared at start of `Run` and accumulated throughout (or explicitly justified).
 - [ ] No `c.Ui.*`, `c.showDiagnostics`, or `fmt.Print*` remains in the command.
 - [ ] No `c.Meta.process` call remains in the command.
