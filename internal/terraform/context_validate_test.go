@@ -5434,3 +5434,79 @@ func TestContextValidate_importNestedModule_ValidateInputVar(t *testing.T) {
 	// nested module + input variable
 
 }
+
+// Regression test for https://github.com/hashicorp/terraform/issues/38396:
+// a depends_on reference to a module output that doesn't exist must be an
+// error, not a silent dependency on the whole module.
+func TestContext2Validate_invalidDependsOnModuleOutputRef(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "some" {
+  source = "./some"
+}
+
+resource "test_instance" "bar" {
+  depends_on = [module.some.doesnotexist]
+}
+`,
+		"some/main.tf": `
+resource "test_instance" "dummy" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want error for depends_on referencing undeclared module output")
+	}
+	if got, want := diags.Err().Error(), `does not have an output named "doesnotexist"`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
+
+// A depends_on reference to a real module output, and to the whole module,
+// must keep validating cleanly.
+func TestContext2Validate_validDependsOnModuleRefs(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "some" {
+  source = "./some"
+}
+
+resource "test_instance" "bar" {
+  depends_on = [module.some.realoutput]
+}
+
+resource "test_instance" "baz" {
+  depends_on = [module.some]
+}
+`,
+		"some/main.tf": `
+resource "test_instance" "dummy" {
+}
+
+output "realoutput" {
+  value = "x"
+}
+`,
+	})
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+}

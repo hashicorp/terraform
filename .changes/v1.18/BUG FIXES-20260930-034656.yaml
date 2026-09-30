@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'config: `depends_on` referencing a non-existent module output is now an error instead of silently depending on the whole module'
+time: 2026-09-30T05:10:00.0000-07:00
+custom:
+    Issue: "38396"

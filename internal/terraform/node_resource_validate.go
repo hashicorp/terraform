@@ -971,7 +971,66 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 				diags = diags.Append(refDiags)
 			}
 		}
+
+		// A reference to a module output must name an output declared in the
+		// child module. EvalReference above can't catch a missing output name
+		// because it folds the reference down to the whole module call, which
+		// the graph builder then also silently treats as a reference to the
+		// whole module.
+		if !diags.HasErrors() {
+			diags = diags.Append(validateDependsOnModuleOutput(ctx, ref))
+		}
 	}
+	return diags
+}
+
+// validateDependsOnModuleOutput returns an error diagnostic if ref addresses
+// a module output that isn't declared in the called module's configuration.
+// It returns no diagnostics for any other kind of reference, or when the
+// child module's configuration isn't available to check against.
+func validateDependsOnModuleOutput(ctx EvalContext, ref *addrs.Reference) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	var callName, outputName string
+	switch subj := ref.Subject.(type) {
+	case addrs.ModuleCallInstanceOutput:
+		callName, outputName = subj.Call.Call.Name, subj.Name
+	case addrs.ModuleCallOutput:
+		callName, outputName = subj.Call.Name, subj.Name
+	default:
+		return diags
+	}
+
+	builtinCtx, ok := ctx.(*BuiltinEvalContext)
+	if !ok || builtinCtx.Evaluator == nil || builtinCtx.Evaluator.Config == nil {
+		return diags
+	}
+
+	childCfg := builtinCtx.Evaluator.Config.Descendant(ctx.Path().Module().Child(callName))
+	if childCfg == nil {
+		// The child module isn't loaded, so there's nothing to check against.
+		return diags
+	}
+
+	if _, exists := childCfg.Module.Outputs[outputName]; exists {
+		return diags
+	}
+
+	var suggestions []string
+	for name := range childCfg.Module.Outputs {
+		suggestions = append(suggestions, name)
+	}
+	suggestion := didyoumean.NameSuggestion(outputName, suggestions)
+	if suggestion != "" {
+		suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+	}
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Invalid depends_on reference",
+		Detail:   fmt.Sprintf("The module %q does not have an output named %q.%s", "module."+callName, outputName, suggestion),
+		Subject:  ref.SourceRange.ToHCL().Ptr(),
+	})
 	return diags
 }
 
