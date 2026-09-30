@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
-	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -48,11 +47,6 @@ func TestCloud_minimalRefresh(t *testing.T) {
 			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 			b.client.SetFakeRemoteAPIVersion(MinimalRefreshMinAPIVersion)
-
-			var gotOpts *tfe.RunCreateOptions
-			b.client.Runs.(*MockRuns).ModifyNewRun = func(client *MockClient, options tfe.RunCreateOptions, run *tfe.Run) {
-				gotOpts = &options
-			}
 
 			var op *backendrun.Operation
 			var configCleanup func()
@@ -95,54 +89,46 @@ func TestCloud_minimalRefresh(t *testing.T) {
 				t.Fatalf("unexpected unsupported diagnostic: %s", errOutput)
 			}
 
-			if gotOpts == nil {
-				t.Fatal("no run was created")
+			runsAPI := b.client.Runs.(*MockRuns)
+			if got := len(runsAPI.Runs); got != 1 {
+				t.Fatalf("wrong number of runs in the mock client %d; want 1", got)
 			}
-			if tc.minimalRefresh {
-				if gotOpts.MinimalRefresh == nil || !*gotOpts.MinimalRefresh {
-					t.Errorf("expected MinimalRefresh to be true, got %v", gotOpts.MinimalRefresh)
+			for _, r := range runsAPI.Runs {
+				if got, want := r.MinimalRefresh, tc.minimalRefresh; got != want {
+					t.Errorf("wrong MinimalRefresh: got %v, want %v", got, want)
 				}
-			} else if gotOpts.MinimalRefresh != nil {
-				t.Errorf("expected MinimalRefresh to be nil, got %v", *gotOpts.MinimalRefresh)
-			}
 
-			// Minimal refresh must not be converted into -refresh=false or
-			// -refresh-only.
-			if gotOpts.Refresh == nil || !*gotOpts.Refresh {
-				t.Errorf("expected Refresh to be true, got %v", gotOpts.Refresh)
-			}
-			if gotOpts.RefreshOnly != nil {
-				t.Errorf("expected RefreshOnly to be nil, got %v", *gotOpts.RefreshOnly)
-			}
-
-			// A plan must remain speculative; an apply must be applicable.
-			if got, want := gotOpts.ConfigurationVersion.Speculative, !tc.apply; got != want {
-				t.Errorf("wrong Speculative: got %v, want %v", got, want)
-			}
-			if tc.apply && !run.PlanEmpty {
-				runsAPI := b.client.Runs.(*MockRuns)
-				for _, r := range runsAPI.Runs {
-					if r.Apply == nil {
-						t.Errorf("expected an applicable run")
-					}
+				// Minimal refresh must not be converted into -refresh=false or
+				// -refresh-only.
+				if !r.Refresh {
+					t.Error("expected Refresh to be true")
 				}
-			}
+				if r.RefreshOnly {
+					t.Error("expected RefreshOnly to be false")
+				}
 
-			if got, want := gotOpts.IsDestroy != nil && *gotOpts.IsDestroy, tc.destroy; got != want {
-				t.Errorf("wrong IsDestroy: got %v, want %v", got, want)
-			}
-			var wantTargets, wantReplace []string
-			if tc.target {
-				wantTargets = []string{"null_resource.foo"}
-			}
-			if tc.replace {
-				wantReplace = []string{"null_resource.foo"}
-			}
-			if diff := cmp.Diff(wantTargets, gotOpts.TargetAddrs); diff != "" {
-				t.Errorf("wrong TargetAddrs\n%s", diff)
-			}
-			if diff := cmp.Diff(wantReplace, gotOpts.ReplaceAddrs); diff != "" {
-				t.Errorf("wrong ReplaceAddrs\n%s", diff)
+				// A plan must remain speculative (the mock creates no apply for
+				// speculative configuration versions); an apply must be applicable.
+				if got, want := r.Apply != nil, tc.apply; got != want {
+					t.Errorf("wrong applicable run: got %v, want %v", got, want)
+				}
+
+				if got, want := r.IsDestroy, tc.destroy; got != want {
+					t.Errorf("wrong IsDestroy: got %v, want %v", got, want)
+				}
+				var wantTargets, wantReplace []string
+				if tc.target {
+					wantTargets = []string{"null_resource.foo"}
+				}
+				if tc.replace {
+					wantReplace = []string{"null_resource.foo"}
+				}
+				if diff := cmp.Diff(wantTargets, r.TargetAddrs); diff != "" {
+					t.Errorf("wrong TargetAddrs\n%s", diff)
+				}
+				if diff := cmp.Diff(wantReplace, r.ReplaceAddrs); diff != "" {
+					t.Errorf("wrong ReplaceAddrs\n%s", diff)
+				}
 			}
 		})
 	}
