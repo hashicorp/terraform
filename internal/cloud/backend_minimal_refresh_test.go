@@ -30,15 +30,13 @@ func TestCloud_minimalRefresh(t *testing.T) {
 		target         bool
 		replace        bool
 	}{
-		"plan":                                         {},
-		"plan minimal refresh":                         {minimalRefresh: true},
-		"plan minimal refresh destroy":                 {minimalRefresh: true, destroy: true},
-		"plan minimal refresh target":                  {minimalRefresh: true, target: true},
-		"plan minimal refresh replace":                 {minimalRefresh: true, replace: true},
-		"apply":                                        {apply: true},
-		"apply minimal refresh":                        {apply: true, minimalRefresh: true},
-		"apply minimal refresh target":                 {apply: true, minimalRefresh: true, target: true},
-		"apply minimal refresh replace":                {apply: true, minimalRefresh: true, replace: true},
+		"plan":                          {},
+		"plan minimal refresh":          {minimalRefresh: true},
+		"plan minimal refresh destroy":  {minimalRefresh: true, destroy: true},
+		"apply":                         {apply: true},
+		"apply minimal refresh":         {apply: true, minimalRefresh: true},
+		"apply minimal refresh target":  {apply: true, minimalRefresh: true, target: true},
+		"apply minimal refresh replace": {apply: true, minimalRefresh: true, replace: true},
 		"apply minimal refresh and target and replace": {apply: true, minimalRefresh: true, target: true, replace: true},
 	}
 
