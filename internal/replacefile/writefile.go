@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // AtomicWriteFile uses a temporary file along with this package's AtomicRename
@@ -76,4 +78,149 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 
 	moved = true
 	return nil
+}
+
+// NonAtomicWriteFileWithBackup creates a backup file containing the original content of the target file,
+// and providers a replacement for os.WriteFile that ensures that there is no data loss when updating a given file.
+// This logic is based on implementation of the fmt command in the Go standard library.
+// See: https://cs.opensource.google/go/go/+/master:src/cmd/gofmt/gofmt.go;l=468;drc=d98516a9d2f88cc0d6e88849e1a8f4e4f1e6f465
+//
+// Whereas AtomicWriteFile promises that the file at the given filename will either contain the entirety of the previous contents
+// or the entirety of the given data array if opened and read at any point during its execution, NonAtomicWriteFileWithBackup
+// is not implemented to be atomic in that sense. However, data loss is still prevented.
+//
+// The possible outcomes are:
+// 1. The file is successfully updated with the new content.
+// 2. The update fails, but the original content is unchanged in or successfully restored to the target file.
+// 3. Both the update and the restoration fails somehow, but the backup file still exists for manual recovery
+//
+// The backup file will be cleaned up when the function can guarantee that original or updated data can be found in the target file,
+// but if an error prevents that the backup will be left for users to manually recover the original content.
+//
+// NonAtomicWriteFileWithBackup updates the original file with new data, whereas AtomicWriteFile replaces the original file.
+// This means that metadata on the original file can be preserved when using NonAtomicWriteFileWithBackup,
+// e.g. ownership, file creation timestamp.
+func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData []byte, perm os.FileMode) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// Makes an error diagnostic stating the overall file change could not be fulfilled due to an error.
+	writeFailDiag := func(e error) tfdiags.Diagnostics {
+		return diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Failed to write %s", filename),
+				fmt.Sprintf("Terraform encountered an error while updating file %s: %s", filename, e),
+			),
+		)
+	}
+
+	dir := filepath.Dir(filename)
+
+	// Create a backup temporary file that contains the original content of the file.
+	backup, err := os.CreateTemp(dir, filepath.Base(filename))
+	if err != nil {
+		errExtra := fmt.Errorf("error creating temporary backup file for %s: %w", filename, err)
+		return diags.Append(
+			writeFailDiag(errExtra),
+		)
+	}
+
+	backupF, err := os.OpenFile(backup.Name(), os.O_WRONLY, perm)
+	if err != nil {
+		os.Remove(backup.Name())
+		errExtra := fmt.Errorf("error opening backup temporary file %s: %w", backup.Name(), err)
+		return diags.Append(
+			writeFailDiag(errExtra),
+		)
+	}
+	defer backupF.Close()
+
+	_, err = backupF.Write(originalData)
+	if err != nil {
+		os.Remove(backup.Name())
+		errExtra := fmt.Errorf("error writing to backup temporary file %s: %w", backup.Name(), err)
+		return diags.Append(
+			writeFailDiag(errExtra),
+		)
+	}
+
+	// Open the target file, attempt to write the formatted data to it
+	f, err := os.OpenFile(filename, os.O_WRONLY, perm)
+	if err != nil {
+		os.Remove(backup.Name())
+		errExtra := fmt.Errorf("error opening target file %s: %w", filename, err)
+		return diags.Append(
+			writeFailDiag(errExtra),
+		)
+	}
+
+	n, err := f.Write(formattedData)
+	if err == nil {
+		err = f.Truncate(int64(n))
+	}
+
+	// Makes an additional error diagnostic describing failure to restore the file's original content.
+	restoreFailDiag := func(e error) tfdiags.Diagnostics {
+		fmt.Fprintf(os.Stderr, "error restoring file %s to original: %v; original content backed up in %s\n", filename, e, backup.Name())
+		return diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Error recovering from failure updating file %s", filename),
+				fmt.Sprintf("Terraform encountered an error while updating file %s, and again when attempting to restore original content to the file: %s. The original content is available in the backup file %s.", filename, e, backup.Name()),
+			),
+		)
+	}
+
+	if err != nil {
+		// In response to an error we'll attempt to restore the original content
+		// to the target file. If that fails, the original content is still
+		// available in the backup temporary file.
+
+		if n == 0 {
+			// The original file was unchanged; backup not needed
+			os.Remove(backup.Name())
+			return diags.Append(
+				writeFailDiag(fmt.Errorf("file %s unchanged; error while writing to file %s: %s", filename, filename, err)),
+			)
+		}
+
+		// Try to restore the original content
+		no, erro := f.WriteAt(originalData, 0)
+		if erro != nil {
+			diags = diags.Append(writeFailDiag(err))
+			diags = diags.Append(restoreFailDiag(erro))
+			return diags
+		}
+
+		if no < n {
+			// The original file is shorter; truncate
+			if erro := f.Truncate(int64(no)); erro != nil {
+				diags = diags.Append(writeFailDiag(err))
+				diags = diags.Append(restoreFailDiag(erro))
+				return diags
+			}
+		}
+
+		if erro := f.Close(); erro != nil {
+			diags = diags.Append(writeFailDiag(err))
+			diags = diags.Append(restoreFailDiag(erro))
+			return diags
+
+		}
+
+		// We successfully restored the original content to the file,
+		// but still need to report the original write failure.
+		os.Remove(backup.Name())
+		return diags.Append(writeFailDiag(err))
+	}
+
+	if err := f.Close(); err != nil {
+		diags = diags.Append(writeFailDiag(err))
+		diags = diags.Append(restoreFailDiag(err))
+		return diags
+	}
+
+	// The file was successfully updated; remove backup
+	os.Remove(backup.Name())
+	return diags
 }
