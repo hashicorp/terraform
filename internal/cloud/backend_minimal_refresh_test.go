@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
-	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -98,26 +97,18 @@ func TestCloud_minimalRefresh(t *testing.T) {
 // before any run is created when the server's API version is too old, and is
 // forwarded when the server is at or above the minimum.
 func TestCloud_minimalRefreshAPIVersion(t *testing.T) {
-	minVersion := version.Must(version.NewVersion(MinimalRefreshMinAPIVersion))
-	segs := minVersion.Segments()
-	below := fmt.Sprintf("%d.%d", segs[0], segs[1]-1)
-	if segs[1] == 0 {
-		below = fmt.Sprintf("%d.99", segs[0]-1)
-	}
-	above := fmt.Sprintf("%d.%d", segs[0], segs[1]+1)
-
 	cases := map[string]struct {
 		apiVersion string
 		apply      bool
 		wantErr    bool
 	}{
-		"plan below minimum":  {apiVersion: below, wantErr: true},
-		"apply below minimum": {apiVersion: below, apply: true, wantErr: true},
+		"plan below minimum":  {apiVersion: "2.6", wantErr: true},
+		"apply below minimum": {apiVersion: "2.6", apply: true, wantErr: true},
 		"plan unparseable":    {apiVersion: "", wantErr: true},
 		"plan at minimum":     {apiVersion: MinimalRefreshMinAPIVersion},
 		"apply at minimum":    {apiVersion: MinimalRefreshMinAPIVersion, apply: true},
-		"plan above minimum":  {apiVersion: above},
-		"apply above minimum": {apiVersion: above, apply: true},
+		"plan above minimum":  {apiVersion: "2.8"},
+		"apply above minimum": {apiVersion: "2.8", apply: true},
 	}
 
 	for name, tc := range cases {
