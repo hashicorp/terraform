@@ -218,9 +218,8 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			}
 			originalPermissions := fi.Mode().Perm()
 
-			err = replacefile.AtomicWriteFile(path, result, originalPermissions)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
+			diags = diags.Append(replacefile.NonAtomicWriteFileWithBackup(path, src, result, originalPermissions))
+			if diags.HasErrors() {
 				return diags
 			}
 		}
