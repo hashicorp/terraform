@@ -696,6 +696,90 @@ c =   "y"
 		}
 	})
 
+	t.Run("formatting a symlink from outside the root directory", func(t *testing.T) {
+		workingDir := tempWorkingDir(t)
+
+		// We don't change directory into workingDir
+
+		// Create the target of the symlink.
+		otherDir := t.TempDir()
+		target := filepath.Join(otherDir, "main.tf")
+		cfg := `variable "a" {
+default="x"
+  type =    string
+}
+
+locals {
+    b = var.a
+c =   "y"
+}`
+		err := os.WriteFile(target, []byte(cfg), 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var perms os.FileMode = 0744
+		if err := os.Chmod(target, perms); err != nil {
+			t.Fatal(err)
+		}
+
+		// Create the symlink pointing to the target file.
+		// Use a relative path for the target of the symlink.
+		link := filepath.Join(workingDir.RootModuleDir(), "main.tf")
+		relTarget, err := filepath.Rel(workingDir.RootModuleDir(), target)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink(relTarget, link); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				Ui: ui,
+				// Not setting WorkingDir
+			},
+		}
+
+		args := []string{
+			"-no-color",
+			workingDir.RootModuleDir(),
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("unexpected failure with code %d: %s", code, ui.ErrorWriter.String())
+		}
+
+		// The symlink is still a symlink
+		fi, err := os.Lstat(link)
+		if err != nil {
+			t.Fatalf("unexpected error %s", err)
+		}
+		if fi.Mode().Type() != os.ModeSymlink {
+			t.Fatal("expected the working directory main.tf to still be a symlink")
+		}
+
+		// The target file's permissions are unchanged
+		fi, err = os.Stat(target)
+		if err != nil {
+			t.Fatalf("unexpected error stating target file: %s", err)
+		}
+		if fi.Mode().Perm() != perms {
+			t.Fatalf("expected target file permissions to be %o, got: %o", perms, fi.Mode().Perm())
+		}
+
+		// The symlinked file has been formatted
+		ui = testUiWrapped(t)
+		c.Ui = ui
+		args = []string{
+			"-no-color",
+			"-check",
+			filepath.Join(workingDir.RootModuleDir(), "main.tf"),
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		}
+	})
+
 	t.Run("relative symlink in a nested directory", func(t *testing.T) {
 		// This test ensures that a relative symlink is handled correctly and avoids an error
 		// where the relative path is used relative to the root module instead of the directory
