@@ -3,7 +3,7 @@
 
 BUG FIXES:
 
-* FIx crash when tainted instance state is seen without a valid status ([#39287](https://github.com/hashicorp/terraform/issues/39287))
+* Fixed a crash that happens when a tainted instance state is seen without a valid status ([#39287](https://github.com/hashicorp/terraform/issues/39287))
 
 * resource-identity: fixed an issue where resource identity could be nil during delete ([#39285](https://github.com/hashicorp/terraform/issues/39285))
 
