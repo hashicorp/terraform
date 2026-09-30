@@ -2561,6 +2561,66 @@ resource "test_object" "a" {
 				},
 			},
 
+			"deferred destroy actions also defer the destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode:            plans.DestroyMode,
+					DeferralAllowed: true,
+				},
+				planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+					return providers.PlanActionResponse{
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonProviderConfigUnknown,
+						},
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.Resources) != 0 {
+						t.Fatalf("expected no planned resource changes, got %d", len(p.Changes.Resources))
+					}
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected no planned actions, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					if len(p.DeferredResources) != 1 {
+						t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+					}
+					deferredResource := p.DeferredResources[0]
+					if got := deferredResource.DeferredReason; got != providers.DeferredReasonAbsentPrereq {
+						t.Fatalf("expected resource to be deferred due to absent prereq, got %s", got)
+					}
+					if got := deferredResource.ChangeSrc.Action; got != plans.Delete {
+						t.Fatalf("expected deferred delete, got %s", got)
+					}
+
+					if len(p.DeferredActionInvocations) != 1 {
+						t.Fatalf("expected 1 deferred action, got %d", len(p.DeferredActionInvocations))
+					}
+				},
+			},
+
 			"deferred resources also defer the actions they trigger": {
 				module: map[string]string{
 					"main.tf": `

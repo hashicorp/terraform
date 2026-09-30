@@ -128,12 +128,22 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	// part of the plan as additional context in our error output.
 	diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
 
+	// Plan the triggered actions before anything else is recorded, because
+	// the resource must be deferred instead if any of those actions are
+	// deferred.
+	actionInvocations, actionsDeferred, actionDiags := n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change)
+	if actionsDeferred {
+		n.deferForActions(ctx, change)
+		return diags.Append(actionDiags)
+	}
+
 	diags = diags.Append(n.checkPreventDestroy(change))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change))
+	diags = diags.Append(actionDiags)
+	recordActionInvocations(ctx, actionInvocations)
 
 	return diags
 }
