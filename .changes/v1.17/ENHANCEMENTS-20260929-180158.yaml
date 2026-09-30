@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: 'cloud: The -minimal-refresh option is now supported for remote plans and applies with HCP Terraform and Terraform Enterprise, using the cloud block or the remote backend.'
-time: 2026-09-29T18:01:58.000000-04:00
-custom:
-    Issue: "39310"
