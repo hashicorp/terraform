@@ -189,7 +189,7 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 	}
 
 	if err := f.Close(); err != nil {
-		return writeFailError(err, nil)
+		return fmt.Errorf("Failed to write %s: %w; original content backed up in %s", filename, err, backup.Name())
 	}
 
 	// The file was successfully updated; remove backup
