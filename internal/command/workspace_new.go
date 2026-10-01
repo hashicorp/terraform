@@ -77,11 +77,13 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	workspaces, wDiags := b.Workspaces()
-	diags = diags.Append(wDiags)
 	if wDiags.HasErrors() {
+		err := fmt.Errorf("Failed to get configured named states: %s", wDiags.Err())
+		diags = diags.Append(err)
 		view.Diagnostics(diags)
 		return 1
 	}
+	diags = diags.Append(wDiags) // Append any warnings
 
 	for _, ws := range workspaces {
 		if workspace == ws {
@@ -129,7 +131,8 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 
 	// now set the current workspace locally
 	if err := c.SetWorkspace(workspace); err != nil {
-		diags = diags.Append(err)
+		errExtra := fmt.Errorf("Error selecting new workspace: %s", err)
+		diags = diags.Append(errExtra)
 		view.Diagnostics(diags)
 		return 1
 	}
