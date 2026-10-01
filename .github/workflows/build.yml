@@ -82,7 +82,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Generate package metadata
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@a43468dfb100445f2c2aa52cdc3d57b2c982a0f3 # v1.1.4
+        uses: hashicorp/actions-generate-metadata@780b17558ee4b93391b26a9e08d7cb858d9ae1e8 # v1.3.0
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
@@ -145,7 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build Docker images
-        uses: hashicorp/actions-docker-build@e12557abf02a40557313ab2839d6cd2c6705261e # v2.2.1
+        uses: hashicorp/actions-docker-build@595f29357108da6d4767b6a48e5f01f25de0c131 # v2.3.0
         with:
           pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
@@ -270,7 +270,7 @@ jobs:
           unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         if: ${{ contains(matrix.goarch, 'arm') }}
         with:
           platforms: all
