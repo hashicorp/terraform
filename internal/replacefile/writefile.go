@@ -119,12 +119,18 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 		errExtra := fmt.Errorf("error creating and opening temporary backup file for %s: %w", filename, err)
 		return writeFailError(errExtra, nil)
 	}
-	defer backup.Close()
 
 	_, err = backup.Write(originalData)
 	if err != nil {
 		os.Remove(backup.Name())
 		errExtra := fmt.Errorf("error writing to backup temporary file %s: %w", backup.Name(), err)
+		return writeFailError(errExtra, nil)
+	}
+
+	err = backup.Close()
+	if err != nil {
+		os.Remove(backup.Name()) // Likely to be impacted by issue preventing file being closed
+		errExtra := fmt.Errorf("error closing backup temporary file %s: %w", backup.Name(), err)
 		return writeFailError(errExtra, nil)
 	}
 
