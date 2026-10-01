@@ -80,8 +80,10 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	return nil
 }
 
-// NonAtomicWriteFileWithBackup creates a backup file containing the original content of the target file,
-// and providers a replacement for os.WriteFile that ensures that there is no data loss when updating a given file.
+// NonAtomicWriteFileWithBackup creates a backup file containing the original content of the target file and then updates
+// the target file with new content, in order to provides a replacement for os.WriteFile that ensures that there is no data
+// loss if the process is disrupted.
+//
 // This logic is based on implementation of the fmt command in the Go standard library.
 // See: https://cs.opensource.google/go/go/+/master:src/cmd/gofmt/gofmt.go;l=468;drc=d98516a9d2f88cc0d6e88849e1a8f4e4f1e6f465
 //
