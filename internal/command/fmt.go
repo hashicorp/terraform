@@ -218,8 +218,9 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			}
 			originalPermissions := fi.Mode().Perm()
 
-			diags = diags.Append(replacefile.NonAtomicWriteFileWithBackup(path, src, result, originalPermissions))
-			if diags.HasErrors() {
+			err = replacefile.NonAtomicWriteFileWithBackup(path, src, result, originalPermissions)
+			if err != nil {
+				diags = diags.Append(err)
 				return diags
 			}
 		}
