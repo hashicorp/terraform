@@ -116,14 +116,11 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...)
-	v.print(msg)
+	v.print(fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
-	template := "\n[reset][bold]Initializing the state store %q..."
-	msg := fmt.Sprintf(template, storeType)
-	v.print(msg)
+	v.print(fmt.Sprintf("\n[reset][bold]Initializing the state store %q...", storeType))
 }
 
 // Implements StateStoreProviderTrustLogger interface.
@@ -220,16 +217,14 @@ func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Versi
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(modulePath string) {
-	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
-	v.print(message)
+	v.print(fmt.Sprintf(moduleInstallationHuman, modulePath))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	v.print(message)
+	v.print(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
 }
 
 // Implements ModuleInstallationLogger
@@ -365,19 +360,16 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	msg := fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...)
 
 	v.view.log.Info(
-		msg,
+		fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...),
 		"type", json.MessageStateStoreProviderInstallationStart,
 	)
 }
 
 func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
-	template := "Initializing the state store %q..."
-	msg := fmt.Sprintf(template, storeType)
 	v.view.log.Info(
-		msg,
+		fmt.Sprintf("Initializing the state store %q...", storeType),
 		"type", json.MessageStateStoreInitializationStart,
 	)
 }
@@ -519,16 +511,14 @@ func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Versio
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallation(modulePath string) {
-	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
-	v.view.Log(message)
+	v.view.Log(fmt.Sprintf(moduleInstallationHuman, modulePath))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	v.view.Log(message)
+	v.view.Log(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
 }
 
 // Implements ModuleInstallationLogger
