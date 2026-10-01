@@ -189,24 +189,6 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			fmt.Fprintln(w, path)
 		}
 		if c.write {
-			if fi, err := os.Lstat(path); err == nil {
-				if fi.Mode().Type() == os.ModeSymlink {
-					// Format a symlink's target file
-					log.Printf("[TRACE] terraform fmt: the file at %s is a symlink", path)
-					symLinkTarget, err := os.Readlink(path)
-					if err != nil {
-						diags = diags.Append(fmt.Errorf("Failed to read symlink target for %s: %w", path, err))
-					}
-
-					// The final path value needs to be relative to the root directory.
-					// Get an absolute version of the symlink target, then normalize it.
-					if !filepath.IsAbs(symLinkTarget) {
-						symLinkTarget = filepath.Join(filepath.Dir(path), symLinkTarget)
-					}
-					path = c.normalizePath(symLinkTarget)
-				}
-			}
-
 			// Ensure existing file permissions are preserved when writing the formatted content.
 			//
 			// If a symlink is being formatted, this stat is using a path to the target file, so the file
