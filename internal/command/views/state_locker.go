@@ -58,19 +58,15 @@ type StateLockerJSON struct {
 }
 
 func (v *StateLockerJSON) Locking() {
-	message := "Acquiring state lock. This may take a few moments..."
-
 	v.view.log.Info(
-		message,
+		"Acquiring state lock. This may take a few moments...",
 		"type", json.MessageStateLockAcquire,
 	)
 }
 
 func (v *StateLockerJSON) Unlocking() {
-	message := "Releasing state lock. This may take a few moments..."
-
 	v.view.log.Info(
-		message,
+		"Releasing state lock. This may take a few moments...",
 		"type", json.MessageStateLockRelease,
 	)
 }
