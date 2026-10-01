@@ -34,9 +34,6 @@ var planConfigurationVersionsPollInterval = 500 * time.Millisecond
 // MinimalRefreshMinAPIVersion is the minimum TFP-API-Version a server must
 // report for Terraform to send the -minimal-refresh option. It is shared with
 // the legacy "remote" backend.
-//
-// TODO: PROVISIONAL. The real minimum has not been decided yet; it is expected
-// to be the next minor version after 2.6. Update this before release.
 const MinimalRefreshMinAPIVersion = "2.7"
 
 func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (OperationResult, error) {
