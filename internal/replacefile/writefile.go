@@ -151,7 +151,7 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 	// restoreFailError produces an error describing failure to restore original content to the target file.
 	// restoreFailError is intended to be used to create the second argument for writeFailError.
 	restoreFailError := func(e error) error {
-		return fmt.Errorf("error restoring file %s to original: %v; original content backed up in %s\n", filename, e, backup.Name())
+		return fmt.Errorf("error restoring file %s to original: %v; original content backed up in %s", filename, e, backup.Name())
 	}
 
 	if err != nil {
@@ -160,20 +160,22 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 		// available in the backup temporary file.
 
 		if n == 0 {
-			// The original file was unchanged; backup not needed
-			os.Remove(backup.Name())
+			f.Close()
+			os.Remove(backup.Name()) // The original file was unchanged; backup not needed
 			return writeFailError(fmt.Errorf("file %s unchanged; error while writing to file %s: %s", filename, filename, err), nil)
 		}
 
 		// Try to restore the original content
 		no, erro := f.WriteAt(originalData, 0)
 		if erro != nil {
+			f.Close()
 			return writeFailError(err, restoreFailError(erro))
 		}
 
 		if no < n {
 			// The original file is shorter; truncate
 			if erro := f.Truncate(int64(no)); erro != nil {
+				f.Close()
 				return writeFailError(err, restoreFailError(erro))
 			}
 		}
