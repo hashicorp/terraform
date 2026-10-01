@@ -293,11 +293,14 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
+	// Deferral is decided during planning, and this object's destroy was not
+	// deferred, so the provider must not defer it now.
 	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
-		return diags
-	} else if ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource deferred during apply, but not during plan",
+			fmt.Sprintf("Terraform has encountered a bug where a provider would mark the deposed object %s of %q as deferred during apply, but not during plan. This is most likely a bug in the provider. Please file an issue with the provider.", n.DeposedKey, n.Addr),
+		))
 		return diags
 	}
 

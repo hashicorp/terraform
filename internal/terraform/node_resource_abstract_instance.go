@@ -3171,7 +3171,34 @@ func getRequiredReplaces(priorVal, plannedNewVal cty.Value, writeOnly []cty.Path
 	return reqRep, diags
 }
 
-func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalContext, reason providers.DeferredReason) {
+// deferPlannedChange decides whether the planned change for this resource
+// instance must be deferred, either because the provider deferred it or
+// because one of the instance's dependencies was already deferred. When
+// deferred, the change and all of the instance's action triggers are reported
+// to the deferrals tracker, and the caller must not record the change in the
+// plan.
+func (n *NodeAbstractResourceInstance) deferPlannedChange(ctx EvalContext, providerDeferred *providers.Deferred, change *plans.ResourceInstanceChange) bool {
+	deferrals := ctx.Deferrals()
+
+	var reason providers.DeferredReason
+	switch {
+	case providerDeferred != nil:
+		reason = providerDeferred.Reason
+	case deferrals.ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies):
+		reason = providers.DeferredReasonDeferredPrereq
+	default:
+		return false
+	}
+
+	deferrals.ReportResourceInstanceDeferred(n.Addr, reason, change)
+	n.reportDeferredActionTriggers(ctx)
+	return true
+}
+
+// reportDeferredActionTriggers reports all of the action invocations triggered
+// by this resource instance as deferred, because the resource instance itself
+// was deferred.
+func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalContext) {
 	deferrals := ctx.Deferrals()
 
 	for blockIdx, trigger := range n.actionTriggers {
@@ -3184,24 +3211,21 @@ func (n *NodeAbstractResourceInstance) reportDeferredActionTriggers(ctx EvalCont
 					ActionsListIndex:        listIdx,
 				},
 				Caller: n.Addr.Resource,
-			}, reason)
+			}, providers.DeferredReasonDeferredPrereq)
 		}
 	}
 }
 
-func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRepData instances.RepetitionData, change *plans.ResourceInstanceChange) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	// check if our containing resource was deferred
-	_, deferred := ctx.Deferrals().GetDeferredResourceInstanceValue(n.Addr)
-	if deferred {
-		return nil
-	}
-
-	// any of the actions might be deferred, so collect action actionInvocations
-	// and record them at the end
-	var actionInvocations []*plans.ActionInvocationInstance
-
+// planActionTriggers plans all of the action invocations triggered by the
+// given planned change. The change must already be recorded in the plan,
+// because the action configuration and trigger conditions may refer to the
+// triggering resource. The returned invocations are not recorded in the plan,
+// so that the caller can decide what to do if an action is deferred.
+//
+// If any of the actions must be deferred, then deferred is true and the
+// resource instance must also be deferred using deferForActions, since its
+// change cannot be applied without the actions it triggers.
+func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRepData instances.RepetitionData, change *plans.ResourceInstanceChange) (invocations []*plans.ActionInvocationInstance, deferred bool, diags tfdiags.Diagnostics) {
 	for _, trigger := range n.actionTriggers {
 		scope := ctx.EvaluationScope(n.Addr.Resource, nil, resRepData)
 		if trigger.config.Condition != nil {
@@ -3224,34 +3248,39 @@ func (n *NodeAbstractResourceInstance) planActionTriggers(ctx EvalContext, resRe
 		// pointer to the ActionInvocationInstance.
 		for _, event := range eventsForPlannedAction(trigger.config.Events, change.Action) {
 			for _, action := range trigger.actionRefs {
-				ai, deferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event, change)
+				ai, actionDeferred, planDiags := n.planActionTrigger(ctx, resRepData, action, event, change)
 				diags = diags.Append(planDiags)
 				if diags.HasErrors() {
 					continue
 				}
 				ai.ActionTrigger.(*plans.ResourceActionTrigger).ActionOnFailure = trigger.config.OnFailure
 
-				if deferred {
+				if actionDeferred {
 					log.Printf("[DEBUG] NodePlannableResourceInstance %s is being deferred due to action %s", n.Addr, action.actionNode.Addr)
-					ctx.Changes().RemoveResourceInstanceChange(n.Addr, addrs.NotDeposed)
-					ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonAbsentPrereq, change)
-					// this defers all action triggers at once
-					n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
-					return diags
+					return nil, true, diags
 				}
 
-				actionInvocations = append(actionInvocations, ai)
+				invocations = append(invocations, ai)
 			}
 		}
 	}
 
-	// Now that we planned all action invocations with no deferrals, we can
-	// record them all in the changes.
-	for _, ai := range actionInvocations {
+	return invocations, false, diags
+}
+
+// deferForActions defers the planned change for this resource instance
+// because one of the actions it triggers was deferred. The change, which had
+// to be recorded in order to plan the actions, is removed from the plan.
+func (n *NodeAbstractResourceInstance) deferForActions(ctx EvalContext, change *plans.ResourceInstanceChange) {
+	ctx.Changes().RemoveResourceInstanceChange(n.Addr, addrs.NotDeposed)
+	n.deferPlannedChange(ctx, &providers.Deferred{Reason: providers.DeferredReasonAbsentPrereq}, change)
+}
+
+// recordActionInvocations adds the planned action invocations to the plan.
+func recordActionInvocations(ctx EvalContext, invocations []*plans.ActionInvocationInstance) {
+	for _, ai := range invocations {
 		ctx.Changes().AppendActionInvocation(ai)
 	}
-
-	return diags
 }
 
 // Plan the individual action invocation.

@@ -55,6 +55,11 @@ type graphWalkOpts struct {
 	// DeferralAlowed indicates that the current runtime supports deferred actions.
 	DeferralAllowed bool
 
+	// PlannedDeferrals should be populated during the apply phase with the
+	// resource changes that were deferred during the plan phase, so that the
+	// apply walk can evaluate references to them.
+	PlannedDeferrals []*plans.DeferredResourceInstanceChange
+
 	// ExternalDependencyDeferred indicates that something that this entire
 	// configuration depends on (outside the view of this modules runtime)
 	// has deferred changes, and therefore we must treat _all_ actions
@@ -188,6 +193,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	if opts.ExternalDependencyDeferred {
 		deferred.SetExternalDependencyDeferred()
 	}
+	deferred.LoadPlannedDeferrals(opts.PlannedDeferrals)
 
 	walker := &ContextGraphWalker{
 		Context:                 c,

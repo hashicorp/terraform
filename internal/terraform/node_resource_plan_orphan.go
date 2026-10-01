@@ -174,8 +174,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 	}
 
-	shouldDefer := ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies)
-
 	var change *plans.ResourceInstanceChange
 	var pDiags tfdiags.Diagnostics
 	var deferred *providers.Deferred
@@ -195,12 +193,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// sometimes not have a reason.)
 	change.ActionReason = n.deleteActionReason(ctx)
 
-	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
-		return diags
-	} else if shouldDefer {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
-		n.reportDeferredActionTriggers(ctx, providers.DeferredReasonDeferredPrereq)
+	if n.deferPlannedChange(ctx, deferred, change) {
 		return diags
 	}
 
@@ -222,6 +215,15 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
+	// Plan the triggered actions before anything else is recorded, because
+	// the resource must be deferred instead if any of those actions are
+	// deferred.
+	actionInvocations, actionsDeferred, actionDiags := n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change)
+	if actionsDeferred {
+		n.deferForActions(ctx, change)
+		return diags.Append(tfdiags.OverrideAll(actionDiags, tfdiags.Warning, nil))
+	}
+
 	if !forget {
 		diags = diags.Append(n.checkPreventDestroy(change))
 		if diags.HasErrors() {
@@ -231,7 +233,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 
-	actionDiags := n.planActionTriggers(ctx, EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil), change)
 	if actionDiags.HasErrors() {
 		// Orphaned destroy actions may not have enough configuration
 		// information to plan, but we can't block their progress since the
@@ -245,6 +246,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		))
 	}
 	diags = diags.Append(tfdiags.OverrideAll(actionDiags, tfdiags.Warning, nil))
+	recordActionInvocations(ctx, actionInvocations)
 
 	return diags
 }

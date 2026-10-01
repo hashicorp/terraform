@@ -200,6 +200,12 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
+	plannedDeferrals, moreDiags := decodeDeferredResources(schemas, plan.DeferredResources)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
 		Config:                  config,
@@ -208,7 +214,8 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
 
-		DeferralAllowed: true,
+		DeferralAllowed:  true,
+		PlannedDeferrals: plannedDeferrals,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting
@@ -391,7 +398,6 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 	graph, moreDiags := (&ApplyGraphBuilder{
 		Config:                    config,
 		Changes:                   plan.Changes,
-		DeferredChanges:           plan.DeferredResources,
 		State:                     plan.PriorState,
 		RootVariableValues:        variables,
 		ExternalProviderConfigs:   opts.ExternalProviders,
@@ -432,4 +438,37 @@ func (c *Context) ApplyGraphForUI(plan *plans.Plan, config *configs.Config) (*Gr
 	graph, _, moreDiags := c.applyGraph(plan, config, nil, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
+}
+
+// decodeDeferredResources decodes the deferred resource changes stored in a
+// plan, so that they can be loaded into the deferrals tracker for the apply
+// walk. This is the inverse of [Context.deferredResources].
+func decodeDeferredResources(schemas *Schemas, srcs []*plans.DeferredResourceInstanceChangeSrc) ([]*plans.DeferredResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var deferrals []*plans.DeferredResourceInstanceChange
+
+	for _, src := range srcs {
+		addr := src.ChangeSrc.Addr
+		schema := schemas.ResourceTypeConfig(src.ChangeSrc.ProviderAddr.Provider, addr.Resource.Resource.Mode, addr.Resource.Resource.Type)
+		if schema.Body == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode deferred change",
+				fmt.Sprintf("Terraform failed to decode the deferred change for %s because its schema is not available. This is a bug in Terraform; please report it!", addr),
+			))
+			continue
+		}
+
+		deferral, err := src.Decode(schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode deferred change",
+				fmt.Sprintf("Terraform failed to decode the deferred change for %s: %s.\n\nThis is a bug in Terraform; please report it!", addr, err),
+			))
+			continue
+		}
+		deferrals = append(deferrals, deferral)
+	}
+	return deferrals, diags
 }
