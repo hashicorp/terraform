@@ -189,18 +189,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			fmt.Fprintln(w, path)
 		}
 		if c.write {
-			// Ensure existing file permissions are preserved when writing the formatted content.
-			//
-			// If a symlink is being formatted, this stat is using a path to the target file, so the file
-			// will have it's own permissions enforced instead of inheriting from the symlink.
-			fi, err := os.Stat(path)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to stat %s: %w", path, err))
-				return diags
-			}
-			originalPermissions := fi.Mode().Perm()
-
-			err = replacefile.NonAtomicWriteFileWithBackup(path, src, result, originalPermissions)
+			err = replacefile.NonAtomicWriteFileWithBackup(path, src, result)
 			if err != nil {
 				diags = diags.Append(err)
 				return diags

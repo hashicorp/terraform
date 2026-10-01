@@ -100,7 +100,7 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 // NonAtomicWriteFileWithBackup updates the original file with new data, whereas AtomicWriteFile replaces the original file.
 // This means that metadata on the original file can be preserved when using NonAtomicWriteFileWithBackup,
 // e.g. ownership, file creation timestamp.
-func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData []byte, perm os.FileMode) error {
+func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData []byte) error {
 	// writeFailError produces an error stating the overall file change could not be fulfilled.
 	// The returned error will either wrap 1 or 2 errors:
 	// 1. The error that occurred while writing to the target file.
@@ -112,9 +112,8 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 		return fmt.Errorf("Failed to write %s: %w", filename, writeError)
 	}
 
-	dir := filepath.Dir(filename)
-
 	// Create a backup temporary file that contains the original content of the file.
+	dir := filepath.Dir(filename)
 	backup, err := os.CreateTemp(dir, filepath.Base(filename))
 	if err != nil {
 		errExtra := fmt.Errorf("error creating and opening temporary backup file for %s: %w", filename, err)
@@ -130,7 +129,8 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 	}
 
 	// Open the target file, attempt to write the formatted data to it
-	f, err := os.OpenFile(filename, os.O_WRONLY, perm)
+	// We'll never create a file here, so pass perm = 0
+	f, err := os.OpenFile(filename, os.O_WRONLY, 0)
 	if err != nil {
 		os.Remove(backup.Name())
 		errExtra := fmt.Errorf("error opening target file %s: %w", filename, err)
