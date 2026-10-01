@@ -121,23 +121,14 @@ func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData [
 	// Create a backup temporary file that contains the original content of the file.
 	backup, err := os.CreateTemp(dir, filepath.Base(filename))
 	if err != nil {
-		errExtra := fmt.Errorf("error creating temporary backup file for %s: %w", filename, err)
+		errExtra := fmt.Errorf("error creating and opening temporary backup file for %s: %w", filename, err)
 		return diags.Append(
 			writeFailDiag(errExtra),
 		)
 	}
+	defer backup.Close()
 
-	backupF, err := os.OpenFile(backup.Name(), os.O_WRONLY, perm)
-	if err != nil {
-		os.Remove(backup.Name())
-		errExtra := fmt.Errorf("error opening backup temporary file %s: %w", backup.Name(), err)
-		return diags.Append(
-			writeFailDiag(errExtra),
-		)
-	}
-	defer backupF.Close()
-
-	_, err = backupF.Write(originalData)
+	_, err = backup.Write(originalData)
 	if err != nil {
 		os.Remove(backup.Name())
 		errExtra := fmt.Errorf("error writing to backup temporary file %s: %w", backup.Name(), err)
