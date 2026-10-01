@@ -26,7 +26,6 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	// Process command-specific arguments.
-	// Currently there are no arguments for this command, so ignore the returned value for now.
 	args, diags := arguments.ParseWorkspaceSelect(rawArgs)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
