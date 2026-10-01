@@ -103,13 +103,11 @@ func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
-	template := "[reset][bold]Copying configuration[reset] from %q..."
-	v.print(fmt.Sprintf(template, moduleSource))
+	v.print(fmt.Sprintf("[reset][bold]Copying configuration[reset] from %q...", moduleSource))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
-	msg := "\n[reset][bold]Initializing provider plugins..."
-	v.print(msg)
+	v.print("\n[reset][bold]Initializing provider plugins...")
 }
 
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -197,8 +195,7 @@ func (v *InitHuman) LogProviderLockfileCreated() {
 
 // Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileUpdated() {
-	msg := strings.TrimSpace(dependenciesLockChangesInfo)
-	v.print(msg)
+	v.print(dependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -230,14 +227,12 @@ func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir stri
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleUpgrade() {
-	msg := "[reset][bold]Upgrading modules..."
-	v.print(msg)
+	v.print("[reset][bold]Upgrading modules...")
 }
 
 // Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleInitialization() {
-	msg := "[reset][bold]Initializing modules..."
-	v.print(msg)
+	v.print("[reset][bold]Initializing modules...")
 }
 
 // print formats (trims whitespace & applies colour) and
@@ -335,8 +330,7 @@ func (v *InitJSON) initOutputLog(preppedMessage string, messageCode json.Message
 }
 
 func (v *InitJSON) LogConfigurationCopyingStart(moduleSource string) {
-	template := "Copying configuration from %q..."
-	v.initOutputLog(fmt.Sprintf(template, moduleSource), json.MessageCopyingConfigurationMessage)
+	v.initOutputLog(fmt.Sprintf("Copying configuration from %q...", moduleSource), json.MessageCopyingConfigurationMessage)
 }
 
 // logInitMessage is an internalised version of an old method `LogInitMessage`.
@@ -360,8 +354,7 @@ func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
 }
 
 func (v *InitJSON) LogInstallProvidersStart() {
-	msg := "Initializing provider plugins..."
-	v.initOutputLog(msg, json.MessageInitializingProviderPluginMessage)
+	v.initOutputLog("Initializing provider plugins...", json.MessageInitializingProviderPluginMessage)
 }
 
 func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -489,14 +482,12 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileCreated() {
-	msg := strings.TrimSpace(createdLockInfoJSON)
-	v.initOutputLog(msg, json.MessageLockInfo)
+	v.initOutputLog(strings.TrimSpace(createdLockInfoJSON), json.MessageLockInfo)
 }
 
 // Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
-	msg := strings.TrimSpace(dependenciesLockChangesInfo)
-	v.initOutputLog(msg, json.MessageDependenciesLockChangesInfo)
+	v.initOutputLog(strings.TrimSpace(dependenciesLockChangesInfo), json.MessageDependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -529,14 +520,12 @@ func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir strin
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleUpgrade() {
-	msg := "Upgrading modules..."
-	v.initOutputLog(msg, json.MessageUpgradingModulesMessage)
+	v.initOutputLog("Upgrading modules...", json.MessageUpgradingModulesMessage)
 }
 
 // Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleInitialization() {
-	msg := "Initializing modules..."
-	v.initOutputLog(msg, json.MessageInitializingModulesMessage)
+	v.initOutputLog("Initializing modules...", json.MessageInitializingModulesMessage)
 }
 
 // prepareMessage retrieves a message template matching the InitMessageCode and
