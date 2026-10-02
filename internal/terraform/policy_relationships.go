@@ -155,7 +155,8 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 	ps.runID = runID
 	ps.lock.Unlock()
 
-	for _, req := range chunkRelationshipBatch(nil, nil, ps.providers.all(), runID) {
+	records, statuses, providers := collectRelationshipBatch(ctx, ps, resp.GetSpec())
+	for _, req := range chunkRelationshipBatch(records, statuses, providers, runID) {
 		resp, err := client.ReportInstances(stopCtx, req)
 		if err != nil {
 			log.Printf("[WARN] policy: failed to report instances for relationship run %s: %s", runID, err)
@@ -287,8 +288,328 @@ func policyStateValue(obj *states.ResourceInstanceObjectSrc, schema providers.Sc
 	if err != nil {
 		return cty.NilVal, err
 	}
-	val := decoded.Value
-	return marks.MarkPaths(val, marks.Sensitive, schema.Body.SensitivePaths(val, nil)), nil
+	return policyMarkSchemaSensitive(decoded.Value, schema.Body), nil
+}
+
+// policyMarkSchemaSensitive marks the values of val that the schema declares
+// sensitive, keeping its existing marks.
+func policyMarkSchemaSensitive(val cty.Value, block *configschema.Block) cty.Value {
+	if val == cty.NilVal || block == nil {
+		return val
+	}
+	unmarked, pvms := val.UnmarkDeepWithPaths()
+	for _, path := range block.SensitivePaths(unmarked, nil) {
+		pvms = append(pvms, cty.PathValueMarks{Path: path, Marks: cty.NewValueMarks(marks.Sensitive)})
+	}
+	return unmarked.MarkWithPaths(pvms)
+}
+
+type relationshipTypeKey struct {
+	source   string
+	typeName string
+}
+
+// relationshipCollector collects the records and type statuses of a
+// relationship run, as described by the policy plugin's collection spec.
+type relationshipCollector struct {
+	ctx EvalContext
+	ps  *policySubgraph
+
+	types      map[relationshipTypeKey]bool
+	typeOrder  []relationshipTypeKey
+	incomplete map[relationshipTypeKey]bool
+	deferred   map[relationshipTypeKey]map[string]struct{}
+	keyPaths   map[relationshipTypeKey][][]string
+
+	records []*proto.InstanceRecord
+}
+
+// collectRelationshipBatch collects the records, type statuses and provider
+// instances of the walk's relationship run for the given spec. It must be
+// called after the walk's changes and state are final.
+func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.CollectionSpec) ([]*proto.InstanceRecord, []*proto.TypeStatus, []*proto.ProviderInstance) {
+	c := &relationshipCollector{
+		ctx:        ctx,
+		ps:         ps,
+		types:      make(map[relationshipTypeKey]bool),
+		incomplete: make(map[relationshipTypeKey]bool),
+		deferred:   make(map[relationshipTypeKey]map[string]struct{}),
+		keyPaths:   make(map[relationshipTypeKey][][]string),
+	}
+	for _, ts := range spec.GetTypes() {
+		key := relationshipTypeKey{source: ts.GetProviderSource(), typeName: ts.GetType()}
+		if !c.types[key] {
+			c.types[key] = true
+			c.typeOrder = append(c.typeOrder, key)
+		}
+		for _, kp := range ts.GetKeyPaths() {
+			c.keyPaths[key] = append(c.keyPaths[key], policyKeyPathNames(kp))
+		}
+	}
+
+	var changes []*plans.ResourceInstanceChange
+	if ps.run.Stage == proto.EvaluationStage_APPLY_EVALUATION_STAGE {
+		changes = ps.run.AppliedChanges
+	} else {
+		changes = ctx.Changes().ResourceInstanceChanges()
+	}
+
+	changed := make(map[string]struct{})
+	for _, change := range changes {
+		if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed {
+			continue
+		}
+		changed[change.Addr.String()] = struct{}{}
+	}
+
+	deferred := make(map[string]struct{})
+	if deferrals := ctx.Deferrals(); deferrals != nil {
+		for _, d := range deferrals.GetDeferredChanges() {
+			addr := d.Change.Addr
+			if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+			deferred[addr.String()] = struct{}{}
+			key := relationshipTypeKey{source: d.Change.ProviderAddr.Provider.String(), typeName: addr.Resource.Resource.Type}
+			if !c.types[key] {
+				continue
+			}
+			if c.deferred[key] == nil {
+				c.deferred[key] = make(map[string]struct{})
+			}
+			c.deferred[key][addr.String()] = struct{}{}
+		}
+	}
+
+	state := ctx.State().Lock()
+	defer ctx.State().Unlock()
+
+	for _, change := range changes {
+		if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed {
+			continue
+		}
+		c.addChangeRecord(change, state)
+	}
+	c.addStateRecords(state, changed, deferred)
+
+	if ps.run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE && ps.run.PlanMode == proto.PlanMode_NORMAL_PLAN_MODE {
+		c.checkExpandedInstances(changed, deferred)
+	}
+
+	sort.Slice(c.records, func(i, j int) bool {
+		return c.records[i].Address < c.records[j].Address
+	})
+	return c.records, c.statuses(), ps.providers.all()
+}
+
+func policyKeyPathNames(path *proto.AttributePath) []string {
+	names := make([]string, 0, len(path.GetSteps()))
+	for _, step := range path.GetSteps() {
+		names = append(names, step.GetAttributeName())
+	}
+	return names
+}
+
+func (c *relationshipCollector) schema(provider addrs.Provider, typeName string) providers.Schema {
+	return c.ps.run.Schemas.ResourceTypeConfig(provider, addrs.ManagedResourceMode, typeName)
+}
+
+func (c *relationshipCollector) newRecord(addr addrs.AbsResourceInstance, providerAddr addrs.AbsProviderConfig) *proto.InstanceRecord {
+	return &proto.InstanceRecord{
+		Address:            addr.String(),
+		Type:               addr.Resource.Resource.Type,
+		ProviderSource:     providerAddr.Provider.String(),
+		ModulePath:         addr.Module.String(),
+		ProviderInstanceId: c.ps.providers.idFor(providerAddr),
+	}
+}
+
+func (c *relationshipCollector) encode(key relationshipTypeKey, addr addrs.AbsResourceInstance, what string, val cty.Value) (*proto.ResourceAttributes, bool) {
+	attrs, err := policy.EncodeResourceAttributes(val)
+	if err != nil {
+		log.Printf("[WARN] policy: failed to encode the %s of %s for relationship checks: %s", what, addr, err)
+		c.incomplete[key] = true
+		return nil, false
+	}
+	return attrs, true
+}
+
+func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceChange, state *states.State) {
+	addr := change.Addr
+	key := relationshipTypeKey{source: change.ProviderAddr.Provider.String(), typeName: addr.Resource.Resource.Type}
+	if !c.types[key] {
+		return
+	}
+	action, ok := policyResourceAction(change.Action)
+	if !ok {
+		log.Printf("[WARN] policy: unexpected action %s for %s in relationship checks", change.Action, addr)
+		c.incomplete[key] = true
+		return
+	}
+	schema := c.schema(change.ProviderAddr.Provider, addr.Resource.Resource.Type)
+	if schema.Body == nil {
+		log.Printf("[WARN] policy: no schema for %s in relationship checks", addr)
+		c.incomplete[key] = true
+		return
+	}
+
+	rec := c.newRecord(addr, change.ProviderAddr)
+	rec.Source = proto.RecordSource_PLANNED_RECORD_SOURCE
+	rec.Action = action
+	rec.Importing = change.Importing != nil
+	if change.PrevRunAddr.Resource.Resource.Type != "" && !change.PrevRunAddr.Equal(addr) {
+		rec.PrevAddress = change.PrevRunAddr.String()
+	}
+
+	if policyRecordHasAttrs(change.Action) {
+		after := change.After
+		if c.ps.run.Stage == proto.EvaluationStage_APPLY_EVALUATION_STAGE {
+			// The record of an applied change has the value the apply
+			// produced.
+			var obj *states.ResourceInstanceObjectSrc
+			if inst := state.ResourceInstance(addr); inst != nil {
+				obj = inst.Current
+			}
+			if obj == nil {
+				log.Printf("[DEBUG] policy: no object for %s after apply; its type is incomplete for relationship checks", addr)
+				c.incomplete[key] = true
+				return
+			}
+			val, err := policyStateValue(obj, schema)
+			if err != nil {
+				log.Printf("[WARN] policy: failed to decode %s for relationship checks: %s", addr, err)
+				c.incomplete[key] = true
+				return
+			}
+			after = val
+		} else {
+			after = policyMarkSchemaSensitive(after, schema.Body)
+		}
+		if rec.Attrs, ok = c.encode(key, addr, "planned value", after); !ok {
+			return
+		}
+	}
+	if policyRecordHasPriorAttrs(change.Action) {
+		if rec.PriorAttrs, ok = c.encode(key, addr, "prior value", policyMarkSchemaSensitive(change.Before, schema.Body)); !ok {
+			return
+		}
+	}
+	c.records = append(c.records, rec)
+}
+
+// addStateRecords adds a record for every current object in the state whose
+// resource is in the configuration and that has neither a change nor a
+// deferral.
+func (c *relationshipCollector) addStateRecords(state *states.State, changed, deferred map[string]struct{}) {
+	cfg := c.ctx.Config()
+	if cfg == nil {
+		return
+	}
+	for _, ms := range state.Modules {
+		modCfg := cfg.DescendantForInstance(ms.Addr)
+		if modCfg == nil {
+			continue
+		}
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+			key := relationshipTypeKey{source: rs.ProviderConfig.Provider.String(), typeName: rs.Addr.Resource.Type}
+			if !c.types[key] || modCfg.Module.ResourceByAddr(rs.Addr.Resource) == nil {
+				continue
+			}
+			schema := c.schema(rs.ProviderConfig.Provider, rs.Addr.Resource.Type)
+			for instKey, inst := range rs.Instances {
+				if inst.Current == nil {
+					continue
+				}
+				addr := rs.Addr.Instance(instKey)
+				if _, ok := changed[addr.String()]; ok {
+					continue
+				}
+				if _, ok := deferred[addr.String()]; ok {
+					continue
+				}
+				val, err := policyStateValue(inst.Current, schema)
+				if err != nil {
+					log.Printf("[WARN] policy: failed to decode %s for relationship checks: %s", addr, err)
+					c.incomplete[key] = true
+					continue
+				}
+				rec := c.newRecord(addr, rs.ProviderConfig)
+				rec.Source = proto.RecordSource_STATE_RECORD_SOURCE
+				rec.Action = proto.ResourceAction_NO_OP_RESOURCE_ACTION
+				var ok bool
+				if rec.Attrs, ok = c.encode(key, addr, "value", val); !ok {
+					continue
+				}
+				c.records = append(c.records, rec)
+			}
+		}
+	}
+}
+
+// checkExpandedInstances marks a type incomplete if the instance expander
+// knows an instance of a configured resource of that type that has neither a
+// change nor a deferral, e.g. because planning it failed.
+func (c *relationshipCollector) checkExpandedInstances(changed, deferred map[string]struct{}) {
+	cfg := c.ctx.Config()
+	exp := c.ctx.InstanceExpander()
+	if cfg == nil || exp == nil {
+		return
+	}
+	known := exp.AllInstances()
+	cfg.DeepEach(func(mc *configs.Config) {
+		for _, r := range mc.Module.ManagedResources {
+			provider := mc.Module.ProviderForLocalConfig(r.ProviderConfigAddr())
+			key := relationshipTypeKey{source: provider.String(), typeName: r.Type}
+			if !c.types[key] || c.incomplete[key] {
+				continue
+			}
+			for _, modInst := range known.InstancesForModule(mc.Path, false) {
+				absRes := r.Addr().Absolute(modInst)
+				if !known.HasResource(absRes) {
+					continue
+				}
+				_, keys, unknownKeys := exp.ResourceInstanceKeys(absRes)
+				if unknownKeys && len(c.deferred[key]) == 0 {
+					c.incomplete[key] = true
+				}
+				for _, instKey := range keys {
+					addr := absRes.Instance(instKey).String()
+					_, hasChange := changed[addr]
+					_, isDeferred := deferred[addr]
+					if !hasChange && !isDeferred {
+						log.Printf("[DEBUG] policy: %s has no planned change; its type is incomplete for relationship checks", addr)
+						c.incomplete[key] = true
+					}
+				}
+			}
+		}
+	})
+}
+
+func (c *relationshipCollector) statuses() []*proto.TypeStatus {
+	ret := make([]*proto.TypeStatus, 0, len(c.typeOrder))
+	for _, key := range c.typeOrder {
+		status := &proto.TypeStatus{
+			ProviderSource: key.source,
+			Type:           key.typeName,
+			Completeness:   proto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS,
+		}
+		switch {
+		case len(c.deferred[key]) > 0:
+			status.Completeness = proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS
+			for addr := range c.deferred[key] {
+				status.DeferredAddresses = append(status.DeferredAddresses, addr)
+			}
+			sort.Strings(status.DeferredAddresses)
+		case c.incomplete[key]:
+			status.Completeness = proto.TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS
+		}
+		ret = append(ret, status)
+	}
+	return ret
 }
 
 // policyProviderTable records the provider configurations configured during
