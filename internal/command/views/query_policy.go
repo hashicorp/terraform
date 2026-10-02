@@ -120,6 +120,7 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 	})
 
 	policies := make(map[queryPolicyKey]struct{})
+	var failed, passed, unknown, errored int
 	for _, summary := range ordered {
 		for _, metadata := range summary.PassedPolicies {
 			policies[queryPolicyKeyFromMetadata(metadata)] = struct{}{}
@@ -127,6 +128,19 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 		for _, result := range summary.Results {
 			for _, pol := range result.Policies {
 				policies[queryPolicyKeyFromMetadata(pol.PolicyMetadata)] = struct{}{}
+			}
+
+			switch result.Result {
+			case queryPolicyResultFail:
+				failed++
+			case queryPolicyResultPass:
+				if len(result.Policies) > 0 {
+					passed++
+				}
+			case queryPolicyResultUnknown:
+				unknown++
+			case queryPolicyResultError:
+				errored++
 			}
 		}
 	}
@@ -137,6 +151,13 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 		buf.WriteString("\n\n")
 		buf.WriteString(renderQueryPolicySummaryHuman(summary))
 	}
+
+	fmt.Fprintf(
+		&buf,
+		"\n\nSummary: %d failed, %d pass, %d unknown, %d error",
+		failed, passed, unknown, errored,
+	)
+
 	return buf.String()
 }
 
