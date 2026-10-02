@@ -4,6 +4,7 @@
 package addrs
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -58,15 +59,7 @@ func (m Module) String() string {
 }
 
 func (m Module) Equal(other Module) bool {
-	if len(m) != len(other) {
-		return false
-	}
-	for i := range m {
-		if m[i] != other[i] {
-			return false
-		}
-	}
-	return true
+	return slices.Equal(m, other)
 }
 
 type moduleKey string
