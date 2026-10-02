@@ -49,6 +49,12 @@ type nodeExpandOutput struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// Overrides is the set of overrides applied by the testing framework. We
 	// may need to override the value for this output and if we do the value
 	// comes from here.
@@ -134,15 +140,16 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 
 			default:
 				node = &NodeApplyableOutput{
-					Addr:                      absAddr,
-					Config:                    n.Config,
-					Change:                    change,
-					RefreshOnly:               n.RefreshOnly,
-					DestroyApply:              n.Destroying,
-					Planning:                  n.Planning,
-					Override:                  n.getOverrideValue(absAddr.Module),
-					Dependencies:              n.Dependencies,
-					AllowRootEphemeralOutputs: n.AllowRootEphemeralOutputs,
+					Addr:                       absAddr,
+					Config:                     n.Config,
+					Change:                     change,
+					RefreshOnly:                n.RefreshOnly,
+					DestroyApply:               n.Destroying,
+					Planning:                   n.Planning,
+					Override:                   n.getOverrideValue(absAddr.Module),
+					Dependencies:               n.Dependencies,
+					AllowRootEphemeralOutputs:  n.AllowRootEphemeralOutputs,
+					AllowRootDeprecatedOutputs: n.AllowRootDeprecatedOutputs,
 				}
 			}
 
@@ -296,6 +303,12 @@ type NodeApplyableOutput struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
 }
 
 var (
@@ -521,7 +534,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 
 	if n.Config.DeprecatedSet {
 		val, _ = marks.GetDeprecationMarksDeep(val)
-		if n.Addr.Module.IsRoot() {
+		if n.Addr.Module.IsRoot() && !n.AllowRootDeprecatedOutputs {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Root module output deprecated",

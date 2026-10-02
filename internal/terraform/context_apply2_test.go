@@ -5813,3 +5813,35 @@ func (h *stateSerializingTestHook) errs() []error {
 	defer h.mu.Unlock()
 	return h.serErrs
 }
+
+func TestContext2Apply_AllowRootDeprecatedOutputs(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "old" {
+  value      = "example"
+  deprecated = "Use the new output."
+}
+`,
+	})
+	ctx := testContext2(t, &ContextOpts{})
+
+	opts := &PlanOpts{
+		Mode:                       plans.NormalMode,
+		AllowRootDeprecatedOutputs: true,
+	}
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
+	if diags.HasErrors() {
+		return
+	}
+
+	state, diags := ctx.Apply(plan, m, opts.ApplyOpts())
+	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
+	if diags.HasErrors() {
+		return
+	}
+	output := state.RootOutputValues["old"]
+	if output == nil || !output.Value.RawEquals(cty.StringVal("example")) {
+		t.Fatalf("unexpected root output: %#v", output)
+	}
+}
