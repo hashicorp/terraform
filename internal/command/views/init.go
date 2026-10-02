@@ -576,18 +576,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"finding_matching_version_message": {
-		HumanValue: logFindingMatchingVersionHuman,
-		JSONValue:  logFindingMatchingVersionJSON,
-	},
-	"state_store_unset": {
-		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
-		JSONValue:  "Successfully unset the state store %q. Terraform will now operate locally.",
-	},
-	"state_store_migrate_backend": {
-		HumanValue: "Migrating from %q state store to %q backend.",
-		JSONValue:  "Migrating from %q state store to %q backend.",
-	},
 	"backend_configured_unset": {
 		HumanValue: backendConfiguredUnsetHuman,
 		JSONValue:  backendConfiguredUnsetJSON,
