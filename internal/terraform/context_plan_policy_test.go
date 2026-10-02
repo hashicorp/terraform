@@ -3080,6 +3080,7 @@ func relationshipsTestProvider() *testing_provider.MockProvider {
 						"name":    {Type: cty.String, Optional: true},
 						"net_id":  {Type: cty.String, Optional: true},
 						"net_ids": {Type: cty.List(cty.String), Optional: true},
+						"zone":    {Type: cty.String, Optional: true, Computed: true},
 						"disks": {
 							NestedType: &configschema.Object{
 								Nesting: configschema.NestingList,
@@ -3714,6 +3715,33 @@ type wantRelRecord struct {
 	// Provider is the config address of the record's provider instance;
 	// the default provider configuration when empty.
 	Provider string
+	// Origins are the expected origins by dot-separated key path, each as
+	// the referenced address and dot-separated path; nil means none.
+	Origins map[string][]string
+}
+
+// relOrigins returns the origins of a record by dot-separated key path, each
+// as the referenced address and dot-separated path, or nil if there are none.
+func relOrigins(t *testing.T, rec *proto.InstanceRecord) map[string][]string {
+	t.Helper()
+	if len(rec.Origins) == 0 {
+		return nil
+	}
+	ret := make(map[string][]string)
+	for _, ko := range rec.Origins {
+		kp := relPathString(ko.KeyPath)
+		if _, exists := ret[kp]; exists {
+			t.Fatalf("%s: duplicate origins for key path %s", rec.Address, kp)
+		}
+		if len(ko.Origins) == 0 {
+			t.Fatalf("%s: empty origins for key path %s", rec.Address, kp)
+		}
+		for _, o := range ko.Origins {
+			ret[kp] = append(ret[kp], o.Address+"."+relPathString(o.Path))
+		}
+		sort.Strings(ret[kp])
+	}
+	return ret
 }
 
 func relDecodeAttrs(t *testing.T, attrs *proto.ResourceAttributes) cty.Value {
@@ -3823,6 +3851,9 @@ func (r *relationshipRun) assertRecords(t *testing.T, want map[string]wantRelRec
 		if p := providers[rec.ProviderInstanceId]; p == nil || p.ConfigAddress != wantProvider {
 			t.Errorf("%s: wrong provider instance %d (%v), want %s", addr, rec.ProviderInstanceId, p, wantProvider)
 		}
+		if diff := cmp.Diff(w.Origins, relOrigins(t, rec)); diff != "" {
+			t.Errorf("%s: wrong origins (-want +got):\n%s", addr, diff)
+		}
 		relAssertAttrs(t, addr+" attrs", rec.Attrs, w.Attrs)
 		relAssertAttrs(t, addr+" prior attrs", rec.PriorAttrs, w.PriorAttrs)
 		if rec.Attrs != nil && w.Redacted != nil {
@@ -3903,6 +3934,8 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 				}},
 				"test_vm.b": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
 					"id": relUnknown, "net_id": relUnknown,
+				}, Origins: map[string][]string{
+					"net_id": {"test_net.a.id"},
 				}},
 			},
 			wantStatuses: map[string]*proto.TypeStatus{

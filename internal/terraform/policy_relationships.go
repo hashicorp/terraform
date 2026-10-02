@@ -321,7 +321,68 @@ type relationshipCollector struct {
 	deferred   map[relationshipTypeKey]map[string]struct{}
 	keyPaths   map[relationshipTypeKey][][]string
 
+	// origins is the lookup for origins in plan runs; nil if the run has
+	// no origins.
+	origins *relationshipOriginLookup
+
 	records []*proto.InstanceRecord
+}
+
+// relationshipOriginLookup implements originLookup with the walk's schemas
+// and planned changes.
+type relationshipOriginLookup struct {
+	schemas *Schemas
+	// planned are the unmarked planned values of the walk's managed
+	// resource instance changes, by address.
+	planned map[string]cty.Value
+}
+
+var _ originLookup = (*relationshipOriginLookup)(nil)
+
+func (l *relationshipOriginLookup) attrType(provider addrs.Provider, resType string, path []string) (cty.Type, bool) {
+	schema := l.schemas.ResourceTypeConfig(provider, addrs.ManagedResourceMode, resType)
+	if schema.Body == nil || len(path) == 0 {
+		return cty.NilType, false
+	}
+	ty := schema.Body.ImpliedType()
+	ctyPath := make(cty.Path, 0, len(path))
+	for _, name := range path {
+		if !ty.IsObjectType() || !ty.HasAttribute(name) {
+			return cty.NilType, false
+		}
+		ty = ty.AttributeType(name)
+		ctyPath = ctyPath.GetAttr(name)
+	}
+	if !ty.IsPrimitiveType() {
+		return cty.NilType, false
+	}
+	if attr := schema.Body.AttributeByPath(ctyPath); attr == nil || attr.WriteOnly {
+		return cty.NilType, false
+	}
+	return ty, true
+}
+
+func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, path []string) (cty.Value, bool) {
+	val, ok := l.planned[addr.String()]
+	if !ok {
+		return cty.NilVal, false
+	}
+	for _, name := range path {
+		if !val.IsKnown() {
+			return cty.NilVal, false
+		}
+		if val.IsNull() {
+			return val, true
+		}
+		if !val.Type().IsObjectType() || !val.Type().HasAttribute(name) {
+			return cty.NilVal, false
+		}
+		val = val.GetAttr(name)
+	}
+	if !val.IsKnown() {
+		return cty.NilVal, false
+	}
+	return val, true
 }
 
 // collectRelationshipBatch collects the records, type statuses and provider
@@ -360,6 +421,20 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 			continue
 		}
 		changed[change.Addr.String()] = struct{}{}
+	}
+
+	// Origins are only computed in plan runs, and not in walks with test
+	// overrides, where the values of overridden objects don't come from
+	// their configuration.
+	if ps.run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE && ctx.Overrides().Empty() {
+		c.origins = &relationshipOriginLookup{schemas: ps.run.Schemas, planned: make(map[string]cty.Value)}
+		for _, change := range changes {
+			if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed || change.After == cty.NilVal {
+				continue
+			}
+			after, _ := change.After.UnmarkDeep()
+			c.origins.planned[change.Addr.String()] = after
+		}
 	}
 
 	deferred := make(map[string]struct{})
@@ -487,6 +562,9 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 		}
 		if rec.Attrs, ok = c.encode(key, addr, "planned value", after); !ok {
 			return
+		}
+		if c.origins != nil {
+			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), addr, change.After, c.keyPaths[key], c.origins)
 		}
 	}
 	if policyRecordHasPriorAttrs(change.Action) {
