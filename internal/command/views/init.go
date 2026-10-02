@@ -171,8 +171,7 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
-	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.print(fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...))
+	v.print(fmt.Sprintf("[reset][bold]Installing provider %s%s for state store %q...", pAddr.ForDisplay(), consSuffix, storeType))
 }
 
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
@@ -450,10 +449,9 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 	if len(cons) > 0 {
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
-	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 
 	v.view.log.Info(
-		fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...),
+		fmt.Sprintf("Installing provider %s%s for state store %q...", pAddr.ForDisplay(), consSuffix, storeType),
 		"type", json.MessageStateStoreProviderInstallationStart,
 	)
 }
@@ -856,9 +854,3 @@ has changed. Terraform will now check for existing state in the backends.`
 const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
 
 const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
-
-const (
-	// LogInstallStateStoreProviderStart method's message templates
-	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
-	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
-)
