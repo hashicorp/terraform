@@ -602,6 +602,8 @@ func TestCloud_renderQueryRunLogsPolicySummaries(t *testing.T) {
 
 Policy results for list.test.a - Passed
   id=a  Passed
+
+Summary: 0 failed, 1 pass, 0 unknown, 0 error
 `
 	malformed := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"","overall_result":"pass","results":[],"passed_policies":[]}`
 	plainQuery := `{"@level":"info","@message":"Starting query","type":"list_start","list_start":{"address":"list.test.a"}}
@@ -613,12 +615,33 @@ Policy results for list.test.a - Passed
 Policy results for list.test.b - N/A
   id=x  N/A
   id=y  N/A
+
+Summary: 0 failed, 0 pass, 0 unknown, 0 error
 `
 	mixedNAOutput := `Evaluated 1 policies.
 
 Policy results for list.test.c - Passed
   id=p  Passed
   id=n  N/A
+
+Summary: 0 failed, 1 pass, 0 unknown, 0 error
+`
+	mixedResultsLog := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.d","overall_result":"error","results":[{"identity":{"id":"f"},"target_address":"test.d_0","result":"fail","policies":[{"policy_metadata":{"policy_name":"policy.a"},"diagnostics":[],"result":"fail"},{"policy_metadata":{"policy_name":"policy.b"},"diagnostics":[],"result":"fail"}]},{"identity":{"id":"u"},"target_address":"test.d_1","result":"unknown","policies":[]},{"identity":{"id":"e"},"target_address":"test.d_2","result":"error","policies":[]}],"passed_policies":[]}`
+	combinedOutput := `Evaluated 2 policies.
+
+Policy results for list.test.a - Passed
+  id=a  Passed
+
+Policy results for list.test.b - N/A
+  id=x  N/A
+  id=y  N/A
+
+Policy results for list.test.d - Error
+  id=f  Failed
+  id=u  Unknown
+  id=e  Error
+
+Summary: 1 failed, 1 pass, 1 unknown, 1 error
 `
 
 	for _, tc := range []struct {
@@ -630,6 +653,11 @@ Policy results for list.test.c - Passed
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
 		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
 		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
+		{
+			name:    "combined resource outcomes across list blocks",
+			records: mixedResultsLog + "\n" + policySummaryAllNALog + "\n" + policySummaryPassLog,
+			want:    combinedOutput,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := renderQueryRunLogsForTest(t, tc.records); got != tc.want {
