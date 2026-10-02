@@ -134,6 +134,10 @@ type DiagnosticSnippet struct {
 type DiagnosticExpressionValue struct {
 	Traversal string `json:"traversal"`
 	Statement string `json:"statement"`
+
+	// Member is the resource instance address of the failing member of a
+	// policy quantifier this value belongs to. It's empty otherwise.
+	Member string `json:"member,omitempty"`
 }
 
 // DiagnosticFunctionCall represents a function call whose information is
@@ -368,9 +372,10 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					}
 					value := DiagnosticExpressionValue{
 						Traversal: pathStr(path),
+						Member:    val.Member,
 					}
 
-					key := valueKey{value.Traversal, val.Member}
+					key := valueKey{value.Traversal, value.Member}
 					if _, exists := seen[key]; exists {
 						continue
 					}

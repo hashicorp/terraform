@@ -939,9 +939,9 @@ func TestNewDiagnostic(t *testing.T) {
 					HighlightEndOffset:   84,
 					Values: []DiagnosticExpressionValue{
 						{Traversal: "attrs.file_permission", Statement: `is "0600"`},
-						{Traversal: "original.attrs.file_permission", Statement: `is "0644" (local_file.readme)`},
-						{Traversal: "original.attrs.file_permission", Statement: `is "0640" (local_file.notes)`},
-						{Traversal: "original.attrs.file_permission", Statement: `is "0444" (local_file.legal)`},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0644" (local_file.readme)`, Member: "local_file.readme"},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0640" (local_file.notes)`, Member: "local_file.notes"},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0444" (local_file.legal)`, Member: "local_file.legal"},
 					},
 					OmittedMembers: 2,
 				},

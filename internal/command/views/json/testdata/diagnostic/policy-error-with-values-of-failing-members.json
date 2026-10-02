@@ -28,15 +28,18 @@
       },
       {
         "traversal": "original.attrs.file_permission",
-        "statement": "is \"0644\" (local_file.readme)"
+        "statement": "is \"0644\" (local_file.readme)",
+        "member": "local_file.readme"
       },
       {
         "traversal": "original.attrs.file_permission",
-        "statement": "is \"0640\" (local_file.notes)"
+        "statement": "is \"0640\" (local_file.notes)",
+        "member": "local_file.notes"
       },
       {
         "traversal": "original.attrs.file_permission",
-        "statement": "is \"0444\" (local_file.legal)"
+        "statement": "is \"0444\" (local_file.legal)",
+        "member": "local_file.legal"
       }
     ],
     "omitted_members": 2
