@@ -260,7 +260,7 @@ func (f *snippetFormatter) write() {
 		fmt.Fprintf(buf, "%s %s line %d:\n  (source code not available)\n",
 			mainSnippetPrefix, diag.Range.Filename, diag.Range.Start.Line)
 	} else {
-		f.writeSnippet(mainSnippetPrefix, diag.Range, diag.Snippet)
+		f.writeSnippet(mainSnippetPrefix, diag.Range, diag.Snippet, false)
 
 		if diag.DeprecationOriginDescription != "" {
 			fmt.Fprintf(buf, "\n  The deprecation originates from %s\n", diag.DeprecationOriginDescription)
@@ -275,15 +275,17 @@ func (f *snippetFormatter) writePolicySnippet(diag *viewsjson.Diagnostic) {
 		fmt.Fprintf(f.buf, "  on %s line %d:\n  (source code not available)\n",
 			diag.PolicyRange.Filename, diag.PolicyRange.Start.Line)
 	} else {
-		f.writeSnippet("  on", diag.PolicyRange, diag.PolicySnippet)
+		f.writeSnippet("  on", diag.PolicyRange, diag.PolicySnippet, true)
 	}
 
 	f.buf.WriteByte('\n')
 }
 
 // writeSnippet renders a diagnostic output from the given snippet and range.
-// The snippetPrefix is used as the prefix for the context line.
-func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.DiagnosticRange, snippet *viewsjson.DiagnosticSnippet) {
+// The snippetPrefix is used as the prefix for the context line. The values of
+// a policy snippet keep the policy engine's order, which groups the values of
+// each failing member, and are followed by the number of omitted members.
+func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.DiagnosticRange, snippet *viewsjson.DiagnosticSnippet, policy bool) {
 	buf := f.buf
 	color := f.color
 	var contextStr string
@@ -336,16 +338,18 @@ func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.Dia
 		)
 	}
 
-	if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
+	if len(snippet.Values) > 0 || snippet.OmittedMembers > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
 		// The diagnostic may also have information about the dynamic
 		// values of relevant variables at the point of evaluation.
 		// This is particularly useful for expressions that get evaluated
 		// multiple times with different values, such as blocks using
 		// "count" and "for_each", or within "for" expressions.
 		values := slices.Clone(snippet.Values)
-		sort.Slice(values, func(i, j int) bool {
-			return values[i].Traversal < values[j].Traversal
-		})
+		if !policy {
+			sort.Slice(values, func(i, j int) bool {
+				return values[i].Traversal < values[j].Traversal
+			})
+		}
 
 		fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
 		if callInfo := snippet.FunctionCall; callInfo != nil && callInfo.Signature != nil {
@@ -391,6 +395,9 @@ func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.Dia
 				for _, line := range valSlice[1:] {
 					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
 				}
+			}
+			if snippet.OmittedMembers > 0 {
+				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] (and %d more)\n"), snippet.OmittedMembers)
 			}
 		}
 	}

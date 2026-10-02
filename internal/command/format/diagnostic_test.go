@@ -1116,6 +1116,92 @@ Error: policy denied
    1: resource_policy "resource_type" "policy_name" {
 `,
 		},
+		"with policy values of failing members": {
+			diag: policyMembersDiag(2),
+			want: `
+Error: Condition not met
+
+  on policies/files.policy.hcl line 3, in resource_policy "local_file" "permissions":
+   3:     condition = every(original, attrs.file_permission <= each.attrs.file_permission)
+    ├────────────────
+    │ attrs.file_permission is "0600"
+    │ original.attrs.file_permission is "0644" (local_file.readme)
+    │ original.attrs.file_permission is "0640" (local_file.notes)
+    │ original.attrs.file_permission is "0444" (local_file.legal)
+    │ (and 2 more)
+
+Files must not be more permissive than the original.
+`,
+		},
+		"with policy values of failing members, none omitted": {
+			diag: policyMembersDiag(0),
+			want: `
+Error: Condition not met
+
+  on policies/files.policy.hcl line 3, in resource_policy "local_file" "permissions":
+   3:     condition = every(original, attrs.file_permission <= each.attrs.file_permission)
+    ├────────────────
+    │ attrs.file_permission is "0600"
+    │ original.attrs.file_permission is "0644" (local_file.readme)
+    │ original.attrs.file_permission is "0640" (local_file.notes)
+    │ original.attrs.file_permission is "0444" (local_file.legal)
+
+Files must not be more permissive than the original.
+`,
+		},
+		// Policy values keep the policy engine's order, while the values of
+		// the configuration snippet are sorted.
+		"with policy values in the engine's order and sorted configuration values": {
+			diag: &viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "Condition not met",
+				PolicyRange: &viewsjson.DiagnosticRange{
+					Filename: "policies/files.policy.hcl",
+					Start:    viewsjson.Pos{Line: 3},
+				},
+				PolicySnippet: &viewsjson.DiagnosticSnippet{
+					Code:      `    condition = every(original, each.attrs.owner == attrs.owner)`,
+					StartLine: 3,
+					Values: []viewsjson.DiagnosticExpressionValue{
+						{Traversal: "attrs.owner", Statement: `is "alice"`},
+						{Traversal: "original.attrs.owner", Statement: `is "bob" (local_file.readme)`},
+						{Traversal: "original.attrs.mode", Statement: `is "0644" (local_file.readme)`},
+						{Traversal: "original.attrs.owner", Statement: `is "carol" (local_file.notes)`},
+						{Traversal: "original.attrs.mode", Statement: `is "0640" (local_file.notes)`},
+					},
+				},
+				Range: &viewsjson.DiagnosticRange{
+					Filename: "main.tf",
+					Start:    viewsjson.Pos{Line: 1},
+				},
+				Snippet: &viewsjson.DiagnosticSnippet{
+					Code:      `  owner = var.owner`,
+					StartLine: 1,
+					Values: []viewsjson.DiagnosticExpressionValue{
+						{Traversal: "var.owner", Statement: `is "alice"`},
+						{Traversal: "var.mode", Statement: `is "0600"`},
+					},
+				},
+			},
+			want: `
+Error: Condition not met
+
+  on policies/files.policy.hcl line 3:
+   3:     condition = every(original, each.attrs.owner == attrs.owner)
+    ├────────────────
+    │ attrs.owner is "alice"
+    │ original.attrs.owner is "bob" (local_file.readme)
+    │ original.attrs.mode is "0644" (local_file.readme)
+    │ original.attrs.owner is "carol" (local_file.notes)
+    │ original.attrs.mode is "0640" (local_file.notes)
+
+  while evaluating policy for main.tf line 1:
+   1:   owner = var.owner
+    ├────────────────
+    │ var.mode is "0600"
+    │ var.owner is "alice"
+`,
+		},
 	}
 
 	for name, tc := range tests {
@@ -1127,6 +1213,50 @@ Error: policy denied
 				t.Fatalf("unexpected output diff:\n%s", diff)
 			}
 		})
+	}
+}
+
+// The line about omitted failing members has the style of the value lines,
+// without a traversal.
+func TestDiagnosticFromJSON_policyOmittedMembers(t *testing.T) {
+	// This empty Colorize just passes through all of the formatting codes
+	// untouched, because it doesn't define any formatting keywords.
+	got := DiagnosticFromJSON(policyMembersDiag(2), &colorstring.Colorize{}, 0)
+	want := `[red]│[reset]     [dark_gray]│[reset] [bold]original.attrs.file_permission[reset] is "0444" (local_file.legal)
+[red]│[reset]     [dark_gray]│[reset] (and 2 more)
+`
+	if !strings.Contains(got, want) {
+		t.Fatalf("missing omitted members line\ngot:\n%s\nwant it to contain:\n%s", got, want)
+	}
+}
+
+// policyMembersDiag returns a policy diagnostic of a failed every condition
+// with the values of the subject and of three failing members.
+func policyMembersDiag(omittedMembers int) *viewsjson.Diagnostic {
+	context := `resource_policy "local_file" "permissions"`
+	return &viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityError,
+		Summary:  "Condition not met",
+		Detail:   "Files must not be more permissive than the original.",
+		PolicyRange: &viewsjson.DiagnosticRange{
+			Filename: "policies/files.policy.hcl",
+			Start:    viewsjson.Pos{Line: 3, Column: 17, Byte: 70},
+			End:      viewsjson.Pos{Line: 3, Column: 85, Byte: 138},
+		},
+		PolicySnippet: &viewsjson.DiagnosticSnippet{
+			Context:              &context,
+			Code:                 `    condition = every(original, attrs.file_permission <= each.attrs.file_permission)`,
+			StartLine:            3,
+			HighlightStartOffset: 16,
+			HighlightEndOffset:   84,
+			Values: []viewsjson.DiagnosticExpressionValue{
+				{Traversal: "attrs.file_permission", Statement: `is "0600"`},
+				{Traversal: "original.attrs.file_permission", Statement: `is "0644" (local_file.readme)`},
+				{Traversal: "original.attrs.file_permission", Statement: `is "0640" (local_file.notes)`},
+				{Traversal: "original.attrs.file_permission", Statement: `is "0444" (local_file.legal)`},
+			},
+			OmittedMembers: omittedMembers,
+		},
 	}
 }
 
