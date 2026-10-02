@@ -469,7 +469,7 @@ func (v *InitJSON) LogMigrateFromBackendToBackend(oldType, newType string) {
 
 func (v *InitJSON) LogMigrateFromBackendToCloud(backendType string) {
 	// `-json` and `-migrate-state` are mutually exclusive.
-	panic("InitJSON: LogBackendMigrateFromBackendToCloud not implemented")
+	panic("InitJSON: LogMigrateFromBackendToCloud not implemented")
 }
 
 func (v *InitJSON) LogMigrateFromCloudToBackend(backendType string) {
