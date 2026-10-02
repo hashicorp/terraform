@@ -45,6 +45,9 @@ type Init interface {
 	// LogMigrateFromBackendToCloud indicates that the backend is being migrated to the cloud.
 	LogMigrateFromBackendToCloud(backendType string)
 
+	// LogMigrateFromCloudToBackend indicates that the backend is being migrated from the cloud.
+	LogMigrateFromCloudToBackend(backendType string)
+
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
@@ -148,6 +151,10 @@ Successfully unset the backend %q. Terraform will now operate locally.`, backend
 
 func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
 	v.print(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", backendType))
+}
+
+func (v *InitHuman) LogMigrateFromCloudToBackend(backendType string) {
+	v.print(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", backendType))
 }
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
@@ -411,6 +418,11 @@ func (v *InitJSON) LogMigrateFromBackendToCloud(backendType string) {
 	panic("InitJSON: LogMigrateFromBackendToCloud not implemented")
 }
 
+func (v *InitJSON) LogMigrateFromCloudToBackend(backendType string) {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateFromCloudToBackend not implemented")
+}
+
 func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog("Initializing HCP Terraform...", json.MessageInitializingTerraformCloudMessage)
 }
@@ -602,10 +614,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_migrate_from_cloud": {
-		HumanValue: "Migrating from HCP Terraform to backend %q.",
-		JSONValue:  "Migrating from HCP Terraform to backend %q.",
-	},
 	"backend_cloud_change_in_place": {
 		HumanValue: "HCP Terraform configuration has changed.",
 		JSONValue:  "HCP Terraform configuration has changed.",
@@ -631,8 +639,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendMigrateFromCloudMessage indicates migration from HCP Terraform
-	BackendMigrateFromCloudMessage InitMessageCode = "backend_migrate_from_cloud"
 	// BackendCloudChangeInPlaceMessage indicates HCP Terraform configuration change
 	BackendCloudChangeInPlaceMessage InitMessageCode = "backend_cloud_change_in_place"
 	// BackendMigrateTypeChangeMessage indicates backend type change
