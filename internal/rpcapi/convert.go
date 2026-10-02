@@ -366,6 +366,7 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 			}
 
 			policyDiag.ExpressionValues = policyExpressionValuesToProto(extra.ExpressionValues)
+			policyDiag.OmittedMembers = extra.OmittedMembers
 		}
 
 		if src := diag.Source(); src.Subject != nil {
@@ -383,8 +384,7 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 
 // policyExpressionValuesToProto converts the expression values of a policy
 // diagnostic, keeping the policy engine's order: the values of the subject,
-// then those of each failing member. The stacks API has no place for the
-// member a value comes from, nor for the number of omitted members.
+// then those of each failing member.
 func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionValue) []*stacks.ExpressionValue {
 	if len(policyExpressionValues) == 0 {
 		return nil
@@ -402,6 +402,7 @@ func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionVal
 
 		exprValue := &stacks.ExpressionValue{
 			Traversal: stacks.NewAttributePath(path),
+			Member:    val.Member,
 		}
 
 		key := valueKey{ctyPathStr(path), val.Member}

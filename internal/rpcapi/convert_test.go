@@ -232,6 +232,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		}
 	}
 	permission := cty.GetAttrPath("attrs").GetAttr("file_permission")
+	filename := cty.GetAttrPath("attrs").GetAttr("filename")
 	memberPermission := cty.GetAttrPath("original").GetAttr("attrs").GetAttr("file_permission")
 
 	testCases := map[string]struct {
@@ -250,6 +251,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 							Summary:  "Condition not met",
 							ExpressionValues: []*proto.ExpressionValue{
 								memberValue(permission, "0600", ""),
+								memberValue(filename, "README.md", ""),
 								memberValue(memberPermission, "0644", "local_file.readme"),
 								memberValue(memberPermission, "0640", "local_file.notes"),
 								// Values with the same traversal and member
@@ -258,9 +260,7 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 								memberValue(memberPermission, "0641", "local_file.notes"),
 								memberValue(memberPermission, "0444", "local_file.legal"),
 							},
-							// The stacks API has no place for the number of
-							// omitted members.
-							OmittedMembers: 2,
+							OmittedMembers: 6,
 						}}, policyObj),
 					},
 				}
@@ -282,10 +282,12 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 					// of the subject, then those of each failing member.
 					ExpressionValues: []*stacks.ExpressionValue{
 						{Traversal: stacks.NewAttributePath(permission), Value: valueBytes("0600")},
-						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0644")},
-						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0640")},
-						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0444")},
+						{Traversal: stacks.NewAttributePath(filename), Value: valueBytes("README.md")},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0644"), Member: "local_file.readme"},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0640"), Member: "local_file.notes"},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0444"), Member: "local_file.legal"},
 					},
+					OmittedMembers: 6,
 				}},
 			},
 		},
