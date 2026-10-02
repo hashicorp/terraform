@@ -1,0 +1,35 @@
+{
+  "severity": "error",
+  "summary": "Condition not met",
+  "detail": "Files must not be more permissive than the original.",
+  "policy_range": {
+    "filename": "policies/files.policy.hcl",
+    "start": {
+      "line": 3,
+      "column": 17,
+      "byte": 70
+    },
+    "end": {
+      "line": 3,
+      "column": 85,
+      "byte": 138
+    }
+  },
+  "policy_snippet": {
+    "context": "resource_policy \"local_file\" \"permissions\"",
+    "code": "    condition = every(original, attrs.file_permission \u003c= each.attrs.file_permission)",
+    "start_line": 3,
+    "highlight_start_offset": 16,
+    "highlight_end_offset": 84,
+    "values": [
+      {
+        "traversal": "attrs.file_permission",
+        "statement": "is \"0600\""
+      },
+      {
+        "traversal": "attrs.content",
+        "statement": "is \"hello\""
+      }
+    ]
+  }
+}

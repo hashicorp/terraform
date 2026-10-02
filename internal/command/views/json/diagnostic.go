@@ -106,8 +106,15 @@ type DiagnosticSnippet struct {
 	HighlightEndOffset int `json:"highlight_end_offset"`
 
 	// Values is a sorted slice of expression values which may be useful in
-	// understanding the source of an error in a complex expression.
+	// understanding the source of an error in a complex expression. The
+	// values of a policy snippet keep the policy engine's order instead: the
+	// values of the subject, then those of each failing member.
 	Values []DiagnosticExpressionValue `json:"values"`
+
+	// OmittedMembers is the number of failing members of a policy condition
+	// whose values aren't listed in Values. It's only set for policy
+	// snippets.
+	OmittedMembers int `json:"omitted_members,omitempty"`
 
 	// FunctionCall is information about a function call whose failure is
 	// being reported by this diagnostic, if any.
@@ -347,9 +354,12 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				target.Context = snippet.Context
 			}
 
+			// The values keep the policy engine's order: the values of the
+			// subject, then those of each failing member.
 			if values := extra.ExpressionValues; values != nil {
 				target.Values = make([]DiagnosticExpressionValue, 0, len(values))
-				seen := make(map[string]struct{}, len(values))
+				type valueKey struct{ traversal, member string }
+				seen := make(map[valueKey]struct{}, len(values))
 
 				for _, val := range values {
 					path, err := val.Traversal.ToCtyPath()
@@ -360,10 +370,11 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 						Traversal: pathStr(path),
 					}
 
-					if _, exists := seen[value.Traversal]; exists {
+					key := valueKey{value.Traversal, val.Member}
+					if _, exists := seen[key]; exists {
 						continue
 					}
-					seen[value.Traversal] = struct{}{}
+					seen[key] = struct{}{}
 
 					v, err := msgpack.Unmarshal(val.Value, cty.DynamicPseudoType)
 					if err != nil {
@@ -374,11 +385,15 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					if !ok {
 						continue
 					}
+					if val.Member != "" {
+						stmt = fmt.Sprintf("%s (%s)", stmt, val.Member)
+					}
 					value.Statement = stmt
 
 					target.Values = append(target.Values, value)
 				}
 			}
+			target.OmittedMembers = int(extra.OmittedMembers)
 
 			diagnostic.PolicySnippet = target
 		}

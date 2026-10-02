@@ -16,8 +16,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 func TestNewDiagnostic(t *testing.T) {
@@ -50,6 +53,8 @@ func TestNewDiagnostic(t *testing.T) {
 `),
 		"deprecation.tf": []byte(`resource "test_resource" "deprecated" {}`),
 	}
+	permission := []string{"attrs", "file_permission"}
+	memberPermission := []string{"original", "attrs", "file_permission"}
 	testCases := map[string]struct {
 		diag interface{} // allow various kinds of diags
 		want *Diagnostic
@@ -911,6 +916,60 @@ func TestNewDiagnostic(t *testing.T) {
 				DeprecationOriginDescription: "aws_s3_bucket.hello.acl",
 			},
 		},
+		"policy error with values of failing members": {
+			policyValuesDiag(2,
+				policyExpressionValue(permission, "0600", ""),
+				policyExpressionValue(memberPermission, "0644", "local_file.readme"),
+				policyExpressionValue(memberPermission, "0640", "local_file.notes"),
+				// Values with the same traversal and member are duplicates.
+				policyExpressionValue(permission, "0600", ""),
+				policyExpressionValue(memberPermission, "0640", "local_file.notes"),
+				policyExpressionValue(memberPermission, "0444", "local_file.legal"),
+			),
+			&Diagnostic{
+				Severity:    "error",
+				Summary:     "Condition not met",
+				Detail:      "Files must not be more permissive than the original.",
+				PolicyRange: policyValuesDiagRange(),
+				PolicySnippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource_policy "local_file" "permissions"`),
+					Code:                 `    condition = every(original, attrs.file_permission <= each.attrs.file_permission)`,
+					StartLine:            3,
+					HighlightStartOffset: 16,
+					HighlightEndOffset:   84,
+					Values: []DiagnosticExpressionValue{
+						{Traversal: "attrs.file_permission", Statement: `is "0600"`},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0644" (local_file.readme)`},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0640" (local_file.notes)`},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0444" (local_file.legal)`},
+					},
+					OmittedMembers: 2,
+				},
+			},
+		},
+		"policy error with values of the subject only": {
+			policyValuesDiag(0,
+				policyExpressionValue(permission, "0600", ""),
+				policyExpressionValue([]string{"attrs", "content"}, "hello", ""),
+			),
+			&Diagnostic{
+				Severity:    "error",
+				Summary:     "Condition not met",
+				Detail:      "Files must not be more permissive than the original.",
+				PolicyRange: policyValuesDiagRange(),
+				PolicySnippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource_policy "local_file" "permissions"`),
+					Code:                 `    condition = every(original, attrs.file_permission <= each.attrs.file_permission)`,
+					StartLine:            3,
+					HighlightStartOffset: 16,
+					HighlightEndOffset:   84,
+					Values: []DiagnosticExpressionValue{
+						{Traversal: "attrs.file_permission", Statement: `is "0600"`},
+						{Traversal: "attrs.content", Statement: `is "hello"`},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -968,6 +1027,55 @@ func TestNewDiagnostic(t *testing.T) {
 			}
 		})
 	}
+}
+
+// policyValuesDiag returns a policy diagnostic of a failed condition with the
+// given expression values, like the policy engine returns them.
+func policyValuesDiag(omittedMembers int32, values ...*proto.ExpressionValue) tfdiags.Diagnostic {
+	return policy.DiagsFromProto([]*proto.Diagnostic{{
+		Severity: proto.Severity_ERROR,
+		Summary:  "Condition not met",
+		Detail:   "Files must not be more permissive than the original.",
+		Subject: &proto.Range{
+			Filename: "policies/files.policy.hcl",
+			Start:    &proto.Position{Line: 3, Column: 17, Byte: 70},
+			End:      &proto.Position{Line: 3, Column: 85, Byte: 138},
+		},
+		Snippet: &proto.Snippet{
+			Context:              strPtr(`resource_policy "local_file" "permissions"`),
+			Code:                 `    condition = every(original, attrs.file_permission <= each.attrs.file_permission)`,
+			StartLine:            3,
+			HighlightStartOffset: 16,
+			HighlightEndOffset:   84,
+		},
+		ExpressionValues: values,
+		OmittedMembers:   omittedMembers,
+	}}, nil).AsTerraformDiags()[0]
+}
+
+func policyValuesDiagRange() *DiagnosticRange {
+	return &DiagnosticRange{
+		Filename: "policies/files.policy.hcl",
+		Start:    Pos{Line: 3, Column: 17, Byte: 70},
+		End:      Pos{Line: 3, Column: 85, Byte: 138},
+	}
+}
+
+// policyExpressionValue returns an expression value of a policy diagnostic,
+// of the failing member with the given address, or of the subject when member
+// is empty.
+func policyExpressionValue(attrs []string, value string, member string) *proto.ExpressionValue {
+	traversal := &proto.AttributePath{}
+	for _, attr := range attrs {
+		traversal.Steps = append(traversal.Steps, &proto.AttributePath_Step{
+			Selector: &proto.AttributePath_Step_AttributeName{AttributeName: attr},
+		})
+	}
+	raw, err := msgpack.Marshal(cty.StringVal(value), cty.DynamicPseudoType)
+	if err != nil {
+		panic(err)
+	}
+	return &proto.ExpressionValue{Traversal: traversal, Value: raw, Member: member}
 }
 
 // Helper function to make constructing literal Diagnostics easier. There
