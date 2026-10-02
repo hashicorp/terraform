@@ -4414,3 +4414,148 @@ func TestContext2Plan_PolicyRelationships_incomplete(t *testing.T) {
 		})
 	})
 }
+
+func TestContext2Plan_PolicyRelationships_chunks(t *testing.T) {
+	oldMax := relationshipChunkMaxRecords
+	relationshipChunkMaxRecords = 2
+	t.Cleanup(func() { relationshipChunkMaxRecords = oldMax })
+
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 5
+			name  = "a${count.index}"
+		}
+	`})
+	_, run := planRelationships(t, mod, nil, &PlanOpts{Mode: plans.NormalMode}, nil, relTypeSpec("test_net", "id"))
+
+	// All chunks are reported before the first evaluation.
+	run.assertRunSequence(t)
+	if len(run.reports) != 3 {
+		t.Fatalf("expected 3 ReportInstances calls, got %d", len(run.reports))
+	}
+	for i, report := range run.reports {
+		if len(report.Records) > 2 {
+			t.Errorf("ReportInstances call %d has %d records", i+1, len(report.Records))
+		}
+	}
+	if got := len(run.records(t)); got != 5 {
+		t.Errorf("expected 5 records, got %d", got)
+	}
+	if got := len(run.providers(t)); got != 1 {
+		t.Errorf("expected 1 provider instance, got %d", got)
+	}
+	run.assertStatuses(t, map[string]*proto.TypeStatus{
+		"test_net": relComplete("test_net"),
+	})
+	if len(run.evals) != 5 {
+		t.Errorf("expected 5 evaluations, got %d", len(run.evals))
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_rpcErrors(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 3
+			name  = "a${count.index}"
+		}
+	`})
+	plan := func(t *testing.T, client policy.Client) {
+		t.Helper()
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+			},
+		})
+		_, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			Mode:         plans.NormalMode,
+			PolicyClient: client,
+		})
+		// Relationship RPC failures never add diagnostics.
+		tfdiags.AssertNoDiagnostics(t, diags)
+	}
+
+	t.Run("BeginRun fails", func(t *testing.T) {
+		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+		run.beginErr = fmt.Errorf("BeginRun failed")
+		plan(t, client)
+
+		if len(run.begins) != 1 {
+			t.Fatalf("expected 1 BeginRun call, got %d", len(run.begins))
+		}
+		if len(run.reports) != 0 || len(run.finishes) != 0 {
+			t.Fatalf("expected no ReportInstances or FinishRun calls, got %d and %d", len(run.reports), len(run.finishes))
+		}
+		if len(run.evals) != 3 {
+			t.Fatalf("expected 3 evaluations, got %d", len(run.evals))
+		}
+		for _, eval := range run.evals {
+			if eval.RunID != "" {
+				t.Errorf("expected no run id, got %q for %s", eval.RunID, eval.Meta.GetAddress())
+			}
+		}
+	})
+
+	t.Run("ReportInstances fails", func(t *testing.T) {
+		oldMax := relationshipChunkMaxRecords
+		relationshipChunkMaxRecords = 2
+		t.Cleanup(func() { relationshipChunkMaxRecords = oldMax })
+
+		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+		run.reportErr = func(i int) error {
+			if i == 0 {
+				return fmt.Errorf("ReportInstances failed")
+			}
+			return nil
+		}
+		plan(t, client)
+
+		// The remaining chunk isn't sent, but the run continues.
+		run.assertRunSequence(t)
+		if len(run.reports) != 1 {
+			t.Fatalf("expected 1 ReportInstances call, got %d", len(run.reports))
+		}
+		if len(run.evals) != 3 {
+			t.Fatalf("expected 3 evaluations, got %d", len(run.evals))
+		}
+	})
+
+	t.Run("responses with error diagnostics", func(t *testing.T) {
+		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+		errDiag := []*proto.Diagnostic{{Severity: proto.Severity_ERROR, Summary: "plugin error"}}
+		beginRun := client.BeginRunFn
+		client.BeginRunFn = func(ctx context.Context, req *proto.BeginRunRequest) (*proto.BeginRunResponse, error) {
+			resp, err := beginRun(ctx, req)
+			resp.Diagnostics = errDiag
+			return resp, err
+		}
+		report := client.ReportInstancesFn
+		client.ReportInstancesFn = func(ctx context.Context, req *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
+			resp, err := report(ctx, req)
+			resp.Diagnostics = errDiag
+			return resp, err
+		}
+		finish := client.FinishRunFn
+		client.FinishRunFn = func(ctx context.Context, req *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+			resp, err := finish(ctx, req)
+			resp.Diagnostics = errDiag
+			return resp, err
+		}
+		plan(t, client)
+
+		run.assertRunSequence(t)
+		if got := len(run.records(t)); got != 3 {
+			t.Fatalf("expected 3 records, got %d", got)
+		}
+	})
+
+	t.Run("FinishRun fails", func(t *testing.T) {
+		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+		finish := client.FinishRunFn
+		client.FinishRunFn = func(ctx context.Context, req *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+			finish(ctx, req)
+			return nil, fmt.Errorf("FinishRun failed")
+		}
+		plan(t, client)
+		run.assertRunSequence(t)
+	})
+}
