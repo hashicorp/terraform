@@ -41,6 +41,12 @@ type MockClient struct {
 	EvaluateModuleRequest  EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]
 	EvaluateModuleFn       func(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
 
+	// ValidateProviderSchemas method tracking
+	ValidateProviderSchemasCalled   bool
+	ValidateProviderSchemasResponse *ValidateProviderSchemasResponse
+	ValidateProviderSchemasRequest  ValidateProviderSchemasRequest
+	ValidateProviderSchemasFn       func(context.Context, ValidateProviderSchemasRequest) ValidateProviderSchemasResponse
+
 	// Stop method tracking
 	StopCalled bool
 	StopFn     func()
@@ -110,6 +116,22 @@ func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*pr
 
 	if p.EvaluateModuleResponse != nil {
 		return *p.EvaluateModuleResponse
+	}
+
+	return resp
+}
+
+func (p *MockClient) ValidateProviderSchemas(ctx context.Context, req ValidateProviderSchemasRequest) (resp ValidateProviderSchemasResponse) {
+	defer p.beginWrite()()
+
+	p.ValidateProviderSchemasCalled = true
+	p.ValidateProviderSchemasRequest = req
+	if p.ValidateProviderSchemasFn != nil {
+		return p.ValidateProviderSchemasFn(ctx, req)
+	}
+
+	if p.ValidateProviderSchemasResponse != nil {
+		return *p.ValidateProviderSchemasResponse
 	}
 
 	return resp
