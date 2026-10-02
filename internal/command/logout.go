@@ -30,7 +30,6 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 	diags = diags.Append(argDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
-		c.Ui.Error(c.Help())
 		return 1
 	}
 

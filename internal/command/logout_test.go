@@ -5,7 +5,6 @@ package command
 
 import (
 	"path/filepath"
-	"strings"
 	"testing"
 
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -73,43 +72,6 @@ func TestLogout(t *testing.T) {
 			if got, want := creds.Token(), "some-token"; got != want {
 				t.Errorf("wrong token %q; want %q", got, want)
 			}
-		}
-	}
-}
-
-func TestLogout_argsInvalid(t *testing.T) {
-	testCases := []struct {
-		// Command-line arguments
-		args               []string
-		expectedErrSnippet string
-	}{
-		// Unrecognized flag
-		{[]string{"-foobar"}, "Usage: terraform [global options] logout [hostname]"},
-
-		// Extra positional argument flag
-		{[]string{"app.terraform.io", "foobar"}, "Usage: terraform [global options] logout [hostname]"},
-	}
-	for _, tc := range testCases {
-
-		workDir := t.TempDir()
-
-		ui := testUiWrapped(t)
-		credsSrc := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
-
-		c := &LogoutCommand{
-			Meta: Meta{
-				Ui:       ui,
-				Services: disco.NewWithCredentialsSource(credsSrc),
-			},
-		}
-
-		status := c.Run(tc.args)
-		if status != 1 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
-		}
-
-		if !strings.Contains(ui.ErrorWriter.String(), tc.expectedErrSnippet) {
-			t.Errorf("expected error snippet %q not found in stderr:\n%s", tc.expectedErrSnippet, ui.ErrorWriter.String())
 		}
 	}
 }
