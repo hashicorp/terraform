@@ -4592,3 +4592,64 @@ func TestContext2Plan_PolicyRelationships_rpcErrors(t *testing.T) {
 		run.assertRunSequence(t)
 	})
 }
+
+func TestContext2Plan_PolicyRelationships_emptySpec(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			name = "a"
+		}
+	`})
+	// No types in the spec.
+	_, run := planRelationships(t, mod, nil, &PlanOpts{Mode: plans.NormalMode}, nil)
+
+	run.assertRunSequence(t)
+	if len(run.reports) != 1 {
+		t.Fatalf("expected 1 ReportInstances call, got %d", len(run.reports))
+	}
+	if report := run.reports[0]; len(report.Records) != 0 || len(report.Statuses) != 0 {
+		t.Fatalf("expected no records and no statuses, got %v", report)
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_unconfiguredProvider(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		provider "test" {
+			alias = "other"
+		}
+		resource "test_net" "a" {
+			name = "a"
+		}
+		resource "test_net" "b" {
+			provider = test.other
+			name     = "b"
+		}
+	`})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_net.b"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"b-id","name":"b"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].other`))
+	})
+	// The other provider configuration isn't configured, because -target
+	// excludes it.
+	_, run := planRelationships(t, mod, state, &PlanOpts{
+		Mode:    plans.NormalMode,
+		Targets: []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
+	}, nil, relTypeSpec("test_net", "id"))
+
+	run.assertRunSequence(t)
+	run.assertRecords(t, map[string]wantRelRecord{
+		"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"name": cty.StringVal("a")}},
+		"test_net.b": {
+			Action:   relNoOp,
+			Source:   relState,
+			Attrs:    map[string]cty.Value{"id": cty.StringVal("b-id")},
+			Provider: `provider["registry.terraform.io/hashicorp/test"].other`,
+		},
+	})
+	providers := run.providers(t)
+	other := providers[run.records(t)["test_net.b"].ProviderInstanceId]
+	if other.Known || len(other.ConfigClass) != 0 || other.Source != "registry.terraform.io/hashicorp/test" {
+		t.Fatalf("expected the unconfigured provider instance not to be known, got %v", other)
+	}
+}
