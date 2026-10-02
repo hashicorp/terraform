@@ -5,6 +5,8 @@ package policy
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -25,6 +27,9 @@ type stubPolicyClient struct {
 	evaluateResourceFn func(*proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error)
 	evaluateProviderFn func(*proto.PolicyEvaluateProviderRequest) (*proto.PolicyEvaluateProviderResponse, error)
 	evaluateModuleFn   func(*proto.PolicyEvaluateModuleRequest) (*proto.PolicyEvaluateModuleResponse, error)
+	beginRunFn         func(*proto.BeginRunRequest) (*proto.BeginRunResponse, error)
+	reportInstancesFn  func(*proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error)
+	finishRunFn        func(*proto.FinishRunRequest) (*proto.FinishRunResponse, error)
 }
 
 func (s *stubPolicyClient) Setup(ctx context.Context, req *proto.PolicySetupRequest, _ ...grpc.CallOption) (*proto.PolicySetupResponse, error) {
@@ -41,6 +46,18 @@ func (s *stubPolicyClient) EvaluateProvider(ctx context.Context, req *proto.Poli
 
 func (s *stubPolicyClient) EvaluateModule(ctx context.Context, req *proto.PolicyEvaluateModuleRequest, _ ...grpc.CallOption) (*proto.PolicyEvaluateModuleResponse, error) {
 	return s.evaluateModuleFn(req)
+}
+
+func (s *stubPolicyClient) BeginRun(ctx context.Context, req *proto.BeginRunRequest, _ ...grpc.CallOption) (*proto.BeginRunResponse, error) {
+	return s.beginRunFn(req)
+}
+
+func (s *stubPolicyClient) ReportInstances(ctx context.Context, req *proto.ReportInstancesRequest, _ ...grpc.CallOption) (*proto.ReportInstancesResponse, error) {
+	return s.reportInstancesFn(req)
+}
+
+func (s *stubPolicyClient) FinishRun(ctx context.Context, req *proto.FinishRunRequest, _ ...grpc.CallOption) (*proto.FinishRunResponse, error) {
+	return s.finishRunFn(req)
 }
 
 func TestClientEvaluate(t *testing.T) {
@@ -528,5 +545,271 @@ func TestClientSetupEntitlement(t *testing.T) {
 				t.Fatalf("unexpected entitlement: got %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClientSetupRelationshipsCapability(t *testing.T) {
+	ctx := t.Context()
+
+	tests := []struct {
+		name     string
+		response *proto.PolicySetupResponse
+		want     bool
+	}{
+		{
+			name:     "server capabilities absent",
+			response: &proto.PolicySetupResponse{},
+			want:     false,
+		},
+		{
+			name: "server does not announce relationships",
+			response: &proto.PolicySetupResponse{
+				ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{},
+			},
+			want: false,
+		},
+		{
+			name: "server announces relationships",
+			response: &proto.PolicySetupResponse{
+				ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{Relationships: true},
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotReq *proto.PolicySetupRequest
+			c := &client{
+				client: &stubPolicyClient{
+					setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+						gotReq = req
+						return tt.response, nil
+					},
+				},
+			}
+
+			if c.RelationshipsSupported() {
+				t.Fatal("expected relationships to be unsupported before Setup")
+			}
+
+			resp := c.Setup(ctx, SetupRequest{SourceLocations: []string{"./policies"}})
+			if resp.Diagnostics.HasErrors() {
+				t.Fatalf("unexpected diagnostics: %#v", resp.Diagnostics)
+			}
+			if gotReq == nil {
+				t.Fatal("expected a setup request to be sent")
+			}
+			if !gotReq.GetClientCapabilities().GetRelationships() {
+				t.Fatal("expected the client to announce the relationships capability")
+			}
+			if got := c.RelationshipsSupported(); got != tt.want {
+				t.Fatalf("unexpected RelationshipsSupported: got %t, want %t", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientSetupRelationshipsCapability_error(t *testing.T) {
+	c := &client{
+		client: &stubPolicyClient{
+			setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+				return nil, errors.New("boom")
+			},
+		},
+	}
+
+	resp := c.Setup(t.Context(), SetupRequest{})
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("expected setup error diagnostics")
+	}
+	if c.RelationshipsSupported() {
+		t.Fatal("expected relationships to be unsupported after a failed Setup")
+	}
+}
+
+func TestClientEvaluateRunID(t *testing.T) {
+	for _, runID := range []string{"", "8c5d2b5e-6f43-4b0e-9a8e-1f2d3c4b5a69"} {
+		t.Run(fmt.Sprintf("run_id=%q", runID), func(t *testing.T) {
+			var gotReq *proto.PolicyEvaluateResourceRequest
+			c := &client{
+				client: &stubPolicyClient{
+					evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+						gotReq = req
+						return &proto.PolicyEvaluateResourceResponse{
+							Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						}, nil
+					},
+				},
+				callbackRegistry: callback.NewRegistry(),
+			}
+
+			meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+				ProviderType:   "test",
+				Address:        "module.child.test_resource.a[0]",
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+			}
+			c.EvaluateResource(t.Context(), EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+				Target: "test_resource",
+				Meta:   meta,
+				RunID:  runID,
+			})
+			if gotReq == nil {
+				t.Fatal("expected EvaluateResource RPC to be called")
+			}
+			if gotReq.RunId != runID {
+				t.Fatalf("unexpected run_id: got %q, want %q", gotReq.RunId, runID)
+			}
+			if !gproto.Equal(gotReq.Metadata, meta) {
+				t.Fatalf("unexpected metadata: got %v, want %v", gotReq.Metadata, meta)
+			}
+		})
+	}
+}
+
+func TestClientRelationshipRPCs(t *testing.T) {
+	ctx := t.Context()
+	errBoom := errors.New("boom")
+
+	t.Run("BeginRun", func(t *testing.T) {
+		req := &proto.BeginRunRequest{
+			RunId:   "run",
+			Stage:   proto.EvaluationStage_PLAN_EVALUATION_STAGE,
+			Runtime: proto.RunRuntime_CLI_RUN_RUNTIME,
+		}
+		want := &proto.BeginRunResponse{Spec: &proto.CollectionSpec{
+			Types: []*proto.TypeSpec{{ProviderSource: "registry.terraform.io/hashicorp/test", Type: "test_resource"}},
+		}}
+		var gotReq *proto.BeginRunRequest
+		c := &client{client: &stubPolicyClient{
+			beginRunFn: func(r *proto.BeginRunRequest) (*proto.BeginRunResponse, error) {
+				gotReq = r
+				return want, nil
+			},
+		}}
+		got, err := c.BeginRun(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if gotReq != req {
+			t.Fatalf("request was not passed through: %v", gotReq)
+		}
+		if got != want {
+			t.Fatalf("response was not passed through: %v", got)
+		}
+
+		c = &client{client: &stubPolicyClient{
+			beginRunFn: func(r *proto.BeginRunRequest) (*proto.BeginRunResponse, error) { return nil, errBoom },
+		}}
+		if _, err := c.BeginRun(ctx, req); !errors.Is(err, errBoom) {
+			t.Fatalf("expected error %q, got %v", errBoom, err)
+		}
+	})
+
+	t.Run("ReportInstances", func(t *testing.T) {
+		req := &proto.ReportInstancesRequest{
+			RunId:   "run",
+			Records: []*proto.InstanceRecord{{Address: "test_resource.a"}},
+		}
+		want := &proto.ReportInstancesResponse{}
+		var gotReq *proto.ReportInstancesRequest
+		c := &client{client: &stubPolicyClient{
+			reportInstancesFn: func(r *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
+				gotReq = r
+				return want, nil
+			},
+		}}
+		got, err := c.ReportInstances(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if gotReq != req {
+			t.Fatalf("request was not passed through: %v", gotReq)
+		}
+		if got != want {
+			t.Fatalf("response was not passed through: %v", got)
+		}
+
+		c = &client{client: &stubPolicyClient{
+			reportInstancesFn: func(r *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) { return nil, errBoom },
+		}}
+		if _, err := c.ReportInstances(ctx, req); !errors.Is(err, errBoom) {
+			t.Fatalf("expected error %q, got %v", errBoom, err)
+		}
+	})
+
+	t.Run("FinishRun", func(t *testing.T) {
+		req := &proto.FinishRunRequest{RunId: "run"}
+		want := &proto.FinishRunResponse{}
+		var gotReq *proto.FinishRunRequest
+		c := &client{client: &stubPolicyClient{
+			finishRunFn: func(r *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+				gotReq = r
+				return want, nil
+			},
+		}}
+		got, err := c.FinishRun(ctx, req)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if gotReq != req {
+			t.Fatalf("request was not passed through: %v", gotReq)
+		}
+		if got != want {
+			t.Fatalf("response was not passed through: %v", got)
+		}
+
+		c = &client{client: &stubPolicyClient{
+			finishRunFn: func(r *proto.FinishRunRequest) (*proto.FinishRunResponse, error) { return nil, errBoom },
+		}}
+		if _, err := c.FinishRun(ctx, req); !errors.Is(err, errBoom) {
+			t.Fatalf("expected error %q, got %v", errBoom, err)
+		}
+	})
+}
+
+func TestMockClientRelationships(t *testing.T) {
+	ctx := t.Context()
+	m := NewTestMockClient(t)
+
+	var _ RelationshipsClient = m
+	if m.RelationshipsSupported() {
+		t.Fatal("expected the mock client not to support relationships by default")
+	}
+	m.RelationshipsSupportedResponse = true
+	if !m.RelationshipsSupported() {
+		t.Fatal("expected the mock client to support relationships")
+	}
+
+	resp, err := m.BeginRun(ctx, &proto.BeginRunRequest{RunId: "run"})
+	if err != nil || resp == nil {
+		t.Fatalf("expected an empty response, got %v, %v", resp, err)
+	}
+	if !m.BeginRunCalled || m.BeginRunRequest.GetRunId() != "run" {
+		t.Fatalf("BeginRun was not recorded: %v", m.BeginRunRequest)
+	}
+
+	for _, id := range []string{"a", "b"} {
+		if _, err := m.ReportInstances(ctx, &proto.ReportInstancesRequest{RunId: id}); err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+	}
+	if len(m.ReportInstancesRequests) != 2 || m.ReportInstancesRequests[1].GetRunId() != "b" {
+		t.Fatalf("ReportInstances calls were not recorded: %v", m.ReportInstancesRequests)
+	}
+
+	m.FinishRunErr = errors.New("boom")
+	if _, err := m.FinishRun(ctx, &proto.FinishRunRequest{RunId: "run"}); err == nil {
+		t.Fatal("expected FinishRunErr to be returned")
+	}
+	if !m.FinishRunCalled || m.FinishRunRequest.GetRunId() != "run" {
+		t.Fatalf("FinishRun was not recorded: %v", m.FinishRunRequest)
+	}
+
+	for _, target := range []string{"a", "b"} {
+		m.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{Target: target})
+	}
+	if len(m.EvaluateRequests) != 2 || m.EvaluateRequests[0].Target != "a" || m.EvaluateRequest.Target != "b" {
+		t.Fatalf("EvaluateResource calls were not recorded: %v", m.EvaluateRequests)
 	}
 }

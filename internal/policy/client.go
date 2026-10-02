@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"sync/atomic"
 	"time"
 
 	"github.com/apparentlymart/go-versions/versions"
@@ -35,6 +36,7 @@ const (
 
 var _ CallbackService = (*client)(nil)
 var _ Client = (*client)(nil)
+var _ RelationshipsClient = (*client)(nil)
 
 // NewPolicyClient initializes and connects to a new tfpolicy-plugin process
 func NewPolicyClient(ctx context.Context, policyPluginPath string, policyPaths []string, ent *Entitlement) (Client, Diagnostics) {
@@ -186,6 +188,10 @@ type client struct {
 	client           proto.PolicyClient
 	callbackRegistry callback.Registry
 	cbServer         *callback.Server
+
+	// relationships records whether the server announced the relationships
+	// capability in its Setup response.
+	relationships atomic.Bool
 }
 
 func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server, Diagnostics) {
@@ -246,9 +252,11 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 
 	log.Printf("[DEBUG] Setting up Terraform Policy connection")
 	protoReq := &proto.PolicySetupRequest{
-		ClientCapabilities: new(proto.PolicySetupRequest_ClientCapabilities),
-		SourceLocations:    req.SourceLocations,
-		CallbackService:    req.CallbackService,
+		ClientCapabilities: &proto.PolicySetupRequest_ClientCapabilities{
+			Relationships: true,
+		},
+		SourceLocations: req.SourceLocations,
+		CallbackService: req.CallbackService,
 	}
 	if req.Entitlement != nil {
 		protoReq.Entitlement = &proto.PolicySetupRequest_Entitlement{
@@ -266,6 +274,8 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 			),
 		}}
 	}
+
+	c.relationships.Store(response.GetServerCapabilities().GetRelationships())
 
 	return SetupResponse{
 		serverCapabilities: response.ServerCapabilities,
@@ -309,6 +319,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		Attrs:        attrs,
 		PriorAttrs:   priorAttrs,
 		Metadata:     req.Meta,
+		RunId:        req.RunID,
 	}
 
 	// Register the callback functions with the callback service, so that they are available
@@ -405,6 +416,62 @@ func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*prot
 	return EvaluationFromProtoResponse(response.Result, response.PolicyDetails)
 }
 
+// RelationshipsSupported implements [RelationshipsClient].
+func (c *client) RelationshipsSupported() bool {
+	return c.relationships.Load()
+}
+
+// BeginRun implements [RelationshipsClient].
+func (c *client) BeginRun(ctx context.Context, req *proto.BeginRunRequest) (*proto.BeginRunResponse, error) {
+	ctx, span := tracer().Start(ctx, "policy.client.begin_run",
+		trace.WithAttributes(attribute.String("policy.run.id", req.GetRunId())),
+	)
+	defer span.End()
+
+	log.Printf("[DEBUG] Beginning policy relationship run %s", req.GetRunId())
+	resp, err := c.client.BeginRun(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return resp, err
+}
+
+// ReportInstances implements [RelationshipsClient].
+func (c *client) ReportInstances(ctx context.Context, req *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
+	ctx, span := tracer().Start(ctx, "policy.client.report_instances",
+		trace.WithAttributes(
+			attribute.String("policy.run.id", req.GetRunId()),
+			attribute.Int("policy.run.records", len(req.GetRecords())),
+		),
+	)
+	defer span.End()
+
+	log.Printf("[DEBUG] Reporting %d instance records for policy relationship run %s", len(req.GetRecords()), req.GetRunId())
+	resp, err := c.client.ReportInstances(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return resp, err
+}
+
+// FinishRun implements [RelationshipsClient].
+func (c *client) FinishRun(ctx context.Context, req *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+	ctx, span := tracer().Start(ctx, "policy.client.finish_run",
+		trace.WithAttributes(attribute.String("policy.run.id", req.GetRunId())),
+	)
+	defer span.End()
+
+	log.Printf("[DEBUG] Finishing policy relationship run %s", req.GetRunId())
+	resp, err := c.client.FinishRun(ctx, req)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return resp, err
+}
+
 func (c *client) Stop() {
 	log.Println("[DEBUG] stopping policy client")
 	if c.cbServer != nil {
@@ -429,6 +496,7 @@ func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 		PriorAttrs: priorAttrs,
 		Meta:       req.Meta,
 		Callbacks:  req.Callbacks,
+		RunID:      req.RunID,
 	}
 }
 

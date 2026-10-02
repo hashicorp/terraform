@@ -24,6 +24,16 @@ type Client interface {
 	Stop()
 }
 
+// RelationshipsClient is implemented by clients that can carry relationship runs.
+type RelationshipsClient interface {
+	// RelationshipsSupported returns true when the policy plugin announced the
+	// relationships capability during Setup.
+	RelationshipsSupported() bool
+	BeginRun(context.Context, *proto.BeginRunRequest) (*proto.BeginRunResponse, error)
+	ReportInstances(context.Context, *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error)
+	FinishRun(context.Context, *proto.FinishRunRequest) (*proto.FinishRunResponse, error)
+}
+
 // CallbackService is an interface for registering a callback service with a policy engine.
 type CallbackService interface {
 	RegisterCallbackService(context.Context) (*callback.Server, Diagnostics)
@@ -112,6 +122,10 @@ type (
 		Meta T
 
 		Callbacks callback.Functions
+
+		// RunID is the relationship run the evaluation belongs to, or "" when
+		// there is no relationship run. Only used for resource evaluations.
+		RunID string
 	}
 
 	EnforcementResult struct {
