@@ -64,6 +64,9 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    policyOperation,
 		ModulePath:   n.ResourceAddr.Module.String(),
+
+		Address:        n.ResourceAddr.String(),
+		ProviderSource: providerAddr.Provider.String(),
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration

@@ -28,10 +28,12 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
+	var runID string
 	if pg := ctx.PolicyGraph(); pg != nil {
 		if phaseSpan := pg.span; phaseSpan != nil {
 			evalCtx = trace.ContextWithSpan(evalCtx, phaseSpan)
 		}
+		runID = pg.RunID()
 	}
 
 	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
@@ -40,6 +42,7 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
 		Meta:       meta,
 		Callbacks:  callbacks,
+		RunID:      runID,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information

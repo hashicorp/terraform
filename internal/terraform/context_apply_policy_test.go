@@ -549,7 +549,7 @@ func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
 				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 					ProviderType: "ephem",
 					Operation:    proto.Operation_UPDATE,
-				}, protocmp.Transform()); diff != "" {
+				}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 					t.Fatalf("invalid resource metadata: %s", diff)
 				}
 
@@ -774,7 +774,7 @@ func TestContext2Apply_PolicyEvaluation_NoResourceAfterPolicy(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_CREATE,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Errorf("Invalid resource metadata: %s", diff)
 		}
 
@@ -910,7 +910,7 @@ resource "test_resource" "test" {
 				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 					ProviderType: "test",
 					Operation:    tc.expectOp,
-				}, protocmp.Transform()); diff != "" {
+				}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 					t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
 				}
 
@@ -1022,7 +1022,7 @@ func TestContext2Apply_PolicyEvaluation_NoOpOperation(t *testing.T) {
 				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 					ProviderType: "test",
 					Operation:    proto.Operation_NO_OP,
-				}, protocmp.Transform()); diff != "" {
+				}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 					t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
 				}
 

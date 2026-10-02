@@ -153,7 +153,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						expectedMeta.ModulePath = "module.child"
 					}
 
-					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -189,6 +189,65 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 				}
 				if !d.policy.EvaluateCalled {
 					t.Error("Expected policyClient.Evaluate to be called")
+				}
+				tfdiags.AssertNoDiagnostics(t, d.diags)
+			},
+		},
+		{
+			name:        "subject metadata carries address and provider source",
+			expectCalls: 1,
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				module "child" {
+					source = "./child"
+				}
+				`,
+			childConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "test_instance" "a" {
+					count = 1
+					value = "foo"
+				}
+				`,
+			policyConfig: `# policy config is not read by Terraform`,
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+						ProviderType:   "test",
+						Operation:      proto.Operation_CREATE,
+						ModulePath:     "module.child",
+						Address:        "module.child.test_instance.a[0]",
+						ProviderSource: "registry.terraform.io/hashicorp/test",
+					}, protocmp.Transform()); diff != "" {
+						t.Errorf("Invalid resource metadata: %s", diff)
+					}
+					// Without the relationships capability there is no run.
+					if req.RunID != "" {
+						t.Errorf("Expected empty run id, got %q", req.RunID)
+					}
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if d.policy.BeginRunCalled {
+					t.Error("Expected no relationship run without the capability")
 				}
 				tfdiags.AssertNoDiagnostics(t, d.diags)
 			},
@@ -339,7 +398,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if req.Target == "test_instance" {
 						expectedMeta.Operation = proto.Operation_DELETE
 					}
-					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -417,7 +476,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						expectedMeta.ModulePath = "module.child"
 					}
 
-					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform()); diff != "" {
+					if diff := cmp.Diff(req.Meta, expectedMeta, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -550,7 +609,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
-					}, protocmp.Transform()); diff != "" {
+					}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -631,7 +690,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if diff := cmp.Diff(req.Meta, proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
-					}, protocmp.Transform()); diff != "" {
+					}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -723,7 +782,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_CREATE,
-					}, protocmp.Transform()); diff != "" {
+					}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -784,7 +843,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 						ProviderType: "test",
 						Operation:    proto.Operation_UPDATE,
-					}, protocmp.Transform()); diff != "" {
+					}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 
@@ -1056,7 +1115,7 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 						ProviderType: "test",
 						Operation:    proto.Operation_DELETE,
 						ModulePath:   "module.child",
-					}, protocmp.Transform()); diff != "" {
+					}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
 					if !req.Attrs.Raw.IsNull() {
@@ -1283,7 +1342,7 @@ func TestContext2Plan_PolicyEvaluation_RedactedPaths(t *testing.T) {
 	if diff := cmp.Diff(policyClient.EvaluateRequest.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 		ProviderType: "test",
 		Operation:    proto.Operation_UPDATE,
-	}, protocmp.Transform()); diff != "" {
+	}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 		t.Fatalf("invalid resource metadata: %s", diff)
 	}
 
@@ -1351,7 +1410,7 @@ func TestContext2Plan_PolicyEvaluation_WriteOnly(t *testing.T) {
 				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 					ProviderType: "ephem",
 					Operation:    proto.Operation_UPDATE,
-				}, protocmp.Transform()); diff != "" {
+				}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 					t.Fatalf("invalid resource metadata: %s", diff)
 				}
 
@@ -1528,7 +1587,7 @@ func TestContext2Plan_PolicyEvaluation_NoResourceRunsAfterPolicy(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_CREATE,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Errorf("Invalid resource metadata: %s", diff)
 		}
 
@@ -1604,7 +1663,7 @@ func TestContext2Plan_PolicyEvaluation_ManagedResourcesOnly(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_CREATE,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Errorf("Invalid resource metadata: %s", diff)
 		}
 
@@ -1728,7 +1787,7 @@ resource_policy "test_resource" "policy_name" {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_NO_OP,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Errorf("Invalid resource metadata: %s", diff)
 		}
 
@@ -2035,7 +2094,7 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnly(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_NO_OP,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Fatalf("invalid resource metadata: %s", diff)
 		}
 		if req.Attrs.Raw.IsNull() {
@@ -2791,7 +2850,7 @@ func TestContext2Plan_PolicyEvaluation_NoOpOperation(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_NO_OP,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
 		}
 
@@ -2906,7 +2965,7 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnlyOperation(t *testing.T) {
 		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_NO_OP,
-		}, protocmp.Transform()); diff != "" {
+		}, protocmp.Transform(), ignoreSubjectIdentity); diff != "" {
 			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
 		}
 
@@ -2963,6 +3022,11 @@ func TestContext2Plan_PolicyEvaluation_RefreshOnlyOperation(t *testing.T) {
 		t.Fatalf("expected 1 policy evaluation call for refresh-only resource, got %d", evaluateCalls)
 	}
 }
+
+// ignoreSubjectIdentity ignores the subject's address and provider source in
+// resource metadata comparisons of tests that predate those fields. They are
+// asserted by the tests that are about them.
+var ignoreSubjectIdentity = protocmp.IgnoreFields(&proto.PolicyEvaluateResourceRequest_ResourceMetadata{}, "address", "provider_source")
 
 func assertPathsEqual(t *testing.T, got, want []cty.Path) {
 	t.Helper()

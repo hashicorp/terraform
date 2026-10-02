@@ -17,6 +17,11 @@ type policySubgraph struct {
 	// span carries the tracing information. We need the span itself so we can end it
 	// when the policy evaluation is finished
 	span trace.Span
+
+	// runID is the id of the relationship run of this walk, or "" when there
+	// is none. It is set in nodePolicyEval.DynamicExpand before the subject
+	// nodes run.
+	runID string
 }
 
 func newPolicySubgraph() *policySubgraph {
@@ -36,6 +41,14 @@ func (ps *policySubgraph) AddQuery(node *nodeQueryResourcePolicy) {
 	defer ps.lock.Unlock()
 
 	ps.graph.Add(node)
+}
+
+// RunID returns the id of the relationship run of this walk, or "" when there
+// is no run.
+func (ps *policySubgraph) RunID() string {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+	return ps.runID
 }
 
 func (ps *policySubgraph) evalGraph(span trace.Span) *Graph {
