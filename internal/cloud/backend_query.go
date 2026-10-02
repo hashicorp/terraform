@@ -206,6 +206,7 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 		}
 
 		if len(policySummaries) > 0 {
+			b.renderer.Streams.Println()
 			b.renderer.Streams.Println(views.RenderPolicyQuerySummariesHuman(policySummaries))
 		}
 	}
