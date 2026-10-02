@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'test: Allow modules under test to use deprecated outputs.'
+time: 2026-10-02T17:18:48.206896-04:00
+custom:
+    Issue: "39207"
