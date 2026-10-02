@@ -195,53 +195,45 @@ func (v *InitHuman) LogAutomaticApproval() {
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-	v.print(v.prepareMessage(FindingMatchingVersionMessage, params...))
+	v.print(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-	v.print(v.prepareMessage(FindingLatestVersionMessage, params...))
+	v.print(fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	v.print(v.prepareMessage(ProviderAlreadyInstalledMessage, params...))
+	v.print(fmt.Sprintf(logProviderVersionAlreadyInstalledHuman, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	v.print(v.prepareMessage(UsingProviderFromCacheDirInfo, params...))
+	v.print(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-	v.print(v.prepareMessage(BuiltInProviderAvailableMessage, params...))
+	v.print(fmt.Sprintf(logBuiltInProviderAvailableHuman, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-	v.print(v.prepareMessage(InstallingProviderMessage, params...))
+	v.print(fmt.Sprintf(logInstallProviderVersionStartHuman, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{version, providerAddr.ForDisplay()}
-	v.print(v.prepareMessage(ReusingPreviousVersionInfo, params...))
+	v.print(fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	v.print(fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-	v.print(v.prepareMessage(InstalledProviderVersionInfo, params...))
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	v.print(msg)
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
-	v.print(v.prepareMessage(PartnerAndCommunityProvidersMessage))
+	v.print(logPartnerAndCommunityProviders)
 }
 
 // Implements ProviderLockingLogger
@@ -421,26 +413,6 @@ func (v *InitJSON) LogBackendConfiguredSuccess(backendType string) {
 	v.initOutputLog(fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessJSON), backendType), json.MessageBackendConfiguredSuccess)
 }
 
-// logInitMessage is an internalised version of an old method `LogInitMessage`.
-// New methods have since been added that replace the old `LogInitMessage` method,
-// but to ensure that the same JSON output is produced we keep `logInitMessage` to
-// be reused by the newer methods.
-//
-// Logs produced via this method are not annotated with any extra data.
-// By default they contain:
-// * @level as "info"
-// * @module as "terraform.ui" (See NewJSONView)
-// * @timestamp formatted in the default way
-// * @message set as the string constructed from this method's arguments
-func (v *InitJSON) logInitMessage(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.prepareMessage(messageCode, params...)
-	if preppedMessage == "" {
-		return
-	}
-
-	v.view.Log(preppedMessage)
-}
-
 func (v *InitJSON) LogInstallProvidersStart() {
 	v.initOutputLog("Initializing provider plugins...", json.MessageInitializingProviderPluginMessage)
 }
@@ -490,82 +462,45 @@ func (v *InitJSON) LogAutomaticApproval() {
 }
 
 func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	params := []any{providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(FindingMatchingVersionMessage, params...)
+	v.view.Log(fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(FindingLatestVersionMessage, params...)
+	v.view.Log(fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(ProviderAlreadyInstalledMessage, params...)
+	v.view.Log(fmt.Sprintf(logProviderVersionAlreadyInstalledJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(UsingProviderFromCacheDirInfo, params...)
+	v.view.Log(fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	params := []any{providerAddr.ForDisplay()}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(BuiltInProviderAvailableMessage, params...)
+	v.view.Log(fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstallingProviderMessage, params...)
+	v.view.Log(fmt.Sprintf(logInstallProviderVersionStartJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	params := []any{providerAddr.ForDisplay(), version}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(ReusingPreviousVersionInfo, params...)
+	v.view.Log(fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	params := []any{providerAddr.ForDisplay(), version, auth, ""} // add empty key id to the end
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	v.view.Log(fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, "")) // empty key id at the end
 }
 
 func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
-	params := []any{providerAddr.ForDisplay(), version, auth, keyDetails}
-
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(InstalledProviderVersionInfo, params...)
+	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
+	v.view.Log(msg)
 }
 
 func (v *InitJSON) LogPartnerAndCommunityProviders() {
-	// This was previously logged via LogInitMessage, so we need to match implementation of that method
-	// to ensure the same JSON log is produced.
-	v.logInitMessage(PartnerAndCommunityProvidersMessage)
+	v.view.Log(logPartnerAndCommunityProviders)
 }
 
 // Implements ProviderLockingLogger
@@ -641,41 +576,9 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"provider_already_installed_message": {
-		HumanValue: logProviderVersionAlreadyInstalledHuman,
-		JSONValue:  logProviderVersionAlreadyInstalledJSON,
-	},
-	"built_in_provider_available_message": {
-		HumanValue: logBuiltInProviderAvailableHuman,
-		JSONValue:  logBuiltInProviderAvailableJSON,
-	},
-	"reusing_previous_version_info": {
-		HumanValue: logReusingPreviousProviderVersionHuman,
-		JSONValue:  logReusingPreviousProviderVersionJSON,
-	},
 	"finding_matching_version_message": {
 		HumanValue: logFindingMatchingVersionHuman,
 		JSONValue:  logFindingMatchingVersionJSON,
-	},
-	"finding_latest_version_message": {
-		HumanValue: logFindingLatestVersionHuman,
-		JSONValue:  logFindingLatestVersionJSON,
-	},
-	"using_provider_from_cache_dir_info": {
-		HumanValue: logUsingProviderVersionFromCacheDirHuman,
-		JSONValue:  logUsingProviderVersionFromCacheDirJSON,
-	},
-	"installing_provider_message": {
-		HumanValue: logInstallProviderVersionStartHuman,
-		JSONValue:  logInstallProviderVersionStartJSON,
-	},
-	"installed_provider_version_info": {
-		HumanValue: logInstallProviderVersionCompleteHuman,
-		JSONValue:  logInstallProviderVersionCompleteJSON,
-	},
-	"partner_and_community_providers_message": {
-		HumanValue: logPartnerAndCommunityProviders,
-		JSONValue:  logPartnerAndCommunityProviders,
 	},
 	"state_store_unset": {
 		HumanValue: "[reset][green]\n\nSuccessfully unset the state store %q. Terraform will now operate locally.",
@@ -738,24 +641,6 @@ const (
 	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-	// FindingMatchingVersionMessage indicates that Terraform is looking for a provider version that matches the constraint during installation
-	FindingMatchingVersionMessage InitMessageCode = "finding_matching_version_message"
-	// InstalledProviderVersionInfo describes a successfully installed provider along with its version
-	InstalledProviderVersionInfo InitMessageCode = "installed_provider_version_info"
-	// ReusingPreviousVersionInfo indicates a provider which is locked to a specific version during installation
-	ReusingPreviousVersionInfo InitMessageCode = "reusing_previous_version_info"
-	// BuiltInProviderAvailableMessage indicates a built-in provider in use during installation
-	BuiltInProviderAvailableMessage InitMessageCode = "built_in_provider_available_message"
-	// ProviderAlreadyInstalledMessage indicates a provider that is already installed during installation
-	ProviderAlreadyInstalledMessage InitMessageCode = "provider_already_installed_message"
-	// InstallingProviderMessage indicates that a provider is being installed (from a remote location)
-	InstallingProviderMessage InitMessageCode = "installing_provider_message"
-	// FindingLatestVersionMessage indicates that Terraform is looking for the latest version of a provider during installation (no constraint was supplied)
-	FindingLatestVersionMessage InitMessageCode = "finding_latest_version_message"
-	// UsingProviderFromCacheDirInfo indicates that a provider is being linked from a system-wide cache
-	UsingProviderFromCacheDirInfo InitMessageCode = "using_provider_from_cache_dir_info"
-	// PartnerAndCommunityProvidersMessage is a message concerning partner and community providers and how these are signed
-	PartnerAndCommunityProvidersMessage InitMessageCode = "partner_and_community_providers_message"
 )
 
 const outputInitEmpty = `
