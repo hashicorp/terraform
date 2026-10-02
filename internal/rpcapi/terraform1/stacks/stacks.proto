@@ -1176,6 +1176,9 @@ message PolicyDiagnostic {
   PolicySnippet policy_snippet = 5;
   PolicyRange policy_range = 6;
   repeated ExpressionValue expression_values = 7;
+  // omitted_members is the number of failing members whose values aren't
+  // listed in expression_values.
+  int32 omitted_members = 8;
 }
 
 // Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult
@@ -1192,6 +1195,9 @@ enum EvaluateResult {
 message ExpressionValue {
   AttributePath traversal = 1;
   bytes value = 2;
+  // member is the resource instance address of the related resource (member)
+  // this value belongs to. Empty for values of the policy's own subject.
+  string member = 3;
 }
 
 // PolicyRange is similar to terraform1.SourceRange but is separated to avoid confusion because
