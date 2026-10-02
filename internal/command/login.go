@@ -23,6 +23,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -41,23 +42,17 @@ type LoginCommand struct {
 }
 
 // Run implements cli.Command.
-func (c *LoginCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.extendedFlagSet("login")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"The login command expects at most one argument: the host to log in to.")
-		cmdFlags.Usage()
-		return 1
-	}
-
+func (c *LoginCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
+
+	rawArgs = c.Meta.process(rawArgs)
+
+	args, argDiags := arguments.ParseLogin(rawArgs)
+	diags = diags.Append(argDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	if !c.input {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -69,10 +64,7 @@ func (c *LoginCommand) Run(args []string) int {
 		return 1
 	}
 
-	givenHostname := "app.terraform.io"
-	if len(args) != 0 {
-		givenHostname = args[0]
-	}
+	givenHostname := args.Host
 
 	hostname, err := svchost.ForComparison(givenHostname)
 	if err != nil {
