@@ -366,7 +366,6 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 			}
 
 			policyDiag.ExpressionValues = policyExpressionValuesToProto(extra.ExpressionValues)
-			policyDiag.OmittedMembers = extra.OmittedMembers
 		}
 
 		if src := diag.Source(); src.Subject != nil {

@@ -1176,9 +1176,6 @@ message PolicyDiagnostic {
   PolicySnippet policy_snippet = 5;
   PolicyRange policy_range = 6;
   repeated ExpressionValue expression_values = 7;
-  // omitted_members is the number of failing members whose values aren't
-  // listed in expression_values.
-  int32 omitted_members = 8;
 }
 
 // Sourced from: /terraform/internal/policy/proto/types.proto#EvaluateResult

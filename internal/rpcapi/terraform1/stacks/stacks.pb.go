@@ -2791,11 +2791,8 @@ type PolicyDiagnostic struct {
 	PolicySnippet    *PolicySnippet         `protobuf:"bytes,5,opt,name=policy_snippet,json=policySnippet,proto3" json:"policy_snippet,omitempty"`
 	PolicyRange      *PolicyRange           `protobuf:"bytes,6,opt,name=policy_range,json=policyRange,proto3" json:"policy_range,omitempty"`
 	ExpressionValues []*ExpressionValue     `protobuf:"bytes,7,rep,name=expression_values,json=expressionValues,proto3" json:"expression_values,omitempty"`
-	// omitted_members is the number of failing members whose values aren't
-	// listed in expression_values.
-	OmittedMembers int32 `protobuf:"varint,8,opt,name=omitted_members,json=omittedMembers,proto3" json:"omitted_members,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *PolicyDiagnostic) Reset() {
@@ -2875,13 +2872,6 @@ func (x *PolicyDiagnostic) GetExpressionValues() []*ExpressionValue {
 		return x.ExpressionValues
 	}
 	return nil
-}
-
-func (x *PolicyDiagnostic) GetOmittedMembers() int32 {
-	if x != nil {
-		return x.OmittedMembers
-	}
-	return 0
 }
 
 // Sourced from: /terraform/internal/policy/proto/diagnostics.proto#ExpressionValue
@@ -9049,7 +9039,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\n" +
 	"start_line\x18\x03 \x01(\x03R\tstartLine\x124\n" +
 	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
-	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset\"\xfe\x03\n" +
+	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffset\"\xd5\x03\n" +
 	"\x10PolicyDiagnostic\x12%\n" +
 	"\x0etarget_address\x18\x01 \x01(\tR\rtargetAddress\x12J\n" +
 	"\x0fpolicy_metadata\x18\x02 \x01(\v2!.terraform1.stacks.PolicyMetaDataR\x0epolicyMetadata\x129\n" +
@@ -9059,8 +9049,7 @@ const file_stacks_proto_rawDesc = "" +
 	"diagnostic\x12G\n" +
 	"\x0epolicy_snippet\x18\x05 \x01(\v2 .terraform1.stacks.PolicySnippetR\rpolicySnippet\x12A\n" +
 	"\fpolicy_range\x18\x06 \x01(\v2\x1e.terraform1.stacks.PolicyRangeR\vpolicyRange\x12O\n" +
-	"\x11expression_values\x18\a \x03(\v2\".terraform1.stacks.ExpressionValueR\x10expressionValues\x12'\n" +
-	"\x0fomitted_members\x18\b \x01(\x05R\x0eomittedMembers\"\x7f\n" +
+	"\x11expression_values\x18\a \x03(\v2\".terraform1.stacks.ExpressionValueR\x10expressionValues\"\x7f\n" +
 	"\x0fExpressionValue\x12>\n" +
 	"\ttraversal\x18\x01 \x01(\v2 .terraform1.stacks.AttributePathR\ttraversal\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\fR\x05value\x12\x16\n" +
