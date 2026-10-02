@@ -1,0 +1,6 @@
+kind: BUG FIXES
+body: Treating SSH hostkey mismatch as permanent error and faling fast instead of
+  indefinite retrying.
+time: 2026-07-15T15:28:04.527482+02:00
+custom:
+  Issue: "38881"
