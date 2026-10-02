@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -20,28 +21,19 @@ type LogoutCommand struct {
 }
 
 // Run implements cli.Command.
-func (c *LogoutCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("logout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"The logout command expects at most one argument: the host to log out of.")
-		cmdFlags.Usage()
-		return 1
-	}
-
+func (c *LogoutCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	givenHostname := "app.terraform.io"
-	if len(args) != 0 {
-		givenHostname = args[0]
+	rawArgs = c.Meta.process(rawArgs)
+
+	args, argDiags := arguments.ParseLogout(rawArgs)
+	diags = diags.Append(argDiags)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
+
+	givenHostname := args.Host
 
 	hostname, err := svchost.ForComparison(givenHostname)
 	if err != nil {
