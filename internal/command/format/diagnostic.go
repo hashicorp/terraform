@@ -281,10 +281,14 @@ func (f *snippetFormatter) writePolicySnippet(diag *viewsjson.Diagnostic) {
 	f.buf.WriteByte('\n')
 }
 
+// maxPolicyMembersShown is the number of failing members of a policy
+// quantifier whose values a policy snippet shows.
+const maxPolicyMembersShown = 3
+
 // writeSnippet renders a diagnostic output from the given snippet and range.
 // The snippetPrefix is used as the prefix for the context line. The values of
 // a policy snippet keep the policy engine's order, which groups the values of
-// each failing member, and are followed by the number of omitted members.
+// each failing member; see policyValuesShown.
 func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.DiagnosticRange, snippet *viewsjson.DiagnosticSnippet, policy bool) {
 	buf := f.buf
 	color := f.color
@@ -338,14 +342,17 @@ func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.Dia
 		)
 	}
 
-	if len(snippet.Values) > 0 || snippet.OmittedMembers > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
+	if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) || snippet.TestAssertionExpr != nil {
 		// The diagnostic may also have information about the dynamic
 		// values of relevant variables at the point of evaluation.
 		// This is particularly useful for expressions that get evaluated
 		// multiple times with different values, such as blocks using
 		// "count" and "for_each", or within "for" expressions.
 		values := slices.Clone(snippet.Values)
-		if !policy {
+		var moreMembers int
+		if policy {
+			values, moreMembers = policyValuesShown(values)
+		} else {
 			sort.Slice(values, func(i, j int) bool {
 				return values[i].Traversal < values[j].Traversal
 			})
@@ -396,11 +403,38 @@ func (f *snippetFormatter) writeSnippet(snippetPrefix string, rng *viewsjson.Dia
 					fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset]   %s\n"), line)
 				}
 			}
-			if snippet.OmittedMembers > 0 {
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] (and %d more)\n"), snippet.OmittedMembers)
+			if moreMembers > 0 {
+				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] (and %d more)\n"), moreMembers)
 			}
 		}
 	}
+}
+
+// policyValuesShown returns the values of a policy snippet to show, in their
+// order: the values that don't belong to a failing member, and those of the
+// first maxPolicyMembersShown failing members. It also returns the number of
+// failing members whose values aren't shown.
+func policyValuesShown(values []viewsjson.DiagnosticExpressionValue) ([]viewsjson.DiagnosticExpressionValue, int) {
+	var shown []viewsjson.DiagnosticExpressionValue
+	members := make(map[string]bool) // whether the member's values are shown
+	var more int
+	for _, value := range values {
+		if value.Member != "" {
+			show, seen := members[value.Member]
+			if !seen {
+				show = len(members) < maxPolicyMembersShown
+				members[value.Member] = show
+				if !show {
+					more++
+				}
+			}
+			if !show {
+				continue
+			}
+		}
+		shown = append(shown, value)
+	}
+	return shown, more
 }
 
 func (f *snippetFormatter) printTestDiagOutput(diag *viewsjson.DiagnosticTestBinaryExpr) {
