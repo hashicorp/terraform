@@ -57,6 +57,9 @@ type Init interface {
 	// LogMigrateFromCloudToBackend indicates that the backend is being migrated from the cloud.
 	LogMigrateFromCloudToBackend(backendType string)
 
+	// LogMigrateFromCloudToLocal indicates that the backend is being migrated from the cloud to a local backend.
+	LogMigrateFromCloudToLocal()
+
 	// LogMigrateCloudConfigurationChanged indicates that the backend is being migrated from the cloud to a local backend.
 	LogMigrateCloudConfigurationChanged()
 
@@ -183,6 +186,10 @@ func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
 
 func (v *InitHuman) LogMigrateFromCloudToBackend(backendType string) {
 	v.print(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", backendType))
+}
+
+func (v *InitHuman) LogMigrateFromCloudToLocal() {
+	v.print("Migrating from HCP Terraform or Terraform Enterprise to local state.")
 }
 
 func (v *InitHuman) LogMigrateCloudConfigurationChanged() {
@@ -470,6 +477,11 @@ func (v *InitJSON) LogMigrateFromCloudToBackend(backendType string) {
 	panic("InitJSON: LogMigrateFromCloudToBackend not implemented")
 }
 
+func (v *InitJSON) LogMigrateFromCloudToLocal() {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateFromCloudToLocal not implemented")
+}
+
 func (v *InitJSON) LogMigrateCloudConfigurationChanged() {
 	// `-json` and `-migrate-state` are mutually exclusive.
 	panic("InitJSON: LogMigrateCloudConfigurationChanged not implemented")
@@ -665,19 +677,9 @@ type InitMessage struct {
 	JSONValue  string
 }
 
-var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_cloud_migrate_local": {
-		HumanValue: "Migrating from HCP Terraform or Terraform Enterprise to local state.",
-		JSONValue:  "Migrating from HCP Terraform or Terraform Enterprise to local state.",
-	},
-}
+var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{}
 
 type InitMessageCode string
-
-const (
-	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
-	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
-)
 
 const outputInitEmpty = `
 [reset][bold]Terraform initialized in an empty directory![reset]
