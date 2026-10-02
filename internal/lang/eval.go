@@ -359,6 +359,18 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			// self can only be used within a resource instance
 			subj := selfAddr.(addrs.ResourceInstance)
 
+			// A self reference needs only its own instance, not every sibling.
+			// Preserve per-reference diagnostics and fall back for data sources
+			// that only implement aggregate resource resolution.
+			if data, ok := s.Data.(interface {
+				GetResourceInstance(addrs.ResourceInstance, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
+			}); ok {
+				var valDiags tfdiags.Diagnostics
+				self, valDiags = normalizeRefValue(data.GetResourceInstance(subj, rng))
+				diags = diags.Append(valDiags)
+				continue
+			}
+
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
 			diags = diags.Append(valDiags)
 

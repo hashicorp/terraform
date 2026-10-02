@@ -623,6 +623,31 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 }
 
 func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.getResource(addr, rng, nil)
+}
+
+// GetResourceInstance resolves a self reference without decoding sibling state.
+func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	// If the instance is absent, retain aggregate resolution so that missing
+	// indices and holes in count-based resources keep their existing behavior.
+	var instanceKey *addrs.InstanceKey
+	if d.Evaluator.State.ResourceInstance(addr.Absolute(d.ModulePath)) != nil {
+		instanceKey = &addr.Key
+	} else if _, ok := d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Resource.Absolute(d.ModulePath))[addr.Key]; ok {
+		instanceKey = &addr.Key
+	}
+	val, diags := d.getResource(addr.Resource, rng, instanceKey)
+	var indexDiags hcl.Diagnostics
+	switch key := addr.Key.(type) {
+	case addrs.IntKey:
+		val, indexDiags = hcl.Index(val, cty.NumberIntVal(int64(key)), rng.ToHCL().Ptr())
+	case addrs.StringKey:
+		val, indexDiags = hcl.Index(val, cty.StringVal(string(key)), rng.ToHCL().Ptr())
+	}
+	return val, diags.Append(indexDiags)
+}
+
+func (d *evaluationStateData) getResource(addr addrs.Resource, rng tfdiags.SourceRange, instanceKey *addrs.InstanceKey) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
@@ -751,6 +776,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// deferrals system. A deferred resource overrides anything that might be
 	// in the state for the resource, so we do this first.
 	for key, value := range d.Evaluator.Deferrals.GetDeferredResourceInstances(addr.Absolute(d.ModulePath)) {
+		if instanceKey != nil && key != *instanceKey {
+			continue
+		}
 		instances[key] = value
 	}
 
@@ -764,7 +792,12 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instChanges.Put(ch.Addr, ch)
 	}
 
-	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
+	var rs *states.Resource
+	if instanceKey == nil {
+		rs = d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
+	} else if instance := d.Evaluator.State.ResourceInstance(addr.Instance(*instanceKey).Absolute(d.ModulePath)); instance != nil {
+		rs = &states.Resource{Instances: map[addrs.InstanceKey]*states.ResourceInstance{*instanceKey: instance}}
+	}
 	// Decode all instances in the current state
 	pendingDestroy := d.Operation == walkDestroy
 	if rs != nil {
@@ -791,6 +824,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// after their dependants are updated.
 				if change.Action == plans.Delete {
 					if !pendingDestroy {
+						if instanceKey != nil {
+							// Keep the aggregate shape for omitted instances, including
+							// unknown values in holes of count-based resources.
+							return d.getResource(addr, rng, nil)
+						}
 						continue
 					}
 				}
@@ -851,6 +889,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		keyType, knownKeys, unknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(d.ModulePath))
 		if !unknownKeys && keyType != addrs.UnknownKeyType {
 			for _, key := range knownKeys {
+				if instanceKey != nil && key != *instanceKey {
+					continue
+				}
 				if _, ok := instances[key]; ok {
 					continue
 				}
