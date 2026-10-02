@@ -12,21 +12,50 @@ import (
 
 func TestParseLogin_valid(t *testing.T) {
 	testCases := map[string]struct {
-		args []string
-		want *Login
+		args     []string
+		want     *Login
+		warnings tfdiags.Diagnostics
 	}{
 		"default host": {
 			nil,
 			&Login{
-				Host:         "app.terraform.io",
-				InputEnabled: true,
+				Host:            "app.terraform.io",
+				InputEnabled:    true,
+				CompactWarnings: false,
 			},
+			nil,
 		},
 		"non-default host": {
 			[]string{"other.host.io"},
 			&Login{
-				Host:         "other.host.io",
-				InputEnabled: true,
+				Host:            "other.host.io",
+				InputEnabled:    true,
+				CompactWarnings: false,
+			},
+			nil,
+		},
+		"-compact-warnings": {
+			[]string{"-compact-warnings"},
+			&Login{
+				Host:            "app.terraform.io",
+				InputEnabled:    true,
+				CompactWarnings: true,
+			},
+			nil,
+		},
+		"-target is ignored": {
+			[]string{"-target", "some-resource"},
+			&Login{
+				Host:            "app.terraform.io",
+				InputEnabled:    true,
+				CompactWarnings: false,
+			},
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"The `target` flag is ignored by the login command.",
+					"",
+				),
 			},
 		},
 	}
@@ -34,8 +63,11 @@ func TestParseLogin_valid(t *testing.T) {
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			got, diags := ParseLogin(tc.args)
-			if len(diags) > 0 {
-				t.Fatalf("unexpected diags: %v", diags)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected errors: %v", diags)
+			}
+			if tc.warnings != nil {
+				tfdiags.AssertDiagnosticsMatch(t, diags, tc.warnings)
 			}
 			if diff := cmp.Diff(tc.want, got); diff != "" {
 				t.Fatalf("unexpected result\n%s", diff)
@@ -53,8 +85,9 @@ func TestParseLogin_invalid(t *testing.T) {
 		"invalid flag": {
 			[]string{"-foobar"},
 			&Login{
-				Host:         "app.terraform.io",
-				InputEnabled: true,
+				Host:            "app.terraform.io",
+				InputEnabled:    true,
+				CompactWarnings: false,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -67,8 +100,9 @@ func TestParseLogin_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"other.host.io", "app.terraform.io"},
 			&Login{
-				Host:         "other.host.io",
-				InputEnabled: true,
+				Host:            "other.host.io",
+				InputEnabled:    true,
+				CompactWarnings: false,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

@@ -3,7 +3,9 @@
 
 package arguments
 
-import "github.com/hashicorp/terraform/internal/tfdiags"
+import (
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 // Login represents the command-line arguments for the login command.
 type Login struct {
@@ -12,6 +14,8 @@ type Login struct {
 	// InputEnabled is used to disable interactive input for unspecified
 	// variable and backend config values. Default is true.
 	InputEnabled bool
+
+	CompactWarnings bool
 }
 
 func ParseLogin(rawArgs []string) (*Login, tfdiags.Diagnostics) {
@@ -20,12 +24,28 @@ func ParseLogin(rawArgs []string) (*Login, tfdiags.Diagnostics) {
 
 	cmdFlags := defaultFlagSet("login")
 	cmdFlags.BoolVar(&ret.InputEnabled, "input", true, "input")
+	cmdFlags.BoolVar(&ret.CompactWarnings, "compact-warnings", false, "use compact warnings")
+
+	// This flag was accepted by `login` in the past due to using (m *Meta) extendedFlagSet
+	// but it was never used in the command implementation.
+	// We allow the flag to be passed, but it's still unused. We warn the user if they provide it.
+	// TODO: Remove flag.
+	var targetFlags []string
+	cmdFlags.Var((*FlagStringSlice)(&targetFlags), "target", "resource to target")
 
 	if err := cmdFlags.Parse(rawArgs); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to parse command-line flags",
 			err.Error(),
+		))
+	}
+
+	if len(targetFlags) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"The `target` flag is ignored by the login command.",
+			"",
 		))
 	}
 
