@@ -722,8 +722,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	//// Message codes below are ONLY used INTERNALLY (for now)
-
 	// BackendConfiguredUnsetMessage indicates successful backend unsetting
 	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
 	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
