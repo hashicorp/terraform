@@ -1865,7 +1865,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		case cloud.ConfigMigrationIn:
 			view.LogMigrateFromBackendToCloud(s.Backend.Type)
 		case cloud.ConfigMigrationOut:
-			view.Output(views.BackendMigrateFromCloudMessage, c.Type)
+			view.LogMigrateFromCloudToBackend(c.Type)
 		default:
 			if s.Backend.Type != c.Type {
 				view.Output(views.BackendMigrateTypeChangeMessage, s.Backend.Type, c.Type)
