@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
@@ -100,7 +101,7 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 
 	if newState {
 		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			strings.TrimSpace(envCreated), name)))
+			strings.TrimSpace(views.EnvCreated), name)))
 	} else {
 		c.Ui.Output(
 			c.Colorize().Color(

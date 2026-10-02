@@ -27,7 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/ui"
+	tfui "github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -552,7 +552,7 @@ func TestApply_input(t *testing.T) {
 	// value "result" to echo that back to us below.
 	//
 	// Don't disable input, so input would be asked
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 		Reader: bytes.NewBufferString("foo\n"),
 		Writer: new(bytes.Buffer),
 	}, nil, nil)
@@ -598,7 +598,7 @@ func TestApply_inputPartial(t *testing.T) {
 	t.Chdir(td)
 
 	// Don't disable input, so input would be asked
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 		Reader: bytes.NewBufferString("one\ntwo\n"),
 		Writer: new(bytes.Buffer),
 	}, nil, nil)
@@ -676,7 +676,7 @@ func TestApply_noArgs(t *testing.T) {
 
 func TestApply_plan(t *testing.T) {
 	// Don't disable input, so input would be asked
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 		Reader: new(bytes.Buffer),
 		Writer: new(bytes.Buffer),
 	}, nil, nil)
@@ -1041,7 +1041,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
 		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 			Reader: new(bytes.Buffer),
 			Writer: new(bytes.Buffer),
 		}, nil, nil)
@@ -1128,7 +1128,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
 		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 			Reader: new(bytes.Buffer),
 			Writer: new(bytes.Buffer),
 		}, nil, nil)
@@ -1300,7 +1300,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// Don't disable input, so input would be asked
 	// Set some default reader/writers for the inputs
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
 		Reader: new(bytes.Buffer),
 		Writer: new(bytes.Buffer),
 	}, nil, nil)
@@ -3126,14 +3126,14 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	// Create new env
 	{
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
-			t.Fatal("error creating workspace")
+			t.Fatalf("error creating workspace: %s", done(t).All())
 		}
 	}
 
