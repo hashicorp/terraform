@@ -1,0 +1,18 @@
+{"@level":"info","@message":"Terraform 1.17.0-dev","@module":"terraform.ui","@timestamp":"2026-08-26T16:20:04.692816+01:00","terraform":"1.17.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"Initializing source...","@module":"terraform.ui","type":"migration_source_initialization_start"}
+{"@level":"info","@message":"Installing providers...","@module":"terraform.ui","type":"provider_installation_start"}
+{"@level":"info","@message": "hashicorp/test: Reusing version 1.2.3 from the dependency lock file","@module":"terraform.ui","type":"provider_query_use_previous_version"}
+{"@level":"info","@message":"Installing provider version: hashicorp/test v1.2.3...","@module":"terraform.ui","type":"provider_version_installation_start"}
+{"@level":"info","@message":"Installed provider version: hashicorp/test v1.2.3 (verified checksum)","@module":"terraform.ui","type":"provider_version_installation_complete"}
+{"@level":"info","@message":"Initialized source.","@module":"terraform.ui","type":"migration_source_initialization_complete"}
+{"@level":"info","@message":"Initializing destination...","@module":"terraform.ui","type":"migration_destination_initialization_start"}
+{"@level":"info","@message":"Installing providers...","@module":"terraform.ui","type":"provider_installation_start"}
+{"@level":"info","@message":"hashicorp/test2: Finding latest version...","@module":"terraform.ui","type":"provider_query_use_latest"}
+{"@level":"info","@message":"Installing provider version: hashicorp/test2 v3.2.1...","@module":"terraform.ui","type":"provider_version_installation_start"}
+{"@level":"info","@message":"Installed provider version: hashicorp/test2 v3.2.1 (verified checksum)","@module":"terraform.ui","type":"provider_version_installation_complete"}
+{"@level":"info","@message":"Initialized destination.","@module":"terraform.ui","type":"migration_destination_initialization_complete"}
+{"@level":"info","@message":"Migrating state from state store \"test_src\" (hashicorp/test 1.2.3) to state store \"test2_dst\" (hashicorp/test2 3.2.1)...","@module":"terraform.ui","type":"migration_start"}
+{"@level":"info","@message":"The migration process has copied state from the state store \"test_src\" (hashicorp/test 1.2.3) to the state store \"test2_dst\" (hashicorp/test2 3.2.1)","@module":"terraform.ui","type":"migration_complete"}
+{"@level":"info","@message":"Terraform has made some changes to the provider dependency selections recorded\nin the .terraform.lock.hcl file. Review those changes and commit them to your\nversion control system if they represent changes you intended to make.","@module":"terraform.ui","type":"provider_lockfile_updated"}
+{"@level":"warn","@message":"Warning: Incomplete lock file information for providers","@module":"terraform.ui","diagnostic":{"detail":"Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:\n  - hashicorp/test\n  - hashicorp/test2\n\nThe current .terraform.lock.hcl file only includes checksums for %s, so Terraform running on another platform will fail to install these providers.\n\nTo calculate additional checksums for another platform, run:\n  terraform providers lock -platform=linux_amd64\n(where linux_amd64 is the platform to generate)","severity":"warning","summary":"Incomplete lock file information for providers"},"type":"diagnostic"}
+{"@level":"info","@message":"Finished migrating state from state store \"test_src\" (hashicorp/test 1.2.3) to state store \"test2_dst\" (hashicorp/test2 3.2.1).","@module":"terraform.ui","type":"migration_finalized"}
