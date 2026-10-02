@@ -1861,7 +1861,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		view := views.NewInit(vt, m.View)
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			view.Output(views.BackendCloudChangeInPlaceMessage)
+			view.LogMigrateCloudConfigurationChanged()
 		case cloud.ConfigMigrationIn:
 			view.LogMigrateFromBackendToCloud(s.Backend.Type)
 		case cloud.ConfigMigrationOut:
