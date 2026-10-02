@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "backend/s3: Fixed error message logic in `resolutionMsg()` for checksum mismatch errors to provide correct troubleshooting guidance"
+time: 2025-11-20T11:00:00.000000000Z
+custom:
+    Issue: "37926"
