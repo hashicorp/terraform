@@ -37,10 +37,12 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.State().Close()
 
 	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
+	var diags tfdiags.Diagnostics
 	if policyGraph.run != nil {
-		policyGraph.startRelationshipRun(ctx, spanCtx)
+		// These are only warnings, so the policies are still evaluated.
+		diags = diags.Append(policyGraph.startRelationshipRun(ctx, spanCtx))
 	}
-	return policyGraph.evalGraph(span), nil
+	return policyGraph.evalGraph(span), diags
 }
 
 // AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation

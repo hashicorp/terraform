@@ -126,17 +126,18 @@ func applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes [
 // its instances. It must be called after the walk's changes and state are
 // final and before any subject is evaluated. It never fails the walk: errors
 // are logged and leave the run without a run id (when BeginRun fails) or with
-// only part of its instances reported.
-func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.Context) {
+// only part of its instances reported. It returns the diagnostics of BeginRun
+// that the walk reports; see policyBeginRunDiagnostics.
+func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.Context) tfdiags.Diagnostics {
 	client, ok := policyRelationshipsClient(ctx.PolicyClient())
 	if !ok || ps.run == nil {
-		return
+		return nil
 	}
 
 	runID, err := uuid.GenerateUUID()
 	if err != nil {
 		log.Printf("[WARN] policy: not starting a relationship run: failed to generate a run id: %s", err)
-		return
+		return nil
 	}
 
 	resp, err := client.BeginRun(stopCtx, &proto.BeginRunRequest{
@@ -149,9 +150,10 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 	})
 	if err != nil {
 		log.Printf("[WARN] policy: failed to begin relationship run %s: %s", runID, err)
-		return
+		return nil
 	}
 	logPolicyRunDiagnostics("BeginRun", runID, resp.GetDiagnostics())
+	diags := policyBeginRunDiagnostics(resp.GetDiagnostics())
 
 	ps.lock.Lock()
 	ps.runID = runID
@@ -162,10 +164,11 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 		resp, err := client.ReportInstances(stopCtx, req)
 		if err != nil {
 			log.Printf("[WARN] policy: failed to report instances for relationship run %s: %s", runID, err)
-			return
+			return diags
 		}
 		logPolicyRunDiagnostics("ReportInstances", runID, resp.GetDiagnostics())
 	}
+	return diags
 }
 
 // finishRelationshipRun finishes the relationship run of the walk, if it has

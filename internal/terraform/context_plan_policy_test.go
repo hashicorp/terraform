@@ -3174,6 +3174,10 @@ type relationshipRun struct {
 	// reportErr is called with the 0-based index of each ReportInstances
 	// call; a non-nil result is returned as the call's error.
 	reportErr func(i int) error
+
+	// beginDiags, reportDiags and finishDiags are the diagnostics of the
+	// BeginRun, ReportInstances and FinishRun responses.
+	beginDiags, reportDiags, finishDiags []*proto.Diagnostic
 }
 
 // newRelationshipsPolicyClient returns a MockClient that announces the
@@ -3192,7 +3196,7 @@ func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*poli
 		if run.beginErr != nil {
 			return nil, run.beginErr
 		}
-		return &proto.BeginRunResponse{Spec: &proto.CollectionSpec{Types: types}}, nil
+		return &proto.BeginRunResponse{Spec: &proto.CollectionSpec{Types: types}, Diagnostics: run.beginDiags}, nil
 	}
 	client.ReportInstancesFn = func(_ context.Context, req *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
 		run.events = append(run.events, "report")
@@ -3202,7 +3206,7 @@ func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*poli
 				return nil, err
 			}
 		}
-		return &proto.ReportInstancesResponse{}, nil
+		return &proto.ReportInstancesResponse{Diagnostics: run.reportDiags}, nil
 	}
 	client.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
 		run.events = append(run.events, "evaluate")
@@ -3212,7 +3216,7 @@ func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*poli
 	client.FinishRunFn = func(_ context.Context, req *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
 		run.events = append(run.events, "finish")
 		run.finishes = append(run.finishes, req)
-		return &proto.FinishRunResponse{}, nil
+		return &proto.FinishRunResponse{Diagnostics: run.finishDiags}, nil
 	}
 	return client, run
 }
@@ -4666,6 +4670,48 @@ func TestContext2Plan_PolicyRelationships_rpcErrors(t *testing.T) {
 		plan(t, client)
 		run.assertRunSequence(t)
 	})
+}
+
+func TestContext2Plan_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 2
+			name  = "a${count.index}"
+		}
+	`})
+	for name, reportErr := range map[string]error{
+		"reported":              nil,
+		"ReportInstances fails": fmt.Errorf("ReportInstances failed"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+			run.beginDiags = relDefinitionDiagnostics()
+			// The diagnostics of the other calls are only logged.
+			run.reportDiags = relDefinitionDiagnostics()
+			run.finishDiags = relDefinitionDiagnostics()
+			run.reportErr = func(int) error { return reportErr }
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+				},
+			})
+			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+				Mode:         plans.NormalMode,
+				PolicyClient: client,
+			})
+
+			// The warning is reported once, not once per subject, and the
+			// error isn't reported.
+			assertRelDefinitionWarning(t, diags)
+			if plan.Errored {
+				t.Fatalf("expected the plan to succeed")
+			}
+			run.assertRunSequence(t)
+			if len(run.evals) != 2 {
+				t.Fatalf("expected 2 evaluations, got %d", len(run.evals))
+			}
+		})
+	}
 }
 
 func TestContext2Plan_PolicyRelationships_emptySpec(t *testing.T) {

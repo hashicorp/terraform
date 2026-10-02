@@ -2646,6 +2646,37 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 2
+			name  = "a${count.index}"
+		}
+	`})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	run.beginDiags = relDefinitionDiagnostics()
+	// The diagnostics of the other calls are only logged.
+	run.reportDiags = relDefinitionDiagnostics()
+	run.finishDiags = relDefinitionDiagnostics()
+	_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+
+	// The warning is reported once, not once per subject, and the error
+	// isn't reported.
+	assertRelDefinitionWarning(t, diags)
+	run.assertRunSequence(t)
+	if len(run.evals) != 2 {
+		t.Fatalf("expected 2 evaluations, got %d", len(run.evals))
+	}
+}
+
 func TestContext2Apply_PolicyRelationships_failedApply(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
 		resource "test_net" "ok" {
