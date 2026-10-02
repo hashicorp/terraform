@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'terraform query: Add spacing before policy evaluation summaries and display failed policy statuses in red when colors are enabled.'
+time: 2026-09-28T12:19:09.805641-04:00
+custom:
+    Issue: "39305"

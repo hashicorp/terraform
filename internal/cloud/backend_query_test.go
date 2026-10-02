@@ -24,8 +24,10 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -598,7 +600,7 @@ func TestCloud_queryV2RetriesTransportErrors(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsPolicySummaries(t *testing.T) {
-	passOutput := `Evaluated 1 policies.
+	passOutput := "\n" + `Evaluated 1 policies.
 
 Policy results for list.test.a - Passed
   id=a  Passed
@@ -608,18 +610,25 @@ Policy results for list.test.a - Passed
 {"@level":"info","@message":"Result found","type":"list_resource_found","list_resource_found":{"address":"list.test.a","display_name":"Alpha","identity":{"id":"a"}}}
 {"@level":"info","@message":"List complete","type":"list_complete","list_complete":{"address":"list.test.a"}}`
 
-	allNAOutput := `Evaluated 0 policies.
+	allNAOutput := "\n" + `Evaluated 0 policies.
 
 Policy results for list.test.b - N/A
   id=x  N/A
   id=y  N/A
 `
-	mixedNAOutput := `Evaluated 1 policies.
+	mixedNAOutput := "\n" + `Evaluated 1 policies.
 
 Policy results for list.test.c - Passed
   id=p  Passed
   id=n  N/A
 `
+	warningLog := `{"@level":"warn","@message":"Policy evaluation skipped","type":"diagnostic","diagnostic":{"severity":"warning","summary":"Policy evaluation skipped","detail":"Policy evaluation cannot be performed without resource state."}}`
+
+	warningOutput := format.DiagnosticFromJSON(&viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityWarning,
+		Summary:  "Policy evaluation skipped",
+		Detail:   "Policy evaluation cannot be performed without resource state.",
+	}, mockColorize(), 78)
 
 	for _, tc := range []struct {
 		name    string
@@ -627,6 +636,11 @@ Policy results for list.test.c - Passed
 		want    string
 	}{
 		{name: "query and summary", records: plainQuery + "\n" + policySummaryPassLog, want: "list.test.a   id=a   Alpha\n\n" + passOutput},
+		{
+			name:    "query warning and summary",
+			records: plainQuery + "\n" + warningLog + "\n" + policySummaryPassLog,
+			want:    "list.test.a   id=a   Alpha\n\n" + warningOutput + passOutput,
+		},
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
 		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
 		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
