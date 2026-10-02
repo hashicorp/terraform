@@ -239,3 +239,54 @@ func TestBase_nullCrash(t *testing.T) {
 		}
 	})
 }
+
+func TestBase_emptyStringsUsed(t *testing.T) {
+	// This test ensures that empty strings in config are used and aren't ignored
+	// in favor of SDKLikeDefaults
+
+	b := Base{
+		Schema: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {
+					Type:     cty.String,
+					Required: true,
+				},
+			},
+		},
+		SDKLikeDefaults: SDKLikeDefaults{
+			"foo": {
+				Fallback: "fallback",
+				EnvVars:  []string{"FOO"},
+			},
+		},
+	}
+
+	t.Run("empty string from config is used despite fallback default value and environment variable value set", func(t *testing.T) {
+		// There is a fallback value supplied by the environment
+		envValue := "value from ENV"
+		t.Setenv("FOO", envValue)
+
+		// We pass an explicit empty string as the value of foo
+		val, gotDiags := b.PrepareConfig(cty.ObjectVal(map[string]cty.Value{
+			"foo": cty.StringVal(""),
+		}))
+		if gotDiags.HasErrors() {
+			t.Fatalf("unexpected error diagnostics\n%s", gotDiags.Err())
+		}
+		attrs := val.AsValueMap()
+		if v, ok := attrs["foo"]; ok {
+			if v.IsNull() {
+				t.Fatal("value shouldn't be null")
+			}
+			if v.AsString() != "" {
+				// If the empty string from config is ignored, the value here
+				// will be either thing defined in SDKLikeDefaults above:
+				// 1) the "fallback" string.
+				// 2) the value of FOO environment variable.
+				t.Fatalf("value should be an empty string, but got: %q", v.AsString())
+			}
+		} else {
+			t.Fatal("cannot find attribute foo")
+		}
+	})
+}
