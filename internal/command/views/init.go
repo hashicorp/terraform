@@ -48,6 +48,9 @@ type Init interface {
 	// LogMigrateFromCloudToBackend indicates that the backend is being migrated from the cloud.
 	LogMigrateFromCloudToBackend(backendType string)
 
+	// LogMigrateCloudConfigurationChanged indicates that the backend is being migrated from the cloud to a local backend.
+	LogMigrateCloudConfigurationChanged()
+
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
@@ -155,6 +158,10 @@ func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
 
 func (v *InitHuman) LogMigrateFromCloudToBackend(backendType string) {
 	v.print(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", backendType))
+}
+
+func (v *InitHuman) LogMigrateCloudConfigurationChanged() {
+	v.print("HCP Terraform configuration has changed.")
 }
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
@@ -423,6 +430,11 @@ func (v *InitJSON) LogMigrateFromCloudToBackend(backendType string) {
 	panic("InitJSON: LogMigrateFromCloudToBackend not implemented")
 }
 
+func (v *InitJSON) LogMigrateCloudConfigurationChanged() {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateCloudConfigurationChanged not implemented")
+}
+
 func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog("Initializing HCP Terraform...", json.MessageInitializingTerraformCloudMessage)
 }
@@ -614,10 +626,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_cloud_change_in_place": {
-		HumanValue: "HCP Terraform configuration has changed.",
-		JSONValue:  "HCP Terraform configuration has changed.",
-	},
 	"backend_migrate_type_change": {
 		HumanValue: backendMigrateTypeChangeHuman,
 		JSONValue:  backendMigrateTypeChangeJSON,
@@ -639,8 +647,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendCloudChangeInPlaceMessage indicates HCP Terraform configuration change
-	BackendCloudChangeInPlaceMessage InitMessageCode = "backend_cloud_change_in_place"
 	// BackendMigrateTypeChangeMessage indicates backend type change
 	BackendMigrateTypeChangeMessage InitMessageCode = "backend_migrate_type_change"
 	// BackendReconfigureMessage indicates backend reconfiguration
