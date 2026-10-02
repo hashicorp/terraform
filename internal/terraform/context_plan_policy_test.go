@@ -3654,6 +3654,24 @@ func TestContext2Plan_PolicyRelationships_providers(t *testing.T) {
 	if unknown.Known || len(unknown.ConfigClass) != 0 {
 		t.Errorf("expected the provider configuration with an unknown value not to be known, got %v", unknown)
 	}
+
+	wantProviders := map[string]*proto.ProviderInstance{
+		"test_net.a": def,
+		"test_net.b": same,
+		"test_net.c": other,
+		"test_net.d": unknown,
+	}
+	records := run.records(t)
+	for addr, want := range wantProviders {
+		rec, ok := records[addr]
+		if !ok {
+			t.Errorf("missing record for %s", addr)
+			continue
+		}
+		if rec.ProviderInstanceId != want.Id {
+			t.Errorf("wrong provider for %s: got id %d, want %d (%s)", addr, rec.ProviderInstanceId, want.Id, want.ConfigAddress)
+		}
+	}
 }
 
 // planRelationships plans mod with a policy client that announces the
