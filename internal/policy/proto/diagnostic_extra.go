@@ -42,6 +42,10 @@ type RangeExtra struct {
 type ExpressionValuesExtra struct {
 	diagnosticExtra
 	ExpressionValues []*ExpressionValue
+
+	// OmittedMembers is the number of failing members whose values aren't
+	// listed in ExpressionValues.
+	OmittedMembers int32
 }
 
 // FunctionCallExtra is an extra containing a function call. As HCL evaluation

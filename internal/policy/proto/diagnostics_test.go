@@ -4,6 +4,7 @@
 package proto
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
@@ -147,6 +148,62 @@ func TestDiagnosticToHCL(t *testing.T) {
 		}
 		if policyExtra.PolicySet.Path != "/tmp/policies" {
 			t.Fatalf("unexpected policy set path: got %q, want %q", policyExtra.PolicySet.Path, "/tmp/policies")
+		}
+	})
+}
+
+func TestDiagnosticToHCL_failingMembers(t *testing.T) {
+	value := func(attr, member string) *ExpressionValue {
+		return &ExpressionValue{
+			Traversal: &AttributePath{
+				Steps: []*AttributePath_Step{{Selector: &AttributePath_Step_AttributeName{AttributeName: attr}}},
+			},
+			Value:  []byte(attr + "-bytes"),
+			Member: member,
+		}
+	}
+
+	t.Run("values and omitted members", func(t *testing.T) {
+		diag := tfdiags.FromHCL((&Diagnostic{
+			Severity: Severity_ERROR,
+			Summary:  "Condition not met",
+			ExpressionValues: []*ExpressionValue{
+				value("mode", ""),
+				value("original", "local_file.readme"),
+				value("original", "local_file.notes"),
+			},
+			OmittedMembers: 2,
+		}).ToHCL())
+
+		extra := tfdiags.ExtraInfo[*ExpressionValuesExtra](diag)
+		if extra == nil {
+			t.Fatalf("expected expression values extra, got nil")
+		}
+		var members []string
+		for _, val := range extra.ExpressionValues {
+			members = append(members, val.Member)
+		}
+		if want := []string{"", "local_file.readme", "local_file.notes"}; !slices.Equal(members, want) {
+			t.Errorf("unexpected members: got %q, want %q", members, want)
+		}
+		if extra.OmittedMembers != 2 {
+			t.Errorf("unexpected omitted members: got %d, want 2", extra.OmittedMembers)
+		}
+	})
+
+	t.Run("omitted members without values", func(t *testing.T) {
+		diag := tfdiags.FromHCL((&Diagnostic{
+			Severity:       Severity_ERROR,
+			Summary:        "Condition not met",
+			OmittedMembers: 5,
+		}).ToHCL())
+
+		extra := tfdiags.ExtraInfo[*ExpressionValuesExtra](diag)
+		if extra == nil {
+			t.Fatalf("expected expression values extra, got nil")
+		}
+		if len(extra.ExpressionValues) != 0 || extra.OmittedMembers != 5 {
+			t.Errorf("unexpected extra: %d values, %d omitted members", len(extra.ExpressionValues), extra.OmittedMembers)
 		}
 	})
 }

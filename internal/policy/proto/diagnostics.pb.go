@@ -98,9 +98,12 @@ type Diagnostic struct {
 	// metadata as well.
 	FunctionCall string `protobuf:"bytes,10,opt,name=function_call,json=functionCall,proto3" json:"function_call,omitempty"`
 	// policy set information for the diagnostic
-	PolicySet     *PolicySet `protobuf:"bytes,11,opt,name=policy_set,json=policySet,proto3" json:"policy_set,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	PolicySet *PolicySet `protobuf:"bytes,11,opt,name=policy_set,json=policySet,proto3" json:"policy_set,omitempty"`
+	// omitted_members is the number of failing members whose values aren't
+	// listed in expression_values.
+	OmittedMembers int32 `protobuf:"varint,12,opt,name=omitted_members,json=omittedMembers,proto3" json:"omitted_members,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Diagnostic) Reset() {
@@ -208,6 +211,13 @@ func (x *Diagnostic) GetPolicySet() *PolicySet {
 		return x.PolicySet
 	}
 	return nil
+}
+
+func (x *Diagnostic) GetOmittedMembers() int32 {
+	if x != nil {
+		return x.OmittedMembers
+	}
+	return 0
 }
 
 type PolicySet struct {
@@ -469,7 +479,10 @@ type ExpressionValue struct {
 	// traversal is the path taken to reach this value in the object graph.
 	Traversal *AttributePath `protobuf:"bytes,1,opt,name=traversal,proto3" json:"traversal,omitempty"`
 	// value is the raw value of the expression.
-	Value         []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	// member is the address of the related resource instance this value comes
+	// from. Empty for values of the subject.
+	Member        string `protobuf:"bytes,3,opt,name=member,proto3" json:"member,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -516,6 +529,13 @@ func (x *ExpressionValue) GetValue() []byte {
 		return x.Value
 	}
 	return nil
+}
+
+func (x *ExpressionValue) GetMember() string {
+	if x != nil {
+		return x.Member
+	}
+	return ""
 }
 
 type DiagnosticResult struct {
@@ -566,7 +586,7 @@ var File_diagnostics_proto protoreflect.FileDescriptor
 
 const file_diagnostics_proto_rawDesc = "" +
 	"\n" +
-	"\x11diagnostics.proto\x12\x05proto\x1a\vtypes.proto\"\xe5\x03\n" +
+	"\x11diagnostics.proto\x12\x05proto\x1a\vtypes.proto\"\x8e\x04\n" +
 	"\n" +
 	"Diagnostic\x12+\n" +
 	"\bseverity\x18\x01 \x01(\x0e2\x0f.proto.SeverityR\bseverity\x12\x18\n" +
@@ -581,7 +601,8 @@ const file_diagnostics_proto_rawDesc = "" +
 	"\rfunction_call\x18\n" +
 	" \x01(\tR\ffunctionCall\x12/\n" +
 	"\n" +
-	"policy_set\x18\v \x01(\v2\x10.proto.PolicySetR\tpolicySet\"3\n" +
+	"policy_set\x18\v \x01(\v2\x10.proto.PolicySetR\tpolicySet\x12'\n" +
+	"\x0fomitted_members\x18\f \x01(\x05R\x0eomittedMembers\"3\n" +
 	"\tPolicySet\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\"m\n" +
@@ -601,10 +622,11 @@ const file_diagnostics_proto_rawDesc = "" +
 	"\x16highlight_start_offset\x18\x04 \x01(\x03R\x14highlightStartOffset\x120\n" +
 	"\x14highlight_end_offset\x18\x05 \x01(\x03R\x12highlightEndOffsetB\n" +
 	"\n" +
-	"\b_context\"[\n" +
+	"\b_context\"s\n" +
 	"\x0fExpressionValue\x122\n" +
 	"\ttraversal\x18\x01 \x01(\v2\x14.proto.AttributePathR\ttraversal\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"A\n" +
+	"\x05value\x18\x02 \x01(\fR\x05value\x12\x16\n" +
+	"\x06member\x18\x03 \x01(\tR\x06member\"A\n" +
 	"\x10DiagnosticResult\x12-\n" +
 	"\x06result\x18\x01 \x01(\x0e2\x15.proto.EvaluateResultR\x06result*/\n" +
 	"\bSeverity\x12\v\n" +
