@@ -39,28 +39,28 @@ type Init interface {
 	// LogInitializingBackendStart indicates progress initializing a backend.
 	LogInitializingBackendStart()
 
-	// LogMigrateBackendUnsetStart indicates that the backend has begun the process of being unset/successfully removed from the configuration.
+	// LogMigrateBackendUnsetStart indicates that the state is going to be migrated after unsetting/successfully removing from the configuration.
 	LogMigrateBackendUnsetStart(backendType string)
 
-	// LogMigrateBackendUnsetEnd indicates that the backend has been unset/successfully removed from the configuration.
+	// LogMigrateBackendUnsetEnd indicates that the state is going to be migrated after the backend has been unset/removed from the configuration.
 	LogMigrateBackendUnsetEnd(backendType string)
 
 	// LogMigrateBackendReconfigured indicates that the backend has been reconfigured successfully.
 	LogMigrateBackendReconfigured()
 
-	// LogMigrateFromBackendToBackend indicates that the backend is being migrated from one backend type to another.
+	// LogMigrateFromBackendToBackend indicates that the state is going to be migrated from one backend type to another.
 	LogMigrateFromBackendToBackend(oldType, newType string)
 
-	// LogMigrateFromBackendToCloud indicates that the backend is being migrated to the cloud.
+	// LogMigrateFromBackendToCloud indicates that the state is going to be migrated from the backend to the cloud.
 	LogMigrateFromBackendToCloud(backendType string)
 
-	// LogMigrateFromCloudToBackend indicates that the backend is being migrated from the cloud.
+	// LogMigrateFromCloudToBackend indicates that the state is going to be migrated from the cloud to the backend.
 	LogMigrateFromCloudToBackend(backendType string)
 
-	// LogMigrateFromCloudToLocal indicates that the backend is being migrated from the cloud to a local backend.
+	// LogMigrateFromCloudToLocal indicates that the state is going to be migrated from the cloud to a local backend.
 	LogMigrateFromCloudToLocal()
 
-	// LogMigrateCloudConfigurationChanged indicates that the backend is being migrated from the cloud to a local backend.
+	// LogMigrateCloudConfigurationChanged indicates that the backend is being migrated following a change in cloud configuration.
 	LogMigrateCloudConfigurationChanged()
 
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
