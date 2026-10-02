@@ -152,7 +152,7 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 	ps.runID = runID
 	ps.lock.Unlock()
 
-	for _, req := range chunkRelationshipBatch(nil, nil, nil, runID) {
+	for _, req := range chunkRelationshipBatch(nil, nil, ps.providers.all(), runID) {
 		resp, err := client.ReportInstances(stopCtx, req)
 		if err != nil {
 			log.Printf("[WARN] policy: failed to report instances for relationship run %s: %s", runID, err)

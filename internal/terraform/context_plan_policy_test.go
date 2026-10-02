@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"bytes"
 	"context"
 	"path/filepath"
 	"sort"
@@ -3556,5 +3557,84 @@ func TestContext2Plan_PolicyRelationships_queryHasNoRun(t *testing.T) {
 	run.assertNoRun(t)
 	if len(run.evals) == 0 {
 		t.Fatal("expected the query results to be evaluated")
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_providers(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			provider "test" {
+				region = "us-east-1"
+			}
+			provider "test" {
+				alias  = "same"
+				region = "us-east-1"
+			}
+			provider "test" {
+				alias  = "other"
+				region = "eu-west-1"
+			}
+			provider "test" {
+				alias  = "unknown"
+				region = test_net.a.id
+			}
+
+			resource "test_net" "a" {
+				name = "a"
+			}
+			resource "test_net" "b" {
+				provider = test.same
+				name     = "b"
+			}
+			resource "test_net" "c" {
+				provider = test.other
+				name     = "c"
+			}
+			resource "test_net" "d" {
+				provider = test.unknown
+				name     = "d"
+			}
+		`,
+	})
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	_, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		PolicyClient: client,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+	run.assertRunSequence(t)
+
+	byAddr := make(map[string]*proto.ProviderInstance)
+	for _, p := range run.providers(t) {
+		byAddr[p.ConfigAddress] = p
+	}
+	def := byAddr[`provider["registry.terraform.io/hashicorp/test"]`]
+	same := byAddr[`provider["registry.terraform.io/hashicorp/test"].same`]
+	other := byAddr[`provider["registry.terraform.io/hashicorp/test"].other`]
+	unknown := byAddr[`provider["registry.terraform.io/hashicorp/test"].unknown`]
+	if def == nil || same == nil || other == nil || unknown == nil {
+		t.Fatalf("missing provider instances, got %v", byAddr)
+	}
+	for _, p := range []*proto.ProviderInstance{def, same, other} {
+		if !p.Known || len(p.ConfigClass) != 32 {
+			t.Fatalf("expected %s to be known with a class, got %v", p.ConfigAddress, p)
+		}
+		if p.Source != "registry.terraform.io/hashicorp/test" {
+			t.Fatalf("wrong source for %s: %s", p.ConfigAddress, p.Source)
+		}
+	}
+	if !bytes.Equal(def.ConfigClass, same.ConfigClass) {
+		t.Error("expected identical provider configurations to have the same class")
+	}
+	if bytes.Equal(def.ConfigClass, other.ConfigClass) {
+		t.Error("expected different provider configurations to have different classes")
+	}
+	if unknown.Known || len(unknown.ConfigClass) != 0 {
+		t.Errorf("expected the provider configuration with an unknown value not to be known, got %v", unknown)
 	}
 }
