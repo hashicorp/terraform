@@ -9,18 +9,23 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"log"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -130,11 +135,12 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 	}
 
 	resp, err := client.BeginRun(stopCtx, &proto.BeginRunRequest{
-		RunId:    runID,
-		Stage:    ps.run.Stage,
-		PlanMode: ps.run.PlanMode,
-		Runtime:  proto.RunRuntime_CLI_RUN_RUNTIME,
-		Targeted: ps.run.Targeted,
+		RunId:           runID,
+		ProviderSchemas: policyProviderSchemas(ps.run.Schemas),
+		Stage:           ps.run.Stage,
+		PlanMode:        ps.run.PlanMode,
+		Runtime:         proto.RunRuntime_CLI_RUN_RUNTIME,
+		Targeted:        ps.run.Targeted,
 	})
 	if err != nil {
 		log.Printf("[WARN] policy: failed to begin relationship run %s: %s", runID, err)
@@ -291,4 +297,102 @@ func (t *policyProviderTable) all() []*proto.ProviderInstance {
 		}
 	}
 	return ret
+}
+
+// policyProviderSchemas returns the schemas of all providers in the given
+// schemas, sorted by provider source.
+func policyProviderSchemas(schemas *schemarepo.Schemas) []*proto.ProviderSchema {
+	if schemas == nil {
+		return nil
+	}
+	ret := make([]*proto.ProviderSchema, 0, len(schemas.Providers))
+	for provider, schema := range schemas.Providers {
+		ps := &proto.ProviderSchema{
+			Type:               provider.Type,
+			Source:             provider.String(),
+			Resources:          policyTypeSchemas(provider, schema.ResourceTypes),
+			DataSources:        policyTypeSchemas(provider, schema.DataSources),
+			EphemeralResources: policyTypeSchemas(provider, schema.EphemeralResourceTypes),
+		}
+		for name, rs := range schema.ResourceTypes {
+			if rs.Body == nil {
+				continue
+			}
+			if paths := policyWriteOnlyPaths(rs.Body, nil); len(paths) > 0 {
+				if ps.WriteOnlyPaths == nil {
+					ps.WriteOnlyPaths = make(map[string]*proto.AttributePaths)
+				}
+				ps.WriteOnlyPaths[name] = &proto.AttributePaths{Paths: paths}
+			}
+		}
+		ret = append(ret, ps)
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Source < ret[j].Source
+	})
+	return ret
+}
+
+func policyTypeSchemas(provider addrs.Provider, schemas map[string]providers.Schema) map[string][]byte {
+	if len(schemas) == 0 {
+		return nil
+	}
+	ret := make(map[string][]byte, len(schemas))
+	for name, schema := range schemas {
+		if schema.Body == nil {
+			continue
+		}
+		raw, err := ctyjson.MarshalType(schema.Body.ImpliedType())
+		if err != nil {
+			log.Printf("[WARN] policy: failed to encode the schema of %s from %s: %s", name, provider, err)
+			continue
+		}
+		ret[name] = raw
+	}
+	return ret
+}
+
+// policyWriteOnlyPaths returns the paths of all write-only attributes of the
+// block, at any depth, as attribute name steps sorted lexically.
+func policyWriteOnlyPaths(block *configschema.Block, prefix []string) []*proto.AttributePath {
+	var names [][]string
+	var walkAttrs func(attrs map[string]*configschema.Attribute, prefix []string)
+	var walkBlock func(block *configschema.Block, prefix []string)
+	walkAttrs = func(attrs map[string]*configschema.Attribute, prefix []string) {
+		for name, attr := range attrs {
+			path := append(append([]string(nil), prefix...), name)
+			if attr.WriteOnly {
+				names = append(names, path)
+			}
+			if attr.NestedType != nil {
+				walkAttrs(attr.NestedType.Attributes, path)
+			}
+		}
+	}
+	walkBlock = func(block *configschema.Block, prefix []string) {
+		walkAttrs(block.Attributes, prefix)
+		for name, nested := range block.BlockTypes {
+			walkBlock(&nested.Block, append(append([]string(nil), prefix...), name))
+		}
+	}
+	walkBlock(block, prefix)
+
+	sort.Slice(names, func(i, j int) bool {
+		return strings.Join(names[i], ".") < strings.Join(names[j], ".")
+	})
+	ret := make([]*proto.AttributePath, len(names))
+	for i, path := range names {
+		ret[i] = policyAttrPath(path)
+	}
+	return ret
+}
+
+func policyAttrPath(names []string) *proto.AttributePath {
+	path := &proto.AttributePath{Steps: make([]*proto.AttributePath_Step, len(names))}
+	for i, name := range names {
+		path.Steps[i] = &proto.AttributePath_Step{
+			Selector: &proto.AttributePath_Step_AttributeName{AttributeName: name},
+		}
+	}
+	return path
 }

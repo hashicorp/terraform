@@ -2376,6 +2376,7 @@ func TestContext2Apply_PolicyRelationships_beginRun(t *testing.T) {
 			if begin.Targeted != test.wantTargeted {
 				t.Errorf("wrong targeted %t, want %t", begin.Targeted, test.wantTargeted)
 			}
+			assertRelationshipsTestSchemas(t, begin.ProviderSchemas)
 		})
 	}
 }

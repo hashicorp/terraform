@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -3452,7 +3453,50 @@ func TestContext2Plan_PolicyRelationships_beginRun(t *testing.T) {
 			if begin.Targeted != test.wantTargeted {
 				t.Errorf("wrong targeted %t, want %t", begin.Targeted, test.wantTargeted)
 			}
+			assertRelationshipsTestSchemas(t, begin.ProviderSchemas)
 		})
+	}
+}
+
+// assertRelationshipsTestSchemas checks that the given provider schemas are
+// those of relationshipsTestProvider.
+func assertRelationshipsTestSchemas(t *testing.T, got []*proto.ProviderSchema) {
+	t.Helper()
+	if len(got) != 1 {
+		t.Fatalf("expected 1 provider schema, got %d", len(got))
+	}
+	schema := got[0]
+	if schema.Type != "test" || schema.Source != "registry.terraform.io/hashicorp/test" {
+		t.Fatalf("wrong provider schema type %q and source %q", schema.Type, schema.Source)
+	}
+	want := relationshipsTestProvider().GetProviderSchemaResponse
+	for name, rs := range want.ResourceTypes {
+		ty, err := ctyjson.UnmarshalType(schema.Resources[name])
+		if err != nil {
+			t.Fatalf("invalid type for %s: %s", name, err)
+		}
+		if !ty.Equals(rs.Body.ImpliedType()) {
+			t.Fatalf("wrong type for %s: %#v", name, ty)
+		}
+	}
+	if len(schema.Resources) != len(want.ResourceTypes) {
+		t.Fatalf("expected %d resource types, got %d", len(want.ResourceTypes), len(schema.Resources))
+	}
+	if _, ok := schema.DataSources["test_info"]; !ok || len(schema.DataSources) != 1 {
+		t.Fatalf("expected the test_info data source, got %v", schema.DataSources)
+	}
+	gotWriteOnly := make(map[string][]string)
+	for name, paths := range schema.WriteOnlyPaths {
+		for _, path := range paths.Paths {
+			gotWriteOnly[name] = append(gotWriteOnly[name], relPathString(path))
+		}
+	}
+	wantWriteOnly := map[string][]string{
+		"test_net": {"token"},
+		"test_vm":  {"disks.password", "nic.key"},
+	}
+	if diff := cmp.Diff(wantWriteOnly, gotWriteOnly); diff != "" {
+		t.Fatalf("wrong write-only paths (-want +got):\n%s", diff)
 	}
 }
 

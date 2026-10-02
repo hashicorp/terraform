@@ -7,11 +7,16 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 )
 
 func TestPolicyProviderTable(t *testing.T) {
@@ -209,4 +214,137 @@ func TestPolicyProviderTable(t *testing.T) {
 			t.Fatal("expected all to return copies")
 		}
 	})
+}
+
+func TestPolicyProviderSchemas(t *testing.T) {
+	block := func(attrs map[string]*configschema.Attribute, blocks map[string]*configschema.NestedBlock) *configschema.Block {
+		return &configschema.Block{Attributes: attrs, BlockTypes: blocks}
+	}
+	vmSchema := block(map[string]*configschema.Attribute{
+		"id":       {Type: cty.String, Computed: true},
+		"password": {Type: cty.String, Optional: true, WriteOnly: true},
+		"disks": {
+			NestedType: &configschema.Object{
+				Nesting: configschema.NestingList,
+				Attributes: map[string]*configschema.Attribute{
+					"size": {Type: cty.Number, Optional: true},
+					"key":  {Type: cty.String, Optional: true, WriteOnly: true},
+				},
+			},
+			Optional: true,
+		},
+	}, map[string]*configschema.NestedBlock{
+		"nic": {
+			Nesting: configschema.NestingSet,
+			Block: *block(map[string]*configschema.Attribute{
+				"net_id": {Type: cty.String, Optional: true},
+			}, map[string]*configschema.NestedBlock{
+				"auth": {
+					Nesting: configschema.NestingSingle,
+					Block: *block(map[string]*configschema.Attribute{
+						"secret": {Type: cty.String, Optional: true, WriteOnly: true},
+					}, nil),
+				},
+			}),
+		},
+	})
+	netSchema := block(map[string]*configschema.Attribute{
+		"id": {Type: cty.String, Computed: true},
+	}, nil)
+	infoSchema := block(map[string]*configschema.Attribute{
+		"id":    {Type: cty.String, Computed: true},
+		"token": {Type: cty.String, Optional: true, WriteOnly: true},
+	}, nil)
+	tokenSchema := block(map[string]*configschema.Attribute{
+		"value": {Type: cty.String, Computed: true},
+	}, nil)
+
+	testProvider := addrs.NewDefaultProvider("test")
+	otherProvider := addrs.NewProvider("example.com", "acme", "other")
+	schemas := &schemarepo.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			testProvider: {
+				Provider: providers.Schema{Body: block(map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				}, nil)},
+				ResourceTypes: map[string]providers.Schema{
+					"test_vm":  {Body: vmSchema},
+					"test_net": {Body: netSchema},
+				},
+				DataSources: map[string]providers.Schema{
+					"test_info": {Body: infoSchema},
+				},
+				EphemeralResourceTypes: map[string]providers.Schema{
+					"test_token": {Body: tokenSchema},
+				},
+			},
+			otherProvider: {
+				ResourceTypes: map[string]providers.Schema{
+					"other_thing": {Body: netSchema},
+				},
+			},
+		},
+	}
+
+	got := policyProviderSchemas(schemas)
+	if len(got) != 2 {
+		t.Fatalf("expected 2 provider schemas, got %d", len(got))
+	}
+
+	// sorted by source
+	if got[0].Source != otherProvider.String() || got[1].Source != testProvider.String() {
+		t.Fatalf("wrong order: %s, %s", got[0].Source, got[1].Source)
+	}
+	if got[0].Type != "other" || got[1].Type != "test" {
+		t.Fatalf("wrong types: %s, %s", got[0].Type, got[1].Type)
+	}
+
+	test := got[1]
+	assertType := func(t *testing.T, encoded map[string][]byte, name string, want cty.Type) {
+		t.Helper()
+		raw, ok := encoded[name]
+		if !ok {
+			t.Fatalf("no type for %s", name)
+		}
+		ty, err := ctyjson.UnmarshalType(raw)
+		if err != nil {
+			t.Fatalf("invalid type for %s: %s", name, err)
+		}
+		if !ty.Equals(want) {
+			t.Fatalf("wrong type for %s\ngot:  %#v\nwant: %#v", name, ty, want)
+		}
+	}
+	if len(test.Resources) != 2 || len(test.DataSources) != 1 || len(test.EphemeralResources) != 1 {
+		t.Fatalf("wrong number of types: %d resources, %d data sources, %d ephemeral resources", len(test.Resources), len(test.DataSources), len(test.EphemeralResources))
+	}
+	assertType(t, test.Resources, "test_vm", vmSchema.ImpliedType())
+	assertType(t, test.Resources, "test_net", netSchema.ImpliedType())
+	assertType(t, test.DataSources, "test_info", infoSchema.ImpliedType())
+	assertType(t, test.EphemeralResources, "test_token", tokenSchema.ImpliedType())
+
+	if len(test.WriteOnlyPaths) != 1 {
+		t.Fatalf("expected write-only paths for test_vm only, got %v", test.WriteOnlyPaths)
+	}
+	var gotPaths []string
+	for _, path := range test.WriteOnlyPaths["test_vm"].GetPaths() {
+		for _, step := range path.Steps {
+			if _, ok := step.Selector.(*proto.AttributePath_Step_AttributeName); !ok {
+				t.Fatalf("expected only attribute name steps, got %v", path)
+			}
+		}
+		gotPaths = append(gotPaths, relPathString(path))
+	}
+	wantPaths := []string{"disks.key", "nic.auth.secret", "password"}
+	if diff := cmp.Diff(wantPaths, gotPaths); diff != "" {
+		t.Fatalf("wrong write-only paths (-want +got):\n%s", diff)
+	}
+
+	if len(got[0].WriteOnlyPaths) != 0 {
+		t.Fatalf("expected no write-only paths for %s, got %v", got[0].Source, got[0].WriteOnlyPaths)
+	}
+	assertType(t, got[0].Resources, "other_thing", netSchema.ImpliedType())
+
+	if got := policyProviderSchemas(nil); len(got) != 0 {
+		t.Fatalf("expected no schemas for nil, got %v", got)
+	}
 }
