@@ -42,6 +42,9 @@ type Init interface {
 	// LogMigrateBackendUnset indicates that the backend has been unset/successfully removed from the configuration.
 	LogMigrateBackendUnset(backendType string)
 
+	// LogMigrateFromBackendToBackend indicates that the backend is being migrated from one backend type to another.
+	LogMigrateFromBackendToBackend(oldType, newType string)
+
 	// LogMigrateFromBackendToCloud indicates that the backend is being migrated to the cloud.
 	LogMigrateFromBackendToCloud(backendType string)
 
@@ -150,6 +153,10 @@ func (v *InitHuman) LogMigrateBackendUnset(backendType string) {
 	v.print(fmt.Sprintf(`[reset][green]
 
 Successfully unset the backend %q. Terraform will now operate locally.`, backendType))
+}
+
+func (v *InitHuman) LogMigrateFromBackendToBackend(oldType, newType string) {
+	v.print(fmt.Sprintf(`[reset]Terraform detected that the backend type changed from %q to %q.`, oldType, newType))
 }
 
 func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
@@ -420,6 +427,11 @@ func (v *InitJSON) LogMigrateBackendUnset(backendType string) {
 	panic("InitJSON: LogMigrateBackendUnset not implemented")
 }
 
+func (v *InitJSON) LogMigrateFromBackendToBackend(oldType, newType string) {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateFromBackendToBackend not implemented")
+}
+
 func (v *InitJSON) LogMigrateFromBackendToCloud(backendType string) {
 	// `-json` and `-migrate-state` are mutually exclusive.
 	panic("InitJSON: LogMigrateFromBackendToCloud not implemented")
@@ -626,10 +638,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_migrate_type_change": {
-		HumanValue: backendMigrateTypeChangeHuman,
-		JSONValue:  backendMigrateTypeChangeJSON,
-	},
 	"backend_reconfigure": {
 		HumanValue: backendReconfigureHuman,
 		JSONValue:  backendReconfigureJSON,
@@ -647,8 +655,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendMigrateTypeChangeMessage indicates backend type change
-	BackendMigrateTypeChangeMessage InitMessageCode = "backend_migrate_type_change"
 	// BackendReconfigureMessage indicates backend reconfiguration
 	BackendReconfigureMessage InitMessageCode = "backend_reconfigure"
 	// BackendMigrateLocalMessage indicates migration to local backend
@@ -729,11 +735,6 @@ use this backend unless the backend configuration changes.`
 
 const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.`
-
-const backendMigrateTypeChangeHuman = `[reset]Terraform detected that the backend type changed from %q to %q.
-`
-
-const backendMigrateTypeChangeJSON = `Terraform detected that the backend type changed from %q to %q.`
 
 const backendReconfigureHuman = `[reset][bold]Backend configuration changed![reset]
 
