@@ -49,6 +49,7 @@ type Backend struct {
 	useLockFile           bool
 	workspaceKeyPrefix    string
 	skipS3Checksum        bool
+	skipKmsKeyIdValidation bool
 }
 
 // ConfigSchema returns a description of the expected configuration
@@ -214,6 +215,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Do not include checksum when uploading S3 Objects. Useful for some S3-Compatible APIs.",
+			},
+			"skip_kms_key_id_validation": {
+				Type:        cty.Bool,
+				Optional:    false,
+				Description: "Skip the KMS key ID validation.",
 			},
 			"sse_customer_key": {
 				Type:        cty.String,
@@ -660,7 +666,10 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				validateStringKMSKey,
 			},
 		}
-		kmsKeyIDValidators.ValidateAttr(val, attrPath, &diags)
+				
+		if !b.skipKmsKeyIdValidation {
+			kmsKeyIDValidators.ValidateAttr(val, attrPath, &diags)
+		}
 	}
 
 	attrPath = cty.GetAttrPath("workspace_key_prefix")
@@ -837,6 +846,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
 	b.useLockFile = boolAttr(obj, "use_lockfile")
 	b.skipS3Checksum = boolAttr(obj, "skip_s3_checksum")
+	b.skipKmsKeyIdValidation = boolAttr(obj, "skip_kms_key_id_validation")
 
 	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
 		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
