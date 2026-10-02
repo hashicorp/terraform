@@ -182,15 +182,6 @@ func (s *StateMigrateHuman) Spacer() {
 }
 
 // Implements ProviderInstallationLogger interface.
-func (s *StateMigrateHuman) Output(code InitMessageCode, params ...any) {
-	msg, ok := MessageRegistry[code]
-	if !ok {
-		panic("missing message for InstallingProviderMessage init message code")
-	}
-	s.log(fmt.Sprintf(msg.HumanValue, params...))
-}
-
-// Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProvidersStart() {
 	s.log(logInstallProvidersStartMessageHuman)
 }
