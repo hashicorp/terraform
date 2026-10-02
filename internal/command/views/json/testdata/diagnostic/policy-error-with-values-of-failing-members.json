@@ -40,8 +40,17 @@
         "traversal": "original.attrs.file_permission",
         "statement": "is \"0444\" (local_file.legal)",
         "member": "local_file.legal"
+      },
+      {
+        "traversal": "original.attrs.file_permission",
+        "statement": "is \"0664\" (local_file.license)",
+        "member": "local_file.license"
+      },
+      {
+        "traversal": "original.attrs.file_permission",
+        "statement": "is \"0666\" (local_file.changelog)",
+        "member": "local_file.changelog"
       }
-    ],
-    "omitted_members": 2
+    ]
   }
 }

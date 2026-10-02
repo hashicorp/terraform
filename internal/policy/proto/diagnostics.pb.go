@@ -98,12 +98,9 @@ type Diagnostic struct {
 	// metadata as well.
 	FunctionCall string `protobuf:"bytes,10,opt,name=function_call,json=functionCall,proto3" json:"function_call,omitempty"`
 	// policy set information for the diagnostic
-	PolicySet *PolicySet `protobuf:"bytes,11,opt,name=policy_set,json=policySet,proto3" json:"policy_set,omitempty"`
-	// omitted_members is the number of failing members whose values aren't
-	// listed in expression_values.
-	OmittedMembers int32 `protobuf:"varint,12,opt,name=omitted_members,json=omittedMembers,proto3" json:"omitted_members,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	PolicySet     *PolicySet `protobuf:"bytes,11,opt,name=policy_set,json=policySet,proto3" json:"policy_set,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Diagnostic) Reset() {
@@ -211,13 +208,6 @@ func (x *Diagnostic) GetPolicySet() *PolicySet {
 		return x.PolicySet
 	}
 	return nil
-}
-
-func (x *Diagnostic) GetOmittedMembers() int32 {
-	if x != nil {
-		return x.OmittedMembers
-	}
-	return 0
 }
 
 type PolicySet struct {
@@ -586,7 +576,7 @@ var File_diagnostics_proto protoreflect.FileDescriptor
 
 const file_diagnostics_proto_rawDesc = "" +
 	"\n" +
-	"\x11diagnostics.proto\x12\x05proto\x1a\vtypes.proto\"\x8e\x04\n" +
+	"\x11diagnostics.proto\x12\x05proto\x1a\vtypes.proto\"\xe5\x03\n" +
 	"\n" +
 	"Diagnostic\x12+\n" +
 	"\bseverity\x18\x01 \x01(\x0e2\x0f.proto.SeverityR\bseverity\x12\x18\n" +
@@ -601,8 +591,7 @@ const file_diagnostics_proto_rawDesc = "" +
 	"\rfunction_call\x18\n" +
 	" \x01(\tR\ffunctionCall\x12/\n" +
 	"\n" +
-	"policy_set\x18\v \x01(\v2\x10.proto.PolicySetR\tpolicySet\x12'\n" +
-	"\x0fomitted_members\x18\f \x01(\x05R\x0eomittedMembers\"3\n" +
+	"policy_set\x18\v \x01(\v2\x10.proto.PolicySetR\tpolicySet\"3\n" +
 	"\tPolicySet\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\"m\n" +

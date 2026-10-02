@@ -32,7 +32,6 @@ func TestDiagsFromProto_failingMembers(t *testing.T) {
 		Severity:         proto.Severity_ERROR,
 		Summary:          "Condition not met",
 		ExpressionValues: values,
-		OmittedMembers:   2,
 	}}, nil).AsTerraformDiags()
 
 	extra := tfdiags.ExtraInfo[*PolicyExtra](diags[0])
@@ -41,8 +40,5 @@ func TestDiagsFromProto_failingMembers(t *testing.T) {
 	}
 	if diff := cmp.Diff(values, extra.ExpressionValues, protocmp.Transform()); diff != "" {
 		t.Errorf("unexpected expression values:\n%s", diff)
-	}
-	if extra.OmittedMembers != 2 {
-		t.Errorf("unexpected omitted members: got %d, want 2", extra.OmittedMembers)
 	}
 }

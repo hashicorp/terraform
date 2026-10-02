@@ -262,7 +262,6 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 								memberValue(memberPermission, "0664", "local_file.license"),
 								memberValue(memberPermission, "0666", "local_file.changelog"),
 							},
-							OmittedMembers: 6,
 						}}, policyObj),
 					},
 				}

@@ -25,10 +25,6 @@ type PolicyExtra struct {
 	Range            *proto.RangeExtra
 	ExpressionValues []*proto.ExpressionValue
 	Attribute        cty.Path
-
-	// OmittedMembers is the number of failing members whose values aren't
-	// listed in ExpressionValues.
-	OmittedMembers int32
 }
 
 // DiagsFromProto converts a slice of proto.Diagnostic to tfdiags.Diagnostics, while wrapping
@@ -69,7 +65,6 @@ func policyExtra(diag *hcl.Diagnostic, policy *Policy) *PolicyExtra {
 	}
 	if extra := extraInfo[*proto.ExpressionValuesExtra](diag.Extra); extra != nil {
 		diagExtra.ExpressionValues = extra.ExpressionValues
-		diagExtra.OmittedMembers = extra.OmittedMembers
 	}
 	if extra := extraInfo[*proto.AttributeExtra](diag.Extra); extra != nil {
 		diagExtra.Attribute = extra.Attribute

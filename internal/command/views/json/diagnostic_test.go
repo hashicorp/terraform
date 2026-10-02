@@ -917,7 +917,7 @@ func TestNewDiagnostic(t *testing.T) {
 			},
 		},
 		"policy error with values of failing members": {
-			policyValuesDiag(2,
+			policyValuesDiag(
 				policyExpressionValue(permission, "0600", ""),
 				policyExpressionValue(memberPermission, "0644", "local_file.readme"),
 				policyExpressionValue(memberPermission, "0640", "local_file.notes"),
@@ -925,6 +925,8 @@ func TestNewDiagnostic(t *testing.T) {
 				policyExpressionValue(permission, "0600", ""),
 				policyExpressionValue(memberPermission, "0640", "local_file.notes"),
 				policyExpressionValue(memberPermission, "0444", "local_file.legal"),
+				policyExpressionValue(memberPermission, "0664", "local_file.license"),
+				policyExpressionValue(memberPermission, "0666", "local_file.changelog"),
 			),
 			&Diagnostic{
 				Severity:    "error",
@@ -942,13 +944,14 @@ func TestNewDiagnostic(t *testing.T) {
 						{Traversal: "original.attrs.file_permission", Statement: `is "0644" (local_file.readme)`, Member: "local_file.readme"},
 						{Traversal: "original.attrs.file_permission", Statement: `is "0640" (local_file.notes)`, Member: "local_file.notes"},
 						{Traversal: "original.attrs.file_permission", Statement: `is "0444" (local_file.legal)`, Member: "local_file.legal"},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0664" (local_file.license)`, Member: "local_file.license"},
+						{Traversal: "original.attrs.file_permission", Statement: `is "0666" (local_file.changelog)`, Member: "local_file.changelog"},
 					},
-					OmittedMembers: 2,
 				},
 			},
 		},
 		"policy error with values of the subject only": {
-			policyValuesDiag(0,
+			policyValuesDiag(
 				policyExpressionValue(permission, "0600", ""),
 				policyExpressionValue([]string{"attrs", "content"}, "hello", ""),
 			),
@@ -1031,7 +1034,7 @@ func TestNewDiagnostic(t *testing.T) {
 
 // policyValuesDiag returns a policy diagnostic of a failed condition with the
 // given expression values, like the policy engine returns them.
-func policyValuesDiag(omittedMembers int32, values ...*proto.ExpressionValue) tfdiags.Diagnostic {
+func policyValuesDiag(values ...*proto.ExpressionValue) tfdiags.Diagnostic {
 	return policy.DiagsFromProto([]*proto.Diagnostic{{
 		Severity: proto.Severity_ERROR,
 		Summary:  "Condition not met",
@@ -1049,7 +1052,6 @@ func policyValuesDiag(omittedMembers int32, values ...*proto.ExpressionValue) tf
 			HighlightEndOffset:   84,
 		},
 		ExpressionValues: values,
-		OmittedMembers:   omittedMembers,
 	}}, nil).AsTerraformDiags()[0]
 }
 

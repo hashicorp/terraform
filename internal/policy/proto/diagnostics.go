@@ -53,13 +53,12 @@ func (diagnostic *Diagnostic) ToHCL() *hcl.Diagnostic {
 		}
 	}
 
-	if len(diagnostic.ExpressionValues) > 0 || diagnostic.OmittedMembers > 0 {
+	if len(diagnostic.ExpressionValues) > 0 {
 		extra = &ExpressionValuesExtra{
 			diagnosticExtra: diagnosticExtra{
 				next: extra,
 			},
 			ExpressionValues: diagnostic.ExpressionValues,
-			OmittedMembers:   diagnostic.OmittedMembers,
 		}
 	}
 

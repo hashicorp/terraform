@@ -111,11 +111,6 @@ type DiagnosticSnippet struct {
 	// values of the subject, then those of each failing member.
 	Values []DiagnosticExpressionValue `json:"values"`
 
-	// OmittedMembers is the number of failing members of a policy condition
-	// whose values aren't listed in Values. It's only set for policy
-	// snippets.
-	OmittedMembers int `json:"omitted_members,omitempty"`
-
 	// FunctionCall is information about a function call whose failure is
 	// being reported by this diagnostic, if any.
 	FunctionCall *DiagnosticFunctionCall `json:"function_call,omitempty"`
@@ -398,7 +393,6 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					target.Values = append(target.Values, value)
 				}
 			}
-			target.OmittedMembers = int(extra.OmittedMembers)
 
 			diagnostic.PolicySnippet = target
 		}

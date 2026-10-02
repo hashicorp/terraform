@@ -47,10 +47,6 @@ message Diagnostic {
 
   // policy set information for the diagnostic
   PolicySet policy_set = 11;
-
-  // omitted_members is the number of failing members whose values aren't
-  // listed in expression_values.
-  int32 omitted_members = 12;
 }
 
 message PolicySet {
