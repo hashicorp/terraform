@@ -53,6 +53,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+	c.input = args.InputEnabled
 
 	if !c.input {
 		diags = diags.Append(tfdiags.Sourceless(
