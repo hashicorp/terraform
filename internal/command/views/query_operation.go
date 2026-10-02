@@ -88,7 +88,7 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 		summaries = append(summaries, summary)
 	})
 	v.view.streams.Println()
-	v.view.streams.Println(RenderPolicyQuerySummariesHuman(summaries))
+	v.view.streams.Println(RenderPolicyQuerySummariesHuman(summaries, v.view.colorize))
 }
 
 func (v *QueryOperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

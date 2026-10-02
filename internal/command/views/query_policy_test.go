@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/mitchellh/colorstring"
 )
 
 func TestQueryOperationJSON_policySummary(t *testing.T) {
@@ -971,7 +972,7 @@ func TestQueryPolicyView_routesSameAddressDiagnosticsByPolicyIdentity(t *testing
 	if len(summary.PassedPolicies) != 2 {
 		t.Fatalf("evaluated policy metadata count = %d, want 2", len(summary.PassedPolicies))
 	}
-	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}); !strings.HasPrefix(got, "Evaluated 2 policies.") {
+	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}, nil); !strings.HasPrefix(got, "Evaluated 2 policies.") {
 		t.Fatalf("same-named policies from distinct sets were not counted independently:\n%s", got)
 	}
 
@@ -1134,10 +1135,41 @@ Policy results for block.a - Passed
 Policy results for block.z - Failed
   id=z  Failed
     - p.z: denied (mandatory)`
-	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
-		t.Fatalf("unexpected policy summary output\nwant:\n%s\n\ngot:\n%s", want, got)
+	tests := []struct {
+		name     string
+		colorize *colorstring.Colorize
+		want     string
+	}{
+		{
+			name: "nil colorizer",
+			want: want,
+		},
+		{
+			name: "colors disabled",
+			colorize: &colorstring.Colorize{
+				Colors:  colorstring.DefaultColors,
+				Disable: true,
+			},
+			want: want,
+		},
+		{
+			name: "colors enabled",
+			colorize: &colorstring.Colorize{
+				Colors: colorstring.DefaultColors,
+			},
+			want: strings.ReplaceAll(want, "Failed", "\x1b[31mFailed\x1b[0m"),
+		},
 	}
-	if got := RenderPolicyQuerySummariesHuman(nil); got != "" {
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := RenderPolicyQuerySummariesHuman(summaries, tc.colorize)
+			if got != tc.want {
+				t.Fatalf("unexpected policy summary output\nwant:\n%q\n\ngot:\n%q", tc.want, got)
+			}
+		})
+	}
+	if got := RenderPolicyQuerySummariesHuman(nil, nil); got != "" {
 		t.Fatalf("empty policy summary output = %q, want empty", got)
 	}
 }
@@ -1488,7 +1520,7 @@ Policy results for aws_instance.example - Passed
 			if len(summaries) != 1 {
 				t.Fatalf("policy summary records = %d, want 1", len(summaries))
 			}
-			if got := RenderPolicyQuerySummariesHuman(summaries); got != tc.want {
+			if got := RenderPolicyQuerySummariesHuman(summaries, nil); got != tc.want {
 				t.Fatalf("unexpected rendered summary\nwant:\n%s\n\ngot:\n%s", tc.want, got)
 			}
 		})
