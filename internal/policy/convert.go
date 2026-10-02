@@ -12,6 +12,16 @@ import (
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
 
+// EncodeResourceAttributes encodes a resource value the same way as the
+// attributes of a resource evaluation: sensitive marks become redacted paths.
+// cty.NilVal encodes as nil.
+func EncodeResourceAttributes(value cty.Value) (*proto.ResourceAttributes, error) {
+	if value == cty.NilVal {
+		return nil, nil
+	}
+	return resourceAttributesToProto(CtyToPolicyValue(value))
+}
+
 func resourceAttributesToProto(value PolicyValue) (*proto.ResourceAttributes, error) {
 	raw, err := msgpack.Marshal(value.Raw, cty.DynamicPseudoType)
 	if err != nil {
