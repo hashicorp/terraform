@@ -5,6 +5,12 @@ package json
 
 type MessageType string
 
+// The following message types are used and documented EXTERNALLY, so changing their values
+// is a breaking change to JSON output.
+//
+// Keep docs/internals/machine-readable-ui.mdx up to date with this list when making changes:
+// https://github.com/hashicorp/web-unified-docs/blob/main/content/terraform/<VERSION>/docs/internals/machine-readable-ui.mdx
+
 const (
 	// Generic messages
 	MessageVersion    MessageType = "version"
