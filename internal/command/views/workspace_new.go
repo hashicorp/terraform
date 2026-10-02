@@ -16,6 +16,10 @@ type WorkspaceNew interface {
 	// LogWorkspaceCreationSuccess is called when a new workspace has been successfully created
 	LogWorkspaceCreationSuccess(workspaceName string, diags tfdiags.Diagnostics)
 
+	// LogWorkspaceCreationFromStateFailure is called when creating a new workspace from an existing state file fails.
+	// The user needs to be notified about the side effects from the failed operation.
+	LogWorkspaceCreationFromStateFailure(workspaceName string, diags tfdiags.Diagnostics)
+
 	Diagnostics(diags tfdiags.Diagnostics)
 }
 
@@ -43,6 +47,15 @@ func (v *WorkspaceNewHuman) LogWorkspaceCreationSuccess(workspaceName string, di
 
 	msg := fmt.Sprintf(
 		strings.TrimSpace(EnvCreated), workspaceName)
+
+	v.log(msg)
+}
+
+func (v *WorkspaceNewHuman) LogWorkspaceCreationFromStateFailure(workspaceName string, diags tfdiags.Diagnostics) {
+	// Print diags above output
+	v.view.Diagnostics(diags)
+
+	msg := fmt.Sprintf(envCreatedWithoutStatePopulation, workspaceName, workspaceName)
 
 	v.log(msg)
 }
