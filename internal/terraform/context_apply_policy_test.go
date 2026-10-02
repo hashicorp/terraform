@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -2406,4 +2408,308 @@ func TestContext2Apply_PolicyRelationships_noCapability(t *testing.T) {
 	if len(run.evals) != 1 {
 		t.Fatalf("expected 1 resource evaluation, got %d", len(run.evals))
 	}
+}
+
+// applyRelationships plans mod without a policy client, then applies the plan
+// with a policy client that announces the relationships capability and
+// answers BeginRun with a spec of the given types.
+func applyRelationships(t *testing.T, mod *configs.Config, state *states.State, opts *PlanOpts, provider *testing_provider.MockProvider, types ...*proto.TypeSpec) (*states.State, *relationshipRun, tfdiags.Diagnostics) {
+	t.Helper()
+	if provider == nil {
+		provider = relationshipsTestProvider()
+	}
+	if state == nil {
+		state = states.NewState()
+	}
+	if opts == nil {
+		opts = &PlanOpts{Mode: plans.NormalMode}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+		},
+	})
+	plan, diags := ctx.Plan(mod, state, opts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	client, run := newRelationshipsPolicyClient(t, types...)
+	newState, diags := ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+	return newState, run, diags
+}
+
+// assertNoOrigins checks that no record of the run has origins.
+func (r *relationshipRun) assertNoOrigins(t *testing.T) {
+	t.Helper()
+	for addr, rec := range r.records(t) {
+		if len(rec.Origins) != 0 {
+			t.Errorf("%s: expected no origins, got %v", addr, rec.Origins)
+		}
+	}
+}
+
+func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
+	tests := map[string]struct {
+		files        map[string]string
+		state        func(*states.SyncState)
+		opts         *PlanOpts
+		wantRecords  map[string]wantRelRecord
+		wantStatuses map[string]*proto.TypeStatus
+	}{
+		"create, update, no-op and delete": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "new"
+				}
+				resource "test_net" "c" {
+					name = "c"
+				}
+				resource "test_vm" "v" {
+					name   = "v"
+					net_id = test_net.a.id
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"old"}`)
+				relNetState(s, "test_net.c", `{"id":"c-id","name":"c"}`)
+				relNetState(s, "test_net.gone", `{"id":"gone-id","name":"gone"}`)
+			},
+			wantRecords: map[string]wantRelRecord{
+				// Values come from the final state, so computed values are known.
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("a"),
+				}},
+				"test_net.b": {Action: relUpdate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"), "name": cty.StringVal("new"),
+				}},
+				"test_net.c": {Action: relNoOp, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("c-id"), "name": cty.StringVal("c"),
+				}},
+				"test_net.gone": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-id"), "name": cty.StringVal("gone"),
+				}},
+				"test_vm.v": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("v-id"), "net_id": cty.StringVal("a-id"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+		"replace": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+					lifecycle {
+						create_before_destroy = true
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-old","name":"a"}`)
+				relNetState(s, "test_net.b", `{"id":"b-old","name":"b"}`)
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				ForceReplace: []addrs.AbsResourceInstance{
+					mustResourceInstanceAddr("test_net.a"),
+					mustResourceInstanceAddr("test_net.b"),
+				},
+			},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {
+					Action:     proto.ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION,
+					Source:     relPlanned,
+					Attrs:      map[string]cty.Value{"id": cty.StringVal("a-id")},
+					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("a-old")},
+				},
+				"test_net.b": {
+					Action:     proto.ResourceAction_CREATE_THEN_DELETE_RESOURCE_ACTION,
+					Source:     relPlanned,
+					Attrs:      map[string]cty.Value{"id": cty.StringVal("b-id")},
+					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("b-old")},
+				},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+		"forget": {
+			files: map[string]string{"main.tf": `
+				removed {
+					from = test_net.f
+					lifecycle {
+						destroy = false
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.f", `{"id":"f-id","name":"f"}`)
+			},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.f": {Action: relForget, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("f-id"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+		"destroy plan": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "v" {
+					name   = "v"
+					net_id = test_net.a.id
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_vm.v"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON:    []byte(`{"id":"v-id","name":"v","net_id":"a-id"}`),
+					Status:       states.ObjectReady,
+					Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_net.a")},
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			opts: &PlanOpts{Mode: plans.DestroyMode},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"),
+				}},
+				"test_vm.v": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("v-id"), "net_id": cty.StringVal("a-id"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+		"targeted": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "new"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"old"}`)
+			},
+			opts: &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
+			},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"),
+				}},
+				// Not targeted, so the state value is reported.
+				"test_net.b": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"), "name": cty.StringVal("old"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mod := testModuleInline(t, test.files)
+			state := states.NewState()
+			if test.state != nil {
+				state = states.BuildState(test.state)
+			}
+			_, run, diags := applyRelationships(t, mod, state, test.opts, nil,
+				relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id"))
+			tfdiags.AssertNoErrors(t, diags)
+
+			run.assertRunSequence(t)
+			run.assertRecords(t, test.wantRecords)
+			run.assertNoOrigins(t)
+			run.assertStatuses(t, test.wantStatuses)
+		})
+	}
+}
+
+func TestContext2Apply_PolicyRelationships_failedApply(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "ok" {
+			name = "ok"
+		}
+		resource "test_net" "bad" {
+			name = "bad"
+		}
+		resource "test_vm" "v" {
+			name = "v"
+		}
+	`})
+	provider := relationshipsTestProvider()
+	apply := provider.ApplyResourceChangeFn
+	provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		if name := req.PlannedState.GetAttr("name"); !name.IsNull() && name.AsString() == "bad" {
+			var resp providers.ApplyResourceChangeResponse
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("apply failed"))
+			return resp
+		}
+		return apply(req)
+	}
+	_, run, diags := applyRelationships(t, mod, nil, nil, provider,
+		relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id"))
+	if !diags.HasErrors() {
+		t.Fatal("expected the apply to fail")
+	}
+
+	run.assertRunSequence(t)
+	run.assertRecords(t, map[string]wantRelRecord{
+		"test_net.ok": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"id": cty.StringVal("ok-id")}},
+		"test_vm.v":   {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"id": cty.StringVal("v-id")}},
+	})
+	run.assertStatuses(t, map[string]*proto.TypeStatus{
+		"test_net": relIncompleteError("test_net"),
+		"test_vm":  relComplete("test_vm"),
+	})
+}
+
+func TestContext2Apply_PolicyRelationships_deferrals(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "deferred" {
+			name  = "deferred"
+			defer = true
+		}
+		resource "test_vm" "dependent" {
+			net_id = test_net.deferred.id
+		}
+		resource "test_vm" "a" {
+			name = "a"
+		}
+	`})
+	_, run, diags := applyRelationships(t, mod, nil, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+	}, nil, relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id"))
+	tfdiags.AssertNoErrors(t, diags)
+
+	run.assertRunSequence(t)
+	run.assertRecords(t, map[string]wantRelRecord{
+		"test_vm.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"id": cty.StringVal("a-id")}},
+	})
+	run.assertStatuses(t, map[string]*proto.TypeStatus{
+		"test_net": relIncompleteDeferred("test_net", "test_net.deferred"),
+		"test_vm":  relIncompleteDeferred("test_vm", "test_vm.dependent"),
+	})
 }
