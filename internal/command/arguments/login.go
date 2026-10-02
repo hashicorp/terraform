@@ -8,6 +8,10 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // Login represents the command-line arguments for the login command.
 type Login struct {
 	Host string
+
+	// InputEnabled is used to disable interactive input for unspecified
+	// variable and backend config values. Default is true.
+	InputEnabled bool
 }
 
 func ParseLogin(rawArgs []string) (*Login, tfdiags.Diagnostics) {
@@ -15,7 +19,7 @@ func ParseLogin(rawArgs []string) (*Login, tfdiags.Diagnostics) {
 	ret := &Login{}
 
 	cmdFlags := defaultFlagSet("login")
-	// No command-specific flags for login.
+	cmdFlags.BoolVar(&ret.InputEnabled, "input", true, "input")
 
 	if err := cmdFlags.Parse(rawArgs); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(

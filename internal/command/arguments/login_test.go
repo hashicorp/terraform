@@ -18,13 +18,15 @@ func TestParseLogin_valid(t *testing.T) {
 		"default host": {
 			nil,
 			&Login{
-				Host: "app.terraform.io",
+				Host:         "app.terraform.io",
+				InputEnabled: true,
 			},
 		},
 		"non-default host": {
 			[]string{"other.host.io"},
 			&Login{
-				Host: "other.host.io",
+				Host:         "other.host.io",
+				InputEnabled: true,
 			},
 		},
 	}
@@ -51,7 +53,8 @@ func TestParseLogin_invalid(t *testing.T) {
 		"invalid flag": {
 			[]string{"-foobar"},
 			&Login{
-				Host: "app.terraform.io",
+				Host:         "app.terraform.io",
+				InputEnabled: true,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -64,7 +67,8 @@ func TestParseLogin_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"other.host.io", "app.terraform.io"},
 			&Login{
-				Host: "other.host.io",
+				Host:         "other.host.io",
+				InputEnabled: true,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
