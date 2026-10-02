@@ -251,7 +251,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				v.PolicyResult("aws_instance.example_1", queryEvalResp(listBlockAddr, map[string]string{"id": "i-2"}, policy.AllowResult, []policyResultSpec{{address: "policy.allow", result: policy.AllowResult}}))
 			},
 			want: []string{
-				"Evaluated 1 policies.",
+				"Evaluated 1 policies.\npolicy.allow\n\nPolicy results for",
 				"Policy results for aws_instance.example - Passed",
 				"id=i-1",
 				"id=i-2",
@@ -970,8 +970,8 @@ func TestQueryPolicyView_routesSameAddressDiagnosticsByPolicyIdentity(t *testing
 	if len(summary.PassedPolicies) != 2 {
 		t.Fatalf("evaluated policy metadata count = %d, want 2", len(summary.PassedPolicies))
 	}
-	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}); !strings.HasPrefix(got, "Evaluated 2 policies.") {
-		t.Fatalf("same-named policies from distinct sets were not counted independently:\n%s", got)
+	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}); !strings.HasPrefix(got, "Evaluated 2 policies.\npolicy.shared\npolicy.shared\n\n") {
+		t.Fatalf("same-named policies from distinct sets were not listed independently:\n%s", got)
 	}
 
 	wantDiagnostics := map[string]string{
@@ -1098,7 +1098,9 @@ func TestRenderPolicyQuerySummariesHuman(t *testing.T) {
 					Result:         queryPolicyResultFail,
 				}},
 			}},
-			PassedPolicies: []viewjson.PolicyMetadata{{PolicyName: "p.a"}, {PolicyName: "p.z"}},
+			// Include metadata-only policies in reverse order. p.a also appears
+			// in the other block, while p.z appears only in the result above.
+			PassedPolicies: []viewjson.PolicyMetadata{{PolicyName: "p.m"}, {PolicyName: "p.a"}},
 		},
 		{
 			ListBlockAddress: "block.a",
@@ -1124,7 +1126,10 @@ func TestRenderPolicyQuerySummariesHuman(t *testing.T) {
 		},
 	}
 
-	want := `Evaluated 2 policies.
+	want := `Evaluated 3 policies.
+p.a
+p.m
+p.z
 
 Policy results for block.a - Passed
   id=a          Passed
@@ -1135,6 +1140,11 @@ Policy results for block.z - Failed
     - p.z: denied (mandatory)`
 	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
 		t.Fatalf("unexpected policy summary output\nwant:\n%s\n\ngot:\n%s", want, got)
+	}
+	summaries[0].PassedPolicies[0], summaries[0].PassedPolicies[1] = summaries[0].PassedPolicies[1], summaries[0].PassedPolicies[0]
+	summaries[0], summaries[1] = summaries[1], summaries[0]
+	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
+		t.Fatalf("policy summary output changed with input order\nwant:\n%s\n\ngot:\n%s", want, got)
 	}
 	if got := RenderPolicyQuerySummariesHuman(nil); got != "" {
 		t.Fatalf("empty policy summary output = %q, want empty", got)
@@ -1453,6 +1463,7 @@ Policy results for aws_instance.example - N/A
 			},
 			targets: []string{"aws_instance.example_0", "aws_instance.example_1"},
 			want: `Evaluated 1 policies.
+policy.a
 
 Policy results for aws_instance.example - Passed
   id=i-1  Passed
