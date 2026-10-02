@@ -76,6 +76,25 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
 }
 
+// ResourceInstanceChanges returns deep copies of all of the resource instance
+// changes, including the changes for deposed objects, in the order they were
+// recorded.
+//
+// This is still allowed after the receiver has been closed.
+func (cs *ChangesSync) ResourceInstanceChanges() []*ResourceInstanceChange {
+	if cs == nil {
+		panic("ResourceInstanceChanges on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	ret := make([]*ResourceInstanceChange, 0, len(cs.changes.Resources))
+	for _, change := range cs.changes.Resources {
+		ret = append(ret, change.DeepCopy())
+	}
+	return ret
+}
+
 // GetChangesForConfigResource searches the set of resource instance
 // changes and returns all changes related to a given configuration address.
 // This is be used to find possible changes related to a configuration
