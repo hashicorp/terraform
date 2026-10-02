@@ -23,8 +23,9 @@ func (c *WorkspaceCommand) Run(args []string) int {
 	c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.extendedFlagSet("workspace")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	// Don't attempt to parse subcommands or flags here, as this command
+	// always returns cli.RunResultHelp and triggers the Help() method to be
+	// rendered via hashicorp/cli.
 
 	return cli.RunResultHelp
 }

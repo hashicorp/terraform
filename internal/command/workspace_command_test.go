@@ -31,6 +31,43 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+func TestWorkspaceCommand_alwaysReturnsRunResultHelp(t *testing.T) {
+	// The `workspace` command only ever returns cli.RunResultHelp and renders help text,
+	// regardless of the arguments provided.
+	// This means it's not necessary to have any logic for parsing CLI flags or subcommands.
+	// If a command has a valid subcommand then that is resolved by hashicorp/cli before reaching this point.
+	// We only invoke the workspace command itself when the subcommand is not recognized.
+
+	tests := map[string]struct {
+		args []string
+	}{
+		"unknown subcommand": {
+			args: []string{"unknown"},
+		},
+		"unknown flag": {
+			args: []string{"-unknown"},
+		},
+		"extended flag set flags": {
+			args: []string{"-input", "false", "-target", "foo", "-compact-warnings"},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			ui := cli.NewMockUi()
+			c := &WorkspaceCommand{
+				Meta: Meta{Ui: ui},
+			}
+
+			// Always returns cli.RunResultHelp
+			// Returning cli.RunResultHelp causes hashicorp/cli to render the help text.
+			if code := c.Run(test.args); code != cli.RunResultHelp {
+				t.Fatalf("unexpected exit code: got %d, want %d\n%s", code, cli.RunResultHelp, ui.ErrorWriter)
+			}
+		})
+	}
+}
+
 func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	// Create a temporary working directory with pluggable state storage in the config
 	td := t.TempDir()
