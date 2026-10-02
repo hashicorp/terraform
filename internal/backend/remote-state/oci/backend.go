@@ -159,7 +159,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	if ok && len(authVal.AsString()) > 0 {
 
 		switch strings.ToLower(authVal.AsString()) {
-		case strings.ToLower(AuthAPIKeySetting):
+		case strings.ToLower(AuthAPIKeySetting), strings.ToLower(AuthOKEWorkloadIdentity):
 			//Nothing to do
 			return obj, diags
 		case strings.ToLower(AuthInstancePrincipalSetting), strings.ToLower(AuthInstancePrincipalWithCertsSetting), strings.ToLower(ResourcePrincipal), strings.ToLower(AuthSecurityToken):
