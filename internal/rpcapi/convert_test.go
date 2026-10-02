@@ -215,11 +215,80 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 		t.Fatalf("failed to parse resource address: %s", diags.Err())
 	}
 
+	valueBytes := func(v string) []byte {
+		raw, err := msgpack.Marshal(cty.StringVal(v), cty.String)
+		if err != nil {
+			t.Fatalf("failed to marshal expression value: %s", err)
+		}
+		return raw
+	}
+	// memberValue returns an expression value of the failing member with the
+	// given address, or of the subject when member is empty.
+	memberValue := func(path cty.Path, v, member string) *proto.ExpressionValue {
+		return &proto.ExpressionValue{
+			Traversal: policyAttributePath(path),
+			Value:     valueBytes(v),
+			Member:    member,
+		}
+	}
+	permission := cty.GetAttrPath("attrs").GetAttr("file_permission")
+	memberPermission := cty.GetAttrPath("original").GetAttr("attrs").GetAttr("file_permission")
+
 	testCases := map[string]struct {
 		componentAddr string
 		policyResults func() map[string]policy.EvaluationResponse
 		want          *stacks.ComponentInstancePolicyEvaluation
 	}{
+		"policy diagnostic with values of failing members": {
+			componentAddr: "component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
+						Overall: policy.DenyResult,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{{
+							Severity: proto.Severity_ERROR,
+							Summary:  "Condition not met",
+							ExpressionValues: []*proto.ExpressionValue{
+								memberValue(permission, "0600", ""),
+								memberValue(memberPermission, "0644", "local_file.readme"),
+								memberValue(memberPermission, "0640", "local_file.notes"),
+								// Values with the same traversal and member
+								// are duplicates.
+								memberValue(permission, "0601", ""),
+								memberValue(memberPermission, "0641", "local_file.notes"),
+								memberValue(memberPermission, "0444", "local_file.legal"),
+							},
+							// The stacks API has no place for the number of
+							// omitted members.
+							OmittedMembers: 2,
+						}}, policyObj),
+					},
+				}
+			},
+			want: &stacks.ComponentInstancePolicyEvaluation{
+				Diagnostics: []*stacks.PolicyDiagnostic{{
+					TargetAddress: "module.example",
+					Diagnostic: &terraform1.Diagnostic{
+						Severity: terraform1.Diagnostic_ERROR,
+						Summary:  "Condition not met",
+					},
+					PolicyMetadata: &stacks.PolicyMetaData{
+						PolicyName:       "policy_name",
+						PolicySetName:    "some_policy_set",
+						FileName:         "policy_file.tfpolicy.hcl",
+						EnforcementLevel: "mandatory",
+					},
+					// The values keep the policy engine's order: the values
+					// of the subject, then those of each failing member.
+					ExpressionValues: []*stacks.ExpressionValue{
+						{Traversal: stacks.NewAttributePath(permission), Value: valueBytes("0600")},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0644")},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0640")},
+						{Traversal: stacks.NewAttributePath(memberPermission), Value: valueBytes("0444")},
+					},
+				}},
+			},
+		},
 		"no results": {
 			componentAddr: "component.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
@@ -627,6 +696,18 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 			}
 		})
 	}
+}
+
+// policyAttributePath converts a path of attribute names to the policy
+// plugin's attribute path.
+func policyAttributePath(path cty.Path) *proto.AttributePath {
+	ret := &proto.AttributePath{}
+	for _, step := range path {
+		ret.Steps = append(ret.Steps, &proto.AttributePath_Step{
+			Selector: &proto.AttributePath_Step_AttributeName{AttributeName: step.(cty.GetAttrStep).Name},
+		})
+	}
+	return ret
 }
 
 func TestProviderInstancePolicyEvaluationProto(t *testing.T) {

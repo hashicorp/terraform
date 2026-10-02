@@ -381,13 +381,18 @@ func policyDiagsToProto(addr string, policyDiags policy.Diagnostics) []*stacks.P
 	return protoPolicyDiags
 }
 
+// policyExpressionValuesToProto converts the expression values of a policy
+// diagnostic, keeping the policy engine's order: the values of the subject,
+// then those of each failing member. The stacks API has no place for the
+// member a value comes from, nor for the number of omitted members.
 func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionValue) []*stacks.ExpressionValue {
 	if len(policyExpressionValues) == 0 {
 		return nil
 	}
 
 	expressionValues := make([]*stacks.ExpressionValue, 0, len(policyExpressionValues))
-	seen := make(map[string]struct{}, len(policyExpressionValues))
+	type valueKey struct{ traversal, member string }
+	seen := make(map[valueKey]struct{}, len(policyExpressionValues))
 
 	for _, val := range policyExpressionValues {
 		path, err := val.Traversal.ToCtyPath()
@@ -399,11 +404,11 @@ func policyExpressionValuesToProto(policyExpressionValues []*proto.ExpressionVal
 			Traversal: stacks.NewAttributePath(path),
 		}
 
-		strPath := ctyPathStr(path)
-		if _, exists := seen[strPath]; exists {
+		key := valueKey{ctyPathStr(path), val.Member}
+		if _, exists := seen[key]; exists {
 			continue
 		}
-		seen[strPath] = struct{}{}
+		seen[key] = struct{}{}
 
 		exprValue.Value = val.Value
 		expressionValues = append(expressionValues, exprValue)
