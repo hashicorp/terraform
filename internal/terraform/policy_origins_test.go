@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -495,18 +496,138 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			`},
 			want: map[string]map[string][]string{},
 		},
-		"test overrides": {
+		// Test overrides. The outputs of an overridden module come from the
+		// override, so they have no origins, but overridden resources still
+		// plan their configured attributes from their configuration.
+		"overridden module": {
 			files: map[string]string{
 				"main.tf": `
 					resource "test_net" "a" {
 						name = "a"
 					}
-					module "child" {
+					module "over" {
 						source = "./child"
 						net_id = test_net.a.id
 					}
-					resource "test_vm" "v" {
-						net_id = module.child.net_id
+					module "kept" {
+						source = "./child"
+						net_id = test_net.a.id
+					}
+					module "fed" {
+						source = "./child"
+						net_id = module.over.net_id
+					}
+					locals {
+						over = module.over
+						kept = module.kept
+					}
+					resource "test_vm" "over" {
+						net_id = module.over.net_id
+					}
+					resource "test_vm" "kept" {
+						net_id = module.kept.net_id
+					}
+					resource "test_vm" "over_call" {
+						net_id = local.over.net_id
+					}
+					resource "test_vm" "kept_call" {
+						net_id = local.kept.net_id
+					}
+				`,
+				"child/main.tf": `
+					variable "net_id" {
+						type = string
+					}
+					resource "test_vm" "inner" {
+						net_id = var.net_id
+					}
+					output "net_id" {
+						value = var.net_id
+					}
+				`,
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+					overrides.Put(addrs.RootModuleInstance.Child("over", addrs.NoKey), &configs.Override{
+						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
+					})
+				}),
+			},
+			want: map[string]map[string][]string{
+				"test_vm.kept":              {"net_id": {"test_net.a.id"}},
+				"test_vm.kept_call":         {"net_id": {"test_net.a.id"}},
+				"module.kept.test_vm.inner": {"net_id": {"test_net.a.id"}},
+			},
+		},
+		"overridden module instance": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						count = 2
+						name  = "a${count.index}"
+					}
+					module "child" {
+						count  = 2
+						source = "./child"
+						net_id = test_net.a[count.index].id
+					}
+					resource "test_vm" "v0" {
+						net_id = module.child[0].net_id
+					}
+					resource "test_vm" "v1" {
+						net_id = module.child[1].net_id
+					}
+				`,
+				"child/main.tf": `
+					variable "net_id" {
+						type = string
+					}
+					resource "test_vm" "inner" {
+						net_id = var.net_id
+					}
+					output "net_id" {
+						value = var.net_id
+					}
+				`,
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+					overrides.Put(addrs.RootModuleInstance.Child("child", addrs.IntKey(0)), &configs.Override{
+						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
+					})
+				}),
+			},
+			want: map[string]map[string][]string{
+				"test_vm.v1":                    {"net_id": {"test_net.a[1].id"}},
+				"module.child[1].test_vm.inner": {"net_id": {"test_net.a[1].id"}},
+			},
+		},
+		"module overridden through its containing call": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						count = 2
+						name  = "a${count.index}"
+					}
+					module "child" {
+						count  = 2
+						source = "./child"
+						net_id = test_net.a[count.index].id
+					}
+					module "kept" {
+						source = "./child"
+						net_id = test_net.a[0].id
+					}
+					resource "test_vm" "v0" {
+						net_id = module.child[0].net_id
+					}
+					resource "test_vm" "all" {
+						net_ids = module.child[*].net_id
+					}
+					resource "test_vm" "kept" {
+						net_id = module.kept.net_id
 					}
 				`,
 				"child/main.tf": `
@@ -526,7 +647,122 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					})
 				}),
 			},
-			want: map[string]map[string][]string{},
+			want: map[string]map[string][]string{
+				"test_vm.kept": {"net_id": {"test_net.a[0].id"}},
+			},
+		},
+		"overridden nested module": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						name = "a"
+					}
+					module "parent" {
+						source = "./parent"
+						net_id = test_net.a.id
+					}
+					resource "test_vm" "over" {
+						net_id = module.parent.over_net_id
+					}
+					resource "test_vm" "kept" {
+						net_id = module.parent.kept_net_id
+					}
+				`,
+				"parent/main.tf": `
+					variable "net_id" {
+						type = string
+					}
+					module "over" {
+						source = "../child"
+						net_id = var.net_id
+					}
+					module "kept" {
+						source = "../child"
+						net_id = var.net_id
+					}
+					output "over_net_id" {
+						value = module.over.net_id
+					}
+					output "kept_net_id" {
+						value = module.kept.net_id
+					}
+				`,
+				"child/main.tf": `
+					variable "net_id" {
+						type = string
+					}
+					resource "test_vm" "inner" {
+						net_id = var.net_id
+					}
+					output "net_id" {
+						value = var.net_id
+					}
+				`,
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+					overrides.Put(addrs.RootModuleInstance.Child("parent", addrs.NoKey).Child("over", addrs.NoKey), &configs.Override{
+						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
+					})
+				}),
+			},
+			want: map[string]map[string][]string{
+				"test_vm.kept": {"net_id": {"test_net.a.id"}},
+				"module.parent.module.kept.test_vm.inner": {"net_id": {"test_net.a.id"}},
+			},
+		},
+		"overridden resources": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				resource "test_vm" "v" {
+					net_id = test_net.a.id
+					zone   = test_net.a.name
+				}
+				resource "test_vm" "w" {
+					net_id = test_net.b.id
+					zone   = test_net.b.name
+				}
+				resource "test_vm" "over" {
+					net_id = test_net.a.id
+				}
+			`},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				// test_net.b is overridden like a mock_provider override.
+				Overrides: mocking.OverridesForTesting(func(overrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]) {
+					m := addrs.MakeMap[addrs.Targetable, *configs.Override]()
+					m.Put(mustResourceInstanceAddr("test_net.b").ContainingResource(), &configs.Override{
+						Values:     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("b-over")}),
+						UseForPlan: true,
+					})
+					overrides[addrs.RootProviderConfig{Provider: addrs.NewDefaultProvider("test")}] = m
+				}, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+					overrides.Put(mustResourceInstanceAddr("test_net.a").ContainingResource(), &configs.Override{
+						Values:     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("a-over")}),
+						UseForPlan: true,
+					})
+					overrides.Put(mustResourceInstanceAddr("test_vm.over"), &configs.Override{
+						Values: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("vm-over")}),
+					})
+				}),
+			},
+			want: map[string]map[string][]string{
+				"test_vm.v": {
+					"net_id": {"test_net.a.id"},
+					"zone":   {"test_net.a.name"},
+				},
+				"test_vm.w": {
+					"net_id": {"test_net.b.id"},
+					"zone":   {"test_net.b.name"},
+				},
+				"test_vm.over": {"net_id": {"test_net.a.id"}},
+			},
 		},
 		"state records": {
 			files: map[string]string{"main.tf": `
@@ -737,6 +973,135 @@ func TestPolicyIgnoresChanges(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("wrong ignored attributes (-want +got):\n%s", diff)
+	}
+}
+
+// TestOriginsForOverriddenModules checks each place that excludes overridden
+// modules on its own, because in a walk the outputs of an overridden module
+// are the only way to reach into it.
+func TestOriginsForOverriddenModules(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_net" "a" {
+				name = "a"
+			}
+			module "parent" {
+				source = "./parent"
+				net_id = test_net.a.id
+			}
+		`,
+		"parent/main.tf": `
+			variable "net_id" {
+				type = string
+			}
+			module "child" {
+				source = "../child"
+				net_id = var.net_id
+			}
+		`,
+		"child/main.tf": `
+			variable "net_id" {
+				type = string
+			}
+			resource "test_net" "n" {
+				name = "n"
+			}
+			resource "test_vm" "v" {
+				net_id = var.net_id
+			}
+			output "net_id" {
+				value = test_net.n.id
+			}
+		`,
+	})
+	parent := addrs.RootModuleInstance.Child("parent", addrs.NoKey)
+	child := parent.Child("child", addrs.NoKey)
+	childNet := mustResourceInstanceAddr("module.parent.module.child.test_net.n")
+	childVM := mustResourceInstanceAddr("module.parent.module.child.test_vm.v")
+
+	exp := instances.NewExpander(nil)
+	exp.SetResourceSingle(addrs.RootModuleInstance, mustResourceInstanceAddr("test_net.a").Resource.Resource)
+	exp.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "parent"})
+	exp.SetModuleSingle(parent, addrs.ModuleCall{Name: "child"})
+	exp.SetResourceSingle(child, childNet.Resource.Resource)
+	exp.SetResourceSingle(child, childVM.Resource.Resource)
+
+	lookup := &relationshipOriginLookup{
+		schemas: &schemarepo.Schemas{
+			Providers: map[addrs.Provider]providers.ProviderSchema{
+				addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
+			},
+		},
+		planned: map[string]cty.Value{},
+	}
+	overrideModule := func(mod addrs.ModuleInstance) *mocking.Overrides {
+		return mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+			overrides.Put(mod, &configs.Override{Values: cty.EmptyObjectVal})
+		})
+	}
+
+	tests := map[string]struct {
+		overrides *mocking.Overrides
+		// overridden is whether the child module is overridden.
+		overridden bool
+	}{
+		"no overrides": {
+			overrides: nil,
+		},
+		"empty overrides": {
+			overrides: mocking.OverridesForTesting(nil, nil),
+		},
+		"overridden resources": {
+			overrides: mocking.OverridesForTesting(func(overrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]) {
+				m := addrs.MakeMap[addrs.Targetable, *configs.Override]()
+				m.Put(childNet.ContainingResource(), &configs.Override{Values: cty.EmptyObjectVal})
+				overrides[addrs.RootProviderConfig{Provider: addrs.NewDefaultProvider("test")}] = m
+			}, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
+				overrides.Put(childVM, &configs.Override{Values: cty.EmptyObjectVal})
+			}),
+		},
+		"overridden sibling": {
+			overrides: overrideModule(parent.Child("sibling", addrs.NoKey)),
+		},
+		"overridden module": {
+			overrides:  overrideModule(child),
+			overridden: true,
+		},
+		"overridden parent": {
+			overrides:  overrideModule(parent),
+			overridden: true,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			overridden := policyOverriddenModules(test.overrides)
+			if test.overrides.Empty() != (overridden == nil) {
+				t.Fatalf("expected a predicate only with overrides")
+			}
+
+			// A record in the module.
+			got := originsFor(cfg, exp, overridden, childVM, cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)}), [][]string{{"net_id"}}, lookup)
+			if test.overridden && got != nil {
+				t.Errorf("expected no origins for a record in an overridden module, got %v", got)
+			}
+			if !test.overridden && len(got) != 1 {
+				t.Errorf("expected the origin of the record, got %v", got)
+			}
+
+			e := &originEval{cfg: cfg, exp: exp, overridden: overridden}
+
+			// The module's outputs.
+			_, opaque := e.moduleInstance(child, cfg.DescendantForInstance(child)).(symOpaque)
+			if opaque != test.overridden {
+				t.Errorf("wrong outputs of the module: opaque = %t, want %t", opaque, test.overridden)
+			}
+
+			// A reference to a resource in the module.
+			allowed := e.originAllowed(symRef{addr: childNet, path: []string{"id"}}, cty.String, lookup)
+			if allowed == test.overridden {
+				t.Errorf("wrong origin into the module: allowed = %t, want %t", allowed, !test.overridden)
+			}
+		})
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -335,6 +336,9 @@ type relationshipOriginLookup struct {
 	// planned are the unmarked planned values of the walk's managed
 	// resource instance changes, by address.
 	planned map[string]cty.Value
+	// overridden reports whether a module instance is overridden by the
+	// walk's test overrides; nil without overrides.
+	overridden func(addrs.ModuleInstance) bool
 }
 
 var _ originLookup = (*relationshipOriginLookup)(nil)
@@ -385,6 +389,18 @@ func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, 
 	return val, true
 }
 
+// policyOverriddenModules returns whether module instances are overridden
+// by the given test overrides, or nil if there are no overrides. Overridden
+// resources don't need excluding from origins: overrides only fill in their
+// computed attributes, so their configured attributes still come from their
+// configuration.
+func policyOverriddenModules(overrides *mocking.Overrides) func(addrs.ModuleInstance) bool {
+	if overrides.Empty() {
+		return nil
+	}
+	return overrides.IsOverridden
+}
+
 // collectRelationshipBatch collects the records, type statuses and provider
 // instances of the walk's relationship run for the given spec. It must be
 // called after the walk's changes and state are final.
@@ -423,11 +439,13 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		changed[change.Addr.String()] = struct{}{}
 	}
 
-	// Origins are only computed in plan runs, and not in walks with test
-	// overrides, where the values of overridden objects don't come from
-	// their configuration.
-	if ps.run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE && ctx.Overrides().Empty() {
-		c.origins = &relationshipOriginLookup{schemas: ps.run.Schemas, planned: make(map[string]cty.Value)}
+	// Origins are only computed in plan runs.
+	if ps.run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE {
+		c.origins = &relationshipOriginLookup{
+			schemas:    ps.run.Schemas,
+			planned:    make(map[string]cty.Value),
+			overridden: policyOverriddenModules(ctx.Overrides()),
+		}
 		for _, change := range changes {
 			if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed || change.After == cty.NilVal {
 				continue
@@ -564,7 +582,7 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 			return
 		}
 		if c.origins != nil {
-			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), addr, change.After, c.keyPaths[key], c.origins)
+			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.After, c.keyPaths[key], c.origins)
 		}
 	}
 	if policyRecordHasPriorAttrs(change.Action) {

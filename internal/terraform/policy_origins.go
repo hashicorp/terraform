@@ -35,8 +35,17 @@ type originLookup interface {
 // evaluation of the instance's configuration that only follows expressions
 // which preserve the referenced value. When in doubt, it returns no origins
 // for a key path, because a wrong origin can produce a wrong policy result.
-func originsFor(cfg *configs.Config, exp *instances.Expander, addr addrs.AbsResourceInstance, planned cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
+//
+// overridden reports whether a module instance is overridden by test
+// overrides, or is nil without overrides. The outputs of an overridden module
+// come from the override instead of its configuration, so nothing in it is
+// followed.
+func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, planned cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
 	if cfg == nil || exp == nil || planned == cty.NilVal || len(keyPaths) == 0 {
+		return nil
+	}
+	e := &originEval{cfg: cfg, exp: exp, overridden: overridden}
+	if e.moduleOverridden(addr.Module) {
 		return nil
 	}
 	modCfg := cfg.DescendantForInstance(addr.Module)
@@ -58,7 +67,6 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, addr addrs.AbsReso
 		return nil
 	}
 
-	e := &originEval{cfg: cfg, exp: exp}
 	scope := &originScope{mod: addr.Module, cfg: modCfg, rep: e.resourceRepetition(rc, addr)}
 	self := e.body(body, scope)
 
@@ -216,9 +224,14 @@ type originLeaf struct {
 const originMaxDepth = 100
 
 type originEval struct {
-	cfg   *configs.Config
-	exp   *instances.Expander
-	depth int
+	cfg        *configs.Config
+	exp        *instances.Expander
+	overridden func(addrs.ModuleInstance) bool
+	depth      int
+}
+
+func (e *originEval) moduleOverridden(mod addrs.ModuleInstance) bool {
+	return e.overridden != nil && e.overridden(mod)
 }
 
 type originScope struct {
@@ -644,8 +657,12 @@ func (e *originEval) moduleCallInstance(inst addrs.ModuleCallInstance, s *origin
 }
 
 // moduleInstance returns a module instance's outputs, which are evaluated
-// in the module instance.
+// in the module instance. moduleCall and moduleCallInstance return module
+// instances through it, so this is where overridden modules are excluded.
 func (e *originEval) moduleInstance(mod addrs.ModuleInstance, cfg *configs.Config) originSym {
+	if e.moduleOverridden(mod) {
+		return symOpaque{}
+	}
 	return symObj{attr: func(name string) originSym {
 		out := cfg.Module.Outputs[name]
 		if out == nil {
@@ -716,6 +733,9 @@ func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originL
 // managed resource type, of the same type as the record's leaf, and isn't
 // known to be null.
 func (e *originEval) originAllowed(ref symRef, leafTy cty.Type, lookup originLookup) bool {
+	if e.moduleOverridden(ref.addr.Module) {
+		return false
+	}
 	modCfg := e.cfg.DescendantForInstance(ref.addr.Module)
 	if modCfg == nil {
 		return false
