@@ -54,6 +54,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	c.input = args.InputEnabled
+	c.compactWarnings = args.CompactWarnings
 
 	if !c.input {
 		diags = diags.Append(tfdiags.Sourceless(
