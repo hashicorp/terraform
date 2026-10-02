@@ -1870,7 +1870,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 			if s.Backend.Type != c.Type {
 				view.LogMigrateFromBackendToBackend(s.Backend.Type, c.Type)
 			} else {
-				view.Output(views.BackendReconfigureMessage)
+				view.LogMigrateBackendReconfigured()
 			}
 		}
 	}
