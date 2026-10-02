@@ -5,18 +5,26 @@ package terraform
 
 import (
 	"bytes"
+	"fmt"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
+	protobuf "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestPolicyProviderTable(t *testing.T) {
@@ -347,4 +355,285 @@ func TestPolicyProviderSchemas(t *testing.T) {
 	if got := policyProviderSchemas(nil); len(got) != 0 {
 		t.Fatalf("expected no schemas for nil, got %v", got)
 	}
+}
+
+func TestPolicyResourceAction(t *testing.T) {
+	tests := []struct {
+		action    plans.Action
+		want      proto.ResourceAction
+		wantValid bool
+	}{
+		{plans.NoOp, proto.ResourceAction_NO_OP_RESOURCE_ACTION, true},
+		{plans.Create, proto.ResourceAction_CREATE_RESOURCE_ACTION, true},
+		{plans.Update, proto.ResourceAction_UPDATE_RESOURCE_ACTION, true},
+		{plans.Delete, proto.ResourceAction_DELETE_RESOURCE_ACTION, true},
+		{plans.DeleteThenCreate, proto.ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION, true},
+		{plans.CreateThenDelete, proto.ResourceAction_CREATE_THEN_DELETE_RESOURCE_ACTION, true},
+		{plans.Forget, proto.ResourceAction_FORGET_RESOURCE_ACTION, true},
+		{plans.CreateThenForget, proto.ResourceAction_CREATE_THEN_FORGET_RESOURCE_ACTION, true},
+		{plans.ForgetThenCreate, proto.ResourceAction_FORGET_THEN_CREATE_RESOURCE_ACTION, true},
+		{plans.Read, proto.ResourceAction_INVALID_RESOURCE_ACTION, false},
+		{plans.Open, proto.ResourceAction_INVALID_RESOURCE_ACTION, false},
+		{plans.Renew, proto.ResourceAction_INVALID_RESOURCE_ACTION, false},
+		{plans.Close, proto.ResourceAction_INVALID_RESOURCE_ACTION, false},
+	}
+	for _, test := range tests {
+		t.Run(test.action.String(), func(t *testing.T) {
+			got, ok := policyResourceAction(test.action)
+			if ok != test.wantValid || got != test.want {
+				t.Fatalf("got %s, %t; want %s, %t", got, ok, test.want, test.wantValid)
+			}
+		})
+	}
+}
+
+func TestPolicyPriorAttrsAction(t *testing.T) {
+	want := map[plans.Action]bool{
+		plans.Delete:           true,
+		plans.Forget:           true,
+		plans.DeleteThenCreate: true,
+		plans.CreateThenDelete: true,
+		plans.CreateThenForget: true,
+		plans.ForgetThenCreate: true,
+	}
+	for _, action := range []plans.Action{plans.NoOp, plans.Create, plans.Update, plans.Delete, plans.DeleteThenCreate, plans.CreateThenDelete, plans.Forget, plans.CreateThenForget, plans.ForgetThenCreate} {
+		if got := policyRecordHasPriorAttrs(action); got != want[action] {
+			t.Errorf("%s: got %t, want %t", action, got, want[action])
+		}
+	}
+	for _, action := range []plans.Action{plans.Delete, plans.Forget} {
+		if policyRecordHasAttrs(action) {
+			t.Errorf("%s: expected no attrs", action)
+		}
+	}
+	for _, action := range []plans.Action{plans.NoOp, plans.Create, plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget, plans.ForgetThenCreate} {
+		if !policyRecordHasAttrs(action) {
+			t.Errorf("%s: expected attrs", action)
+		}
+	}
+}
+
+func TestChunkRelationshipBatch(t *testing.T) {
+	record := func(addr string, size int) *proto.InstanceRecord {
+		rec := &proto.InstanceRecord{Address: addr, Type: "test_thing"}
+		if size > 0 {
+			rec.Attrs = &proto.ResourceAttributes{Raw: make([]byte, size)}
+		}
+		return rec
+	}
+	records := func(n int) []*proto.InstanceRecord {
+		ret := make([]*proto.InstanceRecord, n)
+		for i := range ret {
+			ret[i] = record(fmt.Sprintf("test_thing.r%d", i), 0)
+		}
+		return ret
+	}
+	providers := []*proto.ProviderInstance{{Id: 1, ConfigAddress: "p1"}, {Id: 2, ConfigAddress: "p2"}}
+	statuses := []*proto.TypeStatus{{Type: "test_thing", Completeness: proto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS}}
+
+	setLimits := func(t *testing.T, maxRecords, maxBytes int) {
+		oldRecords, oldBytes := relationshipChunkMaxRecords, relationshipChunkMaxBytes
+		relationshipChunkMaxRecords, relationshipChunkMaxBytes = maxRecords, maxBytes
+		t.Cleanup(func() {
+			relationshipChunkMaxRecords, relationshipChunkMaxBytes = oldRecords, oldBytes
+		})
+	}
+	addrsOf := func(req *proto.ReportInstancesRequest) []string {
+		var ret []string
+		for _, rec := range req.Records {
+			ret = append(ret, rec.Address)
+		}
+		return ret
+	}
+	assertPlacement := func(t *testing.T, reqs []*proto.ReportInstancesRequest) {
+		t.Helper()
+		for i, req := range reqs {
+			if req.RunId != "run" {
+				t.Fatalf("request %d has run id %q", i, req.RunId)
+			}
+			if wantProviders := i == 0; (len(req.Providers) > 0) != wantProviders {
+				t.Fatalf("request %d: expected providers only in the first request, got %d", i, len(req.Providers))
+			}
+			if wantStatuses := i == len(reqs)-1; (len(req.Statuses) > 0) != wantStatuses {
+				t.Fatalf("request %d: expected statuses only in the last request, got %d", i, len(req.Statuses))
+			}
+		}
+		if len(reqs[0].Providers) != len(providers) || len(reqs[len(reqs)-1].Statuses) != len(statuses) {
+			t.Fatal("expected all providers and statuses to be sent")
+		}
+	}
+
+	t.Run("defaults", func(t *testing.T) {
+		if relationshipChunkMaxRecords != 1000 || relationshipChunkMaxBytes != 3<<20 {
+			t.Fatalf("wrong default limits: %d records, %d bytes", relationshipChunkMaxRecords, relationshipChunkMaxBytes)
+		}
+	})
+
+	t.Run("zero records", func(t *testing.T) {
+		reqs := chunkRelationshipBatch(nil, statuses, providers, "run")
+		if len(reqs) != 1 {
+			t.Fatalf("expected 1 request, got %d", len(reqs))
+		}
+		assertPlacement(t, reqs)
+	})
+
+	t.Run("zero records, no statuses, no providers", func(t *testing.T) {
+		reqs := chunkRelationshipBatch(nil, nil, nil, "run")
+		if len(reqs) != 1 || reqs[0].RunId != "run" {
+			t.Fatalf("expected 1 request, got %v", reqs)
+		}
+	})
+
+	t.Run("record count limit", func(t *testing.T) {
+		setLimits(t, 2, 1<<20)
+		reqs := chunkRelationshipBatch(records(5), statuses, providers, "run")
+		if len(reqs) != 3 {
+			t.Fatalf("expected 3 requests, got %d", len(reqs))
+		}
+		want := [][]string{
+			{"test_thing.r0", "test_thing.r1"},
+			{"test_thing.r2", "test_thing.r3"},
+			{"test_thing.r4"},
+		}
+		for i, req := range reqs {
+			if diff := cmp.Diff(want[i], addrsOf(req)); diff != "" {
+				t.Fatalf("wrong records in request %d (-want +got):\n%s", i, diff)
+			}
+		}
+		assertPlacement(t, reqs)
+	})
+
+	t.Run("exactly at the record count limit", func(t *testing.T) {
+		setLimits(t, 2, 1<<20)
+		reqs := chunkRelationshipBatch(records(4), statuses, providers, "run")
+		if len(reqs) != 2 {
+			t.Fatalf("expected 2 requests, got %d", len(reqs))
+		}
+		assertPlacement(t, reqs)
+	})
+
+	t.Run("byte size limit", func(t *testing.T) {
+		recs := []*proto.InstanceRecord{
+			record("test_thing.a", 100),
+			record("test_thing.b", 100),
+			record("test_thing.c", 100),
+		}
+		size := protobuf.Size(recs[0])
+		setLimits(t, 1000, 2*size)
+		reqs := chunkRelationshipBatch(recs, statuses, providers, "run")
+		if len(reqs) != 2 {
+			t.Fatalf("expected 2 requests, got %d", len(reqs))
+		}
+		if diff := cmp.Diff([]string{"test_thing.a", "test_thing.b"}, addrsOf(reqs[0])); diff != "" {
+			t.Fatalf("wrong records in request 1 (-want +got):\n%s", diff)
+		}
+		assertPlacement(t, reqs)
+	})
+
+	t.Run("a record over the byte size limit goes alone", func(t *testing.T) {
+		recs := []*proto.InstanceRecord{
+			record("test_thing.a", 10),
+			record("test_thing.huge", 1000),
+			record("test_thing.b", 10),
+		}
+		setLimits(t, 1000, 200)
+		reqs := chunkRelationshipBatch(recs, statuses, providers, "run")
+		want := [][]string{{"test_thing.a"}, {"test_thing.huge"}, {"test_thing.b"}}
+		if len(reqs) != len(want) {
+			t.Fatalf("expected %d requests, got %d", len(want), len(reqs))
+		}
+		for i, req := range reqs {
+			if diff := cmp.Diff(want[i], addrsOf(req)); diff != "" {
+				t.Fatalf("wrong records in request %d (-want +got):\n%s", i, diff)
+			}
+		}
+		assertPlacement(t, reqs)
+	})
+}
+
+func TestPolicyStateValue(t *testing.T) {
+	schema := providers.Schema{Body: &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":     {Type: cty.String, Computed: true},
+			"secret": {Type: cty.String, Optional: true, Sensitive: true},
+			"other":  {Type: cty.String, Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"nested": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"key": {Type: cty.String, Optional: true, Sensitive: true},
+					},
+				},
+			},
+		},
+	}}
+	obj := &states.ResourceInstanceObjectSrc{
+		AttrsJSON: []byte(`{"id":"i","secret":"s","other":"o","nested":[{"key":"k"}]}`),
+		// A path that was marked sensitive in configuration.
+		AttrSensitivePaths: []cty.Path{cty.GetAttrPath("other")},
+		Status:             states.ObjectReady,
+	}
+
+	val, err := policyStateValue(obj, schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	attrs, err := policy.EncodeResourceAttributes(val)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, path := range attrs.RedactedPaths {
+		var parts []string
+		for _, step := range path.Steps {
+			switch s := step.Selector.(type) {
+			case *proto.AttributePath_Step_AttributeName:
+				parts = append(parts, s.AttributeName)
+			case *proto.AttributePath_Step_ElementKeyInt:
+				parts = append(parts, fmt.Sprint(s.ElementKeyInt))
+			}
+		}
+		got = append(got, strings.Join(parts, "."))
+	}
+	sort.Strings(got)
+	if diff := cmp.Diff([]string{"nested.0.key", "other", "secret"}, got); diff != "" {
+		t.Fatalf("wrong redacted paths (-want +got):\n%s", diff)
+	}
+
+	t.Run("sensitive nested block in state", func(t *testing.T) {
+		marked := *obj
+		marked.AttrSensitivePaths = []cty.Path{cty.GetAttrPath("nested")}
+		val, err := policyStateValue(&marked, schema)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, pvms := val.UnmarkDeepWithPaths()
+		paths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+		var got []string
+		for _, path := range paths {
+			got = append(got, format.CtyPath(path))
+		}
+		sort.Strings(got)
+		if diff := cmp.Diff([]string{".nested", ".nested[0].key", ".secret"}, got); diff != "" {
+			t.Fatalf("wrong sensitive paths (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("schema version mismatch", func(t *testing.T) {
+		old := *obj
+		old.SchemaVersion = 1
+		if _, err := policyStateValue(&old, schema); err == nil {
+			t.Fatal("expected an error for a state object with another schema version")
+		}
+	})
+
+	t.Run("invalid value", func(t *testing.T) {
+		bad := *obj
+		bad.AttrsJSON = []byte(`{"unknown_attr":true}`)
+		if _, err := policyStateValue(&bad, schema); err == nil {
+			t.Fatal("expected an error for a state object that doesn't conform to the schema")
+		}
+	})
 }

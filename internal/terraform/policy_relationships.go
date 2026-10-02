@@ -8,6 +8,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -16,12 +17,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
+	protobuf "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -192,16 +195,100 @@ func logPolicyRunDiagnostics(call, runID string, diags []*proto.Diagnostic) {
 	}
 }
 
+// The limits of a single ReportInstances request. They are variables so that
+// tests can lower them.
+var (
+	relationshipChunkMaxRecords = 1000
+	relationshipChunkMaxBytes   = 3 << 20
+)
+
 // chunkRelationshipBatch splits a relationship batch into ReportInstances
-// requests. All providers are in the first request, all statuses in the
-// last, and there is always at least one request.
+// requests of at most relationshipChunkMaxRecords records and
+// relationshipChunkMaxBytes bytes of records each; a single record over the
+// byte limit is sent alone. All providers are in the first request, all
+// statuses in the last, and there is always at least one request.
 func chunkRelationshipBatch(records []*proto.InstanceRecord, statuses []*proto.TypeStatus, providers []*proto.ProviderInstance, runID string) []*proto.ReportInstancesRequest {
-	return []*proto.ReportInstancesRequest{{
-		RunId:     runID,
-		Providers: providers,
-		Records:   records,
-		Statuses:  statuses,
-	}}
+	var reqs []*proto.ReportInstancesRequest
+	current := &proto.ReportInstancesRequest{RunId: runID, Providers: providers}
+	currentBytes := 0
+	for _, record := range records {
+		size := protobuf.Size(record)
+		full := len(current.Records) >= relationshipChunkMaxRecords || currentBytes+size > relationshipChunkMaxBytes
+		if len(current.Records) > 0 && full {
+			reqs = append(reqs, current)
+			current = &proto.ReportInstancesRequest{RunId: runID}
+			currentBytes = 0
+		}
+		current.Records = append(current.Records, record)
+		currentBytes += size
+	}
+	current.Statuses = statuses
+	return append(reqs, current)
+}
+
+// policyResourceAction returns the record action for a resource instance
+// change action, or false if the action can't be the action of a managed
+// resource instance record.
+func policyResourceAction(action plans.Action) (proto.ResourceAction, bool) {
+	switch action {
+	case plans.NoOp:
+		return proto.ResourceAction_NO_OP_RESOURCE_ACTION, true
+	case plans.Create:
+		return proto.ResourceAction_CREATE_RESOURCE_ACTION, true
+	case plans.Update:
+		return proto.ResourceAction_UPDATE_RESOURCE_ACTION, true
+	case plans.Delete:
+		return proto.ResourceAction_DELETE_RESOURCE_ACTION, true
+	case plans.DeleteThenCreate:
+		return proto.ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION, true
+	case plans.CreateThenDelete:
+		return proto.ResourceAction_CREATE_THEN_DELETE_RESOURCE_ACTION, true
+	case plans.Forget:
+		return proto.ResourceAction_FORGET_RESOURCE_ACTION, true
+	case plans.CreateThenForget:
+		return proto.ResourceAction_CREATE_THEN_FORGET_RESOURCE_ACTION, true
+	case plans.ForgetThenCreate:
+		return proto.ResourceAction_FORGET_THEN_CREATE_RESOURCE_ACTION, true
+	case plans.Read, plans.Open, plans.Renew, plans.Close:
+		return proto.ResourceAction_INVALID_RESOURCE_ACTION, false
+	default:
+		return proto.ResourceAction_INVALID_RESOURCE_ACTION, false
+	}
+}
+
+// policyRecordHasAttrs returns true if a record of a change with the given
+// action has attrs.
+func policyRecordHasAttrs(action plans.Action) bool {
+	return action != plans.Delete && action != plans.Forget
+}
+
+// policyRecordHasPriorAttrs returns true if a record of a change with the
+// given action has prior attrs.
+func policyRecordHasPriorAttrs(action plans.Action) bool {
+	switch action {
+	case plans.Delete, plans.Forget, plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget, plans.ForgetThenCreate:
+		return true
+	default:
+		return false
+	}
+}
+
+// policyStateValue decodes a state object with the current schema of its
+// resource type and marks its sensitive values, both those recorded in state
+// and those the schema declares.
+func policyStateValue(obj *states.ResourceInstanceObjectSrc, schema providers.Schema) (cty.Value, error) {
+	if schema.Body == nil {
+		return cty.NilVal, fmt.Errorf("no schema")
+	}
+	if obj.SchemaVersion != uint64(schema.Version) {
+		return cty.NilVal, fmt.Errorf("the object has schema version %d, but the current schema version is %d", obj.SchemaVersion, schema.Version)
+	}
+	decoded, err := obj.Decode(schema)
+	if err != nil {
+		return cty.NilVal, err
+	}
+	val := decoded.Value
+	return marks.MarkPaths(val, marks.Sensitive, schema.Body.SensitivePaths(val, nil)), nil
 }
 
 // policyProviderTable records the provider configurations configured during
