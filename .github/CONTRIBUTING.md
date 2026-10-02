@@ -154,7 +154,11 @@ This is different if you are backporting your changes to an earlier release vers
 
 #### Create a change file using `changie`
 
-If your change is user-facing you can use `npx changie new` to create a new changelog entry via your terminal. The command is interactive and you will need to:
+For in-depth guidance, or guidance to be consumed by an agent, see our separate [style guide doc](../.changes/STYLE-GUIDE.md).
+
+If there isn't an impact on the end user then there shouldn't be a changelog entry.
+
+If your change is user-facing, you can use the `changie` CLI tool (see [installation guide](https://changie.dev/guide/installation/)) to create a new changelog entry via your terminal. The command is interactive and you will need to:
 1. Select which kind of change you're introducing.
 2. Provide a short description.
 3. Enter the number of your GitHub PR.
@@ -165,21 +169,7 @@ Your description should be written from an end-user's perspective and not descri
 
 > Fixed an issue where terraform stacks validate was failing to resolve relative paths for modules
 
-If there isn't an impact on the end user then there shouldn't be a changelog entry.
-
 Dependency bumps or other changes, like Go version upgrades, should only be in the changelog if the change impacts the user or fixes a user-facing issue. For example, if a dependency bump resolves a CVE that impacts Terraform and users are exposed to risk there should be a changelog entry. If the dependency bump is moving the code away from a version of a dependency that's linked to a CVE that isn't impacting Terraform then no changelog entry is needed.
-
-Make sure to select the correct kind of change:
-
-
-| Change kind      | When to use |
-|------------------|-------------|
-| NEW FEATURES     | Use this if you've added new, separate functionality to Terraform. For example, introduction of ephemeral resources. |
-| ENHANCEMENTS     | Use this if you've improved existing functionality in Terraform. Examples include: adding a new field to a remote-state backend, or adding a new environment variable to use when configuring Terraform. |
-| BUG FIXES        | Use this if you've fixed a user-facing issue. Examples include: crash fixes, improvements to error feedback, regression fixes. |
-| NOTES            | This is used for changes that are unlikely to cause user-facing issues but might have edge cases. For example, changes to how the Terraform binary is built. |
-| UPGRADE NOTES    | Use this if you've introduced a change that forces users to take action when upgrading, or changes Terraform's behaviour notably. For example, deprecating a field on a remote-state backend or changing the output of Terraform operations. |
-| BREAKING CHANGES | Use this if you've introduced a change that could make a valid Terraform configuration stop working after a user upgrades Terraform versions. This might be paired with an upgrade note change file. Examples include: removing a field on a remote-state backend, changing a builtin function's behavior, making validation stricter. |
 
 #### Backport a PR to a past release
 
