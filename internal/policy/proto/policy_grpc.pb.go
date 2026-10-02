@@ -26,6 +26,9 @@ const (
 	Policy_EvaluateResource_FullMethodName = "/proto.Policy/EvaluateResource"
 	Policy_EvaluateProvider_FullMethodName = "/proto.Policy/EvaluateProvider"
 	Policy_EvaluateModule_FullMethodName   = "/proto.Policy/EvaluateModule"
+	Policy_BeginRun_FullMethodName         = "/proto.Policy/BeginRun"
+	Policy_ReportInstances_FullMethodName  = "/proto.Policy/ReportInstances"
+	Policy_FinishRun_FullMethodName        = "/proto.Policy/FinishRun"
 )
 
 // PolicyClient is the client API for Policy service.
@@ -49,6 +52,16 @@ type PolicyClient interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(ctx context.Context, in *PolicyEvaluateModuleRequest, opts ...grpc.CallOption) (*PolicyEvaluateModuleResponse, error)
+	// BeginRun starts a relationship run. The server resolves the relationship
+	// definitions against the provider schemas and returns the spec of the
+	// instances that the client must report.
+	BeginRun(ctx context.Context, in *BeginRunRequest, opts ...grpc.CallOption) (*BeginRunResponse, error)
+	// ReportInstances reports one chunk of the instance records of a run. The
+	// client calls it serially, at least once, and before the first
+	// EvaluateResource that carries the run_id.
+	ReportInstances(ctx context.Context, in *ReportInstancesRequest, opts ...grpc.CallOption) (*ReportInstancesResponse, error)
+	// FinishRun ends a relationship run after every subject evaluation.
+	FinishRun(ctx context.Context, in *FinishRunRequest, opts ...grpc.CallOption) (*FinishRunResponse, error)
 }
 
 type policyClient struct {
@@ -99,6 +112,36 @@ func (c *policyClient) EvaluateModule(ctx context.Context, in *PolicyEvaluateMod
 	return out, nil
 }
 
+func (c *policyClient) BeginRun(ctx context.Context, in *BeginRunRequest, opts ...grpc.CallOption) (*BeginRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BeginRunResponse)
+	err := c.cc.Invoke(ctx, Policy_BeginRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *policyClient) ReportInstances(ctx context.Context, in *ReportInstancesRequest, opts ...grpc.CallOption) (*ReportInstancesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportInstancesResponse)
+	err := c.cc.Invoke(ctx, Policy_ReportInstances_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *policyClient) FinishRun(ctx context.Context, in *FinishRunRequest, opts ...grpc.CallOption) (*FinishRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FinishRunResponse)
+	err := c.cc.Invoke(ctx, Policy_FinishRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PolicyServer is the server API for Policy service.
 // All implementations must embed UnimplementedPolicyServer
 // for forward compatibility.
@@ -120,6 +163,16 @@ type PolicyServer interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error)
+	// BeginRun starts a relationship run. The server resolves the relationship
+	// definitions against the provider schemas and returns the spec of the
+	// instances that the client must report.
+	BeginRun(context.Context, *BeginRunRequest) (*BeginRunResponse, error)
+	// ReportInstances reports one chunk of the instance records of a run. The
+	// client calls it serially, at least once, and before the first
+	// EvaluateResource that carries the run_id.
+	ReportInstances(context.Context, *ReportInstancesRequest) (*ReportInstancesResponse, error)
+	// FinishRun ends a relationship run after every subject evaluation.
+	FinishRun(context.Context, *FinishRunRequest) (*FinishRunResponse, error)
 	mustEmbedUnimplementedPolicyServer()
 }
 
@@ -141,6 +194,15 @@ func (UnimplementedPolicyServer) EvaluateProvider(context.Context, *PolicyEvalua
 }
 func (UnimplementedPolicyServer) EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EvaluateModule not implemented")
+}
+func (UnimplementedPolicyServer) BeginRun(context.Context, *BeginRunRequest) (*BeginRunResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BeginRun not implemented")
+}
+func (UnimplementedPolicyServer) ReportInstances(context.Context, *ReportInstancesRequest) (*ReportInstancesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportInstances not implemented")
+}
+func (UnimplementedPolicyServer) FinishRun(context.Context, *FinishRunRequest) (*FinishRunResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinishRun not implemented")
 }
 func (UnimplementedPolicyServer) mustEmbedUnimplementedPolicyServer() {}
 func (UnimplementedPolicyServer) testEmbeddedByValue()                {}
@@ -235,6 +297,60 @@ func _Policy_EvaluateModule_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Policy_BeginRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BeginRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PolicyServer).BeginRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Policy_BeginRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PolicyServer).BeginRun(ctx, req.(*BeginRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Policy_ReportInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PolicyServer).ReportInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Policy_ReportInstances_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PolicyServer).ReportInstances(ctx, req.(*ReportInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Policy_FinishRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinishRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PolicyServer).FinishRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Policy_FinishRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PolicyServer).FinishRun(ctx, req.(*FinishRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Policy_ServiceDesc is the grpc.ServiceDesc for Policy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,6 +373,18 @@ var Policy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EvaluateModule",
 			Handler:    _Policy_EvaluateModule_Handler,
+		},
+		{
+			MethodName: "BeginRun",
+			Handler:    _Policy_BeginRun_Handler,
+		},
+		{
+			MethodName: "ReportInstances",
+			Handler:    _Policy_ReportInstances_Handler,
+		},
+		{
+			MethodName: "FinishRun",
+			Handler:    _Policy_FinishRun_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

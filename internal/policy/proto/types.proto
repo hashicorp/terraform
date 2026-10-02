@@ -83,4 +83,58 @@ enum EvaluationStage {
     INIT_EVALUATION_STAGE = 1;
     PLAN_EVALUATION_STAGE = 2;
     APPLY_EVALUATION_STAGE = 3;
+    QUERY_EVALUATION_STAGE = 4;
+}
+
+// PlanMode is the mode of the plan that a relationship run belongs to.
+enum PlanMode {
+  INVALID_PLAN_MODE = 0;
+  NORMAL_PLAN_MODE = 1;
+  DESTROY_PLAN_MODE = 2;
+  REFRESH_ONLY_PLAN_MODE = 3;
+}
+
+// RunRuntime is the runtime that started a relationship run.
+enum RunRuntime {
+  INVALID_RUN_RUNTIME = 0;
+  CLI_RUN_RUNTIME = 1;
+  TEST_RUN_RUNTIME = 2;     // not sent in P1
+  STACKS_RUN_RUNTIME = 3;   // not sent in P1
+}
+
+// Terraform's plans.Action for a managed resource instance, verbatim.
+// (Read, Open, Renew, Close never occur for managed resources and have no value.)
+enum ResourceAction {
+  INVALID_RESOURCE_ACTION = 0;
+  NO_OP_RESOURCE_ACTION = 1;
+  CREATE_RESOURCE_ACTION = 2;
+  UPDATE_RESOURCE_ACTION = 3;
+  DELETE_RESOURCE_ACTION = 4;
+  DELETE_THEN_CREATE_RESOURCE_ACTION = 5;
+  CREATE_THEN_DELETE_RESOURCE_ACTION = 6;
+  FORGET_RESOURCE_ACTION = 7;
+  CREATE_THEN_FORGET_RESOURCE_ACTION = 8;
+  FORGET_THEN_CREATE_RESOURCE_ACTION = 9;
+}
+
+// RecordSource says where an instance record of a relationship run came from.
+enum RecordSource {
+  INVALID_RECORD_SOURCE = 0;
+  PLANNED_RECORD_SOURCE = 1;     // from a planned change (plan run) or an applied change (apply run)
+  STATE_RECORD_SOURCE = 2;       // from state, without a change in this run (-target outsiders, refresh-only)
+  DEFERRED_RECORD_SOURCE = 3;    // P2, not sent in P1
+  DISCOVERED_RECORD_SOURCE = 4;  // P6 (Search), not sent in P1
+}
+
+// TypeCompleteness says whether every instance of a resource type has been
+// reported in a relationship run.
+enum TypeCompleteness {
+  INVALID_TYPE_COMPLETENESS = 0;
+  COMPLETE_TYPE_COMPLETENESS = 1;
+  INCOMPLETE_DEFERRED_TYPE_COMPLETENESS = 2;
+  INCOMPLETE_ERROR_TYPE_COMPLETENESS = 3;
+}
+
+message AttributePaths {
+  repeated AttributePath paths = 1;
 }

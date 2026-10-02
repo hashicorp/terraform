@@ -167,6 +167,7 @@ const (
 	EvaluationStage_INIT_EVALUATION_STAGE    EvaluationStage = 1
 	EvaluationStage_PLAN_EVALUATION_STAGE    EvaluationStage = 2
 	EvaluationStage_APPLY_EVALUATION_STAGE   EvaluationStage = 3
+	EvaluationStage_QUERY_EVALUATION_STAGE   EvaluationStage = 4
 )
 
 // Enum value maps for EvaluationStage.
@@ -176,12 +177,14 @@ var (
 		1: "INIT_EVALUATION_STAGE",
 		2: "PLAN_EVALUATION_STAGE",
 		3: "APPLY_EVALUATION_STAGE",
+		4: "QUERY_EVALUATION_STAGE",
 	}
 	EvaluationStage_value = map[string]int32{
 		"INVALID_EVALUATION_STAGE": 0,
 		"INIT_EVALUATION_STAGE":    1,
 		"PLAN_EVALUATION_STAGE":    2,
 		"APPLY_EVALUATION_STAGE":   3,
+		"QUERY_EVALUATION_STAGE":   4,
 	}
 )
 
@@ -210,6 +213,294 @@ func (x EvaluationStage) Number() protoreflect.EnumNumber {
 // Deprecated: Use EvaluationStage.Descriptor instead.
 func (EvaluationStage) EnumDescriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{2}
+}
+
+// PlanMode is the mode of the plan that a relationship run belongs to.
+type PlanMode int32
+
+const (
+	PlanMode_INVALID_PLAN_MODE      PlanMode = 0
+	PlanMode_NORMAL_PLAN_MODE       PlanMode = 1
+	PlanMode_DESTROY_PLAN_MODE      PlanMode = 2
+	PlanMode_REFRESH_ONLY_PLAN_MODE PlanMode = 3
+)
+
+// Enum value maps for PlanMode.
+var (
+	PlanMode_name = map[int32]string{
+		0: "INVALID_PLAN_MODE",
+		1: "NORMAL_PLAN_MODE",
+		2: "DESTROY_PLAN_MODE",
+		3: "REFRESH_ONLY_PLAN_MODE",
+	}
+	PlanMode_value = map[string]int32{
+		"INVALID_PLAN_MODE":      0,
+		"NORMAL_PLAN_MODE":       1,
+		"DESTROY_PLAN_MODE":      2,
+		"REFRESH_ONLY_PLAN_MODE": 3,
+	}
+)
+
+func (x PlanMode) Enum() *PlanMode {
+	p := new(PlanMode)
+	*p = x
+	return p
+}
+
+func (x PlanMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlanMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[3].Descriptor()
+}
+
+func (PlanMode) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[3]
+}
+
+func (x PlanMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlanMode.Descriptor instead.
+func (PlanMode) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{3}
+}
+
+// RunRuntime is the runtime that started a relationship run.
+type RunRuntime int32
+
+const (
+	RunRuntime_INVALID_RUN_RUNTIME RunRuntime = 0
+	RunRuntime_CLI_RUN_RUNTIME     RunRuntime = 1
+	RunRuntime_TEST_RUN_RUNTIME    RunRuntime = 2 // not sent in P1
+	RunRuntime_STACKS_RUN_RUNTIME  RunRuntime = 3 // not sent in P1
+)
+
+// Enum value maps for RunRuntime.
+var (
+	RunRuntime_name = map[int32]string{
+		0: "INVALID_RUN_RUNTIME",
+		1: "CLI_RUN_RUNTIME",
+		2: "TEST_RUN_RUNTIME",
+		3: "STACKS_RUN_RUNTIME",
+	}
+	RunRuntime_value = map[string]int32{
+		"INVALID_RUN_RUNTIME": 0,
+		"CLI_RUN_RUNTIME":     1,
+		"TEST_RUN_RUNTIME":    2,
+		"STACKS_RUN_RUNTIME":  3,
+	}
+)
+
+func (x RunRuntime) Enum() *RunRuntime {
+	p := new(RunRuntime)
+	*p = x
+	return p
+}
+
+func (x RunRuntime) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RunRuntime) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[4].Descriptor()
+}
+
+func (RunRuntime) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[4]
+}
+
+func (x RunRuntime) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RunRuntime.Descriptor instead.
+func (RunRuntime) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{4}
+}
+
+// Terraform's plans.Action for a managed resource instance, verbatim.
+// (Read, Open, Renew, Close never occur for managed resources and have no value.)
+type ResourceAction int32
+
+const (
+	ResourceAction_INVALID_RESOURCE_ACTION            ResourceAction = 0
+	ResourceAction_NO_OP_RESOURCE_ACTION              ResourceAction = 1
+	ResourceAction_CREATE_RESOURCE_ACTION             ResourceAction = 2
+	ResourceAction_UPDATE_RESOURCE_ACTION             ResourceAction = 3
+	ResourceAction_DELETE_RESOURCE_ACTION             ResourceAction = 4
+	ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION ResourceAction = 5
+	ResourceAction_CREATE_THEN_DELETE_RESOURCE_ACTION ResourceAction = 6
+	ResourceAction_FORGET_RESOURCE_ACTION             ResourceAction = 7
+	ResourceAction_CREATE_THEN_FORGET_RESOURCE_ACTION ResourceAction = 8
+	ResourceAction_FORGET_THEN_CREATE_RESOURCE_ACTION ResourceAction = 9
+)
+
+// Enum value maps for ResourceAction.
+var (
+	ResourceAction_name = map[int32]string{
+		0: "INVALID_RESOURCE_ACTION",
+		1: "NO_OP_RESOURCE_ACTION",
+		2: "CREATE_RESOURCE_ACTION",
+		3: "UPDATE_RESOURCE_ACTION",
+		4: "DELETE_RESOURCE_ACTION",
+		5: "DELETE_THEN_CREATE_RESOURCE_ACTION",
+		6: "CREATE_THEN_DELETE_RESOURCE_ACTION",
+		7: "FORGET_RESOURCE_ACTION",
+		8: "CREATE_THEN_FORGET_RESOURCE_ACTION",
+		9: "FORGET_THEN_CREATE_RESOURCE_ACTION",
+	}
+	ResourceAction_value = map[string]int32{
+		"INVALID_RESOURCE_ACTION":            0,
+		"NO_OP_RESOURCE_ACTION":              1,
+		"CREATE_RESOURCE_ACTION":             2,
+		"UPDATE_RESOURCE_ACTION":             3,
+		"DELETE_RESOURCE_ACTION":             4,
+		"DELETE_THEN_CREATE_RESOURCE_ACTION": 5,
+		"CREATE_THEN_DELETE_RESOURCE_ACTION": 6,
+		"FORGET_RESOURCE_ACTION":             7,
+		"CREATE_THEN_FORGET_RESOURCE_ACTION": 8,
+		"FORGET_THEN_CREATE_RESOURCE_ACTION": 9,
+	}
+)
+
+func (x ResourceAction) Enum() *ResourceAction {
+	p := new(ResourceAction)
+	*p = x
+	return p
+}
+
+func (x ResourceAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ResourceAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[5].Descriptor()
+}
+
+func (ResourceAction) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[5]
+}
+
+func (x ResourceAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ResourceAction.Descriptor instead.
+func (ResourceAction) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{5}
+}
+
+// RecordSource says where an instance record of a relationship run came from.
+type RecordSource int32
+
+const (
+	RecordSource_INVALID_RECORD_SOURCE    RecordSource = 0
+	RecordSource_PLANNED_RECORD_SOURCE    RecordSource = 1 // from a planned change (plan run) or an applied change (apply run)
+	RecordSource_STATE_RECORD_SOURCE      RecordSource = 2 // from state, without a change in this run (-target outsiders, refresh-only)
+	RecordSource_DEFERRED_RECORD_SOURCE   RecordSource = 3 // P2, not sent in P1
+	RecordSource_DISCOVERED_RECORD_SOURCE RecordSource = 4 // P6 (Search), not sent in P1
+)
+
+// Enum value maps for RecordSource.
+var (
+	RecordSource_name = map[int32]string{
+		0: "INVALID_RECORD_SOURCE",
+		1: "PLANNED_RECORD_SOURCE",
+		2: "STATE_RECORD_SOURCE",
+		3: "DEFERRED_RECORD_SOURCE",
+		4: "DISCOVERED_RECORD_SOURCE",
+	}
+	RecordSource_value = map[string]int32{
+		"INVALID_RECORD_SOURCE":    0,
+		"PLANNED_RECORD_SOURCE":    1,
+		"STATE_RECORD_SOURCE":      2,
+		"DEFERRED_RECORD_SOURCE":   3,
+		"DISCOVERED_RECORD_SOURCE": 4,
+	}
+)
+
+func (x RecordSource) Enum() *RecordSource {
+	p := new(RecordSource)
+	*p = x
+	return p
+}
+
+func (x RecordSource) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RecordSource) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[6].Descriptor()
+}
+
+func (RecordSource) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[6]
+}
+
+func (x RecordSource) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RecordSource.Descriptor instead.
+func (RecordSource) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{6}
+}
+
+// TypeCompleteness says whether every instance of a resource type has been
+// reported in a relationship run.
+type TypeCompleteness int32
+
+const (
+	TypeCompleteness_INVALID_TYPE_COMPLETENESS             TypeCompleteness = 0
+	TypeCompleteness_COMPLETE_TYPE_COMPLETENESS            TypeCompleteness = 1
+	TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS TypeCompleteness = 2
+	TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS    TypeCompleteness = 3
+)
+
+// Enum value maps for TypeCompleteness.
+var (
+	TypeCompleteness_name = map[int32]string{
+		0: "INVALID_TYPE_COMPLETENESS",
+		1: "COMPLETE_TYPE_COMPLETENESS",
+		2: "INCOMPLETE_DEFERRED_TYPE_COMPLETENESS",
+		3: "INCOMPLETE_ERROR_TYPE_COMPLETENESS",
+	}
+	TypeCompleteness_value = map[string]int32{
+		"INVALID_TYPE_COMPLETENESS":             0,
+		"COMPLETE_TYPE_COMPLETENESS":            1,
+		"INCOMPLETE_DEFERRED_TYPE_COMPLETENESS": 2,
+		"INCOMPLETE_ERROR_TYPE_COMPLETENESS":    3,
+	}
+)
+
+func (x TypeCompleteness) Enum() *TypeCompleteness {
+	p := new(TypeCompleteness)
+	*p = x
+	return p
+}
+
+func (x TypeCompleteness) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TypeCompleteness) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[7].Descriptor()
+}
+
+func (TypeCompleteness) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[7]
+}
+
+func (x TypeCompleteness) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TypeCompleteness.Descriptor instead.
+func (TypeCompleteness) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{7}
 }
 
 type ResourceAttributes struct {
@@ -311,6 +602,50 @@ func (x *AttributePath) GetSteps() []*AttributePath_Step {
 	return nil
 }
 
+type AttributePaths struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Paths         []*AttributePath       `protobuf:"bytes,1,rep,name=paths,proto3" json:"paths,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AttributePaths) Reset() {
+	*x = AttributePaths{}
+	mi := &file_types_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttributePaths) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttributePaths) ProtoMessage() {}
+
+func (x *AttributePaths) ProtoReflect() protoreflect.Message {
+	mi := &file_types_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttributePaths.ProtoReflect.Descriptor instead.
+func (*AttributePaths) Descriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *AttributePaths) GetPaths() []*AttributePath {
+	if x != nil {
+		return x.Paths
+	}
+	return nil
+}
+
 type AttributePath_Step struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Selector:
@@ -325,7 +660,7 @@ type AttributePath_Step struct {
 
 func (x *AttributePath_Step) Reset() {
 	*x = AttributePath_Step{}
-	mi := &file_types_proto_msgTypes[2]
+	mi := &file_types_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +672,7 @@ func (x *AttributePath_Step) String() string {
 func (*AttributePath_Step) ProtoMessage() {}
 
 func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_types_proto_msgTypes[2]
+	mi := &file_types_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -428,7 +763,9 @@ const file_types_proto_rawDesc = "" +
 	"\x12element_key_string\x18\x02 \x01(\tH\x00R\x10elementKeyString\x12(\n" +
 	"\x0felement_key_int\x18\x03 \x01(\x03H\x00R\relementKeyIntB\n" +
 	"\n" +
-	"\bselector*\xbb\x01\n" +
+	"\bselector\"<\n" +
+	"\x0eAttributePaths\x12*\n" +
+	"\x05paths\x18\x01 \x03(\v2\x14.proto.AttributePathR\x05paths*\xbb\x01\n" +
 	"\x0eEvaluateResult\x12\x1b\n" +
 	"\x17INVALID_EVALUATE_RESULT\x10\x00\x12\x1b\n" +
 	"\x17UNKNOWN_EVALUATE_RESULT\x10\x01\x12\x19\n" +
@@ -443,12 +780,46 @@ const file_types_proto_rawDesc = "" +
 	"\x06UPDATE\x10\x01\x12\n" +
 	"\n" +
 	"\x06DELETE\x10\x02\x12\t\n" +
-	"\x05NO_OP\x10\x03*\x81\x01\n" +
+	"\x05NO_OP\x10\x03*\x9d\x01\n" +
 	"\x0fEvaluationStage\x12\x1c\n" +
 	"\x18INVALID_EVALUATION_STAGE\x10\x00\x12\x19\n" +
 	"\x15INIT_EVALUATION_STAGE\x10\x01\x12\x19\n" +
 	"\x15PLAN_EVALUATION_STAGE\x10\x02\x12\x1a\n" +
-	"\x16APPLY_EVALUATION_STAGE\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\x16APPLY_EVALUATION_STAGE\x10\x03\x12\x1a\n" +
+	"\x16QUERY_EVALUATION_STAGE\x10\x04*j\n" +
+	"\bPlanMode\x12\x15\n" +
+	"\x11INVALID_PLAN_MODE\x10\x00\x12\x14\n" +
+	"\x10NORMAL_PLAN_MODE\x10\x01\x12\x15\n" +
+	"\x11DESTROY_PLAN_MODE\x10\x02\x12\x1a\n" +
+	"\x16REFRESH_ONLY_PLAN_MODE\x10\x03*h\n" +
+	"\n" +
+	"RunRuntime\x12\x17\n" +
+	"\x13INVALID_RUN_RUNTIME\x10\x00\x12\x13\n" +
+	"\x0fCLI_RUN_RUNTIME\x10\x01\x12\x14\n" +
+	"\x10TEST_RUN_RUNTIME\x10\x02\x12\x16\n" +
+	"\x12STACKS_RUN_RUNTIME\x10\x03*\xd8\x02\n" +
+	"\x0eResourceAction\x12\x1b\n" +
+	"\x17INVALID_RESOURCE_ACTION\x10\x00\x12\x19\n" +
+	"\x15NO_OP_RESOURCE_ACTION\x10\x01\x12\x1a\n" +
+	"\x16CREATE_RESOURCE_ACTION\x10\x02\x12\x1a\n" +
+	"\x16UPDATE_RESOURCE_ACTION\x10\x03\x12\x1a\n" +
+	"\x16DELETE_RESOURCE_ACTION\x10\x04\x12&\n" +
+	"\"DELETE_THEN_CREATE_RESOURCE_ACTION\x10\x05\x12&\n" +
+	"\"CREATE_THEN_DELETE_RESOURCE_ACTION\x10\x06\x12\x1a\n" +
+	"\x16FORGET_RESOURCE_ACTION\x10\a\x12&\n" +
+	"\"CREATE_THEN_FORGET_RESOURCE_ACTION\x10\b\x12&\n" +
+	"\"FORGET_THEN_CREATE_RESOURCE_ACTION\x10\t*\x97\x01\n" +
+	"\fRecordSource\x12\x19\n" +
+	"\x15INVALID_RECORD_SOURCE\x10\x00\x12\x19\n" +
+	"\x15PLANNED_RECORD_SOURCE\x10\x01\x12\x17\n" +
+	"\x13STATE_RECORD_SOURCE\x10\x02\x12\x1a\n" +
+	"\x16DEFERRED_RECORD_SOURCE\x10\x03\x12\x1c\n" +
+	"\x18DISCOVERED_RECORD_SOURCE\x10\x04*\xa4\x01\n" +
+	"\x10TypeCompleteness\x12\x1d\n" +
+	"\x19INVALID_TYPE_COMPLETENESS\x10\x00\x12\x1e\n" +
+	"\x1aCOMPLETE_TYPE_COMPLETENESS\x10\x01\x12)\n" +
+	"%INCOMPLETE_DEFERRED_TYPE_COMPLETENESS\x10\x02\x12&\n" +
+	"\"INCOMPLETE_ERROR_TYPE_COMPLETENESS\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_types_proto_rawDescOnce sync.Once
@@ -462,24 +833,31 @@ func file_types_proto_rawDescGZIP() []byte {
 	return file_types_proto_rawDescData
 }
 
-var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_types_proto_goTypes = []any{
 	(EvaluateResult)(0),        // 0: proto.EvaluateResult
 	(Operation)(0),             // 1: proto.Operation
 	(EvaluationStage)(0),       // 2: proto.EvaluationStage
-	(*ResourceAttributes)(nil), // 3: proto.ResourceAttributes
-	(*AttributePath)(nil),      // 4: proto.AttributePath
-	(*AttributePath_Step)(nil), // 5: proto.AttributePath.Step
+	(PlanMode)(0),              // 3: proto.PlanMode
+	(RunRuntime)(0),            // 4: proto.RunRuntime
+	(ResourceAction)(0),        // 5: proto.ResourceAction
+	(RecordSource)(0),          // 6: proto.RecordSource
+	(TypeCompleteness)(0),      // 7: proto.TypeCompleteness
+	(*ResourceAttributes)(nil), // 8: proto.ResourceAttributes
+	(*AttributePath)(nil),      // 9: proto.AttributePath
+	(*AttributePaths)(nil),     // 10: proto.AttributePaths
+	(*AttributePath_Step)(nil), // 11: proto.AttributePath.Step
 }
 var file_types_proto_depIdxs = []int32{
-	4, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
-	5, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	9,  // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
+	11, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
+	9,  // 2: proto.AttributePaths.paths:type_name -> proto.AttributePath
+	3,  // [3:3] is the sub-list for method output_type
+	3,  // [3:3] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_types_proto_init() }
@@ -487,7 +865,7 @@ func file_types_proto_init() {
 	if File_types_proto != nil {
 		return
 	}
-	file_types_proto_msgTypes[2].OneofWrappers = []any{
+	file_types_proto_msgTypes[3].OneofWrappers = []any{
 		(*AttributePath_Step_AttributeName)(nil),
 		(*AttributePath_Step_ElementKeyString)(nil),
 		(*AttributePath_Step_ElementKeyInt)(nil),
@@ -497,8 +875,8 @@ func file_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   3,
+			NumEnums:      8,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
