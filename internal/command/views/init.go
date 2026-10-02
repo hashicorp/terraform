@@ -42,6 +42,9 @@ type Init interface {
 	// LogMigrateBackendUnset indicates that the backend has been unset/successfully removed from the configuration.
 	LogMigrateBackendUnset(backendType string)
 
+	// LogMigrateFromBackendToCloud indicates that the backend is being migrated to the cloud.
+	LogMigrateFromBackendToCloud(backendType string)
+
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
@@ -141,6 +144,10 @@ func (v *InitHuman) LogMigrateBackendUnset(backendType string) {
 	v.print(fmt.Sprintf(`[reset][green]
 
 Successfully unset the backend %q. Terraform will now operate locally.`, backendType))
+}
+
+func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
+	v.print(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", backendType))
 }
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
@@ -399,6 +406,11 @@ func (v *InitJSON) LogMigrateBackendUnset(backendType string) {
 	panic("InitJSON: LogMigrateBackendUnset not implemented")
 }
 
+func (v *InitJSON) LogMigrateFromBackendToCloud(backendType string) {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateFromBackendToCloud not implemented")
+}
+
 func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog("Initializing HCP Terraform...", json.MessageInitializingTerraformCloudMessage)
 }
@@ -590,10 +602,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_migrate_to_cloud": {
-		HumanValue: "Migrating from backend %q to HCP Terraform.",
-		JSONValue:  "Migrating from backend %q to HCP Terraform.",
-	},
 	"backend_migrate_from_cloud": {
 		HumanValue: "Migrating from HCP Terraform to backend %q.",
 		JSONValue:  "Migrating from HCP Terraform to backend %q.",
@@ -623,8 +631,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
-	BackendMigrateToCloudMessage InitMessageCode = "backend_migrate_to_cloud"
 	// BackendMigrateFromCloudMessage indicates migration from HCP Terraform
 	BackendMigrateFromCloudMessage InitMessageCode = "backend_migrate_from_cloud"
 	// BackendCloudChangeInPlaceMessage indicates HCP Terraform configuration change
