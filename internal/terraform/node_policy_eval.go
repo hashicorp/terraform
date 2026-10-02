@@ -39,8 +39,13 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
 	var diags tfdiags.Diagnostics
 	if policyGraph.run != nil {
-		// These are only warnings, so the policies are still evaluated.
 		diags = diags.Append(policyGraph.startRelationshipRun(ctx, spanCtx))
+	}
+	if diags.HasErrors() {
+		// The relationship run didn't begin, so no policy is evaluated. There
+		// is no subgraph whose finish node ends the span, so end it here.
+		span.End()
+		return nil, diags
 	}
 	return policyGraph.evalGraph(span), diags
 }

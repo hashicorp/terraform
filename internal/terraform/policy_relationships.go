@@ -124,10 +124,14 @@ func applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes [
 
 // startRelationshipRun begins the relationship run of the walk and reports
 // its instances. It must be called after the walk's changes and state are
-// final and before any subject is evaluated. It never fails the walk: errors
-// are logged and leave the run without a run id (when BeginRun fails) or with
-// only part of its instances reported. It returns the diagnostics of BeginRun
-// that the walk reports; see policyBeginRunDiagnostics.
+// final and before any subject is evaluated.
+//
+// It returns the diagnostics of BeginRun that the walk reports; see
+// policyBeginRunDiagnostics. If they have errors, the run didn't begin: no run
+// id is set, no instances are reported, and the caller must not evaluate
+// policies. Failed RPCs don't fail the walk: they are logged and leave the run
+// without a run id (when BeginRun fails) or with only part of its instances
+// reported.
 func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.Context) tfdiags.Diagnostics {
 	client, ok := policyRelationshipsClient(ctx.PolicyClient())
 	if !ok || ps.run == nil {
@@ -154,6 +158,10 @@ func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.
 	}
 	logPolicyRunDiagnostics("BeginRun", runID, resp.GetDiagnostics())
 	diags := policyBeginRunDiagnostics(resp.GetDiagnostics())
+	if diags.HasErrors() {
+		log.Printf("[WARN] policy: relationship run %s did not begin: BeginRun returned errors", runID)
+		return diags
+	}
 
 	ps.lock.Lock()
 	ps.runID = runID
@@ -193,17 +201,16 @@ func (ps *policySubgraph) finishRelationshipRun(ctx EvalContext, stopCtx context
 // policyBeginRunDiagnostics returns the diagnostics of a BeginRun response
 // that the walk reports, with their policy information.
 //
-// Warnings are about wrong relationship definitions that no policy uses, and
-// are reported once per walk. Errors are about wrong definitions that
-// policies use; the engine also returns them as setup errors of the policies
-// that use them, so for now they are only logged.
+// Warnings are about wrong relationship definitions that no policy uses.
+// Errors are about wrong definitions that policies use, and mean that the run
+// didn't begin. Both are reported once per walk.
 func policyBeginRunDiagnostics(diags []*proto.Diagnostic) tfdiags.Diagnostics {
 	var reported []*proto.Diagnostic
 	for _, diag := range diags {
 		// Diagnostics without a severity would become errors when converted,
 		// so the filter uses the engine's severities.
 		switch diag.GetSeverity() {
-		case proto.Severity_WARNING:
+		case proto.Severity_WARNING, proto.Severity_ERROR:
 			reported = append(reported, diag)
 		}
 	}

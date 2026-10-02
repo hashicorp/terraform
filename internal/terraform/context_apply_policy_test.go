@@ -2646,7 +2646,7 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
+func TestContext2Apply_PolicyRelationships_beginRunWarnings(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
 		resource "test_net" "a" {
 			count = 2
@@ -2662,18 +2662,82 @@ func TestContext2Apply_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
-	run.beginDiags = relDefinitionDiagnostics()
+	run.beginDiags = []*proto.Diagnostic{relDefinitionWarning()}
 	// The diagnostics of the other calls are only logged.
-	run.reportDiags = relDefinitionDiagnostics()
-	run.finishDiags = relDefinitionDiagnostics()
+	run.reportDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
+	run.finishDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
 	_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
 
-	// The warning is reported once, not once per subject, and the error
-	// isn't reported.
-	assertRelDefinitionWarning(t, diags)
+	// The warning is reported once, not once per subject, and the policies
+	// are still evaluated.
+	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning())
 	run.assertRunSequence(t)
 	if len(run.evals) != 2 {
 		t.Fatalf("expected 2 evaluations, got %d", len(run.evals))
+	}
+}
+
+// TestContext2Apply_PolicyRelationships_beginRunErrors checks the apply walk
+// when BeginRun returns errors. It mutates the global OpenTelemetry
+// TracerProvider, so it must not run in parallel.
+func TestContext2Apply_PolicyRelationships_beginRunErrors(t *testing.T) {
+	prevProvider := otel.GetTracerProvider()
+	exp := tracetest.NewInMemoryExporter()
+	tracerProvider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exp)))
+	otel.SetTracerProvider(tracerProvider)
+	t.Cleanup(func() {
+		tracerProvider.Shutdown(context.Background())
+		otel.SetTracerProvider(prevProvider)
+	})
+
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 2
+			name  = "a${count.index}"
+		}
+	`})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	run.beginDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
+	state, diags := ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+
+	// The error fails the apply and the warning is still reported, each once.
+	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning(), relDefinitionError())
+
+	// Policies are evaluated after the resources are applied, so the
+	// resources are applied before the run fails.
+	for _, addr := range []string{"test_net.a[0]", "test_net.a[1]"} {
+		if rs := state.ResourceInstance(mustResourceInstanceAddr(addr)); rs == nil || rs.Current == nil {
+			t.Errorf("expected %s to be applied", addr)
+		}
+	}
+
+	// The run didn't begin, so no policy is evaluated and there is no run to
+	// report instances to or to finish.
+	if len(run.begins) != 1 {
+		t.Fatalf("expected 1 BeginRun call, got %d", len(run.begins))
+	}
+	if len(run.reports) != 0 || len(run.evals) != 0 || len(run.finishes) != 0 {
+		t.Fatalf("expected no ReportInstances, evaluation or FinishRun calls, got %v", run.events)
+	}
+
+	// The policy phase span is ended even though the node that normally ends
+	// it doesn't run. The exporter only records ended spans.
+	var phaseSpans int
+	for _, s := range exp.GetSpans() {
+		if s.Name == "terraform.policy.evaluate" {
+			phaseSpans++
+		}
+	}
+	if phaseSpans != 1 {
+		t.Errorf("expected 1 ended terraform.policy.evaluate span, got %d", phaseSpans)
 	}
 }
 

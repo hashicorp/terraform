@@ -3221,77 +3221,102 @@ func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*poli
 	return client, run
 }
 
-// relDefinitionDiagnostics returns BeginRun diagnostics like the policy
-// engine returns for wrong relationship definitions: a warning for a
-// definition that no policy uses, and an error for one that a policy uses.
-func relDefinitionDiagnostics() []*proto.Diagnostic {
-	return []*proto.Diagnostic{
-		{
-			Severity: proto.Severity_WARNING,
-			Summary:  "Unknown resource type",
-			Detail:   `The provider has no resource type "test_nett". No policy uses relationship "net_vms", so this is a warning. Fix or remove the relationship before a policy uses it.`,
-			Subject: &proto.Range{
-				Filename: "policies/net.policy.hcl",
-				Start:    &proto.Position{Line: 3, Column: 14, Byte: 40},
-				End:      &proto.Position{Line: 3, Column: 25, Byte: 51},
-			},
-			Snippet: &proto.Snippet{
-				Context:              protobuf.String(`relationship "test_nett" "test_vm" "net_vms"`),
-				Code:                 `relationship "test_nett" "test_vm" "net_vms" {`,
-				StartLine:            3,
-				HighlightStartOffset: 13,
-				HighlightEndOffset:   24,
-			},
-			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+// relDefinitionWarning returns a BeginRun diagnostic like the policy engine
+// returns for a wrong relationship definition that no policy uses.
+func relDefinitionWarning() *proto.Diagnostic {
+	return &proto.Diagnostic{
+		Severity: proto.Severity_WARNING,
+		Summary:  "Unknown resource type",
+		Detail:   `The provider has no resource type "test_nett". No policy uses relationship "net_vms", so this is a warning. Fix or remove the relationship before a policy uses it.`,
+		Subject: &proto.Range{
+			Filename: "policies/net.policy.hcl",
+			Start:    &proto.Position{Line: 3, Column: 14, Byte: 40},
+			End:      &proto.Position{Line: 3, Column: 25, Byte: 51},
 		},
-		{
-			Severity: proto.Severity_ERROR,
-			Summary:  "Unknown attribute",
-			Detail:   `The resource type "test_vm" has no attribute "net".`,
-			Subject: &proto.Range{
-				Filename: "policies/vm.policy.hcl",
-				Start:    &proto.Position{Line: 5, Column: 3, Byte: 80},
-				End:      &proto.Position{Line: 5, Column: 6, Byte: 83},
-			},
-			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		Snippet: &proto.Snippet{
+			Context:              protobuf.String(`relationship "test_nett" "test_vm" "net_vms"`),
+			Code:                 `relationship "test_nett" "test_vm" "net_vms" {`,
+			StartLine:            3,
+			HighlightStartOffset: 13,
+			HighlightEndOffset:   24,
 		},
+		PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
 	}
 }
 
-// assertRelDefinitionWarning checks that diags are exactly the warning of
-// relDefinitionDiagnostics, with its policy information.
-func assertRelDefinitionWarning(t *testing.T, diags tfdiags.Diagnostics) {
+// relDefinitionError returns a BeginRun diagnostic like the policy engine
+// returns for a wrong relationship definition that a policy uses.
+func relDefinitionError() *proto.Diagnostic {
+	return &proto.Diagnostic{
+		Severity: proto.Severity_ERROR,
+		Summary:  "Unknown attribute",
+		Detail:   "The resource type \"test_vm\" has no attribute \"net\".\n\nThe policy resource_policy \"test_vm\" \"isolated\" uses relationship \"vm_net\", so no policy is evaluated in this run.",
+		Subject: &proto.Range{
+			Filename: "policies/vm.policy.hcl",
+			Start:    &proto.Position{Line: 2, Column: 3, Byte: 42},
+			End:      &proto.Position{Line: 2, Column: 6, Byte: 45},
+		},
+		Snippet: &proto.Snippet{
+			Context:              protobuf.String(`relationship "test_vm" "test_net" "vm_net"`),
+			Code:                 `  key = net`,
+			StartLine:            2,
+			HighlightStartOffset: 8,
+			HighlightEndOffset:   11,
+		},
+		PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+	}
+}
+
+// assertRelDefinitionDiagnostics checks that diags are exactly the given
+// BeginRun diagnostics, in any order, with their policy information.
+func assertRelDefinitionDiagnostics(t *testing.T, diags tfdiags.Diagnostics, want ...*proto.Diagnostic) {
 	t.Helper()
-	if len(diags) != 1 {
-		t.Fatalf("expected exactly 1 diagnostic, got %d: %v", len(diags), diags.ErrWithWarnings())
+	if len(diags) != len(want) {
+		t.Fatalf("expected %d diagnostics, got %d: %v", len(want), len(diags), diags.ErrWithWarnings())
 	}
-	want := relDefinitionDiagnostics()[0]
-	diag := diags[0]
-	if diag.Severity() != tfdiags.Warning {
-		t.Errorf("expected a warning, got %s", diag.Severity())
-	}
-	if desc := diag.Description(); desc.Summary != want.Summary || desc.Detail != want.Detail {
-		t.Errorf("wrong description %#v", desc)
-	}
-	// The warning is about the policy files, not about the configuration.
-	if src := diag.Source(); src.Subject != nil || src.Context != nil {
-		t.Errorf("expected no configuration source, got %#v", src)
-	}
-	extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
-	if extra == nil {
-		t.Fatalf("expected policy extra info")
-	}
-	if extra.Severity != hcl.DiagWarning {
-		t.Errorf("wrong policy extra severity %v", extra.Severity)
-	}
-	if extra.PolicySetName != "local" || extra.Directory != "policies" {
-		t.Errorf("wrong policy set %q in %q", extra.PolicySetName, extra.Directory)
-	}
-	if extra.Range == nil || !protobuf.Equal(extra.Range.Subject, want.Subject) {
-		t.Errorf("wrong policy range %v", extra.Range)
-	}
-	if !protobuf.Equal(extra.Snippet, want.Snippet) {
-		t.Errorf("wrong policy snippet %v", extra.Snippet)
+	for _, want := range want {
+		var diag tfdiags.Diagnostic
+		for _, d := range diags {
+			if d.Description().Summary == want.Summary {
+				diag = d
+			}
+		}
+		if diag == nil {
+			t.Errorf("missing diagnostic %q", want.Summary)
+			continue
+		}
+		wantSeverity, wantHCLSeverity := tfdiags.Warning, hcl.DiagWarning
+		if want.Severity == proto.Severity_ERROR {
+			wantSeverity, wantHCLSeverity = tfdiags.Error, hcl.DiagError
+		}
+		if diag.Severity() != wantSeverity {
+			t.Errorf("%s: wrong severity %s", want.Summary, diag.Severity())
+		}
+		if desc := diag.Description(); desc.Detail != want.Detail {
+			t.Errorf("%s: wrong detail %q", want.Summary, desc.Detail)
+		}
+		// The diagnostic is about the policy files, not about the
+		// configuration.
+		if src := diag.Source(); src.Subject != nil || src.Context != nil {
+			t.Errorf("%s: expected no configuration source, got %#v", want.Summary, src)
+		}
+		extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+		if extra == nil {
+			t.Errorf("%s: expected policy extra info", want.Summary)
+			continue
+		}
+		if extra.Severity != wantHCLSeverity {
+			t.Errorf("%s: wrong policy extra severity %v", want.Summary, extra.Severity)
+		}
+		if extra.PolicySetName != want.PolicySet.Name || extra.Directory != want.PolicySet.Path {
+			t.Errorf("%s: wrong policy set %q in %q", want.Summary, extra.PolicySetName, extra.Directory)
+		}
+		if extra.Range == nil || !protobuf.Equal(extra.Range.Subject, want.Subject) {
+			t.Errorf("%s: wrong policy range %v", want.Summary, extra.Range)
+		}
+		if !protobuf.Equal(extra.Snippet, want.Snippet) {
+			t.Errorf("%s: wrong policy snippet %v", want.Summary, extra.Snippet)
+		}
 	}
 }
 
@@ -4631,15 +4656,11 @@ func TestContext2Plan_PolicyRelationships_rpcErrors(t *testing.T) {
 		}
 	})
 
+	// Error diagnostics of BeginRun stop the run; see
+	// TestContext2Plan_PolicyRelationships_beginRunErrors.
 	t.Run("responses with error diagnostics", func(t *testing.T) {
 		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
 		errDiag := []*proto.Diagnostic{{Severity: proto.Severity_ERROR, Summary: "plugin error"}}
-		beginRun := client.BeginRunFn
-		client.BeginRunFn = func(ctx context.Context, req *proto.BeginRunRequest) (*proto.BeginRunResponse, error) {
-			resp, err := beginRun(ctx, req)
-			resp.Diagnostics = errDiag
-			return resp, err
-		}
 		report := client.ReportInstancesFn
 		client.ReportInstancesFn = func(ctx context.Context, req *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
 			resp, err := report(ctx, req)
@@ -4672,7 +4693,7 @@ func TestContext2Plan_PolicyRelationships_rpcErrors(t *testing.T) {
 	})
 }
 
-func TestContext2Plan_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
+func TestContext2Plan_PolicyRelationships_beginRunWarnings(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
 		resource "test_net" "a" {
 			count = 2
@@ -4685,10 +4706,10 @@ func TestContext2Plan_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
-			run.beginDiags = relDefinitionDiagnostics()
+			run.beginDiags = []*proto.Diagnostic{relDefinitionWarning()}
 			// The diagnostics of the other calls are only logged.
-			run.reportDiags = relDefinitionDiagnostics()
-			run.finishDiags = relDefinitionDiagnostics()
+			run.reportDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
+			run.finishDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
 			run.reportErr = func(int) error { return reportErr }
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
@@ -4701,8 +4722,8 @@ func TestContext2Plan_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
 			})
 
 			// The warning is reported once, not once per subject, and the
-			// error isn't reported.
-			assertRelDefinitionWarning(t, diags)
+			// policies are still evaluated.
+			assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning())
 			if plan.Errored {
 				t.Fatalf("expected the plan to succeed")
 			}
@@ -4711,6 +4732,47 @@ func TestContext2Plan_PolicyRelationships_beginRunDiagnostics(t *testing.T) {
 				t.Fatalf("expected 2 evaluations, got %d", len(run.evals))
 			}
 		})
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_beginRunErrors(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{"main.tf": `
+		resource "test_net" "a" {
+			count = 2
+			name  = "a${count.index}"
+		}
+	`})
+	// The engine answers with an empty spec when it returns errors, but the
+	// recorder's spec isn't empty, to show that Terraform doesn't use it.
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	run.beginDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		PolicyClient: client,
+	})
+
+	// The error fails the plan and the warning is still reported, each once.
+	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning(), relDefinitionError())
+	if plan == nil || !plan.Errored {
+		t.Fatalf("expected an errored plan")
+	}
+	// The plan still has its changes, for the partial plan the CLI renders.
+	if got := len(plan.Changes.Resources); got != 2 {
+		t.Errorf("expected 2 planned changes, got %d", got)
+	}
+
+	// The run didn't begin, so no policy is evaluated and there is no run to
+	// report instances to or to finish.
+	if len(run.begins) != 1 {
+		t.Fatalf("expected 1 BeginRun call, got %d", len(run.begins))
+	}
+	if len(run.reports) != 0 || len(run.evals) != 0 || len(run.finishes) != 0 {
+		t.Fatalf("expected no ReportInstances, evaluation or FinishRun calls, got %v", run.events)
 	}
 }
 
