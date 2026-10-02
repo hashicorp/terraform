@@ -1616,7 +1616,7 @@ func (m *Meta) backend_c_r_S(
 
 	view := views.NewInit(vt, m.View)
 	if cloudMode == cloud.ConfigMigrationOut {
-		view.Output(views.BackendCloudMigrateLocalMessage)
+		view.LogMigrateFromCloudToLocal()
 	} else {
 		view.LogMigrateBackendUnsetStart(s.Backend.Type)
 	}
