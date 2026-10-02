@@ -24,7 +24,6 @@ type Init interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 	PolicyResult(addr string, resp policy.EvaluationResponse)
 	PolicyDiagnostics(diags policy.Diagnostics)
-	Output(messageCode InitMessageCode, params ...any)
 
 	// LogConfigurationCopyingStart describes the start of copying a module to create the root module in an empty directory.
 	LogConfigurationCopyingStart(moduleSource string)
@@ -96,8 +95,6 @@ type Init interface {
 
 	StateStoreProviderTrustLogger
 
-	prepareMessage(messageCode InitMessageCode, params ...any) string
-
 	Spacer // The `init` command logs empty lines to space-out different sections of human-readable output
 }
 
@@ -144,10 +141,6 @@ func (v *InitHuman) PolicyDiagnostics(diags policy.Diagnostics) {
 
 func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	v.view.PolicyResult(addr, resp)
-}
-
-func (v *InitHuman) Output(messageCode InitMessageCode, params ...any) {
-	v.print(v.prepareMessage(messageCode, params...))
 }
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
@@ -352,24 +345,6 @@ func (v *InitHuman) print(message string) {
 	v.view.streams.Println(message)
 }
 
-// prepareMessage retrieves a message template matching the InitMessageCode and
-// returns a formatted string made using the template and param argument(s).
-//
-// As this is implemented on InitHuman the human message template is used.
-func (v *InitHuman) prepareMessage(messageCode InitMessageCode, params ...any) string {
-	message, ok := MessageRegistry[messageCode]
-	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(messageCode)
-	}
-
-	if message.HumanValue == "" {
-		panic("unexpected empty message for init message code: " + string(messageCode))
-	}
-
-	return fmt.Sprintf(message.HumanValue, params...)
-}
-
 // The InitJSON implementation renders streaming JSON logs, suitable for
 // integrating with other software.
 type InitJSON struct {
@@ -399,26 +374,6 @@ func (v *InitJSON) PolicyDiagnostics(diags policy.Diagnostics) {
 
 func (v *InitJSON) PolicyResult(addr string, resp policy.EvaluationResponse) {
 	v.view.PolicyResult(addr, resp)
-}
-
-func (v *InitJSON) Output(messageCode InitMessageCode, params ...any) {
-	preppedMessage := v.prepareMessage(messageCode, params...)
-
-	// Logged data includes by default:
-	// @level as "info"
-	// @module as "terraform.ui" (See NewJSONView)
-	// @timestamp formatted in the default way
-	//
-	// In the method below we:
-	// * Set @message as the first argument value
-	// * Annotate with extra data:
-	//     "type":"init_output"
-	//     "message_code":"<value>"
-	v.view.log.Info(
-		preppedMessage,
-		"type", "init_output",
-		"message_code", string(messageCode),
-	)
 }
 
 func (v *InitJSON) initOutputLog(preppedMessage string, messageCode json.MessageType) {
@@ -652,34 +607,6 @@ func (v *InitJSON) LogModuleUpgrade() {
 func (v *InitJSON) LogModuleInitialization() {
 	v.initOutputLog("Initializing modules...", json.MessageInitializingModulesMessage)
 }
-
-// prepareMessage retrieves a message template matching the InitMessageCode and
-// returns a formatted string made using the template and param argument(s).
-//
-// As this is implemented on InitJSON the JSON message template is used.
-func (v *InitJSON) prepareMessage(messageCode InitMessageCode, params ...any) string {
-	message, ok := MessageRegistry[messageCode]
-	if !ok {
-		// display the message code as fallback if not found in the message registry
-		return string(messageCode)
-	}
-
-	if message.JSONValue == "" {
-		panic("unexpected empty message for init message code: " + string(messageCode))
-	}
-
-	return strings.TrimSpace(fmt.Sprintf(message.JSONValue, params...))
-}
-
-// InitMessage represents a message string in both json and human decorated text format.
-type InitMessage struct {
-	HumanValue string
-	JSONValue  string
-}
-
-var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{}
-
-type InitMessageCode string
 
 const outputInitEmpty = `
 [reset][bold]Terraform initialized in an empty directory![reset]
