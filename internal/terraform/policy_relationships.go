@@ -32,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // policyRunOpts describes the relationship run of a plan or apply walk. A walk
@@ -184,6 +185,26 @@ func (ps *policySubgraph) finishRelationshipRun(ctx EvalContext, stopCtx context
 		return
 	}
 	logPolicyRunDiagnostics("FinishRun", runID, resp.GetDiagnostics())
+}
+
+// policyBeginRunDiagnostics returns the diagnostics of a BeginRun response
+// that the walk reports, with their policy information.
+//
+// Warnings are about wrong relationship definitions that no policy uses, and
+// are reported once per walk. Errors are about wrong definitions that
+// policies use; the engine also returns them as setup errors of the policies
+// that use them, so for now they are only logged.
+func policyBeginRunDiagnostics(diags []*proto.Diagnostic) tfdiags.Diagnostics {
+	var reported []*proto.Diagnostic
+	for _, diag := range diags {
+		// Diagnostics without a severity would become errors when converted,
+		// so the filter uses the engine's severities.
+		switch diag.GetSeverity() {
+		case proto.Severity_WARNING:
+			reported = append(reported, diag)
+		}
+	}
+	return policy.DiagsFromProto(reported, nil).AsTerraformDiags()
 }
 
 func logPolicyRunDiagnostics(call, runID string, diags []*proto.Diagnostic) {

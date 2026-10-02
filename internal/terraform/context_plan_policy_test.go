@@ -21,6 +21,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
+	protobuf "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -3214,6 +3215,80 @@ func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*poli
 		return &proto.FinishRunResponse{}, nil
 	}
 	return client, run
+}
+
+// relDefinitionDiagnostics returns BeginRun diagnostics like the policy
+// engine returns for wrong relationship definitions: a warning for a
+// definition that no policy uses, and an error for one that a policy uses.
+func relDefinitionDiagnostics() []*proto.Diagnostic {
+	return []*proto.Diagnostic{
+		{
+			Severity: proto.Severity_WARNING,
+			Summary:  "Unknown resource type",
+			Detail:   `The provider has no resource type "test_nett". No policy uses relationship "net_vms", so this is a warning. Fix or remove the relationship before a policy uses it.`,
+			Subject: &proto.Range{
+				Filename: "policies/net.policy.hcl",
+				Start:    &proto.Position{Line: 3, Column: 14, Byte: 40},
+				End:      &proto.Position{Line: 3, Column: 25, Byte: 51},
+			},
+			Snippet: &proto.Snippet{
+				Context:              protobuf.String(`relationship "test_nett" "test_vm" "net_vms"`),
+				Code:                 `relationship "test_nett" "test_vm" "net_vms" {`,
+				StartLine:            3,
+				HighlightStartOffset: 13,
+				HighlightEndOffset:   24,
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+		{
+			Severity: proto.Severity_ERROR,
+			Summary:  "Unknown attribute",
+			Detail:   `The resource type "test_vm" has no attribute "net".`,
+			Subject: &proto.Range{
+				Filename: "policies/vm.policy.hcl",
+				Start:    &proto.Position{Line: 5, Column: 3, Byte: 80},
+				End:      &proto.Position{Line: 5, Column: 6, Byte: 83},
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+	}
+}
+
+// assertRelDefinitionWarning checks that diags are exactly the warning of
+// relDefinitionDiagnostics, with its policy information.
+func assertRelDefinitionWarning(t *testing.T, diags tfdiags.Diagnostics) {
+	t.Helper()
+	if len(diags) != 1 {
+		t.Fatalf("expected exactly 1 diagnostic, got %d: %v", len(diags), diags.ErrWithWarnings())
+	}
+	want := relDefinitionDiagnostics()[0]
+	diag := diags[0]
+	if diag.Severity() != tfdiags.Warning {
+		t.Errorf("expected a warning, got %s", diag.Severity())
+	}
+	if desc := diag.Description(); desc.Summary != want.Summary || desc.Detail != want.Detail {
+		t.Errorf("wrong description %#v", desc)
+	}
+	// The warning is about the policy files, not about the configuration.
+	if src := diag.Source(); src.Subject != nil || src.Context != nil {
+		t.Errorf("expected no configuration source, got %#v", src)
+	}
+	extra := tfdiags.ExtraInfo[*policy.PolicyExtra](diag)
+	if extra == nil {
+		t.Fatalf("expected policy extra info")
+	}
+	if extra.Severity != hcl.DiagWarning {
+		t.Errorf("wrong policy extra severity %v", extra.Severity)
+	}
+	if extra.PolicySetName != "local" || extra.Directory != "policies" {
+		t.Errorf("wrong policy set %q in %q", extra.PolicySetName, extra.Directory)
+	}
+	if extra.Range == nil || !protobuf.Equal(extra.Range.Subject, want.Subject) {
+		t.Errorf("wrong policy range %v", extra.Range)
+	}
+	if !protobuf.Equal(extra.Snippet, want.Snippet) {
+		t.Errorf("wrong policy snippet %v", extra.Snippet)
+	}
 }
 
 // relTypeSpec returns a TypeSpec for a resource type of the default "test"

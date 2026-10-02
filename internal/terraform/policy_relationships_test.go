@@ -637,3 +637,20 @@ func TestPolicyStateValue(t *testing.T) {
 		}
 	})
 }
+
+func TestPolicyBeginRunDiagnostics(t *testing.T) {
+	definitions := relDefinitionDiagnostics()
+	warning, err := definitions[0], definitions[1]
+	invalid := &proto.Diagnostic{Severity: proto.Severity_INVALID, Summary: "No severity"}
+
+	t.Run("warnings are kept", func(t *testing.T) {
+		assertRelDefinitionWarning(t, policyBeginRunDiagnostics([]*proto.Diagnostic{err, invalid, warning}))
+	})
+	t.Run("errors and diagnostics without severity are dropped", func(t *testing.T) {
+		for _, diags := range [][]*proto.Diagnostic{nil, {err}, {invalid}} {
+			if got := policyBeginRunDiagnostics(diags); len(got) != 0 {
+				t.Errorf("expected no diagnostics, got %v", got.ErrWithWarnings())
+			}
+		}
+	})
+}
