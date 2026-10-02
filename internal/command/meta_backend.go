@@ -1618,7 +1618,7 @@ func (m *Meta) backend_c_r_S(
 	if cloudMode == cloud.ConfigMigrationOut {
 		view.Output(views.BackendCloudMigrateLocalMessage)
 	} else {
-		view.Output(views.BackendMigrateLocalMessage, s.Backend.Type)
+		view.LogMigrateBackendUnsetStart(s.Backend.Type)
 	}
 
 	// Grab a purely local backend to get the local state if it exists
@@ -1660,7 +1660,7 @@ func (m *Meta) backend_c_r_S(
 	}
 
 	if output {
-		view.LogMigrateBackendUnset(backendType)
+		view.LogMigrateBackendUnsetEnd(backendType)
 	}
 
 	// Return no backend

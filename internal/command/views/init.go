@@ -39,8 +39,11 @@ type Init interface {
 	// LogInitializingBackendStart indicates progress initializing a backend.
 	LogInitializingBackendStart()
 
-	// LogMigrateBackendUnset indicates that the backend has been unset/successfully removed from the configuration.
-	LogMigrateBackendUnset(backendType string)
+	// LogMigrateBackendUnsetStart indicates that the backend has begun the process of being unset/successfully removed from the configuration.
+	LogMigrateBackendUnsetStart(backendType string)
+
+	// LogMigrateBackendUnsetEnd indicates that the backend has been unset/successfully removed from the configuration.
+	LogMigrateBackendUnsetEnd(backendType string)
 
 	// LogMigrateBackendReconfigured indicates that the backend has been reconfigured successfully.
 	LogMigrateBackendReconfigured()
@@ -152,7 +155,11 @@ func (v *InitHuman) LogInitializingBackendStart() {
 	v.print("\n[reset][bold]Initializing the backend...")
 }
 
-func (v *InitHuman) LogMigrateBackendUnset(backendType string) {
+func (v *InitHuman) LogMigrateBackendUnsetStart(backendType string) {
+	v.print(fmt.Sprintf(`Terraform has detected you're unconfiguring your previously set %q backend.`, backendType))
+}
+
+func (v *InitHuman) LogMigrateBackendUnsetEnd(backendType string) {
 	v.print(fmt.Sprintf(`[reset][green]
 
 Successfully unset the backend %q. Terraform will now operate locally.`, backendType))
@@ -433,9 +440,14 @@ func (v *InitJSON) LogInitializingBackendStart() {
 	v.initOutputLog("Initializing the backend...", json.MessageInitializingBackendMessage)
 }
 
-func (v *InitJSON) LogMigrateBackendUnset(backendType string) {
+func (v *InitJSON) LogMigrateBackendUnsetStart(backendType string) {
 	// `-json` and `-migrate-state` are mutually exclusive.
-	panic("InitJSON: LogMigrateBackendUnset not implemented")
+	panic("InitJSON: LogMigrateBackendUnsetStart not implemented")
+}
+
+func (v *InitJSON) LogMigrateBackendUnsetEnd(backendType string) {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateBackendUnsetEnd not implemented")
 }
 
 func (v *InitJSON) LogMigrateBackendReconfigured() {
@@ -654,10 +666,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_migrate_local": {
-		HumanValue: backendMigrateLocalHuman,
-		JSONValue:  backendMigrateLocalJSON,
-	},
 	"backend_cloud_migrate_local": {
 		HumanValue: "Migrating from HCP Terraform or Terraform Enterprise to local state.",
 		JSONValue:  "Migrating from HCP Terraform or Terraform Enterprise to local state.",
@@ -667,8 +675,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendMigrateLocalMessage indicates migration to local backend
-	BackendMigrateLocalMessage InitMessageCode = "backend_migrate_local"
 	// BackendCloudMigrateLocalMessage indicates migration from cloud to local
 	BackendCloudMigrateLocalMessage InitMessageCode = "backend_cloud_migrate_local"
 )
@@ -745,10 +751,6 @@ use this backend unless the backend configuration changes.`
 
 const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.`
-
-const backendMigrateLocalHuman = `Terraform has detected you're unconfiguring your previously set %q backend.`
-
-const backendMigrateLocalJSON = `Terraform has detected you're unconfiguring your previously set %q backend.`
 
 const (
 	// LogInstallStateStoreProviderStart method's message templates
