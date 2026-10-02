@@ -5430,7 +5430,25 @@ output "test_output" {
 	}))
 }
 
-func TestContextValidate_importNestedModule_ValidateInputVar(t *testing.T) {
-	// nested module + input variable
+func TestContext2Validate_AllowRootDeprecatedOutputs(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "old" {
+  value      = "example"
+  deprecated = "Use the new output."
+}
+`,
+	})
+	ctx := testContext2(t, &ContextOpts{})
+	wantRejection := tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Root module output deprecated",
+		Detail:   "Root module outputs cannot be deprecated, as there is no higher-level module to inform of the deprecation.",
+		Subject:  m.Module.Outputs["old"].DeprecatedRange.Ptr(),
+	})
 
+	tfdiags.AssertDiagnosticsMatch(t, ctx.Validate(m, nil), wantRejection)
+	tfdiags.AssertDiagnosticsMatch(t, ctx.Validate(m, &ValidateOpts{
+		AllowRootDeprecatedOutputs: true,
+	}), nil)
 }

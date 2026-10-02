@@ -88,6 +88,12 @@ type ApplyGraphBuilder struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// PolicyClient is the client for evaluating policies.
 	PolicyClient policy.Client
 }
@@ -148,10 +154,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:                    b.Config,
-			Destroying:                b.Operation == walkDestroy,
-			Overrides:                 b.Overrides,
-			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
+			Config:                     b.Config,
+			Destroying:                 b.Operation == walkDestroy,
+			Overrides:                  b.Overrides,
+			AllowRootEphemeralOutputs:  b.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: b.AllowRootDeprecatedOutputs,
 		},
 
 		// Creates all the resource instances represented in the diff, along

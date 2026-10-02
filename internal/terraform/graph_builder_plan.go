@@ -138,6 +138,12 @@ type PlanGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
 }
 
 // See GraphBuilder
@@ -194,11 +200,12 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:                    b.Config,
-			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
-			Destroying:                b.Operation == walkPlanDestroy,
-			Overrides:                 b.Overrides,
-			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
+			Config:                     b.Config,
+			RefreshOnly:                b.skipPlanChanges || b.preDestroyRefresh,
+			Destroying:                 b.Operation == walkPlanDestroy,
+			Overrides:                  b.Overrides,
+			AllowRootEphemeralOutputs:  b.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: b.AllowRootDeprecatedOutputs,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
