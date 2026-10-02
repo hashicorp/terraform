@@ -1660,7 +1660,7 @@ func (m *Meta) backend_c_r_S(
 	}
 
 	if output {
-		view.Output(views.BackendConfiguredUnsetMessage, backendType)
+		view.LogMigrateBackendUnset(backendType)
 	}
 
 	// Return no backend

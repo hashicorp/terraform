@@ -39,6 +39,9 @@ type Init interface {
 	// LogInitializingBackendStart indicates progress initializing a backend.
 	LogInitializingBackendStart()
 
+	// LogMigrateBackendUnset indicates that the backend has been unset/successfully removed from the configuration.
+	LogMigrateBackendUnset(backendType string)
+
 	// LogInitializingHCPTerraformStart indicates progress initializing the `cloud` backend.
 	LogInitializingHCPTerraformStart()
 
@@ -132,6 +135,12 @@ func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
 
 func (v *InitHuman) LogInitializingBackendStart() {
 	v.print("\n[reset][bold]Initializing the backend...")
+}
+
+func (v *InitHuman) LogMigrateBackendUnset(backendType string) {
+	v.print(fmt.Sprintf(`[reset][green]
+
+Successfully unset the backend %q. Terraform will now operate locally.`, backendType))
 }
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
@@ -385,6 +394,11 @@ func (v *InitJSON) LogInitializingBackendStart() {
 	v.initOutputLog("Initializing the backend...", json.MessageInitializingBackendMessage)
 }
 
+func (v *InitJSON) LogMigrateBackendUnset(backendType string) {
+	// `-json` and `-migrate-state` are mutually exclusive.
+	panic("InitJSON: LogMigrateBackendUnset not implemented")
+}
+
 func (v *InitJSON) LogInitializingHCPTerraformStart() {
 	v.initOutputLog("Initializing HCP Terraform...", json.MessageInitializingTerraformCloudMessage)
 }
@@ -576,10 +590,6 @@ type InitMessage struct {
 }
 
 var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMessage{
-	"backend_configured_unset": {
-		HumanValue: backendConfiguredUnsetHuman,
-		JSONValue:  backendConfiguredUnsetJSON,
-	},
 	"backend_migrate_to_cloud": {
 		HumanValue: "Migrating from backend %q to HCP Terraform.",
 		JSONValue:  "Migrating from backend %q to HCP Terraform.",
@@ -613,8 +623,6 @@ var MessageRegistry map[InitMessageCode]InitMessage = map[InitMessageCode]InitMe
 type InitMessageCode string
 
 const (
-	// BackendConfiguredUnsetMessage indicates successful backend unsetting
-	BackendConfiguredUnsetMessage InitMessageCode = "backend_configured_unset"
 	// BackendMigrateToCloudMessage indicates migration to HCP Terraform
 	BackendMigrateToCloudMessage InitMessageCode = "backend_migrate_to_cloud"
 	// BackendMigrateFromCloudMessage indicates migration from HCP Terraform
@@ -703,12 +711,6 @@ use this backend unless the backend configuration changes.`
 
 const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.`
-
-const backendConfiguredUnsetHuman = `[reset][green]
-
-Successfully unset the backend %q. Terraform will now operate locally.`
-
-const backendConfiguredUnsetJSON = `Successfully unset the backend %q. Terraform will now operate locally.`
 
 const backendMigrateTypeChangeHuman = `[reset]Terraform detected that the backend type changed from %q to %q.
 `
