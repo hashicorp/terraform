@@ -94,6 +94,10 @@ type graphWalkOpts struct {
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient policy.Client
+
+	// PolicyRun describes the relationship run of the walk, or is nil when the
+	// walk has none.
+	PolicyRun *policyRunOpts
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -202,7 +206,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		RefreshState:            refreshState,
 		Overrides:               opts.Overrides,
 		PrevRunState:            prevRunState,
-		PolicyGraph:             newPolicySubgraph(),
+		PolicyGraph:             newPolicySubgraphForRun(opts.PolicyRun),
 		Changes:                 changes.SyncWrapper(),
 		NamedValues:             namedvals.NewState(),
 		EphemeralResources:      ephemeral.NewResources(),

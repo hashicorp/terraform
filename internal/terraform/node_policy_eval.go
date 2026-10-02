@@ -36,7 +36,10 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.Changes().Close()
 	ctx.State().Close()
 
-	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
+	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
+	if policyGraph.run != nil {
+		policyGraph.startRelationshipRun(ctx, spanCtx)
+	}
 	return policyGraph.evalGraph(span), nil
 }
 
@@ -60,6 +63,9 @@ func (n *nodePolicyEvalFinish) Name() string {
 }
 
 func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	if pg := ctx.PolicyGraph(); pg != nil {
+		pg.finishRelationshipRun(ctx, trace.ContextWithSpan(ctx.StopCtx(), n.span))
+	}
 	n.span.End()
 	return nil
 }

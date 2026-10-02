@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -3043,4 +3044,473 @@ func pathStrings(paths []cty.Path) []string {
 	}
 	sort.Strings(ret)
 	return ret
+}
+
+// relationshipsTestProvider returns a provider with the managed resource types
+// test_net and test_vm and the data source test_info, for the relationship
+// run tests. Computed ids are unknown when planned and set to "<name>-id"
+// when applied, or "" if the name isn't set.
+func relationshipsTestProvider() *testing_provider.MockProvider {
+	p := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
+			}},
+			ResourceTypes: map[string]providers.Schema{
+				"test_net": {Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":     {Type: cty.String, Computed: true},
+						"name":   {Type: cty.String, Optional: true},
+						"secret": {Type: cty.String, Optional: true, Sensitive: true},
+						"token":  {Type: cty.String, Optional: true, WriteOnly: true},
+						"tags":   {Type: cty.Map(cty.String), Optional: true},
+					},
+				}},
+				"test_vm": {Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":      {Type: cty.String, Computed: true},
+						"name":    {Type: cty.String, Optional: true},
+						"net_id":  {Type: cty.String, Optional: true},
+						"net_ids": {Type: cty.List(cty.String), Optional: true},
+						"disks": {
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":     {Type: cty.Number, Optional: true},
+									"password": {Type: cty.String, Optional: true, WriteOnly: true},
+								},
+							},
+							Optional: true,
+						},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"nic": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"net_id": {Type: cty.String, Optional: true},
+									"key":    {Type: cty.String, Optional: true, WriteOnly: true},
+								},
+							},
+						},
+					},
+				}},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_info": {Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":     {Type: cty.String, Computed: true},
+						"net_id": {Type: cty.String, Optional: true},
+					},
+				}},
+			},
+		},
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{State: cty.ObjectVal(map[string]cty.Value{
+			"id":     cty.StringVal("info"),
+			"net_id": req.Config.GetAttr("net_id"),
+		})}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		if req.PlannedState.IsNull() {
+			return providers.ApplyResourceChangeResponse{NewState: req.PlannedState}
+		}
+		id := ""
+		if name := req.PlannedState.GetAttr("name"); name.IsKnown() && !name.IsNull() {
+			id = name.AsString() + "-id"
+		}
+		newVal, err := cty.Transform(req.PlannedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if v.IsKnown() {
+				return v, nil
+			}
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "id"}) {
+				return cty.StringVal(id), nil
+			}
+			return cty.NullVal(v.Type()), nil
+		})
+		if err != nil {
+			panic(err)
+		}
+		return providers.ApplyResourceChangeResponse{NewState: newVal, Private: req.PlannedPrivate}
+	}
+	return p
+}
+
+// relationshipRun records the relationship run RPCs and resource
+// evaluations a MockClient receives, in call order.
+type relationshipRun struct {
+	events   []string
+	begins   []*proto.BeginRunRequest
+	reports  []*proto.ReportInstancesRequest
+	evals    []policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]
+	finishes []*proto.FinishRunRequest
+
+	// beginErr is returned by BeginRun when set.
+	beginErr error
+	// reportErr is called with the 0-based index of each ReportInstances
+	// call; a non-nil result is returned as the call's error.
+	reportErr func(i int) error
+}
+
+// newRelationshipsPolicyClient returns a MockClient that announces the
+// relationships capability and answers BeginRun with a spec for the given
+// types.
+func newRelationshipsPolicyClient(t *testing.T, types ...*proto.TypeSpec) (*policy.MockClient, *relationshipRun) {
+	t.Helper()
+	run := &relationshipRun{}
+	client := policy.NewTestMockClient(t)
+	client.RelationshipsSupportedResponse = true
+	// The mock client calls these functions while holding its lock, so they
+	// don't need any synchronization of their own.
+	client.BeginRunFn = func(_ context.Context, req *proto.BeginRunRequest) (*proto.BeginRunResponse, error) {
+		run.events = append(run.events, "begin")
+		run.begins = append(run.begins, req)
+		if run.beginErr != nil {
+			return nil, run.beginErr
+		}
+		return &proto.BeginRunResponse{Spec: &proto.CollectionSpec{Types: types}}, nil
+	}
+	client.ReportInstancesFn = func(_ context.Context, req *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
+		run.events = append(run.events, "report")
+		run.reports = append(run.reports, req)
+		if run.reportErr != nil {
+			if err := run.reportErr(len(run.reports) - 1); err != nil {
+				return nil, err
+			}
+		}
+		return &proto.ReportInstancesResponse{}, nil
+	}
+	client.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		run.events = append(run.events, "evaluate")
+		run.evals = append(run.evals, req)
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	client.FinishRunFn = func(_ context.Context, req *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+		run.events = append(run.events, "finish")
+		run.finishes = append(run.finishes, req)
+		return &proto.FinishRunResponse{}, nil
+	}
+	return client, run
+}
+
+// relTypeSpec returns a TypeSpec for a resource type of the default "test"
+// provider, with dot-separated key paths.
+func relTypeSpec(typeName string, keyPaths ...string) *proto.TypeSpec {
+	spec := &proto.TypeSpec{
+		ProviderSource: addrs.NewDefaultProvider("test").String(),
+		Type:           typeName,
+	}
+	for _, kp := range keyPaths {
+		spec.KeyPaths = append(spec.KeyPaths, relAttrPath(kp))
+	}
+	return spec
+}
+
+func relAttrPath(dotted string) *proto.AttributePath {
+	path := &proto.AttributePath{}
+	for _, name := range strings.Split(dotted, ".") {
+		path.Steps = append(path.Steps, &proto.AttributePath_Step{
+			Selector: &proto.AttributePath_Step_AttributeName{AttributeName: name},
+		})
+	}
+	return path
+}
+
+func relPathString(path *proto.AttributePath) string {
+	names := make([]string, 0, len(path.GetSteps()))
+	for _, step := range path.GetSteps() {
+		names = append(names, step.GetAttributeName())
+	}
+	return strings.Join(names, ".")
+}
+
+// assertRunSequence checks the sequence rules of a relationship run that
+// started: one BeginRun, then the ReportInstances calls, then every resource
+// evaluation, then one FinishRun, all with the same run id. It returns the
+// run id.
+func (r *relationshipRun) assertRunSequence(t *testing.T) string {
+	t.Helper()
+	if len(r.begins) != 1 {
+		t.Fatalf("expected exactly 1 BeginRun call, got %d", len(r.begins))
+	}
+	runID := r.begins[0].RunId
+	if _, err := uuid.ParseUUID(runID); err != nil {
+		t.Fatalf("expected the run id to be a UUID, got %q: %s", runID, err)
+	}
+	if len(r.reports) == 0 {
+		t.Fatal("expected at least 1 ReportInstances call")
+	}
+	if len(r.finishes) != 1 {
+		t.Fatalf("expected exactly 1 FinishRun call, got %d", len(r.finishes))
+	}
+	if r.finishes[0].RunId != runID || r.finishes[0].Aborted {
+		t.Fatalf("wrong FinishRun request: %v", r.finishes[0])
+	}
+	for i, report := range r.reports {
+		if report.RunId != runID {
+			t.Fatalf("ReportInstances call %d has run id %q, want %q", i, report.RunId, runID)
+		}
+	}
+	for _, eval := range r.evals {
+		if eval.RunID != runID {
+			t.Fatalf("evaluation of %s has run id %q, want %q", eval.Meta.GetAddress(), eval.RunID, runID)
+		}
+	}
+
+	// begin, report..., evaluate..., finish
+	want := []string{"begin"}
+	for range r.reports {
+		want = append(want, "report")
+	}
+	for range r.evals {
+		want = append(want, "evaluate")
+	}
+	want = append(want, "finish")
+	if diff := cmp.Diff(want, r.events); diff != "" {
+		t.Fatalf("wrong call order (-want +got):\n%s", diff)
+	}
+	return runID
+}
+
+// assertNoRun checks that no relationship RPC was called and that no
+// evaluation carries a run id.
+func (r *relationshipRun) assertNoRun(t *testing.T) {
+	t.Helper()
+	if len(r.begins) != 0 || len(r.reports) != 0 || len(r.finishes) != 0 {
+		t.Fatalf("expected no relationship run, got %d BeginRun, %d ReportInstances and %d FinishRun calls", len(r.begins), len(r.reports), len(r.finishes))
+	}
+	for _, eval := range r.evals {
+		if eval.RunID != "" {
+			t.Fatalf("expected no run id, got %q for %s", eval.RunID, eval.Meta.GetAddress())
+		}
+	}
+}
+
+// records returns the records of all ReportInstances calls by address.
+func (r *relationshipRun) records(t *testing.T) map[string]*proto.InstanceRecord {
+	t.Helper()
+	ret := make(map[string]*proto.InstanceRecord)
+	for _, report := range r.reports {
+		for _, rec := range report.Records {
+			if _, exists := ret[rec.Address]; exists {
+				t.Fatalf("duplicate record for %s", rec.Address)
+			}
+			ret[rec.Address] = rec
+		}
+	}
+	return ret
+}
+
+// statuses returns the type statuses by type name, checking that they are
+// all in the last ReportInstances call.
+func (r *relationshipRun) statuses(t *testing.T) map[string]*proto.TypeStatus {
+	t.Helper()
+	ret := make(map[string]*proto.TypeStatus)
+	for i, report := range r.reports {
+		if len(report.Statuses) > 0 && i != len(r.reports)-1 {
+			t.Fatalf("ReportInstances call %d of %d has statuses", i+1, len(r.reports))
+		}
+		for _, status := range report.Statuses {
+			ret[status.Type] = status
+		}
+	}
+	return ret
+}
+
+// providers returns the provider instances by id, checking that they are all
+// in the first ReportInstances call and that every record's provider is
+// among them.
+func (r *relationshipRun) providers(t *testing.T) map[uint32]*proto.ProviderInstance {
+	t.Helper()
+	ret := make(map[uint32]*proto.ProviderInstance)
+	for i, report := range r.reports {
+		if len(report.Providers) > 0 && i != 0 {
+			t.Fatalf("ReportInstances call %d has providers", i+1)
+		}
+		for _, p := range report.Providers {
+			ret[p.Id] = p
+		}
+	}
+	for addr, rec := range r.records(t) {
+		if _, ok := ret[rec.ProviderInstanceId]; !ok {
+			t.Fatalf("record %s refers to provider instance %d, which wasn't reported", addr, rec.ProviderInstanceId)
+		}
+	}
+	return ret
+}
+
+func TestContext2Plan_PolicyRelationships_noCapability(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_net" "a" {
+				name = "a"
+			}
+		`,
+	})
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	client.RelationshipsSupportedResponse = false
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	_, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		PolicyClient: client,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	run.assertNoRun(t)
+	if len(run.evals) != 1 {
+		t.Fatalf("expected 1 resource evaluation, got %d", len(run.evals))
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_beginRun(t *testing.T) {
+	netAddr := mustResourceInstanceAddr("test_net.a")
+	priorState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(netAddr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"a-id","name":"a"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	tests := map[string]struct {
+		opts         *PlanOpts
+		state        *states.State
+		wantMode     proto.PlanMode
+		wantTargeted bool
+	}{
+		"normal": {
+			opts:     &PlanOpts{Mode: plans.NormalMode},
+			wantMode: proto.PlanMode_NORMAL_PLAN_MODE,
+		},
+		"destroy": {
+			opts:     &PlanOpts{Mode: plans.DestroyMode},
+			state:    priorState,
+			wantMode: proto.PlanMode_DESTROY_PLAN_MODE,
+		},
+		"refresh-only": {
+			opts:     &PlanOpts{Mode: plans.RefreshOnlyMode},
+			state:    priorState,
+			wantMode: proto.PlanMode_REFRESH_ONLY_PLAN_MODE,
+		},
+		"targeted": {
+			opts: &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{netAddr.ContainingResource()},
+			},
+			wantMode:     proto.PlanMode_NORMAL_PLAN_MODE,
+			wantTargeted: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mod := testModuleInline(t, map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						name = "a"
+					}
+					resource "test_vm" "b" {
+						net_id = test_net.a.id
+					}
+				`,
+			})
+			state := test.state
+			if state == nil {
+				state = states.NewState()
+			}
+			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+				},
+			})
+			test.opts.PolicyClient = client
+			_, diags := ctx.Plan(mod, state, test.opts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			run.assertRunSequence(t)
+			if len(run.evals) == 0 {
+				t.Fatal("expected resource evaluations")
+			}
+			begin := run.begins[0]
+			if begin.Stage != proto.EvaluationStage_PLAN_EVALUATION_STAGE {
+				t.Errorf("wrong stage %s", begin.Stage)
+			}
+			if begin.PlanMode != test.wantMode {
+				t.Errorf("wrong plan mode %s, want %s", begin.PlanMode, test.wantMode)
+			}
+			if begin.Runtime != proto.RunRuntime_CLI_RUN_RUNTIME {
+				t.Errorf("wrong runtime %s", begin.Runtime)
+			}
+			if begin.Targeted != test.wantTargeted {
+				t.Errorf("wrong targeted %t, want %t", begin.Targeted, test.wantTargeted)
+			}
+		})
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_queryHasNoRun(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+		`,
+		"main.tfquery.hcl": `
+			list "test_resource" "test1" {
+				provider = test
+				include_resource = true
+
+				config {
+					filter = {
+						attr = "foo"
+					}
+				}
+			}
+		`,
+	}, configs.MatchQueryFiles())
+
+	provider := testProvider("test")
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		return providers.ListResourceResponse{Result: cty.ObjectVal(map[string]cty.Value{
+			"data": cty.TupleVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+				"identity":     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("i-1")}),
+				"display_name": cty.StringVal("Instance 1"),
+				"state":        cty.ObjectVal(map[string]cty.Value{"instance_type": cty.StringVal("ami-1")}),
+			})}),
+			"config": request.Config.GetAttr("config"),
+		})}
+	}
+
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_resource", "id"))
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+		},
+	})
+	_, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		Query:        true,
+		PolicyClient: client,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	run.assertNoRun(t)
+	if len(run.evals) == 0 {
+		t.Fatal("expected the query results to be evaluated")
+	}
 }

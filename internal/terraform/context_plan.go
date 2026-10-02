@@ -817,6 +817,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, nil, diags
 	}
 
+	policyRun := c.planPolicyRunOpts(config, prevRunState, opts)
+
 	timestamp := time.Now().UTC()
 	if opts.ForcePlanTimestamp != nil {
 		// Some tests use this to produce stable results to assert against.
@@ -850,6 +852,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		Forget:                     opts.Forget,
 		ProviderLocks:              opts.ProviderLocks,
 		PolicyClient:               opts.PolicyClient,
+		PolicyRun:                  policyRun,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

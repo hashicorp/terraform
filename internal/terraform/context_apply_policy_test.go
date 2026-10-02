@@ -2294,3 +2294,115 @@ func asSavedPlan(t *testing.T, plan *plans.Plan) *plans.Plan {
 	}
 	return roundTripped
 }
+
+func TestContext2Apply_PolicyRelationships_beginRun(t *testing.T) {
+	netAddr := mustResourceInstanceAddr("test_net.a")
+	priorState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(netAddr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"a-id","name":"a"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	tests := map[string]struct {
+		opts         *PlanOpts
+		state        *states.State
+		wantMode     proto.PlanMode
+		wantTargeted bool
+	}{
+		"normal": {
+			opts:     &PlanOpts{Mode: plans.NormalMode},
+			wantMode: proto.PlanMode_NORMAL_PLAN_MODE,
+		},
+		"destroy": {
+			opts:     &PlanOpts{Mode: plans.DestroyMode},
+			state:    priorState,
+			wantMode: proto.PlanMode_DESTROY_PLAN_MODE,
+		},
+		"refresh-only": {
+			opts:     &PlanOpts{Mode: plans.RefreshOnlyMode},
+			state:    priorState,
+			wantMode: proto.PlanMode_REFRESH_ONLY_PLAN_MODE,
+		},
+		"targeted": {
+			opts: &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{netAddr.ContainingResource()},
+			},
+			wantMode:     proto.PlanMode_NORMAL_PLAN_MODE,
+			wantTargeted: true,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mod := testModuleInline(t, map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						name = "a"
+					}
+					resource "test_vm" "b" {
+						net_id = test_net.a.id
+					}
+				`,
+			})
+			state := test.state
+			if state == nil {
+				state = states.NewState()
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+				},
+			})
+			plan, diags := ctx.Plan(mod, state, test.opts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+			_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+			tfdiags.AssertNoErrors(t, diags)
+
+			run.assertRunSequence(t)
+			begin := run.begins[0]
+			if begin.Stage != proto.EvaluationStage_APPLY_EVALUATION_STAGE {
+				t.Errorf("wrong stage %s", begin.Stage)
+			}
+			if begin.PlanMode != test.wantMode {
+				t.Errorf("wrong plan mode %s, want %s", begin.PlanMode, test.wantMode)
+			}
+			if begin.Runtime != proto.RunRuntime_CLI_RUN_RUNTIME {
+				t.Errorf("wrong runtime %s", begin.Runtime)
+			}
+			if begin.Targeted != test.wantTargeted {
+				t.Errorf("wrong targeted %t, want %t", begin.Targeted, test.wantTargeted)
+			}
+		})
+	}
+}
+
+func TestContext2Apply_PolicyRelationships_noCapability(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_net" "a" {
+				name = "a"
+			}
+		`,
+	})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(mod, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	client.RelationshipsSupportedResponse = false
+	_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	run.assertNoRun(t)
+	if len(run.evals) != 1 {
+		t.Fatalf("expected 1 resource evaluation, got %d", len(run.evals))
+	}
+}

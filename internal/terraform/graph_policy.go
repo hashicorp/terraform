@@ -22,11 +22,28 @@ type policySubgraph struct {
 	// is none. It is set in nodePolicyEval.DynamicExpand before the subject
 	// nodes run.
 	runID string
+
+	// run describes the relationship run of this walk, or is nil when the
+	// walk has none.
+	run *policyRunOpts
+
+	// providers records the provider configurations configured during the
+	// walk. It's non-nil only when the walk has a relationship run.
+	providers *policyProviderTable
 }
 
 func newPolicySubgraph() *policySubgraph {
-	var g Graph
-	return &policySubgraph{graph: g}
+	return newPolicySubgraphForRun(nil)
+}
+
+// newPolicySubgraphForRun returns a policy subgraph for a walk with the given
+// relationship run, which may be nil.
+func newPolicySubgraphForRun(run *policyRunOpts) *policySubgraph {
+	ps := &policySubgraph{run: run}
+	if run != nil {
+		ps.providers = newPolicyProviderTable()
+	}
+	return ps
 }
 
 func (ps *policySubgraph) Add(node *nodeResourcePolicy) {
