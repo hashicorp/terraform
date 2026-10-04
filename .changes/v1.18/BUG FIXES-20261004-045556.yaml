@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'state: prevent equivalent check results from incrementing remote state serials and invalidating saved plans'
+time: 2026-10-04T04:55:56Z
+custom:
+    Issue: "39330"

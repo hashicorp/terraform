@@ -594,9 +594,18 @@ func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
 				FailureMessages: objectElem.Value.FailureMessages,
 			})
 		}
+		sort.Slice(configResultsOut.Objects, func(i, j int) bool {
+			return configResultsOut.Objects[i].ObjectAddr < configResultsOut.Objects[j].ObjectAddr
+		})
 
 		ret = append(ret, configResultsOut)
 	}
+	sort.Slice(ret, func(i, j int) bool {
+		if ret[i].ObjectKind != ret[j].ObjectKind {
+			return ret[i].ObjectKind < ret[j].ObjectKind
+		}
+		return ret[i].ConfigAddr < ret[j].ConfigAddr
+	})
 
 	return ret
 }

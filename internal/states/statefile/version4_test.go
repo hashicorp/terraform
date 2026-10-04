@@ -11,6 +11,9 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -45,6 +48,46 @@ func TestVersion4_sort(t *testing.T) {
 	for i, resource := range resources {
 		if resource.Module != moduleOrder[i] {
 			t.Errorf("wrong sort order: expected %q, got %q\n", moduleOrder[i], resource.Module)
+		}
+	}
+}
+
+func TestEncodeCheckResultsV4CanonicalOrder(t *testing.T) {
+	results := &states.CheckResults{
+		ConfigResults: addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate](),
+	}
+
+	// Both levels use maps whose iteration order is intentionally unpredictable.
+	// State serialization must impose its own order so two equivalent states have
+	// the same bytes and don't spuriously increment a remote state's serial.
+	for _, configName := range []string{"charlie", "alpha", "bravo"} {
+		configAddr := addrs.Check{Name: configName}.InModule(addrs.RootModule)
+		aggregate := &states.CheckResultAggregate{
+			Status:        checks.StatusPass,
+			ObjectResults: addrs.MakeMap[addrs.Checkable, *states.CheckResultObject](),
+		}
+		for _, objectName := range []string{"charlie", "alpha", "bravo"} {
+			objectAddr := addrs.Check{Name: configName + "_" + objectName}.Absolute(addrs.RootModuleInstance)
+			aggregate.ObjectResults.Put(objectAddr, &states.CheckResultObject{Status: checks.StatusPass})
+		}
+		results.ConfigResults.Put(configAddr, aggregate)
+	}
+
+	for range 100 {
+		got := encodeCheckResultsV4(results)
+		for i, want := range []string{"check.alpha", "check.bravo", "check.charlie"} {
+			if got[i].ConfigAddr != want {
+				t.Fatalf("check results are not in canonical order: got %q at index %d, want %q", got[i].ConfigAddr, i, want)
+			}
+			for j, objectWant := range []string{
+				"check." + strings.TrimPrefix(want, "check.") + "_alpha",
+				"check." + strings.TrimPrefix(want, "check.") + "_bravo",
+				"check." + strings.TrimPrefix(want, "check.") + "_charlie",
+			} {
+				if got[i].Objects[j].ObjectAddr != objectWant {
+					t.Fatalf("check result objects are not in canonical order: got %q at index %d, want %q", got[i].Objects[j].ObjectAddr, j, objectWant)
+				}
+			}
 		}
 	}
 }
