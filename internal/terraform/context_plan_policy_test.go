@@ -4974,45 +4974,246 @@ func TestContext2Plan_PolicyRelationships_emptySpec(t *testing.T) {
 	}
 }
 
+// TestContext2Plan_PolicyRelationships_unconfiguredProvider checks the
+// provider instances of state records whose provider configuration the walk
+// didn't configure, because -target excludes it: their class comes from
+// their configuration alone if it's wholly literal.
 func TestContext2Plan_PolicyRelationships_unconfiguredProvider(t *testing.T) {
-	mod := testModuleInline(t, map[string]string{"main.tf": `
-		provider "test" {
-			alias = "other"
-		}
-		resource "test_net" "a" {
-			name = "a"
-		}
-		resource "test_net" "b" {
-			provider = test.other
-			name     = "b"
-		}
-	`})
-	state := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_net.b"), &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"id":"b-id","name":"b"}`),
-			Status:    states.ObjectReady,
-		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].other`))
-	})
-	// The other provider configuration isn't configured, because -target
-	// excludes it.
-	_, run := planRelationships(t, mod, state, &PlanOpts{
-		Mode:    plans.NormalMode,
-		Targets: []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
-	}, nil, relTypeSpec("test_net", "id"))
-
-	run.assertRunSequence(t)
-	run.assertRecords(t, map[string]wantRelRecord{
-		"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"name": cty.StringVal("a")}},
-		"test_net.b": {
-			Action:   relNoOp,
-			Source:   relState,
-			Attrs:    map[string]cty.Value{"id": cty.StringVal("b-id")},
-			Provider: `provider["registry.terraform.io/hashicorp/test"].other`,
+	tests := map[string]struct {
+		files map[string]string
+		// state adds the instances outside the target test_net.a.
+		state func(*states.SyncState)
+		// input are the interactive provider input values, by provider
+		// configuration address.
+		input map[string]map[string]cty.Value
+		// external makes the default provider configuration an external
+		// provider, which the caller configured.
+		external bool
+		// want are the classes of the records' provider instances by record
+		// address, as labels: equal labels mean equal classes, and an empty
+		// label means not known.
+		want map[string]string
+	}{
+		"literal configuration": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					region = "r1"
+				}
+				provider "test" {
+					alias  = "same"
+					region = "r1"
+				}
+				provider "test" {
+					alias  = "diff"
+					region = "r2"
+				}
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					provider = test.same
+					name     = "b"
+				}
+				resource "test_net" "c" {
+					provider = test.diff
+					name     = "c"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relProviderState(s, "test_net.b", `provider["registry.terraform.io/hashicorp/test"].same`)
+				relProviderState(s, "test_net.c", `provider["registry.terraform.io/hashicorp/test"].diff`)
+			},
+			want: map[string]string{"test_net.a": "r1", "test_net.b": "r1", "test_net.c": "r2"},
 		},
-	})
-	providers := run.providers(t)
-	other := providers[run.records(t)["test_net.b"].ProviderInstanceId]
-	if other.Known || len(other.ConfigClass) != 0 || other.Source != "registry.terraform.io/hashicorp/test" {
-		t.Fatalf("expected the unconfigured provider instance not to be known, got %v", other)
+		"no provider block": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias = "empty"
+				}
+				resource "test_net" "a" {
+					provider = test.empty
+					name     = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relProviderState(s, "test_net.b", `provider["registry.terraform.io/hashicorp/test"]`)
+			},
+			want: map[string]string{"test_net.a": "empty", "test_net.b": "empty"},
+		},
+		"references and function calls": {
+			files: map[string]string{"main.tf": `
+				variable "r" {
+					type    = string
+					default = "r1"
+				}
+				provider "test" {
+					region = "r1"
+				}
+				provider "test" {
+					alias  = "var"
+					region = var.r
+				}
+				provider "test" {
+					alias  = "fn"
+					region = lower("R1")
+				}
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					provider = test.var
+					name     = "b"
+				}
+				resource "test_net" "c" {
+					provider = test.fn
+					name     = "c"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relProviderState(s, "test_net.b", `provider["registry.terraform.io/hashicorp/test"].var`)
+				relProviderState(s, "test_net.c", `provider["registry.terraform.io/hashicorp/test"].fn`)
+			},
+			want: map[string]string{"test_net.a": "r1", "test_net.b": "", "test_net.c": ""},
+		},
+		"interactive input": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias  = "other"
+					region = "r1"
+				}
+				resource "test_net" "a" {
+					provider = test.other
+					name     = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relProviderState(s, "test_net.b", `provider["registry.terraform.io/hashicorp/test"]`)
+			},
+			input: map[string]map[string]cty.Value{
+				`provider["registry.terraform.io/hashicorp/test"]`: {"region": cty.StringVal("r1")},
+			},
+			want: map[string]string{"test_net.a": "r1", "test_net.b": ""},
+		},
+		"provider block in a module": {
+			files: map[string]string{
+				"main.tf": `
+					provider "test" {
+						region = "r1"
+					}
+					resource "test_net" "a" {
+						name = "a"
+					}
+					module "child" {
+						source = "./child"
+					}
+				`,
+				"child/main.tf": `
+					provider "test" {
+						region = "r1"
+					}
+					resource "test_net" "x" {
+						name = "x"
+					}
+				`,
+			},
+			state: func(s *states.SyncState) {
+				relProviderState(s, "module.child.test_net.x", `module.child.provider["registry.terraform.io/hashicorp/test"]`)
+			},
+			want: map[string]string{"test_net.a": "r1", "module.child.test_net.x": "r1"},
+		},
+		"external provider": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+			`},
+			external: true,
+			// The caller configured the provider, so its configuration isn't
+			// in the module.
+			want: map[string]string{"test_net.a": ""},
+		},
 	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mod := testModuleInline(t, test.files)
+			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+				},
+			})
+			for addr, vals := range test.input {
+				ctx.providerInputConfig[addr] = vals
+			}
+			var external map[addrs.RootProviderConfig]providers.Interface
+			if test.external {
+				p := relationshipsTestProvider()
+				p.ConfigureProviderCalled = true
+				external = map[addrs.RootProviderConfig]providers.Interface{
+					{Provider: addrs.NewDefaultProvider("test")}: p,
+				}
+			}
+			state := states.NewState()
+			if test.state != nil {
+				state = states.BuildState(test.state)
+			}
+			_, diags := ctx.Plan(mod, state, &PlanOpts{
+				Mode:              plans.NormalMode,
+				Targets:           []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
+				SetVariables:      testInputValuesUnset(mod.Module.Variables),
+				PolicyClient:      client,
+				ExternalProviders: external,
+			})
+			tfdiags.AssertNoErrors(t, diags)
+			run.assertRunSequence(t)
+
+			providers := run.providers(t)
+			records := run.records(t)
+			classes := make(map[string][]byte)
+			for addr, label := range test.want {
+				rec, ok := records[addr]
+				if !ok {
+					t.Fatalf("missing record %s", addr)
+				}
+				p := providers[rec.ProviderInstanceId]
+				if p == nil {
+					t.Fatalf("%s: missing provider instance %d", addr, rec.ProviderInstanceId)
+				}
+				if label == "" {
+					if p.Known || len(p.ConfigClass) != 0 {
+						t.Errorf("%s: expected %s not to be known, got %v", addr, p.ConfigAddress, p)
+					}
+					continue
+				}
+				if !p.Known || len(p.ConfigClass) != 32 {
+					t.Errorf("%s: expected %s to be known with a class, got %v", addr, p.ConfigAddress, p)
+					continue
+				}
+				classes[addr] = p.ConfigClass
+			}
+			for a, ca := range classes {
+				for b, cb := range classes {
+					if want := test.want[a] == test.want[b]; bytes.Equal(ca, cb) != want {
+						t.Errorf("%s and %s: expected equal classes to be %t", a, b, want)
+					}
+				}
+			}
+		})
+	}
+}
+
+// relProviderState adds a current test_net object with the given provider
+// configuration to the state.
+func relProviderState(s *states.SyncState, addr, provider string) {
+	s.SetResourceInstanceCurrent(mustResourceInstanceAddr(addr), &states.ResourceInstanceObjectSrc{
+		AttrsJSON: []byte(`{"id":"id","name":"n"}`),
+		Status:    states.ObjectReady,
+	}, mustProviderConfig(provider))
 }

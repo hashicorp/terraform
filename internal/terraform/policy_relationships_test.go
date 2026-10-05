@@ -222,6 +222,174 @@ func TestPolicyProviderTable(t *testing.T) {
 			t.Fatal("expected all to return copies")
 		}
 	})
+
+	t.Run("providers the walk didn't configure are classified statically", func(t *testing.T) {
+		table := newPolicyProviderTable()
+		table.idFor(otherAddr)
+		table.idFor(aliasAddr)
+		table.configured(defaultAddr, cfg("us-east-1"), cfgType)
+		var unconfigured []string
+		for _, addr := range table.unconfiguredAddrs() {
+			unconfigured = append(unconfigured, addr.String())
+		}
+		if diff := cmp.Diff([]string{aliasAddr.String(), otherAddr.String()}, unconfigured); diff != "" {
+			t.Fatalf("wrong unconfigured providers (-want +got):\n%s", diff)
+		}
+
+		// A static class doesn't replace the class of a provider the walk
+		// configured.
+		table.configuredStatically(defaultAddr, cfg("eu-west-1"), cfgType)
+		table.configuredStatically(aliasAddr, cfg("us-east-1"), cfgType)
+		got := byAddr(t, table)
+		def, alias, other := got[defaultAddr.String()], got[aliasAddr.String()], got[otherAddr.String()]
+		if !alias.Known || !bytes.Equal(def.ConfigClass, alias.ConfigClass) {
+			t.Fatalf("expected the static class to equal the class of the same configuration, got %v and %v", def, alias)
+		}
+		if other.Known || len(other.ConfigClass) != 0 {
+			t.Fatalf("expected a provider without a static class not to be known, got %v", other)
+		}
+
+		// A configuration during the walk replaces a static class.
+		table.configured(aliasAddr, cfg("eu-west-1"), cfgType)
+		if alias := byAddr(t, table)[aliasAddr.String()]; bytes.Equal(def.ConfigClass, alias.ConfigClass) {
+			t.Fatal("expected the walk's configuration to replace the static class")
+		}
+	})
+}
+
+func TestPolicyStaticProviderConfig(t *testing.T) {
+	schemas := &schemarepo.Schemas{Providers: map[addrs.Provider]providers.ProviderSchema{
+		addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
+	}}
+	region := func(v cty.Value) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"region": v})
+	}
+	tests := map[string]struct {
+		files   map[string]string
+		addr    string
+		outside bool
+		// want is the decoded configuration; cty.NilVal if it can't be
+		// known statically.
+		want cty.Value
+	}{
+		"literal": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias  = "a"
+					region = "r1"
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/test"].a`,
+			want: region(cty.StringVal("r1")),
+		},
+		"no provider block": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias  = "a"
+					region = "r1"
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/test"]`,
+			want: region(cty.NullVal(cty.String)),
+		},
+		"JSON literal": {
+			files: map[string]string{"main.tf.json": `{"provider": {"test": [{"alias": "j", "region": "r1"}]}}`},
+			addr:  `provider["registry.terraform.io/hashicorp/test"].j`,
+			want:  region(cty.StringVal("r1")),
+		},
+		"JSON template": {
+			files: map[string]string{"main.tf.json": `{
+				"variable": {"r": {"default": "r1"}},
+				"provider": {"test": [{"alias": "j", "region": "${var.r}"}]}
+			}`},
+			addr: `provider["registry.terraform.io/hashicorp/test"].j`,
+		},
+		"variable": {
+			files: map[string]string{"main.tf": `
+				variable "r" {
+					default = "r1"
+				}
+				provider "test" {
+					region = var.r
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/test"]`,
+		},
+		"function call": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					region = lower("R1")
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/test"]`,
+		},
+		"unsupported argument": {
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					zone = "z"
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/test"]`,
+		},
+		"module": {
+			files: map[string]string{
+				"main.tf": `
+					module "child" {
+						source = "./child"
+					}
+				`,
+				"child/main.tf": `
+					provider "test" {
+						region = "r1"
+					}
+				`,
+			},
+			addr: `module.child.provider["registry.terraform.io/hashicorp/test"]`,
+			want: region(cty.StringVal("r1")),
+		},
+		"module not in the configuration": {
+			files: map[string]string{"main.tf": ``},
+			addr:  `module.gone.provider["registry.terraform.io/hashicorp/test"]`,
+		},
+		"values from outside the configuration": {
+			files:   map[string]string{"main.tf": ``},
+			addr:    `provider["registry.terraform.io/hashicorp/test"]`,
+			outside: true,
+		},
+		"no schema": {
+			files: map[string]string{"main.tf": `
+				terraform {
+					required_providers {
+						other = {
+							source = "hashicorp/other"
+						}
+					}
+				}
+			`},
+			addr: `provider["registry.terraform.io/hashicorp/other"]`,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := testModuleInline(t, test.files)
+			got, gotType, ok := policyStaticProviderConfig(cfg, schemas, mustProviderConfig(test.addr), test.outside)
+			if test.want == cty.NilVal {
+				if ok {
+					t.Fatalf("expected no static configuration, got %#v", got)
+				}
+				return
+			}
+			if !ok {
+				t.Fatal("expected a static configuration")
+			}
+			if !got.RawEquals(test.want) {
+				t.Fatalf("wrong configuration\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+			if !gotType.Equals(cty.Object(map[string]cty.Type{"region": cty.String})) {
+				t.Fatalf("wrong type %#v", gotType)
+			}
+		})
+	}
 }
 
 func TestPolicyProviderSchemas(t *testing.T) {

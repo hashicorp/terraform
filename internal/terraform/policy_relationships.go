@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
@@ -24,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -48,6 +51,27 @@ type policyRunOpts struct {
 	// instance changes, copied before the walk because the apply walk removes
 	// changes from the working changes as it applies them.
 	AppliedChanges []*plans.ResourceInstanceChange
+
+	// OutsideConfigProviders are the addresses of the root provider
+	// configurations whose value doesn't come from their configuration
+	// alone: those with interactive input values, and the external providers
+	// the caller configured.
+	OutsideConfigProviders map[string]bool
+}
+
+// policyOutsideConfigProviders returns the addresses of the root provider
+// configurations with interactive input values or in external.
+func (c *Context) policyOutsideConfigProviders(external map[addrs.RootProviderConfig]providers.Interface) map[string]bool {
+	ret := make(map[string]bool)
+	for addr, vals := range c.providerInputConfig {
+		if len(vals) > 0 {
+			ret[addr] = true
+		}
+	}
+	for addr := range external {
+		ret[addr.AbsProviderConfig().String()] = true
+	}
+	return ret
 }
 
 // policyRelationshipsClient returns the client as a relationships client if
@@ -95,17 +119,19 @@ func (c *Context) planPolicyRunOpts(config *configs.Config, prevRunState *states
 		return nil
 	}
 	return &policyRunOpts{
-		Stage:    proto.EvaluationStage_PLAN_EVALUATION_STAGE,
-		PlanMode: mode,
-		Targeted: len(opts.Targets) > 0 || len(opts.ActionTargets) > 0,
-		Schemas:  schemas,
+		Stage:                  proto.EvaluationStage_PLAN_EVALUATION_STAGE,
+		PlanMode:               mode,
+		Targeted:               len(opts.Targets) > 0 || len(opts.ActionTargets) > 0,
+		Schemas:                schemas,
+		OutsideConfigProviders: c.policyOutsideConfigProviders(opts.ExternalProviders),
 	}
 }
 
 // applyPolicyRunOpts returns the relationship run options of the apply walk
 // of the given plan, or nil if the walk has no relationship run. changes are
-// the decoded changes of the plan, before the walk.
-func applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes []*plans.ResourceInstanceChange, client policy.Client) *policyRunOpts {
+// the decoded changes of the plan, before the walk, and external are the
+// apply's external providers.
+func (c *Context) applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes []*plans.ResourceInstanceChange, client policy.Client, external map[addrs.RootProviderConfig]providers.Interface) *policyRunOpts {
 	if _, ok := policyRelationshipsClient(client); !ok {
 		return nil
 	}
@@ -114,11 +140,12 @@ func applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes [
 		return nil
 	}
 	return &policyRunOpts{
-		Stage:          proto.EvaluationStage_APPLY_EVALUATION_STAGE,
-		PlanMode:       mode,
-		Targeted:       len(plan.TargetAddrs) > 0 || len(plan.ActionTargetAddrs) > 0,
-		Schemas:        schemas,
-		AppliedChanges: append([]*plans.ResourceInstanceChange(nil), changes...),
+		Stage:                  proto.EvaluationStage_APPLY_EVALUATION_STAGE,
+		PlanMode:               mode,
+		Targeted:               len(plan.TargetAddrs) > 0 || len(plan.ActionTargetAddrs) > 0,
+		Schemas:                schemas,
+		AppliedChanges:         append([]*plans.ResourceInstanceChange(nil), changes...),
+		OutsideConfigProviders: c.policyOutsideConfigProviders(external),
 	}
 }
 
@@ -561,7 +588,61 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		}
 		return c.records[i].DeposedKey < c.records[j].DeposedKey
 	})
+	c.addStaticProviderClasses()
 	return c.records, c.statuses(), ps.providers.all()
+}
+
+// addStaticProviderClasses computes the class of the provider configurations
+// of records that the walk didn't configure, e.g. because -target excludes
+// them, from their configuration alone (P2 contract §3.4).
+func (c *relationshipCollector) addStaticProviderClasses() {
+	for _, addr := range c.ps.providers.unconfiguredAddrs() {
+		outside := addr.Module.IsRoot() && c.ps.run.OutsideConfigProviders[addr.String()]
+		if cfg, cfgType, ok := policyStaticProviderConfig(c.ctx.Config(), c.ps.run.Schemas, addr, outside); ok {
+			c.ps.providers.configuredStatically(addr, cfg, cfgType)
+		}
+	}
+}
+
+// policyStaticProviderConfig returns the value of a provider configuration
+// decoded without an evaluation context, and the implied type of the
+// provider's configuration schema. For a configuration that is wholly
+// literal, that is the value the walk would configure the provider with.
+//
+// The configuration is found like attachProviderConfigs finds it, and is
+// empty without a provider block, like in buildProviderConfig. ok is false
+// if the value has parts from outside the configuration (outside is true:
+// interactive input values, or the caller configured the provider), the
+// module isn't in the configuration, the provider has no configuration
+// schema, or decoding fails, e.g. because the configuration refers to
+// anything or calls functions.
+func policyStaticProviderConfig(cfg *configs.Config, schemas *schemarepo.Schemas, addr addrs.AbsProviderConfig, outside bool) (cty.Value, cty.Type, bool) {
+	if cfg == nil || schemas == nil || outside {
+		return cty.NilVal, cty.NilType, false
+	}
+	mc := cfg.Descendant(addr.Module)
+	if mc == nil {
+		return cty.NilVal, cty.NilType, false
+	}
+	schema := schemas.ProviderConfig(addr.Provider)
+	if schema == nil {
+		return cty.NilVal, cty.NilType, false
+	}
+	body := hcl.EmptyBody()
+	localName := mc.Module.LocalNameForProvider(addr.Provider)
+	for _, p := range mc.Module.ProviderConfigs {
+		if p.Name == localName && p.Alias == addr.Alias {
+			if p.Config != nil {
+				body = p.Config
+			}
+			break
+		}
+	}
+	val, diags := hcldec.Decode(blocktoattr.FixUpBlockAttrs(body, schema), schema.DecoderSpec(), &hcl.EvalContext{})
+	if diags.HasErrors() {
+		return cty.NilVal, cty.NilType, false
+	}
+	return val, schema.ImpliedType(), true
 }
 
 func policyKeyPathNames(path *proto.AttributePath) []string {
@@ -800,11 +881,15 @@ type policyProviderTable struct {
 	key    [32]byte
 	byAddr map[string]*proto.ProviderInstance
 	order  []*proto.ProviderInstance
+	// unconfigured are the provider configurations with an entry that the
+	// walk didn't configure, by address.
+	unconfigured map[string]addrs.AbsProviderConfig
 }
 
 func newPolicyProviderTable() *policyProviderTable {
 	t := &policyProviderTable{
-		byAddr: make(map[string]*proto.ProviderInstance),
+		byAddr:       make(map[string]*proto.ProviderInstance),
+		unconfigured: make(map[string]addrs.AbsProviderConfig),
 	}
 	if _, err := rand.Read(t.key[:]); err != nil {
 		// crypto/rand doesn't fail on supported platforms.
@@ -822,8 +907,38 @@ func (t *policyProviderTable) configured(addr addrs.AbsProviderConfig, cfg cty.V
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	entry := t.entryLocked(addr)
+	delete(t.unconfigured, addr.String())
 	entry.Known = class != nil
 	entry.ConfigClass = class
+}
+
+// configuredStatically records the configuration of a provider
+// configuration that the walk didn't configure, decoded from its
+// configuration alone. It has no effect if the walk configured it.
+func (t *policyProviderTable) configuredStatically(addr addrs.AbsProviderConfig, cfg cty.Value, cfgType cty.Type) {
+	class := t.class(addr.Provider, cfg, cfgType)
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if _, ok := t.unconfigured[addr.String()]; !ok {
+		return
+	}
+	entry := t.entryLocked(addr)
+	entry.Known = class != nil
+	entry.ConfigClass = class
+}
+
+// unconfiguredAddrs returns the provider configurations with an entry that
+// the walk didn't configure, sorted by address.
+func (t *policyProviderTable) unconfiguredAddrs() []addrs.AbsProviderConfig {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	ret := make([]addrs.AbsProviderConfig, 0, len(t.unconfigured))
+	for _, addr := range t.unconfigured {
+		ret = append(ret, addr)
+	}
+	sort.Slice(ret, func(i, j int) bool { return ret[i].String() < ret[j].String() })
+	return ret
 }
 
 func (t *policyProviderTable) class(provider addrs.Provider, cfg cty.Value, cfgType cty.Type) []byte {
@@ -865,6 +980,7 @@ func (t *policyProviderTable) entryLocked(addr addrs.AbsProviderConfig) *proto.P
 		Source:        addr.Provider.String(),
 	}
 	t.byAddr[key] = entry
+	t.unconfigured[key] = addr
 	t.order = append(t.order, entry)
 	return entry
 }
