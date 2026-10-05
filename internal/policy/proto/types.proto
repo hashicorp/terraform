@@ -122,7 +122,7 @@ enum RecordSource {
   INVALID_RECORD_SOURCE = 0;
   PLANNED_RECORD_SOURCE = 1;     // from a planned change (plan run) or an applied change (apply run)
   STATE_RECORD_SOURCE = 2;       // from state, without a change in this run (-target outsiders, refresh-only)
-  DEFERRED_RECORD_SOURCE = 3;    // P2, not sent in P1
+  DEFERRED_RECORD_SOURCE = 3;    // not sent: deferred instances get no record
   DISCOVERED_RECORD_SOURCE = 4;  // P6 (Search), not sent in P1
 }
 
@@ -151,6 +151,7 @@ enum NoOriginReason {
   IGNORE_CHANGES_NO_ORIGIN_REASON = 6;
   PROVIDER_CHANGED_NO_ORIGIN_REASON = 7; // the planned value's shape differs from the configuration
   UNSUPPORTED_NO_ORIGIN_REASON = 8;      // anything else: JSON syntax, override files, no configuration,
-                                         // indexed or whole-object references, type mismatch, null target,
-                                         // unknown expansion, path/terraform/self, depth limit
+                                         // whole-object references, map keys and set elements, type
+                                         // mismatch, null target, unknown expansion, path/terraform/self,
+                                         // depth limit
 }
