@@ -3082,6 +3082,7 @@ func relationshipsTestProvider() *testing_provider.MockProvider {
 						"name":    {Type: cty.String, Optional: true},
 						"net_id":  {Type: cty.String, Optional: true},
 						"net_ids": {Type: cty.List(cty.String), Optional: true},
+						"net_set": {Type: cty.Set(cty.String), Optional: true},
 						"zone":    {Type: cty.String, Optional: true, Computed: true},
 						"disks": {
 							NestedType: &configschema.Object{

@@ -269,6 +269,65 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.v":     {"net_ids": {"test_vm.other.net_ids[0]"}},
 			},
 		},
+		"splat over a referenced list": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				resource "test_vm" "other" {
+					net_ids = ["x", test_net.a.id]
+					nic {
+						net_id = test_net.a.id
+					}
+					nic {
+						net_id = test_net.b.id
+					}
+				}
+				resource "test_vm" "blocks" {
+					net_ids = test_vm.other.nic[*].net_id
+				}
+				resource "test_vm" "legacy" {
+					net_ids = test_vm.other.nic.*.net_id
+				}
+				resource "test_vm" "list" {
+					net_ids = test_vm.other.net_ids[*]
+				}
+			`},
+			want: map[string]map[string][]string{
+				"test_vm.other":  {"net_ids": {"test_net.a.id"}, "nic.net_id": {"test_net.a.id", "test_net.b.id"}},
+				"test_vm.blocks": {"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"}},
+				"test_vm.legacy": {"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"}},
+				"test_vm.list":   {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
+			},
+		},
+		"splats not followed": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "other" {
+					net_set = [test_net.a.name]
+					# An unknown list.
+					net_ids = split(",", test_net.a.id)
+				}
+				resource "test_vm" "set" {
+					net_ids = test_vm.other.net_set[*]
+				}
+				resource "test_vm" "unknown" {
+					net_ids = test_vm.other.net_ids[*]
+				}
+			`},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.other":   {"net_ids": {"EXPRESSION"}},
+				"test_vm.set":     {"net_ids": {"UNSUPPORTED"}},
+				"test_vm.unknown": {"net_ids": {"UNSUPPORTED"}},
+			},
+		},
 		"index steps not followed": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -1463,7 +1522,7 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 				t.Errorf("expected the origin of the record, got %v", got)
 			}
 
-			e := &originEval{cfg: cfg, exp: exp, overridden: overridden}
+			e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
 
 			// The module's outputs.
 			_, opaque := e.moduleInstance(child, cfg.DescendantForInstance(child)).(symOpaque)
@@ -1472,7 +1531,7 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 			}
 
 			// A reference to a resource in the module.
-			allowed := e.originAllowed(symRef{addr: childNet, path: testOriginPath(t, "id")}, cty.String, lookup)
+			allowed := e.originAllowed(symRef{addr: childNet, path: testOriginPath(t, "id")}, cty.String)
 			if allowed == test.overridden {
 				t.Errorf("wrong origin into the module: allowed = %t, want %t", allowed, !test.overridden)
 			}
@@ -1673,12 +1732,114 @@ func TestOriginEvalOriginAllowed_indexSteps(t *testing.T) {
 		{"test_vm.v", "nic[0].key", false}, // write-only
 		{"test_net.a", "tags[0]", false},   // map
 	}
-	e := &originEval{cfg: cfg, exp: instances.NewExpander(nil)}
+	e := &originEval{cfg: cfg, exp: instances.NewExpander(nil), lookup: lookup}
 	for _, test := range tests {
 		ref := symRef{addr: mustResourceInstanceAddr(test.addr), path: testOriginPath(t, test.path)}
-		if got := e.originAllowed(ref, cty.String, lookup); got != test.want {
+		if got := e.originAllowed(ref, cty.String); got != test.want {
 			t.Errorf("%s.%s: allowed = %t, want %t", test.addr, test.path, got, test.want)
 		}
+	}
+}
+
+func TestOriginEvalSplat(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_vm" "v" {
+			}
+		`,
+	})
+	addr := mustResourceInstanceAddr("test_vm.v")
+	exp := instances.NewExpander(nil)
+	exp.SetResourceSingle(addrs.RootModuleInstance, addr.Resource.Resource)
+	ref := func(path string) symRef {
+		return symRef{addr: addr, path: testOriginPath(t, path)}
+	}
+	nic := func(netID string) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal(netID)})
+	}
+
+	tests := map[string]struct {
+		expr string
+		// planned is the planned value of test_vm.v; none when null.
+		planned cty.Value
+		want    originSym
+	}{
+		"list": {
+			expr:    "test_vm.v.net_ids[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.UnknownVal(cty.String)})}),
+			want:    symSeq{elems: []originSym{ref("net_ids[0]"), ref("net_ids[1]")}},
+		},
+		"blocks": {
+			expr:    "test_vm.v.nic[*].net_id",
+			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListVal([]cty.Value{nic("a"), nic("b")})}),
+			want:    symSeq{elems: []originSym{ref("nic[0].net_id"), ref("nic[1].net_id")}},
+		},
+		"tuple": {
+			expr:    "test_vm.v.nic[*].net_id",
+			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.TupleVal([]cty.Value{nic("a")})}),
+			want:    symSeq{elems: []originSym{ref("nic[0].net_id")}},
+		},
+		"nested": {
+			expr:    "test_vm.v.m[1][*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"m": cty.TupleVal([]cty.Value{cty.EmptyTupleVal, cty.ListVal([]cty.Value{cty.StringVal("a")})})}),
+			want:    symSeq{elems: []originSym{ref("m[1][0]")}},
+		},
+		"empty list": {
+			expr:    "test_vm.v.nic[*].net_id",
+			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListValEmpty(cty.Object(map[string]cty.Type{"net_id": cty.String}))}),
+			want:    symSeq{},
+		},
+		"set": {
+			expr:    "test_vm.v.net_set[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"net_set": cty.SetVal([]cty.Value{cty.StringVal("a")})}),
+			want:    opaqueUnsupported,
+		},
+		"map": {
+			expr:    "test_vm.v.tags[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"tags": cty.MapVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
+			want:    opaqueUnsupported,
+		},
+		"object": {
+			expr:    "test_vm.v.obj[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"obj": cty.ObjectVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
+			want:    opaqueUnsupported,
+		},
+		"unknown list": {
+			expr:    "test_vm.v.net_ids[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.UnknownVal(cty.List(cty.String))}),
+			want:    opaqueUnsupported,
+		},
+		"null list": {
+			expr:    "test_vm.v.net_ids[*]",
+			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.NullVal(cty.List(cty.String))}),
+			want:    opaqueUnsupported,
+		},
+		"no planned value": {
+			expr: "test_vm.v.net_ids[*]",
+			want: opaqueUnsupported,
+		},
+		"whole resource": {
+			expr: "test_vm.v[*].net_id",
+			want: symSeq{elems: []originSym{ref("net_id")}},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			expr, diags := hclsyntax.ParseExpression([]byte(test.expr), "", hcl.InitialPos)
+			if diags.HasErrors() {
+				t.Fatal(diags.Error())
+			}
+			planned := map[string]cty.Value{}
+			if test.planned != cty.NilVal {
+				planned[addr.String()] = test.planned
+			}
+			lookup := &relationshipOriginLookup{planned: planned}
+			e := &originEval{cfg: cfg, exp: exp, lookup: lookup}
+			got := e.eval(expr, &originScope{mod: addrs.RootModuleInstance, cfg: cfg})
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+		})
 	}
 }
 

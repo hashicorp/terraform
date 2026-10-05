@@ -59,8 +59,8 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(ad
 	if planned.IsNull() {
 		return nil
 	}
-	e := &originEval{cfg: cfg, exp: exp, overridden: overridden}
-	rec := e.record(addr, planned, lookup)
+	e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
+	rec := e.record(addr, planned)
 
 	var ret []*proto.KeyOrigins
 	for _, kp := range keyPaths {
@@ -91,7 +91,6 @@ type originRecord struct {
 	provider addrs.Provider
 	self     originSym
 	planned  cty.Value
-	lookup   originLookup
 }
 
 // record returns the record of the resource instance at addr, or nil if its
@@ -99,7 +98,7 @@ type originRecord struct {
 // its module is overridden, it isn't a managed resource, its body isn't in
 // native syntax (JSON bodies and bodies merged from override files are
 // other types), or its planned value is unknown.
-func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value, lookup originLookup) *originRecord {
+func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value) *originRecord {
 	if e.cfg == nil || e.exp == nil || e.moduleOverridden(addr.Module) || !planned.IsKnown() {
 		return nil
 	}
@@ -123,7 +122,6 @@ func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value, l
 		provider: modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr()),
 		self:     e.body(body, scope),
 		planned:  planned,
-		lookup:   lookup,
 	}
 }
 
@@ -170,7 +168,7 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 		}
 		switch sym := leaf.sym.(type) {
 		case symRef:
-			if len(sym.path) == 0 || !r.e.originAllowed(sym, leaf.ty, r.lookup) {
+			if len(sym.path) == 0 || !r.e.originAllowed(sym, leaf.ty) {
 				reasons[proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON] = true
 				continue
 			}
@@ -219,13 +217,13 @@ func (r *originRecord) knownNull(leaf originLeaf, kp []string) bool {
 		if len(sym.path) == 0 {
 			return false
 		}
-		val, ok := r.lookup.plannedValue(sym.addr, sym.path)
+		val, ok := r.e.lookup.plannedValue(sym.addr, sym.path)
 		return ok && val.IsNull()
 	default:
 		if !policySymUnset(sym) {
 			return false
 		}
-		computed, ok := r.lookup.attrComputed(r.provider, r.rc.Type, kp)
+		computed, ok := r.e.lookup.attrComputed(r.provider, r.rc.Type, kp)
 		return ok && !computed
 	}
 }
@@ -433,6 +431,7 @@ type originEval struct {
 	cfg        *configs.Config
 	exp        *instances.Expander
 	overridden func(addrs.ModuleInstance) bool
+	lookup     originLookup
 	depth      int
 }
 
@@ -730,11 +729,18 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 			elems = append(elems, src.elems[addrs.IntKey(k)])
 		}
 	case symRef:
-		// A splat over a single object wraps it in a tuple.
-		if len(src.path) != 0 {
+		if len(src.path) == 0 {
+			// A splat over a single object wraps it in a tuple.
+			elems = []originSym{src}
+			break
+		}
+		n, ok := e.plannedLength(src)
+		if !ok {
 			return opaqueUnsupported
 		}
-		elems = []originSym{src}
+		for i := range n {
+			elems = append(elems, src.withStep(originStep{index: int64(i)}))
+		}
 	case symOpaque:
 		return src
 	default:
@@ -751,6 +757,21 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 		seq.elems = append(seq.elems, e.eval(expr.Each, &originScope{mod: s.mod, cfg: s.cfg, rep: s.rep, anon: anon}))
 	}
 	return seq
+}
+
+// plannedLength returns the number of elements of the planned value a
+// reference refers to, if that's a known, non-null list or tuple, which a
+// splat over it has as many elements as. ok is false otherwise, including
+// for sets, whose elements have no index.
+func (e *originEval) plannedLength(ref symRef) (int, bool) {
+	if e.lookup == nil {
+		return 0, false
+	}
+	val, ok := e.lookup.plannedValue(ref.addr, ref.path)
+	if !ok || val.IsNull() || !(val.Type().IsListType() || val.Type().IsTupleType()) {
+		return 0, false
+	}
+	return val.LengthInt(), true
 }
 
 func (e *originEval) resource(res addrs.Resource, s *originScope) originSym {
@@ -1005,7 +1026,7 @@ func policySymUnset(s originSym) bool {
 // the referenced value is a primitive attribute value of the referenced
 // managed resource type, possibly an element of a list or tuple, of the same
 // type as the record's leaf, and isn't known to be null or missing.
-func (e *originEval) originAllowed(ref symRef, leafTy cty.Type, lookup originLookup) bool {
+func (e *originEval) originAllowed(ref symRef, leafTy cty.Type) bool {
 	if e.moduleOverridden(ref.addr.Module) {
 		return false
 	}
@@ -1018,11 +1039,11 @@ func (e *originEval) originAllowed(ref symRef, leafTy cty.Type, lookup originLoo
 		return false
 	}
 	provider := modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr())
-	ty, ok := lookup.attrType(provider, rc.Type, ref.path)
+	ty, ok := e.lookup.attrType(provider, rc.Type, ref.path)
 	if !ok || !ty.Equals(leafTy) {
 		return false
 	}
-	if val, ok := lookup.plannedValue(ref.addr, ref.path); ok && val.IsNull() {
+	if val, ok := e.lookup.plannedValue(ref.addr, ref.path); ok && val.IsNull() {
 		return false
 	}
 	return true
