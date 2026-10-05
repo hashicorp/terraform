@@ -37,12 +37,6 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
@@ -60,6 +54,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
+	configPath := c.WorkingDir.RootModuleDir()
 	empty, err := configs.IsEmptyDir(configPath, parsedArgs.TestsDirectory)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(

@@ -59,12 +59,7 @@ func (c *GetCommand) Run(rawArgs []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	path, err := ModulePath(nil)
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
-	}
+	path := c.WorkingDir.RootModuleDir()
 
 	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
 	if diags.HasErrors() {

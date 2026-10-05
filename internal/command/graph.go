@@ -32,13 +32,8 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
@@ -75,7 +70,7 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 
 	// Build the operation
 	opReq := c.Operation(b, arguments.ViewHuman)
-	opReq.ConfigDir = configPath
+	opReq.ConfigDir = c.WorkingDir.RootModuleDir()
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.PlanFile = planFile
 	opReq.AllowUnsetVariables = true
