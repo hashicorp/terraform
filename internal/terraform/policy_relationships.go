@@ -406,17 +406,28 @@ var _ originLookup = (*relationshipOriginLookup)(nil)
 
 func (l *relationshipOriginLookup) attrType(provider addrs.Provider, resType string, path []originStep) (cty.Type, bool) {
 	schema := l.schemas.ResourceTypeConfig(provider, addrs.ManagedResourceMode, resType)
-	if schema.Body == nil || len(path) == 0 {
+	if schema.Body == nil || len(path) == 0 || path[0].name == "" {
 		return cty.NilType, false
 	}
 	ty := schema.Body.ImpliedType()
+	// The attribute steps alone find the attribute in the schema, because
+	// AttributeByPath doesn't step into the elements of an attribute.
 	ctyPath := make(cty.Path, 0, len(path))
 	for _, step := range path {
-		if step.name == "" || !ty.IsObjectType() || !ty.HasAttribute(step.name) {
+		switch {
+		case step.name != "":
+			if !ty.IsObjectType() || !ty.HasAttribute(step.name) {
+				return cty.NilType, false
+			}
+			ty = ty.AttributeType(step.name)
+			ctyPath = ctyPath.GetAttr(step.name)
+		case ty.IsListType():
+			ty = ty.ElementType()
+		case ty.IsTupleType() && step.index < int64(len(ty.TupleElementTypes())):
+			ty = ty.TupleElementTypes()[step.index]
+		default:
 			return cty.NilType, false
 		}
-		ty = ty.AttributeType(step.name)
-		ctyPath = ctyPath.GetAttr(step.name)
 	}
 	if !ty.IsPrimitiveType() {
 		return cty.NilType, false
@@ -455,10 +466,21 @@ func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, 
 		if val.IsNull() {
 			return val, true
 		}
-		if step.name == "" || !val.Type().IsObjectType() || !val.Type().HasAttribute(step.name) {
+		ty := val.Type()
+		switch {
+		case step.name != "":
+			if !ty.IsObjectType() || !ty.HasAttribute(step.name) {
+				return cty.NilVal, false
+			}
+			val = val.GetAttr(step.name)
+		case ty.IsListType() || ty.IsTupleType():
+			if step.index >= int64(val.LengthInt()) {
+				return cty.NullVal(cty.DynamicPseudoType), true
+			}
+			val = val.Index(cty.NumberIntVal(step.index))
+		default:
 			return cty.NilVal, false
 		}
-		val = val.GetAttr(step.name)
 	}
 	if !val.IsKnown() {
 		return cty.NilVal, false

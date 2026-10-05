@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"math/big"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -191,6 +193,111 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			`},
 			want: map[string]map[string][]string{
 				"test_vm.v": {"nic.net_id": {"test_net.a.id", "test_net.b.id"}},
+			},
+		},
+		"index into nested blocks": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				resource "test_vm" "other" {
+					nic {
+						net_id = test_net.a.id
+					}
+					nic {
+						net_id = test_net.b.id
+					}
+				}
+				resource "test_vm" "v" {
+					net_id  = test_vm.other.nic[1].net_id
+					net_ids = [test_vm.other.nic[0].net_id, test_vm.other.nic[1].net_id]
+					# A legacy index step.
+					zone = test_vm.other.nic.0.net_id
+				}
+			`},
+			want: map[string]map[string][]string{
+				"test_vm.other": {"nic.net_id": {"test_net.a.id", "test_net.b.id"}},
+				"test_vm.v": {
+					"net_id":  {"test_vm.other.nic[1].net_id"},
+					"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"},
+					"zone":    {"test_vm.other.nic[0].net_id"},
+				},
+			},
+		},
+		"index into a list attribute": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "other" {
+					net_ids = ["x", test_net.a.id]
+				}
+				resource "test_vm" "v" {
+					net_id = test_vm.other.net_ids[1]
+				}
+				resource "test_vm" "w" {
+					count  = 2
+					net_id = test_vm.other.net_ids[count.index]
+				}
+			`},
+			want: map[string]map[string][]string{
+				"test_vm.other": {"net_ids": {"test_net.a.id"}},
+				"test_vm.v":     {"net_id": {"test_vm.other.net_ids[1]"}},
+				"test_vm.w[0]":  {"net_id": {"test_vm.other.net_ids[0]"}},
+				"test_vm.w[1]":  {"net_id": {"test_vm.other.net_ids[1]"}},
+			},
+		},
+		"index into a null element": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "other" {
+					net_ids = [test_net.a.id, null]
+				}
+				resource "test_vm" "v" {
+					net_ids = [test_vm.other.net_ids[0], test_vm.other.net_ids[1]]
+				}
+			`},
+			// The referenced null element is null in the planned value, so
+			// it contributes nothing.
+			want: map[string]map[string][]string{
+				"test_vm.other": {"net_ids": {"test_net.a.id"}},
+				"test_vm.v":     {"net_ids": {"test_vm.other.net_ids[0]"}},
+			},
+		},
+		"index steps not followed": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+					tags = { "0" = "x" }
+				}
+				resource "test_vm" "other" {
+					net_ids = ["x"]
+					nic {
+						net_id = "n"
+					}
+				}
+				resource "test_vm" "string_key" {
+					net_id = test_vm.other.net_ids["0"]
+				}
+				resource "test_vm" "block_string_key" {
+					net_id = test_vm.other.nic["0"].net_id
+				}
+				resource "test_vm" "map" {
+					net_id = test_net.a.tags[0]
+				}
+			`},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":               {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.other":            {"net_ids": {"LITERAL"}, "nic.net_id": {"LITERAL"}},
+				"test_vm.string_key":       {"net_id": {"UNSUPPORTED"}},
+				"test_vm.block_string_key": {"net_id": {"UNSUPPORTED"}},
+				"test_vm.map":              {"net_id": {"UNSUPPORTED"}},
 			},
 		},
 		"count.index": {
@@ -1391,6 +1498,20 @@ func TestRelationshipOriginLookup(t *testing.T) {
 				"zone": cty.NullVal(cty.String),
 				"nic":  cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String}))),
 			}),
+			"test_vm.w": cty.ObjectVal(map[string]cty.Value{
+				"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.NullVal(cty.String), cty.UnknownVal(cty.String)}),
+				"nic": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"net_id": cty.StringVal("n"),
+				})}),
+				"disks": cty.TupleVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"size": cty.NumberIntVal(1),
+				})}),
+				"zone": cty.SetVal([]cty.Value{cty.StringVal("z")}),
+				"name": cty.MapVal(map[string]cty.Value{"0": cty.StringVal("m")}),
+			}),
+			"test_vm.null": cty.ObjectVal(map[string]cty.Value{
+				"net_ids": cty.NullVal(cty.List(cty.String)),
+			}),
 		},
 	}
 
@@ -1412,6 +1533,17 @@ func TestRelationshipOriginLookup(t *testing.T) {
 			{"test_net", "token", cty.NilType},         // write-only
 			{"test_net", "missing", cty.NilType},
 			{"test_missing", "id", cty.NilType},
+
+			// Index steps.
+			{"test_vm", "nic[0].net_id", cty.String},
+			{"test_vm", "nic[0].key", cty.NilType}, // write-only
+			{"test_vm", "nic[0]", cty.NilType},     // object
+			{"test_vm", "disks[1].size", cty.Number},
+			{"test_vm", "disks[0].password", cty.NilType}, // write-only
+			{"test_vm", "net_ids[2]", cty.String},
+			{"test_vm", "net_ids[0].x", cty.NilType},
+			{"test_net", "tags[0]", cty.NilType}, // map
+			{"test_net", "name[0]", cty.NilType}, // primitive
 		}
 		for _, test := range tests {
 			ty, ok := lookup.attrType(provider, test.resType, testOriginPath(t, test.path))
@@ -1421,6 +1553,9 @@ func TestRelationshipOriginLookup(t *testing.T) {
 		}
 		if _, ok := lookup.attrType(addrs.NewDefaultProvider("other"), "test_net", testOriginPath(t, "id")); ok {
 			t.Error("expected no type for another provider")
+		}
+		if _, ok := lookup.attrType(provider, "test_vm", []originStep{{index: 0}, {name: "net_id"}}); ok {
+			t.Error("expected no type for a path starting with an index step")
 		}
 	})
 
@@ -1438,6 +1573,23 @@ func TestRelationshipOriginLookup(t *testing.T) {
 			{"test_vm.v", "zone", cty.NullVal(cty.String), true},
 			{"test_vm.v", "nic.net_id", cty.NilVal, false},
 			{"test_net.b", "id", cty.NilVal, false}, // no change
+
+			// Index steps.
+			{"test_vm.w", "net_ids[0]", cty.StringVal("a"), true},
+			{"test_vm.w", "net_ids[1]", cty.NullVal(cty.String), true},
+			{"test_vm.w", "net_ids[2]", cty.NilVal, false}, // unknown
+			{"test_vm.w", "nic[0].net_id", cty.StringVal("n"), true},
+			{"test_vm.w", "disks[0].size", cty.NumberIntVal(1), true}, // tuple
+			{"test_vm.v", "nic[0].net_id", cty.NilVal, false},         // unknown list
+			{"test_vm.null", "net_ids[0]", cty.NullVal(cty.List(cty.String)), true},
+			{"test_vm.w", "zone[0]", cty.NilVal, false}, // set
+			{"test_vm.w", "name[0]", cty.NilVal, false}, // map
+			{"test_vm.w", "nic.net_id", cty.NilVal, false},
+
+			// There's no element out of range of a known list or tuple.
+			{"test_vm.w", "net_ids[3]", cty.NullVal(cty.DynamicPseudoType), true},
+			{"test_vm.w", "nic[1].net_id", cty.NullVal(cty.DynamicPseudoType), true},
+			{"test_vm.w", "disks[1].size", cty.NullVal(cty.DynamicPseudoType), true},
 		}
 		for _, test := range tests {
 			got, ok := lookup.plannedValue(mustResourceInstanceAddr(test.addr), testOriginPath(t, test.path))
@@ -1446,6 +1598,121 @@ func TestRelationshipOriginLookup(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestOriginEvalIndex(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_vm.v")
+	ref := symRef{addr: addr, path: []originStep{{name: "net_ids"}}}
+	tooLarge, _ := new(big.Float).SetString("1e30")
+	tests := map[string]struct {
+		base originSym
+		key  cty.Value
+		want originSym
+	}{
+		"whole number": {ref, cty.NumberIntVal(1), symRef{addr: addr, path: []originStep{{name: "net_ids"}, {index: 1}}}},
+		"zero":         {ref, cty.Zero, symRef{addr: addr, path: []originStep{{name: "net_ids"}, {index: 0}}}},
+		"nested": {
+			symRef{addr: addr, path: []originStep{{name: "m"}, {index: 2}}},
+			cty.NumberIntVal(3),
+			symRef{addr: addr, path: []originStep{{name: "m"}, {index: 2}, {index: 3}}},
+		},
+		"negative":       {ref, cty.NumberIntVal(-1), opaqueUnsupported},
+		"fractional":     {ref, cty.NumberFloatVal(1.5), opaqueUnsupported},
+		"too large":      {ref, cty.NumberVal(tooLarge), opaqueUnsupported},
+		"string":         {ref, cty.StringVal("1"), opaqueUnsupported},
+		"unknown":        {ref, cty.UnknownVal(cty.Number), opaqueExpression},
+		"null":           {ref, cty.NullVal(cty.Number), opaqueExpression},
+		"marked":         {ref, cty.NumberIntVal(1).Mark(marks.Sensitive), opaqueExpression},
+		"whole resource": {symRef{addr: addr}, cty.Zero, opaqueUnsupported},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			e := &originEval{}
+			got := e.index(test.base, symLit{val: test.key})
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestOriginEvalOriginAllowed_indexSteps(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_net" "a" {
+			}
+			resource "test_vm" "v" {
+			}
+		`,
+	})
+	lookup := &relationshipOriginLookup{
+		schemas: &schemarepo.Schemas{
+			Providers: map[addrs.Provider]providers.ProviderSchema{
+				addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
+			},
+		},
+		planned: map[string]cty.Value{
+			"test_net.a": cty.ObjectVal(map[string]cty.Value{
+				"tags": cty.MapVal(map[string]cty.Value{"0": cty.StringVal("x")}),
+			}),
+			"test_vm.v": cty.ObjectVal(map[string]cty.Value{
+				"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.NullVal(cty.String)}),
+				"nic":     cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String}))),
+			}),
+		},
+	}
+	tests := []struct {
+		addr string
+		path string
+		want bool
+	}{
+		{"test_vm.v", "net_ids[0]", true},
+		{"test_vm.v", "net_ids[1]", false}, // null
+		{"test_vm.v", "net_ids[2]", false}, // out of range
+		{"test_vm.v", "nic[3].net_id", true},
+		{"test_vm.v", "nic[0].key", false}, // write-only
+		{"test_net.a", "tags[0]", false},   // map
+	}
+	e := &originEval{cfg: cfg, exp: instances.NewExpander(nil)}
+	for _, test := range tests {
+		ref := symRef{addr: mustResourceInstanceAddr(test.addr), path: testOriginPath(t, test.path)}
+		if got := e.originAllowed(ref, cty.String, lookup); got != test.want {
+			t.Errorf("%s.%s: allowed = %t, want %t", test.addr, test.path, got, test.want)
+		}
+	}
+}
+
+func TestOriginPath(t *testing.T) {
+	paths := []string{"nic[10].net_id", "net_ids[1]", "nic[2].net_id", "name", "nic[2].id", "net_ids[0]", "m[1][0]"}
+	wantOrder := []string{"m[1][0]", "name", "net_ids[0]", "net_ids[1]", "nic[2].id", "nic[2].net_id", "nic[10].net_id"}
+
+	var parsed [][]originStep
+	for _, p := range paths {
+		path := testOriginPath(t, p)
+		parsed = append(parsed, path)
+		if got := originPathString(path); got != p {
+			t.Errorf("wrong id for %s: %s", p, got)
+		}
+		if got := relPathString(policyOriginPath(path)); got != p {
+			t.Errorf("wrong wire path for %s: %s", p, got)
+		}
+	}
+	sort.Slice(parsed, func(i, j int) bool { return originPathLess(parsed[i], parsed[j]) })
+	var gotOrder []string
+	for _, path := range parsed {
+		gotOrder = append(gotOrder, originPathString(path))
+	}
+	if diff := cmp.Diff(wantOrder, gotOrder); diff != "" {
+		t.Errorf("wrong order (-want +got):\n%s", diff)
+	}
+
+	steps := policyOriginPath(testOriginPath(t, "nic[1].net_id")).GetSteps()
+	if len(steps) != 3 || steps[0].GetAttributeName() != "nic" || steps[2].GetAttributeName() != "net_id" {
+		t.Fatalf("wrong wire path: %v", steps)
+	}
+	if step, ok := steps[1].GetSelector().(*proto.AttributePath_Step_ElementKeyInt); !ok || step.ElementKeyInt != 1 {
+		t.Errorf("expected an element_key_int step 1, got %v", steps[1])
+	}
 }
 
 // testOriginPath parses an origin path such as "nic[0].net_id".

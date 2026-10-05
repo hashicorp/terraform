@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"math/big"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,12 +23,15 @@ import (
 // instances it needs to decide whether an origin is sound.
 type originLookup interface {
 	// attrType returns the type of the attribute of a managed resource type
-	// at path. ok is false unless path names a primitive, non-write-only
-	// attribute through attribute steps only.
+	// at path. ok is false unless path names a primitive value of a
+	// non-write-only attribute, through attribute steps and index steps
+	// into lists and tuples only.
 	attrType(provider addrs.Provider, resType string, path []originStep) (ty cty.Type, ok bool)
 
-	// plannedValue returns the planned value of a resource instance at path.
-	// ok is false if the value is unknown or isn't available.
+	// plannedValue returns the planned value of a resource instance at path,
+	// following index steps into lists and tuples. ok is false if the value
+	// is unknown or isn't available. The value at an index out of range of a
+	// known list or tuple is null: there's no element to refer to.
 	plannedValue(addr addrs.AbsResourceInstance, path []originStep) (val cty.Value, ok bool)
 
 	// attrComputed returns whether the attribute of a managed resource type
@@ -335,7 +339,7 @@ func (o symOpaque) why() proto.NoOriginReason {
 type symLit struct{ val cty.Value }
 
 // symRef is the value of a managed resource instance, or of one of its
-// attributes when path isn't empty.
+// attributes or their elements when path isn't empty.
 type symRef struct {
 	addr addrs.AbsResourceInstance
 	path []originStep
@@ -668,6 +672,15 @@ func (e *originEval) index(base originSym, key originSym) originSym {
 	if !ok || !lit.val.IsWhollyKnown() || lit.val.IsNull() || lit.val.IsMarked() {
 		return opaqueExpression
 	}
+	if ref, ok := base.(symRef); ok {
+		// Only a list or tuple element of an attribute can be referred to:
+		// an origin names a primitive attribute value.
+		i, ok := policyElementIndex(lit.val)
+		if !ok || len(ref.path) == 0 {
+			return opaqueUnsupported
+		}
+		return ref.withStep(originStep{index: i})
+	}
 	k, err := addrs.ParseInstanceKey(lit.val)
 	if err != nil {
 		return opaqueUnsupported
@@ -687,6 +700,16 @@ func (e *originEval) index(base originSym, key originSym) originSym {
 		}
 	}
 	return opaqueUnsupported
+}
+
+// policyElementIndex returns the element index a known, non-null, unmarked
+// index key names: a whole number of at least zero.
+func policyElementIndex(key cty.Value) (int64, bool) {
+	if key.Type() != cty.Number {
+		return 0, false
+	}
+	i, acc := key.AsBigFloat().Int64()
+	return i, acc == big.Exact && i >= 0
 }
 
 func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym {
@@ -979,9 +1002,9 @@ func policySymUnset(s originSym) bool {
 }
 
 // originAllowed checks the conditions of contract §5 for a single origin:
-// the referenced attribute is a primitive attribute of the referenced
-// managed resource type, of the same type as the record's leaf, and isn't
-// known to be null.
+// the referenced value is a primitive attribute value of the referenced
+// managed resource type, possibly an element of a list or tuple, of the same
+// type as the record's leaf, and isn't known to be null or missing.
 func (e *originEval) originAllowed(ref symRef, leafTy cty.Type, lookup originLookup) bool {
 	if e.moduleOverridden(ref.addr.Module) {
 		return false
