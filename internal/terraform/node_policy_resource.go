@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -24,6 +25,11 @@ type nodeResourcePolicy struct {
 	Before       cty.Value
 	After        cty.Value
 	Action       plans.Action
+
+	// DeposedKey is the deposed key of the change the node evaluates, which
+	// apply allocates for the delete half of a create-before-destroy
+	// replace; NotDeposed for current objects.
+	DeposedKey states.DeposedKey
 }
 
 var _ GraphNodeExecutable = (*nodeResourcePolicy)(nil)
@@ -67,6 +73,9 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 
 		Address:        n.ResourceAddr.String(),
 		ProviderSource: providerAddr.Provider.String(),
+	}
+	if pg := ctx.PolicyGraph(); pg != nil {
+		meta.DeposedKey = pg.subjectDeposedKey(n.ResourceAddr, n.DeposedKey)
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration

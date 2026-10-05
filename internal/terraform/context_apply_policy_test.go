@@ -2679,6 +2679,110 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_PolicyRelationships_subjectDeposedKey(t *testing.T) {
+	tests := map[string]struct {
+		files         map[string]string
+		state         func(*states.SyncState)
+		opts          *PlanOpts
+		capabilityOff bool
+		// wantEvals are the evaluations as address, operation and deposed
+		// key.
+		wantEvals []string
+	}{
+		"deposed object": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				relNetDeposedState(s, "test_net.a", "00000001", `{"id":"a-deposed-id","name":"older"}`)
+			},
+			wantEvals: []string{
+				`test_net.a DELETE "00000001"`,
+				`test_net.a NO_OP ""`,
+			},
+		},
+		"create before destroy": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "b" {
+					name = "b"
+					lifecycle {
+						create_before_destroy = true
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"b"}`)
+			},
+			opts: &PlanOpts{
+				Mode:         plans.NormalMode,
+				ForceReplace: []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_net.b")},
+			},
+			// The apply deposes the old object under a new key, but the
+			// evaluation belongs to the replace's change, which has none.
+			wantEvals: []string{
+				`test_net.b CREATE ""`,
+				`test_net.b DELETE ""`,
+			},
+		},
+		"no run": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				relNetDeposedState(s, "test_net.a", "00000001", `{"id":"a-deposed-id","name":"older"}`)
+			},
+			capabilityOff: true,
+			wantEvals: []string{
+				`test_net.a DELETE ""`,
+				`test_net.a NO_OP ""`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			mod := testModuleInline(t, test.files)
+			state := states.BuildState(test.state)
+			opts := test.opts
+			if opts == nil {
+				opts = &PlanOpts{Mode: plans.NormalMode}
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+				},
+			})
+			plan, diags := ctx.Plan(mod, state, opts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+			client.RelationshipsSupportedResponse = !test.capabilityOff
+			_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+			tfdiags.AssertNoErrors(t, diags)
+
+			if test.capabilityOff {
+				run.assertNoRun(t)
+			} else {
+				run.assertRunSequence(t)
+			}
+			var got []string
+			for _, eval := range run.evals {
+				got = append(got, fmt.Sprintf("%s %s %q", eval.Meta.GetAddress(), eval.Meta.GetOperation(), eval.Meta.GetDeposedKey()))
+			}
+			sort.Strings(got)
+			if diff := cmp.Diff(test.wantEvals, got); diff != "" {
+				t.Fatalf("wrong evaluations (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestContext2Apply_PolicyRelationships_beginRunWarnings(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
 		resource "test_net" "a" {

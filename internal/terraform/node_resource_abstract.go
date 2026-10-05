@@ -678,6 +678,7 @@ func (n *NodeAbstractResource) addPolicyNode(
 		Before:       change.Before,
 		After:        after,
 		Action:       change.Action,
+		DeposedKey:   change.DeposedKey,
 	})
 }
 
