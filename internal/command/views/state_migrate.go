@@ -183,7 +183,7 @@ func (s *StateMigrateHuman) Spacer() {
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProvidersStart() {
-	s.log(logInstallProvidersStartMessageHuman)
+	s.log("[reset][bold]Installing providers...")
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -388,7 +388,7 @@ func (s *StateMigrateJSON) LogProviderLockfileUpdated() {
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogInstallProvidersStart() {
 	s.view.log.Info(
-		logInstallProvidersStartMessageJSON,
+		"Installing providers...",
 		"type", json.MessageProviderInstallationStart,
 	)
 }
