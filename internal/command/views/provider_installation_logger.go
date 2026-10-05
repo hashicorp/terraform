@@ -50,10 +50,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	// LogBuiltInProviderAvailable
-	logBuiltInProviderAvailableHuman = "- %s is built in to Terraform"
-	logBuiltInProviderAvailableJSON  = "%s is built in to Terraform"
-
 	// LogFindingLatestVersion
 	logFindingLatestVersionHuman = "- Finding latest version of %s..."
 	logFindingLatestVersionJSON  = "%s: Finding latest version..."

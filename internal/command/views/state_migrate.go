@@ -233,7 +233,7 @@ func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr add
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	s.log(fmt.Sprintf(logBuiltInProviderAvailableHuman, providerAddr.ForDisplay()))
+	s.log(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -396,7 +396,7 @@ func (s *StateMigrateJSON) LogInstallProvidersStart() {
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 	s.view.log.Info(
-		fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay()),
+		fmt.Sprintf("%s is built in to Terraform", providerAddr.ForDisplay()),
 		"type", json.MessageBuiltInProviderAvailable,
 	)
 }

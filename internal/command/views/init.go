@@ -268,7 +268,7 @@ func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provi
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf(logBuiltInProviderAvailableHuman, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
@@ -535,7 +535,7 @@ func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provid
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	v.view.Log(fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay()))
+	v.view.Log(fmt.Sprintf("%s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
