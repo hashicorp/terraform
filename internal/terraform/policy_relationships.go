@@ -386,6 +386,8 @@ type relationshipCollector struct {
 	// keep are the top-level attributes kept in the values of the records
 	// of a type; nil for a type whose records aren't pruned.
 	keep map[relationshipTypeKey]map[string]bool
+	// includePrior are the types whose update records have prior attrs.
+	includePrior map[relationshipTypeKey]bool
 
 	// origins is the lookup for origins in plan runs; nil if the run has
 	// no origins.
@@ -509,13 +511,14 @@ func policyOverriddenModules(overrides *mocking.Overrides) func(addrs.ModuleInst
 // called after the walk's changes and state are final.
 func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.CollectionSpec) ([]*proto.InstanceRecord, []*proto.TypeStatus, []*proto.ProviderInstance) {
 	c := &relationshipCollector{
-		ctx:        ctx,
-		ps:         ps,
-		types:      make(map[relationshipTypeKey]bool),
-		incomplete: make(map[relationshipTypeKey]bool),
-		deferred:   make(map[relationshipTypeKey]map[string]struct{}),
-		keyPaths:   make(map[relationshipTypeKey][][]string),
-		keep:       make(map[relationshipTypeKey]map[string]bool),
+		ctx:          ctx,
+		ps:           ps,
+		types:        make(map[relationshipTypeKey]bool),
+		incomplete:   make(map[relationshipTypeKey]bool),
+		deferred:     make(map[relationshipTypeKey]map[string]struct{}),
+		keyPaths:     make(map[relationshipTypeKey][][]string),
+		keep:         make(map[relationshipTypeKey]map[string]bool),
+		includePrior: make(map[relationshipTypeKey]bool),
 	}
 	unpruned := make(map[relationshipTypeKey]bool)
 	for _, ts := range spec.GetTypes() {
@@ -526,6 +529,9 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		}
 		for _, kp := range ts.GetKeyPaths() {
 			c.keyPaths[key] = append(c.keyPaths[key], policyKeyPathNames(kp))
+		}
+		if ts.GetIncludePrior() {
+			c.includePrior[key] = true
 		}
 		keep := policyKeepAttributes(ts)
 		if keep == nil {
@@ -771,7 +777,7 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.After, c.keyPaths[key], c.origins)
 		}
 	}
-	if policyRecordHasPriorAttrs(change.Action, false) {
+	if policyRecordHasPriorAttrs(change.Action, c.includePrior[key]) {
 		if rec.PriorAttrs, ok = c.encode(key, addr, "prior value", policyMarkSchemaSensitive(change.Before, schema.Body)); !ok {
 			return
 		}

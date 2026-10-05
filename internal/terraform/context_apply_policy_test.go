@@ -2542,6 +2542,45 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 				"test_vm":  relComplete("test_vm"),
 			},
 		},
+		// The prior attrs of an update are the applied plan's prior value,
+		// with the sensitive marks of the schema, pruned like the attrs. A
+		// no-op has none.
+		"update with include_prior": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "b" {
+					name   = "new"
+					secret = "new-s"
+				}
+				resource "test_net" "c" {
+					name   = "c"
+					secret = "c-s"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"old","secret":"old-s","tags":{"x":"y"}}`)
+				relNetState(s, "test_net.c", `{"id":"c-id","name":"c","secret":"c-s"}`)
+			},
+			types: []*proto.TypeSpec{relIncludePrior(relReads(relTypeSpec("test_net", "id"), "name", "secret"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.b": {
+					Action: relUpdate, Source: relPlanned,
+					Attrs: map[string]cty.Value{
+						"id": cty.StringVal("b-id"), "name": cty.StringVal("new"), "secret": cty.StringVal("new-s"),
+					},
+					PriorAttrs: map[string]cty.Value{
+						"id":     cty.StringVal("b-id"),
+						"name":   cty.StringVal("old"),
+						"secret": cty.StringVal("old-s"),
+						"tags":   cty.NullVal(cty.Map(cty.String)),
+					},
+					PriorRedacted: []string{"secret"},
+				},
+				"test_net.c": {Action: relNoOp, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("c-id"), "name": cty.StringVal("c"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
 		"replace": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {

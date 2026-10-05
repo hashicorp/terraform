@@ -3360,6 +3360,12 @@ func relReads(spec *proto.TypeSpec, reads ...string) *proto.TypeSpec {
 	return spec
 }
 
+// relIncludePrior sets include_prior on a type spec.
+func relIncludePrior(spec *proto.TypeSpec) *proto.TypeSpec {
+	spec.IncludePrior = true
+	return spec
+}
+
 func relAttrPath(dotted string) *proto.AttributePath {
 	path := &proto.AttributePath{}
 	for _, name := range strings.Split(dotted, ".") {
@@ -3854,14 +3860,16 @@ func planRelationships(t *testing.T, mod *configs.Config, state *states.State, o
 // wantRelRecord describes an expected InstanceRecord. Attrs and PriorAttrs
 // list expected attribute values; nil means the record must not have them.
 type wantRelRecord struct {
-	Action      proto.ResourceAction
-	Source      proto.RecordSource
-	Attrs       map[string]cty.Value
-	PriorAttrs  map[string]cty.Value
-	Redacted    []string // redacted paths of attrs, dot-separated; not checked when nil, none when empty
-	Importing   bool
-	PrevAddress string
-	ModulePath  string
+	Action     proto.ResourceAction
+	Source     proto.RecordSource
+	Attrs      map[string]cty.Value
+	PriorAttrs map[string]cty.Value
+	Redacted   []string // redacted paths of attrs, dot-separated; not checked when nil, none when empty
+	// PriorRedacted are the redacted paths of the prior attrs, like Redacted.
+	PriorRedacted []string
+	Importing     bool
+	PrevAddress   string
+	ModulePath    string
 	// Provider is the config address of the record's provider instance;
 	// the default provider configuration when empty.
 	Provider string
@@ -4031,6 +4039,11 @@ func (r *relationshipRun) assertRecords(t *testing.T, want map[string]wantRelRec
 				t.Errorf("%s: wrong redacted paths (-want +got):\n%s", addr, diff)
 			}
 		}
+		if rec.PriorAttrs != nil && w.PriorRedacted != nil {
+			if diff := cmp.Diff(w.PriorRedacted, relRedactedPaths(rec.PriorAttrs), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("%s: wrong redacted paths of prior attrs (-want +got):\n%s", addr, diff)
+			}
+		}
 	}
 }
 
@@ -4141,6 +4154,61 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 				"test_net.b": {Action: relUpdate, Source: relPlanned, Attrs: map[string]cty.Value{
 					"id": cty.StringVal("b-id"), "name": cty.StringVal("new"),
 				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		// include_prior adds the prior attrs of updates, with the sensitive
+		// marks of the schema. A no-op has none: its prior attrs are its
+		// attrs.
+		"update and no-op with include_prior": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name   = "new"
+					secret = "new-s"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"old","secret":"old-s"}`)
+			},
+			types: []*proto.TypeSpec{relIncludePrior(relTypeSpec("test_net", "id"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relNoOp, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("a"),
+				}},
+				"test_net.b": {
+					Action: relUpdate, Source: relPlanned,
+					Attrs: map[string]cty.Value{
+						"id": cty.StringVal("b-id"), "name": cty.StringVal("new"), "secret": cty.StringVal("new-s"),
+					},
+					PriorAttrs: map[string]cty.Value{
+						"id": cty.StringVal("b-id"), "name": cty.StringVal("old"), "secret": cty.StringVal("old-s"),
+					},
+					PriorRedacted: []string{"secret"},
+				},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		// Merging the specs of a type ORs their include_prior.
+		"include_prior in one of a type's specs": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "b" {
+					name = "new"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"old"}`)
+			},
+			types: []*proto.TypeSpec{relTypeSpec("test_net", "id"), relIncludePrior(relTypeSpec("test_net", "name"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.b": {
+					Action: relUpdate, Source: relPlanned,
+					Attrs:      map[string]cty.Value{"id": cty.StringVal("b-id"), "name": cty.StringVal("new")},
+					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("b-id"), "name": cty.StringVal("old")},
+				},
 			},
 			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
 		},
@@ -4285,6 +4353,37 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 				"test_net.i": {Action: relNoOp, Source: relPlanned, Importing: true, Attrs: map[string]cty.Value{
 					"id": cty.StringVal("i-id"), "name": cty.StringVal("imported"),
 				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		// The prior attrs of an import that updates are the imported value.
+		"import with include_prior": {
+			files: map[string]string{"main.tf": `
+				import {
+					to = test_net.i
+					id = "i-id"
+				}
+				resource "test_net" "i" {
+					name = "imported"
+				}
+				import {
+					to = test_net.u
+					id = "u-id"
+				}
+				resource "test_net" "u" {
+					name = "changed"
+				}
+			`},
+			types: []*proto.TypeSpec{relIncludePrior(relTypeSpec("test_net", "id"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.i": {Action: relNoOp, Source: relPlanned, Importing: true, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("i-id"), "name": cty.StringVal("imported"),
+				}},
+				"test_net.u": {
+					Action: relUpdate, Source: relPlanned, Importing: true,
+					Attrs:      map[string]cty.Value{"id": cty.StringVal("u-id"), "name": cty.StringVal("changed")},
+					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("u-id"), "name": cty.StringVal("imported")},
+				},
 			},
 			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
 		},
@@ -4474,6 +4573,40 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 				"test_vm":  relComplete("test_vm"),
 			},
 		},
+		// The prior attrs of an update are pruned like its attrs.
+		"pruned to reads with include_prior": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name   = "a-new"
+					secret = "s-new"
+					tags   = { x = "new" }
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a","secret":"s","tags":{"x":"old"}}`)
+			},
+			types: []*proto.TypeSpec{relIncludePrior(relReads(relTypeSpec("test_net", "id"), "name"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {
+					Action: relUpdate, Source: relPlanned,
+					Attrs: map[string]cty.Value{
+						"id":     cty.StringVal("a-id"),
+						"name":   cty.StringVal("a-new"),
+						"secret": cty.NullVal(cty.String),
+						"tags":   cty.NullVal(cty.Map(cty.String)),
+					},
+					Redacted: []string{},
+					PriorAttrs: map[string]cty.Value{
+						"id":     cty.StringVal("a-id"),
+						"name":   cty.StringVal("a"),
+						"secret": cty.NullVal(cty.String),
+						"tags":   cty.NullVal(cty.Map(cty.String)),
+					},
+					PriorRedacted: []string{},
+				},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
 		"incomplete reads": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -4527,6 +4660,37 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 			},
 			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
 		},
+		// Records outside the target have no prior attrs: they are no-ops.
+		"targeted with include_prior": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a-new"
+				}
+				resource "test_net" "b" {
+					name = "b-new"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"b"}`)
+			},
+			opts: &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
+			},
+			types: []*proto.TypeSpec{relIncludePrior(relTypeSpec("test_net", "id"))},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {
+					Action: relUpdate, Source: relPlanned,
+					Attrs:      map[string]cty.Value{"id": cty.StringVal("a-id"), "name": cty.StringVal("a-new")},
+					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("a-id"), "name": cty.StringVal("a")},
+				},
+				"test_net.b": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"), "name": cty.StringVal("b"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
 		"refresh-only": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -4541,6 +4705,25 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 			},
 			opts:  &PlanOpts{Mode: plans.RefreshOnlyMode},
 			types: []*proto.TypeSpec{relTypeSpec("test_net", "id")},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("a-refreshed"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		// Refresh-only records are no-ops, so they have no prior attrs.
+		"refresh-only with include_prior": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a-new"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+			},
+			opts:  &PlanOpts{Mode: plans.RefreshOnlyMode},
+			types: []*proto.TypeSpec{relIncludePrior(relTypeSpec("test_net", "id"))},
 			wantRecords: map[string]wantRelRecord{
 				"test_net.a": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
 					"id": cty.StringVal("a-id"), "name": cty.StringVal("a-refreshed"),
