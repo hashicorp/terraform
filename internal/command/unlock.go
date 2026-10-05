@@ -32,16 +32,9 @@ func (c *UnlockCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// assume everything is initialized. The user can manually init if this is
-	// required.
-	configPath, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
 	// Load the backend
 	view := arguments.ViewHuman
+	configPath := c.WorkingDir.RootModuleDir()
 	b, backendDiags := c.backend(configPath, view)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
