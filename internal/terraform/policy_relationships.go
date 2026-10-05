@@ -674,7 +674,11 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 
 // addStateRecords adds a record for every current object in the state whose
 // resource is in the configuration and that has neither a change nor a
-// deferral.
+// deferral. These are the instances the getresources callback reads at apply
+// with states.ReadEachConfigResourceInstance, including instances whose key
+// or module instance key no longer exists in the configuration, but one
+// record per instance: that helper returns the current object once per
+// object, and its selector doesn't get the instance address a record needs.
 func (c *relationshipCollector) addStateRecords(state *states.State, changed, deferred map[string]struct{}) {
 	cfg := c.ctx.Config()
 	if cfg == nil {

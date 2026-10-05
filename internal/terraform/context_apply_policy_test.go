@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -2700,6 +2701,64 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 				"test_vm":  relComplete("test_vm"),
 			},
 		},
+		"instance keys no longer in the configuration": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						name = "a"
+					}
+					resource "test_net" "c" {
+						count = 1
+						name  = "c"
+					}
+					module "m" {
+						source = "./m"
+						count  = 1
+					}
+				`,
+				"m/main.tf": `
+					resource "test_net" "x" {
+						name = "x"
+					}
+				`,
+			},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.c[0]", `{"id":"c0-id","name":"c"}`)
+				relNetState(s, "test_net.c[1]", `{"id":"c1-id","name":"c"}`)
+				relNetState(s, "module.m[0].test_net.x", `{"id":"m0-id","name":"x"}`)
+				relNetState(s, "module.m[1].test_net.x", `{"id":"m1-id","name":"x"}`)
+				// Not in the configuration at all.
+				relNetState(s, "test_net.orphan", `{"id":"o-id","name":"o"}`)
+			},
+			opts: &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_net.a")},
+			},
+			// Outside the target, the instances whose key or module instance
+			// key no longer exists stay in the state, and getresources
+			// returns them.
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"),
+				}},
+				"test_net.c[0]": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("c0-id"),
+				}},
+				"test_net.c[1]": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("c1-id"),
+				}},
+				"module.m[0].test_net.x": {Action: relNoOp, Source: relState, ModulePath: "module.m[0]", Attrs: map[string]cty.Value{
+					"id": cty.StringVal("m0-id"),
+				}},
+				"module.m[1].test_net.x": {Action: relNoOp, Source: relState, ModulePath: "module.m[1]", Attrs: map[string]cty.Value{
+					"id": cty.StringVal("m1-id"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -2721,6 +2780,105 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 			run.assertNoOrigins(t)
 			run.assertStatuses(t, test.wantStatuses)
 		})
+	}
+}
+
+// TestContext2Apply_PolicyRelationships_stateRecordsLikeGetResources pins
+// that the instances an apply run reports as existing after the run (state
+// records and planned records that aren't deleted) are the instances the
+// getresources callback returns, de-duplicated: getresources returns the
+// current object of an instance once per object, so an instance with a
+// deposed object is returned twice.
+func TestContext2Apply_PolicyRelationships_stateRecordsLikeGetResources(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_net" "a" {
+				name = "a"
+			}
+			resource "test_net" "b" {
+				name = "b"
+			}
+			resource "test_net" "c" {
+				count = 1
+				name  = "c"
+			}
+			resource "test_net" "u" {
+				name = "u-new"
+			}
+			module "m" {
+				source = "./m"
+				count  = 1
+			}
+		`,
+		"m/main.tf": `
+			resource "test_net" "x" {
+				name = "x"
+			}
+		`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		relNetState(s, "test_net.b", `{"id":"b-id","name":"b"}`)
+		relNetDeposedState(s, "test_net.b", "00000001", `{"id":"b-deposed-id","name":"b"}`)
+		relNetState(s, "test_net.c[0]", `{"id":"c0-id","name":"c"}`)
+		relNetState(s, "test_net.c[1]", `{"id":"c1-id","name":"c"}`)
+		relNetState(s, "test_net.u", `{"id":"u-id","name":"u"}`)
+		relNetState(s, "test_net.gone", `{"id":"gone-id","name":"gone"}`)
+		relNetState(s, "test_net.orphan", `{"id":"o-id","name":"o"}`)
+		relNetState(s, "module.m[0].test_net.x", `{"id":"m0-id","name":"x"}`)
+		relNetState(s, "module.m[1].test_net.x", `{"id":"m1-id","name":"x"}`)
+	})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		Targets: []addrs.Targetable{
+			mustResourceInstanceAddr("test_net.a"),
+			mustResourceInstanceAddr("test_net.u"),
+			mustResourceInstanceAddr("test_net.gone"),
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
+	evaluate := client.EvaluateFn
+	var getResources []string
+	client.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		if getResources == nil {
+			found, partial, err := req.Callbacks.GetResources(t.Context(), "test_net", cty.NullVal(cty.DynamicPseudoType))
+			if err != nil || partial {
+				t.Errorf("GetResources(test_net): partial %t, err %v", partial, err)
+			}
+			getResources = []string{}
+			for _, v := range found {
+				getResources = append(getResources, v.GetAttr("id").AsString())
+			}
+		}
+		return evaluate(ctx, req)
+	}
+	newState, diags := ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
+	tfdiags.AssertNoErrors(t, diags)
+	if newState.ResourceInstance(mustResourceInstanceAddr("test_net.b")).Deposed["00000001"] == nil {
+		t.Fatal("expected the deposed object of test_net.b to stay in the state")
+	}
+
+	var gotRecords []string
+	for _, rec := range run.records(t) {
+		if rec.Source == proto.RecordSource_PLANNED_RECORD_SOURCE && (rec.Action == relDelete || rec.Action == relForget) {
+			continue
+		}
+		v := relDecodeAttrs(t, rec.Attrs)
+		gotRecords = append(gotRecords, v.GetAttr("id").AsString())
+	}
+	sort.Strings(gotRecords)
+	sort.Strings(getResources)
+	if diff := cmp.Diff([]string{"a-id", "b-id", "b-id", "c0-id", "c1-id", "m0-id", "m1-id", "u-id"}, getResources); diff != "" {
+		t.Fatalf("unexpected getresources result (-want +got):\n%s", diff)
+	}
+	if diff := cmp.Diff(slices.Compact(getResources), gotRecords); diff != "" {
+		t.Errorf("records differ from getresources (-getresources +records):\n%s", diff)
 	}
 }
 
