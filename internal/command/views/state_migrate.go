@@ -238,7 +238,7 @@ func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provi
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf(logInstallProviderVersionStartHuman, providerAddr.ForDisplay(), version))
+	s.log(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -444,7 +444,7 @@ func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addr
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
 	s.view.log.Info(
-		fmt.Sprintf(logInstallProviderVersionStartJSON, providerAddr.ForDisplay(), version),
+		fmt.Sprintf("Installing provider version: %s v%s...", providerAddr.ForDisplay(), version),
 		"type", json.MessageProviderVersionInstallationStart,
 	)
 }

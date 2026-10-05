@@ -50,10 +50,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	// LogInstallProviderVersionStart
-	logInstallProviderVersionStartHuman = "- Installing %s v%s..."
-	logInstallProviderVersionStartJSON  = "Installing provider version: %s v%s..."
-
 	// LogInstallProviderVersionComplete
 	logInstallProviderVersionCompleteHuman = "- Installed %s v%s (%s%s)"
 	logInstallProviderVersionCompleteJSON  = "Installed provider version: %s v%s (%s%s)"
