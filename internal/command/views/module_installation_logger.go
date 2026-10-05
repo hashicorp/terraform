@@ -20,9 +20,6 @@ type ModuleInstallationLogger interface {
 }
 
 const (
-	moduleDownloadHuman            = "Downloading %s for %s..."
-	moduleDownloadWithVersionHuman = "Downloading %s %s for %s..."
-
 	moduleInstallationHuman              = "- %s"
 	moduleInstallationWithLocalPathHuman = "- %s in %s"
 )
