@@ -307,9 +307,9 @@ func (v *InitHuman) LogProviderLockfileUpdated() {
 func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
 	var message string
 	if version == nil {
-		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+		message = fmt.Sprintf("Downloading %s for %s...", packageAddr, modulePath)
 	} else {
-		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+		message = fmt.Sprintf("Downloading %s %s for %s...", packageAddr, version, modulePath)
 	}
 	v.print(strings.TrimSpace(message))
 }
@@ -318,14 +318,14 @@ func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Versi
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(modulePath string) {
-	v.print(fmt.Sprintf(moduleInstallationHuman, modulePath))
+	v.print(fmt.Sprintf("- %s", modulePath))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	v.print(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
+	v.print(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *InitHuman) LogModuleUpgrade() {
@@ -574,9 +574,9 @@ func (v *InitJSON) LogProviderLockfileUpdated() {
 func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
 	var message string
 	if version == nil {
-		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+		message = fmt.Sprintf("Downloading %s for %s...", packageAddr, modulePath)
 	} else {
-		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+		message = fmt.Sprintf("Downloading %s %s for %s...", packageAddr, version, modulePath)
 	}
 
 	v.view.Log(message)
@@ -586,14 +586,14 @@ func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Versio
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallation(modulePath string) {
-	v.view.Log(fmt.Sprintf(moduleInstallationHuman, modulePath))
+	v.view.Log(fmt.Sprintf("- %s", modulePath))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	v.view.Log(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
+	v.view.Log(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *InitJSON) LogModuleUpgrade() {
