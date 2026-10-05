@@ -503,6 +503,75 @@ func (TypeCompleteness) EnumDescriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{7}
 }
 
+// NoOriginReason says why some leaves of a key path have no origin.
+type NoOriginReason int32
+
+const (
+	NoOriginReason_INVALID_NO_ORIGIN_REASON     NoOriginReason = 0
+	NoOriginReason_LITERAL_NO_ORIGIN_REASON     NoOriginReason = 1 // a hard-coded value, count.index, each.key
+	NoOriginReason_DATA_SOURCE_NO_ORIGIN_REASON NoOriginReason = 2 // a data source or ephemeral resource attribute
+	NoOriginReason_VARIABLE_NO_ORIGIN_REASON    NoOriginReason = 3 // a root module variable, or a module variable left at its default
+	NoOriginReason_EXPRESSION_NO_ORIGIN_REASON  NoOriginReason = 4 // function call, conditional, for, operator, multi-part template,
+	// non-literal index or key, splat over for_each
+	NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON   NoOriginReason = 5 // the attribute isn't set in the configuration (the provider computes it)
+	NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON   NoOriginReason = 6
+	NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON NoOriginReason = 7 // the planned value's shape differs from the configuration
+	NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON      NoOriginReason = 8 // anything else: JSON syntax, override files, no configuration,
+)
+
+// Enum value maps for NoOriginReason.
+var (
+	NoOriginReason_name = map[int32]string{
+		0: "INVALID_NO_ORIGIN_REASON",
+		1: "LITERAL_NO_ORIGIN_REASON",
+		2: "DATA_SOURCE_NO_ORIGIN_REASON",
+		3: "VARIABLE_NO_ORIGIN_REASON",
+		4: "EXPRESSION_NO_ORIGIN_REASON",
+		5: "NOT_CONFIGURED_NO_ORIGIN_REASON",
+		6: "IGNORE_CHANGES_NO_ORIGIN_REASON",
+		7: "PROVIDER_CHANGED_NO_ORIGIN_REASON",
+		8: "UNSUPPORTED_NO_ORIGIN_REASON",
+	}
+	NoOriginReason_value = map[string]int32{
+		"INVALID_NO_ORIGIN_REASON":          0,
+		"LITERAL_NO_ORIGIN_REASON":          1,
+		"DATA_SOURCE_NO_ORIGIN_REASON":      2,
+		"VARIABLE_NO_ORIGIN_REASON":         3,
+		"EXPRESSION_NO_ORIGIN_REASON":       4,
+		"NOT_CONFIGURED_NO_ORIGIN_REASON":   5,
+		"IGNORE_CHANGES_NO_ORIGIN_REASON":   6,
+		"PROVIDER_CHANGED_NO_ORIGIN_REASON": 7,
+		"UNSUPPORTED_NO_ORIGIN_REASON":      8,
+	}
+)
+
+func (x NoOriginReason) Enum() *NoOriginReason {
+	p := new(NoOriginReason)
+	*p = x
+	return p
+}
+
+func (x NoOriginReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NoOriginReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[8].Descriptor()
+}
+
+func (NoOriginReason) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[8]
+}
+
+func (x NoOriginReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use NoOriginReason.Descriptor instead.
+func (NoOriginReason) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{8}
+}
+
 type ResourceAttributes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Raw           []byte                 `protobuf:"bytes,1,opt,name=raw,proto3" json:"raw,omitempty"`
@@ -819,7 +888,17 @@ const file_types_proto_rawDesc = "" +
 	"\x19INVALID_TYPE_COMPLETENESS\x10\x00\x12\x1e\n" +
 	"\x1aCOMPLETE_TYPE_COMPLETENESS\x10\x01\x12)\n" +
 	"%INCOMPLETE_DEFERRED_TYPE_COMPLETENESS\x10\x02\x12&\n" +
-	"\"INCOMPLETE_ERROR_TYPE_COMPLETENESS\x10\x03B4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\"INCOMPLETE_ERROR_TYPE_COMPLETENESS\x10\x03*\xc1\x02\n" +
+	"\x0eNoOriginReason\x12\x1c\n" +
+	"\x18INVALID_NO_ORIGIN_REASON\x10\x00\x12\x1c\n" +
+	"\x18LITERAL_NO_ORIGIN_REASON\x10\x01\x12 \n" +
+	"\x1cDATA_SOURCE_NO_ORIGIN_REASON\x10\x02\x12\x1d\n" +
+	"\x19VARIABLE_NO_ORIGIN_REASON\x10\x03\x12\x1f\n" +
+	"\x1bEXPRESSION_NO_ORIGIN_REASON\x10\x04\x12#\n" +
+	"\x1fNOT_CONFIGURED_NO_ORIGIN_REASON\x10\x05\x12#\n" +
+	"\x1fIGNORE_CHANGES_NO_ORIGIN_REASON\x10\x06\x12%\n" +
+	"!PROVIDER_CHANGED_NO_ORIGIN_REASON\x10\a\x12 \n" +
+	"\x1cUNSUPPORTED_NO_ORIGIN_REASON\x10\bB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_types_proto_rawDescOnce sync.Once
@@ -833,7 +912,7 @@ func file_types_proto_rawDescGZIP() []byte {
 	return file_types_proto_rawDescData
 }
 
-var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
 var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_types_proto_goTypes = []any{
 	(EvaluateResult)(0),        // 0: proto.EvaluateResult
@@ -844,15 +923,16 @@ var file_types_proto_goTypes = []any{
 	(ResourceAction)(0),        // 5: proto.ResourceAction
 	(RecordSource)(0),          // 6: proto.RecordSource
 	(TypeCompleteness)(0),      // 7: proto.TypeCompleteness
-	(*ResourceAttributes)(nil), // 8: proto.ResourceAttributes
-	(*AttributePath)(nil),      // 9: proto.AttributePath
-	(*AttributePaths)(nil),     // 10: proto.AttributePaths
-	(*AttributePath_Step)(nil), // 11: proto.AttributePath.Step
+	(NoOriginReason)(0),        // 8: proto.NoOriginReason
+	(*ResourceAttributes)(nil), // 9: proto.ResourceAttributes
+	(*AttributePath)(nil),      // 10: proto.AttributePath
+	(*AttributePaths)(nil),     // 11: proto.AttributePaths
+	(*AttributePath_Step)(nil), // 12: proto.AttributePath.Step
 }
 var file_types_proto_depIdxs = []int32{
-	9,  // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
-	11, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
-	9,  // 2: proto.AttributePaths.paths:type_name -> proto.AttributePath
+	10, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
+	12, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
+	10, // 2: proto.AttributePaths.paths:type_name -> proto.AttributePath
 	3,  // [3:3] is the sub-list for method output_type
 	3,  // [3:3] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
@@ -875,7 +955,7 @@ func file_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
-			NumEnums:      8,
+			NumEnums:      9,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,

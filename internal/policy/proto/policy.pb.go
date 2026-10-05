@@ -1216,7 +1216,9 @@ type TypeSpec struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	ProviderSource string                 `protobuf:"bytes,1,opt,name=provider_source,json=providerSource,proto3" json:"provider_source,omitempty"`
 	Type           string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	KeyPaths       []*AttributePath       `protobuf:"bytes,3,rep,name=key_paths,json=keyPaths,proto3" json:"key_paths,omitempty"` // attribute_name steps only
+	KeyPaths       []*AttributePath       `protobuf:"bytes,3,rep,name=key_paths,json=keyPaths,proto3" json:"key_paths,omitempty"`                 // attribute_name steps only
+	Reads          []string               `protobuf:"bytes,4,rep,name=reads,proto3" json:"reads,omitempty"`                                       // top-level attribute names policies read on members of this type
+	ReadsComplete  bool                   `protobuf:"varint,5,opt,name=reads_complete,json=readsComplete,proto3" json:"reads_complete,omitempty"` // true = Core may prune to reads ∪ key paths
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1270,6 +1272,20 @@ func (x *TypeSpec) GetKeyPaths() []*AttributePath {
 		return x.KeyPaths
 	}
 	return nil
+}
+
+func (x *TypeSpec) GetReads() []string {
+	if x != nil {
+		return x.Reads
+	}
+	return nil
+}
+
+func (x *TypeSpec) GetReadsComplete() bool {
+	if x != nil {
+		return x.ReadsComplete
+	}
+	return false
 }
 
 type ReportInstancesRequest struct {
@@ -1474,6 +1490,7 @@ type InstanceRecord struct {
 	Origins            []*KeyOrigins          `protobuf:"bytes,10,rep,name=origins,proto3" json:"origins,omitempty"`
 	Importing          bool                   `protobuf:"varint,11,opt,name=importing,proto3" json:"importing,omitempty"`
 	PrevAddress        string                 `protobuf:"bytes,12,opt,name=prev_address,json=prevAddress,proto3" json:"prev_address,omitempty"` // set when PrevRunAddr != Addr (moved)
+	DeposedKey         string                 `protobuf:"bytes,13,opt,name=deposed_key,json=deposedKey,proto3" json:"deposed_key,omitempty"`    // states.DeposedKey.String(); "" for current objects
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -1592,10 +1609,18 @@ func (x *InstanceRecord) GetPrevAddress() string {
 	return ""
 }
 
+func (x *InstanceRecord) GetDeposedKey() string {
+	if x != nil {
+		return x.DeposedKey
+	}
+	return ""
+}
+
 type KeyOrigins struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	KeyPath       *AttributePath         `protobuf:"bytes,1,opt,name=key_path,json=keyPath,proto3" json:"key_path,omitempty"` // one of the TypeSpec.key_paths of the record's type
 	Origins       []*Origin              `protobuf:"bytes,2,rep,name=origins,proto3" json:"origins,omitempty"`
+	NoOrigin      []NoOriginReason       `protobuf:"varint,3,rep,packed,name=no_origin,json=noOrigin,proto3,enum=proto.NoOriginReason" json:"no_origin,omitempty"` // a set: why some leaves of the key path have no origin
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1640,6 +1665,13 @@ func (x *KeyOrigins) GetKeyPath() *AttributePath {
 func (x *KeyOrigins) GetOrigins() []*Origin {
 	if x != nil {
 		return x.Origins
+	}
+	return nil
+}
+
+func (x *KeyOrigins) GetNoOrigin() []NoOriginReason {
+	if x != nil {
+		return x.NoOrigin
 	}
 	return nil
 }
@@ -2079,8 +2111,11 @@ type PolicyEvaluateResourceRequest_ResourceMetadata struct {
 	// provider_source is the provider source address, e.g.
 	// registry.terraform.io/hashicorp/random.
 	ProviderSource string `protobuf:"bytes,5,opt,name=provider_source,json=providerSource,proto3" json:"provider_source,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// deposed_key is the deposed key of the planned change the evaluation
+	// belongs to; "" for current objects.
+	DeposedKey    string `protobuf:"bytes,6,opt,name=deposed_key,json=deposedKey,proto3" json:"deposed_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PolicyEvaluateResourceRequest_ResourceMetadata) Reset() {
@@ -2144,6 +2179,13 @@ func (x *PolicyEvaluateResourceRequest_ResourceMetadata) GetAddress() string {
 func (x *PolicyEvaluateResourceRequest_ResourceMetadata) GetProviderSource() string {
 	if x != nil {
 		return x.ProviderSource
+	}
+	return ""
+}
+
+func (x *PolicyEvaluateResourceRequest_ResourceMetadata) GetDeposedKey() string {
+	if x != nil {
+		return x.DeposedKey
 	}
 	return ""
 }
@@ -2302,7 +2344,7 @@ const file_policy_proto_rawDesc = "" +
 	"\rrelationships\x18\x03 \x01(\bR\rrelationships\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\x85\x04\n" +
+	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xa6\x04\n" +
 	"\x1dPolicyEvaluateResourceRequest\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\rR\fevaluationId\x12\x1a\n" +
 	"\bresource\x18\x02 \x01(\tR\bresource\x12/\n" +
@@ -2310,14 +2352,16 @@ const file_policy_proto_rawDesc = "" +
 	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12:\n" +
 	"\vprior_attrs\x18\x05 \x01(\v2\x19.proto.ResourceAttributesR\n" +
 	"priorAttrs\x12\x15\n" +
-	"\x06run_id\x18\x06 \x01(\tR\x05runId\x1a\xcb\x01\n" +
+	"\x06run_id\x18\x06 \x01(\tR\x05runId\x1a\xec\x01\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
 	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\x12\x1f\n" +
 	"\vmodule_path\x18\x03 \x01(\tR\n" +
 	"modulePath\x12\x18\n" +
 	"\aaddress\x18\x04 \x01(\tR\aaddress\x12'\n" +
-	"\x0fprovider_source\x18\x05 \x01(\tR\x0eproviderSource\"\xf7\x02\n" +
+	"\x0fprovider_source\x18\x05 \x01(\tR\x0eproviderSource\x12\x1f\n" +
+	"\vdeposed_key\x18\x06 \x01(\tR\n" +
+	"deposedKey\"\xf7\x02\n" +
 	"\x16PolicyEvaluationDetail\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12-\n" +
 	"\x06result\x18\x02 \x01(\x0e2\x15.proto.EvaluateResultR\x06result\x12\x12\n" +
@@ -2427,11 +2471,13 @@ const file_policy_proto_rawDesc = "" +
 	"\x10allow_null_value\x18\x03 \x01(\bR\x0eallowNullValue\x120\n" +
 	"\x14allow_unknown_values\x18\x04 \x01(\bR\x12allowUnknownValues\"7\n" +
 	"\x0eCollectionSpec\x12%\n" +
-	"\x05types\x18\x01 \x03(\v2\x0f.proto.TypeSpecR\x05types\"z\n" +
+	"\x05types\x18\x01 \x03(\v2\x0f.proto.TypeSpecR\x05types\"\xb7\x01\n" +
 	"\bTypeSpec\x12'\n" +
 	"\x0fprovider_source\x18\x01 \x01(\tR\x0eproviderSource\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x121\n" +
-	"\tkey_paths\x18\x03 \x03(\v2\x14.proto.AttributePathR\bkeyPaths\"\xc6\x01\n" +
+	"\tkey_paths\x18\x03 \x03(\v2\x14.proto.AttributePathR\bkeyPaths\x12\x14\n" +
+	"\x05reads\x18\x04 \x03(\tR\x05reads\x12%\n" +
+	"\x0ereads_complete\x18\x05 \x01(\bR\rreadsComplete\"\xc6\x01\n" +
 	"\x16ReportInstancesRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x125\n" +
 	"\tproviders\x18\x02 \x03(\v2\x17.proto.ProviderInstanceR\tproviders\x12/\n" +
@@ -2444,7 +2490,7 @@ const file_policy_proto_rawDesc = "" +
 	"\x0econfig_address\x18\x02 \x01(\tR\rconfigAddress\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12!\n" +
 	"\fconfig_class\x18\x04 \x01(\fR\vconfigClass\x12\x14\n" +
-	"\x05known\x18\x05 \x01(\bR\x05known\"\xf1\x03\n" +
+	"\x05known\x18\x05 \x01(\bR\x05known\"\x92\x04\n" +
 	"\x0eInstanceRecord\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12'\n" +
@@ -2460,11 +2506,14 @@ const file_policy_proto_rawDesc = "" +
 	"\aorigins\x18\n" +
 	" \x03(\v2\x11.proto.KeyOriginsR\aorigins\x12\x1c\n" +
 	"\timporting\x18\v \x01(\bR\timporting\x12!\n" +
-	"\fprev_address\x18\f \x01(\tR\vprevAddress\"f\n" +
+	"\fprev_address\x18\f \x01(\tR\vprevAddress\x12\x1f\n" +
+	"\vdeposed_key\x18\r \x01(\tR\n" +
+	"deposedKey\"\x9a\x01\n" +
 	"\n" +
 	"KeyOrigins\x12/\n" +
 	"\bkey_path\x18\x01 \x01(\v2\x14.proto.AttributePathR\akeyPath\x12'\n" +
-	"\aorigins\x18\x02 \x03(\v2\r.proto.OriginR\aorigins\"L\n" +
+	"\aorigins\x18\x02 \x03(\v2\r.proto.OriginR\aorigins\x122\n" +
+	"\tno_origin\x18\x03 \x03(\x0e2\x15.proto.NoOriginReasonR\bnoOrigin\"L\n" +
 	"\x06Origin\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12(\n" +
 	"\x04path\x18\x02 \x01(\v2\x14.proto.AttributePathR\x04path\"\xb5\x01\n" +
@@ -2556,9 +2605,10 @@ var file_policy_proto_goTypes = []any{
 	(*AttributePath)(nil),      // 51: proto.AttributePath
 	(ResourceAction)(0),        // 52: proto.ResourceAction
 	(RecordSource)(0),          // 53: proto.RecordSource
-	(TypeCompleteness)(0),      // 54: proto.TypeCompleteness
-	(Operation)(0),             // 55: proto.Operation
-	(*AttributePaths)(nil),     // 56: proto.AttributePaths
+	(NoOriginReason)(0),        // 54: proto.NoOriginReason
+	(TypeCompleteness)(0),      // 55: proto.TypeCompleteness
+	(Operation)(0),             // 56: proto.Operation
+	(*AttributePaths)(nil),     // 57: proto.AttributePaths
 }
 var file_policy_proto_depIdxs = []int32{
 	26, // 0: proto.PolicySetupRequest.client_capabilities:type_name -> proto.PolicySetupRequest.ClientCapabilities
@@ -2616,33 +2666,34 @@ var file_policy_proto_depIdxs = []int32{
 	21, // 52: proto.InstanceRecord.origins:type_name -> proto.KeyOrigins
 	51, // 53: proto.KeyOrigins.key_path:type_name -> proto.AttributePath
 	22, // 54: proto.KeyOrigins.origins:type_name -> proto.Origin
-	51, // 55: proto.Origin.path:type_name -> proto.AttributePath
-	54, // 56: proto.TypeStatus.completeness:type_name -> proto.TypeCompleteness
-	43, // 57: proto.FinishRunResponse.diagnostics:type_name -> proto.Diagnostic
-	30, // 58: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
-	28, // 59: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
-	55, // 60: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
-	13, // 61: proto.ProviderSchema.FunctionsEntry.value:type_name -> proto.Function
-	56, // 62: proto.ProviderSchema.WriteOnlyPathsEntry.value:type_name -> proto.AttributePaths
-	0,  // 63: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
-	2,  // 64: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
-	6,  // 65: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
-	8,  // 66: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
-	10, // 67: proto.Policy.BeginRun:input_type -> proto.BeginRunRequest
-	17, // 68: proto.Policy.ReportInstances:input_type -> proto.ReportInstancesRequest
-	24, // 69: proto.Policy.FinishRun:input_type -> proto.FinishRunRequest
-	1,  // 70: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
-	5,  // 71: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
-	7,  // 72: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
-	9,  // 73: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
-	11, // 74: proto.Policy.BeginRun:output_type -> proto.BeginRunResponse
-	18, // 75: proto.Policy.ReportInstances:output_type -> proto.ReportInstancesResponse
-	25, // 76: proto.Policy.FinishRun:output_type -> proto.FinishRunResponse
-	70, // [70:77] is the sub-list for method output_type
-	63, // [63:70] is the sub-list for method input_type
-	63, // [63:63] is the sub-list for extension type_name
-	63, // [63:63] is the sub-list for extension extendee
-	0,  // [0:63] is the sub-list for field type_name
+	54, // 55: proto.KeyOrigins.no_origin:type_name -> proto.NoOriginReason
+	51, // 56: proto.Origin.path:type_name -> proto.AttributePath
+	55, // 57: proto.TypeStatus.completeness:type_name -> proto.TypeCompleteness
+	43, // 58: proto.FinishRunResponse.diagnostics:type_name -> proto.Diagnostic
+	30, // 59: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
+	28, // 60: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
+	56, // 61: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
+	13, // 62: proto.ProviderSchema.FunctionsEntry.value:type_name -> proto.Function
+	57, // 63: proto.ProviderSchema.WriteOnlyPathsEntry.value:type_name -> proto.AttributePaths
+	0,  // 64: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
+	2,  // 65: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
+	6,  // 66: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
+	8,  // 67: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
+	10, // 68: proto.Policy.BeginRun:input_type -> proto.BeginRunRequest
+	17, // 69: proto.Policy.ReportInstances:input_type -> proto.ReportInstancesRequest
+	24, // 70: proto.Policy.FinishRun:input_type -> proto.FinishRunRequest
+	1,  // 71: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
+	5,  // 72: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
+	7,  // 73: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
+	9,  // 74: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
+	11, // 75: proto.Policy.BeginRun:output_type -> proto.BeginRunResponse
+	18, // 76: proto.Policy.ReportInstances:output_type -> proto.ReportInstancesResponse
+	25, // 77: proto.Policy.FinishRun:output_type -> proto.FinishRunResponse
+	71, // [71:78] is the sub-list for method output_type
+	64, // [64:71] is the sub-list for method input_type
+	64, // [64:64] is the sub-list for extension type_name
+	64, // [64:64] is the sub-list for extension extendee
+	0,  // [0:64] is the sub-list for field type_name
 }
 
 func init() { file_policy_proto_init() }

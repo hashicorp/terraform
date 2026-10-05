@@ -133,6 +133,9 @@ message PolicyEvaluateResourceRequest {
     // provider_source is the provider source address, e.g.
     // registry.terraform.io/hashicorp/random.
     string provider_source = 5;
+    // deposed_key is the deposed key of the planned change the evaluation
+    // belongs to; "" for current objects.
+    string deposed_key = 6;
   }
 }
 
@@ -314,6 +317,8 @@ message TypeSpec {
   string provider_source = 1;
   string type = 2;
   repeated AttributePath key_paths = 3;  // attribute_name steps only
+  repeated string reads = 4;      // top-level attribute names policies read on members of this type
+  bool reads_complete = 5;        // true = Core may prune to reads ∪ key paths
 }
 
 message ReportInstancesRequest {
@@ -348,12 +353,13 @@ message InstanceRecord {
   repeated KeyOrigins origins = 10;
   bool importing = 11;
   string prev_address = 12;              // set when PrevRunAddr != Addr (moved)
-  // 13 deposed_key and 14 deferred_reason come in P2.
+  string deposed_key = 13;               // states.DeposedKey.String(); "" for current objects
 }
 
 message KeyOrigins {
   AttributePath key_path = 1;            // one of the TypeSpec.key_paths of the record's type
   repeated Origin origins = 2;
+  repeated NoOriginReason no_origin = 3;  // a set: why some leaves of the key path have no origin
 }
 
 message Origin {

@@ -138,3 +138,19 @@ enum TypeCompleteness {
 message AttributePaths {
   repeated AttributePath paths = 1;
 }
+
+// NoOriginReason says why some leaves of a key path have no origin.
+enum NoOriginReason {
+  INVALID_NO_ORIGIN_REASON = 0;
+  LITERAL_NO_ORIGIN_REASON = 1;          // a hard-coded value, count.index, each.key
+  DATA_SOURCE_NO_ORIGIN_REASON = 2;      // a data source or ephemeral resource attribute
+  VARIABLE_NO_ORIGIN_REASON = 3;         // a root module variable, or a module variable left at its default
+  EXPRESSION_NO_ORIGIN_REASON = 4;       // function call, conditional, for, operator, multi-part template,
+                                         // non-literal index or key, splat over for_each
+  NOT_CONFIGURED_NO_ORIGIN_REASON = 5;   // the attribute isn't set in the configuration (the provider computes it)
+  IGNORE_CHANGES_NO_ORIGIN_REASON = 6;
+  PROVIDER_CHANGED_NO_ORIGIN_REASON = 7; // the planned value's shape differs from the configuration
+  UNSUPPORTED_NO_ORIGIN_REASON = 8;      // anything else: JSON syntax, override files, no configuration,
+                                         // indexed or whole-object references, type mismatch, null target,
+                                         // unknown expansion, path/terraform/self, depth limit
+}
