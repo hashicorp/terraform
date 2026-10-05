@@ -3369,12 +3369,21 @@ func relAttrPath(dotted string) *proto.AttributePath {
 	return path
 }
 
+// relPathString returns a key path or origin path with attribute steps joined
+// by "." and index steps appended as "[N]".
 func relPathString(path *proto.AttributePath) string {
-	names := make([]string, 0, len(path.GetSteps()))
-	for _, step := range path.GetSteps() {
-		names = append(names, step.GetAttributeName())
+	var b strings.Builder
+	for i, step := range path.GetSteps() {
+		if _, ok := step.GetSelector().(*proto.AttributePath_Step_ElementKeyInt); ok {
+			fmt.Fprintf(&b, "[%d]", step.GetElementKeyInt())
+			continue
+		}
+		if i > 0 {
+			b.WriteString(".")
+		}
+		b.WriteString(step.GetAttributeName())
 	}
-	return strings.Join(names, ".")
+	return b.String()
 }
 
 // assertRunSequence checks the sequence rules of a relationship run that

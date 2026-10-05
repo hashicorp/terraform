@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -23,11 +24,11 @@ type originLookup interface {
 	// attrType returns the type of the attribute of a managed resource type
 	// at path. ok is false unless path names a primitive, non-write-only
 	// attribute through attribute steps only.
-	attrType(provider addrs.Provider, resType string, path []string) (ty cty.Type, ok bool)
+	attrType(provider addrs.Provider, resType string, path []originStep) (ty cty.Type, ok bool)
 
 	// plannedValue returns the planned value of a resource instance at path.
 	// ok is false if the value is unknown or isn't available.
-	plannedValue(addr addrs.AbsResourceInstance, path []string) (val cty.Value, ok bool)
+	plannedValue(addr addrs.AbsResourceInstance, path []originStep) (val cty.Value, ok bool)
 
 	// attrComputed returns whether the attribute of a managed resource type
 	// at path is computed. ok is false if path doesn't name an attribute.
@@ -158,7 +159,7 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 
 	seen := make(map[string]bool)
 	reasons := make(map[proto.NoOriginReason]bool)
-	var origins []*proto.Origin
+	var refs []symRef
 	for i, leaf := range leaves {
 		if knownNull[i] && !allPlanned {
 			continue
@@ -169,12 +170,12 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 				reasons[proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON] = true
 				continue
 			}
-			id := sym.addr.String() + "#" + strings.Join(sym.path, ".")
+			id := sym.addr.String() + "#" + originPathString(sym.path)
 			if seen[id] {
 				continue
 			}
 			seen[id] = true
-			origins = append(origins, &proto.Origin{Address: sym.addr.String(), Path: policyAttrPath(sym.path)})
+			refs = append(refs, sym)
 		case symLit:
 			if sym.val.IsNull() {
 				reasons[proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON] = true
@@ -185,12 +186,16 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 			reasons[policyStructureReason(sym)] = true
 		}
 	}
-	sort.Slice(origins, func(i, j int) bool {
-		if origins[i].Address != origins[j].Address {
-			return origins[i].Address < origins[j].Address
+	sort.Slice(refs, func(i, j int) bool {
+		if a, b := refs[i].addr.String(), refs[j].addr.String(); a != b {
+			return a < b
 		}
-		return strings.Join(policyKeyPathNames(origins[i].Path), ".") < strings.Join(policyKeyPathNames(origins[j].Path), ".")
+		return originPathLess(refs[i].path, refs[j].path)
 	})
+	var origins []*proto.Origin
+	for _, ref := range refs {
+		origins = append(origins, &proto.Origin{Address: ref.addr.String(), Path: policyOriginPath(ref.path)})
+	}
 	ret := make([]proto.NoOriginReason, 0, len(reasons))
 	for reason := range reasons {
 		ret = append(ret, reason)
@@ -333,7 +338,65 @@ type symLit struct{ val cty.Value }
 // attributes when path isn't empty.
 type symRef struct {
 	addr addrs.AbsResourceInstance
-	path []string
+	path []originStep
+}
+
+// withStep returns the reference with a step appended to its path.
+func (r symRef) withStep(step originStep) symRef {
+	path := make([]originStep, len(r.path), len(r.path)+1)
+	copy(path, r.path)
+	return symRef{addr: r.addr, path: append(path, step)}
+}
+
+// originStep is a step of an origin path: an attribute step, or an index
+// step into a list or tuple when name is empty.
+type originStep struct {
+	name  string
+	index int64
+}
+
+// originPathString returns an origin path as in an origin id: attribute
+// steps joined with ".", and index steps appended as "[N]".
+func originPathString(path []originStep) string {
+	var b strings.Builder
+	for i, step := range path {
+		switch {
+		case step.name == "":
+			b.WriteString("[" + strconv.FormatInt(step.index, 10) + "]")
+		case i > 0:
+			b.WriteString("." + step.name)
+		default:
+			b.WriteString(step.name)
+		}
+	}
+	return b.String()
+}
+
+// originPathLess orders origin paths step by step: attribute steps by name,
+// index steps by index, and a path before the paths it's a prefix of.
+func originPathLess(a, b []originStep) bool {
+	for i := 0; i < len(a) && i < len(b); i++ {
+		if a[i].name != b[i].name {
+			return a[i].name < b[i].name
+		}
+		if a[i].index != b[i].index {
+			return a[i].index < b[i].index
+		}
+	}
+	return len(a) < len(b)
+}
+
+// policyOriginPath converts an origin path to the wire.
+func policyOriginPath(path []originStep) *proto.AttributePath {
+	ret := &proto.AttributePath{Steps: make([]*proto.AttributePath_Step, len(path))}
+	for i, step := range path {
+		if step.name == "" {
+			ret.Steps[i] = &proto.AttributePath_Step{Selector: &proto.AttributePath_Step_ElementKeyInt{ElementKeyInt: step.index}}
+			continue
+		}
+		ret.Steps[i] = &proto.AttributePath_Step{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: step.name}}
+	}
+	return ret
 }
 
 // symObj is an object whose attributes are evaluated on demand: an object
@@ -589,9 +652,7 @@ func (e *originEval) getAttr(base originSym, name string) originSym {
 	case symObj:
 		return base.attr(name)
 	case symRef:
-		path := make([]string, len(base.path), len(base.path)+1)
-		copy(path, base.path)
-		return symRef{addr: base.addr, path: append(path, name)}
+		return base.withStep(originStep{name: name})
 	case symOpaque:
 		return base
 	default:

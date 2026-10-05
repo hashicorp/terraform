@@ -404,19 +404,19 @@ type relationshipOriginLookup struct {
 
 var _ originLookup = (*relationshipOriginLookup)(nil)
 
-func (l *relationshipOriginLookup) attrType(provider addrs.Provider, resType string, path []string) (cty.Type, bool) {
+func (l *relationshipOriginLookup) attrType(provider addrs.Provider, resType string, path []originStep) (cty.Type, bool) {
 	schema := l.schemas.ResourceTypeConfig(provider, addrs.ManagedResourceMode, resType)
 	if schema.Body == nil || len(path) == 0 {
 		return cty.NilType, false
 	}
 	ty := schema.Body.ImpliedType()
 	ctyPath := make(cty.Path, 0, len(path))
-	for _, name := range path {
-		if !ty.IsObjectType() || !ty.HasAttribute(name) {
+	for _, step := range path {
+		if step.name == "" || !ty.IsObjectType() || !ty.HasAttribute(step.name) {
 			return cty.NilType, false
 		}
-		ty = ty.AttributeType(name)
-		ctyPath = ctyPath.GetAttr(name)
+		ty = ty.AttributeType(step.name)
+		ctyPath = ctyPath.GetAttr(step.name)
 	}
 	if !ty.IsPrimitiveType() {
 		return cty.NilType, false
@@ -443,22 +443,22 @@ func (l *relationshipOriginLookup) attrComputed(provider addrs.Provider, resType
 	return attr.Computed, true
 }
 
-func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, path []string) (cty.Value, bool) {
+func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, path []originStep) (cty.Value, bool) {
 	val, ok := l.planned[addr.String()]
 	if !ok {
 		return cty.NilVal, false
 	}
-	for _, name := range path {
+	for _, step := range path {
 		if !val.IsKnown() {
 			return cty.NilVal, false
 		}
 		if val.IsNull() {
 			return val, true
 		}
-		if !val.Type().IsObjectType() || !val.Type().HasAttribute(name) {
+		if step.name == "" || !val.Type().IsObjectType() || !val.Type().HasAttribute(step.name) {
 			return cty.NilVal, false
 		}
-		val = val.GetAttr(name)
+		val = val.GetAttr(step.name)
 	}
 	if !val.IsKnown() {
 		return cty.NilVal, false

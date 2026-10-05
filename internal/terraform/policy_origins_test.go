@@ -4,11 +4,13 @@
 package terraform
 
 import (
+	"math/big"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -1363,7 +1365,7 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 			}
 
 			// A reference to a resource in the module.
-			allowed := e.originAllowed(symRef{addr: childNet, path: []string{"id"}}, cty.String, lookup)
+			allowed := e.originAllowed(symRef{addr: childNet, path: testOriginPath(t, "id")}, cty.String, lookup)
 			if allowed == test.overridden {
 				t.Errorf("wrong origin into the module: allowed = %t, want %t", allowed, !test.overridden)
 			}
@@ -1412,12 +1414,12 @@ func TestRelationshipOriginLookup(t *testing.T) {
 			{"test_missing", "id", cty.NilType},
 		}
 		for _, test := range tests {
-			ty, ok := lookup.attrType(provider, test.resType, strings.Split(test.path, "."))
+			ty, ok := lookup.attrType(provider, test.resType, testOriginPath(t, test.path))
 			if ok != (test.want != cty.NilType) || (ok && !ty.Equals(test.want)) {
 				t.Errorf("%s.%s: got %#v, %t; want %#v", test.resType, test.path, ty, ok, test.want)
 			}
 		}
-		if _, ok := lookup.attrType(addrs.NewDefaultProvider("other"), "test_net", []string{"id"}); ok {
+		if _, ok := lookup.attrType(addrs.NewDefaultProvider("other"), "test_net", testOriginPath(t, "id")); ok {
 			t.Error("expected no type for another provider")
 		}
 	})
@@ -1438,10 +1440,37 @@ func TestRelationshipOriginLookup(t *testing.T) {
 			{"test_net.b", "id", cty.NilVal, false}, // no change
 		}
 		for _, test := range tests {
-			got, ok := lookup.plannedValue(mustResourceInstanceAddr(test.addr), strings.Split(test.path, "."))
+			got, ok := lookup.plannedValue(mustResourceInstanceAddr(test.addr), testOriginPath(t, test.path))
 			if ok != test.wantOK || (ok && !got.RawEquals(test.want)) {
 				t.Errorf("%s.%s: got %#v, %t; want %#v, %t", test.addr, test.path, got, ok, test.want, test.wantOK)
 			}
 		}
 	})
+}
+
+// testOriginPath parses an origin path such as "nic[0].net_id".
+func testOriginPath(t *testing.T, s string) []originStep {
+	t.Helper()
+	trav, diags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.InitialPos)
+	if diags.HasErrors() {
+		t.Fatalf("invalid origin path %q: %s", s, diags.Error())
+	}
+	var path []originStep
+	for _, step := range trav {
+		switch step := step.(type) {
+		case hcl.TraverseRoot:
+			path = append(path, originStep{name: step.Name})
+		case hcl.TraverseAttr:
+			path = append(path, originStep{name: step.Name})
+		case hcl.TraverseIndex:
+			i, acc := step.Key.AsBigFloat().Int64()
+			if acc != big.Exact {
+				t.Fatalf("invalid index in origin path %q", s)
+			}
+			path = append(path, originStep{index: i})
+		default:
+			t.Fatalf("invalid step in origin path %q", s)
+		}
+	}
+	return path
 }
