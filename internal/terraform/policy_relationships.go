@@ -323,11 +323,15 @@ func policyRecordHasAttrs(action plans.Action) bool {
 }
 
 // policyRecordHasPriorAttrs returns true if a record of a change with the
-// given action has prior attrs.
-func policyRecordHasPriorAttrs(action plans.Action) bool {
+// given action has prior attrs. includePrior is the include_prior of the
+// record's type spec, which adds the prior attrs of updates. A no-op never
+// has them: its prior attrs are its attrs.
+func policyRecordHasPriorAttrs(action plans.Action, includePrior bool) bool {
 	switch action {
 	case plans.Delete, plans.Forget, plans.DeleteThenCreate, plans.CreateThenDelete, plans.CreateThenForget, plans.ForgetThenCreate:
 		return true
+	case plans.Update:
+		return includePrior
 	default:
 		return false
 	}
@@ -767,7 +771,7 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.After, c.keyPaths[key], c.origins)
 		}
 	}
-	if policyRecordHasPriorAttrs(change.Action) {
+	if policyRecordHasPriorAttrs(change.Action, false) {
 		if rec.PriorAttrs, ok = c.encode(key, addr, "prior value", policyMarkSchemaSensitive(change.Before, schema.Body)); !ok {
 			return
 		}

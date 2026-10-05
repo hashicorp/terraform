@@ -565,8 +565,14 @@ func TestPolicyPriorAttrsAction(t *testing.T) {
 		plans.ForgetThenCreate: true,
 	}
 	for _, action := range []plans.Action{plans.NoOp, plans.Create, plans.Update, plans.Delete, plans.DeleteThenCreate, plans.CreateThenDelete, plans.Forget, plans.CreateThenForget, plans.ForgetThenCreate} {
-		if got := policyRecordHasPriorAttrs(action); got != want[action] {
+		if got := policyRecordHasPriorAttrs(action, false); got != want[action] {
 			t.Errorf("%s: got %t, want %t", action, got, want[action])
+		}
+		// include_prior adds the prior attrs of updates only; the engine
+		// uses the attrs of a no-op as its prior attrs.
+		wantIncluded := want[action] || action == plans.Update
+		if got := policyRecordHasPriorAttrs(action, true); got != wantIncluded {
+			t.Errorf("%s with include_prior: got %t, want %t", action, got, wantIncluded)
 		}
 	}
 	for _, action := range []plans.Action{plans.Delete, plans.Forget} {
