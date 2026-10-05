@@ -18,7 +18,3 @@ type ModuleInstallationLogger interface {
 	// LogModuleInstallationWithLocalPath logs the completion of a module installation including the local path.
 	LogModuleInstallationWithLocalPath(modulePath, localDir string)
 }
-
-const (
-	moduleInstallationWithLocalPathHuman = "- %s in %s"
-)
