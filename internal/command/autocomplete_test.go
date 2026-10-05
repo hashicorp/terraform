@@ -8,21 +8,22 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/providers"
 	pTesting "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/posener/complete"
 )
 
 func TestMetaCompletePredictWorkspaceName(t *testing.T) {
-
 	t.Run("test autocompletion using the local backend", func(t *testing.T) {
 		// Create a temporary working directory that is empty
-		td := t.TempDir()
-		t.Chdir(td)
+		td := tempWorkingDir(t)
+		t.Chdir(td.RootModuleDir())
 
 		ui := testUiWrapped(t)
-		meta := &Meta{Ui: ui}
+		meta := &Meta{
+			Ui:         ui,
+			WorkingDir: td,
+		}
 
 		predictor := meta.completePredictWorkspaceName()
 
@@ -37,9 +38,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 	t.Run("test autocompletion using a state store", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
-		t.Chdir(td)
+		td := tempWorkingDirFixture(t, "state-store-unchanged/provider-managed-by-terraform")
+		t.Chdir(td.RootModuleDir())
 
 		// Set up pluggable state store provider mock
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
@@ -55,10 +55,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 		ui := testUiWrapped(t)
 		view, _ := testView(t)
-		wd := workdir.NewDir(".")
-		wd.OverrideOriginalWorkingDir(td)
 		meta := Meta{
-			WorkingDir:                wd, // Use the test's temp dir
+			WorkingDir:                td,
 			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
@@ -83,9 +81,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 	t.Run("test autocompletion using a state store containing no workspaces", func(t *testing.T) {
 		// Create a temporary working directory with state_store config
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
-		t.Chdir(td)
+		td := tempWorkingDirFixture(t, "state-store-unchanged/provider-managed-by-terraform")
+		t.Chdir(td.RootModuleDir())
 
 		// Set up pluggable state store provider mock
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
@@ -96,10 +93,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 
 		ui := testUiWrapped(t)
 		view, _ := testView(t)
-		wd := workdir.NewDir(".")
-		wd.OverrideOriginalWorkingDir(td)
 		meta := Meta{
-			WorkingDir:                wd, // Use the test's temp dir
+			WorkingDir:                td,
 			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
