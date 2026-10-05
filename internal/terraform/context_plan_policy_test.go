@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -3333,6 +3334,14 @@ func relTypeSpec(typeName string, keyPaths ...string) *proto.TypeSpec {
 	return spec
 }
 
+// relReads sets the reads of a type spec and marks them complete, so that
+// Core prunes the type's records.
+func relReads(spec *proto.TypeSpec, reads ...string) *proto.TypeSpec {
+	spec.Reads = reads
+	spec.ReadsComplete = true
+	return spec
+}
+
 func relAttrPath(dotted string) *proto.AttributePath {
 	path := &proto.AttributePath{}
 	for _, name := range strings.Split(dotted, ".") {
@@ -3822,7 +3831,7 @@ type wantRelRecord struct {
 	Source      proto.RecordSource
 	Attrs       map[string]cty.Value
 	PriorAttrs  map[string]cty.Value
-	Redacted    []string // redacted paths of attrs, dot-separated; not checked when nil
+	Redacted    []string // redacted paths of attrs, dot-separated; not checked when nil, none when empty
 	Importing   bool
 	PrevAddress string
 	ModulePath  string
@@ -3971,7 +3980,7 @@ func (r *relationshipRun) assertRecords(t *testing.T, want map[string]wantRelRec
 		relAssertAttrs(t, addr+" attrs", rec.Attrs, w.Attrs)
 		relAssertAttrs(t, addr+" prior attrs", rec.PriorAttrs, w.PriorAttrs)
 		if rec.Attrs != nil && w.Redacted != nil {
-			if diff := cmp.Diff(w.Redacted, relRedactedPaths(rec.Attrs)); diff != "" {
+			if diff := cmp.Diff(w.Redacted, relRedactedPaths(rec.Attrs), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("%s: wrong redacted paths (-want +got):\n%s", addr, diff)
 			}
 		}
@@ -4352,6 +4361,90 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 					Redacted: []string{"secret"},
 				},
 				"test_net.b": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"name": cty.StringVal("b")}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		"pruned to reads": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name   = "a"
+					secret = "s"
+					tags   = { x = "y" }
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				resource "test_vm" "v" {
+					name   = "v"
+					net_id = test_net.a.name
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"b","secret":"bs"}`)
+				relNetState(s, "test_net.gone", `{"id":"gone-id","name":"gone","secret":"gs"}`)
+				relNetDeposedState(s, "test_net.gone", "00000001", `{"id":"gone-deposed-id","name":"gone","secret":"gds"}`)
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					mustResourceInstanceAddr("test_net.a"),
+					mustResourceInstanceAddr("test_net.gone"),
+					mustResourceInstanceAddr("test_vm.v"),
+				},
+			},
+			types: []*proto.TypeSpec{
+				relReads(relTypeSpec("test_net", "id"), "name"),
+				relReads(relTypeSpec("test_vm", "net_id")),
+			},
+			wantRecords: map[string]wantRelRecord{
+				// The sensitive secret isn't read, so it's a null and not
+				// redacted.
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id":     relUnknown,
+					"name":   cty.StringVal("a"),
+					"secret": cty.NullVal(cty.String),
+					"tags":   cty.NullVal(cty.Map(cty.String)),
+				}, Redacted: []string{}},
+				"test_net.b": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"), "name": cty.StringVal("b"), "secret": cty.NullVal(cty.String),
+				}, Redacted: []string{}},
+				"test_net.gone": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-id"), "name": cty.StringVal("gone"), "secret": cty.NullVal(cty.String),
+				}},
+				"test_net.gone deposed 00000001": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-deposed-id"), "name": cty.StringVal("gone"), "secret": cty.NullVal(cty.String),
+				}},
+				// Only the key path is kept. Origins come from the unpruned
+				// values.
+				"test_vm.v": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.NullVal(cty.String), "name": cty.NullVal(cty.String), "net_id": cty.StringVal("a"),
+				}, Origins: map[string][]string{
+					"net_id": {"test_net.a.name"},
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
+		"incomplete reads": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name   = "a"
+					secret = "s"
+				}
+			`},
+			types: []*proto.TypeSpec{{
+				ProviderSource: addrs.NewDefaultProvider("test").String(),
+				Type:           "test_net",
+				KeyPaths:       []*proto.AttributePath{relAttrPath("id")},
+				Reads:          []string{"name"},
+				ReadsComplete:  false,
+			}},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"name": cty.StringVal("a"), "secret": cty.StringVal("s"),
+				}, Redacted: []string{"secret"}},
 			},
 			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
 		},

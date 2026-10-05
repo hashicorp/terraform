@@ -352,6 +352,9 @@ type relationshipCollector struct {
 	incomplete map[relationshipTypeKey]bool
 	deferred   map[relationshipTypeKey]map[string]struct{}
 	keyPaths   map[relationshipTypeKey][][]string
+	// keep are the top-level attributes kept in the values of the records
+	// of a type; nil for a type whose records aren't pruned.
+	keep map[relationshipTypeKey]map[string]bool
 
 	// origins is the lookup for origins in plan runs; nil if the run has
 	// no origins.
@@ -443,7 +446,9 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		incomplete: make(map[relationshipTypeKey]bool),
 		deferred:   make(map[relationshipTypeKey]map[string]struct{}),
 		keyPaths:   make(map[relationshipTypeKey][][]string),
+		keep:       make(map[relationshipTypeKey]map[string]bool),
 	}
+	unpruned := make(map[relationshipTypeKey]bool)
 	for _, ts := range spec.GetTypes() {
 		key := relationshipTypeKey{source: ts.GetProviderSource(), typeName: ts.GetType()}
 		if !c.types[key] {
@@ -453,6 +458,20 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		for _, kp := range ts.GetKeyPaths() {
 			c.keyPaths[key] = append(c.keyPaths[key], policyKeyPathNames(kp))
 		}
+		keep := policyKeepAttributes(ts)
+		if keep == nil {
+			unpruned[key] = true
+			continue
+		}
+		if c.keep[key] == nil {
+			c.keep[key] = make(map[string]bool)
+		}
+		for name := range keep {
+			c.keep[key][name] = true
+		}
+	}
+	for key := range unpruned {
+		delete(c.keep, key)
 	}
 
 	var changes []*plans.ResourceInstanceChange
@@ -551,8 +570,10 @@ func (c *relationshipCollector) newRecord(addr addrs.AbsResourceInstance, provid
 	}
 }
 
+// encode encodes a value of a record of the given type, pruned to the
+// attributes the type's records keep.
 func (c *relationshipCollector) encode(key relationshipTypeKey, addr addrs.AbsResourceInstance, what string, val cty.Value) (*proto.ResourceAttributes, bool) {
-	attrs, err := policy.EncodeResourceAttributes(val)
+	attrs, err := policy.EncodeResourceAttributes(policyPruneValue(val, c.keep[key]))
 	if err != nil {
 		log.Printf("[WARN] policy: failed to encode the %s of %s for relationship checks: %s", what, addr, err)
 		c.incomplete[key] = true
@@ -941,4 +962,57 @@ func policyAttrPath(names []string) *proto.AttributePath {
 		}
 	}
 	return path
+}
+
+// policyKeepAttributes returns the top-level attributes that the records of a
+// type spec's type keep: the attributes policies read and the first steps of
+// the key paths. It returns nil if the reads aren't complete, so the records
+// keep all their attributes.
+func policyKeepAttributes(spec *proto.TypeSpec) map[string]bool {
+	if !spec.GetReadsComplete() {
+		return nil
+	}
+	keep := make(map[string]bool)
+	for _, name := range spec.GetReads() {
+		keep[name] = true
+	}
+	for _, kp := range spec.GetKeyPaths() {
+		if steps := kp.GetSteps(); len(steps) > 0 {
+			keep[steps[0].GetAttributeName()] = true
+		}
+	}
+	return keep
+}
+
+// policyPruneValue replaces every top-level attribute of an object value that
+// isn't in keep with a null of the attribute's type, and drops the marks
+// within the replaced attributes. It returns the value unchanged if keep is
+// nil or if the value isn't a known, non-null object.
+func policyPruneValue(val cty.Value, keep map[string]bool) cty.Value {
+	if keep == nil || val == cty.NilVal {
+		return val
+	}
+	unmarked, pvms := val.UnmarkDeepWithPaths()
+	ty := unmarked.Type()
+	if !unmarked.IsKnown() || unmarked.IsNull() || !ty.IsObjectType() {
+		return val
+	}
+	attrs := make(map[string]cty.Value, len(ty.AttributeTypes()))
+	for name, attrType := range ty.AttributeTypes() {
+		if keep[name] {
+			attrs[name] = unmarked.GetAttr(name)
+		} else {
+			attrs[name] = cty.NullVal(attrType)
+		}
+	}
+	kept := make([]cty.PathValueMarks, 0, len(pvms))
+	for _, pvm := range pvms {
+		if len(pvm.Path) > 0 {
+			if step, ok := pvm.Path[0].(cty.GetAttrStep); ok && !keep[step.Name] {
+				continue
+			}
+		}
+		kept = append(kept, pvm)
+	}
+	return cty.ObjectVal(attrs).MarkWithPaths(kept)
 }

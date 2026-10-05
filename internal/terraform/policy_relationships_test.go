@@ -638,6 +638,181 @@ func TestPolicyStateValue(t *testing.T) {
 	})
 }
 
+func TestPolicyPruneValue(t *testing.T) {
+	nestedType := cty.List(cty.Object(map[string]cty.Type{"key": cty.String}))
+	objType := cty.Object(map[string]cty.Type{
+		"id":     cty.String,
+		"name":   cty.String,
+		"secret": cty.String,
+		"nested": nestedType,
+	})
+	val := cty.ObjectVal(map[string]cty.Value{
+		"id":     cty.StringVal("i"),
+		"name":   cty.StringVal("n"),
+		"secret": cty.StringVal("s").Mark(marks.Sensitive),
+		"nested": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+			"key": cty.StringVal("k").Mark(marks.Sensitive),
+		})}),
+	})
+	sensitivePaths := func(t *testing.T, v cty.Value) []string {
+		t.Helper()
+		_, pvms := v.UnmarkDeepWithPaths()
+		paths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+		var ret []string
+		for _, path := range paths {
+			ret = append(ret, format.CtyPath(path))
+		}
+		sort.Strings(ret)
+		return ret
+	}
+
+	tests := map[string]struct {
+		val           cty.Value
+		keep          map[string]bool
+		want          cty.Value
+		wantSensitive []string
+	}{
+		"nothing to keep": {
+			val:  val,
+			keep: map[string]bool{},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.NullVal(cty.String),
+				"name":   cty.NullVal(cty.String),
+				"secret": cty.NullVal(cty.String),
+				"nested": cty.NullVal(nestedType),
+			}),
+		},
+		"kept attributes keep their marks, pruned ones lose them": {
+			val:  val,
+			keep: map[string]bool{"id": true, "nested": true},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.StringVal("i"),
+				"name":   cty.NullVal(cty.String),
+				"secret": cty.NullVal(cty.String),
+				"nested": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"key": cty.StringVal("k"),
+				})}),
+			}),
+			wantSensitive: []string{".nested[0].key"},
+		},
+		"a pruned nested block is a typed null": {
+			val:  val,
+			keep: map[string]bool{"secret": true},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.NullVal(cty.String),
+				"name":   cty.NullVal(cty.String),
+				"secret": cty.StringVal("s"),
+				"nested": cty.NullVal(nestedType),
+			}),
+			wantSensitive: []string{".secret"},
+		},
+		"no pruning": {
+			val:  val,
+			keep: nil,
+			want: val,
+		},
+		"unknown attributes": {
+			val: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.UnknownVal(cty.String),
+			}),
+			keep: map[string]bool{"id": true},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.UnknownVal(cty.String),
+				"name": cty.NullVal(cty.String),
+			}),
+		},
+		"a wholly sensitive value keeps its mark": {
+			val: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.StringVal("i"),
+				"name": cty.StringVal("n"),
+			}).Mark(marks.Sensitive),
+			keep: map[string]bool{"id": true},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"id":   cty.StringVal("i"),
+				"name": cty.NullVal(cty.String),
+			}),
+			wantSensitive: []string{""},
+		},
+		"unknown object": {
+			val:  cty.UnknownVal(objType),
+			keep: map[string]bool{"id": true},
+			want: cty.UnknownVal(objType),
+		},
+		"wholly unknown placeholder": {
+			val:  cty.DynamicVal,
+			keep: map[string]bool{"id": true},
+			want: cty.DynamicVal,
+		},
+		"null object": {
+			val:  cty.NullVal(objType),
+			keep: map[string]bool{"id": true},
+			want: cty.NullVal(objType),
+		},
+		"not an object": {
+			val:  cty.StringVal("x"),
+			keep: map[string]bool{"id": true},
+			want: cty.StringVal("x"),
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := policyPruneValue(test.val, test.keep)
+			if test.keep == nil {
+				if !got.RawEquals(test.val) {
+					t.Fatalf("expected the value unchanged, got %#v", got)
+				}
+				return
+			}
+			if diff := cmp.Diff(test.wantSensitive, sensitivePaths(t, got)); diff != "" {
+				t.Errorf("wrong sensitive paths (-want +got):\n%s", diff)
+			}
+			unmarked, _ := got.UnmarkDeep()
+			if !unmarked.RawEquals(test.want) {
+				t.Fatalf("wrong value\ngot:  %#v\nwant: %#v", unmarked, test.want)
+			}
+		})
+	}
+}
+
+func TestPolicyKeepAttributes(t *testing.T) {
+	tests := map[string]struct {
+		spec *proto.TypeSpec
+		want map[string]bool
+	}{
+		"reads and the first steps of key paths": {
+			spec: &proto.TypeSpec{
+				KeyPaths:      []*proto.AttributePath{relAttrPath("nic.net_id"), relAttrPath("id")},
+				Reads:         []string{"name", "zone"},
+				ReadsComplete: true,
+			},
+			want: map[string]bool{"name": true, "zone": true, "nic": true, "id": true},
+		},
+		"only a subject": {
+			spec: &proto.TypeSpec{ReadsComplete: true},
+			want: map[string]bool{},
+		},
+		"incomplete reads": {
+			spec: &proto.TypeSpec{
+				KeyPaths: []*proto.AttributePath{relAttrPath("id")},
+				Reads:    []string{"name"},
+			},
+			want: nil,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := policyKeepAttributes(test.spec)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Fatalf("wrong attributes (-want +got):\n%s", diff)
+			}
+			if test.want != nil && got == nil {
+				t.Fatal("expected a non-nil set")
+			}
+		})
+	}
+}
+
 func TestPolicyBeginRunDiagnostics(t *testing.T) {
 	warning, err := relDefinitionWarning(), relDefinitionError()
 	invalid := &proto.Diagnostic{Severity: proto.Severity_INVALID, Summary: "No severity"}

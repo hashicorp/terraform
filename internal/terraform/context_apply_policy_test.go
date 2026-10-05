@@ -2449,12 +2449,54 @@ func (r *relationshipRun) assertNoOrigins(t *testing.T) {
 
 func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 	tests := map[string]struct {
-		files        map[string]string
-		state        func(*states.SyncState)
-		opts         *PlanOpts
+		files map[string]string
+		state func(*states.SyncState)
+		opts  *PlanOpts
+		// types are the spec's types; test_net with key path id and
+		// test_vm with key path net_id when nil.
+		types        []*proto.TypeSpec
 		wantRecords  map[string]wantRelRecord
 		wantStatuses map[string]*proto.TypeStatus
 	}{
+		"pruned to reads": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name   = "a"
+					secret = "s"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"b","secret":"bs"}`)
+				relNetState(s, "test_net.gone", `{"id":"gone-id","name":"gone","secret":"gs"}`)
+				relNetDeposedState(s, "test_net.gone", "00000001", `{"id":"gone-deposed-id","name":"gone","secret":"gds"}`)
+			},
+			opts: &PlanOpts{
+				Mode: plans.NormalMode,
+				Targets: []addrs.Targetable{
+					mustResourceInstanceAddr("test_net.a"),
+					mustResourceInstanceAddr("test_net.gone"),
+				},
+			},
+			types: []*proto.TypeSpec{relReads(relTypeSpec("test_net", "id"), "name")},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("a"), "secret": cty.NullVal(cty.String),
+				}, Redacted: []string{}},
+				"test_net.b": {Action: relNoOp, Source: relState, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"), "name": cty.StringVal("b"), "secret": cty.NullVal(cty.String),
+				}, Redacted: []string{}},
+				"test_net.gone": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-id"), "name": cty.StringVal("gone"), "secret": cty.NullVal(cty.String),
+				}},
+				"test_net.gone deposed 00000001": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-deposed-id"), "name": cty.StringVal("gone"), "secret": cty.NullVal(cty.String),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
 		"create, update, no-op and delete": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -2667,8 +2709,11 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 			if test.state != nil {
 				state = states.BuildState(test.state)
 			}
-			_, run, diags := applyRelationships(t, mod, state, test.opts, nil,
-				relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id"))
+			types := test.types
+			if types == nil {
+				types = []*proto.TypeSpec{relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id")}
+			}
+			_, run, diags := applyRelationships(t, mod, state, test.opts, nil, types...)
 			tfdiags.AssertNoErrors(t, diags)
 
 			run.assertRunSequence(t)
