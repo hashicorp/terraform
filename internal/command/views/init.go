@@ -199,11 +199,11 @@ func (v *InitHuman) LogInitializingHCPTerraformStart() {
 }
 
 func (v *InitHuman) LogInitSuccess() {
-	v.print(strings.TrimSpace(outputInitSuccess))
+	v.print("[reset][bold][green]Terraform has been successfully initialized![reset][green]")
 }
 
 func (v *InitHuman) LogInitSuccessCloud() {
-	v.print(strings.TrimSpace(outputInitSuccessCloud))
+	v.print("[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]")
 }
 
 func (v *InitHuman) LogInitSuccessEmpty() {
@@ -232,7 +232,7 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.print(fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...))
+	v.print(fmt.Sprintf("[reset][bold]Installing provider %s%s for state store %q...", params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
@@ -450,11 +450,11 @@ func (v *InitJSON) LogInitializingHCPTerraformStart() {
 }
 
 func (v *InitJSON) LogInitSuccess() {
-	v.initOutputLog(strings.TrimSpace(outputInitSuccessJSON), json.MessageOutputInitSuccessMessage)
+	v.initOutputLog("Terraform has been successfully initialized!", json.MessageOutputInitSuccessMessage)
 }
 
 func (v *InitJSON) LogInitSuccessCloud() {
-	v.initOutputLog(strings.TrimSpace(outputInitSuccessCloudJSON), json.MessageOutputInitSuccessCloudMessage)
+	v.initOutputLog("HCP Terraform has been successfully initialized!", json.MessageOutputInitSuccessCloudMessage)
 }
 
 func (v *InitJSON) LogInitSuccessEmpty() {
@@ -485,7 +485,7 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 
 	v.view.log.Info(
-		fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...),
+		fmt.Sprintf("Installing provider %s%s for state store %q...", params...),
 		"type", json.MessageStateStoreProviderInstallationStart,
 	)
 }
@@ -618,22 +618,6 @@ The directory has no Terraform configuration files. You may begin working
 with Terraform immediately by creating Terraform configuration files.
 `
 
-const outputInitSuccess = `
-[reset][bold][green]Terraform has been successfully initialized![reset][green]
-`
-
-const outputInitSuccessJSON = `
-Terraform has been successfully initialized!
-`
-
-const outputInitSuccessCloud = `
-[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]
-`
-
-const outputInitSuccessCloudJSON = `
-HCP Terraform has been successfully initialized!
-`
-
 const outputInitSuccessCLI = `[reset][green]
 You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
@@ -676,9 +660,3 @@ use this backend unless the backend configuration changes.`
 
 const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.`
-
-const (
-	// LogInstallStateStoreProviderStart method's message templates
-	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
-	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
-)
