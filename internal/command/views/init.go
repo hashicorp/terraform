@@ -272,7 +272,7 @@ func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 }
 
 func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logInstallProviderVersionStartHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
@@ -539,7 +539,7 @@ func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
 }
 
 func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logInstallProviderVersionStartJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("Installing provider version: %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
