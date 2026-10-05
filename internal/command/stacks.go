@@ -88,10 +88,6 @@ func (c *StacksCommand) realRun(rawArgs []string, stdout, stderr io.Writer) int 
 			c.Ui.Error(fmt.Sprintf("Error storing cached stacks plugin path: %s\n", err))
 			return 1
 		}
-		// Remove the cache override arg from the args so it doesn't get passed to the plugin
-		args.Args = slices.DeleteFunc(args.Args, func(arg string) bool {
-			return strings.HasPrefix(arg, "-plugin-cache-dir")
-		})
 	}
 
 	diags := c.initPlugin()
@@ -323,7 +319,7 @@ func (c *StacksCommand) discoverAndConfigure() tfdiags.Diagnostics {
 
 func (c *StacksCommand) initPlugin() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	var errorSummary = "Stacks plugin initialization error"
+	errorSummary := "Stacks plugin initialization error"
 
 	// Initialization can be aborted by interruption signals
 	ctx, done := c.InterruptibleContext(c.CommandContext())
@@ -352,7 +348,7 @@ func (c *StacksCommand) initPlugin() tfdiags.Diagnostics {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, "Stacks plugin download error", err.Error()))
 	}
 
-	var cacheTraceMsg = ""
+	cacheTraceMsg := ""
 	if version.ResolvedFromCache {
 		cacheTraceMsg = " (resolved from cache)"
 	}
