@@ -1679,7 +1679,7 @@ func (x *KeyOrigins) GetNoOrigin() []NoOriginReason {
 type Origin struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Address       string                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"` // addrs.AbsResourceInstance.String() of the referenced instance
-	Path          *AttributePath         `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`       // attribute_name steps only
+	Path          *AttributePath         `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`       // attribute_name first; element_key_int may follow any step; no element_key_string
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

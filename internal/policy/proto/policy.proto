@@ -364,7 +364,7 @@ message KeyOrigins {
 
 message Origin {
   string address = 1;                    // addrs.AbsResourceInstance.String() of the referenced instance
-  AttributePath path = 2;                // attribute_name steps only
+  AttributePath path = 2;                // attribute_name first; element_key_int may follow any step; no element_key_string
 }
 
 message TypeStatus {
