@@ -203,7 +203,7 @@ func (s *StateMigrateHuman) LogInteractiveApproval() {
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveRejection() {
-	s.log(logInteractiveRejectionMessageHuman)
+	s.log("[reset][bold]The state store provider was rejected by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
@@ -356,7 +356,7 @@ func (s *StateMigrateJSON) LogInteractiveApproval() {
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveRejection() {
 	s.view.log.Info(
-		logInteractiveRejectionMessageJSON,
+		"The state store provider was rejected by the user.",
 		"type", json.MessageProviderInteractiveRejection,
 	)
 }
