@@ -218,7 +218,7 @@ func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provide
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	s.log(fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay()))
+	s.log(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -412,7 +412,7 @@ func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
 	s.view.log.Info(
-		fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay()),
+		fmt.Sprintf("%s: Finding latest version...", providerAddr.ForDisplay()),
 		"type", json.MessageProviderQueryUseLatest,
 	)
 }
