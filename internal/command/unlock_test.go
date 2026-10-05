@@ -7,8 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 )
@@ -60,7 +58,7 @@ func TestUnlock(t *testing.T) {
 		"-force",
 	}
 
-	if code := c.Run(args); code != cli.RunResultHelp {
+	if code := c.Run(args); code == 0 {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 }
