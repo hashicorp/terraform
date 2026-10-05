@@ -232,7 +232,7 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.print(fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...))
+	v.print(fmt.Sprintf("[reset][bold]Installing provider %s%s for state store %q...", params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
@@ -485,7 +485,7 @@ func (v *InitJSON) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
 
 	v.view.log.Info(
-		fmt.Sprintf(logInstallStateStoreProviderStartMessageJSON, params...),
+		fmt.Sprintf("Installing provider %s%s for state store %q...", params...),
 		"type", json.MessageStateStoreProviderInstallationStart,
 	)
 }
@@ -676,9 +676,3 @@ use this backend unless the backend configuration changes.`
 
 const backendConfiguredSuccessJSON = `Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.`
-
-const (
-	// LogInstallStateStoreProviderStart method's message templates
-	logInstallStateStoreProviderStartMessageHuman = "[reset][bold]Installing provider %s%s for state store %q..."
-	logInstallStateStoreProviderStartMessageJSON  = "Installing provider %s%s for state store %q..."
-)
