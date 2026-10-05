@@ -252,7 +252,7 @@ func (v *InitHuman) LogAutomaticApproval() {
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	v.print(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	v.print(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
@@ -519,7 +519,7 @@ func (v *InitJSON) LogAutomaticApproval() {
 }
 
 func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	v.view.Log(fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	v.view.Log(fmt.Sprintf("Finding matching versions for provider: %s, version_constraint: %q", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
