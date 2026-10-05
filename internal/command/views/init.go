@@ -203,7 +203,7 @@ func (v *InitHuman) LogInitSuccess() {
 }
 
 func (v *InitHuman) LogInitSuccessCloud() {
-	v.print(strings.TrimSpace(outputInitSuccessCloud))
+	v.print("[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]")
 }
 
 func (v *InitHuman) LogInitSuccessEmpty() {
@@ -454,7 +454,7 @@ func (v *InitJSON) LogInitSuccess() {
 }
 
 func (v *InitJSON) LogInitSuccessCloud() {
-	v.initOutputLog(strings.TrimSpace(outputInitSuccessCloudJSON), json.MessageOutputInitSuccessCloudMessage)
+	v.initOutputLog("HCP Terraform has been successfully initialized!", json.MessageOutputInitSuccessCloudMessage)
 }
 
 func (v *InitJSON) LogInitSuccessEmpty() {
@@ -616,14 +616,6 @@ Terraform initialized in an empty directory!
 
 The directory has no Terraform configuration files. You may begin working
 with Terraform immediately by creating Terraform configuration files.
-`
-
-const outputInitSuccessCloud = `
-[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]
-`
-
-const outputInitSuccessCloudJSON = `
-HCP Terraform has been successfully initialized!
 `
 
 const outputInitSuccessCLI = `[reset][green]
