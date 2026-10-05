@@ -319,6 +319,7 @@ message TypeSpec {
   repeated AttributePath key_paths = 3;  // attribute_name steps only
   repeated string reads = 4;      // top-level attribute names policies read on members of this type
   bool reads_complete = 5;        // true = Core may prune to reads ∪ key paths
+  bool include_prior = 6;         // Core sends prior_attrs for UPDATE records of this type
 }
 
 message ReportInstancesRequest {

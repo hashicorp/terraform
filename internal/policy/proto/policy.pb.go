@@ -1219,6 +1219,7 @@ type TypeSpec struct {
 	KeyPaths       []*AttributePath       `protobuf:"bytes,3,rep,name=key_paths,json=keyPaths,proto3" json:"key_paths,omitempty"`                 // attribute_name steps only
 	Reads          []string               `protobuf:"bytes,4,rep,name=reads,proto3" json:"reads,omitempty"`                                       // top-level attribute names policies read on members of this type
 	ReadsComplete  bool                   `protobuf:"varint,5,opt,name=reads_complete,json=readsComplete,proto3" json:"reads_complete,omitempty"` // true = Core may prune to reads ∪ key paths
+	IncludePrior   bool                   `protobuf:"varint,6,opt,name=include_prior,json=includePrior,proto3" json:"include_prior,omitempty"`    // Core sends prior_attrs for UPDATE records of this type
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -1284,6 +1285,13 @@ func (x *TypeSpec) GetReads() []string {
 func (x *TypeSpec) GetReadsComplete() bool {
 	if x != nil {
 		return x.ReadsComplete
+	}
+	return false
+}
+
+func (x *TypeSpec) GetIncludePrior() bool {
+	if x != nil {
+		return x.IncludePrior
 	}
 	return false
 }
@@ -2471,13 +2479,14 @@ const file_policy_proto_rawDesc = "" +
 	"\x10allow_null_value\x18\x03 \x01(\bR\x0eallowNullValue\x120\n" +
 	"\x14allow_unknown_values\x18\x04 \x01(\bR\x12allowUnknownValues\"7\n" +
 	"\x0eCollectionSpec\x12%\n" +
-	"\x05types\x18\x01 \x03(\v2\x0f.proto.TypeSpecR\x05types\"\xb7\x01\n" +
+	"\x05types\x18\x01 \x03(\v2\x0f.proto.TypeSpecR\x05types\"\xdc\x01\n" +
 	"\bTypeSpec\x12'\n" +
 	"\x0fprovider_source\x18\x01 \x01(\tR\x0eproviderSource\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x121\n" +
 	"\tkey_paths\x18\x03 \x03(\v2\x14.proto.AttributePathR\bkeyPaths\x12\x14\n" +
 	"\x05reads\x18\x04 \x03(\tR\x05reads\x12%\n" +
-	"\x0ereads_complete\x18\x05 \x01(\bR\rreadsComplete\"\xc6\x01\n" +
+	"\x0ereads_complete\x18\x05 \x01(\bR\rreadsComplete\x12#\n" +
+	"\rinclude_prior\x18\x06 \x01(\bR\fincludePrior\"\xc6\x01\n" +
 	"\x16ReportInstancesRequest\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x125\n" +
 	"\tproviders\x18\x02 \x03(\v2\x17.proto.ProviderInstanceR\tproviders\x12/\n" +
