@@ -123,8 +123,13 @@ type InitHuman struct {
 func (v *InitHuman) Version() {}
 
 var (
-	_ Init                       = (*InitHuman)(nil)
-	_ ProviderInstallationLogger = (*InitHuman)(nil)
+	_ Init                          = (*InitHuman)(nil)
+	_ JSONOutputVersionLogger       = (*InitHuman)(nil)
+	_ Spacer                        = (*InitHuman)(nil)
+	_ ProviderInstallationLogger    = (*InitHuman)(nil)
+	_ ProviderLockingLogger         = (*InitHuman)(nil)
+	_ StateStoreProviderTrustLogger = (*InitHuman)(nil)
+	_ ModuleInstallationLogger      = (*InitHuman)(nil)
 )
 
 func (v *InitHuman) Diagnostics(diags tfdiags.Diagnostics) {
@@ -234,17 +239,14 @@ func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
 	v.print(fmt.Sprintf("\n[reset][bold]Initializing the state store %q...", storeType))
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitHuman) LogInteractiveApproval() {
 	v.print(logInteractiveApprovalMessageHuman)
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitHuman) LogInteractiveRejection() {
 	v.print(logInteractiveRejectionMessageHuman)
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitHuman) LogAutomaticApproval() {
 	v.print(logInteractiveAutomaticApprovalMessageHuman)
 }
@@ -291,12 +293,10 @@ func (v *InitHuman) LogPartnerAndCommunityProviders() {
 	v.print(logPartnerAndCommunityProviders)
 }
 
-// Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileCreated() {
 	v.print(createdLockInfoHuman)
 }
 
-// Implements ProviderLockingLogger
 func (v *InitHuman) LogProviderLockfileUpdated() {
 	v.print(dependenciesLockChangesInfo)
 }
@@ -328,12 +328,10 @@ func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir stri
 	v.print(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
 }
 
-// Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleUpgrade() {
 	v.print("[reset][bold]Upgrading modules...")
 }
 
-// Implements ModuleInstallationLogger
 func (v *InitHuman) LogModuleInitialization() {
 	v.print("[reset][bold]Initializing modules...")
 }
@@ -352,8 +350,13 @@ type InitJSON struct {
 }
 
 var (
-	_ Init                       = (*InitJSON)(nil)
-	_ ProviderInstallationLogger = (*InitJSON)(nil)
+	_ Init                          = (*InitJSON)(nil)
+	_ JSONOutputVersionLogger       = (*InitJSON)(nil)
+	_ Spacer                        = (*InitJSON)(nil)
+	_ ProviderInstallationLogger    = (*InitJSON)(nil)
+	_ ProviderLockingLogger         = (*InitJSON)(nil)
+	_ StateStoreProviderTrustLogger = (*InitJSON)(nil)
+	_ ModuleInstallationLogger      = (*InitJSON)(nil)
 )
 
 func (v *InitJSON) Version() {
@@ -494,7 +497,6 @@ func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
 	)
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
 		logInteractiveApprovalMessageJSON,
@@ -502,7 +504,6 @@ func (v *InitJSON) LogInteractiveApproval() {
 	)
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitJSON) LogInteractiveRejection() {
 	v.view.log.Info(
 		logInteractiveRejectionMessageJSON,
@@ -510,7 +511,6 @@ func (v *InitJSON) LogInteractiveRejection() {
 	)
 }
 
-// Implements StateStoreProviderTrustLogger interface.
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
 		logInteractiveAutomaticApprovalMessageJSON,
@@ -560,12 +560,10 @@ func (v *InitJSON) LogPartnerAndCommunityProviders() {
 	v.view.Log(logPartnerAndCommunityProviders)
 }
 
-// Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileCreated() {
 	v.initOutputLog(strings.TrimSpace(createdLockInfoJSON), json.MessageLockInfo)
 }
 
-// Implements ProviderLockingLogger
 func (v *InitJSON) LogProviderLockfileUpdated() {
 	v.initOutputLog(strings.TrimSpace(dependenciesLockChangesInfo), json.MessageDependenciesLockChangesInfo)
 }
@@ -598,12 +596,10 @@ func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir strin
 	v.view.Log(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
 }
 
-// Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleUpgrade() {
 	v.initOutputLog("Upgrading modules...", json.MessageUpgradingModulesMessage)
 }
 
-// Implements ModuleInstallationLogger
 func (v *InitJSON) LogModuleInitialization() {
 	v.initOutputLog("Initializing modules...", json.MessageInitializingModulesMessage)
 }
