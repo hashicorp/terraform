@@ -400,6 +400,22 @@ func (l *relationshipOriginLookup) attrType(provider addrs.Provider, resType str
 	return ty, true
 }
 
+func (l *relationshipOriginLookup) attrComputed(provider addrs.Provider, resType string, path []string) (bool, bool) {
+	schema := l.schemas.ResourceTypeConfig(provider, addrs.ManagedResourceMode, resType)
+	if schema.Body == nil || len(path) == 0 {
+		return false, false
+	}
+	ctyPath := make(cty.Path, 0, len(path))
+	for _, name := range path {
+		ctyPath = ctyPath.GetAttr(name)
+	}
+	attr := schema.Body.AttributeByPath(ctyPath)
+	if attr == nil {
+		return false, false
+	}
+	return attr.Computed, true
+}
+
 func (l *relationshipOriginLookup) plannedValue(addr addrs.AbsResourceInstance, path []string) (cty.Value, bool) {
 	val, ok := l.planned[addr.String()]
 	if !ok {

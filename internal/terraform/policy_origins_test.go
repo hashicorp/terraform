@@ -31,9 +31,16 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 		// configuration has none, like providers do for optional and
 		// computed attributes.
 		computedZone bool
+		// planFn replaces the provider's planning when set.
+		planFn func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
 		// want are the origins of every record that has any, by address,
 		// then by key path.
 		want map[string]map[string][]string
+		// noOrigin are the no-origin reasons of every record that has any,
+		// by address, then by key path; not checked when nil.
+		noOrigin map[string]map[string][]string
+		// records are records that must exist, by relRecordKey.
+		records []string
 	}{
 		// Followed forms.
 		"direct reference": {
@@ -475,8 +482,12 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			`},
 			computedZone: true,
 			want:         map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a": {"id": {"NOT_CONFIGURED"}},
+				"test_vm.v":  {"zone": {"UNSUPPORTED"}},
+			},
 		},
-		"different number of leaves": {
+		"null leaves": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
 					name = "a"
@@ -484,7 +495,8 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				resource "test_net" "b" {
 				}
 				resource "test_vm" "v" {
-					net_ids = [test_net.a.id, test_net.b.name]
+					net_id  = null
+					net_ids = [test_net.a.id, null, test_net.b.name]
 				}
 				resource "test_vm" "w" {
 					nic {
@@ -494,7 +506,230 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					}
 				}
 			`},
+			// The null leaves are null in the planned values, so they
+			// contribute nothing, and the null key path has no entry.
+			want: map[string]map[string][]string{
+				"test_vm.v": {"net_ids": {"test_net.a.id"}},
+				"test_vm.w": {"nic.net_id": {"test_net.a.id"}},
+			},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_net.b": {"id": {"NOT_CONFIGURED"}},
+			},
+		},
+		"different number of leaves": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "v" {
+					net_ids = [test_net.a.id]
+				}
+			`},
+			// A legacy provider plans a different list than the configured
+			// one.
+			planFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+				planned, err := cty.Transform(req.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+					if len(path) != 1 {
+						return v, nil
+					}
+					switch path[0].(cty.GetAttrStep).Name {
+					case "id":
+						return cty.UnknownVal(cty.String), nil
+					case "net_ids":
+						if !v.IsNull() {
+							return cty.ListVal([]cty.Value{cty.StringVal("x"), cty.StringVal("y")}), nil
+						}
+					}
+					return v, nil
+				})
+				if err != nil {
+					panic(err)
+				}
+				return providers.PlanResourceChangeResponse{PlannedState: planned, LegacyTypeSystem: true}
+			},
 			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.v":  {"net_ids": {"PROVIDER_CHANGED"}},
+			},
+		},
+
+		// No-origin reasons.
+		"no_origin: literals": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "c" {
+					count   = 1
+					net_id  = "fixed"
+					zone    = count.index
+					net_ids = [test_net.a.id, "fixed"]
+				}
+				resource "test_vm" "e" {
+					for_each = toset(["k"])
+					net_id   = each.key
+				}
+			`},
+			// A partial key path has origins and reasons.
+			want: map[string]map[string][]string{
+				"test_vm.c[0]": {"net_ids": {"test_net.a.id"}},
+			},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":     {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.c[0]":   {"net_id": {"LITERAL"}, "zone": {"LITERAL"}, "net_ids": {"LITERAL"}},
+				`test_vm.e["k"]`: {"net_id": {"LITERAL"}},
+			},
+		},
+		"no_origin: data sources and variables": {
+			files: map[string]string{
+				"main.tf": `
+					variable "zone" {
+						type    = string
+						default = "z"
+					}
+					data "test_info" "i" {
+						net_id = "x"
+					}
+					resource "test_vm" "v" {
+						net_id = data.test_info.i.net_id
+						zone   = var.zone
+					}
+					module "child" {
+						source = "./child"
+						net_id = var.zone
+					}
+				`,
+				"child/main.tf": `
+					variable "net_id" {
+						type = string
+					}
+					variable "zone" {
+						type    = string
+						default = "d"
+					}
+					resource "test_vm" "v" {
+						net_id = var.net_id
+						zone   = var.zone
+					}
+				`,
+			},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_vm.v":              {"net_id": {"DATA_SOURCE"}, "zone": {"VARIABLE"}},
+				"module.child.test_vm.v": {"net_id": {"VARIABLE"}, "zone": {"VARIABLE"}},
+			},
+		},
+		"no_origin: expressions": {
+			files: map[string]string{"main.tf": `
+				variable "i" {
+					type    = number
+					default = 0
+				}
+				resource "test_net" "c" {
+					count = 1
+					name  = "c-${count.index}"
+				}
+				resource "test_net" "f" {
+					for_each = toset(["x"])
+					name     = each.key
+				}
+				resource "test_vm" "v" {
+					net_id  = upper(test_net.c[0].id)
+					zone    = test_net.c[0].name == "c-0" ? "x" : "y"
+					net_ids = [for n in test_net.c : n.id]
+				}
+				resource "test_vm" "w" {
+					net_id  = test_net.c[var.i].id
+					zone    = "${test_net.f["x"].name}-${test_net.c[0].name}"
+					net_ids = test_net.f[*]["x"].id
+				}
+			`},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.c[0]":   {"id": {"NOT_CONFIGURED"}, "name": {"EXPRESSION"}},
+				`test_net.f["x"]`: {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.v":       {"net_id": {"EXPRESSION"}, "zone": {"EXPRESSION"}, "net_ids": {"EXPRESSION"}},
+				"test_vm.w":       {"net_id": {"EXPRESSION"}, "zone": {"EXPRESSION"}, "net_ids": {"EXPRESSION"}},
+			},
+		},
+		"no_origin: ignore_changes and computed attributes": {
+			files: map[string]string{"main.tf": `
+				resource "test_vm" "v" {
+					net_id = "x"
+					lifecycle {
+						ignore_changes = [net_id]
+					}
+				}
+				resource "test_vm" "all" {
+					net_id = "x"
+					lifecycle {
+						ignore_changes = all
+					}
+				}
+			`},
+			computedZone: true,
+			want:         map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_vm.v":   {"net_id": {"IGNORE_CHANGES"}, "zone": {"NOT_CONFIGURED"}},
+				"test_vm.all": {"net_id": {"IGNORE_CHANGES"}, "zone": {"IGNORE_CHANGES"}},
+			},
+		},
+		"no_origin: unsupported": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+					tags = { x = "y" }
+				}
+				resource "test_vm" "other" {
+					net_ids = ["n"]
+				}
+				resource "test_vm" "v" {
+					net_id  = test_net.a.tags["x"]
+					zone    = path.module
+					net_ids = test_vm.other.net_ids
+				}
+				resource "test_vm" "w" {
+					net_id = path.root
+					nic {
+						net_id = test_net.a.id
+					}
+					dynamic "nic" {
+						for_each = ["n"]
+						content {
+							net_id = "n"
+						}
+					}
+				}
+			`},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":    {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.other": {"net_ids": {"LITERAL"}},
+				"test_vm.v":     {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}, "net_ids": {"UNSUPPORTED"}},
+				"test_vm.w":     {"net_id": {"UNSUPPORTED"}, "nic.net_id": {"UNSUPPORTED"}},
+			},
+		},
+		"no_origin: JSON and override files": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_vm" "o" {
+						net_id = "x"
+					}
+				`,
+				"main_override.tf": `
+					resource "test_vm" "o" {
+						zone = "z"
+					}
+				`,
+				"vm.tf.json": `{"resource": {"test_vm": {"j": {"net_id": "x"}}}}`,
+			},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_vm.o": {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}},
+				"test_vm.j": {"net_id": {"UNSUPPORTED"}},
+			},
 		},
 		// Test overrides. The outputs of an overridden module come from the
 		// override, so they have no origins, but overridden resources still
@@ -782,14 +1017,25 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					AttrsJSON: []byte(`{"id":"u-id","net_id":"a-id"}`),
 					Status:    states.ObjectReady,
 				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				s.SetResourceInstanceDeposed(mustResourceInstanceAddr("test_vm.targeted"), "00000001", &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"id":"d-id","net_id":"a-id"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
 			opts: &PlanOpts{
 				Mode:    plans.NormalMode,
 				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_vm.targeted")},
 			},
+			// Neither the state record of test_vm.untargeted nor the record
+			// of the deposed object of test_vm.targeted have origins or
+			// reasons.
 			want: map[string]map[string][]string{
 				"test_vm.targeted": {"net_id": {"test_net.a.id"}},
 			},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+			},
+			records: []string{"test_vm.untargeted", "test_vm.targeted deposed 00000001"},
 		},
 	}
 
@@ -805,6 +1051,7 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				opts = &PlanOpts{Mode: plans.NormalMode}
 			}
 			provider := relationshipsTestProvider()
+			provider.PlanResourceChangeFn = test.planFn
 			if test.computedZone {
 				provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 					planned, err := cty.Transform(req.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
@@ -828,16 +1075,31 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			run.assertRunSequence(t)
 
 			got := make(map[string]map[string][]string)
-			for addr, rec := range run.records(t) {
+			gotNoOrigin := make(map[string]map[string][]string)
+			records := run.records(t)
+			for _, key := range test.records {
+				if _, ok := records[key]; !ok {
+					t.Errorf("missing record %s", key)
+				}
+			}
+			for addr, rec := range records {
+				if len(rec.Origins) > 0 && (rec.Source != proto.RecordSource_PLANNED_RECORD_SOURCE || rec.Attrs == nil || rec.DeposedKey != "") {
+					t.Errorf("%s: unexpected origins on a %s record", addr, rec.Source)
+				}
 				if origins := relOrigins(t, rec); origins != nil {
-					if rec.Source != proto.RecordSource_PLANNED_RECORD_SOURCE || rec.Attrs == nil {
-						t.Errorf("%s: unexpected origins on a %s record", addr, rec.Source)
-					}
 					got[addr] = origins
+				}
+				if reasons := relNoOrigins(rec); reasons != nil {
+					gotNoOrigin[addr] = reasons
 				}
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Fatalf("wrong origins (-want +got):\n%s", diff)
+			}
+			if test.noOrigin != nil {
+				if diff := cmp.Diff(test.noOrigin, gotNoOrigin); diff != "" {
+					t.Fatalf("wrong no-origin reasons (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -1081,10 +1343,14 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 
 			// A record in the module.
 			got := originsFor(cfg, exp, overridden, childVM, cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)}), [][]string{{"net_id"}}, lookup)
-			if test.overridden && got != nil {
-				t.Errorf("expected no origins for a record in an overridden module, got %v", got)
+			if len(got) != 1 {
+				t.Fatalf("expected one entry for the key path, got %v", got)
 			}
-			if !test.overridden && len(got) != 1 {
+			if test.overridden {
+				if len(got[0].Origins) != 0 || len(got[0].NoOrigin) != 1 || got[0].NoOrigin[0] != proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON {
+					t.Errorf("expected no origins and the reason UNSUPPORTED for a record in an overridden module, got %v", got)
+				}
+			} else if len(got[0].Origins) != 1 || len(got[0].NoOrigin) != 0 {
 				t.Errorf("expected the origin of the record, got %v", got)
 			}
 

@@ -28,6 +28,10 @@ type originLookup interface {
 	// plannedValue returns the planned value of a resource instance at path.
 	// ok is false if the value is unknown or isn't available.
 	plannedValue(addr addrs.AbsResourceInstance, path []string) (val cty.Value, ok bool)
+
+	// attrComputed returns whether the attribute of a managed resource type
+	// at path is computed. ok is false if path doesn't name an attribute.
+	attrComputed(provider addrs.Provider, resType string, path []string) (computed, ok bool)
 }
 
 // originsFor returns the origins of the planned value of a resource instance
@@ -35,20 +39,66 @@ type originLookup interface {
 // evaluation of the instance's configuration that only follows expressions
 // which preserve the referenced value. When in doubt, it returns no origins
 // for a key path, because a wrong origin can produce a wrong policy result.
+// For the leaves without an origin it returns why, following P2 contract §4.
+// A key path whose planned value is null gets no entry.
 //
 // overridden reports whether a module instance is overridden by test
 // overrides, or is nil without overrides. The outputs of an overridden module
 // come from the override instead of its configuration, so nothing in it is
 // followed.
 func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, planned cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
-	if cfg == nil || exp == nil || planned == cty.NilVal || len(keyPaths) == 0 {
+	if planned == cty.NilVal || len(keyPaths) == 0 {
+		return nil
+	}
+	planned, _ = planned.UnmarkDeep()
+	if planned.IsNull() {
 		return nil
 	}
 	e := &originEval{cfg: cfg, exp: exp, overridden: overridden}
-	if e.moduleOverridden(addr.Module) {
+	rec := e.record(addr, planned, lookup)
+
+	var ret []*proto.KeyOrigins
+	for _, kp := range keyPaths {
+		if len(kp) == 0 {
+			continue
+		}
+		n, countable := policyPlannedLeaves(planned, kp)
+		if countable && n == 0 {
+			continue
+		}
+		origins, reasons := []*proto.Origin(nil), []proto.NoOriginReason{proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON}
+		if rec != nil {
+			origins, reasons = rec.keyPath(kp, n, countable)
+		}
+		if len(origins) == 0 && len(reasons) == 0 {
+			continue
+		}
+		ret = append(ret, &proto.KeyOrigins{KeyPath: policyAttrPath(kp), Origins: origins, NoOrigin: reasons})
+	}
+	return ret
+}
+
+// originRecord is a record whose origins are analyzed.
+type originRecord struct {
+	e        *originEval
+	rc       *configs.Resource
+	body     *hclsyntax.Body
+	provider addrs.Provider
+	self     originSym
+	planned  cty.Value
+	lookup   originLookup
+}
+
+// record returns the record of the resource instance at addr, or nil if its
+// configuration can't be analyzed: there's no configuration or expansion,
+// its module is overridden, it isn't a managed resource, its body isn't in
+// native syntax (JSON bodies and bodies merged from override files are
+// other types), or its planned value is unknown.
+func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value, lookup originLookup) *originRecord {
+	if e.cfg == nil || e.exp == nil || e.moduleOverridden(addr.Module) || !planned.IsKnown() {
 		return nil
 	}
-	modCfg := cfg.DescendantForInstance(addr.Module)
+	modCfg := e.cfg.DescendantForInstance(addr.Module)
 	if modCfg == nil {
 		return nil
 	}
@@ -56,60 +106,133 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(ad
 	if rc == nil || rc.Mode != addrs.ManagedResourceMode {
 		return nil
 	}
-	// Only native syntax is analyzed: JSON bodies and bodies merged from
-	// override files are other types.
 	body, ok := rc.Config.(*hclsyntax.Body)
 	if !ok {
 		return nil
 	}
-	planned, _ = planned.UnmarkDeep()
-	if planned.IsNull() || !planned.IsKnown() {
-		return nil
+	scope := &originScope{mod: addr.Module, cfg: modCfg, rep: e.resourceRepetition(rc, addr)}
+	return &originRecord{
+		e:        e,
+		rc:       rc,
+		body:     body,
+		provider: modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr()),
+		self:     e.body(body, scope),
+		planned:  planned,
+		lookup:   lookup,
+	}
+}
+
+// keyPath returns the origins of the record at a key path whose planned
+// value has n leaves, and the reasons for the leaves without an origin.
+// countable is false if the number of planned leaves isn't known.
+func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Origin, []proto.NoOriginReason) {
+	if policyIgnoresChanges(r.rc, kp[0]) {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON}
+	}
+	if !policyBodySets(r.body, kp[0]) {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON}
+	}
+	leaves, reason, ok := r.e.leaves(r.self, r.planned.Type(), kp)
+	if !ok {
+		return nil, []proto.NoOriginReason{reason}
+	}
+	if !countable {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
 	}
 
-	scope := &originScope{mod: addr.Module, cfg: modCfg, rep: e.resourceRepetition(rc, addr)}
-	self := e.body(body, scope)
+	// Leaves that are known to be null contribute no planned leaves, unless
+	// the provider planned a value for them. If the numbers match neither
+	// way, the planned value doesn't fit the configuration.
+	knownNull := make([]bool, len(leaves))
+	k := 0
+	for i, leaf := range leaves {
+		if r.knownNull(leaf, kp) {
+			knownNull[i] = true
+			k++
+		}
+	}
+	allPlanned := n == len(leaves)
+	if !allPlanned && n != len(leaves)-k {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
+	}
 
-	var ret []*proto.KeyOrigins
-	for _, kp := range keyPaths {
-		if len(kp) == 0 || policyIgnoresChanges(rc, kp[0]) {
+	seen := make(map[string]bool)
+	reasons := make(map[proto.NoOriginReason]bool)
+	var origins []*proto.Origin
+	for i, leaf := range leaves {
+		if knownNull[i] && !allPlanned {
 			continue
 		}
-		n, ok := policyPlannedLeaves(planned, kp)
-		if !ok {
-			continue
-		}
-		leaves, ok := e.leaves(self, planned.Type(), kp)
-		if !ok || len(leaves) != n {
-			continue
-		}
-
-		seen := make(map[string]bool)
-		var origins []*proto.Origin
-		for _, leaf := range leaves {
-			ref, ok := leaf.sym.(symRef)
-			if !ok || len(ref.path) == 0 || !e.originAllowed(ref, leaf.ty, lookup) {
+		switch sym := leaf.sym.(type) {
+		case symRef:
+			if len(sym.path) == 0 || !r.e.originAllowed(sym, leaf.ty, r.lookup) {
+				reasons[proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON] = true
 				continue
 			}
-			id := ref.addr.String() + "#" + strings.Join(ref.path, ".")
+			id := sym.addr.String() + "#" + strings.Join(sym.path, ".")
 			if seen[id] {
 				continue
 			}
 			seen[id] = true
-			origins = append(origins, &proto.Origin{Address: ref.addr.String(), Path: policyAttrPath(ref.path)})
-		}
-		if len(origins) == 0 {
-			continue
-		}
-		sort.Slice(origins, func(i, j int) bool {
-			if origins[i].Address != origins[j].Address {
-				return origins[i].Address < origins[j].Address
+			origins = append(origins, &proto.Origin{Address: sym.addr.String(), Path: policyAttrPath(sym.path)})
+		case symLit:
+			if sym.val.IsNull() {
+				reasons[proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON] = true
+			} else {
+				reasons[proto.NoOriginReason_LITERAL_NO_ORIGIN_REASON] = true
 			}
-			return strings.Join(policyKeyPathNames(origins[i].Path), ".") < strings.Join(policyKeyPathNames(origins[j].Path), ".")
-		})
-		ret = append(ret, &proto.KeyOrigins{KeyPath: policyAttrPath(kp), Origins: origins})
+		default:
+			reasons[policyStructureReason(sym)] = true
+		}
 	}
-	return ret
+	sort.Slice(origins, func(i, j int) bool {
+		if origins[i].Address != origins[j].Address {
+			return origins[i].Address < origins[j].Address
+		}
+		return strings.Join(policyKeyPathNames(origins[i].Path), ".") < strings.Join(policyKeyPathNames(origins[j].Path), ".")
+	})
+	ret := make([]proto.NoOriginReason, 0, len(reasons))
+	for reason := range reasons {
+		ret = append(ret, reason)
+	}
+	sort.Slice(ret, func(i, j int) bool { return ret[i] < ret[j] })
+	return origins, ret
+}
+
+// knownNull returns true if a leaf of the record at key path kp is known to
+// be null: a null literal, a reference to a planned null value, or an unset
+// attribute the provider doesn't compute.
+func (r *originRecord) knownNull(leaf originLeaf, kp []string) bool {
+	switch sym := leaf.sym.(type) {
+	case symLit:
+		return sym.val.IsNull()
+	case symRef:
+		if len(sym.path) == 0 {
+			return false
+		}
+		val, ok := r.lookup.plannedValue(sym.addr, sym.path)
+		return ok && val.IsNull()
+	default:
+		if !policySymUnset(sym) {
+			return false
+		}
+		computed, ok := r.lookup.attrComputed(r.provider, r.rc.Type, kp)
+		return ok && !computed
+	}
+}
+
+// policyBodySets returns true if a resource body sets an argument or has
+// blocks, including dynamic ones, of the given name.
+func policyBodySets(body *hclsyntax.Body, name string) bool {
+	if _, ok := body.Attributes[name]; ok {
+		return true
+	}
+	for _, block := range body.Blocks {
+		if block.Type == name || (block.Type == "dynamic" && len(block.Labels) > 0 && block.Labels[0] == name) {
+			return true
+		}
+	}
+	return false
 }
 
 // policyIgnoresChanges returns true if the resource's ignore_changes covers
@@ -185,7 +308,23 @@ func policyPlannedLeaves(v cty.Value, steps []string) (n int, ok bool) {
 type originSym interface{}
 
 // symOpaque is a value that has no origin, or whose structure isn't known.
-type symOpaque struct{}
+// reason says why; the zero reason means UNSUPPORTED.
+type symOpaque struct{ reason proto.NoOriginReason }
+
+var (
+	opaqueUnsupported   = symOpaque{reason: proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON}
+	opaqueExpression    = symOpaque{reason: proto.NoOriginReason_EXPRESSION_NO_ORIGIN_REASON}
+	opaqueDataSource    = symOpaque{reason: proto.NoOriginReason_DATA_SOURCE_NO_ORIGIN_REASON}
+	opaqueVariable      = symOpaque{reason: proto.NoOriginReason_VARIABLE_NO_ORIGIN_REASON}
+	opaqueNotConfigured = symOpaque{reason: proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON}
+)
+
+func (o symOpaque) why() proto.NoOriginReason {
+	if o.reason == proto.NoOriginReason_INVALID_NO_ORIGIN_REASON {
+		return proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON
+	}
+	return o.reason
+}
 
 // symLit is a literal value, or count.index or each.key.
 type symLit struct{ val cty.Value }
@@ -256,7 +395,7 @@ func (e *originEval) resourceRepetition(rc *configs.Resource, addr addrs.AbsReso
 	case addrs.StringKey:
 		return &originRepetition{key: addr.Resource.Key, each: func() originSym {
 			if rc.ForEach == nil {
-				return symOpaque{}
+				return opaqueUnsupported
 			}
 			return e.index(e.eval(rc.ForEach, &originScope{mod: addr.Module, cfg: e.cfg.DescendantForInstance(addr.Module)}), instanceKeySym(addr.Resource.Key))
 		}}
@@ -267,7 +406,7 @@ func (e *originEval) resourceRepetition(rc *configs.Resource, addr addrs.AbsReso
 
 func instanceKeySym(key addrs.InstanceKey) originSym {
 	if key == nil || key == addrs.NoKey {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	return symLit{val: key.Value()}
 }
@@ -281,7 +420,7 @@ func (e *originEval) body(body *hclsyntax.Body, s *originScope) originSym {
 		seq := symSeq{blocks: true}
 		for _, block := range body.Blocks {
 			if block.Type == "dynamic" && len(block.Labels) > 0 && block.Labels[0] == name {
-				return symOpaque{}
+				return opaqueUnsupported
 			}
 			if block.Type == name {
 				seq.elems = append(seq.elems, e.body(block.Body, s))
@@ -293,7 +432,7 @@ func (e *originEval) body(body *hclsyntax.Body, s *originScope) originSym {
 
 func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
 	if s == nil || s.cfg == nil || e.depth >= originMaxDepth {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	e.depth++
 	defer func() { e.depth-- }()
@@ -307,7 +446,7 @@ func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
 				return symLit{val: lit.Val}
 			}
 		}
-		return symOpaque{}
+		return opaqueExpression
 	case *hclsyntax.TemplateWrapExpr:
 		return e.eval(expr.Wrapped, s)
 	case *hclsyntax.ParenthesesExpr:
@@ -323,7 +462,7 @@ func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
 		for _, item := range expr.Items {
 			name, ok := objectConsKey(item.KeyExpr)
 			if !ok {
-				return symOpaque{}
+				return opaqueExpression
 			}
 			attrs[name] = e.eval(item.ValueExpr, s)
 		}
@@ -331,7 +470,7 @@ func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
 			if v, ok := attrs[name]; ok {
 				return v
 			}
-			return symOpaque{}
+			return opaqueNotConfigured
 		}}
 	case *hclsyntax.ScopeTraversalExpr:
 		return e.traversal(expr.Traversal, s)
@@ -345,11 +484,11 @@ func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
 		if v, ok := s.anon[expr]; ok {
 			return v
 		}
-		return symOpaque{}
+		return opaqueUnsupported
 	default:
 		// Function calls, conditionals, for expressions, operators,
 		// templates with several parts and anything else.
-		return symOpaque{}
+		return opaqueExpression
 	}
 }
 
@@ -382,7 +521,7 @@ func objectConsKey(expr hclsyntax.Expression) (string, bool) {
 func (e *originEval) traversal(trav hcl.Traversal, s *originScope) originSym {
 	ref, diags := addrs.ParseRef(trav)
 	if diags.HasErrors() || ref == nil {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	var base originSym
 	switch subj := ref.Subject.(type) {
@@ -393,7 +532,7 @@ func (e *originEval) traversal(trav hcl.Traversal, s *originScope) originSym {
 	case addrs.LocalValue:
 		local := s.cfg.Module.Locals[subj.Name]
 		if local == nil {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		base = e.eval(local.Expr, &originScope{mod: s.mod, cfg: s.cfg})
 	case addrs.InputVariable:
@@ -406,15 +545,15 @@ func (e *originEval) traversal(trav hcl.Traversal, s *originScope) originSym {
 		base = e.getAttr(e.moduleCallInstance(subj.Call, s), subj.Name)
 	case addrs.CountAttr:
 		if subj.Name != "index" || s.rep == nil {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		if _, ok := s.rep.key.(addrs.IntKey); !ok {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		base = instanceKeySym(s.rep.key)
 	case addrs.ForEachAttr:
 		if s.rep == nil || s.rep.each == nil {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		switch subj.Name {
 		case "key":
@@ -422,12 +561,11 @@ func (e *originEval) traversal(trav hcl.Traversal, s *originScope) originSym {
 		case "value":
 			base = s.rep.each()
 		default:
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 	default:
-		// Data sources and ephemeral resources are compared by value, and
 		// path, terraform, self and others have no origin.
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	return e.steps(base, ref.Remaining)
 }
@@ -440,7 +578,7 @@ func (e *originEval) steps(base originSym, trav hcl.Traversal) originSym {
 		case hcl.TraverseIndex:
 			base = e.index(base, symLit{val: step.Key})
 		default:
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 	}
 	return base
@@ -454,19 +592,24 @@ func (e *originEval) getAttr(base originSym, name string) originSym {
 		path := make([]string, len(base.path), len(base.path)+1)
 		copy(path, base.path)
 		return symRef{addr: base.addr, path: append(path, name)}
+	case symOpaque:
+		return base
 	default:
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 }
 
 func (e *originEval) index(base originSym, key originSym) originSym {
+	if base, ok := base.(symOpaque); ok {
+		return base
+	}
 	lit, ok := key.(symLit)
 	if !ok || !lit.val.IsWhollyKnown() || lit.val.IsNull() || lit.val.IsMarked() {
-		return symOpaque{}
+		return opaqueExpression
 	}
 	k, err := addrs.ParseInstanceKey(lit.val)
 	if err != nil {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	switch base := base.(type) {
 	case symColl:
@@ -482,7 +625,7 @@ func (e *originEval) index(base originSym, key originSym) originSym {
 			return base.attr(string(name))
 		}
 	}
-	return symOpaque{}
+	return opaqueUnsupported
 }
 
 func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym {
@@ -492,7 +635,7 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 		elems = src.elems
 	case symColl:
 		if src.keyType != addrs.IntKeyType {
-			return symOpaque{}
+			return opaqueExpression
 		}
 		keys := make([]int, 0, len(src.elems))
 		for k := range src.elems {
@@ -505,11 +648,13 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 	case symRef:
 		// A splat over a single object wraps it in a tuple.
 		if len(src.path) != 0 {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		elems = []originSym{src}
+	case symOpaque:
+		return src
 	default:
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 
 	seq := symSeq{}
@@ -525,16 +670,19 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 }
 
 func (e *originEval) resource(res addrs.Resource, s *originScope) originSym {
-	if res.Mode != addrs.ManagedResourceMode || s.cfg.Module.ResourceByAddr(res) == nil {
-		return symOpaque{}
+	if opaque, ok := policyUnmanaged(res.Mode); ok {
+		return opaque
+	}
+	if s.cfg.Module.ResourceByAddr(res) == nil {
+		return opaqueUnsupported
 	}
 	abs := res.Absolute(s.mod)
 	if !e.exp.ResourceInstanceExpanded(abs) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	keyType, keys, unknown := e.exp.ResourceInstanceKeys(abs)
 	if unknown {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	if keyType == addrs.NoKeyType {
 		return symRef{addr: res.Instance(addrs.NoKey).Absolute(s.mod)}
@@ -547,18 +695,35 @@ func (e *originEval) resource(res addrs.Resource, s *originScope) originSym {
 }
 
 func (e *originEval) resourceInstance(inst addrs.ResourceInstance, s *originScope) originSym {
-	if inst.Resource.Mode != addrs.ManagedResourceMode || s.cfg.Module.ResourceByAddr(inst.Resource) == nil {
-		return symOpaque{}
+	if opaque, ok := policyUnmanaged(inst.Resource.Mode); ok {
+		return opaque
+	}
+	if s.cfg.Module.ResourceByAddr(inst.Resource) == nil {
+		return opaqueUnsupported
 	}
 	abs := inst.Resource.Absolute(s.mod)
 	if !e.exp.ResourceInstanceExpanded(abs) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	keyType, keys, _ := e.exp.ResourceInstanceKeys(abs)
 	if !instanceKeyKnown(inst.Key, keyType, keys) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	return symRef{addr: inst.Absolute(s.mod)}
+}
+
+// policyUnmanaged returns the symbolic value of a reference to a resource
+// that isn't managed. Data sources and ephemeral resources are compared by
+// value.
+func policyUnmanaged(mode addrs.ResourceMode) (symOpaque, bool) {
+	switch mode {
+	case addrs.ManagedResourceMode:
+		return symOpaque{}, false
+	case addrs.DataResourceMode, addrs.EphemeralResourceMode:
+		return opaqueDataSource, true
+	default:
+		return opaqueUnsupported, true
+	}
 }
 
 func policyInstanceKeyType(key addrs.InstanceKey) addrs.InstanceKeyType {
@@ -591,22 +756,22 @@ func instanceKeyKnown(key addrs.InstanceKey, keyType addrs.InstanceKeyType, keys
 // call, in the parent module instance.
 func (e *originEval) variable(name string, s *originScope) originSym {
 	if s.mod.IsRoot() || s.cfg.Parent == nil {
-		return symOpaque{}
+		return opaqueVariable
 	}
 	parentMod, callInst := s.mod.CallInstance()
 	parentCfg := s.cfg.Parent
 	call := parentCfg.Module.ModuleCalls[callInst.Call.Name]
 	if call == nil {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	body, ok := call.Config.(*hclsyntax.Body)
 	if !ok {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	attr, ok := body.Attributes[name]
 	if !ok {
 		// The variable has its default value.
-		return symOpaque{}
+		return opaqueVariable
 	}
 	var rep *originRepetition
 	switch callInst.Key.(type) {
@@ -615,7 +780,7 @@ func (e *originEval) variable(name string, s *originScope) originSym {
 	case addrs.StringKey:
 		rep = &originRepetition{key: callInst.Key, each: func() originSym {
 			if call.ForEach == nil {
-				return symOpaque{}
+				return opaqueUnsupported
 			}
 			return e.index(e.eval(call.ForEach, &originScope{mod: parentMod, cfg: parentCfg}), instanceKeySym(callInst.Key))
 		}}
@@ -627,11 +792,11 @@ func (e *originEval) moduleCall(call addrs.ModuleCall, s *originScope) originSym
 	childCfg := s.cfg.Children[call.Name]
 	abs := call.Absolute(s.mod)
 	if childCfg == nil || !e.exp.AbsModuleCallExpanded(abs) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	keyType, keys, unknown := e.exp.GetModuleCallInstanceKeys(abs)
 	if unknown {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	if keyType == addrs.NoKeyType {
 		return e.moduleInstance(s.mod.Child(call.Name, addrs.NoKey), childCfg)
@@ -647,11 +812,11 @@ func (e *originEval) moduleCallInstance(inst addrs.ModuleCallInstance, s *origin
 	childCfg := s.cfg.Children[inst.Call.Name]
 	abs := inst.Call.Absolute(s.mod)
 	if childCfg == nil || !e.exp.AbsModuleCallExpanded(abs) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	keyType, keys, _ := e.exp.GetModuleCallInstanceKeys(abs)
 	if !instanceKeyKnown(inst.Key, keyType, keys) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	return e.moduleInstance(s.mod.Child(inst.Call.Name, inst.Key), childCfg)
 }
@@ -661,12 +826,12 @@ func (e *originEval) moduleCallInstance(inst addrs.ModuleCallInstance, s *origin
 // instances through it, so this is where overridden modules are excluded.
 func (e *originEval) moduleInstance(mod addrs.ModuleInstance, cfg *configs.Config) originSym {
 	if e.moduleOverridden(mod) {
-		return symOpaque{}
+		return opaqueUnsupported
 	}
 	return symObj{attr: func(name string) originSym {
 		out := cfg.Module.Outputs[name]
 		if out == nil {
-			return symOpaque{}
+			return opaqueUnsupported
 		}
 		return e.eval(out.Expr, &originScope{mod: mod, cfg: cfg})
 	}}
@@ -674,42 +839,35 @@ func (e *originEval) moduleInstance(mod addrs.ModuleInstance, cfg *configs.Confi
 
 // leaves walks a symbolic value along a key path like policyPlannedLeaves
 // walks the planned value of type ty, and returns the leaves with their
-// types. ok is false if the number of leaves can't be known, because a
-// collection position isn't syntactic.
-func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originLeaf, bool) {
+// types. ok is false if the leaves can't be known, because a collection
+// position isn't syntactic, and reason says why.
+func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originLeaf, proto.NoOriginReason, bool) {
 	switch {
-	case ty.IsListType() || ty.IsSetType():
+	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
 		seq, ok := s.(symSeq)
 		if !ok {
-			return nil, false
+			return nil, policyStructureReason(s), false
 		}
-		var ret []originLeaf
-		for _, el := range seq.elems {
-			l, ok := e.leaves(el, ty.ElementType(), steps)
-			if !ok {
-				return nil, false
+		elemTy := func(int) cty.Type { return ty.ElementType() }
+		if ty.IsTupleType() {
+			elemTys := ty.TupleElementTypes()
+			if len(seq.elems) != len(elemTys) {
+				return nil, proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON, false
 			}
-			ret = append(ret, l...)
-		}
-		return ret, true
-	case ty.IsTupleType():
-		seq, ok := s.(symSeq)
-		elemTys := ty.TupleElementTypes()
-		if !ok || len(seq.elems) != len(elemTys) {
-			return nil, false
+			elemTy = func(i int) cty.Type { return elemTys[i] }
 		}
 		var ret []originLeaf
 		for i, el := range seq.elems {
-			l, ok := e.leaves(el, elemTys[i], steps)
+			l, reason, ok := e.leaves(el, elemTy(i), steps)
 			if !ok {
-				return nil, false
+				return nil, reason, false
 			}
 			ret = append(ret, l...)
 		}
-		return ret, true
+		return ret, proto.NoOriginReason_INVALID_NO_ORIGIN_REASON, true
 	case len(steps) > 0:
 		if !ty.IsObjectType() || !ty.HasAttribute(steps[0]) {
-			return nil, false
+			return nil, proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON, false
 		}
 		switch s := s.(type) {
 		case symObj, symRef:
@@ -720,11 +878,42 @@ func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originL
 				return e.leaves(s.elems[0], ty, steps)
 			}
 		}
-		return nil, false
+		return nil, policyStructureReason(s), false
 	case ty.IsPrimitiveType():
-		return []originLeaf{{sym: s, ty: ty}}, true
+		return []originLeaf{{sym: s, ty: ty}}, proto.NoOriginReason_INVALID_NO_ORIGIN_REASON, true
 	default:
-		return nil, false
+		return nil, proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON, false
+	}
+}
+
+// policyStructureReason returns why a symbolic value has no origin, or
+// doesn't have the structure of the planned value.
+func policyStructureReason(s originSym) proto.NoOriginReason {
+	switch s := s.(type) {
+	case symOpaque:
+		return s.why()
+	case symLit:
+		if s.val.IsNull() {
+			return proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON
+		}
+	}
+	if policySymUnset(s) {
+		return proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON
+	}
+	return proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON
+}
+
+// policySymUnset returns true if a symbolic value is an attribute that isn't
+// set: a body without the argument or blocks, or an object constructor
+// without the attribute.
+func policySymUnset(s originSym) bool {
+	switch s := s.(type) {
+	case symSeq:
+		return s.blocks && len(s.elems) == 0
+	case symOpaque:
+		return s.reason == proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON
+	default:
+		return false
 	}
 }
 

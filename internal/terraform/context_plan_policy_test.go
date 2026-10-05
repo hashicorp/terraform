@@ -3845,24 +3845,44 @@ type wantRelRecord struct {
 
 // relOrigins returns the origins of a record by dot-separated key path, each
 // as the referenced address and dot-separated path, or nil if there are none.
+// It fails the test if a key path has several entries or an empty one.
 func relOrigins(t *testing.T, rec *proto.InstanceRecord) map[string][]string {
 	t.Helper()
-	if len(rec.Origins) == 0 {
-		return nil
-	}
 	ret := make(map[string][]string)
+	seen := make(map[string]bool)
 	for _, ko := range rec.Origins {
 		kp := relPathString(ko.KeyPath)
-		if _, exists := ret[kp]; exists {
+		if seen[kp] {
 			t.Fatalf("%s: duplicate origins for key path %s", rec.Address, kp)
 		}
-		if len(ko.Origins) == 0 {
+		seen[kp] = true
+		if len(ko.Origins) == 0 && len(ko.NoOrigin) == 0 {
 			t.Fatalf("%s: empty origins for key path %s", rec.Address, kp)
 		}
 		for _, o := range ko.Origins {
 			ret[kp] = append(ret[kp], o.Address+"."+relPathString(o.Path))
 		}
 		sort.Strings(ret[kp])
+	}
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
+}
+
+// relNoOrigins returns the no-origin reasons of a record by dot-separated key
+// path, each as the reason's name without its suffix, or nil if there are
+// none.
+func relNoOrigins(rec *proto.InstanceRecord) map[string][]string {
+	var ret map[string][]string
+	for _, ko := range rec.Origins {
+		for _, reason := range ko.NoOrigin {
+			if ret == nil {
+				ret = make(map[string][]string)
+			}
+			kp := relPathString(ko.KeyPath)
+			ret[kp] = append(ret[kp], strings.TrimSuffix(reason.String(), "_NO_ORIGIN_REASON"))
+		}
 	}
 	return ret
 }
