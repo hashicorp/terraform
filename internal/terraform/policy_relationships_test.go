@@ -986,12 +986,12 @@ func TestPolicyBeginRunDiagnostics(t *testing.T) {
 	invalid := &proto.Diagnostic{Severity: proto.Severity_INVALID, Summary: "No severity"}
 
 	t.Run("warnings and errors are kept", func(t *testing.T) {
-		assertRelDefinitionDiagnostics(t, policyBeginRunDiagnostics([]*proto.Diagnostic{err, invalid, warning}), warning, err)
+		assertRelDefinitionDiagnostics(t, policyBeginRunDiagnostics([]*proto.Diagnostic{err, invalid, warning}).AsTerraformDiags(), warning, err)
 	})
 	t.Run("diagnostics without severity are dropped", func(t *testing.T) {
 		for _, diags := range [][]*proto.Diagnostic{nil, {invalid}} {
 			if got := policyBeginRunDiagnostics(diags); len(got) != 0 {
-				t.Errorf("expected no diagnostics, got %v", got.ErrWithWarnings())
+				t.Errorf("expected no diagnostics, got %v", got.AsTerraformDiags().ErrWithWarnings())
 			}
 		}
 	})

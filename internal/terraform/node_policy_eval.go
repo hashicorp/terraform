@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -37,11 +38,19 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.State().Close()
 
 	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
-	var diags tfdiags.Diagnostics
+	var runDiags policy.Diagnostics
 	if policyGraph.run != nil {
-		diags = diags.Append(policyGraph.startRelationshipRun(ctx, spanCtx))
+		runDiags = policyGraph.startRelationshipRun(ctx, spanCtx)
 	}
-	if diags.HasErrors() {
+	var diags tfdiags.Diagnostics
+	if len(runDiags) > 0 {
+		// Like policy setup diagnostics, the diagnostics of beginning the
+		// relationship run go to the view and don't fail the walk.
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PolicyDiagnostics(runDiags)
+		}))
+	}
+	if runDiags.HasErrors() {
 		// The relationship run didn't begin, so no policy is evaluated. There
 		// is no subgraph whose finish node ends the span, so end it here.
 		span.End()

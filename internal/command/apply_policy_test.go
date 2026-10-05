@@ -6,10 +6,12 @@ package command
 import (
 	"context"
 	"os"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -492,4 +494,75 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 {"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"action_fail":0,"operation":"apply"},"type":"change_summary"}
 {"@level":"info","@message":"Outputs: 0","@module":"terraform.ui","outputs":{},"type":"outputs"}`
 	checkGoldenReferenceStr(t, output, expected)
+}
+
+// TestApply_WithPolicyRelationshipDefinitionErrors checks an apply whose
+// policy uses a wrong relationship definition: like a policy set that fails
+// to load, the diagnostics are shown, no policy is evaluated, and the apply
+// succeeds.
+func TestApply_WithPolicyRelationshipDefinitionErrors(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	client := testPolicyRelationshipDefinitionClient(t)
+	overrides.PolicyClient = client
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: overrides,
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color", "-auto-approve"})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+	if !client.BeginRunCalled {
+		t.Fatal("expected a BeginRun call")
+	}
+	if !p.ApplyResourceChangeCalled {
+		t.Fatal("expected the resource to be applied")
+	}
+
+	// The plan before the apply doesn't evaluate policies, so only the apply
+	// walk begins a run, after the resources are applied, and shows the
+	// diagnostics once.
+	wantStdout := `test_instance.foo: Creation complete after 0s
+
+Warning: Unknown resource type
+
+  on policies/foo.policy.hcl line 1, in relationship "test_instanc" "test_instance" "foo_bar":
+   1: relationship "test_instanc" "test_instance" "foo_bar" {
+
+The provider has no resource type "test_instanc". No policy uses relationship
+"foo_bar", so this is a warning. Fix or remove the relationship before a
+policy uses it.
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+`
+	if !strings.HasSuffix(output.Stdout(), wantStdout) {
+		t.Errorf("wrong end of stdout\ngot:\n%s\nwant suffix:\n%s", output.Stdout(), wantStdout)
+	}
+	if got := strings.Count(output.Stdout(), "Warning: Unknown resource type"); got != 1 {
+		t.Errorf("expected the warning once, got %d", got)
+	}
+	wantStderr := `
+Error: Unknown attribute
+
+  on policies/foo.policy.hcl line 6, in relationship "test_instance" "test_instance" "foo_net":
+   6:   key = net
+
+The resource type "test_instance" has no attribute "net".
+
+The policy resource_policy "test_instance" "isolated" uses relationship
+"foo_net", so no policy is evaluated in this run.
+`
+	if diff := cmp.Diff(wantStderr, output.Stderr()); diff != "" {
+		t.Errorf("unexpected stderr output:\n%s", diff)
+	}
 }

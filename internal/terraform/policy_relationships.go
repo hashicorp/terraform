@@ -35,7 +35,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // policyRunOpts describes the relationship run of a plan or apply walk. A walk
@@ -153,13 +152,13 @@ func (c *Context) applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schem
 // its instances. It must be called after the walk's changes and state are
 // final and before any subject is evaluated.
 //
-// It returns the diagnostics of BeginRun that the walk reports; see
-// policyBeginRunDiagnostics. If they have errors, the run didn't begin: no run
-// id is set, no instances are reported, and the caller must not evaluate
-// policies. Failed RPCs don't fail the walk: they are logged and leave the run
+// It returns the diagnostics of BeginRun to report through the
+// PolicyDiagnostics hook; see policyBeginRunDiagnostics. If they have errors,
+// the run didn't begin: no run id is set, no instances are reported, and the
+// caller must not evaluate policies. Failed RPCs are logged and leave the run
 // without a run id (when BeginRun fails) or with only part of its instances
 // reported.
-func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.Context) tfdiags.Diagnostics {
+func (ps *policySubgraph) startRelationshipRun(ctx EvalContext, stopCtx context.Context) policy.Diagnostics {
 	client, ok := policyRelationshipsClient(ctx.PolicyClient())
 	if !ok || ps.run == nil {
 		return nil
@@ -230,8 +229,9 @@ func (ps *policySubgraph) finishRelationshipRun(ctx EvalContext, stopCtx context
 //
 // Warnings are about wrong relationship definitions that no policy uses.
 // Errors are about wrong definitions that policies use, and mean that the run
-// didn't begin. Both are reported once per walk.
-func policyBeginRunDiagnostics(diags []*proto.Diagnostic) tfdiags.Diagnostics {
+// didn't begin. Both are reported once per walk, like policy setup
+// diagnostics.
+func policyBeginRunDiagnostics(diags []*proto.Diagnostic) policy.Diagnostics {
 	var reported []*proto.Diagnostic
 	for _, diag := range diags {
 		// Diagnostics without a severity would become errors when converted,
@@ -241,7 +241,7 @@ func policyBeginRunDiagnostics(diags []*proto.Diagnostic) tfdiags.Diagnostics {
 			reported = append(reported, diag)
 		}
 	}
-	return policy.DiagsFromProto(reported, nil).AsTerraformDiags()
+	return policy.DiagsFromProto(reported, nil)
 }
 
 func logPolicyRunDiagnostics(call, runID string, diags []*proto.Diagnostic) {

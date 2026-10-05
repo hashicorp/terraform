@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/states"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 // Tests the output of a plan that includes a policy evaluation
@@ -1104,6 +1105,199 @@ func TestPlan_WithPolicySetupFailureJSON(t *testing.T) {
 {"@level":"error","@message":"Error: Failed to connect to policy engine","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"error","summary":"Failed to connect to policy engine","detail":"Failed to connect to policy engine: failed to connect to plugin: exec: \"tfpolicy-plugin\": executable file not found in $PATH."},"policy_metadata":{},"result":"SetupErrorResult","type":"policy_diagnostic"}
 {"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
 {"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"action_fail":0,"operation":"plan"},"type":"change_summary"}`
+	checkGoldenReferenceStr(t, output, expected)
+}
+
+// testPolicyRelationshipDefinitionDiagnostics returns the diagnostics the
+// policy engine returns from BeginRun for wrong relationship definitions: a
+// warning for one that no policy uses and an error for one that a policy
+// uses.
+func testPolicyRelationshipDefinitionDiagnostics() []*proto.Diagnostic {
+	return []*proto.Diagnostic{
+		{
+			Severity: proto.Severity_WARNING,
+			Summary:  "Unknown resource type",
+			Detail:   `The provider has no resource type "test_instanc". No policy uses relationship "foo_bar", so this is a warning. Fix or remove the relationship before a policy uses it.`,
+			Subject: &proto.Range{
+				Filename: "policies/foo.policy.hcl",
+				Start:    &proto.Position{Line: 1, Column: 14, Byte: 13},
+				End:      &proto.Position{Line: 1, Column: 28, Byte: 27},
+			},
+			Snippet: &proto.Snippet{
+				Context:              protobuf.String(`relationship "test_instanc" "test_instance" "foo_bar"`),
+				Code:                 `relationship "test_instanc" "test_instance" "foo_bar" {`,
+				StartLine:            1,
+				HighlightStartOffset: 13,
+				HighlightEndOffset:   27,
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+		{
+			Severity: proto.Severity_ERROR,
+			Summary:  "Unknown attribute",
+			Detail:   "The resource type \"test_instance\" has no attribute \"net\".\n\nThe policy resource_policy \"test_instance\" \"isolated\" uses relationship \"foo_net\", so no policy is evaluated in this run.",
+			Subject: &proto.Range{
+				Filename: "policies/foo.policy.hcl",
+				Start:    &proto.Position{Line: 6, Column: 9, Byte: 120},
+				End:      &proto.Position{Line: 6, Column: 12, Byte: 123},
+			},
+			Snippet: &proto.Snippet{
+				Context:              protobuf.String(`relationship "test_instance" "test_instance" "foo_net"`),
+				Code:                 `  key = net`,
+				StartLine:            6,
+				HighlightStartOffset: 8,
+				HighlightEndOffset:   11,
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+	}
+}
+
+// testPolicyRelationshipDefinitionClient returns a policy client with the
+// relationships capability whose BeginRun returns the diagnostics of
+// testPolicyRelationshipDefinitionDiagnostics. It fails the test if a policy
+// is evaluated or the run is used.
+func testPolicyRelationshipDefinitionClient(t *testing.T) *policy.MockClient {
+	client := policy.NewTestMockClient(t)
+	client.RelationshipsSupportedResponse = true
+	client.BeginRunResponse = &proto.BeginRunResponse{Diagnostics: testPolicyRelationshipDefinitionDiagnostics()}
+	client.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+		t.Errorf("unexpected policy evaluation of %s", req.Target)
+		return policy.EvaluationResponse{Overall: policy.AllowResult}
+	}
+	client.ReportInstancesFn = func(context.Context, *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error) {
+		t.Error("unexpected ReportInstances call")
+		return &proto.ReportInstancesResponse{}, nil
+	}
+	client.FinishRunFn = func(context.Context, *proto.FinishRunRequest) (*proto.FinishRunResponse, error) {
+		t.Error("unexpected FinishRun call")
+		return &proto.FinishRunResponse{}, nil
+	}
+	return client
+}
+
+// TestPlan_WithPolicyRelationshipDefinitionErrors checks a plan whose policy
+// uses a wrong relationship definition: like a policy set that fails to
+// load, the diagnostics are shown, no policy is evaluated, and the plan
+// succeeds.
+func TestPlan_WithPolicyRelationshipDefinitionErrors(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	client := testPolicyRelationshipDefinitionClient(t)
+	overrides.PolicyClient = client
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: overrides,
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-policies", td, "-no-color"})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+	if !client.BeginRunCalled {
+		t.Fatal("expected a BeginRun call")
+	}
+
+	// The diagnostics are shown once, before the plan, which is complete.
+	expectedStdout := `data.test_data_source.a: Reading...
+data.test_data_source.a: Read complete after 0s [id=zzzzz]
+
+Warning: Unknown resource type
+
+  on policies/foo.policy.hcl line 1, in relationship "test_instanc" "test_instance" "foo_bar":
+   1: relationship "test_instanc" "test_instance" "foo_bar" {
+
+The provider has no resource type "test_instanc". No policy uses relationship
+"foo_bar", so this is a warning. Fix or remove the relationship before a
+policy uses it.
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_instance.foo will be created
+  + resource "test_instance" "foo" {
+      + ami = "bar"
+
+      + network_interface {
+          + description  = "Main network interface"
+          + device_index = "0"
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+`
+	if diff := cmp.Diff(expectedStdout, output.Stdout()); diff != "" {
+		t.Errorf("unexpected stdout output:\n%s", diff)
+	}
+	expectedStderr := `
+Error: Unknown attribute
+
+  on policies/foo.policy.hcl line 6, in relationship "test_instance" "test_instance" "foo_net":
+   6:   key = net
+
+The resource type "test_instance" has no attribute "net".
+
+The policy resource_policy "test_instance" "isolated" uses relationship
+"foo_net", so no policy is evaluated in this run.
+`
+	if diff := cmp.Diff(expectedStderr, output.Stderr()); diff != "" {
+		t.Errorf("unexpected stderr output:\n%s", diff)
+	}
+}
+
+// TestPlan_WithPolicyRelationshipDefinitionErrorsJSON checks the JSON output
+// of a plan whose policy uses a wrong relationship definition: the
+// diagnostics are policy_diagnostic messages, like policy setup diagnostics.
+func TestPlan_WithPolicyRelationshipDefinitionErrorsJSON(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	overrides := metaOverridesForProvider(p)
+	overrides.PolicyClient = testPolicyRelationshipDefinitionClient(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: overrides,
+			View:             view,
+		},
+	}
+
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run([]string{"-policies", td, "-no-color", "-json"})
+	})
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	}
+
+	// The diagnostics are logged once, between the walk's messages, and the
+	// plan is complete.
+	expected := `{"@level":"info","@message":"Terraform 1.18.0-dev","@module":"terraform.ui","terraform":"1.18.0-dev","type":"version","ui":"1.3"}
+{"@level":"info","@message":"data.test_data_source.a: Refreshing...","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read"},"type":"apply_start"}
+{"@level":"info","@message":"data.test_data_source.a: Refresh complete after 0s [id=zzzzz]","@module":"terraform.ui","hook":{"resource":{"addr":"data.test_data_source.a","module":"","resource":"data.test_data_source.a","implied_provider":"test","resource_type":"test_data_source","resource_name":"a","resource_key":null},"action":"read","id_key":"id","id_value":"zzzzz","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"warn","@message":"Warning: Unknown resource type","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"warning","summary":"Unknown resource type","detail":"The provider has no resource type \"test_instanc\". No policy uses relationship \"foo_bar\", so this is a warning. Fix or remove the relationship before a policy uses it.","policy_range":{"filename":"policies/foo.policy.hcl","start":{"line":1,"column":14,"byte":13},"end":{"line":1,"column":28,"byte":27}},"policy_snippet":{"context":"relationship \"test_instanc\" \"test_instance\" \"foo_bar\"","code":"relationship \"test_instanc\" \"test_instance\" \"foo_bar\" {","start_line":1,"highlight_start_offset":13,"highlight_end_offset":27,"values":null}},"policy_metadata":{"policy_set_name":"local","policy_set_path":"policies"},"result":"InvalidResult","type":"policy_diagnostic"}
+{"@level":"error","@message":"Error: Unknown attribute","@module":"terraform.ui","@policy":"true","policy_diagnostic":{"severity":"error","summary":"Unknown attribute","detail":"The resource type \"test_instance\" has no attribute \"net\".\n\nThe policy resource_policy \"test_instance\" \"isolated\" uses relationship \"foo_net\", so no policy is evaluated in this run.","policy_range":{"filename":"policies/foo.policy.hcl","start":{"line":6,"column":9,"byte":120},"end":{"line":6,"column":12,"byte":123}},"policy_snippet":{"context":"relationship \"test_instance\" \"test_instance\" \"foo_net\"","code":"  key = net","start_line":6,"highlight_start_offset":8,"highlight_end_offset":11,"values":null}},"policy_metadata":{"policy_set_name":"local","policy_set_path":"policies"},"result":"InvalidResult","type":"policy_diagnostic"}
 {"@level":"info","@message":"test_instance.foo: Plan to create","@module":"terraform.ui","change":{"resource":{"addr":"test_instance.foo","module":"","resource":"test_instance.foo","implied_provider":"test","resource_type":"test_instance","resource_name":"foo","resource_key":null},"action":"create"},"type":"planned_change"}
 {"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","changes":{"add":1,"change":0,"import":0,"remove":0,"action_invocation":0,"action_fail":0,"operation":"plan"},"type":"change_summary"}`
 	checkGoldenReferenceStr(t, output, expected)

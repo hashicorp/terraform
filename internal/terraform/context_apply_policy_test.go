@@ -2993,7 +2993,9 @@ func TestContext2Apply_PolicyRelationships_beginRunWarnings(t *testing.T) {
 			name  = "a${count.index}"
 		}
 	`})
+	h := new(testHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
 		},
@@ -3008,9 +3010,10 @@ func TestContext2Apply_PolicyRelationships_beginRunWarnings(t *testing.T) {
 	run.finishDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
 	_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
 
-	// The warning is reported once, not once per subject, and the policies
-	// are still evaluated.
-	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning())
+	// The warning goes to the hook once, not once per subject, and not to
+	// the walk's diagnostics. The policies are still evaluated.
+	tfdiags.AssertNoDiagnostics(t, diags)
+	assertRelHookDiagnostics(t, h, relDefinitionWarning())
 	run.assertRunSequence(t)
 	if len(run.evals) != 2 {
 		t.Fatalf("expected 2 evaluations, got %d", len(run.evals))
@@ -3018,8 +3021,9 @@ func TestContext2Apply_PolicyRelationships_beginRunWarnings(t *testing.T) {
 }
 
 // TestContext2Apply_PolicyRelationships_beginRunErrors checks the apply walk
-// when BeginRun returns errors. It mutates the global OpenTelemetry
-// TracerProvider, so it must not run in parallel.
+// when BeginRun returns errors: like a policy set that fails to load, they
+// are reported, no policy is evaluated, and the apply succeeds. It mutates
+// the global OpenTelemetry TracerProvider, so it must not run in parallel.
 func TestContext2Apply_PolicyRelationships_beginRunErrors(t *testing.T) {
 	prevProvider := otel.GetTracerProvider()
 	exp := tracetest.NewInMemoryExporter()
@@ -3036,7 +3040,9 @@ func TestContext2Apply_PolicyRelationships_beginRunErrors(t *testing.T) {
 			name  = "a${count.index}"
 		}
 	`})
+	h := new(testHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
 		},
@@ -3048,11 +3054,12 @@ func TestContext2Apply_PolicyRelationships_beginRunErrors(t *testing.T) {
 	run.beginDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
 	state, diags := ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client})
 
-	// The error fails the apply and the warning is still reported, each once.
-	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning(), relDefinitionError())
+	// The error and the warning go to the hook, each once, and don't fail
+	// the apply.
+	tfdiags.AssertNoDiagnostics(t, diags)
+	assertRelHookDiagnostics(t, h, relDefinitionWarning(), relDefinitionError())
 
-	// Policies are evaluated after the resources are applied, so the
-	// resources are applied before the run fails.
+	// The resources are applied.
 	for _, addr := range []string{"test_net.a[0]", "test_net.a[1]"} {
 		if rs := state.ResourceInstance(mustResourceInstanceAddr(addr)); rs == nil || rs.Current == nil {
 			t.Errorf("expected %s to be applied", addr)
@@ -3066,6 +3073,9 @@ func TestContext2Apply_PolicyRelationships_beginRunErrors(t *testing.T) {
 	}
 	if len(run.reports) != 0 || len(run.evals) != 0 || len(run.finishes) != 0 {
 		t.Fatalf("expected no ReportInstances, evaluation or FinishRun calls, got %v", run.events)
+	}
+	if len(h.PolicyResults) != 0 {
+		t.Fatalf("expected no policy results, got %v", h.PolicyResults)
 	}
 
 	// The policy phase span is ended even though the node that normally ends

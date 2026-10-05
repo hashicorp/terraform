@@ -3268,6 +3268,23 @@ func relDefinitionError() *proto.Diagnostic {
 	}
 }
 
+// assertRelHookDiagnostics checks that the walk reported exactly the given
+// BeginRun diagnostics, in one PolicyDiagnostics hook call, or that it made
+// no call if want is empty.
+func assertRelHookDiagnostics(t *testing.T, h *testHook, want ...*proto.Diagnostic) {
+	t.Helper()
+	if len(want) == 0 {
+		if len(h.PolicyDiags) != 0 {
+			t.Fatalf("expected no PolicyDiagnostics calls, got %d", len(h.PolicyDiags))
+		}
+		return
+	}
+	if len(h.PolicyDiags) != 1 {
+		t.Fatalf("expected 1 PolicyDiagnostics call, got %d", len(h.PolicyDiags))
+	}
+	assertRelDefinitionDiagnostics(t, h.PolicyDiags[0].AsTerraformDiags(), want...)
+}
+
 // assertRelDefinitionDiagnostics checks that diags are exactly the given
 // BeginRun diagnostics, in any order, with their policy information.
 func assertRelDefinitionDiagnostics(t *testing.T, diags tfdiags.Diagnostics, want ...*proto.Diagnostic) {
@@ -4880,18 +4897,30 @@ func TestContext2Plan_PolicyRelationships_beginRunWarnings(t *testing.T) {
 			name  = "a${count.index}"
 		}
 	`})
-	for name, reportErr := range map[string]error{
-		"reported":              nil,
-		"ReportInstances fails": fmt.Errorf("ReportInstances failed"),
-	} {
+	tests := map[string]struct {
+		beginDiags []*proto.Diagnostic
+		reportErr  error
+	}{
+		"reported": {
+			beginDiags: []*proto.Diagnostic{relDefinitionWarning()},
+		},
+		"ReportInstances fails": {
+			beginDiags: []*proto.Diagnostic{relDefinitionWarning()},
+			reportErr:  fmt.Errorf("ReportInstances failed"),
+		},
+		"no diagnostics": {},
+	}
+	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
-			run.beginDiags = []*proto.Diagnostic{relDefinitionWarning()}
+			run.beginDiags = test.beginDiags
 			// The diagnostics of the other calls are only logged.
 			run.reportDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
 			run.finishDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
-			run.reportErr = func(int) error { return reportErr }
+			run.reportErr = func(int) error { return test.reportErr }
+			h := new(testHook)
 			ctx := testContext2(t, &ContextOpts{
+				Hooks: []Hook{h},
 				Providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
 				},
@@ -4901,9 +4930,11 @@ func TestContext2Plan_PolicyRelationships_beginRunWarnings(t *testing.T) {
 				PolicyClient: client,
 			})
 
-			// The warning is reported once, not once per subject, and the
-			// policies are still evaluated.
-			assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning())
+			// The warning goes to the hook once, not once per subject, and
+			// not to the walk's diagnostics. The policies are still
+			// evaluated.
+			tfdiags.AssertNoDiagnostics(t, diags)
+			assertRelHookDiagnostics(t, h, test.beginDiags...)
 			if plan.Errored {
 				t.Fatalf("expected the plan to succeed")
 			}
@@ -4915,6 +4946,9 @@ func TestContext2Plan_PolicyRelationships_beginRunWarnings(t *testing.T) {
 	}
 }
 
+// TestContext2Plan_PolicyRelationships_beginRunErrors checks the plan walk
+// when BeginRun returns errors: like a policy set that fails to load, they
+// are reported, no policy is evaluated, and the plan succeeds.
 func TestContext2Plan_PolicyRelationships_beginRunErrors(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
 		resource "test_net" "a" {
@@ -4926,7 +4960,9 @@ func TestContext2Plan_PolicyRelationships_beginRunErrors(t *testing.T) {
 	// recorder's spec isn't empty, to show that Terraform doesn't use it.
 	client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"))
 	run.beginDiags = []*proto.Diagnostic{relDefinitionWarning(), relDefinitionError()}
+	h := new(testHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(relationshipsTestProvider()),
 		},
@@ -4936,12 +4972,13 @@ func TestContext2Plan_PolicyRelationships_beginRunErrors(t *testing.T) {
 		PolicyClient: client,
 	})
 
-	// The error fails the plan and the warning is still reported, each once.
-	assertRelDefinitionDiagnostics(t, diags, relDefinitionWarning(), relDefinitionError())
-	if plan == nil || !plan.Errored {
-		t.Fatalf("expected an errored plan")
+	// The error and the warning go to the hook, each once, and don't fail
+	// the plan.
+	tfdiags.AssertNoDiagnostics(t, diags)
+	assertRelHookDiagnostics(t, h, relDefinitionWarning(), relDefinitionError())
+	if plan.Errored || !plan.Applyable {
+		t.Fatalf("expected an applyable plan, got errored %t, applyable %t", plan.Errored, plan.Applyable)
 	}
-	// The plan still has its changes, for the partial plan the CLI renders.
 	if got := len(plan.Changes.Resources); got != 2 {
 		t.Errorf("expected 2 planned changes, got %d", got)
 	}
@@ -4953,6 +4990,9 @@ func TestContext2Plan_PolicyRelationships_beginRunErrors(t *testing.T) {
 	}
 	if len(run.reports) != 0 || len(run.evals) != 0 || len(run.finishes) != 0 {
 		t.Fatalf("expected no ReportInstances, evaluation or FinishRun calls, got %v", run.events)
+	}
+	if len(h.PolicyResults) != 0 {
+		t.Fatalf("expected no policy results, got %v", h.PolicyResults)
 	}
 }
 
