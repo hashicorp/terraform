@@ -10,7 +10,6 @@ type Logout struct {
 	Host string
 }
 
-// TODO - should this be an exported const from the cloud package?
 const defaultHost = "app.terraform.io"
 
 func ParseLogout(rawArgs []string) (*Logout, tfdiags.Diagnostics) {
