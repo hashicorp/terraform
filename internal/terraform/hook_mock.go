@@ -408,6 +408,12 @@ func (h *MockHook) PolicyResult(addr string, resp policy.EvaluationResponse) (Ho
 	return HookActionContinue, nil
 }
 
+func (h *MockHook) PolicyDiagnostics(diags policy.Diagnostics) (HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+	return HookActionContinue, nil
+}
+
 func (h *MockHook) StartAction(id HookActionIdentity) (HookAction, error) {
 	h.Lock()
 	defer h.Unlock()

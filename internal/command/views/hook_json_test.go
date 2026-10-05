@@ -930,3 +930,75 @@ func streamableSyncTest(t *testing.T) (func(t *testing.T, f func(*testing.T)), *
 	streams, done := terminal.StreamsForTesting(t)
 	return synctest.Test, streams, done
 }
+
+// TestJSONHook_policyDiagnostics checks that policy diagnostics from the walk
+// are logged like the policy setup diagnostics of the command: as
+// policy_diagnostic messages with the policy metadata.
+func TestJSONHook_policyDiagnostics(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	hook := newJSONHook(NewJSONView(NewView(streams)))
+	action, err := hook.PolicyDiagnostics(testPolicyRunDiagnostics())
+	testHookReturnValues(t, action, err)
+
+	metadata := map[string]interface{}{
+		"policy_set_name": "local",
+		"policy_set_path": "policies",
+	}
+	want := []map[string]interface{}{
+		{
+			"@level":   "warn",
+			"@message": "Warning: Unknown resource type",
+			"@module":  "terraform.ui",
+			"@policy":  "true",
+			"type":     "policy_diagnostic",
+			"policy_diagnostic": map[string]interface{}{
+				"severity": "warning",
+				"summary":  "Unknown resource type",
+				"detail":   `The provider has no resource type "test_nett". No policy uses relationship "net_vms", so this is a warning.`,
+				"policy_range": map[string]interface{}{
+					"filename": "policies/net.policy.hcl",
+					"start":    map[string]interface{}{"line": float64(3), "column": float64(14), "byte": float64(40)},
+					"end":      map[string]interface{}{"line": float64(3), "column": float64(25), "byte": float64(51)},
+				},
+				"policy_snippet": map[string]interface{}{
+					"context":                `relationship "test_nett" "test_vm" "net_vms"`,
+					"code":                   `relationship "test_nett" "test_vm" "net_vms" {`,
+					"start_line":             float64(3),
+					"highlight_start_offset": float64(13),
+					"highlight_end_offset":   float64(24),
+					"values":                 nil,
+				},
+			},
+			"policy_metadata": metadata,
+			"result":          "InvalidResult",
+		},
+		{
+			"@level":   "error",
+			"@message": "Error: Unknown attribute",
+			"@module":  "terraform.ui",
+			"@policy":  "true",
+			"type":     "policy_diagnostic",
+			"policy_diagnostic": map[string]interface{}{
+				"severity": "error",
+				"summary":  "Unknown attribute",
+				"detail":   "The resource type \"test_vm\" has no attribute \"net\".\n\nThe policy resource_policy \"test_vm\" \"isolated\" uses relationship \"vm_net\", so no policy is evaluated in this run.",
+				"policy_range": map[string]interface{}{
+					"filename": "policies/vm.policy.hcl",
+					"start":    map[string]interface{}{"line": float64(2), "column": float64(3), "byte": float64(42)},
+					"end":      map[string]interface{}{"line": float64(2), "column": float64(6), "byte": float64(45)},
+				},
+				"policy_snippet": map[string]interface{}{
+					"context":                `relationship "test_vm" "test_net" "vm_net"`,
+					"code":                   `  key = net`,
+					"start_line":             float64(2),
+					"highlight_start_offset": float64(8),
+					"highlight_end_offset":   float64(11),
+					"values":                 nil,
+				},
+			},
+			"policy_metadata": metadata,
+			"result":          "InvalidResult",
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}

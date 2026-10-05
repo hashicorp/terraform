@@ -55,6 +55,13 @@ func (h *jsonHook) PolicyResult(addr string, resp policy.EvaluationResponse) (te
 	return terraform.HookActionContinue, nil
 }
 
+// PolicyDiagnostics logs the diagnostics like the policy setup diagnostics
+// of the command.
+func (h *jsonHook) PolicyDiagnostics(diags policy.Diagnostics) (terraform.HookAction, error) {
+	h.view.PolicyDiagnostics(diags)
+	return terraform.HookActionContinue, nil
+}
+
 var _ terraform.Hook = (*jsonHook)(nil)
 
 type resourceProgress struct {

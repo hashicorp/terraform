@@ -62,6 +62,15 @@ func (h *UiHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terr
 	return terraform.HookActionContinue, nil
 }
 
+// PolicyDiagnostics renders the diagnostics like the policy setup
+// diagnostics of the command.
+func (h *UiHook) PolicyDiagnostics(diags policy.Diagnostics) (terraform.HookAction, error) {
+	h.viewLock.Lock()
+	defer h.viewLock.Unlock()
+	h.view.PolicyDiagnostics(diags)
+	return terraform.HookActionContinue, nil
+}
+
 // uiResourceState tracks the state of a single resource
 type uiResourceState struct {
 	// Address represents resource address

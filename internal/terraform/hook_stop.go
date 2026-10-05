@@ -130,6 +130,10 @@ func (h *stopHook) PolicyResult(addr string, resp policy.EvaluationResponse) (Ho
 	return h.hook()
 }
 
+func (h *stopHook) PolicyDiagnostics(diags policy.Diagnostics) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) hook() (HookAction, error) {
 	if h.Stopped() {
 		return HookActionHalt, errors.New("execution halted")

@@ -17,10 +17,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 func testUiHookResourceID(addr addrs.AbsResourceInstance) terraform.HookResourceIdentity {
@@ -936,4 +939,92 @@ func mustNewDynamicValue(val cty.Value, ty cty.Type) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+// testPolicyRunDiagnostics returns diagnostics like the policy engine returns
+// when beginning a relationship run with wrong relationship definitions: a
+// warning for one that no policy uses and an error for one that a policy
+// uses.
+func testPolicyRunDiagnostics() policy.Diagnostics {
+	return policy.DiagsFromProto([]*proto.Diagnostic{
+		{
+			Severity: proto.Severity_WARNING,
+			Summary:  "Unknown resource type",
+			Detail:   `The provider has no resource type "test_nett". No policy uses relationship "net_vms", so this is a warning.`,
+			Subject: &proto.Range{
+				Filename: "policies/net.policy.hcl",
+				Start:    &proto.Position{Line: 3, Column: 14, Byte: 40},
+				End:      &proto.Position{Line: 3, Column: 25, Byte: 51},
+			},
+			Snippet: &proto.Snippet{
+				Context:              protobuf.String(`relationship "test_nett" "test_vm" "net_vms"`),
+				Code:                 `relationship "test_nett" "test_vm" "net_vms" {`,
+				StartLine:            3,
+				HighlightStartOffset: 13,
+				HighlightEndOffset:   24,
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+		{
+			Severity: proto.Severity_ERROR,
+			Summary:  "Unknown attribute",
+			Detail:   "The resource type \"test_vm\" has no attribute \"net\".\n\nThe policy resource_policy \"test_vm\" \"isolated\" uses relationship \"vm_net\", so no policy is evaluated in this run.",
+			Subject: &proto.Range{
+				Filename: "policies/vm.policy.hcl",
+				Start:    &proto.Position{Line: 2, Column: 3, Byte: 42},
+				End:      &proto.Position{Line: 2, Column: 6, Byte: 45},
+			},
+			Snippet: &proto.Snippet{
+				Context:              protobuf.String(`relationship "test_vm" "test_net" "vm_net"`),
+				Code:                 `  key = net`,
+				StartLine:            2,
+				HighlightStartOffset: 8,
+				HighlightEndOffset:   11,
+			},
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		},
+	}, nil)
+}
+
+// TestUiHookPolicyDiagnostics checks that policy diagnostics from the walk
+// render like the policy setup diagnostics of the command.
+func TestUiHookPolicyDiagnostics(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	h := NewUiHook(NewView(streams))
+	action, err := h.PolicyDiagnostics(testPolicyRunDiagnostics())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	got := done(t)
+
+	wantStreams, wantDone := terminal.StreamsForTesting(t)
+	NewView(wantStreams).PolicyDiagnostics(testPolicyRunDiagnostics())
+	want := wantDone(t)
+
+	if got.Stdout() != want.Stdout() {
+		t.Errorf("wrong stdout\ngot:\n%s\nwant:\n%s", got.Stdout(), want.Stdout())
+	}
+	if got.Stderr() != want.Stderr() {
+		t.Errorf("wrong stderr\ngot:\n%s\nwant:\n%s", got.Stderr(), want.Stderr())
+	}
+	// The diagnostics point into the policy files.
+	for _, want := range []string{
+		"Warning: Unknown resource type",
+		`on policies/net.policy.hcl line 3, in relationship "test_nett" "test_vm" "net_vms":`,
+	} {
+		if !strings.Contains(got.Stdout(), want) {
+			t.Errorf("stdout doesn't contain %q:\n%s", want, got.Stdout())
+		}
+	}
+	for _, want := range []string{
+		"Error: Unknown attribute",
+		`on policies/vm.policy.hcl line 2, in relationship "test_vm" "test_net" "vm_net":`,
+	} {
+		if !strings.Contains(got.Stderr(), want) {
+			t.Errorf("stderr doesn't contain %q:\n%s", want, got.Stderr())
+		}
+	}
 }

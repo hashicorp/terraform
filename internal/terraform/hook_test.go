@@ -28,6 +28,8 @@ type testHook struct {
 	mu            sync.Mutex
 	Calls         []*testHookCall
 	PolicyResults map[string]policy.EvaluationResponse
+	// PolicyDiags are the diagnostics of each PolicyDiagnostics call.
+	PolicyDiags []policy.Diagnostics
 }
 
 var _ Hook = (*testHook)(nil)
@@ -55,6 +57,14 @@ func (h *testHook) PolicyResult(addr string, resp policy.EvaluationResponse) (Ho
 		h.PolicyResults = make(map[string]policy.EvaluationResponse)
 	}
 	h.PolicyResults[addr] = resp
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PolicyDiagnostics(diags policy.Diagnostics) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PolicyDiagnostics", ""})
+	h.PolicyDiags = append(h.PolicyDiags, diags)
 	return HookActionContinue, nil
 }
 
