@@ -252,40 +252,40 @@ func (v *InitHuman) LogAutomaticApproval() {
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	v.print(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	v.print(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logProviderVersionAlreadyInstalledHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf(logBuiltInProviderAvailableHuman, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logInstallProviderVersionStartHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	v.print(fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
+	v.print(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	msg := fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
 	v.print(msg)
 }
 
@@ -519,40 +519,40 @@ func (v *InitJSON) LogAutomaticApproval() {
 }
 
 func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	v.view.Log(fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	v.view.Log(fmt.Sprintf("Finding matching versions for provider: %s, version_constraint: %q", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	v.view.Log(fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay()))
+	v.view.Log(fmt.Sprintf("%s: Finding latest version...", providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logProviderVersionAlreadyInstalledJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s v%s: Using previously-installed provider version", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s v%s: Using from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	v.view.Log(fmt.Sprintf(logBuiltInProviderAvailableJSON, providerAddr.ForDisplay()))
+	v.view.Log(fmt.Sprintf("%s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logInstallProviderVersionStartJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("Installing provider version: %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s: Reusing version %s from the dependency lock file", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	v.view.Log(fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, "")) // empty key id at the end
+	v.view.Log(fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // empty key id at the end
 }
 
 func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
-	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
+	msg := fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
 	v.view.Log(msg)
 }
 
