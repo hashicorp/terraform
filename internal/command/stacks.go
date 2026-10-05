@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/pluginshared"
@@ -77,22 +78,18 @@ var (
 	StacksPluginDataDir = "stacksplugin"
 )
 
-func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
-	var pluginCacheDirOverride string
+func (c *StacksCommand) realRun(rawArgs []string, stdout, stderr io.Writer) int {
+	rawArgs = c.Meta.process(rawArgs)
+	args, _ := arguments.ParseStacks(rawArgs)
 
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("stacks")
-	cmdFlags.StringVar(&pluginCacheDirOverride, "plugin-cache-dir", "", "plugin cache directory")
-	cmdFlags.Parse(args)
-
-	if pluginCacheDirOverride != "" {
-		err := c.storeStacksPluginPath(path.Join(pluginCacheDirOverride, StacksPluginDataDir))
+	if args.PluginCacheDirOverride != "" {
+		err := c.storeStacksPluginPath(path.Join(args.PluginCacheDirOverride, StacksPluginDataDir))
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error storing cached stacks plugin path: %s\n", err))
 			return 1
 		}
 		// Remove the cache override arg from the args so it doesn't get passed to the plugin
-		args = slices.DeleteFunc(args, func(arg string) bool {
+		args.Args = slices.DeleteFunc(args.Args, func(arg string) bool {
 			return strings.HasPrefix(arg, "-plugin-cache-dir")
 		})
 	}
@@ -145,7 +142,7 @@ func (c *StacksCommand) realRun(args []string, stdout, stderr io.Writer) int {
 		return ExitRPCError
 	}
 
-	return stacks1.Execute(args, stdout, stderr)
+	return stacks1.Execute(args.Args, stdout, stderr)
 }
 
 func (c *StacksCommand) resolveDisplayHostname() (string, tfdiags.Diagnostics) {
