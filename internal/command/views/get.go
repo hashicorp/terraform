@@ -36,9 +36,9 @@ var _ Get = (*GetHuman)(nil)
 func (v *GetHuman) LogModuleDownload(packageAddr string, version *version.Version, modulePath string) {
 	var message string
 	if version == nil {
-		message = fmt.Sprintf(moduleDownloadHuman, packageAddr, modulePath)
+		message = fmt.Sprintf("Downloading %s for %s...", packageAddr, modulePath)
 	} else {
-		message = fmt.Sprintf(moduleDownloadWithVersionHuman, packageAddr, version, modulePath)
+		message = fmt.Sprintf("Downloading %s %s for %s...", packageAddr, version, modulePath)
 	}
 	v.view.streams.Println(message)
 }
