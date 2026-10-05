@@ -213,7 +213,7 @@ func (s *StateMigrateHuman) LogAutomaticApproval() {
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	s.log(fmt.Sprintf(logFindingMatchingVersionHuman, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	s.log(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -420,7 +420,7 @@ func (s *StateMigrateJSON) LogFindingLatestVersion(providerAddr addrs.Provider) 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
 	s.view.log.Info(
-		fmt.Sprintf(logFindingMatchingVersionJSON, providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)),
+		fmt.Sprintf("Finding matching versions for provider: %s, version_constraint: %q", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)),
 		"type", json.MessageProviderQueryUseConstraints,
 	)
 }
