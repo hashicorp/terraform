@@ -50,10 +50,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	// LogInstallProvidersStart
-	logInstallProvidersStartMessageHuman = "[reset][bold]Installing providers..."
-	logInstallProvidersStartMessageJSON  = "Installing providers..."
-
 	// LogBuiltInProviderAvailable
 	logBuiltInProviderAvailableHuman = "- %s is built in to Terraform"
 	logBuiltInProviderAvailableJSON  = "%s is built in to Terraform"
