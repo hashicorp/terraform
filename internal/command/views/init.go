@@ -248,7 +248,7 @@ func (v *InitHuman) LogInteractiveRejection() {
 }
 
 func (v *InitHuman) LogAutomaticApproval() {
-	v.print(logInteractiveAutomaticApprovalMessageHuman)
+	v.print("[reset][bold]The state store provider was approved automatically.")
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
@@ -513,7 +513,7 @@ func (v *InitJSON) LogInteractiveRejection() {
 
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
-		logInteractiveAutomaticApprovalMessageJSON,
+		"The state store provider was approved automatically.",
 		"type", json.MessageProviderAutomaticApproval,
 	)
 }

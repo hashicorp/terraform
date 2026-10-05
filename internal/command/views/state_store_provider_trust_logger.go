@@ -10,10 +10,3 @@ type StateStoreProviderTrustLogger interface {
 
 	Spacer
 }
-
-// Human-readable messages, one version for human-readable output and the 'json' version for the
-// human-readable @message field in the JSON output.
-const (
-	logInteractiveAutomaticApprovalMessageHuman = "[reset][bold]The state store provider was approved automatically."
-	logInteractiveAutomaticApprovalMessageJSON  = "The state store provider was approved automatically."
-)
