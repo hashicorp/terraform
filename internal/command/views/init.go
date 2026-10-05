@@ -240,15 +240,15 @@ func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
 }
 
 func (v *InitHuman) LogInteractiveApproval() {
-	v.print(logInteractiveApprovalMessageHuman)
+	v.print("[reset][bold]The state store provider was approved by the user.")
 }
 
 func (v *InitHuman) LogInteractiveRejection() {
-	v.print(logInteractiveRejectionMessageHuman)
+	v.print("[reset][bold]The state store provider was rejected by the user.")
 }
 
 func (v *InitHuman) LogAutomaticApproval() {
-	v.print(logInteractiveAutomaticApprovalMessageHuman)
+	v.print("[reset][bold]The state store provider was approved automatically.")
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
@@ -499,21 +499,21 @@ func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
 
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
-		logInteractiveApprovalMessageJSON,
+		"The state store provider was approved by the user.",
 		"type", json.MessageProviderInteractiveApproval,
 	)
 }
 
 func (v *InitJSON) LogInteractiveRejection() {
 	v.view.log.Info(
-		logInteractiveRejectionMessageJSON,
+		"The state store provider was rejected by the user.",
 		"type", json.MessageProviderInteractiveRejection,
 	)
 }
 
 func (v *InitJSON) LogAutomaticApproval() {
 	v.view.log.Info(
-		logInteractiveAutomaticApprovalMessageJSON,
+		"The state store provider was approved automatically.",
 		"type", json.MessageProviderAutomaticApproval,
 	)
 }

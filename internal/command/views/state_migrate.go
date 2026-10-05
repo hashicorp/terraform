@@ -198,17 +198,17 @@ func (s *StateMigrateHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provi
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveApproval() {
-	s.log(logInteractiveApprovalMessageHuman)
+	s.log("[reset][bold]The state store provider was approved by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveRejection() {
-	s.log(logInteractiveRejectionMessageHuman)
+	s.log("[reset][bold]The state store provider was rejected by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogAutomaticApproval() {
-	s.log(logInteractiveAutomaticApprovalMessageHuman)
+	s.log("[reset][bold]The state store provider was approved automatically.")
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -348,7 +348,7 @@ func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailu
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveApproval() {
 	s.view.log.Info(
-		logInteractiveApprovalMessageJSON,
+		"The state store provider was approved by the user.",
 		"type", json.MessageProviderInteractiveApproval,
 	)
 }
@@ -356,7 +356,7 @@ func (s *StateMigrateJSON) LogInteractiveApproval() {
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveRejection() {
 	s.view.log.Info(
-		logInteractiveRejectionMessageJSON,
+		"The state store provider was rejected by the user.",
 		"type", json.MessageProviderInteractiveRejection,
 	)
 }
@@ -364,7 +364,7 @@ func (s *StateMigrateJSON) LogInteractiveRejection() {
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogAutomaticApproval() {
 	s.view.log.Info(
-		logInteractiveAutomaticApprovalMessageJSON,
+		"The state store provider was approved automatically.",
 		"type", json.MessageProviderAutomaticApproval,
 	)
 }
