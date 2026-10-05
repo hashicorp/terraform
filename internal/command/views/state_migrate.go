@@ -243,7 +243,7 @@ func (s *StateMigrateHuman) LogInstallProviderVersionStart(providerAddr addrs.Pr
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay()))
+	s.log(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -404,7 +404,7 @@ func (s *StateMigrateJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provid
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
 	s.view.log.Info(
-		fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version),
+		fmt.Sprintf("%s: Reusing version %s from the dependency lock file", providerAddr.ForDisplay(), version),
 		"type", json.MessageProviderQueryUsePreviousVersion,
 	)
 }

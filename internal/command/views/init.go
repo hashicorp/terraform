@@ -276,7 +276,7 @@ func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, 
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logReusingPreviousProviderVersionHuman, version, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
@@ -543,7 +543,7 @@ func (v *InitJSON) LogInstallProviderVersionStart(providerAddr addrs.Provider, v
 }
 
 func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logReusingPreviousProviderVersionJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s: Reusing version %s from the dependency lock file", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
