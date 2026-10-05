@@ -509,7 +509,7 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 	defer ctx.State().Unlock()
 
 	for _, change := range changes {
-		if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed {
+		if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 			continue
 		}
 		c.addChangeRecord(change, state)
@@ -521,7 +521,10 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 	}
 
 	sort.Slice(c.records, func(i, j int) bool {
-		return c.records[i].Address < c.records[j].Address
+		if c.records[i].Address != c.records[j].Address {
+			return c.records[i].Address < c.records[j].Address
+		}
+		return c.records[i].DeposedKey < c.records[j].DeposedKey
 	})
 	return c.records, c.statuses(), ps.providers.all()
 }
@@ -558,15 +561,22 @@ func (c *relationshipCollector) encode(key relationshipTypeKey, addr addrs.AbsRe
 	return attrs, true
 }
 
+// addChangeRecord adds the record of a change of a current or deposed object.
+// Deposed objects only have a record when they are deleted or forgotten: a
+// deposed object whose change is a no-op is already gone.
 func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceChange, state *states.State) {
 	addr := change.Addr
 	key := relationshipTypeKey{source: change.ProviderAddr.Provider.String(), typeName: addr.Resource.Resource.Type}
 	if !c.types[key] {
 		return
 	}
+	deposed := change.DeposedKey != states.NotDeposed
+	if deposed && change.Action == plans.NoOp {
+		return
+	}
 	action, ok := policyResourceAction(change.Action)
-	if !ok {
-		log.Printf("[WARN] policy: unexpected action %s for %s in relationship checks", change.Action, addr)
+	if !ok || (deposed && change.Action != plans.Delete && change.Action != plans.Forget) {
+		log.Printf("[WARN] policy: unexpected action %s for %s (deposed key %q) in relationship checks", change.Action, addr, change.DeposedKey)
 		c.incomplete[key] = true
 		return
 	}
@@ -581,6 +591,7 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 	rec.Source = proto.RecordSource_PLANNED_RECORD_SOURCE
 	rec.Action = action
 	rec.Importing = change.Importing != nil
+	rec.DeposedKey = change.DeposedKey.String()
 	if change.PrevRunAddr.Resource.Resource.Type != "" && !change.PrevRunAddr.Equal(addr) {
 		rec.PrevAddress = change.PrevRunAddr.String()
 	}

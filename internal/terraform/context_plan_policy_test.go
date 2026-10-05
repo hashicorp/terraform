@@ -3413,19 +3413,29 @@ func (r *relationshipRun) assertNoRun(t *testing.T) {
 	}
 }
 
-// records returns the records of all ReportInstances calls by address.
+// records returns the records of all ReportInstances calls by relRecordKey.
 func (r *relationshipRun) records(t *testing.T) map[string]*proto.InstanceRecord {
 	t.Helper()
 	ret := make(map[string]*proto.InstanceRecord)
 	for _, report := range r.reports {
 		for _, rec := range report.Records {
-			if _, exists := ret[rec.Address]; exists {
-				t.Fatalf("duplicate record for %s", rec.Address)
+			key := relRecordKey(rec)
+			if _, exists := ret[key]; exists {
+				t.Fatalf("duplicate record for %s", key)
 			}
-			ret[rec.Address] = rec
+			ret[key] = rec
 		}
 	}
 	return ret
+}
+
+// relRecordKey returns the address of a record, followed by " deposed " and
+// its deposed key for a record of a deposed object.
+func relRecordKey(rec *proto.InstanceRecord) string {
+	if rec.DeposedKey == "" {
+		return rec.Address
+	}
+	return rec.Address + " deposed " + rec.DeposedKey
 }
 
 // statuses returns the type statuses by type name, checking that they are
@@ -3926,7 +3936,7 @@ func (r *relationshipRun) assertRecords(t *testing.T, want map[string]wantRelRec
 
 	for addr, w := range want {
 		rec := got[addr]
-		instAddr := mustResourceInstanceAddr(addr)
+		instAddr := mustResourceInstanceAddr(rec.Address)
 		if rec.Type != instAddr.Resource.Resource.Type {
 			t.Errorf("%s: wrong type %q", addr, rec.Type)
 		}
@@ -3997,6 +4007,13 @@ func relIncompleteDeferred(typeName string, addrs ...string) *proto.TypeStatus {
 
 func relNetState(s *states.SyncState, addr, attrsJSON string) {
 	s.SetResourceInstanceCurrent(mustResourceInstanceAddr(addr), &states.ResourceInstanceObjectSrc{
+		AttrsJSON: []byte(attrsJSON),
+		Status:    states.ObjectReady,
+	}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+}
+
+func relNetDeposedState(s *states.SyncState, addr string, key states.DeposedKey, attrsJSON string) {
+	s.SetResourceInstanceDeposed(mustResourceInstanceAddr(addr), key, &states.ResourceInstanceObjectSrc{
 		AttrsJSON: []byte(attrsJSON),
 		Status:    states.ObjectReady,
 	}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
@@ -4108,6 +4125,53 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 					Attrs:      map[string]cty.Value{"id": relUnknown, "name": cty.StringVal("b")},
 					PriorAttrs: map[string]cty.Value{"id": cty.StringVal("b-id"), "name": cty.StringVal("b")},
 				},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
+		},
+		"deposed objects": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "new"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				removed {
+					from = test_net.f
+					lifecycle {
+						destroy = false
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"old"}`)
+				relNetDeposedState(s, "test_net.a", "00000001", `{"id":"a-deposed-id","name":"older"}`)
+				relNetState(s, "test_net.b", `{"id":"b-id","name":"b"}`)
+				// The provider no longer has this object, so its change is a
+				// no-op, which has no record.
+				relNetDeposedState(s, "test_net.b", "00000002", `{"id":"vanished-id","name":"b"}`)
+				relNetDeposedState(s, "test_net.f", "00000003", `{"id":"f-deposed-id","name":"f"}`)
+				// A deposed object of a resource that isn't in the
+				// configuration any more.
+				relNetDeposedState(s, "test_net.gone", "00000004", `{"id":"gone-id","name":"gone"}`)
+			},
+			types: []*proto.TypeSpec{relTypeSpec("test_net", "id")},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relUpdate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("new"),
+				}},
+				"test_net.a deposed 00000001": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("a-deposed-id"), "name": cty.StringVal("older"),
+				}},
+				"test_net.b": {Action: relNoOp, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("b-id"),
+				}},
+				"test_net.f deposed 00000003": {Action: relForget, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("f-deposed-id"),
+				}},
+				"test_net.gone deposed 00000004": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("gone-id"),
+				}},
 			},
 			wantStatuses: map[string]*proto.TypeStatus{"test_net": relComplete("test_net")},
 		},
@@ -4389,6 +4453,9 @@ func TestContext2Plan_PolicyRelationships_records(t *testing.T) {
 			}
 			provider := relationshipsTestProvider()
 			provider.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+				if id := req.PriorState.GetAttr("id"); id.IsKnown() && id.RawEquals(cty.StringVal("vanished-id")) {
+					return providers.ReadResourceResponse{NewState: cty.NullVal(req.PriorState.Type())}
+				}
 				if opts.Mode != plans.RefreshOnlyMode {
 					return providers.ReadResourceResponse{NewState: req.PriorState}
 				}

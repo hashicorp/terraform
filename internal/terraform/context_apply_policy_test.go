@@ -2541,6 +2541,39 @@ func TestContext2Apply_PolicyRelationships_records(t *testing.T) {
 				"test_vm":  relComplete("test_vm"),
 			},
 		},
+		"deposed objects": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "new"
+				}
+				removed {
+					from = test_net.f
+					lifecycle {
+						destroy = false
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"old"}`)
+				relNetDeposedState(s, "test_net.a", "00000001", `{"id":"a-deposed-id","name":"older"}`)
+				relNetDeposedState(s, "test_net.f", "00000002", `{"id":"f-deposed-id","name":"f"}`)
+			},
+			wantRecords: map[string]wantRelRecord{
+				"test_net.a": {Action: relUpdate, Source: relPlanned, Attrs: map[string]cty.Value{
+					"id": cty.StringVal("a-id"), "name": cty.StringVal("new"),
+				}},
+				"test_net.a deposed 00000001": {Action: relDelete, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("a-deposed-id"), "name": cty.StringVal("older"),
+				}},
+				"test_net.f deposed 00000002": {Action: relForget, Source: relPlanned, PriorAttrs: map[string]cty.Value{
+					"id": cty.StringVal("f-deposed-id"),
+				}},
+			},
+			wantStatuses: map[string]*proto.TypeStatus{
+				"test_net": relComplete("test_net"),
+				"test_vm":  relComplete("test_vm"),
+			},
+		},
 		"forget": {
 			files: map[string]string{"main.tf": `
 				removed {
