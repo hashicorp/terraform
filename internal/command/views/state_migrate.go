@@ -187,7 +187,7 @@ func (s *StateMigrateHuman) LogInstallProvidersStart() {
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveApproval() {
-	s.log(logInteractiveApprovalMessageHuman)
+	s.log("[reset][bold]The state store provider was approved by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
@@ -337,7 +337,7 @@ func (s *StateMigrateJSON) LogStateMigrationErrored(failMode stateMigrationFailu
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogInteractiveApproval() {
 	s.view.log.Info(
-		logInteractiveApprovalMessageJSON,
+		"The state store provider was approved by the user.",
 		"type", json.MessageProviderInteractiveApproval,
 	)
 }

@@ -240,7 +240,7 @@ func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
 }
 
 func (v *InitHuman) LogInteractiveApproval() {
-	v.print(logInteractiveApprovalMessageHuman)
+	v.print("[reset][bold]The state store provider was approved by the user.")
 }
 
 func (v *InitHuman) LogInteractiveRejection() {
@@ -499,7 +499,7 @@ func (v *InitJSON) LogInitializingStateStoreStart(storeType string) {
 
 func (v *InitJSON) LogInteractiveApproval() {
 	v.view.log.Info(
-		logInteractiveApprovalMessageJSON,
+		"The state store provider was approved by the user.",
 		"type", json.MessageProviderInteractiveApproval,
 	)
 }
