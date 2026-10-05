@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views/json"
@@ -184,16 +183,6 @@ func (s *StateMigrateHuman) Spacer() {
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProvidersStart() {
 	s.log(logInstallProvidersStartMessageHuman)
-}
-
-// Implements ProviderInstallationLogger interface.
-func (s *StateMigrateHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
-	consSuffix := ""
-	if len(cons) > 0 {
-		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
-	}
-	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	s.log(fmt.Sprintf(logInstallStateStoreProviderStartMessageHuman, params...))
 }
 
 // Implements StateStoreProviderTrustLogger interface.
