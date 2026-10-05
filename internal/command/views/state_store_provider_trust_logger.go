@@ -14,9 +14,6 @@ type StateStoreProviderTrustLogger interface {
 // Human-readable messages, one version for human-readable output and the 'json' version for the
 // human-readable @message field in the JSON output.
 const (
-	logInteractiveRejectionMessageHuman = "[reset][bold]The state store provider was rejected by the user."
-	logInteractiveRejectionMessageJSON  = "The state store provider was rejected by the user."
-
 	logInteractiveAutomaticApprovalMessageHuman = "[reset][bold]The state store provider was approved automatically."
 	logInteractiveAutomaticApprovalMessageJSON  = "The state store provider was approved automatically."
 )

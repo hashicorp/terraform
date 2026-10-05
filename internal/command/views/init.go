@@ -244,7 +244,7 @@ func (v *InitHuman) LogInteractiveApproval() {
 }
 
 func (v *InitHuman) LogInteractiveRejection() {
-	v.print(logInteractiveRejectionMessageHuman)
+	v.print("[reset][bold]The state store provider was rejected by the user.")
 }
 
 func (v *InitHuman) LogAutomaticApproval() {
@@ -506,7 +506,7 @@ func (v *InitJSON) LogInteractiveApproval() {
 
 func (v *InitJSON) LogInteractiveRejection() {
 	v.view.log.Info(
-		logInteractiveRejectionMessageJSON,
+		"The state store provider was rejected by the user.",
 		"type", json.MessageProviderInteractiveRejection,
 	)
 }
