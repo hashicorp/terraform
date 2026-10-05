@@ -50,10 +50,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	// LogProviderVersionAlreadyInstalled
-	logProviderVersionAlreadyInstalledHuman = "- Using previously-installed %s v%s"
-	logProviderVersionAlreadyInstalledJSON  = "%s v%s: Using previously-installed provider version"
-
 	// LogUsingProviderVersionFromCacheDir
 	logUsingProviderVersionFromCacheDirHuman = "- Using %s v%s from the shared cache directory"
 	logUsingProviderVersionFromCacheDirJSON  = "%s v%s: Using from the shared cache directory"
