@@ -328,6 +328,96 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.unknown": {"net_ids": {"UNSUPPORTED"}},
 			},
 		},
+		// A reference to a whole list is followed like a splat over it, so
+		// test_vm.direct's net_ids refer to test_vm.other's net_ids element
+		// by element: a relationship on net_ids between them is definite.
+		"whole-list reference": {
+			files: map[string]string{
+				"main.tf": `
+					resource "test_net" "a" {
+						name = "a"
+					}
+					resource "test_vm" "other" {
+						net_ids = ["x", test_net.a.id]
+						disks   = [{ size = 1 }, { size = 2 }]
+					}
+					locals {
+						ids = test_vm.other.net_ids
+					}
+					resource "test_vm" "direct" {
+						net_ids = test_vm.other.net_ids
+					}
+					resource "test_vm" "local" {
+						net_ids = local.ids
+					}
+					resource "test_vm" "nested" {
+						disks = test_vm.other.disks
+					}
+					module "m" {
+						source = "./child"
+						ids    = test_vm.other.net_ids
+					}
+					resource "test_vm" "output" {
+						net_ids = module.m.ids
+					}
+				`,
+				"child/main.tf": `
+					variable "ids" {
+						type = list(string)
+					}
+					resource "test_vm" "v" {
+						net_ids = var.ids
+					}
+					resource "test_vm" "src" {
+						net_ids = [test_vm.v.id]
+					}
+					output "ids" {
+						value = test_vm.src.net_ids
+					}
+				`,
+			},
+			want: map[string]map[string][]string{
+				"test_vm.other":        {"net_ids": {"test_net.a.id"}},
+				"test_vm.direct":       {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
+				"test_vm.local":        {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
+				"test_vm.nested":       {"disks.size": {"test_vm.other.disks[0].size", "test_vm.other.disks[1].size"}},
+				"module.m.test_vm.v":   {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
+				"module.m.test_vm.src": {"net_ids": {"module.m.test_vm.v.id"}},
+				"test_vm.output":       {"net_ids": {"module.m.test_vm.src.net_ids[0]"}},
+			},
+		},
+		// Whole sets, unknown lists and null lists have no origin.
+		"whole-list references not followed": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "other" {
+					net_set = [test_net.a.name]
+					# An unknown list.
+					net_ids = split(",", test_net.a.id)
+				}
+				resource "test_vm" "empty" {
+				}
+				resource "test_vm" "set" {
+					net_ids = test_vm.other.net_set
+				}
+				resource "test_vm" "unknown" {
+					net_ids = test_vm.other.net_ids
+				}
+				# Null, so its net_ids have no key path entry.
+				resource "test_vm" "null" {
+					net_ids = test_vm.empty.net_ids
+				}
+			`},
+			want: map[string]map[string][]string{},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.other":   {"net_ids": {"EXPRESSION"}},
+				"test_vm.set":     {"net_ids": {"UNSUPPORTED"}},
+				"test_vm.unknown": {"net_ids": {"UNSUPPORTED"}},
+			},
+		},
 		"index steps not followed": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -548,22 +638,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-		},
-		"list-valued reference": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "other" {
-					net_ids = [test_net.a.id]
-				}
-				resource "test_vm" "v" {
-					net_ids = test_vm.other.net_ids
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.other": {"net_ids": {"test_net.a.id"}},
-			},
 		},
 		"module variable default": {
 			files: map[string]string{
@@ -851,12 +925,12 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					tags = { x = "y" }
 				}
 				resource "test_vm" "other" {
-					net_ids = ["n"]
+					net_set = ["n"]
 				}
 				resource "test_vm" "v" {
 					net_id  = test_net.a.tags["x"]
 					zone    = path.module
-					net_ids = test_vm.other.net_ids
+					net_ids = test_vm.other.net_set
 				}
 				resource "test_vm" "w" {
 					net_id = path.root
@@ -873,10 +947,9 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			`},
 			want: map[string]map[string][]string{},
 			noOrigin: map[string]map[string][]string{
-				"test_net.a":    {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.other": {"net_ids": {"LITERAL"}},
-				"test_vm.v":     {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}, "net_ids": {"UNSUPPORTED"}},
-				"test_vm.w":     {"net_id": {"UNSUPPORTED"}, "nic.net_id": {"UNSUPPORTED"}},
+				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.v":  {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}, "net_ids": {"UNSUPPORTED"}},
+				"test_vm.w":  {"net_id": {"UNSUPPORTED"}, "nic.net_id": {"UNSUPPORTED"}},
 			},
 		},
 		"no_origin: JSON and override files": {
@@ -1239,7 +1312,7 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			}
 			_, run := planRelationships(t, mod, state, opts, provider,
 				relTypeSpec("test_net", "id", "name"),
-				relTypeSpec("test_vm", "net_id", "net_ids", "nic.net_id", "zone"))
+				relTypeSpec("test_vm", "net_id", "net_ids", "nic.net_id", "zone", "disks.size"))
 			run.assertRunSequence(t)
 
 			got := make(map[string]map[string][]string)

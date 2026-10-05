@@ -734,13 +734,11 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 			elems = []originSym{src}
 			break
 		}
-		n, ok := e.plannedLength(src)
+		seq, ok := e.plannedElems(src)
 		if !ok {
 			return opaqueUnsupported
 		}
-		for i := range n {
-			elems = append(elems, src.withStep(originStep{index: int64(i)}))
-		}
+		elems = seq.elems
 	case symOpaque:
 		return src
 	default:
@@ -759,19 +757,23 @@ func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym 
 	return seq
 }
 
-// plannedLength returns the number of elements of the planned value a
-// reference refers to, if that's a known, non-null list or tuple, which a
-// splat over it has as many elements as. ok is false otherwise, including
-// for sets, whose elements have no index.
-func (e *originEval) plannedLength(ref symRef) (int, bool) {
-	if e.lookup == nil {
-		return 0, false
+// plannedElems returns the elements of the planned value a reference to an
+// attribute refers to, as references with an index step, if that's a known,
+// non-null list or tuple. ok is false otherwise, including for sets, whose
+// elements have no index.
+func (e *originEval) plannedElems(ref symRef) (symSeq, bool) {
+	if e.lookup == nil || len(ref.path) == 0 {
+		return symSeq{}, false
 	}
 	val, ok := e.lookup.plannedValue(ref.addr, ref.path)
 	if !ok || val.IsNull() || !(val.Type().IsListType() || val.Type().IsTupleType()) {
-		return 0, false
+		return symSeq{}, false
 	}
-	return val.LengthInt(), true
+	var seq symSeq
+	for i := range val.LengthInt() {
+		seq.elems = append(seq.elems, ref.withStep(originStep{index: int64(i)}))
+	}
+	return seq, true
 }
 
 func (e *originEval) resource(res addrs.Resource, s *originScope) originSym {
@@ -945,10 +947,18 @@ func (e *originEval) moduleInstance(mod addrs.ModuleInstance, cfg *configs.Confi
 // leaves walks a symbolic value along a key path like policyPlannedLeaves
 // walks the planned value of type ty, and returns the leaves with their
 // types. ok is false if the leaves can't be known, because a collection
-// position isn't syntactic, and reason says why.
+// position is neither syntactic nor a reference to a known, non-null list or
+// tuple, and reason says why.
 func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originLeaf, proto.NoOriginReason, bool) {
 	switch {
 	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
+		if ref, ok := s.(symRef); ok {
+			// A reference to a whole list stands for its elements, as a
+			// splat over it does.
+			if elems, ok := e.plannedElems(ref); ok {
+				s = elems
+			}
+		}
 		seq, ok := s.(symSeq)
 		if !ok {
 			return nil, policyStructureReason(s), false
