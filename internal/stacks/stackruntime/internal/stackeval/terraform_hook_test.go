@@ -12,6 +12,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -289,6 +291,45 @@ func TestTerraformHook(t *testing.T) {
 					t.Errorf("wrong result: got %v, want %v", got, tc.want)
 				}
 			})
+		}
+	})
+
+	t.Run("PolicyDiagnostics", func(t *testing.T) {
+		var got []*hooks.ComponentInstancePolicyResult
+		hook := makeHook()
+		hook.hooks = &Hooks{
+			ReportComponentInstancePolicyResult: func(ctx context.Context, span any, data *hooks.ComponentInstancePolicyResult) any {
+				got = append(got, data)
+				return span
+			},
+		}
+		diags := policy.DiagsFromProto([]*proto.Diagnostic{{
+			Severity:  proto.Severity_ERROR,
+			Summary:   "Unknown attribute",
+			PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+		}}, nil)
+
+		action, err := hook.PolicyDiagnostics(diags)
+		if err != nil {
+			t.Errorf("unexpected error: %s", err)
+		}
+		if action != terraform.HookActionContinue {
+			t.Errorf("wrong action: %#v", action)
+		}
+
+		// The diagnostics aren't about a resource, so they are the
+		// component's policy diagnostics without a resource address.
+		if len(got) != 1 {
+			t.Fatalf("expected 1 policy result, got %d", len(got))
+		}
+		if got[0].ComponentAddr.String() != componentAddr.String() || got[0].ResourceAddr != "" {
+			t.Errorf("wrong addresses %s, %q", got[0].ComponentAddr, got[0].ResourceAddr)
+		}
+		if len(got[0].Result.Diagnostics) != 1 || got[0].Result.Diagnostics[0].Description().Summary != "Unknown attribute" {
+			t.Errorf("wrong diagnostics %v", got[0].Result.Diagnostics.AsTerraformDiags().ErrWithWarnings())
+		}
+		if len(got[0].Result.Policies) != 0 || len(got[0].Result.Enforcements) != 0 {
+			t.Errorf("expected no policies or enforcements, got %#v", got[0].Result)
 		}
 	})
 }

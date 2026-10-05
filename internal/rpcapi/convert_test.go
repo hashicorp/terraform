@@ -681,6 +681,39 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				},
 			},
 		},
+		"policy diagnostic without a resource address": {
+			// Diagnostics of beginning the relationship run of the
+			// component's walk aren't about a resource.
+			componentAddr: "component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					"": {
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{{
+							Severity:  proto.Severity_ERROR,
+							Summary:   "Unknown attribute",
+							Detail:    "The resource type \"test_vm\" has no attribute \"net\".",
+							PolicySet: &proto.PolicySet{Name: "local", Path: "policies"},
+						}}, nil),
+					},
+				}
+			},
+			want: &stacks.ComponentInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{},
+				Infos:   []*stacks.PolicyInfo{},
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "Unknown attribute",
+							Detail:   "The resource type \"test_vm\" has no attribute \"net\".",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicySetName: "local",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for name, tc := range testCases {

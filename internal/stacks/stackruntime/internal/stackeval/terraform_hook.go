@@ -292,6 +292,19 @@ func (h *componentInstanceTerraformHook) PolicyResult(addr string, resp policy.E
 	return terraform.HookActionContinue, nil
 }
 
+// PolicyDiagnostics reports policy diagnostics that aren't about a resource,
+// such as those of beginning the relationship run of the component's walk,
+// as policy diagnostics of the component without a resource address.
+func (h *componentInstanceTerraformHook) PolicyDiagnostics(diags policy.Diagnostics) (terraform.HookAction, error) {
+	if len(diags) > 0 {
+		hookMore(h.ctx, h.seq, h.hooks.ReportComponentInstancePolicyResult, &hooks.ComponentInstancePolicyResult{
+			ComponentAddr: h.addr,
+			Result:        policy.EvaluationResponse{Diagnostics: diags},
+		})
+	}
+	return terraform.HookActionContinue, nil
+}
+
 // actionInvocationFromHookActionIdentity attempts to build a *hooks.ActionInvocation
 // from a core terraform.HookActionIdentity.
 func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(id terraform.HookActionIdentity) *hooks.ActionInvocation {
