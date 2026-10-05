@@ -208,7 +208,7 @@ func (s *StateMigrateHuman) LogInteractiveRejection() {
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogAutomaticApproval() {
-	s.log(logInteractiveAutomaticApprovalMessageHuman)
+	s.log("[reset][bold]The state store provider was approved automatically.")
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -364,7 +364,7 @@ func (s *StateMigrateJSON) LogInteractiveRejection() {
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateJSON) LogAutomaticApproval() {
 	s.view.log.Info(
-		logInteractiveAutomaticApprovalMessageJSON,
+		"The state store provider was approved automatically.",
 		"type", json.MessageProviderAutomaticApproval,
 	)
 }
