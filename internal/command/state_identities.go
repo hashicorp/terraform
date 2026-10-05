@@ -148,6 +148,8 @@ Options:
                       resource types have an attribute named "id" whose value
                       equals the given id string.
 
+  -json               Outputs the identities in JSON format. This flag is required.
+
 `
 	return strings.TrimSpace(helpText)
 }
