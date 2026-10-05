@@ -318,7 +318,7 @@ func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Versi
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(modulePath string) {
-	v.print(fmt.Sprintf(moduleInstallationHuman, modulePath))
+	v.print(fmt.Sprintf("- %s", modulePath))
 }
 
 // Implements ModuleInstallationLogger
@@ -586,7 +586,7 @@ func (v *InitJSON) LogModuleDownload(packageAddr string, version *version.Versio
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallation(modulePath string) {
-	v.view.Log(fmt.Sprintf(moduleInstallationHuman, modulePath))
+	v.view.Log(fmt.Sprintf("- %s", modulePath))
 }
 
 // Implements ModuleInstallationLogger

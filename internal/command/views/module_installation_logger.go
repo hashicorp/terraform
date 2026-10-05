@@ -20,6 +20,5 @@ type ModuleInstallationLogger interface {
 }
 
 const (
-	moduleInstallationHuman              = "- %s"
 	moduleInstallationWithLocalPathHuman = "- %s in %s"
 )

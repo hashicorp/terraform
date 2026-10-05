@@ -44,8 +44,7 @@ func (v *GetHuman) LogModuleDownload(packageAddr string, version *version.Versio
 }
 
 func (v *GetHuman) LogModuleInstallation(modulePath string) {
-	message := fmt.Sprintf(moduleInstallationHuman, modulePath)
-	v.view.streams.Println(message)
+	v.view.streams.Println(fmt.Sprintf("- %s", modulePath))
 }
 
 func (v *GetHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
