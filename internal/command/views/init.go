@@ -260,7 +260,7 @@ func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logProviderVersionAlreadyInstalledHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
@@ -527,7 +527,7 @@ func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logProviderVersionAlreadyInstalledJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s v%s: Using previously-installed provider version", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
