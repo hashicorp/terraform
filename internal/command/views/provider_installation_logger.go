@@ -50,10 +50,6 @@ type ProviderInstallationLogger interface {
 }
 
 const (
-	// LogFindingLatestVersion
-	logFindingLatestVersionHuman = "- Finding latest version of %s..."
-	logFindingLatestVersionJSON  = "%s: Finding latest version..."
-
 	// LogFindingMatchingVersion
 	logFindingMatchingVersionHuman = "- Finding %s versions matching %q..."
 	logFindingMatchingVersionJSON  = "Finding matching versions for provider: %s, version_constraint: %q"

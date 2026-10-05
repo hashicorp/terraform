@@ -256,7 +256,7 @@ func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versi
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf(logFindingLatestVersionHuman, providerAddr.ForDisplay()))
+	v.print(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
@@ -523,7 +523,7 @@ func (v *InitJSON) LogFindingMatchingVersion(providerAddr addrs.Provider, versio
 }
 
 func (v *InitJSON) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	v.view.Log(fmt.Sprintf(logFindingLatestVersionJSON, providerAddr.ForDisplay()))
+	v.view.Log(fmt.Sprintf("%s: Finding latest version...", providerAddr.ForDisplay()))
 }
 
 func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
