@@ -48,8 +48,7 @@ func (v *GetHuman) LogModuleInstallation(modulePath string) {
 }
 
 func (v *GetHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	message := fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir)
-	v.view.streams.Println(message)
+	v.view.streams.Println(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *GetHuman) Diagnostics(diags tfdiags.Diagnostics) {

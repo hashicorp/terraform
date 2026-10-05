@@ -325,7 +325,7 @@ func (v *InitHuman) LogModuleInstallation(modulePath string) {
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	v.print(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
+	v.print(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *InitHuman) LogModuleUpgrade() {
@@ -593,7 +593,7 @@ func (v *InitJSON) LogModuleInstallation(modulePath string) {
 //
 // See logging in hook_module_install.go
 func (v *InitJSON) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	v.view.Log(fmt.Sprintf(moduleInstallationWithLocalPathHuman, modulePath, localDir))
+	v.view.Log(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *InitJSON) LogModuleUpgrade() {
