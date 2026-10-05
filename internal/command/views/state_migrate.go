@@ -248,13 +248,13 @@ func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	s.log(fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
+	s.log(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	msg := fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
 	s.log(msg)
 }
 
@@ -453,7 +453,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionStart(providerAddr addrs.Pro
 func (s *StateMigrateJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
 	keyDetails := "" // This is the version of the method used when no key details are available.
 	s.view.log.Info(
-		fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails),
+		fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails),
 		"type", json.MessageProviderVersionInstallationComplete,
 	)
 }
@@ -462,7 +462,7 @@ func (s *StateMigrateJSON) LogInstallProviderVersionComplete(providerAddr addrs.
 func (s *StateMigrateJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
 	s.view.log.Info(
-		fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails),
+		fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails),
 		"type", json.MessageProviderVersionInstallationComplete,
 	)
 }
