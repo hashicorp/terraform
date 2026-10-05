@@ -280,12 +280,12 @@ func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provide
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	v.print(fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
+	v.print(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
-	msg := fmt.Sprintf(logInstallProviderVersionCompleteHuman, providerAddr.ForDisplay(), version, auth, keyDetails)
+	msg := fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
 	v.print(msg)
 }
 
@@ -547,12 +547,12 @@ func (v *InitJSON) LogReusingPreviousProviderVersion(providerAddr addrs.Provider
 }
 
 func (v *InitJSON) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	v.view.Log(fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, "")) // empty key id at the end
+	v.view.Log(fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // empty key id at the end
 }
 
 func (v *InitJSON) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf("key_id: %s", keyID) // key id needs to be formatted for JSON output
-	msg := fmt.Sprintf(logInstallProviderVersionCompleteJSON, providerAddr.ForDisplay(), version, auth, keyDetails)
+	msg := fmt.Sprintf("Installed provider version: %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
 	v.view.Log(msg)
 }
 
