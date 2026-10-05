@@ -264,7 +264,7 @@ func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provid
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
+	v.print(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
@@ -531,7 +531,7 @@ func (v *InitJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provide
 }
 
 func (v *InitJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	v.view.Log(fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version))
+	v.view.Log(fmt.Sprintf("%s v%s: Using from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitJSON) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {

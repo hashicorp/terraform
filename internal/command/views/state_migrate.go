@@ -228,7 +228,7 @@ func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addr
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf(logUsingProviderVersionFromCacheDirHuman, providerAddr.ForDisplay(), version))
+	s.log(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
@@ -436,7 +436,7 @@ func (s *StateMigrateJSON) LogProviderVersionAlreadyInstalled(providerAddr addrs
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateJSON) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
 	s.view.log.Info(
-		fmt.Sprintf(logUsingProviderVersionFromCacheDirJSON, providerAddr.ForDisplay(), version),
+		fmt.Sprintf("%s v%s: Using from the shared cache directory", providerAddr.ForDisplay(), version),
 		"type", json.MessageProviderVersionFoundInCacheDir,
 	)
 }
