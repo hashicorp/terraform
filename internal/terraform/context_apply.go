@@ -49,6 +49,12 @@ type ApplyOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file). This is required by policy evaluations against providers to access version information.
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -70,9 +76,10 @@ type ApplyOpts struct {
 // as in test cases.
 func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 	return &ApplyOpts{
-		ExternalProviders:         po.ExternalProviders,
-		AllowRootEphemeralOutputs: po.AllowRootEphemeralOutputs,
-		ProviderLocks:             po.ProviderLocks,
+		ExternalProviders:          po.ExternalProviders,
+		AllowRootEphemeralOutputs:  po.AllowRootEphemeralOutputs,
+		AllowRootDeprecatedOutputs: po.AllowRootDeprecatedOutputs,
+		ProviderLocks:              po.ProviderLocks,
 	}
 }
 
@@ -396,21 +403,22 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 	}
 
 	graph, moreDiags := (&ApplyGraphBuilder{
-		Config:                    config,
-		Changes:                   plan.Changes,
-		State:                     plan.PriorState,
-		RootVariableValues:        variables,
-		ExternalProviderConfigs:   opts.ExternalProviders,
-		Plugins:                   c.plugins,
-		Targets:                   plan.TargetAddrs,
-		ActionTargets:             plan.ActionTargetAddrs,
-		ForceReplace:              plan.ForceReplaceAddrs,
-		Operation:                 operation,
-		ExternalReferences:        plan.ExternalReferences,
-		Overrides:                 plan.Overrides,
-		SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-		PolicyClient:              opts.PolicyClient,
+		Config:                     config,
+		Changes:                    plan.Changes,
+		State:                      plan.PriorState,
+		RootVariableValues:         variables,
+		ExternalProviderConfigs:    opts.ExternalProviders,
+		Plugins:                    c.plugins,
+		Targets:                    plan.TargetAddrs,
+		ActionTargets:              plan.ActionTargetAddrs,
+		ForceReplace:               plan.ForceReplaceAddrs,
+		Operation:                  operation,
+		ExternalReferences:         plan.ExternalReferences,
+		Overrides:                  plan.Overrides,
+		SkipGraphValidation:        c.graphOpts.SkipGraphValidation,
+		AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+		AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
+		PolicyClient:               opts.PolicyClient,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

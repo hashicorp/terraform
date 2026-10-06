@@ -44,6 +44,12 @@ type ValidateOpts struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
 }
 
 // Validate performs semantic validation of a configuration, and returns
@@ -108,15 +114,16 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 	}
 
 	graph, moreDiags := (&PlanGraphBuilder{
-		Config:                    config,
-		Plugins:                   c.plugins,
-		State:                     states.NewState(),
-		RootVariableValues:        varValues,
-		Operation:                 walkValidate,
-		ExternalProviderConfigs:   opts.ExternalProviders,
-		ImportTargets:             c.findImportTargets(config),
-		queryPlan:                 opts.Query,
-		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
+		Config:                     config,
+		Plugins:                    c.plugins,
+		State:                      states.NewState(),
+		RootVariableValues:         varValues,
+		Operation:                  walkValidate,
+		ExternalProviderConfigs:    opts.ExternalProviders,
+		ImportTargets:              c.findImportTargets(config),
+		queryPlan:                  opts.Query,
+		AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+		AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
