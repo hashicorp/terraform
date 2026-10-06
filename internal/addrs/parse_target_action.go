@@ -4,8 +4,6 @@
 package addrs
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
@@ -27,7 +25,7 @@ import (
 // We prevent callers accidentally including actions where they shouldn't be
 // accessible by keeping these methods separate.
 func parseAbsActionTarget(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostics) {
-	addr, diags := parseTargetAction(traversal, false)
+	addr, diags := parseTargetAction(traversal, knownInstanceKeys)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -59,7 +57,7 @@ func parseAbsActionTarget(traversal hcl.Traversal) (Targetable, tfdiags.Diagnost
 // callers accidentally including action targets where they shouldn't be
 // accessible by keeping these methods separate.
 func ParseTargetAction(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnostics) {
-	addr, diags := parseTargetAction(traversal, true)
+	addr, diags := parseTargetAction(traversal, wildcardInstanceKeys)
 	if diags.HasErrors() {
 		return TargetPattern{}, diags
 	}
@@ -67,10 +65,10 @@ func ParseTargetAction(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnost
 	return newTargetPattern(addr.Module, actionTargetShape, Resource{}, addr.Action.Action, addr.Action.Key), diags
 }
 
-// parseTargetAction parses an action instance address. If allowPattern is set,
-// any of the instance keys may be WildcardKey, for steps written as [*].
-func parseTargetAction(traversal hcl.Traversal, allowPattern bool) (AbsActionInstance, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal, allowPattern)
+// parseTargetAction parses an action instance address, with instance keys as
+// allowed by keys.
+func parseTargetAction(traversal hcl.Traversal, keys instanceKeys) (AbsActionInstance, tfdiags.Diagnostics) {
+	path, remain, diags := parseModuleInstancePrefix(traversal, keys)
 	if diags.HasErrors() {
 		return AbsActionInstance{}, diags
 	}
@@ -84,7 +82,7 @@ func parseTargetAction(traversal hcl.Traversal, allowPattern bool) (AbsActionIns
 		})
 	}
 
-	addr, moreDiags := parseActionInstanceUnderModule(path, remain, allowPattern)
+	addr, moreDiags := parseActionInstanceUnderModule(path, remain, keys)
 	return addr, diags.Append(moreDiags)
 }
 
@@ -107,7 +105,7 @@ func ParseTargetActionStr(str string) (TargetPattern, tfdiags.Diagnostics) {
 	return target, diags
 }
 
-func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal, allowPattern bool) (AbsActionInstance, tfdiags.Diagnostics) {
+func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal, keys instanceKeys) (AbsActionInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if remain.RootName() != "action" {
@@ -158,46 +156,41 @@ func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traver
 	}
 
 	remain = remain[2:]
-	switch len(remain) {
-	case 0:
-		return moduleAddr.ActionInstance(typeName, name, NoKey), diags
-	case 1:
-		switch tt := remain[0].(type) {
-		case hcl.TraverseIndex:
-			key, err := ParseInstanceKey(tt.Key)
-			if err != nil {
-				return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid address",
-					Detail:   fmt.Sprintf("Invalid action instance key: %s.", err),
-					Subject:  remain[0].SourceRange().Ptr(),
-				})
-			}
-			return moduleAddr.ActionInstance(typeName, name, key), diags
-		case hcl.TraverseSplat:
-			if allowPattern {
-				return moduleAddr.ActionInstance(typeName, name, WildcardKey), diags
-			}
-			return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address",
-				Detail:   "Action instance key must be given in square brackets.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-		default:
-			return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address",
-				Detail:   "Action instance key must be given in square brackets.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
+	key := NoKey
+	keyed := len(remain) > 0 && isInstanceKeyStep(remain[0])
+	if keyed {
+		var keyDiags tfdiags.Diagnostics
+		key, keyDiags = parseInstanceKey(remain[0], keys, "action")
+		diags = diags.Append(keyDiags)
+		if keyDiags.HasErrors() {
+			return AbsActionInstance{}, diags
 		}
-	default:
+		remain = remain[1:]
+	}
+
+	switch {
+	case len(remain) == 0:
+		return moduleAddr.ActionInstance(typeName, name, key), diags
+	case !keyed && len(remain) == 1:
+		return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Action instance key must be given in square brackets.",
+			Subject:  remain[0].SourceRange().Ptr(),
+		})
+	case !keyed:
 		return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid address",
 			Detail:   "Unexpected extra operators after address.",
 			Subject:  remain[1].SourceRange().Ptr(),
+		})
+	default:
+		return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address",
+			Detail:   "Unexpected extra operators after address.",
+			Subject:  remain[0].SourceRange().Ptr(),
 		})
 	}
 }

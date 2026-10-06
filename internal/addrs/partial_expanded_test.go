@@ -640,7 +640,7 @@ func mustParsePartialModuleInstance(s string) ModuleInstance {
 	if hclDiags.HasErrors() {
 		panic(hclDiags.Error())
 	}
-	addr, remain, diags := parseModuleInstancePrefix(traversal, true)
+	addr, remain, diags := parseModuleInstancePrefix(traversal, wildcardInstanceKeys)
 	if diags.HasErrors() {
 		panic(diags.ErrWithWarnings().Error())
 	}

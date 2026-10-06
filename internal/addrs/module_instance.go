@@ -4,13 +4,10 @@
 package addrs
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,7 +27,7 @@ var (
 )
 
 func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagnostics) {
-	mi, remain, diags := parseModuleInstancePrefix(traversal, false)
+	mi, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	if len(remain) != 0 {
 		if len(remain) == len(traversal) {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -78,127 +75,6 @@ func ParseModuleInstanceStr(str string) (ModuleInstance, tfdiags.Diagnostics) {
 	addr, addrDiags := ParseModuleInstance(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
-}
-
-func parseModuleInstancePrefix(traversal hcl.Traversal, allowPartial bool) (ModuleInstance, hcl.Traversal, tfdiags.Diagnostics) {
-	remain := traversal
-	var mi ModuleInstance
-	var diags tfdiags.Diagnostics
-
-LOOP:
-	for len(remain) > 0 {
-		var next string
-		switch tt := remain[0].(type) {
-		case hcl.TraverseRoot:
-			next = tt.Name
-		case hcl.TraverseAttr:
-			next = tt.Name
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Module address prefix must be followed by dot and then a name.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			break LOOP
-		}
-
-		if next != "module" {
-			break
-		}
-
-		kwRange := remain[0].SourceRange()
-		remain = remain[1:]
-		// If we have the prefix "module" then we should be followed by an
-		// module call name, as an attribute, and then optionally an index step
-		// giving the instance key.
-		if len(remain) == 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Prefix \"module.\" must be followed by a module name.",
-				Subject:  &kwRange,
-			})
-			break
-		}
-
-		var moduleName string
-		switch tt := remain[0].(type) {
-		case hcl.TraverseAttr:
-			moduleName = tt.Name
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Prefix \"module.\" must be followed by a module name.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			break LOOP
-		}
-		remain = remain[1:]
-		step := ModuleInstanceStep{
-			Name: moduleName,
-		}
-
-		if len(remain) > 0 {
-			switch idx := remain[0].(type) {
-			case hcl.TraverseIndex:
-				remain = remain[1:]
-
-				switch idx.Key.Type() {
-				case cty.String:
-					step.InstanceKey = StringKey(idx.Key.AsString())
-				case cty.Number:
-					var idxInt int
-					err := gocty.FromCtyValue(idx.Key, &idxInt)
-					if err == nil {
-						step.InstanceKey = IntKey(idxInt)
-					} else {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid address operator",
-							Detail:   fmt.Sprintf("Invalid module index: %s.", err),
-							Subject:  idx.SourceRange().Ptr(),
-						})
-					}
-				default:
-					// Should never happen, because no other types are allowed in traversal indices.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid address operator",
-						Detail:   "Invalid module key: must be either a string or an integer.",
-						Subject:  idx.SourceRange().Ptr(),
-					})
-				}
-
-			case hcl.TraverseSplat:
-				if allowPartial {
-					remain = remain[1:]
-					step.InstanceKey = WildcardKey
-				}
-			}
-		}
-
-		mi = append(mi, step)
-	}
-
-	var retRemain hcl.Traversal
-	if len(remain) > 0 {
-		retRemain = make(hcl.Traversal, len(remain))
-		copy(retRemain, remain)
-		// The first element here might be either a TraverseRoot or a
-		// TraverseAttr, depending on whether we had a module address on the
-		// front. To make life easier for callers, we'll normalize to always
-		// start with a TraverseRoot.
-		if tt, ok := retRemain[0].(hcl.TraverseAttr); ok {
-			retRemain[0] = hcl.TraverseRoot{
-				Name:     tt.Name,
-				SrcRange: tt.SrcRange,
-			}
-		}
-	}
-
-	return mi, retRemain, diags
 }
 
 // UnkeyedInstanceShim is a shim method for converting a Module address to the

@@ -131,7 +131,7 @@ type absOutputValueUniqueKey string
 func (k absOutputValueUniqueKey) uniqueKeySigil() {}
 
 func ParseAbsOutputValue(traversal hcl.Traversal) (AbsOutputValue, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal, false)
+	path, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	if diags.HasErrors() {
 		return AbsOutputValue{}, diags
 	}
