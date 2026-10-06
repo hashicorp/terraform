@@ -10,6 +10,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"maps"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -895,17 +897,18 @@ func (c *relationshipCollector) statuses() []*proto.TypeStatus {
 			Completeness:   proto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS,
 		}
 		switch {
+		case c.incomplete[key]:
+			// A type that is incomplete for another reason isn't complete
+			// once its deferred instances are planned, so they aren't sent.
+			status.Completeness = proto.TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS
 		case len(c.deferred[key]) > 0:
 			status.Completeness = proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS
-			for addr, provider := range c.deferred[key] {
+			for _, addr := range slices.Sorted(maps.Keys(c.deferred[key])) {
 				status.Deferred = append(status.Deferred, &proto.DeferredInstance{
 					Address:            addr,
-					ProviderInstanceId: c.ps.providers.idFor(provider),
+					ProviderInstanceId: c.ps.providers.idFor(c.deferred[key][addr]),
 				})
 			}
-			sort.Slice(status.Deferred, func(i, j int) bool { return status.Deferred[i].Address < status.Deferred[j].Address })
-		case c.incomplete[key]:
-			status.Completeness = proto.TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS
 		}
 		ret = append(ret, status)
 	}

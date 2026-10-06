@@ -5036,6 +5036,58 @@ func TestContext2Plan_PolicyRelationships_incomplete(t *testing.T) {
 		})
 	})
 
+	t.Run("deferred instance and an instance that failed to plan", func(t *testing.T) {
+		mod := testModuleInline(t, map[string]string{"main.tf": `
+			resource "test_net" "deferred" {
+				name  = "deferred"
+				defer = true
+			}
+			resource "test_net" "bad" {
+				name = "bad"
+			}
+			resource "test_vm" "ok" {
+				name = "ok"
+			}
+		`})
+		provider := relationshipsTestProvider()
+		provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			if name := req.Config.GetAttr("name"); name.IsKnown() && name.AsString() == "bad" {
+				var resp providers.PlanResourceChangeResponse
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("planning failed"))
+				return resp
+			}
+			resp := testDiffFn(req)
+			if req.Config.Type().HasAttribute("defer") {
+				if d := req.Config.GetAttr("defer"); d.IsKnown() && !d.IsNull() && d.True() {
+					resp.Deferred = &providers.Deferred{Reason: providers.DeferredReasonResourceConfigUnknown}
+				}
+			}
+			return resp
+		}
+		client, run := newRelationshipsPolicyClient(t, relTypeSpec("test_net", "id"), relTypeSpec("test_vm", "net_id"))
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+			},
+		})
+		_, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+			Mode:            plans.NormalMode,
+			DeferralAllowed: true,
+			PolicyClient:    client,
+		})
+		if !diags.HasErrors() {
+			t.Fatal("expected the plan to fail")
+		}
+
+		run.assertRunSequence(t)
+		// A type that is incomplete because of an error is sent without its
+		// deferred instances.
+		run.assertStatuses(t, map[string]*proto.TypeStatus{
+			"test_net": relIncompleteError("test_net"),
+			"test_vm":  relComplete("test_vm"),
+		})
+	})
+
 	t.Run("state object with another schema version", func(t *testing.T) {
 		mod := testModuleInline(t, map[string]string{"main.tf": `
 			resource "test_net" "a" {

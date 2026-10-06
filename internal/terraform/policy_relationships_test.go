@@ -1062,6 +1062,49 @@ func TestCollectRelationshipBatch_deferrals(t *testing.T) {
 			},
 			wantProviders: map[string]bool{`provider["registry.terraform.io/hashicorp/test"].lit`: true},
 		},
+		"provider ids in address order": {
+			// Provider configurations the walk didn't configure get ids in
+			// the order of the deferred instances' addresses.
+			stage: proto.EvaluationStage_APPLY_EVALUATION_STAGE,
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias  = "z"
+					region = "z"
+				}
+				provider "test" {
+					alias  = "y"
+					region = "y"
+				}
+				resource "test_net" "a" {
+					provider = test.z
+				}
+				resource "test_net" "b" {
+					provider = test.y
+				}
+				resource "test_net" "c" {
+					provider = test.z
+				}
+			`},
+			setup: func(exp *instances.Expander, d *deferring.Deferred) {
+				deferInstance(d, "test_net.c", mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].z`))
+				deferInstance(d, "test_net.b", mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].y`))
+				deferInstance(d, "test_net.a", mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].z`))
+			},
+			want: &proto.TypeStatus{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Type:           "test_net",
+				Completeness:   proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS,
+				Deferred: []*proto.DeferredInstance{
+					{Address: "test_net.a", ProviderInstanceId: 1},
+					{Address: "test_net.b", ProviderInstanceId: 2},
+					{Address: "test_net.c", ProviderInstanceId: 1},
+				},
+			},
+			wantProviders: map[string]bool{
+				`provider["registry.terraform.io/hashicorp/test"].z`: true,
+				`provider["registry.terraform.io/hashicorp/test"].y`: true,
+			},
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
