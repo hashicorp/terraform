@@ -8,30 +8,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// anyKeyImpl is the InstanceKey representation indicating a wildcard, which
-// matches all possible keys. This is only used internally for matching
-// combinations of address types, where only portions of the path contain key
-// information.
-type anyKeyImpl rune
-
-func (k anyKeyImpl) instanceKeySigil() {
-}
-
-func (k anyKeyImpl) String() string {
-	return fmt.Sprintf("[%s]", string(k))
-}
-
-func (k anyKeyImpl) Value() cty.Value {
-	return cty.StringVal(string(k))
-}
-
-// anyKey is the only valid value of anyKeyImpl
-var anyKey = anyKeyImpl('*')
 
 // MoveEndpointInModule annotates a MoveEndpoint with the address of the
 // module where it was declared, which is the form we use for resolving
@@ -213,34 +191,35 @@ func (e *MoveEndpointInModule) ModuleCallTraversals() (Module, []ModuleCall) {
 	return e.module, ret
 }
 
-// synthModuleInstance constructs a module instance out of the module path and
-// any module portion of the relSubject, substituting Module and Call segments
-// with ModuleInstanceStep using the anyKey value.
-// This is only used internally for comparison of these complete paths, but
-// does not represent how the individual parts are handled elsewhere in the
-// code.
-func (e *MoveEndpointInModule) synthModuleInstance() ModuleInstance {
-	var inst ModuleInstance
-
-	for _, mod := range e.module {
-		inst = append(inst, ModuleInstanceStep{Name: mod, InstanceKey: anyKey})
-	}
+// targetShape returns the shape of the objects which the receiver selects.
+// The module where the endpoint was declared, and a module call, select every
+// one of their instances.
+func (e *MoveEndpointInModule) targetShape() targetShape {
+	module := allModuleInstances(e.module)
 
 	switch sub := e.relSubject.(type) {
 	case ModuleInstance:
-		inst = append(inst, sub...)
+		return targetShape{module: append(module, sub...)}
 	case AbsModuleCall:
-		inst = append(inst, sub.Module...)
-		inst = append(inst, ModuleInstanceStep{Name: sub.Call.Name, InstanceKey: anyKey})
+		module = append(module, sub.Module...)
+		return targetShape{module: append(module, ModuleInstanceStep{Name: sub.Call.Name, InstanceKey: WildcardKey})}
 	case AbsResource:
-		inst = append(inst, sub.Module...)
+		return targetShape{
+			module:   append(module, sub.Module...),
+			kind:     resourceTargetShape,
+			resource: sub.Resource,
+			key:      WildcardKey,
+		}
 	case AbsResourceInstance:
-		inst = append(inst, sub.Module...)
+		return targetShape{
+			module:   append(module, sub.Module...),
+			kind:     resourceTargetShape,
+			resource: sub.Resource.Resource,
+			key:      sub.Resource.Key,
+		}
 	default:
 		panic(fmt.Sprintf("unhandled relative address type %T", sub))
 	}
-
-	return inst
 }
 
 // SelectsModule returns true if the reciever directly selects either
@@ -252,81 +231,23 @@ func (e *MoveEndpointInModule) synthModuleInstance() ModuleInstance {
 // resource move indicates that we should search each of the resources in
 // the given module to see if they match.
 func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
-	synthInst := e.synthModuleInstance()
-
-	// In order to match the given module instance, our combined path must be
-	// equal in length.
-	if len(synthInst) != len(addr) {
-		return false
-	}
-
-	for i, step := range synthInst {
-		switch step.InstanceKey {
-		case anyKey:
-			// we can match any key as long as the name matches
-			if step.Name != addr[i].Name {
-				return false
-			}
-		default:
-			if step != addr[i] {
-				return false
-			}
-		}
-	}
-	return true
+	module := e.targetShape().module
+	return len(module) == len(addr) && targetShape{module: module}.contains(targetShape{module: addr})
 }
 
 // SelectsResource returns true if the receiver directly selects either
 // the given resource or one of its instances.
 func (e *MoveEndpointInModule) SelectsResource(addr AbsResource) bool {
-	// Only a subset of subject types can possibly select a resource, so
-	// we'll take care of those quickly before we do anything more expensive.
-	switch e.relSubject.(type) {
-	case AbsResource, AbsResourceInstance:
-		// okay
-	default:
-		return false // can't possibly match
-	}
-
-	if !e.SelectsModule(addr.Module) {
+	shape := e.targetShape()
+	if shape.kind != resourceTargetShape {
 		return false
 	}
 
-	// If we get here then we know the module part matches, so we only need
-	// to worry about the relative resource part.
-	switch relSubject := e.relSubject.(type) {
-	case AbsResource:
-		return addr.Resource.Equal(relSubject.Resource)
-	case AbsResourceInstance:
-		// We intentionally ignore the instance key, because we consider
-		// instances to be part of the resource they belong to.
-		return addr.Resource.Equal(relSubject.Resource.Resource)
-	default:
-		// We should've filtered out all other types above
-		panic(fmt.Sprintf("unsupported relSubject type %T", relSubject))
-	}
-}
-
-// moduleInstanceCanMatch indicates that modA can match modB taking into
-// account steps with an anyKey InstanceKey as wildcards. The comparison of
-// wildcard steps is done symmetrically, because varying portions of either
-// instance's path could have been derived from configuration vs evaluation.
-// The length of modA must be equal or shorter than the length of modB.
-func moduleInstanceCanMatch(modA, modB ModuleInstance) bool {
-	for i, step := range modA {
-		switch {
-		case step.InstanceKey == anyKey || modB[i].InstanceKey == anyKey:
-			// we can match any key as long as the names match
-			if step.Name != modB[i].Name {
-				return false
-			}
-		default:
-			if step != modB[i] {
-				return false
-			}
-		}
-	}
-	return true
+	// We intentionally ignore the instance key, because we consider
+	// instances to be part of the resource they belong to.
+	shape.key = WildcardKey
+	other, ok := shapeOf(addr)
+	return ok && shape.contains(other)
 }
 
 // CanChainFrom returns true if the reciever describes an address that could
@@ -336,100 +257,48 @@ func moduleInstanceCanMatch(modA, modB ModuleInstance) bool {
 // the reciever is the "to" from one statement and the other given address
 // is the "from" of another statement.
 func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
-	eMod := e.synthModuleInstance()
-	oMod := other.synthModuleInstance()
+	eShape := e.targetShape()
+	oShape := other.targetShape()
 
-	// if the complete paths are different lengths, these cannot refer to the
-	// same value.
-	if len(eMod) != len(oMod) {
+	// The endpoints must select the same kind of object in modules at the
+	// same depth, where a module call and a module instance are both
+	// considered to be a module.
+	if len(eShape.module) != len(oShape.module) || eShape.kind != oShape.kind {
 		return false
 	}
-	if !moduleInstanceCanMatch(oMod, eMod) {
+	// A whole resource can only chain with a whole resource, and a resource
+	// instance with a resource instance.
+	if eShape.kind == resourceTargetShape && (eShape.key == WildcardKey) != (oShape.key == WildcardKey) {
 		return false
 	}
 
-	eSub := e.relSubject
-	oSub := other.relSubject
-
-	switch oSub := oSub.(type) {
-	case AbsModuleCall, ModuleInstance:
-		switch eSub.(type) {
-		case AbsModuleCall, ModuleInstance:
-			// we already know the complete module path including any final
-			// module call name is equal.
-			return true
-		}
-
-	case AbsResource:
-		switch eSub := eSub.(type) {
-		case AbsResource:
-			return eSub.Resource.Equal(oSub.Resource)
-		}
-
-	case AbsResourceInstance:
-		switch eSub := eSub.(type) {
-		case AbsResourceInstance:
-			return eSub.Resource.Equal(oSub.Resource)
-		}
-	}
-
-	return false
+	return oShape.couldContain(eShape)
 }
 
 // NestedWithin returns true if the receiver describes an address that is
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
-	eMod := e.synthModuleInstance()
-	oMod := other.synthModuleInstance()
+	eShape := e.targetShape()
+	oShape := other.targetShape()
 
-	// In order to be nested within the given endpoint, the module path must be
-	// shorter or equal.
-	if len(oMod) > len(eMod) {
+	if !oShape.couldContain(eShape) {
 		return false
 	}
 
-	if !moduleInstanceCanMatch(oMod, eMod) {
-		return false
-	}
-
-	eSub := e.relSubject
-	oSub := other.relSubject
-
-	switch oSub := oSub.(type) {
-	case AbsModuleCall:
-		switch eSub.(type) {
-		case AbsModuleCall:
-			// we know the other endpoint selects our module, but if we are
-			// also a module call our path must be longer to be nested.
-			return len(eMod) > len(oMod)
-		}
-
+	switch {
+	case oShape.kind == resourceTargetShape:
+		// A whole resource contains only its instances.
+		return oShape.key == WildcardKey && eShape.key != WildcardKey
+	case eShape.kind == moduleTargetShape && len(eShape.module) == len(oShape.module):
+		// A module call contains its instances, but otherwise a nested
+		// module must have a longer path.
+		_, oCall := other.relSubject.(AbsModuleCall)
+		_, eInst := e.relSubject.(ModuleInstance)
+		return oCall && eInst
+	default:
 		return true
-
-	case ModuleInstance:
-		switch eSub.(type) {
-		case ModuleInstance, AbsModuleCall:
-			// a nested module must have a longer path
-			return len(eMod) > len(oMod)
-		}
-
-		return true
-
-	case AbsResource:
-		if len(eMod) != len(oMod) {
-			// these resources are from different modules
-			return false
-		}
-
-		// A resource can only contain a resource instance.
-		switch eSub := eSub.(type) {
-		case AbsResourceInstance:
-			return eSub.Resource.Resource.Equal(oSub.Resource)
-		}
 	}
-
-	return false
 }
 
 // matchModuleInstancePrefix is an internal helper to decide whether the given
