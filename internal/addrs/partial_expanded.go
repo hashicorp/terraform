@@ -5,7 +5,6 @@ package addrs
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -18,21 +17,41 @@ import (
 // a common known parent module instance but the remaining call instance keys
 // are not yet known.
 type PartialExpandedModule struct {
-	// expandedPrefix is the initial part of the module address whose expansion
-	// is already complete and so has exact instance keys.
-	expandedPrefix ModuleInstance
-
-	// unexpandedSuffix is the remainder of the module address whose instance
-	// keys are not known yet. This is a slight abuse of type [Module] because
-	// it's representing a relative path from expandedPrefix rather than a
-	// path from the root module as usual, so this value must never be exposed
-	// in the public API of this package.
+	// module is the full module instance address, where each step whose
+	// instance key is not known yet has an instance key of WildcardKey.
 	//
-	// This can be zero-length in PartialExpandedModule values used as part
-	// of the internals of a PartialExpandedResource, but should never be
-	// zero-length in a publicly-exposed PartialExpandedModule because that
-	// would make this just a degenerate ModuleInstance.
-	unexpandedSuffix Module
+	// The module instance keys are known for an initial prefix of the
+	// address, and the remainder of the address is not expanded yet, so once
+	// a step has an unknown instance key, every step after it does too. All
+	// values must be constructed with newPartialExpandedModule to enforce this.
+	//
+	// There can be no unknown steps in PartialExpandedModule values used as
+	// part of the internals of a PartialExpandedResource, but there should
+	// always be at least one in a publicly-exposed PartialExpandedModule,
+	// because otherwise it would be just a degenerate ModuleInstance.
+	module ModuleInstance
+}
+
+// newPartialExpandedModule returns the PartialExpandedModule for the given
+// module instance address, where each step with an instance key of
+// WildcardKey has not been expanded yet. None of the steps after the first
+// step which has not been expanded can be expanded either, so their instance
+// keys are replaced with WildcardKey.
+func newPartialExpandedModule(module ModuleInstance) PartialExpandedModule {
+	if len(module) == 0 {
+		return PartialExpandedModule{}
+	}
+
+	ret := make(ModuleInstance, len(module))
+	expanded := true
+	for i, step := range module {
+		expanded = expanded && step.InstanceKey != WildcardKey
+		if !expanded {
+			step.InstanceKey = WildcardKey
+		}
+		ret[i] = step
+	}
+	return PartialExpandedModule{module: ret}
 }
 
 // ParsePartialExpandedModule parses a module address traversal and returns a
@@ -46,7 +65,7 @@ func ParsePartialExpandedModule(traversal hcl.Traversal) (PartialExpandedModule,
 	var diags tfdiags.Diagnostics
 
 	remain := traversal
-	var partial PartialExpandedModule
+	var path ModuleInstance
 
 	// We'll step through the traversal steps and build up the known prefix
 	// of the module address. When we reach a call with an unknown index, we'll
@@ -116,7 +135,7 @@ LOOP:
 						// We'll switch to building up the unexpanded suffix
 						// starting with this step.
 						expanded = false
-						partial.unexpandedSuffix = append(partial.unexpandedSuffix, moduleName)
+						path = append(path, ModuleInstanceStep{Name: moduleName, InstanceKey: WildcardKey})
 						continue
 					}
 
@@ -148,12 +167,12 @@ LOOP:
 				}
 			}
 
-			partial.expandedPrefix = append(partial.expandedPrefix, step)
+			path = append(path, step)
 			continue
 		}
 
 		// Otherwise, we'll process this as an unexpanded suffix.
-		partial.unexpandedSuffix = append(partial.unexpandedSuffix, moduleName)
+		path = append(path, ModuleInstanceStep{Name: moduleName, InstanceKey: WildcardKey})
 
 		if len(remain) > 0 {
 			if _, ok := remain[0].(hcl.TraverseIndex); ok {
@@ -181,41 +200,30 @@ LOOP:
 		}
 	}
 
-	return partial, retRemain, diags
+	return newPartialExpandedModule(path), retRemain, diags
 }
 
+// UnexpandedChild returns the address of the instances of the given module
+// call within the receiver, whose instance keys are not known yet.
 func (m ModuleInstance) UnexpandedChild(call ModuleCall) PartialExpandedModule {
-	return PartialExpandedModule{
-		expandedPrefix:   m,
-		unexpandedSuffix: Module{call.Name},
-	}
+	return newPartialExpandedModule(m.Child(call.Name, WildcardKey))
 }
 
 // PartialModule reverses the process of UnknownModuleInstance by converting a
 // ModuleInstance back into a PartialExpandedModule.
+//
+// Each step with an instance key of WildcardKey is not yet expanded, and so
+// is every step after the first of them, regardless of its instance key.
 func (m ModuleInstance) PartialModule() PartialExpandedModule {
-	pem := PartialExpandedModule{}
-	for _, step := range m {
-		if step.InstanceKey == WildcardKey {
-			pem.unexpandedSuffix = append(pem.unexpandedSuffix, step.Name)
-			continue
-		}
-		pem.expandedPrefix = append(pem.expandedPrefix, step)
-	}
-	return pem
+	return newPartialExpandedModule(m)
 }
 
 // UnknownModuleInstance expands the receiver to a full ModuleInstance by
 // replacing the unknown instance keys with a wildcard value.
 func (pem PartialExpandedModule) UnknownModuleInstance() ModuleInstance {
-	base := pem.expandedPrefix
-	for _, call := range pem.unexpandedSuffix {
-		base = append(base, ModuleInstanceStep{
-			Name:        call,
-			InstanceKey: WildcardKey,
-		})
-	}
-	return base
+	// As with KnownPrefix, we expose our buffer directly but with no unused
+	// capacity, so that the caller can safely construct child addresses.
+	return pem.module[:len(pem.module):len(pem.module)]
 }
 
 // LevelsKnown returns the number of module path segments of the address that
@@ -225,91 +233,81 @@ func (pem PartialExpandedModule) UnknownModuleInstance() ModuleInstance {
 // address over a less-specifically-known one when selecting a placeholder
 // value to use to represent an object beneath an unexpanded module address.
 func (pem PartialExpandedModule) LevelsKnown() int {
-	return len(pem.expandedPrefix)
+	for i, step := range pem.module {
+		if step.InstanceKey == WildcardKey {
+			return i
+		}
+	}
+	return len(pem.module)
+}
+
+// fullyExpanded returns true if all of the instance keys of the receiver are
+// known, which is only possible for the module of a PartialExpandedResource or
+// PartialExpandedAction.
+func (pem PartialExpandedModule) fullyExpanded() bool {
+	return pem.LevelsKnown() == len(pem.module)
 }
 
 // MatchesInstance returns true if and only if the given module instance
 // belongs to the recieving partially-expanded module address pattern.
 func (pem PartialExpandedModule) MatchesInstance(inst ModuleInstance) bool {
-	// Total length must always match.
-	if len(inst) != (len(pem.expandedPrefix) + len(pem.unexpandedSuffix)) {
-		return false
-	}
-
-	// The known prefix must match exactly.
-	givenExpandedPrefix := inst[:len(pem.expandedPrefix)]
-	if !givenExpandedPrefix.Equal(pem.expandedPrefix) {
-		return false
-	}
-
-	// The known suffix must match the call names, even though we don't yet
-	// know the specific instance keys.
-	givenExpandedSuffix := inst[len(pem.expandedPrefix):]
-	for i := range pem.unexpandedSuffix {
-		if pem.unexpandedSuffix[i] != givenExpandedSuffix[i].Name {
-			return false
-		}
-	}
-
-	// If we passed all the filters above then it's a match.
-	return true
+	return pem.matches(inst)
 }
 
 // MatchesPartial returns true if and only if the receiver represents the same
 // static module as the other given module and the receiver's known instance
 // keys are a prefix of the other module's.
 func (pem PartialExpandedModule) MatchesPartial(other PartialExpandedModule) bool {
-	// The two addresses must represent the same static module, regardless
-	// of the instance keys of those modules.
-	if !pem.Module().Equal(other.Module()) {
+	return pem.matches(other.module)
+}
+
+// matches returns true if every module instance represented by the given
+// address, whose unknown instance keys are WildcardKey, is also represented by
+// the receiver. Unlike containment for targeting, the module instances must be
+// at the same depth, rather than any descendants of the receiver.
+func (pem PartialExpandedModule) matches(other ModuleInstance) bool {
+	if len(other) != len(pem.module) {
 		return false
 	}
-
-	if len(pem.expandedPrefix) > len(other.expandedPrefix) {
-		return false
-	}
-
-	thisPrefix := pem.expandedPrefix
-	otherPrefix := other.expandedPrefix[:len(pem.expandedPrefix)]
-	return thisPrefix.Equal(otherPrefix)
+	return targetShape{module: pem.module}.contains(targetShape{module: other})
 }
 
 // Module returns the unexpanded module address that this pattern originated
 // from.
 func (pem PartialExpandedModule) Module() Module {
-	ret := pem.expandedPrefix.Module()
-	return append(ret, pem.unexpandedSuffix...)
+	return pem.module.Module()
 }
 
 // KnownPrefix returns the longest possible ModuleInstance address made of
 // known segments of this partially-expanded module instance address.
 func (pem PartialExpandedModule) KnownPrefix() ModuleInstance {
-	if len(pem.expandedPrefix) == 0 {
+	known := pem.LevelsKnown()
+	if known == 0 {
 		return nil
 	}
 
 	// Although we can't enforce it with the Go compiler, our convention is
 	// that we never mutate address values outside of this package and so
-	// we'll expose our pem.expandedPrefix buffer directly here and trust that
-	// the caller will play nice with it. However, we do force the unused
-	// capacity to zero so that the caller can safely construct child addresses,
-	// which would append new steps to the end.
-	return pem.expandedPrefix[:len(pem.expandedPrefix):len(pem.expandedPrefix)]
+	// we'll expose our pem.module buffer directly here and trust that the
+	// caller will play nice with it. However, we do force the unused capacity
+	// to zero so that the caller can safely construct child addresses, which
+	// would append new steps to the end.
+	return pem.module[:known:known]
 }
 
 // FirstUnexpandedCall returns the address of the first step in the module
 // path whose instance keys are not yet known, discarding any subsequent
 // calls beneath it.
 func (pem PartialExpandedModule) FirstUnexpandedCall() AbsModuleCall {
-	// NOTE: This assumes that there's always at least one element in
-	// unexpandedSuffix because it should only be used with the public-facing
+	// NOTE: This assumes that there's always at least one step with unknown
+	// instance keys because it should only be used with the public-facing
 	// version of PartialExpandedModule where that contract always holds. It's
 	// not safe to use this for the PartialExpandedModule value hidden in the
 	// internals of PartialExpandedResource.
 	return AbsModuleCall{
 		Module: pem.KnownPrefix(),
 		Call: ModuleCall{
-			Name: pem.unexpandedSuffix[0],
+			Name: pem.module[pem.LevelsKnown()].Name,
 		},
 	}
 }
@@ -321,7 +319,8 @@ func (pem PartialExpandedModule) FirstUnexpandedCall() AbsModuleCall {
 // actually possible) represents the whole module path that the
 // PartialExpandedModule encapsulates.
 func (pem PartialExpandedModule) UnexpandedSuffix() []ModuleCall {
-	if len(pem.unexpandedSuffix) == 0 {
+	unexpanded := pem.module[pem.LevelsKnown():]
+	if len(unexpanded) == 0 {
 		// Should never happen for any publicly-visible value of this type,
 		// because we should always have at least one unexpanded call,
 		// but we'll allow it anyway since we have a reasonable return value
@@ -329,13 +328,9 @@ func (pem PartialExpandedModule) UnexpandedSuffix() []ModuleCall {
 		return nil
 	}
 
-	// A []ModuleCall is the only representation of a non-rooted chain of
-	// module calls that we're allowed to export in our public API, and so
-	// we'll transform our not-quite-allowed unrooted "Module" value in that
-	// form externally.
-	ret := make([]ModuleCall, len(pem.unexpandedSuffix))
-	for i, name := range pem.unexpandedSuffix {
-		ret[i].Name = name
+	ret := make([]ModuleCall, len(unexpanded))
+	for i, step := range unexpanded {
+		ret[i].Name = step.Name
 	}
 	return ret
 }
@@ -343,10 +338,7 @@ func (pem PartialExpandedModule) UnexpandedSuffix() []ModuleCall {
 // Child returns the address of a child of the receiver that belongs to the
 // given module call.
 func (pem PartialExpandedModule) Child(call ModuleCall) PartialExpandedModule {
-	return PartialExpandedModule{
-		expandedPrefix:   pem.expandedPrefix,
-		unexpandedSuffix: append(pem.unexpandedSuffix, call.Name),
-	}
+	return newPartialExpandedModule(pem.module.Child(call.Name, WildcardKey))
 }
 
 // Resource returns the address of a resource within the receiver.
@@ -370,19 +362,7 @@ func (pem PartialExpandedModule) Action(action Action) PartialExpandedAction {
 // suffix steps use a similar syntax but with "[*]" as a placeholder to
 // represent instance keys that aren't yet known.
 func (pem PartialExpandedModule) String() string {
-	var buf strings.Builder
-	if len(pem.expandedPrefix) != 0 {
-		buf.WriteString(pem.expandedPrefix.String())
-	}
-	for i, callName := range pem.unexpandedSuffix {
-		if i > 0 || len(pem.expandedPrefix) != 0 {
-			buf.WriteByte('.')
-		}
-		buf.WriteString("module.")
-		buf.WriteString(callName)
-		buf.WriteString("[*]")
-	}
-	return buf.String()
+	return pem.module.String()
 }
 
 func (pem PartialExpandedModule) UniqueKey() UniqueKey {
@@ -409,10 +389,10 @@ type PartialExpandedResource struct {
 	// module is the partially-expanded module instance address that this
 	// resource belongs to.
 	//
-	// This value can actually represent a fully-expanded module if its
-	// unexpandedSuffix field is zero-length, in which case it's only the
-	// resource itself that's unexpanded, which would make this equivalent
-	// to an AbsResource.
+	// This value can actually represent a fully-expanded module if none of
+	// its instance keys are unknown, in which case it's only the resource
+	// itself that's unexpanded, which would make this equivalent to an
+	// AbsResource.
 	//
 	// We mustn't directly expose this value in the public API because
 	// external callers must never see a PartialExpandedModule that is
@@ -532,9 +512,7 @@ func ParsePartialExpandedResource(traversal hcl.Traversal) (PartialExpandedResou
 // address type for all of them.
 func (m ModuleInstance) UnexpandedResource(resource Resource) PartialExpandedResource {
 	return PartialExpandedResource{
-		module: PartialExpandedModule{
-			expandedPrefix: m,
-		},
+		module:   newPartialExpandedModule(m),
 		resource: resource,
 	}
 }
@@ -544,12 +522,7 @@ func (m ModuleInstance) UnexpandedResource(resource Resource) PartialExpandedRes
 // where we might also need to mix in resources belonging to not-yet-fully-known
 // module instance addresses.
 func (r AbsResource) UnexpandedResource() PartialExpandedResource {
-	return PartialExpandedResource{
-		module: PartialExpandedModule{
-			expandedPrefix: r.Module,
-		},
-		resource: r.Resource,
-	}
+	return r.Module.UnexpandedResource(r.Resource)
 }
 
 // PartialResource reverses UnknownResourceInstance by converting the
@@ -574,29 +547,27 @@ func (per PartialExpandedResource) UnknownResourceInstance() AbsResourceInstance
 // MatchesInstance returns true if and only if the given resource instance
 // belongs to the recieving partially-expanded resource address pattern.
 func (per PartialExpandedResource) MatchesInstance(inst AbsResourceInstance) bool {
-	if !per.module.MatchesInstance(inst.Module) {
-		return false
-	}
-	return inst.Resource.Resource.Equal(per.resource)
+	return per.matches(inst)
 }
 
 // MatchesResource returns true if and only if the given resource belongs to
 // the recieving partially-expanded resource address pattern.
 func (per PartialExpandedResource) MatchesResource(inst AbsResource) bool {
-	if !per.module.MatchesInstance(inst.Module) {
-		return false
-	}
-	return inst.Resource.Equal(per.resource)
+	return per.matches(inst)
 }
 
 // MatchesPartial returns true if the underlying partial module address matches
 // the given partial module address and the resource type and name match the
 // receiver's resource type and name.
 func (per PartialExpandedResource) MatchesPartial(other PartialExpandedResource) bool {
-	if !per.module.MatchesPartial(other.module) {
-		return false
-	}
-	return per.resource.Equal(other.resource)
+	return per.targetShape().contains(other.targetShape())
+}
+
+// matches returns true if every instance selected by the given address is
+// represented by the receiver.
+func (per PartialExpandedResource) matches(addr Targetable) bool {
+	other, ok := shapeOf(addr)
+	return ok && per.targetShape().contains(other)
 }
 
 // AbsResource returns the single [AbsResource] that this address represents
@@ -605,12 +576,13 @@ func (per PartialExpandedResource) MatchesPartial(other PartialExpandedResource)
 //
 // The second return value is true if and only if the returned address is valid.
 func (per PartialExpandedResource) AbsResource() (AbsResource, bool) {
-	if len(per.module.unexpandedSuffix) != 0 {
+	module, ok := per.ModuleInstance()
+	if !ok {
 		return AbsResource{}, false
 	}
 
 	return AbsResource{
-		Module:   per.module.expandedPrefix,
+		Module:   module,
 		Resource: per.resource,
 	}, true
 }
@@ -651,10 +623,10 @@ func (per PartialExpandedResource) KnownModuleInstancePrefix() ModuleInstance {
 // fully expanded, in which case the first return value is invalid. Use
 // [PartialExpandedResource.PartialExpandedModule] instead in that case.
 func (per PartialExpandedResource) ModuleInstance() (ModuleInstance, bool) {
-	if len(per.module.unexpandedSuffix) != 0 {
+	if !per.module.fullyExpanded() {
 		return nil, false
 	}
-	return per.module.expandedPrefix, true
+	return per.module.KnownPrefix(), true
 }
 
 // PartialExpandedModule returns a [PartialExpandedModule] address describing
@@ -665,7 +637,7 @@ func (per PartialExpandedResource) ModuleInstance() (ModuleInstance, bool) {
 // fully expanded, in which case the first return value is invalid. Use
 // [PartialExpandedResource.ModuleInstance] instead in that case.
 func (per PartialExpandedResource) PartialExpandedModule() (PartialExpandedModule, bool) {
-	if len(per.module.unexpandedSuffix) == 0 {
+	if per.module.fullyExpanded() {
 		return PartialExpandedModule{}, false
 	}
 	return per.module, true
@@ -685,13 +657,8 @@ func (per PartialExpandedResource) IsTargetedBy(addr Targetable) bool {
 // targetShape returns the shape of the resource instances the receiver could
 // represent, using WildcardKey for each instance key which is not yet known.
 func (per PartialExpandedResource) targetShape() targetShape {
-	module := make(ModuleInstance, 0, len(per.module.expandedPrefix)+len(per.module.unexpandedSuffix))
-	module = append(module, per.module.expandedPrefix...)
-	for _, name := range per.module.unexpandedSuffix {
-		module = append(module, ModuleInstanceStep{Name: name, InstanceKey: WildcardKey})
-	}
 	return targetShape{
-		module:   module,
+		module:   per.module.module,
 		kind:     resourceTargetShape,
 		resource: per.resource,
 		key:      WildcardKey,
@@ -723,7 +690,7 @@ func (per PartialExpandedResource) UniqueKey() UniqueKey {
 
 type partialExpandedResourceKey string
 
-var _ UniqueKey = partialExpandedModuleKey("")
+var _ UniqueKey = partialExpandedResourceKey("")
 
 func (partialExpandedResourceKey) uniqueKeySigil() {}
 
@@ -808,12 +775,13 @@ type PartialExpandedAction struct {
 }
 
 func (per PartialExpandedAction) AbsAction() (AbsAction, bool) {
-	if len(per.module.unexpandedSuffix) != 0 {
+	module, ok := per.ModuleInstance()
+	if !ok {
 		return AbsAction{}, false
 	}
 
 	return AbsAction{
-		Module: per.module.expandedPrefix,
+		Module: module,
 		Action: per.action,
 	}, true
 }
@@ -828,26 +796,15 @@ func (per PartialExpandedAction) ConfigAction() ConfigAction {
 }
 
 func (per PartialExpandedAction) ModuleInstance() (ModuleInstance, bool) {
-	if len(per.module.unexpandedSuffix) != 0 {
+	if !per.module.fullyExpanded() {
 		return nil, false
 	}
-	return per.module.expandedPrefix, true
+	return per.module.KnownPrefix(), true
 }
 
 func (m ModuleInstance) UnexpandedAction(action Action) PartialExpandedAction {
 	return PartialExpandedAction{
-		module: PartialExpandedModule{
-			expandedPrefix: m,
-		},
-		action: action,
-	}
-}
-
-func (a *AbsAction) UnexpandedAction(action Action) PartialExpandedAction {
-	return PartialExpandedAction{
-		module: PartialExpandedModule{
-			expandedPrefix: a.Module,
-		},
+		module: newPartialExpandedModule(m),
 		action: action,
 	}
 }
@@ -871,7 +828,7 @@ func (pea PartialExpandedAction) String() string {
 }
 
 func (pea PartialExpandedAction) Equal(other PartialExpandedAction) bool {
-	return pea.module.MatchesPartial(other.module.expandedPrefix.PartialModule()) && pea.action.Equal(other.action)
+	return pea.module.module.Equal(other.module.module) && pea.action.Equal(other.action)
 }
 
 func (pea PartialExpandedAction) UniqueKey() UniqueKey {
@@ -898,7 +855,7 @@ func (partialExpandedActionKey) uniqueKeySigil() {}
 // fully expanded, in which case the first return value is invalid. Use
 // [PartialExpandedAction.ModuleInstance] instead in that case.
 func (per PartialExpandedAction) PartialExpandedModule() (PartialExpandedModule, bool) {
-	if len(per.module.unexpandedSuffix) == 0 {
+	if per.module.fullyExpanded() {
 		return PartialExpandedModule{}, false
 	}
 	return per.module, true
@@ -907,8 +864,17 @@ func (per PartialExpandedAction) PartialExpandedModule() (PartialExpandedModule,
 // MatchesAction returns true if and only if the given action belongs to
 // the recieving partially-expanded action address pattern.
 func (per PartialExpandedAction) MatchesAction(inst AbsAction) bool {
-	if !per.module.MatchesInstance(inst.Module) {
-		return false
+	other, ok := shapeOf(inst)
+	return ok && per.targetShape().contains(other)
+}
+
+// targetShape returns the shape of the action instances the receiver could
+// represent, using WildcardKey for each instance key which is not yet known.
+func (per PartialExpandedAction) targetShape() targetShape {
+	return targetShape{
+		module: per.module.module,
+		kind:   actionTargetShape,
+		action: per.action,
+		key:    WildcardKey,
 	}
-	return inst.Action.Equal(per.action)
 }
