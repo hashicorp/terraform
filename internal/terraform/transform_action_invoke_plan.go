@@ -44,7 +44,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 
 		for _, target := range t.ActionTargets {
 			for _, callee := range caller.ActionCalls() {
-				if target.TargetContains(callee) {
+				if target.Contains(callee) {
 					callers := calledActions.Get(callee)
 					callers = append(callers, caller)
 					// this resource invokes the calling node
@@ -61,7 +61,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		}
 
 		for _, target := range t.ActionTargets {
-			if !target.TargetContains(actionNode.Addr) {
+			if !target.Contains(actionNode.Addr) {
 				continue
 			}
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestTargetContains(t *testing.T) {
+func TestContains(t *testing.T) {
 	for _, test := range []struct {
 		addr, other Targetable
 		expect      bool
@@ -203,9 +203,9 @@ func TestTargetContains(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.addr), func(t *testing.T) {
-			got := test.addr.TargetContains(test.other)
+			got := test.addr.Contains(test.other)
 			if got != test.expect {
-				t.Fatalf("expected %q.TargetContains(%q) == %t", test.addr, test.other, test.expect)
+				t.Fatalf("expected %q.Contains(%q) == %t", test.addr, test.other, test.expect)
 			}
 		})
 	}
@@ -217,9 +217,9 @@ func TestResourceContains(t *testing.T) {
 		expect    bool
 	}{} {
 		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.in), func(t *testing.T) {
-			got := test.in.TargetContains(test.other)
+			got := test.in.Contains(test.other)
 			if got != test.expect {
-				t.Fatalf("expected %q.TargetContains(%q) == %t", test.in, test.other, test.expect)
+				t.Fatalf("expected %q.Contains(%q) == %t", test.in, test.other, test.expect)
 			}
 		})
 	}

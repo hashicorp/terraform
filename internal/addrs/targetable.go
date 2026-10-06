@@ -10,13 +10,13 @@ type Targetable interface {
 
 	targetableSigil()
 
-	// TargetContains returns true if the receiver is considered to contain
+	// Contains returns true if the receiver is considered to contain
 	// the given other address. Containment, for the purpose of targeting,
 	// means that if a container address is targeted then all of the
 	// addresses within it are also implicitly targeted.
 	//
 	// A targetable address always contains at least itself.
-	TargetContains(other Targetable) bool
+	Contains(other Targetable) bool
 
 	// AddrType returns the address type for comparison with other Targetable
 	// addresses.

@@ -173,8 +173,8 @@ func (a AbsAction) ConfigAction() ConfigAction {
 	}
 }
 
-// TargetContains implements Targetable
-func (a AbsAction) TargetContains(other Targetable) bool {
+// Contains implements Targetable
+func (a AbsAction) Contains(other Targetable) bool {
 	switch to := other.(type) {
 	case AbsAction:
 		return a.Equal(to)
@@ -271,8 +271,8 @@ func (a AbsActionInstance) String() string {
 	return fmt.Sprintf("%s.%s", a.Module.String(), a.Action.String())
 }
 
-// TargetContains implements Targetable
-func (a AbsActionInstance) TargetContains(other Targetable) bool {
+// Contains implements Targetable
+func (a AbsActionInstance) Contains(other Targetable) bool {
 	switch to := other.(type) {
 	case AbsAction:
 		return to.Equal(a.ContainingAction()) && a.Action.Key == NoKey
@@ -358,7 +358,7 @@ func (a ConfigAction) Equal(o ConfigAction) bool {
 	return a.Module.Equal(o.Module) && a.Action.Equal(o.Action)
 }
 
-func (a ConfigAction) TargetContains(other Targetable) bool {
+func (a ConfigAction) Contains(other Targetable) bool {
 	switch other := other.(type) {
 	case AbsAction:
 		return other.ConfigAction().Equal(a)

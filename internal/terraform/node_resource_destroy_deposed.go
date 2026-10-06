@@ -125,7 +125,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		}
 	}
 	for _, fm := range n.forgetModules {
-		if fm.TargetContains(n.Addr) {
+		if fm.Contains(n.Addr) {
 			forget = true
 		}
 	}

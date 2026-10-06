@@ -119,7 +119,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 		}
 		for _, cms := range state.Modules {
 			if !addr.Equal(cms.Addr) {
-				if addr.IsAncestor(cms.Addr) || addr.TargetContains(cms.Addr) {
+				if addr.IsAncestor(cms.Addr) || addr.Contains(cms.Addr) {
 					found = true
 					ret = append(ret, c.collectModuleResourceInstances(cms)...)
 				}

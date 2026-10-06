@@ -379,7 +379,7 @@ func (c *StateMvCommand) Run(args []string) int {
 						// check both directions here, since we may be moving
 						// an instance which is in a resource, or a module
 						// which can contain a resource.
-						if dep.TargetContains(rawAddrFrom) || rawAddrFrom.TargetContains(dep) {
+						if dep.Contains(rawAddrFrom) || rawAddrFrom.Contains(dep) {
 							ins.Current.Dependencies = nil
 							break
 						}

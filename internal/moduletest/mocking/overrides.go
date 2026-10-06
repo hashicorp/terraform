@@ -121,7 +121,7 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 
 	// Otherwise, check for parents.
 	for _, elem := range overrides.localOverrides.Elems {
-		if elem.Key.TargetContains(module) {
+		if elem.Key.Contains(module) {
 			// Then we have an ancestor of module being overridden instead of
 			// module being overridden directly.
 			return true

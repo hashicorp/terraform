@@ -617,7 +617,7 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 	var srcMIs []*Module
 	for _, module := range s.Modules {
 		if !module.Addr.IsRoot() {
-			if src.Module.TargetContains(module.Addr) {
+			if src.Module.Contains(module.Addr) {
 				srcMIs = append(srcMIs, module)
 			}
 		}
