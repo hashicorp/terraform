@@ -691,7 +691,7 @@ resource "test_object" "s" {
 	// destroy only a single instance not included in the moved statements
 	_, diags = ctx.Plan(m, state, &PlanOpts{
 		Mode:    plans.DestroyMode,
-		Targets: []addrs.Targetable{mustResourceInstanceAddr(`module.modb["a"].test_object.a`)},
+		Targets: []addrs.TargetPattern{mustTargetPattern(`module.modb["a"].test_object.a`)},
 	})
 	tfdiags.AssertNoErrors(t, diags)
 }
@@ -5125,7 +5125,7 @@ resource test_object default {}
 	t.Run("targeted destroy", func(t *testing.T) {
 		p.ApplyResourceChangeCalled = false //reset!
 		state := testState()
-		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.Targetable{forget}})
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.TargetPattern{mustTargetPattern(forget.String())}})
 		if len(diags) != 2 { // usual -target diag + warning about forgetting
 			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
 		}

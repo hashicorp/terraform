@@ -2254,7 +2254,7 @@ func TestApply_changedTargets_applyTime(t *testing.T) {
 			_, snap := testModuleWithSnapshot(t, "apply")
 			plan := testPlan(t)
 			for _, rawTarget := range test.planTargets {
-				target, diags := addrs.ParseAbsTargetableStr(rawTarget)
+				target, diags := addrs.ParseTargetStr(rawTarget)
 				if diags.HasErrors() {
 					t.Fatalf("invalid plan target %q: %s", rawTarget, diags.Err())
 				}

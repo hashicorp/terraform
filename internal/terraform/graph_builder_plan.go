@@ -52,10 +52,10 @@ type PlanGraphBuilder struct {
 	Plugins *contextPlugins
 
 	// Targets are resources to target
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets are actions that should be triggered.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace

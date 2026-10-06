@@ -227,7 +227,6 @@ type Meta struct {
 	input bool
 
 	// Targets for this context (private)
-	targets     []addrs.Targetable
 	targetFlags []string
 
 	// Internal fields

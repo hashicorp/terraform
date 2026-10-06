@@ -2971,16 +2971,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3034,17 +3026,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod.action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3076,6 +3059,60 @@ module "mod" {
 				},
 			},
 
+			"action invoke in all instances of an expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						// a keyless module step in a target selects every
+						// instance of the module
+						mustActionTargetPattern("module.mod.action.test_action.one"),
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					var got []string
+					for _, ais := range plan.Changes.ActionInvocations {
+						ai, err := ais.Decode(&testActionSchema)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+							t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+						}
+						got = append(got, ai.Addr.String())
+					}
+					slices.Sort(got)
+
+					want := []string{
+						"module.mod[0].action.test_action.one",
+						"module.mod[1].action.test_action.one",
+					}
+					if diff := cmp.Diff(want, got); diff != "" {
+						t.Fatalf("wrong invocations: %s", diff)
+					}
+				},
+			},
+
 			"action invoke in expanded module": {
 				module: map[string]string{
 					"mod/main.tf": `
@@ -3099,17 +3136,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[1].action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3160,17 +3188,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(1),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[1].action.test_action.one[1]"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3200,17 +3219,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(3)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(0),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[3].action.test_action.one[0]"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3242,13 +3252,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3326,16 +3331,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(0),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[0]"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3367,6 +3364,68 @@ action "test_action" "two" {
 				},
 			},
 
+			"action invoke with count (explicit wildcard)": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[*]"),
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					var got []string
+					for _, ai := range plan.Changes.ActionInvocations {
+						got = append(got, ai.Addr.String())
+					}
+					slices.Sort(got)
+
+					want := []string{
+						"action.test_action.one[0]",
+						"action.test_action.one[1]",
+					}
+					if diff := cmp.Diff(want, got); diff != "" {
+						t.Fatalf("wrong invocations: %s", diff)
+					}
+				},
+			},
+
+			"action invoke with count (missing instance)": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[5]"),
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoked target action.test_action.one[5] not found") {
+						t.Fatalf("expected 'invoked target action.test_action.one[5] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
 			"invoke action with reference": {
 				module: map[string]string{
 					"main.tf": `
@@ -3383,13 +3442,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3450,13 +3504,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3521,15 +3570,10 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
-					Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[0]")},
+					Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a[0]")},
 				},
 				expectPlanActionCalled: true,
 				buildState: func(state *states.SyncState) {
@@ -3565,13 +3609,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3633,13 +3672,8 @@ action "test_action" "one" {
 				planOpts: &PlanOpts{
 					Mode:        plans.RefreshOnlyMode,
 					SkipRefresh: true,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3700,13 +3734,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3737,13 +3766,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -4134,8 +4158,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4209,8 +4233,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						mustResourceInstanceAddr("test_object.a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4289,8 +4313,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a").Instance(addrs.IntKey(2)),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a[2]"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4362,8 +4386,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4429,8 +4453,8 @@ resource "test_object" "a" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
@@ -4501,8 +4525,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
@@ -4579,8 +4603,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {

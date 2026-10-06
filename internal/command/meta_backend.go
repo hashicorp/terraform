@@ -696,7 +696,6 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		PlanOutBackend:    planOutBackend,
 		PlanOutStateStore: planOutStateStore,
 
-		Targets:         m.targets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
 		Workspace:       workspace,

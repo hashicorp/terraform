@@ -72,12 +72,12 @@ type Operation struct {
 
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets means we should just invoke the actions specified here, and
 	// not run a complete plan. Targets and ActionTargets are mutually exclusive
 	// and this should only be set for plan and apply operations.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
@@ -114,15 +114,15 @@ type Operation struct {
 }
 
 // Parse must be called on Operation after initial flag parse. This processes
-// the raw target flags into addrs.Targetable values, returning diagnostics if
-// invalid.
+// the raw target flags into addrs.TargetPattern values, returning diagnostics
+// if invalid.
 func (o *Operation) Parse() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	o.Targets = nil
 
 	for _, tr := range o.targetsRaw {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		traversal, syntaxDiags := hclsyntax.ParseTraversalPartial([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -132,7 +132,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		target, targetDiags := addrs.ParseAbsTargetable(traversal)
+		target, targetDiags := addrs.ParseTarget(traversal)
 		if targetDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -146,7 +146,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	}
 
 	for _, tr := range o.actionTargetsRaw {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		traversal, syntaxDiags := hclsyntax.ParseTraversalPartial([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

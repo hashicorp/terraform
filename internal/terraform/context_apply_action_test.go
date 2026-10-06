@@ -2072,8 +2072,8 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode: plans.NormalMode,
-				Targets: []addrs.Targetable{
-					addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+				Targets: []addrs.TargetPattern{
+					mustTargetPattern("test_object.a"),
 				},
 			},
 		},
@@ -2139,7 +2139,7 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a")},
 			},
 		},
 
@@ -2203,7 +2203,7 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[2]")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a[2]")},
 			},
 		},
 
@@ -2267,7 +2267,7 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a")},
 			},
 		},
 
@@ -2306,7 +2306,7 @@ resource "test_object" "a" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a")},
 			},
 		},
 
@@ -2370,7 +2370,7 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a")},
 			},
 		},
 
@@ -2426,7 +2426,7 @@ resource "test_object" "b" {
 			},
 			planOpts: &PlanOpts{
 				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustAbsResourceAddr("test_object.a")},
+				Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a")},
 			},
 		},
 	}
@@ -2567,7 +2567,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 		},
 
@@ -2603,7 +2603,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("module.mod.action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("module.mod.action.action_example.one")},
 			},
 		},
 
@@ -2640,7 +2640,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("module.mod[1].action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("module.mod[1].action.action_example.one")},
 			},
 		},
 
@@ -2665,7 +2665,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2706,7 +2706,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionInstanceAddr("action.action_example.one[0]")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one[0]")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2735,7 +2735,7 @@ func TestContextApply_invoked_actions(t *testing.T) {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2777,7 +2777,7 @@ action "action_example" "one" {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2822,7 +2822,7 @@ action "action_example" "one" {
 			},
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
-				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{
@@ -2865,7 +2865,7 @@ action "action_example" "one" {
 			planOpts: &PlanOpts{
 				Mode:          plans.RefreshOnlyMode,
 				SkipRefresh:   true,
-				ActionTargets: []addrs.Targetable{mustActionAddr("action.action_example.one")},
+				ActionTargets: []addrs.TargetPattern{mustActionTargetPattern("action.action_example.one")},
 			},
 			expectInvokeActionCalled: true,
 			expectInvokeActionCalls: []providers.InvokeActionRequest{

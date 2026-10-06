@@ -460,6 +460,16 @@ func TestCouldContain(t *testing.T) {
 			testResourceX,
 			false,
 		},
+		{
+			mustParseTargetActionPattern("module.foo[0].action.test_resource.x"),
+			testResourceX,
+			false,
+		},
+		{
+			mustParseTargetActionPattern("module.foo[0].action.act.a[1]"),
+			Module{"foo"}.Action("act", "a"),
+			true,
+		},
 
 		// Wildcards in the other address are instance keys which are not
 		// known yet, and so could be any instance.
@@ -526,6 +536,16 @@ func mustParseTarget(str string) Targetable {
 // option.
 func mustParseTargetPattern(str string) Targetable {
 	pattern, diags := ParseTargetStr(str)
+	if diags.HasErrors() {
+		panic(fmt.Sprintf("%s: %s", str, diags.ErrWithWarnings()))
+	}
+	return pattern
+}
+
+// mustParseTargetActionPattern parses a target in the same way as the -invoke
+// option.
+func mustParseTargetActionPattern(str string) Targetable {
+	pattern, diags := ParseTargetActionStr(str)
 	if diags.HasErrors() {
 		panic(fmt.Sprintf("%s: %s", str, diags.ErrWithWarnings()))
 	}

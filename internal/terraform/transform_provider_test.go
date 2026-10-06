@@ -119,10 +119,8 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
-			Targets: []addrs.Targetable{
-				addrs.RootModuleInstance.Resource(
-					addrs.ManagedResourceMode, "something", "else",
-				),
+			Targets: []addrs.TargetPattern{
+				mustTargetPattern("something.else"),
 			},
 		},
 	}

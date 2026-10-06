@@ -76,7 +76,7 @@ type PlanOpts struct {
 	// Targeted planning mode is intended for exceptional use only,
 	// and so populating this field will cause Terraform to generate extra
 	// warnings as part of the planning result.
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets represents the actions that should be triggered by this
 	// execution. This is incompatible with the `Targets` attribute, only one
@@ -84,7 +84,7 @@ type PlanOpts struct {
 	// ActionTargets.
 	//
 	// TEMP: For now, only support a single entry in this slice.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace is a set of resource instance addresses whose corresponding
 	// objects should be forced planned for replacement if the provider's
@@ -673,7 +673,7 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 	return moveStmts, moveResults, diags
 }
 
-func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
+func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.TargetPattern) tfdiags.Diagnostics {
 	if len(targets) < 1 {
 		return nil // the following only matters when targeting
 	}
