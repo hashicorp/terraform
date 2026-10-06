@@ -11,15 +11,19 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	protobuf "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -1001,4 +1005,99 @@ func TestPolicyBeginRunDiagnostics(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestCollectRelationshipBatch_deferrals(t *testing.T) {
+	schemas := &schemarepo.Schemas{Providers: map[addrs.Provider]providers.ProviderSchema{
+		addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
+	}}
+	deferredChange := func(addr addrs.AbsResourceInstance, provider addrs.AbsProviderConfig) *plans.ResourceInstanceChange {
+		return &plans.ResourceInstanceChange{
+			Addr:         addr,
+			ProviderAddr: provider,
+			Change: plans.Change{
+				Action: plans.Create,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.DynamicVal,
+			},
+		}
+	}
+	deferInstance := func(d *deferring.Deferred, addr string, provider addrs.AbsProviderConfig) {
+		inst := mustResourceInstanceAddr(addr)
+		d.ReportResourceInstanceDeferred(inst, providers.DeferredReasonProviderConfigUnknown, deferredChange(inst, provider))
+	}
+
+	tests := map[string]struct {
+		stage proto.EvaluationStage
+		files map[string]string
+		// setup registers the expansions and deferrals of the walk.
+		setup func(exp *instances.Expander, d *deferring.Deferred)
+		want  *proto.TypeStatus
+		// wantProviders are the reported provider instances by config
+		// address, with whether they're known.
+		wantProviders map[string]bool
+	}{
+		"provider configuration only deferred instances use": {
+			// The walk didn't configure the provider configuration of the
+			// deferred instance, so its class comes from its configuration.
+			stage: proto.EvaluationStage_APPLY_EVALUATION_STAGE,
+			files: map[string]string{"main.tf": `
+				provider "test" {
+					alias  = "lit"
+					region = "lit"
+				}
+				resource "test_net" "x" {
+					provider = test.lit
+					name     = "x"
+				}
+			`},
+			setup: func(exp *instances.Expander, d *deferring.Deferred) {
+				deferInstance(d, "test_net.x", mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].lit`))
+			},
+			want: &proto.TypeStatus{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Type:           "test_net",
+				Completeness:   proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS,
+				Deferred:       []*proto.DeferredInstance{{Address: "test_net.x", ProviderInstanceId: 1}},
+			},
+			wantProviders: map[string]bool{`provider["registry.terraform.io/hashicorp/test"].lit`: true},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			cfg := testModuleInline(t, test.files)
+			exp := instances.NewExpander(nil)
+			d := deferring.NewDeferred(true)
+			test.setup(exp, d)
+			ctx := &MockEvalContext{
+				ConfigValue:              cfg,
+				ChangesChanges:           plans.NewChanges().SyncWrapper(),
+				StateState:               states.NewState().SyncWrapper(),
+				DeferralsState:           d,
+				InstanceExpanderExpander: exp,
+			}
+			ps := newPolicySubgraphForRun(&policyRunOpts{
+				Stage:    test.stage,
+				PlanMode: proto.PlanMode_NORMAL_PLAN_MODE,
+				Schemas:  schemas,
+			})
+			spec := &proto.CollectionSpec{Types: []*proto.TypeSpec{relTypeSpec("test_net", "id")}}
+
+			_, statuses, providerInstances := collectRelationshipBatch(ctx, ps, spec)
+
+			if diff := cmp.Diff([]*proto.TypeStatus{test.want}, statuses, protocmp.Transform()); diff != "" {
+				t.Errorf("wrong statuses (-want +got):\n%s", diff)
+			}
+			gotProviders := make(map[string]bool)
+			for _, p := range providerInstances {
+				gotProviders[p.ConfigAddress] = p.Known
+				if p.Known && len(p.ConfigClass) != 32 {
+					t.Errorf("%s is known without a class", p.ConfigAddress)
+				}
+			}
+			if diff := cmp.Diff(test.wantProviders, gotProviders, cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("wrong provider instances (-want +got):\n%s", diff)
+			}
+		})
+	}
 }

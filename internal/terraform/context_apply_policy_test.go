@@ -3171,9 +3171,15 @@ func TestContext2Apply_PolicyRelationships_failedApply(t *testing.T) {
 
 func TestContext2Apply_PolicyRelationships_deferrals(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{"main.tf": `
+		provider "test" {
+			alias  = "deferred"
+			region = "deferred"
+		}
+
 		resource "test_net" "deferred" {
-			name  = "deferred"
-			defer = true
+			provider = test.deferred
+			name     = "deferred"
+			defer    = true
 		}
 		resource "test_vm" "dependent" {
 			net_id = test_net.deferred.id
@@ -3196,4 +3202,11 @@ func TestContext2Apply_PolicyRelationships_deferrals(t *testing.T) {
 		"test_net": relIncompleteDeferred("test_net", "test_net.deferred"),
 		"test_vm":  relIncompleteDeferred("test_vm", "test_vm.dependent"),
 	})
+	run.assertDeferredProviders(t, map[string]string{
+		"test_net.deferred": `provider["registry.terraform.io/hashicorp/test"].deferred`,
+		"test_vm.dependent": `provider["registry.terraform.io/hashicorp/test"]`,
+	})
+	if p := run.deferredProviders(t)["test_net.deferred"]; !p.Known || len(p.ConfigClass) != 32 {
+		t.Errorf("expected the provider of test_net.deferred to be known with a class, got %v", p)
+	}
 }

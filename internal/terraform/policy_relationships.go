@@ -381,8 +381,10 @@ type relationshipCollector struct {
 	types      map[relationshipTypeKey]bool
 	typeOrder  []relationshipTypeKey
 	incomplete map[relationshipTypeKey]bool
-	deferred   map[relationshipTypeKey]map[string]struct{}
-	keyPaths   map[relationshipTypeKey][][]string
+	// deferred are the provider configurations of the deferred instances of
+	// a type, by address.
+	deferred map[relationshipTypeKey]map[string]addrs.AbsProviderConfig
+	keyPaths map[relationshipTypeKey][][]string
 	// keep are the top-level attributes kept in the values of the records
 	// of a type; nil for a type whose records aren't pruned.
 	keep map[relationshipTypeKey]map[string]bool
@@ -515,7 +517,7 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		ps:           ps,
 		types:        make(map[relationshipTypeKey]bool),
 		incomplete:   make(map[relationshipTypeKey]bool),
-		deferred:     make(map[relationshipTypeKey]map[string]struct{}),
+		deferred:     make(map[relationshipTypeKey]map[string]addrs.AbsProviderConfig),
 		keyPaths:     make(map[relationshipTypeKey][][]string),
 		keep:         make(map[relationshipTypeKey]map[string]bool),
 		includePrior: make(map[relationshipTypeKey]bool),
@@ -593,9 +595,9 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 				continue
 			}
 			if c.deferred[key] == nil {
-				c.deferred[key] = make(map[string]struct{})
+				c.deferred[key] = make(map[string]addrs.AbsProviderConfig)
 			}
-			c.deferred[key][addr.String()] = struct{}{}
+			c.deferred[key][addr.String()] = d.Change.ProviderAddr
 		}
 	}
 
@@ -620,8 +622,11 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 		}
 		return c.records[i].DeposedKey < c.records[j].DeposedKey
 	})
+	// The statuses add the provider configurations of deferred instances to
+	// the provider table, so they need a static class too.
+	statuses := c.statuses()
 	c.addStaticProviderClasses()
-	return c.records, c.statuses(), ps.providers.all()
+	return c.records, statuses, ps.providers.all()
 }
 
 // addStaticProviderClasses computes the class of the provider configurations
@@ -892,8 +897,11 @@ func (c *relationshipCollector) statuses() []*proto.TypeStatus {
 		switch {
 		case len(c.deferred[key]) > 0:
 			status.Completeness = proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS
-			for addr := range c.deferred[key] {
-				status.Deferred = append(status.Deferred, &proto.DeferredInstance{Address: addr})
+			for addr, provider := range c.deferred[key] {
+				status.Deferred = append(status.Deferred, &proto.DeferredInstance{
+					Address:            addr,
+					ProviderInstanceId: c.ps.providers.idFor(provider),
+				})
 			}
 			sort.Slice(status.Deferred, func(i, j int) bool { return status.Deferred[i].Address < status.Deferred[j].Address })
 		case c.incomplete[key]:

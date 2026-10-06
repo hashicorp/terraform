@@ -4048,7 +4048,8 @@ func (r *relationshipRun) assertRecords(t *testing.T, want map[string]wantRelRec
 }
 
 // assertStatuses checks the type statuses of the run. Deferred addresses
-// are compared exactly.
+// are compared exactly; their provider instances must have been reported
+// and are checked by assertDeferredProviders.
 func (r *relationshipRun) assertStatuses(t *testing.T, want map[string]*proto.TypeStatus) {
 	t.Helper()
 	got := r.statuses(t)
@@ -4057,8 +4058,40 @@ func (r *relationshipRun) assertStatuses(t *testing.T, want map[string]*proto.Ty
 			status.ProviderSource = "registry.terraform.io/hashicorp/test"
 		}
 	}
-	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+	if diff := cmp.Diff(want, got, protocmp.Transform(), protocmp.IgnoreFields(&proto.DeferredInstance{}, "provider_instance_id")); diff != "" {
 		t.Fatalf("wrong statuses (-want +got):\n%s", diff)
+	}
+	r.deferredProviders(t)
+}
+
+// deferredProviders returns the provider instance of every deferred instance
+// in the run's statuses by address, checking that it was reported.
+func (r *relationshipRun) deferredProviders(t *testing.T) map[string]*proto.ProviderInstance {
+	t.Helper()
+	providers := r.providers(t)
+	ret := make(map[string]*proto.ProviderInstance)
+	for _, status := range r.statuses(t) {
+		for _, d := range status.Deferred {
+			p, ok := providers[d.ProviderInstanceId]
+			if !ok {
+				t.Fatalf("deferred instance %s refers to provider instance %d, which wasn't reported", d.Address, d.ProviderInstanceId)
+			}
+			ret[d.Address] = p
+		}
+	}
+	return ret
+}
+
+// assertDeferredProviders checks the config addresses of the provider
+// instances of the run's deferred instances, by address.
+func (r *relationshipRun) assertDeferredProviders(t *testing.T, want map[string]string) {
+	t.Helper()
+	got := make(map[string]string)
+	for addr, p := range r.deferredProviders(t) {
+		got[addr] = p.ConfigAddress
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong providers of deferred instances (-want +got):\n%s", diff)
 	}
 }
 
@@ -4858,6 +4891,98 @@ func TestContext2Plan_PolicyRelationships_deferrals(t *testing.T) {
 		"test_net":  relIncompleteDeferred("test_net", "test_net.deferred", "test_net.existing", "test_net.partial[*]"),
 		"test_vm":   relIncompleteDeferred("test_vm", "test_vm.dependent"),
 		"test_info": relComplete("test_info"),
+	})
+	def := `provider["registry.terraform.io/hashicorp/test"]`
+	run.assertDeferredProviders(t, map[string]string{
+		"test_net.deferred":   def,
+		"test_net.existing":   def,
+		"test_net.partial[*]": def,
+		"test_vm.dependent":   def,
+	})
+	if p := run.deferredProviders(t)["test_net.deferred"]; !p.Known || len(p.ConfigClass) != 32 {
+		t.Errorf("expected the provider of the deferred instances to be known with a class, got %v", p)
+	}
+}
+
+func TestContext2Plan_PolicyRelationships_deferredProviders(t *testing.T) {
+	t.Run("aliased providers", func(t *testing.T) {
+		mod := testModuleInline(t, map[string]string{"main.tf": `
+			provider "test" {
+				alias  = "east"
+				region = "east"
+			}
+			provider "test" {
+				alias  = "west"
+				region = "west"
+			}
+
+			resource "test_net" "east" {
+				provider = test.east
+				name     = "east"
+			}
+			resource "test_net" "west" {
+				provider = test.west
+				name     = "west"
+				defer    = true
+			}
+		`})
+		_, run := planRelationships(t, mod, nil, &PlanOpts{
+			Mode:            plans.NormalMode,
+			DeferralAllowed: true,
+		}, nil, relTypeSpec("test_net", "id"))
+
+		run.assertRunSequence(t)
+		run.assertRecords(t, map[string]wantRelRecord{
+			"test_net.east": {Action: relCreate, Source: relPlanned, Attrs: map[string]cty.Value{"name": cty.StringVal("east")}, Provider: `provider["registry.terraform.io/hashicorp/test"].east`},
+		})
+		run.assertStatuses(t, map[string]*proto.TypeStatus{
+			"test_net": relIncompleteDeferred("test_net", "test_net.west"),
+		})
+		run.assertDeferredProviders(t, map[string]string{
+			"test_net.west": `provider["registry.terraform.io/hashicorp/test"].west`,
+		})
+		west := run.deferredProviders(t)["test_net.west"]
+		east := run.providers(t)[run.records(t)["test_net.east"].ProviderInstanceId]
+		if !west.Known || len(west.ConfigClass) != 32 || !east.Known || len(east.ConfigClass) != 32 {
+			t.Fatalf("expected both provider configurations to be known with a class, got %v and %v", west, east)
+		}
+		if bytes.Equal(west.ConfigClass, east.ConfigClass) {
+			t.Error("expected the provider configurations to have different classes")
+		}
+	})
+
+	t.Run("unknown provider configuration", func(t *testing.T) {
+		mod := testModuleInline(t, map[string]string{"main.tf": `
+			resource "test_vm" "a" {
+				name = "a"
+			}
+
+			provider "test" {
+				alias  = "unknown"
+				region = test_vm.a.id
+			}
+
+			resource "test_net" "x" {
+				provider = test.unknown
+				name     = "x"
+				defer    = true
+			}
+		`})
+		_, run := planRelationships(t, mod, nil, &PlanOpts{
+			Mode:            plans.NormalMode,
+			DeferralAllowed: true,
+		}, nil, relTypeSpec("test_net", "id"))
+
+		run.assertRunSequence(t)
+		run.assertStatuses(t, map[string]*proto.TypeStatus{
+			"test_net": relIncompleteDeferred("test_net", "test_net.x"),
+		})
+		run.assertDeferredProviders(t, map[string]string{
+			"test_net.x": `provider["registry.terraform.io/hashicorp/test"].unknown`,
+		})
+		if p := run.deferredProviders(t)["test_net.x"]; p.Known || len(p.ConfigClass) != 0 {
+			t.Errorf("expected the provider configuration with an unknown value not to be known, got %v", p)
+		}
 	})
 }
 
