@@ -5,6 +5,7 @@ package mocking
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -19,19 +20,19 @@ import (
 // This requires us to deduplicate between run blocks and test files, and mock
 // providers.
 type Overrides struct {
-	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]
-	localOverrides    addrs.Map[addrs.Targetable, *configs.Override]
+	providerOverrides map[addrs.RootProviderConfig]addrs.Map[addrs.TargetPattern, *configs.Override]
+	localOverrides    addrs.Map[addrs.TargetPattern, *configs.Override]
 }
 
 func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.TestFile, mocks map[addrs.RootProviderConfig]*configs.MockData) (*Overrides, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	overrides := &Overrides{
-		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]),
-		localOverrides:    addrs.MakeMap[addrs.Targetable, *configs.Override](),
+		providerOverrides: make(map[addrs.RootProviderConfig]addrs.Map[addrs.TargetPattern, *configs.Override]),
+		localOverrides:    addrs.MakeMap[addrs.TargetPattern, *configs.Override](),
 	}
 
 	// helper function to evaluate each override values, returning any error encountered.
-	evalAndPut := func(container addrs.Map[addrs.Targetable, *configs.Override], target addrs.Targetable, override *configs.Override) tfdiags.Diagnostics {
+	evalAndPut := func(container addrs.Map[addrs.TargetPattern, *configs.Override], target addrs.TargetPattern, override *configs.Override) tfdiags.Diagnostics {
 
 		override.Values = cty.NilVal
 		if override.RawExpr != nil {
@@ -89,7 +90,7 @@ func PackageOverrides(ctx *hcl.EvalContext, run *configs.TestRun, file *configs.
 			}
 
 			if _, exists := overrides.providerOverrides[key]; !exists {
-				overrides.providerOverrides[key] = addrs.MakeMap[addrs.Targetable, *configs.Override]()
+				overrides.providerOverrides[key] = addrs.MakeMap[addrs.TargetPattern, *configs.Override]()
 			}
 
 			if diags := evalAndPut(overrides.providerOverrides[key], elem.Key, elem.Value); diags.HasErrors() {
@@ -114,16 +115,9 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 		return false
 	}
 
-	if overrides.localOverrides.Has(module) {
-		// Short circuit things, if we have an exact match just return now.
-		return true
-	}
-
-	// Otherwise, check for parents.
 	for _, elem := range overrides.localOverrides.Elems {
 		if elem.Key.Contains(module) {
-			// Then we have an ancestor of module being overridden instead of
-			// module being overridden directly.
+			// Then either module or one of its ancestors is being overridden.
 			return true
 		}
 	}
@@ -132,10 +126,9 @@ func (overrides *Overrides) IsOverridden(module addrs.ModuleInstance) bool {
 }
 
 // GetResourceOverride checks the overrides for the given resource instance.
-// If the provided address is instanced, then we will check the containing
-// resource as well. This is because users can mark a resource instance as
-// overridden by overriding the instance directly (eg. resource.foo[0]) or by
-// overriding the containing resource (eg. resource.foo).
+// Users can mark a resource instance as overridden by overriding the instance
+// directly (eg. resource.foo[0]) or by overriding the containing resource (eg.
+// resource.foo), and the most specific of the matching overrides is used.
 //
 // If the resource is being supplied by a mock provider, then we need to check
 // the overrides for that provider as well, as such the provider config is
@@ -146,41 +139,28 @@ func (overrides *Overrides) GetResourceOverride(inst addrs.AbsResourceInstance, 
 		return nil, false
 	}
 
-	// First check this specific resource.
-	if override, ok := overrides.getResourceOverride(inst, provider); ok {
-		return override, true
+	// An override applies if it selects this instance. The targets must also
+	// be within the same configuration resource, to exclude module overrides
+	// which would contain the instance too.
+	matches := func(target addrs.TargetPattern) bool {
+		return target.Contains(inst) && inst.ConfigResource().Contains(target)
 	}
 
-	// Otherwise check the containing resource in case the user has set for all
-	// the instances of a resource to be overridden.
-	return overrides.getResourceOverride(inst.ContainingResource(), provider)
+	// Local overrides are listed first, so they take precedence over any
+	// mock provider overrides for the same instances.
+	candidates := matchingOverrides(overrides.localOverrides, matches)
+	if providerOverrides, ok := overrides.ProviderMatch(provider); ok {
+		candidates = append(candidates, matchingOverrides(providerOverrides, matches)...)
+	}
+
+	return mostSpecificOverride(candidates)
 }
 
-func (overrides *Overrides) getResourceOverride(target addrs.Targetable, provider addrs.AbsProviderConfig) (*configs.Override, bool) {
-	// If we have a local override, then apply that first.
-	if override, ok := overrides.localOverrides.GetOk(target); ok {
-		return override, true
-	}
-
-	// Otherwise, check if we have overrides for this provider.
-	providerOverrides, ok := overrides.ProviderMatch(provider)
-	if ok {
-		if override, ok := providerOverrides.GetOk(target); ok {
-			return override, true
-		}
-	}
-
-	// If we have no overrides, that's okay.
-	return nil, false
-}
-
-// GetModuleOverride checks the overrides for the given module instance. This
-// function automatically checks if the containing module has been overridden
-// if the instance is instanced.
+// GetModuleOverride checks the overrides for the given module instance.
 //
 // Users can mark a module instance as overridden by overriding the instance
 // directly (eg. module.foo[0]) or by overriding the containing module
-// (eg. module.foo).
+// (eg. module.foo), and the most specific of the matching overrides is used.
 //
 // Modules cannot be overridden by mock providers directly, so we don't need
 // to know anything about providers for this function (in contrast to
@@ -192,35 +172,54 @@ func (overrides *Overrides) GetModuleOverride(inst addrs.ModuleInstance) (*confi
 		return nil, false
 	}
 
-	// Otherwise check if this specific instance has been overridden.
-	if override, ok := overrides.localOverrides.GetOk(inst); ok {
-		// It has, so just return that.
-		return override, true
+	// An override applies if it selects this module instance. The targets
+	// must also be within the same configuration module, to exclude overrides
+	// of ancestor modules, which are handled by IsOverridden.
+	return mostSpecificOverride(matchingOverrides(overrides.localOverrides, func(target addrs.TargetPattern) bool {
+		return target.Contains(inst) && inst.Module().Contains(target)
+	}))
+}
+
+// matchingOverrides returns the overrides with targets accepted by the match
+// function, ordered by target so that the results are deterministic.
+func matchingOverrides(overrides addrs.Map[addrs.TargetPattern, *configs.Override], match func(addrs.TargetPattern) bool) []addrs.MapElem[addrs.TargetPattern, *configs.Override] {
+	var ret []addrs.MapElem[addrs.TargetPattern, *configs.Override]
+	for _, elem := range overrides.Elems {
+		if match(elem.Key) {
+			ret = append(ret, elem)
+		}
 	}
+	sort.SliceStable(ret, func(i, j int) bool {
+		return ret[i].Key.String() < ret[j].Key.String()
+	})
+	return ret
+}
 
-	// If this is an instanced address (eg. module.foo[0]), then we need to
-	// check if the containing module has been overridden as we let users
-	// override all instances of a module by overriding the containing module
-	// (eg. module.foo).
-
-	// Check if the last step is actually instanced, so we don't do extra work
-	// needlessly.
-	if inst[len(inst)-1].InstanceKey == addrs.NoKey {
-		// Then we already checked the instance itself and it wasn't overridden.
+// mostSpecificOverride returns the candidate with the narrowest target, which
+// is contained by the targets of the others. If targets overlap without
+// either containing the other, the earliest candidate takes precedence.
+func mostSpecificOverride(candidates []addrs.MapElem[addrs.TargetPattern, *configs.Override]) (*configs.Override, bool) {
+	if len(candidates) == 0 {
 		return nil, false
 	}
 
-	return overrides.localOverrides.GetOk(inst.ContainingModule())
+	best := candidates[0]
+	for _, candidate := range candidates[1:] {
+		if best.Key.Contains(candidate.Key) && !candidate.Key.Contains(best.Key) {
+			best = candidate
+		}
+	}
+	return best.Value, true
 }
 
 // ProviderMatch returns true if we have overrides for the given provider.
 //
 // This is so that we can selectively apply overrides to resources that are
 // being supplied by a given provider.
-func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (addrs.Map[addrs.Targetable, *configs.Override], bool) {
+func (overrides *Overrides) ProviderMatch(provider addrs.AbsProviderConfig) (addrs.Map[addrs.TargetPattern, *configs.Override], bool) {
 	if !provider.Module.IsRoot() {
 		// We can only set mock providers within the root module.
-		return addrs.Map[addrs.Targetable, *configs.Override]{}, false
+		return addrs.Map[addrs.TargetPattern, *configs.Override]{}, false
 	}
 
 	data, exists := overrides.providerOverrides[addrs.RootProviderConfig{
