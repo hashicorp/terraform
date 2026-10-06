@@ -23,9 +23,8 @@ import (
 )
 
 func TestGraph_planPhase_mermaid(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("graph"), td)
-	t.Chdir(td)
+	td := tempWorkingDirFixture(t, "graph")
+	t.Chdir(td.RootModuleDir())
 
 	ui := new(cli.MockUi)
 	streams, closeStreams := terminal.StreamsForTesting(t)
@@ -34,6 +33,7 @@ func TestGraph_planPhase_mermaid(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
 			Streams:          streams,
+			WorkingDir:       td,
 		},
 	}
 
@@ -93,8 +93,9 @@ func TestGraph_resourcesOnly_mermaid(t *testing.T) {
 					addrs.NewDefaultProvider("foo"): providers.FactoryFixed(p),
 				},
 			},
-			Ui:      ui,
-			Streams: streams,
+			Ui:         ui,
+			Streams:    streams,
+			WorkingDir: wd,
 		},
 	}
 
