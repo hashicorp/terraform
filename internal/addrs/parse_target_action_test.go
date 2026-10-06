@@ -9,136 +9,33 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseTargetAction(t *testing.T) {
+func TestParseAbsActionTarget(t *testing.T) {
 	tcs := []struct {
 		Input   string
-		Want    *Target
+		Want    Targetable
 		WantErr string
 	}{
 		{
 			Input: "action.action_type.action_name",
-			Want: &Target{
-				Subject: AbsAction{
-					Action: Action{
-						Type: "action_type",
-						Name: "action_name",
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 31, Byte: 30},
-				},
-			},
+			Want:  RootModuleInstance.Action("action_type", "action_name"),
 		},
 		{
 			Input: "action.action_type.action_name[0]",
-			Want: &Target{
-				Subject: AbsActionInstance{
-					Action: ActionInstance{
-						Action: Action{
-							Type: "action_type",
-							Name: "action_name",
-						},
-						Key: IntKey(0),
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 34, Byte: 33},
-				},
-			},
+			Want:  RootModuleInstance.ActionInstance("action_type", "action_name", IntKey(0)),
 		},
 		{
 			Input: "module.module_name.action.action_type.action_name",
-			Want: &Target{
-				Subject: AbsAction{
-					Module: ModuleInstance{
-						{
-							Name: "module_name",
-						},
-					},
-					Action: Action{
-						Type: "action_type",
-						Name: "action_name",
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 50, Byte: 49},
-				},
-			},
-		},
-		{
-			Input: "module.module_name.action.action_type.action_name[0]",
-			Want: &Target{
-				Subject: AbsActionInstance{
-					Module: ModuleInstance{
-						{
-							Name: "module_name",
-						},
-					},
-					Action: ActionInstance{
-						Action: Action{
-							Type: "action_type",
-							Name: "action_name",
-						},
-						Key: IntKey(0),
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 53, Byte: 52},
-				},
-			},
+			Want:  RootModuleInstance.Child("module_name", NoKey).Action("action_type", "action_name"),
 		},
 		{
 			Input: "module.module_name[0].action.action_type.action_name",
-			Want: &Target{
-				Subject: AbsAction{
-					Module: ModuleInstance{
-						{
-							Name:        "module_name",
-							InstanceKey: IntKey(0),
-						},
-					},
-					Action: Action{
-						Type: "action_type",
-						Name: "action_name",
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 53, Byte: 52},
-				},
-			},
+			Want:  RootModuleInstance.Child("module_name", IntKey(0)).Action("action_type", "action_name"),
 		},
 		{
 			Input: "module.module_name[0].action.action_type.action_name[0]",
-			Want: &Target{
-				Subject: AbsActionInstance{
-					Module: ModuleInstance{
-						{
-							Name:        "module_name",
-							InstanceKey: IntKey(0),
-						},
-					},
-					Action: ActionInstance{
-						Action: Action{
-							Type: "action_type",
-							Name: "action_name",
-						},
-						Key: IntKey(0),
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 56, Byte: 55},
-				},
-			},
+			Want:  RootModuleInstance.Child("module_name", IntKey(0)).ActionInstance("action_type", "action_name", IntKey(0)),
 		},
 		{
 			Input:   "module.module_name",
@@ -149,14 +46,15 @@ func TestParseTargetAction(t *testing.T) {
 			WantErr: "Action specification must start with `action`.",
 		},
 	}
+
 	for _, test := range tcs {
 		t.Run(test.Input, func(t *testing.T) {
-			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(test.Input), "", hcl.Pos{Line: 1, Column: 1})
+			traversal, travDiags := hclsyntax.ParseTraversalAbs([]byte(test.Input), "", hcl.InitialPos)
 			if travDiags.HasErrors() {
 				t.Fatal(travDiags.Error())
 			}
 
-			got, diags := ParseTargetAction(traversal)
+			got, diags := parseAbsActionTarget(traversal)
 
 			switch len(diags) {
 			case 0:
@@ -183,5 +81,4 @@ func TestParseTargetAction(t *testing.T) {
 			}
 		})
 	}
-
 }

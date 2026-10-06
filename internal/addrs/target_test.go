@@ -225,10 +225,12 @@ func TestResourceContains(t *testing.T) {
 	}
 }
 
+// mustParseTarget parses the concrete address of a module instance, resource,
+// or resource instance.
 func mustParseTarget(str string) Targetable {
-	t, diags := ParseTargetStr(str)
-	if diags != nil {
+	addr, diags := ParseAbsTargetableStr(str)
+	if diags.HasErrors() {
 		panic(fmt.Sprintf("%s: %s", str, diags.ErrWithWarnings()))
 	}
-	return t.Subject
+	return addr
 }

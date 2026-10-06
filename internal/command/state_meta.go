@@ -97,12 +97,11 @@ func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 }
 
 func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing bool, addrStr string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	target, diags := addrs.ParseTargetStr(addrStr)
+	targetAddr, diags := addrs.ParseAbsTargetableStr(addrStr)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	targetAddr := target.Subject
 	var ret []addrs.AbsResourceInstance
 	switch addr := targetAddr.(type) {
 	case addrs.ModuleInstance:
@@ -170,11 +169,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 }
 
 func (c *StateMeta) lookupSingleStateObjectAddr(state *states.State, addrStr string) (addrs.Targetable, tfdiags.Diagnostics) {
-	target, diags := addrs.ParseTargetStr(addrStr)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-	return target.Subject, diags
+	return addrs.ParseAbsTargetableStr(addrStr)
 }
 
 func (c *StateMeta) lookupResourceInstanceAddrs(state *states.State, addrStrs ...string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {

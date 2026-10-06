@@ -2254,11 +2254,11 @@ func TestApply_changedTargets_applyTime(t *testing.T) {
 			_, snap := testModuleWithSnapshot(t, "apply")
 			plan := testPlan(t)
 			for _, rawTarget := range test.planTargets {
-				target, diags := addrs.ParseTargetStr(rawTarget)
+				target, diags := addrs.ParseAbsTargetableStr(rawTarget)
 				if diags.HasErrors() {
 					t.Fatalf("invalid plan target %q: %s", rawTarget, diags.Err())
 				}
-				plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+				plan.TargetAddrs = append(plan.TargetAddrs, target)
 			}
 			planPath := testPlanFile(t, snap, states.NewState(), plan)
 			statePath := testTempFile(t)

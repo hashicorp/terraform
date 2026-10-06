@@ -23,7 +23,7 @@ type Targetable interface {
 	AddrType() TargetableAddrType
 
 	// String produces a string representation of the address that could be
-	// parsed as a HCL traversal and passed to ParseTarget to produce an
+	// parsed as a HCL traversal and passed to ParseAbsTargetable to produce an
 	// identical result.
 	String() string
 }

@@ -225,7 +225,7 @@ const (
 // replacement values that should be used in place of whatever the underlying
 // provider would normally do.
 type Override struct {
-	Target *addrs.Target
+	Target addrs.Targetable
 	Values cty.Value
 
 	BlockName string
@@ -307,7 +307,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -324,7 +324,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -341,7 +341,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -400,14 +400,14 @@ func decodeOverrideModuleBlock(block *hcl.Block, useForPlanDefault bool, source 
 	override, diags := decodeOverrideBlock(block, "outputs", "override_module", useForPlanDefault, source)
 
 	if override.Target != nil {
-		switch override.Target.Subject.AddrType() {
+		switch override.Target.AddrType() {
 		case addrs.ModuleAddrType, addrs.ModuleInstanceAddrType:
 			// Do nothing, we're good here.
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target modules from override_module blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target modules from override_module blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -423,18 +423,18 @@ func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, sourc
 	if override.Target != nil {
 		var mode addrs.ResourceMode
 
-		switch override.Target.Subject.AddrType() {
+		switch override.Target.AddrType() {
 		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
+			subject := override.Target.(addrs.AbsResourceInstance)
 			mode = subject.Resource.Resource.Mode
 		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
+			subject := override.Target.(addrs.AbsResource)
 			mode = subject.Resource.Mode
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -444,7 +444,7 @@ func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, sourc
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -460,18 +460,18 @@ func decodeOverrideEphemeralBlock(block *hcl.Block, useForPlanDefault bool, sour
 	if override.Target != nil {
 		var mode addrs.ResourceMode
 
-		switch override.Target.Subject.AddrType() {
+		switch override.Target.AddrType() {
 		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
+			subject := override.Target.(addrs.AbsResourceInstance)
 			mode = subject.Resource.Resource.Mode
 		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
+			subject := override.Target.(addrs.AbsResource)
 			mode = subject.Resource.Mode
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -481,7 +481,7 @@ func decodeOverrideEphemeralBlock(block *hcl.Block, useForPlanDefault bool, sour
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -497,18 +497,18 @@ func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source Ov
 	if override.Target != nil {
 		var mode addrs.ResourceMode
 
-		switch override.Target.Subject.AddrType() {
+		switch override.Target.AddrType() {
 		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
+			subject := override.Target.(addrs.AbsResourceInstance)
 			mode = subject.Resource.Resource.Mode
 		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
+			subject := override.Target.(addrs.AbsResource)
 			mode = subject.Resource.Mode
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -518,7 +518,7 @@ func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source Ov
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -553,7 +553,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		diags = append(diags, traversalDiags...)
 		if traversal != nil {
 			var targetDiags tfdiags.Diagnostics
-			override.Target, targetDiags = addrs.ParseTarget(traversal)
+			override.Target, targetDiags = addrs.ParseAbsTargetable(traversal)
 			diags = append(diags, targetDiags.ToHCL()...)
 		}
 	} else {

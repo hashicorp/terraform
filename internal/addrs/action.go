@@ -526,20 +526,20 @@ func ParseAbsActionInstance(traversal hcl.Traversal) (AbsActionInstance, tfdiags
 }
 
 // ParseAbsAction attempts to interpret the given traversal as an absolute
-// action address, using the same syntax as expected by ParseTarget.
+// action address, using the same syntax as expected by ParseTargetAction.
 //
-// If no error diagnostics are returned, the returned target includes the
-// address that was extracted and the source range it was extracted from.
+// If no error diagnostics are returned, the returned address includes the
+// action that was extracted.
 //
 // If error diagnostics are returned then the AbsAction value is invalid and
 // must not be used.
 func ParseAbsAction(traversal hcl.Traversal) (AbsAction, tfdiags.Diagnostics) {
-	addr, diags := ParseTargetAction(traversal)
+	addr, diags := parseAbsActionTarget(traversal)
 	if diags.HasErrors() {
 		return AbsAction{}, diags
 	}
 
-	switch tt := addr.Subject.(type) {
+	switch tt := addr.(type) {
 
 	case AbsAction:
 		return tt, diags
