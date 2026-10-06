@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -275,6 +276,116 @@ module.child:
     bar = value
     foo = value
 `)
+}
+
+// A resource address in state rm must refer to the resource in a single module
+// instance, so it can't accidentally remove the resource from every instance
+// of a module, while a module address removes every instance of the module.
+func TestStateRm_expandedModule(t *testing.T) {
+	all := []string{
+		"module.count[0].test_instance.foo",
+		"module.count[1].test_instance.foo",
+		"test_instance.foo[0]",
+		"test_instance.foo[1]",
+	}
+
+	for name, tc := range map[string]struct {
+		addr     string
+		wantCode int
+		wantErr  string
+		want     []string
+	}{
+		"keyless module in a resource address": {
+			addr:     "module.count.test_instance.foo",
+			wantCode: 1,
+			want:     all,
+		},
+		"wildcard module in a resource address": {
+			addr:     "module.count[*].test_instance.foo",
+			wantCode: 1,
+			wantErr:  "Invalid resource address",
+			want:     all,
+		},
+		"wildcard resource instance": {
+			addr:     "test_instance.foo[*]",
+			wantCode: 1,
+			wantErr:  "Invalid resource address",
+			want:     all,
+		},
+		"resource in a single module instance": {
+			addr: "module.count[0].test_instance.foo",
+			want: []string{"module.count[1].test_instance.foo", "test_instance.foo[0]", "test_instance.foo[1]"},
+		},
+		"every instance of a module": {
+			addr: "module.count",
+			want: []string{"test_instance.foo[0]", "test_instance.foo[1]"},
+		},
+		"every instance of a module with a wildcard": {
+			addr: "module.count[*]",
+			want: []string{"test_instance.foo[0]", "test_instance.foo[1]"},
+		},
+		"every instance of a resource": {
+			addr: "test_instance.foo",
+			want: []string{"module.count[0].test_instance.foo", "module.count[1].test_instance.foo"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			state := states.BuildState(func(s *states.SyncState) {
+				for _, addrStr := range all {
+					addr, diags := addrs.ParseAbsResourceInstanceStr(addrStr)
+					if diags.HasErrors() {
+						t.Fatal(diags.Err())
+					}
+					s.SetResourceInstanceCurrent(
+						addr,
+						&states.ResourceInstanceObjectSrc{
+							AttrsJSON: []byte(`{"id":"foo"}`),
+							Status:    states.ObjectReady,
+						},
+						addrs.AbsProviderConfig{
+							Provider: addrs.NewDefaultProvider("test"),
+							Module:   addrs.RootModule,
+						},
+					)
+				}
+			})
+			statePath := testStateFile(t, state)
+
+			ui := testUiWrapped(t)
+			view, _ := testView(t)
+			c := &StateRmCommand{
+				StateMeta{
+					Meta: Meta{
+						testingOverrides: metaOverridesForProvider(testProvider()),
+						Ui:               ui,
+						View:             view,
+					},
+				},
+			}
+
+			code := c.Run([]string{"-state", statePath, tc.addr})
+			errOutput := ui.ErrorWriter.String()
+			if code != tc.wantCode {
+				t.Fatalf("wrong exit code %d\n\n%s", code, errOutput)
+			}
+			if tc.wantErr != "" && !strings.Contains(errOutput, tc.wantErr) {
+				t.Fatalf("wrong error: %s", errOutput)
+			}
+
+			var got []string
+			for _, ms := range testStateRead(t, statePath).Modules {
+				for _, rs := range ms.Resources {
+					for key := range rs.Instances {
+						got = append(got, rs.Addr.Instance(key).String())
+					}
+				}
+			}
+			sort.Strings(got)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("wrong remaining instances\n%s", diff)
+			}
+		})
+	}
 }
 
 func TestStateRmNoArgs(t *testing.T) {

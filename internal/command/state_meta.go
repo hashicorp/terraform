@@ -8,6 +8,9 @@ import (
 	"sort"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
@@ -96,32 +99,69 @@ func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 	return realState, nil
 }
 
+// parseStateAddr parses an address given to a state command.
+//
+// A module address is parsed as a target pattern, so a module call without an
+// instance key selects every instance of that module, as it always has, and
+// [*] may be used to select every instance explicitly.
+//
+// A resource or resource instance address is parsed as a concrete address, so
+// it can't accidentally select objects in more than one module instance. A
+// module call without an instance key in a resource address only refers to
+// the instance of a module call without count or for_each, and wildcards are
+// not allowed.
+func parseStateAddr(addrStr string) (addrs.Targetable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(addrStr), "", hcl.InitialPos)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	pattern, moreDiags := addrs.ParseTarget(traversal)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+	if _, isModule := pattern.ConfigAddr().(addrs.Module); isModule {
+		return pattern, diags
+	}
+
+	for _, step := range traversal {
+		if _, ok := step.(hcl.TraverseSplat); ok {
+			return nil, diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid resource address",
+				fmt.Sprintf("The address %s contains a wildcard. Wildcards are only supported in module addresses, where they select every instance of a module. A resource address must refer to a single resource or resource instance.", addrStr),
+			))
+		}
+	}
+
+	addr, moreDiags := addrs.ParseAbsTargetable(traversal)
+	diags = diags.Append(moreDiags)
+	return addr, diags
+}
+
 func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing bool, addrStr string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
-	targetAddr, diags := addrs.ParseAbsTargetableStr(addrStr)
+	target, diags := parseStateAddr(addrStr)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
 	var ret []addrs.AbsResourceInstance
-	switch addr := targetAddr.(type) {
-	case addrs.ModuleInstance:
-		// Matches all instances within the indicated module and all of its
+	switch addr := target.(type) {
+	case addrs.TargetPattern:
+		// Matches all instances within the selected modules and all of their
 		// descendant modules.
 
-		// found is used to identify cases where the selected module has no
+		// found is used to identify cases where a selected module has no
 		// resources, but one or more of its submodules does.
 		found := false
-		ms := state.Module(addr)
-		if ms != nil {
-			found = true
-			ret = append(ret, c.collectModuleResourceInstances(ms)...)
-		}
-		for _, cms := range state.Modules {
-			if !addr.Equal(cms.Addr) {
-				if addr.IsAncestor(cms.Addr) || addr.Contains(cms.Addr) {
-					found = true
-					ret = append(ret, c.collectModuleResourceInstances(cms)...)
-				}
+		for _, ms := range state.Modules {
+			if addr.Contains(ms.Addr) {
+				found = true
+				ret = append(ret, c.collectModuleResourceInstances(ms)...)
 			}
 		}
 
@@ -147,6 +187,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 			break
 		}
 		ret = append(ret, c.collectResourceInstances(addr.Module, rs)...)
+
 	case addrs.AbsResourceInstance:
 		is := state.ResourceInstance(addr)
 		if is == nil {
@@ -161,6 +202,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 		}
 		ret = append(ret, addr)
 	}
+
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].Less(ret[j])
 	})
