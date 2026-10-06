@@ -72,8 +72,8 @@ func TestGraph_cyclic(t *testing.T) {
 			name: "plan",
 			args: []string{"-type=plan"},
 			errors: []string{
-				`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`,
+				"Error: Cycle:\n  test_instance.",
+				"Error: Cycle:\n  local.",
 			},
 		},
 		{
@@ -106,8 +106,8 @@ func TestGraph_cyclic(t *testing.T) {
 			// predict the exact output. We'll just check that the error messages
 			// are present for the things we know are cyclic.
 			errors: []string{
-				`Error: Cycle: test_instance.`,
-				`Error: Cycle: local.`,
+				"Error: Cycle:\n  test_instance.",
+				"Error: Cycle:\n  local.",
 			},
 		},
 		{
