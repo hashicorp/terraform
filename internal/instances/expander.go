@@ -262,6 +262,9 @@ func (e *Expander) UnknownModuleInstances(addr addrs.Module, includeDirectOverri
 // expansion registered using one of the SetModule* methods before calling,
 // or this method will panic.
 func (e *Expander) GetDeepestExistingModuleInstance(given addrs.ModuleInstance) addrs.ModuleInstance {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	exps := e.exps // start with the root module expansions
 	for i := 0; i < len(given); i++ {
 		step := given[i]
