@@ -42,7 +42,7 @@ func decodeRemovedBlock(block *hcl.Block) (*Removed, hcl.Diagnostics) {
 	var targetKind addrs.RemoveTargetKind
 	var resourceMode addrs.ResourceMode // only valid if targetKind is addrs.RemoveTargetResource
 	if attr, exists := content.Attributes["from"]; exists {
-		from, traversalDiags := hcl.AbsTraversalForExpr(attr.Expr)
+		from, traversalDiags := hcl.AbsTraversalPatternForExpr(attr.Expr)
 		diags = append(diags, traversalDiags...)
 		if !traversalDiags.HasErrors() {
 			from, fromDiags := addrs.ParseRemoveTarget(from)

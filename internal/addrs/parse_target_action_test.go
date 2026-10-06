@@ -127,7 +127,7 @@ func TestParseTargetAction(t *testing.T) {
 
 	for _, test := range tcs {
 		t.Run(test.Input, func(t *testing.T) {
-			traversal, travDiags := hclsyntax.ParseTraversalPartial([]byte(test.Input), "", hcl.InitialPos)
+			traversal, travDiags := hclsyntax.ParseTraversalAbsPattern([]byte(test.Input), "", hcl.InitialPos)
 			if travDiags.HasErrors() {
 				t.Fatal(travDiags.Error())
 			}
