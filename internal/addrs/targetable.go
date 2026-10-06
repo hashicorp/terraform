@@ -24,7 +24,8 @@ type Targetable interface {
 
 	// String produces a string representation of the address that could be
 	// parsed as a HCL traversal and passed to ParseAbsTargetable to produce an
-	// identical result.
+	// identical result. A TargetPattern instead must be parsed as a traversal
+	// pattern and passed to ParseTarget or ParseTargetAction.
 	String() string
 }
 
@@ -44,4 +45,5 @@ const (
 	ModuleInstanceAddrType
 	ActionAddrType
 	ActionInstanceAddrType
+	TargetPatternAddrType
 )

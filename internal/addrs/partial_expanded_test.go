@@ -99,12 +99,54 @@ func TestPartialExpandedResourceIsTargetedBy(t *testing.T) {
 			"module.mod[\"key\"].test.a",
 			true,
 		},
+		{
+			// a resource in the root module doesn't target a resource with
+			// the same name in a child module
+			"module.mod[*].test.a",
+			"test.a",
+			false,
+		},
+		{
+			"module.mod[*].test.a",
+			"test.a[0]",
+			false,
+		},
+		{
+			"module.mod[*].module.child[*].test.a",
+			"module.mod.test.a",
+			false,
+		},
+		{
+			"module.mod[*].module.child[*].test.a",
+			"module.mod",
+			true,
+		},
+		{
+			"module.mod[0].test.a[*]",
+			"module.mod[*].test.a",
+			true,
+		},
+		{
+			"module.mod[0].test.a[*]",
+			"module.mod[*]",
+			true,
+		},
+		{
+			"module.mod[0].module.child[*].test.a",
+			"module.mod[*].module.child[*].test.a",
+			true,
+		},
+		{
+			"module.mod[0].module.child[*].test.a",
+			"module.mod[1].module.child[*].test.a",
+			false,
+		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(fmt.Sprintf("PartialResource(%q).IsTargetedBy(%q)", tc.per, tc.target), func(t *testing.T) {
 			per := mustParsePartialResourceInstanceStr(tc.per).PartialResource()
-			target := mustParseTarget(tc.target)
+			target := mustParseTargetPattern(tc.target)
 
 			got := per.IsTargetedBy(target)
 			if got != tc.want {
@@ -113,6 +155,36 @@ func TestPartialExpandedResourceIsTargetedBy(t *testing.T) {
 		})
 	}
 
+	configResourceTargets := []struct {
+		per    string
+		target ConfigResource
+		want   bool
+	}{
+		{
+			"module.mod[*].test.a",
+			Module{"mod"}.Resource(ManagedResourceMode, "test", "a"),
+			true,
+		},
+		{
+			"module.mod[*].test.a",
+			RootModule.Resource(ManagedResourceMode, "test", "a"),
+			false,
+		},
+		{
+			"module.mod[*].test.a",
+			Module{"mod", "child"}.Resource(ManagedResourceMode, "test", "a"),
+			false,
+		},
+	}
+	for _, tc := range configResourceTargets {
+		t.Run(fmt.Sprintf("PartialResource(%q).IsTargetedBy(ConfigResource(%q))", tc.per, tc.target), func(t *testing.T) {
+			per := mustParsePartialResourceInstanceStr(tc.per).PartialResource()
+			got := per.IsTargetedBy(tc.target)
+			if got != tc.want {
+				t.Errorf("PartialResource(%q).IsTargetedBy(ConfigResource(%q)): got %v; want %v", tc.per, tc.target, got, tc.want)
+			}
+		})
+	}
 }
 
 func TestParsePartialExpandedModule(t *testing.T) {
