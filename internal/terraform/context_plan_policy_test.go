@@ -4071,7 +4071,11 @@ func relIncompleteError(typeName string) *proto.TypeStatus {
 }
 
 func relIncompleteDeferred(typeName string, addrs ...string) *proto.TypeStatus {
-	return &proto.TypeStatus{Type: typeName, Completeness: proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS, DeferredAddresses: addrs}
+	status := &proto.TypeStatus{Type: typeName, Completeness: proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS}
+	for _, addr := range addrs {
+		status.Deferred = append(status.Deferred, &proto.DeferredInstance{Address: addr})
+	}
+	return status
 }
 
 func relNetState(s *states.SyncState, addr, attrsJSON string) {

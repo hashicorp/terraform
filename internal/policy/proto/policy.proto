@@ -372,7 +372,14 @@ message TypeStatus {
   string provider_source = 1;
   string type = 2;
   TypeCompleteness completeness = 3;
-  repeated string deferred_addresses = 4;  // sorted; instance or partial-expansion addresses
+  reserved 4;                            // was deferred_addresses
+  reserved "deferred_addresses";
+  repeated DeferredInstance deferred = 5; // sorted by address; only with INCOMPLETE_DEFERRED
+}
+
+message DeferredInstance {
+  string address = 1;                    // instance or partial-expansion address, as before
+  uint32 provider_instance_id = 2;       // a ProviderInstance.id of the same batch; 0 = not known
 }
 
 message FinishRunRequest {

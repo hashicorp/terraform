@@ -893,9 +893,9 @@ func (c *relationshipCollector) statuses() []*proto.TypeStatus {
 		case len(c.deferred[key]) > 0:
 			status.Completeness = proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS
 			for addr := range c.deferred[key] {
-				status.DeferredAddresses = append(status.DeferredAddresses, addr)
+				status.Deferred = append(status.Deferred, &proto.DeferredInstance{Address: addr})
 			}
-			sort.Strings(status.DeferredAddresses)
+			sort.Slice(status.Deferred, func(i, j int) bool { return status.Deferred[i].Address < status.Deferred[j].Address })
 		case c.incomplete[key]:
 			status.Completeness = proto.TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS
 		}
