@@ -93,6 +93,10 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 	// bad inputs!
 	moduleActionExpr := hcltest.MockExprTraversalSrc("module.foo.action.action_type.bar")
 	fooDataSourceExpr := hcltest.MockExprTraversalSrc("data.example.foo")
+	splatActionExpr, hclDiags := hclsyntax.ParseExpression([]byte("action.action_type.foo[*]"), "", hcl.InitialPos)
+	if hclDiags.HasErrors() {
+		t.Fatal(hclDiags)
+	}
 
 	tests := map[string]struct {
 		input       *hcl.Block
@@ -175,6 +179,31 @@ func TestDecodeActionTriggerBlock(t *testing.T) {
 			},
 			[]string{
 				"MockExprTraversal:0,0-16: Invalid action argument inside action_triggers; action_triggers.actions must only refer to actions in the current module, count.index, or each.key.",
+			},
+		},
+		"error - splat is not an address": {
+			&hcl.Block{
+				Type: "action_trigger",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcltest.MockAttrs(map[string]hcl.Expression{
+						"condition": trueConditionExpr,
+						"events":    eventsListExpr,
+						"actions":   hcltest.MockExprList([]hcl.Expression{splatActionExpr}),
+					}),
+				}),
+			},
+			&ActionTrigger{
+				Condition: trueConditionExpr,
+				Events:    []ActionTriggerEvent{AfterCreate, AfterUpdate},
+				Actions: []ActionRef{
+					{
+						Expr:  splatActionExpr,
+						Range: splatActionExpr.Range(),
+					},
+				},
+			},
+			[]string{
+				":1,1-26: Invalid expression; A single static variable reference is required: only attribute access and indexing with constant keys. No calculations, function calls, template expressions, etc are allowed here.",
 			},
 		},
 		"error - invalid event": {

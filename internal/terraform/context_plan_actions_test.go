@@ -699,36 +699,6 @@ resource "test_object" "a" {
 					)
 				},
 			},
-			"splat is not supported": {
-				module: map[string]string{
-					"main.tf": `
-action "test_action" "hello" {
-  count = 42
-}
-resource "test_object" "a" {
-  lifecycle {
-    action_trigger {
-      events = [before_create]
-      actions = [action.test_action.hello[*]]
-    }
-  }
-}
-`,
-				},
-				expectPlanActionCalled: false,
-				expectValidateDiagnostics: func(m *configs.Config) tfdiags.Diagnostics {
-					return tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid instance reference",
-						Detail:   "Only object references with dynamic indexes are allowed in this context.",
-						Subject: &hcl.Range{
-							Filename: filepath.Join(m.Module.SourceDir, "main.tf"),
-							Start:    hcl.Pos{Line: 9, Column: 18, Byte: 159},
-							End:      hcl.Pos{Line: 9, Column: 47, Byte: 186},
-						},
-					})
-				},
-			},
 			"multiple events triggering in same action trigger": {
 				module: map[string]string{
 					"main.tf": `

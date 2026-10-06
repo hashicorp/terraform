@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -39,61 +38,27 @@ func evalSemiStaticExpr(expr hcl.Expression, keyData instances.RepetitionData) (
 // traversal. The RepetitionData contains the data necessary to evaluate the
 // only allowed variables in the expression, count.index and each.key.
 func semiStaticExpToTraversal(expr hcl.Expression, keyData instances.RepetitionData) (hcl.Traversal, tfdiags.Diagnostics) {
-	var trav hcl.Traversal
 	var diags tfdiags.Diagnostics
 
-	switch e := expr.(type) {
-	case *hclsyntax.RelativeTraversalExpr:
-		t, d := semiStaticExpToTraversal(e.Source, keyData)
-		diags = diags.Append(d)
-		trav = append(trav, t...)
-		trav = append(trav, e.Traversal...)
-
-	case *hclsyntax.ScopeTraversalExpr:
-		// a static reference, we can just append the traversal
-		trav = append(trav, e.Traversal...)
-
-	case *hclsyntax.IndexExpr:
-		// Get the collection from the index expression
-		t, d := semiStaticExpToTraversal(e.Collection, keyData)
-		diags = diags.Append(d)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-		trav = append(trav, t...)
-
-		// The index key is the only place where we could have variables that
-		// reference count and each, so we need to parse those independently.
-		idx, hclDiags := parseKeyExprForStaticTraveral(e.Key, keyData)
-		diags = diags.Append(hclDiags)
-
-		trav = append(trav, idx)
-
-	default:
-		// Something unexpected got through config validation. We're not sure
-		// what it is, but we'll point it out in the diagnostics for the user
-		// to fix.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid instance reference",
-			Detail:   "Only object references with dynamic indexes are allowed in this context.",
-			Subject:  e.Range().Ptr(),
-		})
+	addrExpr, hclDiags := addrs.ParseAddressExpr(expr)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
 	}
 
-	return trav, diags
+	traversal, hclDiags := addrExpr.Traversal(func(key hcl.Expression) (cty.Value, hcl.Diagnostics) {
+		return evalSemiStaticKeyExpr(key, keyData)
+	})
+	diags = diags.Append(hclDiags)
+	return traversal, diags
 }
 
-// parseKeyExprForStaticTraveral takes an hcl.Expression and parses it as an index key, while
-// evaluating any references to count.index or each.key. This is also used in evaluateActionExpression.
-func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.RepetitionData) (hcl.TraverseIndex, hcl.Diagnostics) {
-	idx := hcl.TraverseIndex{
-		SrcRange: expr.Range(),
-	}
-
+// evalSemiStaticKeyExpr takes an hcl.Expression and evaluates it as an index
+// key, where the only allowed references are count.index and each.key.
+func evalSemiStaticKeyExpr(expr hcl.Expression, keyData instances.RepetitionData) (cty.Value, hcl.Diagnostics) {
 	trav, diags := hcl.RelTraversalForExpr(expr)
 	if diags.HasErrors() {
-		return idx, diags
+		return cty.NilVal, diags
 	}
 
 	keyParts := []string{}
@@ -107,7 +72,7 @@ func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.Repeti
 				Detail:   "Only constant values, count.index or each.key are allowed in index expressions.",
 				Subject:  expr.Range().Ptr(),
 			})
-			return idx, diags
+			return cty.NilVal, diags
 		}
 		keyParts = append(keyParts, attr.Name)
 	}
@@ -122,7 +87,7 @@ func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.Repeti
 				Subject:  expr.Range().Ptr(),
 			})
 		}
-		idx.Key = keyData.CountIndex
+		return keyData.CountIndex, diags
 
 	case "each.key":
 		if keyData.EachKey == cty.NilVal {
@@ -133,7 +98,7 @@ func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.Repeti
 				Subject:  expr.Range().Ptr(),
 			})
 		}
-		idx.Key = keyData.EachKey
+		return keyData.EachKey, diags
 	default:
 		// Something may have slipped through validation, probably from a json
 		// configuration.
@@ -145,6 +110,5 @@ func parseKeyExprForStaticTraveral(expr hcl.Expression, keyData instances.Repeti
 		})
 	}
 
-	return idx, diags
-
+	return cty.NilVal, diags
 }

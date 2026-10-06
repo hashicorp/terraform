@@ -106,8 +106,8 @@ func TestParseAddressInstanceKeys(t *testing.T) {
 				return mustParseTraversalPattern(t, `module.a[*].module.b["x"].test_instance.foo[1]`)
 			},
 			parse: func(traversal hcl.Traversal) (string, tfdiags.Diagnostics) {
-				per, _, diags := ParsePartialExpandedResource(traversal)
-				return per.String(), diags
+				addr, diags := ParsePartialResourceInstance(traversal)
+				return addr.PartialResource().String(), diags
 			},
 			want: "module.a[*].module.b[*].test_instance.foo[*]",
 		},
@@ -116,10 +116,30 @@ func TestParseAddressInstanceKeys(t *testing.T) {
 				return unknownKey(t, `module.a[0].module.b["x"].test_instance.foo`, 5)
 			},
 			parse: func(traversal hcl.Traversal) (string, tfdiags.Diagnostics) {
-				per, _, diags := ParsePartialExpandedResource(traversal)
-				return per.String(), diags
+				addr, diags := ParsePartialResourceInstance(traversal)
+				return addr.PartialResource().String(), diags
 			},
 			want: "module.a[0].module.b[*].test_instance.foo[*]",
+		},
+		"partial-expanded resource with the resource prefix": {
+			traversal: func(t *testing.T) hcl.Traversal {
+				return mustParseTraversalPattern(t, "module.a.resource.test_instance.foo")
+			},
+			parse: func(traversal hcl.Traversal) (string, tfdiags.Diagnostics) {
+				addr, diags := ParsePartialResourceInstance(traversal)
+				return addr.PartialResource().String(), diags
+			},
+			want: "module.a.test_instance.foo[*]",
+		},
+		"partial-expanded data resource": {
+			traversal: func(t *testing.T) hcl.Traversal {
+				return unknownKey(t, "module.a[0].data.test_instance.foo", 2)
+			},
+			parse: func(traversal hcl.Traversal) (string, tfdiags.Diagnostics) {
+				addr, diags := ParsePartialResourceInstance(traversal)
+				return addr.PartialResource().String(), diags
+			},
+			want: "module.a[*].data.test_instance.foo[*]",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

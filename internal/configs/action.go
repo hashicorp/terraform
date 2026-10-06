@@ -420,6 +420,14 @@ EXPRS:
 			continue
 		}
 
+		// The expression must also be a static address, where only the
+		// instance keys can be dynamic.
+		_, addrDiags := addrs.ParseAddressExpr(expr)
+		diags = append(diags, addrDiags...)
+		if addrDiags.HasErrors() {
+			continue
+		}
+
 		actionCount := 0
 		for _, ref := range refs {
 			switch ref.Subject.(type) {

@@ -774,6 +774,14 @@ func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagno
 			continue
 		}
 
+		// The expression must also be a static address, where only the
+		// instance keys can be dynamic.
+		_, addrDiags := addrs.ParseAddressExpr(expr)
+		diags = append(diags, addrDiags...)
+		if addrDiags.HasErrors() {
+			continue
+		}
+
 		resourceCount := 0
 		for _, ref := range refs {
 			switch sub := ref.Subject.(type) {
