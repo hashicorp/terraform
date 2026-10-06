@@ -400,7 +400,7 @@ const (
 	RecordSource_INVALID_RECORD_SOURCE    RecordSource = 0
 	RecordSource_PLANNED_RECORD_SOURCE    RecordSource = 1 // from a planned change (plan run) or an applied change (apply run)
 	RecordSource_STATE_RECORD_SOURCE      RecordSource = 2 // from state, without a change in this run (-target outsiders, refresh-only)
-	RecordSource_DEFERRED_RECORD_SOURCE   RecordSource = 3 // P2, not sent in P1
+	RecordSource_DEFERRED_RECORD_SOURCE   RecordSource = 3 // not sent: deferred instances get no record
 	RecordSource_DISCOVERED_RECORD_SOURCE RecordSource = 4 // P6 (Search), not sent in P1
 )
 
