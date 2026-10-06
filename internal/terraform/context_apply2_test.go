@@ -5831,15 +5831,10 @@ output "old" {
 	}
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
-	if diags.HasErrors() {
-		return
-	}
 
 	state, diags := ctx.Apply(plan, m, opts.ApplyOpts())
 	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
-	if diags.HasErrors() {
-		return
-	}
+
 	output := state.RootOutputValues["old"]
 	if output == nil || !output.Value.RawEquals(cty.StringVal("example")) {
 		t.Fatalf("unexpected root output: %#v", output)
