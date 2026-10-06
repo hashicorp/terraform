@@ -585,6 +585,9 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 	}
 
 	deferred := make(map[string]struct{})
+	// deferredResources are the configuration resources with a deferred
+	// change.
+	deferredResources := make(map[string]struct{})
 	if deferrals := ctx.Deferrals(); deferrals != nil {
 		for _, d := range deferrals.GetDeferredChanges() {
 			addr := d.Change.Addr
@@ -592,6 +595,7 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 				continue
 			}
 			deferred[addr.String()] = struct{}{}
+			deferredResources[addr.ConfigResource().String()] = struct{}{}
 			key := relationshipTypeKey{source: d.Change.ProviderAddr.Provider.String(), typeName: addr.Resource.Resource.Type}
 			if !c.types[key] {
 				continue
@@ -615,7 +619,7 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 	c.addStateRecords(state, changed, deferred)
 
 	if ps.run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE && ps.run.PlanMode == proto.PlanMode_NORMAL_PLAN_MODE {
-		c.checkExpandedInstances(changed, deferred)
+		c.checkExpandedInstances(changed, deferred, deferredResources)
 	}
 
 	sort.Slice(c.records, func(i, j int) bool {
@@ -850,8 +854,10 @@ func (c *relationshipCollector) addStateRecords(state *states.State, changed, de
 
 // checkExpandedInstances marks a type incomplete if the instance expander
 // knows an instance of a configured resource of that type that has neither a
-// change nor a deferral, e.g. because planning it failed.
-func (c *relationshipCollector) checkExpandedInstances(changed, deferred map[string]struct{}) {
+// change nor a deferral, e.g. because planning it failed, or if a configured
+// resource of that type has instance keys that aren't known and no deferred
+// change.
+func (c *relationshipCollector) checkExpandedInstances(changed, deferred, deferredResources map[string]struct{}) {
 	cfg := c.ctx.Config()
 	exp := c.ctx.InstanceExpander()
 	if cfg == nil || exp == nil {
@@ -871,7 +877,8 @@ func (c *relationshipCollector) checkExpandedInstances(changed, deferred map[str
 					continue
 				}
 				_, keys, unknownKeys := exp.ResourceInstanceKeys(absRes)
-				if unknownKeys && len(c.deferred[key]) == 0 {
+				if _, ok := deferredResources[absRes.Config().String()]; unknownKeys && !ok {
+					log.Printf("[DEBUG] policy: %s has unknown instance keys and no deferred change; its type is incomplete for relationship checks", absRes)
 					c.incomplete[key] = true
 				}
 				for _, instKey := range keys {

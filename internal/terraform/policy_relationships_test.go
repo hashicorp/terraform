@@ -1026,6 +1026,10 @@ func TestCollectRelationshipBatch_deferrals(t *testing.T) {
 		inst := mustResourceInstanceAddr(addr)
 		d.ReportResourceInstanceDeferred(inst, providers.DeferredReasonProviderConfigUnknown, deferredChange(inst, provider))
 	}
+	deferPartial := func(d *deferring.Deferred, addr addrs.PartialExpandedResource, provider addrs.AbsProviderConfig) {
+		d.ReportResourceExpansionDeferred(addr, deferredChange(addr.UnknownResourceInstance(), provider))
+	}
+	defaultProvider := mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`)
 
 	tests := map[string]struct {
 		stage proto.EvaluationStage
@@ -1104,6 +1108,84 @@ func TestCollectRelationshipBatch_deferrals(t *testing.T) {
 				`provider["registry.terraform.io/hashicorp/test"].z`: true,
 				`provider["registry.terraform.io/hashicorp/test"].y`: true,
 			},
+		},
+		"unknown keys without a deferral of their own": {
+			// test_net.a's instance keys aren't known, but only test_net.b
+			// was deferred, so the type isn't complete once the deferred
+			// instances are planned.
+			stage: proto.EvaluationStage_PLAN_EVALUATION_STAGE,
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					count = 1
+				}
+				resource "test_net" "b" {
+				}
+			`},
+			setup: func(exp *instances.Expander, d *deferring.Deferred) {
+				exp.SetResourceCountUnknown(addrs.RootModuleInstance, mustAbsResourceAddr("test_net.a").Resource)
+				exp.SetResourceSingle(addrs.RootModuleInstance, mustAbsResourceAddr("test_net.b").Resource)
+				deferInstance(d, "test_net.b", defaultProvider)
+			},
+			want: &proto.TypeStatus{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Type:           "test_net",
+				Completeness:   proto.TypeCompleteness_INCOMPLETE_ERROR_TYPE_COMPLETENESS,
+			},
+		},
+		"unknown keys with a deferral of their own": {
+			stage: proto.EvaluationStage_PLAN_EVALUATION_STAGE,
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					count = 1
+				}
+				resource "test_net" "b" {
+				}
+			`},
+			setup: func(exp *instances.Expander, d *deferring.Deferred) {
+				exp.SetResourceCountUnknown(addrs.RootModuleInstance, mustAbsResourceAddr("test_net.a").Resource)
+				exp.SetResourceSingle(addrs.RootModuleInstance, mustAbsResourceAddr("test_net.b").Resource)
+				deferPartial(d, mustAbsResourceAddr("test_net.a").UnexpandedResource(), defaultProvider)
+				deferInstance(d, "test_net.b", defaultProvider)
+			},
+			want: &proto.TypeStatus{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Type:           "test_net",
+				Completeness:   proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS,
+				Deferred: []*proto.DeferredInstance{
+					{Address: "test_net.a[*]", ProviderInstanceId: 1},
+					{Address: "test_net.b", ProviderInstanceId: 1},
+				},
+			},
+			wantProviders: map[string]bool{defaultProvider.String(): true},
+		},
+		"unknown keys in a module instance with a deferral of their own": {
+			stage: proto.EvaluationStage_PLAN_EVALUATION_STAGE,
+			files: map[string]string{
+				"main.tf": `
+					module "m" {
+						source = "./m"
+						count  = 1
+					}
+				`,
+				"m/main.tf": `
+					resource "test_net" "a" {
+						count = 1
+					}
+				`,
+			},
+			setup: func(exp *instances.Expander, d *deferring.Deferred) {
+				exp.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "m"}, 1)
+				res := mustAbsResourceAddr("module.m[0].test_net.a")
+				exp.SetResourceCountUnknown(res.Module, res.Resource)
+				deferPartial(d, res.UnexpandedResource(), mustProviderConfig(`module.m.provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			want: &proto.TypeStatus{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Type:           "test_net",
+				Completeness:   proto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS,
+				Deferred:       []*proto.DeferredInstance{{Address: "module.m[0].test_net.a[*]", ProviderInstanceId: 1}},
+			},
+			wantProviders: map[string]bool{`module.m.provider["registry.terraform.io/hashicorp/test"]`: true},
 		},
 	}
 	for name, test := range tests {
