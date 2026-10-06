@@ -476,16 +476,6 @@ func ObjectInPartialExpandedModule[T interface {
 
 var _ UniqueKeyer = InPartialExpandedModule[LocalValue]{}
 
-// ModuleLevelsKnown returns the number of module path segments of the address
-// that have known instance keys.
-//
-// This might be useful, for example, for preferring a more-specifically-known
-// address over a less-specifically-known one when selecting a placeholder
-// value to use to represent an object beneath an unexpanded module address.
-func (in InPartialExpandedModule[T]) ModuleLevelsKnown() int {
-	return in.Module.LevelsKnown()
-}
-
 // String returns a string representation of the pattern which uses the special
 // placeholder "[*]" to represent positions where module instance keys are not
 // yet known.

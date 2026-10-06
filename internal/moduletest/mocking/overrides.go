@@ -199,17 +199,10 @@ func matchingOverrides(overrides addrs.Map[addrs.TargetPattern, *configs.Overrid
 // is contained by the targets of the others. If targets overlap without
 // either containing the other, the earliest candidate takes precedence.
 func mostSpecificOverride(candidates []addrs.MapElem[addrs.TargetPattern, *configs.Override]) (*configs.Override, bool) {
-	if len(candidates) == 0 {
-		return nil, false
-	}
-
-	best := candidates[0]
-	for _, candidate := range candidates[1:] {
-		if best.Key.Contains(candidate.Key) && !candidate.Key.Contains(best.Key) {
-			best = candidate
-		}
-	}
-	return best.Value, true
+	best, ok := addrs.MostSpecific(candidates, func(a, b addrs.MapElem[addrs.TargetPattern, *configs.Override]) bool {
+		return a.Key.Contains(b.Key)
+	})
+	return best.Value, ok
 }
 
 // ProviderMatch returns true if we have overrides for the given provider.
