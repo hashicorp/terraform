@@ -173,23 +173,11 @@ func (a AbsAction) ConfigAction() ConfigAction {
 	}
 }
 
-// Contains implements Targetable
+// Contains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
 func (a AbsAction) Contains(other Targetable) bool {
-	switch to := other.(type) {
-	case AbsAction:
-		return a.Equal(to)
-	case AbsActionInstance:
-		return a.Equal(to.ContainingAction())
-	case ConfigAction:
-		return a.ConfigAction().Equal(to)
-	default:
-		return false
-	}
-}
-
-// AddrType implements Targetable
-func (a AbsAction) AddrType() TargetableAddrType {
-	return ActionAddrType
+	return targetContains(a, other)
 }
 
 func (a AbsAction) String() string {
@@ -271,23 +259,13 @@ func (a AbsActionInstance) String() string {
 	return fmt.Sprintf("%s.%s", a.Module.String(), a.Action.String())
 }
 
-// Contains implements Targetable
+// Contains implements Targetable by returning true if the given other
+// address is equal to the receiver.
+//
+// An instance key of WildcardKey selects every instance, and so behaves the
+// same as the containing AbsAction.
 func (a AbsActionInstance) Contains(other Targetable) bool {
-	switch to := other.(type) {
-	case AbsAction:
-		return to.Equal(a.ContainingAction()) && a.Action.Key == NoKey
-	case AbsActionInstance:
-		return to.Equal(a)
-	case ConfigAction:
-		return a.ConfigAction().Equal(to)
-	default:
-		return false
-	}
-}
-
-// AddrType implements Targetable
-func (a AbsActionInstance) AddrType() TargetableAddrType {
-	return ActionInstanceAddrType
+	return targetContains(a, other)
 }
 
 func (a AbsActionInstance) Equal(o AbsActionInstance) bool {
@@ -340,11 +318,6 @@ func (a ConfigAction) Absolute(module ModuleInstance) AbsAction {
 		Module: module,
 		Action: a.Action,
 	}
-}
-
-// AddrType implements Targetable
-func (a ConfigAction) AddrType() TargetableAddrType {
-	return ActionAddrType
 }
 
 func (a ConfigAction) String() string {
