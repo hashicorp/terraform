@@ -103,13 +103,9 @@ type PlanGraphBuilder struct {
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
 
-	// forgetResources lists the resources that are to be forgotten, i.e. removed
-	// from state without destroying.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules lists the modules that are to be forgotten, i.e. removed
-	// from state without destroying.
-	forgetModules []addrs.Module
+	// forget lists the modules and resources whose instances are to be
+	// forgotten, i.e. removed from state without destroying.
+	forget []addrs.Targetable
 
 	// GenerateConfig tells Terraform where to write and generated config for
 	// any import targets that do not already have configuration.
@@ -352,8 +348,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
-			forgetResources: b.forgetResources,
-			forgetModules:   b.forgetModules,
+			forget:          b.forget,
 		}
 	}
 
@@ -366,8 +361,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
-			forgetResources: b.forgetResources,
-			forgetModules:   b.forgetModules,
+			forget:          b.forget,
 		}
 	}
 }

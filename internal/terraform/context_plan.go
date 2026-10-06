@@ -760,27 +760,26 @@ func (c *Context) findImportTargets(config *configs.Config) []*ImportTarget {
 	return importTargets
 }
 
-// findForgetTargets builds a list of resources and a list of modules to be
+// findForgetTargets builds a list of the modules and resources to be
 // forgotten, based on any removed blocks in config.
-func (c *Context) findForgetTargets(config *configs.Config) (forgetResources []addrs.ConfigResource, forgetModules []addrs.Module, diags tfdiags.Diagnostics) {
+func (c *Context) findForgetTargets(config *configs.Config) ([]addrs.Targetable, tfdiags.Diagnostics) {
 	removeStmts, diags := refactoring.FindRemoveStatements(config)
 	if diags.HasErrors() {
-		return nil, nil, diags
+		return nil, diags
 	}
+
+	var forget []addrs.Targetable
 	for _, rst := range removeStmts.Values() {
 		if rst.Destroy {
-			// no-op
-		} else {
-			if fr, ok := rst.From.(addrs.ConfigResource); ok {
-				forgetResources = append(forgetResources, fr)
-			} else if fm, ok := rst.From.(addrs.Module); ok {
-				forgetModules = append(forgetModules, fm)
-			} else {
-				panic("Invalid ConfigMoveable type in remove statement")
-			}
+			continue
 		}
+		addr, ok := rst.From.(addrs.Targetable)
+		if !ok {
+			panic(fmt.Sprintf("invalid address %s in remove statement", rst.From))
+		}
+		forget = append(forget, addr)
 	}
-	return forgetResources, forgetModules, diags
+	return forget, diags
 }
 
 func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts, moduleAddr addrs.ModuleInstance) (*plans.Plan, *lang.Scope, tfdiags.Diagnostics) {
@@ -1056,7 +1055,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	case plans.NormalMode:
 		// In Normal mode we need to pay attention to import and removed blocks
 		// in config so their targets can be added to the graph.
-		forgetResources, forgetModules, diags := c.findForgetTargets(config)
+		forget, diags := c.findForgetTargets(config)
 		if diags.HasErrors() {
 			return nil, walkPlan, diags
 		}
@@ -1075,8 +1074,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			ExternalReferences:        opts.ExternalReferences,
 			Overrides:                 opts.Overrides,
 			ImportTargets:             c.findImportTargets(config),
-			forgetResources:           forgetResources,
-			forgetModules:             forgetModules,
+			forget:                    forget,
 			GenerateConfigPath:        opts.GenerateConfigPath,
 			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
 			queryPlan:                 opts.Query,

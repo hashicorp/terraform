@@ -5338,6 +5338,72 @@ func TestContext2Apply_externalDependencyDeferred(t *testing.T) {
 	}
 }
 
+// A removed block for a module or a resource within a module applies to the
+// objects in every instance of the module.
+func TestContext2Plan_removedForgetModuleInstances(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		for _, addr := range []string{`module.a[0].test_object.a`, `module.a[1].test_object.a`, `module.a[1].test_object.b`} {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr(addr), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"foo"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		}
+	})
+
+	for name, tc := range map[string]struct {
+		from string
+		want map[string]plans.Action
+	}{
+		"resource": {
+			from: "module.a.test_object.a",
+			want: map[string]plans.Action{
+				`module.a[0].test_object.a`: plans.Forget,
+				`module.a[1].test_object.a`: plans.Forget,
+				`module.a[1].test_object.b`: plans.Delete,
+			},
+		},
+		"module": {
+			from: "module.a",
+			want: map[string]plans.Action{
+				`module.a[0].test_object.a`: plans.Forget,
+				`module.a[1].test_object.a`: plans.Forget,
+				`module.a[1].test_object.b`: plans.Forget,
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": fmt.Sprintf(`
+removed {
+  from = %s
+  lifecycle {
+    destroy = false
+  }
+}
+`, tc.from),
+			})
+
+			p := simpleMockProvider()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			got := make(map[string]plans.Action)
+			for _, change := range plan.Changes.Resources {
+				got[change.Addr.String()] = change.Action
+			}
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("wrong planned actions\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestContext2Plan_removedResourceForgetBasic(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{

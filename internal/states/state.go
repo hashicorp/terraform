@@ -604,48 +604,6 @@ func (s *State) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
 	}
 }
 
-// MoveModule takes a source and destination addrs.Module address, and moves all
-// state Modules which are contained by the src address to the new address.
-func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
-	if src.Module.IsRoot() || dst.Module.IsRoot() {
-		panic("cannot move to or from root module")
-	}
-
-	// Modules only exist as ModuleInstances in state, so we need to check each
-	// state Module and see if it is contained by the src address to get a full
-	// list of modules to move.
-	var srcMIs []*Module
-	for _, module := range s.Modules {
-		if !module.Addr.IsRoot() {
-			if src.Module.Contains(module.Addr) {
-				srcMIs = append(srcMIs, module)
-			}
-		}
-	}
-
-	if len(srcMIs) == 0 {
-		panic(fmt.Sprintf("no matching module instances found for src module %s", src.String()))
-	}
-
-	for _, ms := range srcMIs {
-		newInst := make(addrs.ModuleInstance, len(ms.Addr))
-		copy(newInst, ms.Addr)
-		if ms.Addr.IsDeclaredByCall(src) {
-			// Easy case: we just need to update the last step with the new name
-			newInst[len(newInst)-1].Name = dst.Call.Name
-		} else {
-			// Trickier: this Module is a submodule. we need to find and update
-			// only that appropriate step
-			for s := range newInst {
-				if newInst[s].Name == src.Call.Name {
-					newInst[s].Name = dst.Call.Name
-				}
-			}
-		}
-		s.MoveModuleInstance(ms.Addr, newInst)
-	}
-}
-
 // RecordCheckResults replaces any check results already recorded in the state
 // with a new set taken from the given check state object.
 func (s *State) RecordCheckResults(checkState *checks.State) {
