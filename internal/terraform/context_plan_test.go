@@ -6091,6 +6091,121 @@ resource "aws_instance" "bar" {
 	}
 }
 
+// Instances from module instances which no longer exist, or whose expansion
+// is not known yet, must only be planned when they are targeted.
+func TestContext2Plan_targetedModuleInstanceOrphans(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "keys" {
+  type = set(string)
+}
+
+module "m" {
+  for_each = var.keys
+  source   = "./m"
+}
+`,
+		"m/main.tf": `
+resource "test_object" "a" {
+  test_string = "new"
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		for _, key := range []string{"x", "y"} {
+			s.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr(fmt.Sprintf("module.m[%q].test_object.a", key)),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(fmt.Sprintf(`{"test_string":%q}`, key)),
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+		}
+	})
+
+	for name, tc := range map[string]struct {
+		keys   cty.Value
+		target string
+
+		wantChanges  []string
+		wantDeferred []string
+		// wantRefreshed lists the test_string values of refreshed instances
+		wantRefreshed []string
+	}{
+		"untargeted orphan": {
+			// module.m["y"] no longer exists, but is not targeted
+			keys:          cty.SetVal([]cty.Value{cty.StringVal("x")}),
+			target:        `module.m["x"].test_object.a`,
+			wantChanges:   []string{`module.m["x"].test_object.a Update`},
+			wantRefreshed: []string{"x"},
+		},
+		"targeted orphan": {
+			keys:          cty.SetVal([]cty.Value{cty.StringVal("x")}),
+			target:        `module.m["y"]`,
+			wantChanges:   []string{`module.m["y"].test_object.a Delete`},
+			wantRefreshed: []string{"y"},
+		},
+		"unknown expansion": {
+			// either instance could be an orphan, but only module.m["x"] is
+			// targeted
+			keys:          cty.UnknownVal(cty.Set(cty.String)),
+			target:        `module.m["x"].test_object.a`,
+			wantDeferred:  []string{`module.m[*].test_object.a[*]`},
+			wantRefreshed: []string{"x"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var mu sync.Mutex
+			var refreshed []string
+			p := simpleMockProvider()
+			p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+				mu.Lock()
+				defer mu.Unlock()
+				refreshed = append(refreshed, req.PriorState.GetAttr("test_string").AsString())
+				return providers.ReadResourceResponse{NewState: req.PriorState}
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				Targets:         []addrs.TargetPattern{mustTargetPattern(tc.target)},
+				SetVariables: InputValues{
+					"keys": {Value: tc.keys, SourceType: ValueFromCaller},
+				},
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			var gotChanges, gotDeferred []string
+			for _, change := range plan.Changes.Resources {
+				gotChanges = append(gotChanges, fmt.Sprintf("%s %s", change.Addr, change.Action))
+			}
+			for _, deferred := range plan.DeferredResources {
+				gotDeferred = append(gotDeferred, deferred.ChangeSrc.Addr.String())
+			}
+			sort.Strings(gotChanges)
+			sort.Strings(gotDeferred)
+			sort.Strings(refreshed)
+
+			if diff := cmp.Diff(tc.wantChanges, gotChanges); diff != "" {
+				t.Errorf("wrong planned changes\n%s", diff)
+			}
+			if diff := cmp.Diff(tc.wantDeferred, gotDeferred); diff != "" {
+				t.Errorf("wrong deferred changes\n%s", diff)
+			}
+			if diff := cmp.Diff(tc.wantRefreshed, refreshed); diff != "" {
+				t.Errorf("wrong refreshed instances\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestContext2Plan_moduleRefIndex(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `

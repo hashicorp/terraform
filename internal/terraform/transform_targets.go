@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -125,6 +126,12 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, targets []addrs.Targe
 func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.TargetPattern) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
+	case *nodePlannablePartialExpandedResource:
+		// A partial-expanded resource represents instances whose keys are not
+		// all known yet, so it is targeted if any of them could be.
+		return slices.ContainsFunc(targets, func(target addrs.TargetPattern) bool {
+			return r.addr.IsTargetedBy(target)
+		})
 	case GraphNodeResourceInstance:
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
