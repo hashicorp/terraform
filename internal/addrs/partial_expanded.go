@@ -5,10 +5,6 @@ package addrs
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/hcl/v2"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // PartialExpandedModule represents a set of module instances which all share
@@ -50,18 +46,6 @@ func newPartialExpandedModule(module ModuleInstance) PartialExpandedModule {
 		ret[i] = step
 	}
 	return PartialExpandedModule{module: ret}
-}
-
-// ParsePartialExpandedModule parses a module address traversal and returns a
-// PartialExpandedModule representing the known and unknown parts of the
-// address.
-//
-// It returns the parsed PartialExpandedModule, the remaining traversal steps
-// that were not consumed by this function, and any diagnostics that were
-// generated during parsing.
-func ParsePartialExpandedModule(traversal hcl.Traversal) (PartialExpandedModule, hcl.Traversal, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal, wildcardInstanceKeys)
-	return newPartialExpandedModule(path), remain, diags
 }
 
 // UnexpandedChild returns the address of the instances of the given module
@@ -260,35 +244,6 @@ type PartialExpandedResource struct {
 	// actually fully-expanded; that should be a ModuleInstance instead.
 	module   PartialExpandedModule
 	resource Resource
-}
-
-// ParsePartialExpandedResource parses a resource address traversal and returns
-// a PartialExpandedResource representing the known and unknown parts of the
-// address.
-func ParsePartialExpandedResource(traversal hcl.Traversal) (PartialExpandedResource, hcl.Traversal, tfdiags.Diagnostics) {
-	pem, remain, diags := ParsePartialExpandedModule(traversal)
-	if len(remain) == 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid address",
-			Detail:   "Resource address must be a module address followed by a resource address.",
-			Subject:  traversal.SourceRange().Ptr(),
-		})
-		return PartialExpandedResource{}, nil, diags
-	}
-
-	// A PartialExpandedResource represents all of the instances of the
-	// resource, so any instance key is discarded.
-	resource, _, remain, moreDiags := parseResourceUnderModule(remain, wildcardInstanceKeys, true)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return PartialExpandedResource{}, nil, diags
-	}
-
-	return PartialExpandedResource{
-		module:   pem,
-		resource: resource,
-	}, remain, diags
 }
 
 // UnexpandedResource returns the address of a child resource expressed as a
