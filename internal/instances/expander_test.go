@@ -5,6 +5,7 @@ package instances
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -790,6 +791,21 @@ func TestExpanderWithUnknowns(t *testing.T) {
 		}
 		if wantUnknownCall := module1Inst2.UnexpandedChild(moduleCallAddr2); !gotUnknown.Has(wantUnknownCall) {
 			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+
+		// Has only compares the keys computed when each address was added,
+		// so we must also check the addresses themselves are still correct.
+		var gotUnknownAddrs []string
+		for _, addr := range gotUnknown {
+			gotUnknownAddrs = append(gotUnknownAddrs, addr.String())
+		}
+		slices.Sort(gotUnknownAddrs)
+		wantUnknownAddrs := []string{
+			"module.foo[0].module.bar[*]",
+			"module.foo[2].module.bar[*]",
+		}
+		if diff := cmp.Diff(wantUnknownAddrs, gotUnknownAddrs); diff != "" {
+			t.Errorf("wrong unknown addresses\n%s", diff)
 		}
 
 		gotKnownResource := ex.ExpandResource(module1Inst1Module2Inst0.Resource(
