@@ -162,6 +162,11 @@ func (p *GRPCProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	}
 
 	for name, res := range protoResp.ResourceSchemas {
+		if res == nil || res.Block == nil {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provider returned an invalid schema for resource type %q: missing schema block", name))
+			return resp
+		}
+
 		id := identResp.IdentitySchemas[name] // We're fine if the id is not found
 		resp.ResourceTypes[name] = convert.ProtoToProviderSchema(res, id)
 	}

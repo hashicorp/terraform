@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'Report an invalid provider resource schema instead of panicking when the schema block is missing'
+time: 2026-10-06T23:49:00-07:00
+custom:
+    Issue: "29212"

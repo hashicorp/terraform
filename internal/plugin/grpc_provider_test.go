@@ -296,6 +296,31 @@ func TestGRPCProvider_GetSchema_ResponseErrorDiagnostic(t *testing.T) {
 	checkDiagsHasError(t, resp.Diagnostics)
 }
 
+func TestGRPCProvider_GetSchema_InvalidResourceSchema(t *testing.T) {
+	for name, schema := range map[string]*proto.Schema{
+		"nil schema":    nil,
+		"missing block": {},
+	} {
+		t.Run(name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			client := mockproto.NewMockProviderClient(ctrl)
+
+			response := providerProtoSchema()
+			response.ResourceSchemas["invalid_resource"] = schema
+			client.EXPECT().GetSchema(gomock.Any(), gomock.Any(), gomock.Any()).Return(response, nil)
+			client.EXPECT().GetResourceIdentitySchemas(gomock.Any(), gomock.Any(), gomock.Any()).Return(providerResourceIdentitySchemas(), nil)
+
+			p := &GRPCProvider{client: client}
+			resp := p.GetProviderSchema()
+
+			checkDiagsHasError(t, resp.Diagnostics)
+			if got, want := resp.Diagnostics[0].Description().Summary, `provider returned an invalid schema for resource type "invalid_resource": missing schema block`; got != want {
+				t.Fatalf("wrong error: got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestGRPCProvider_GetSchema_IdentityError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)
