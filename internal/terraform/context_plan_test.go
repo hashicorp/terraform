@@ -5916,17 +5916,17 @@ resource "aws_instance" "foo" {
 	p := testProvider("aws")
 
 	targets := []addrs.Targetable{}
-	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo[0]")
+	target, diags := addrs.ParseAbsTargetableStr("module.mod[1].aws_instance.foo[0]")
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-	targets = append(targets, target.Subject)
+	targets = append(targets, target)
 
-	target, diags = addrs.ParseTargetStr("module.mod[2]")
+	target, diags = addrs.ParseAbsTargetableStr("module.mod[2]")
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-	targets = append(targets, target.Subject)
+	targets = append(targets, target)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5979,12 +5979,12 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 
-	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo")
+	target, diags := addrs.ParseAbsTargetableStr("module.mod[1].aws_instance.foo")
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	targets := []addrs.Targetable{target.Subject}
+	targets := []addrs.Targetable{target}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{

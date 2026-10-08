@@ -32,9 +32,7 @@ func TestPackageOverrides(t *testing.T) {
 		Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](),
 	}
 	run.Overrides.Put(primary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: testrun,
-		},
+		Target: testrun,
 	})
 
 	// Add a unique item to the test file, and duplicate the test run data.
@@ -42,14 +40,10 @@ func TestPackageOverrides(t *testing.T) {
 		Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](),
 	}
 	file.Overrides.Put(primary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: testfile,
-		},
+		Target: testfile,
 	})
 	file.Overrides.Put(secondary, &configs.Override{
-		Target: &addrs.Target{
-			Subject: testfile,
-		},
+		Target: testfile,
 	})
 
 	mocks := map[addrs.RootProviderConfig]*configs.MockData{
@@ -58,19 +52,13 @@ func TestPackageOverrides(t *testing.T) {
 		}: {
 			Overrides: addrs.MakeMap[addrs.Targetable, *configs.Override](
 				addrs.MakeMapElem[addrs.Targetable, *configs.Override](primary, &configs.Override{
-					Target: &addrs.Target{
-						Subject: provider,
-					},
+					Target: provider,
 				}),
 				addrs.MakeMapElem[addrs.Targetable, *configs.Override](secondary, &configs.Override{
-					Target: &addrs.Target{
-						Subject: provider,
-					},
+					Target: provider,
 				}),
 				addrs.MakeMapElem[addrs.Targetable, *configs.Override](tertiary, &configs.Override{
-					Target: &addrs.Target{
-						Subject: provider,
-					},
+					Target: provider,
 				})),
 		},
 	}
@@ -92,16 +80,16 @@ func TestPackageOverrides(t *testing.T) {
 		t.Errorf("expected to find all overrides, but got %t %t %t", fOk, sOk, tOk)
 	}
 
-	if !first.Target.Subject.(addrs.AbsResourceInstance).Equal(testrun) {
-		t.Errorf("expected %s but got %s for primary", testrun, first.Target.Subject)
+	if !first.Target.(addrs.AbsResourceInstance).Equal(testrun) {
+		t.Errorf("expected %s but got %s for primary", testrun, first.Target)
 	}
 
-	if !second.Target.Subject.(addrs.AbsResourceInstance).Equal(testfile) {
-		t.Errorf("expected %s but got %s for primary", testfile, second.Target.Subject)
+	if !second.Target.(addrs.AbsResourceInstance).Equal(testfile) {
+		t.Errorf("expected %s but got %s for primary", testfile, second.Target)
 	}
 
-	if !third.Target.Subject.(addrs.AbsResourceInstance).Equal(provider) {
-		t.Errorf("expected %s but got %s for primary", provider, third.Target.Subject)
+	if !third.Target.(addrs.AbsResourceInstance).Equal(provider) {
+		t.Errorf("expected %s but got %s for primary", provider, third.Target)
 	}
 
 }

@@ -670,13 +670,13 @@ func validateValues(t *testing.T, key string, actual, expected cty.Value) {
 }
 
 func makeOverride(t *testing.T, target string, values cty.Value) addrs.MapElem[addrs.Targetable, *Override] {
-	addr, diags := addrs.ParseTargetStr(target)
+	addr, diags := addrs.ParseAbsTargetableStr(target)
 	if diags.HasErrors() {
 		t.Fatalf("failed to parse target: %s", diags)
 	}
 
 	return addrs.MapElem[addrs.Targetable, *Override]{
-		Key: addr.Subject,
+		Key: addr,
 		Value: &Override{
 			Target: addr,
 			Values: values,

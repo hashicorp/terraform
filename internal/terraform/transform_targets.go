@@ -159,7 +159,7 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 			}
 		}
 
-		if targetAddr.TargetContains(vertexAddr) {
+		if targetAddr.Contains(vertexAddr) {
 			return true
 		}
 	}

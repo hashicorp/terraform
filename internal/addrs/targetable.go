@@ -10,20 +10,20 @@ type Targetable interface {
 
 	targetableSigil()
 
-	// TargetContains returns true if the receiver is considered to contain
+	// Contains returns true if the receiver is considered to contain
 	// the given other address. Containment, for the purpose of targeting,
 	// means that if a container address is targeted then all of the
 	// addresses within it are also implicitly targeted.
 	//
 	// A targetable address always contains at least itself.
-	TargetContains(other Targetable) bool
+	Contains(other Targetable) bool
 
 	// AddrType returns the address type for comparison with other Targetable
 	// addresses.
 	AddrType() TargetableAddrType
 
 	// String produces a string representation of the address that could be
-	// parsed as a HCL traversal and passed to ParseTarget to produce an
+	// parsed as a HCL traversal and passed to ParseAbsTargetable to produce an
 	// identical result.
 	String() string
 }

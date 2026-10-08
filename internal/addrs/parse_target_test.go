@@ -9,398 +9,112 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestParseTarget(t *testing.T) {
+func TestParseAbsTargetable(t *testing.T) {
+	foo := RootModuleInstance.Child("foo", NoKey)
+	fooBar := foo.Child("bar", NoKey)
+
 	tests := []struct {
 		Input   string
-		Want    *Target
+		Want    Targetable
 		WantErr string
 	}{
 		{
 			`module.foo`,
-			&Target{
-				Subject: ModuleInstance{
-					{
-						Name: "foo",
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 11, Byte: 10},
-				},
-			},
+			foo,
 			``,
 		},
 		{
 			`module.foo[2]`,
-			&Target{
-				Subject: ModuleInstance{
-					{
-						Name:        "foo",
-						InstanceKey: IntKey(2),
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 14, Byte: 13},
-				},
-			},
+			RootModuleInstance.Child("foo", IntKey(2)),
 			``,
 		},
 		{
 			`module.foo[2].module.bar`,
-			&Target{
-				Subject: ModuleInstance{
-					{
-						Name:        "foo",
-						InstanceKey: IntKey(2),
-					},
-					{
-						Name: "bar",
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
-				},
-			},
+			RootModuleInstance.Child("foo", IntKey(2)).Child("bar", NoKey),
 			``,
 		},
 		{
 			`aws_instance.foo`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "aws_instance",
-						Name: "foo",
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
-				},
-			},
+			RootModuleInstance.Resource(ManagedResourceMode, "aws_instance", "foo"),
 			``,
 		},
 		{
 			`resource.aws_instance.foo`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "aws_instance",
-						Name: "foo",
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 26, Byte: 25},
-				},
-			},
+			RootModuleInstance.Resource(ManagedResourceMode, "aws_instance", "foo"),
 			``,
 		},
 		{
 			`aws_instance.foo[1]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: ManagedResourceMode,
-							Type: "aws_instance",
-							Name: "foo",
-						},
-						Key: IntKey(1),
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 20, Byte: 19},
-				},
-			},
+			RootModuleInstance.ResourceInstance(ManagedResourceMode, "aws_instance", "foo", IntKey(1)),
 			``,
 		},
 		{
 			`data.aws_instance.foo`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: DataResourceMode,
-						Type: "aws_instance",
-						Name: "foo",
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 22, Byte: 21},
-				},
-			},
+			RootModuleInstance.Resource(DataResourceMode, "aws_instance", "foo"),
 			``,
 		},
 		{
 			`data.aws_instance.foo[1]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: DataResourceMode,
-							Type: "aws_instance",
-							Name: "foo",
-						},
-						Key: IntKey(1),
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
-				},
-			},
+			RootModuleInstance.ResourceInstance(DataResourceMode, "aws_instance", "foo", IntKey(1)),
 			``,
 		},
 		{
 			`ephemeral.aws_instance.foo`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: EphemeralResourceMode,
-						Type: "aws_instance",
-						Name: "foo",
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 27, Byte: 26},
-				},
-			},
+			RootModuleInstance.Resource(EphemeralResourceMode, "aws_instance", "foo"),
 			``,
 		},
 		{
 			`ephemeral.aws_instance.foo[1]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: EphemeralResourceMode,
-							Type: "aws_instance",
-							Name: "foo",
-						},
-						Key: IntKey(1),
-					},
-					Module: RootModuleInstance,
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 30, Byte: 29},
-				},
-			},
+			RootModuleInstance.ResourceInstance(EphemeralResourceMode, "aws_instance", "foo", IntKey(1)),
 			``,
 		},
 		{
 			`module.foo.aws_instance.bar`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "aws_instance",
-						Name: "bar",
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 28, Byte: 27},
-				},
-			},
+			foo.Resource(ManagedResourceMode, "aws_instance", "bar"),
 			``,
 		},
 		{
 			`module.foo.module.bar.aws_instance.baz`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "aws_instance",
-						Name: "baz",
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-						{Name: "bar"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 39, Byte: 38},
-				},
-			},
+			fooBar.Resource(ManagedResourceMode, "aws_instance", "baz"),
 			``,
 		},
 		{
 			`module.foo.module.bar.aws_instance.baz["hello"]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: ManagedResourceMode,
-							Type: "aws_instance",
-							Name: "baz",
-						},
-						Key: StringKey("hello"),
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-						{Name: "bar"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 48, Byte: 47},
-				},
-			},
+			fooBar.ResourceInstance(ManagedResourceMode, "aws_instance", "baz", StringKey("hello")),
 			``,
 		},
 		{
 			`module.foo.data.aws_instance.bar`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: DataResourceMode,
-						Type: "aws_instance",
-						Name: "bar",
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 33, Byte: 32},
-				},
-			},
+			foo.Resource(DataResourceMode, "aws_instance", "bar"),
 			``,
 		},
 		{
 			`module.foo.module.bar.data.aws_instance.baz`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: DataResourceMode,
-						Type: "aws_instance",
-						Name: "baz",
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-						{Name: "bar"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 44, Byte: 43},
-				},
-			},
+			fooBar.Resource(DataResourceMode, "aws_instance", "baz"),
 			``,
 		},
 		{
 			`module.foo.module.bar.ephemeral.aws_instance.baz`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: EphemeralResourceMode,
-						Type: "aws_instance",
-						Name: "baz",
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-						{Name: "bar"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 49, Byte: 48},
-				},
-			},
+			fooBar.Resource(EphemeralResourceMode, "aws_instance", "baz"),
 			``,
 		},
 		{
 			`module.foo.module.bar[0].data.aws_instance.baz`,
-			&Target{
-				Subject: AbsResource{
-					Resource: Resource{
-						Mode: DataResourceMode,
-						Type: "aws_instance",
-						Name: "baz",
-					},
-					Module: ModuleInstance{
-						{Name: "foo", InstanceKey: NoKey},
-						{Name: "bar", InstanceKey: IntKey(0)},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 47, Byte: 46},
-				},
-			},
+			foo.Child("bar", IntKey(0)).Resource(DataResourceMode, "aws_instance", "baz"),
 			``,
 		},
 		{
 			`module.foo.module.bar["a"].data.aws_instance.baz["hello"]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: DataResourceMode,
-							Type: "aws_instance",
-							Name: "baz",
-						},
-						Key: StringKey("hello"),
-					},
-					Module: ModuleInstance{
-						{Name: "foo", InstanceKey: NoKey},
-						{Name: "bar", InstanceKey: StringKey("a")},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 58, Byte: 57},
-				},
-			},
+			foo.Child("bar", StringKey("a")).ResourceInstance(DataResourceMode, "aws_instance", "baz", StringKey("hello")),
 			``,
 		},
 		{
 			`module.foo.module.bar.data.aws_instance.baz["hello"]`,
-			&Target{
-				Subject: AbsResourceInstance{
-					Resource: ResourceInstance{
-						Resource: Resource{
-							Mode: DataResourceMode,
-							Type: "aws_instance",
-							Name: "baz",
-						},
-						Key: StringKey("hello"),
-					},
-					Module: ModuleInstance{
-						{Name: "foo"},
-						{Name: "bar"},
-					},
-				},
-				SourceRange: tfdiags.SourceRange{
-					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-					End:   tfdiags.SourcePos{Line: 1, Column: 53, Byte: 52},
-				},
-			},
+			fooBar.ResourceInstance(DataResourceMode, "aws_instance", "baz", StringKey("hello")),
 			``,
 		},
-
 		{
 			`aws_instance`,
 			nil,
@@ -495,7 +209,7 @@ func TestParseTarget(t *testing.T) {
 				t.Fatal(travDiags.Error())
 			}
 
-			got, diags := ParseTarget(traversal)
+			got, diags := ParseAbsTargetable(traversal)
 
 			switch len(diags) {
 			case 0:
@@ -519,6 +233,12 @@ func TestParseTarget(t *testing.T) {
 
 			for _, problem := range deep.Equal(got, test.Want) {
 				t.Error(problem)
+			}
+
+			// A concrete address doesn't accept traversal patterns.
+			patternTraversal, _ := hclsyntax.ParseTraversalPartial([]byte(test.Input+"[*]"), "", hcl.Pos{Line: 1, Column: 1})
+			if _, diags := ParseAbsTargetable(patternTraversal); !diags.HasErrors() {
+				t.Errorf("ParseAbsTargetable accepted traversal pattern %q", test.Input+"[*]")
 			}
 		})
 	}

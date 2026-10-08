@@ -100,7 +100,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	actionFound := len(n.Callers) != 0
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
-		if !mod.TargetContains(n.Target) {
+		if !mod.Contains(n.Target) {
 			continue
 		}
 
@@ -116,7 +116,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 			for _, caller := range n.Callers {
 				callerFound := false
 				for _, res := range state.Resources(caller) {
-					if !mod.TargetContains(res.Addr) {
+					if !mod.Contains(res.Addr) {
 						// resource from the wrong module instance
 						continue
 					}
@@ -221,7 +221,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		// if we have resource targets, filter any unwanted callers
 		targeted := len(n.ResourceTargets) == 0
 		for _, resTgt := range n.ResourceTargets {
-			if resTgt.TargetContains(absCaller) {
+			if resTgt.Contains(absCaller) {
 				targeted = true
 				break
 			}

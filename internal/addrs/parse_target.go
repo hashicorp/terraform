@@ -12,46 +12,32 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// Target describes a targeted address with source location information.
-type Target struct {
-	Subject     Targetable
-	SourceRange tfdiags.SourceRange
-}
-
-// ParseTarget attempts to interpret the given traversal as a targetable
-// address. The given traversal must be absolute, or this function will
-// panic.
+// ParseAbsTargetable attempts to interpret the given traversal as the concrete
+// address of a module instance, resource, or resource instance, which is the
+// same syntax as used for a target. The given traversal must be absolute, or
+// this function will panic.
 //
-// If no error diagnostics are returned, the returned target includes the
-// address that was extracted and the source range it was extracted from.
+// A resource instance address without an instance key is returned as an
+// AbsResource, which refers to the whole resource.
 //
-// If error diagnostics are returned then the Target value is invalid and
-// must not be used.
-func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
-	return parseTarget(traversal, false)
+// If error diagnostics are returned then the address is invalid and must not
+// be used.
+func ParseAbsTargetable(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostics) {
+	return parseAbsTarget(traversal, false)
 }
 
-// ParsePartialTarget is like ParseTarget, but it allows the given traversal
-// to support the [*] wildcard syntax for resource instances. These indicate
-// a "partial" resource address that refers to all potential instances of a
-// resource or module.
-func ParsePartialTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
-	return parseTarget(traversal, true)
-}
-
-func parseTarget(traversal hcl.Traversal, allowPartial bool) (*Target, tfdiags.Diagnostics) {
+// parseAbsTarget parses the concrete address of a module instance, resource,
+// or resource instance. If allowPartial is set, any of the instance keys may
+// be WildcardKey, for steps written as [*], which indicate a "partial" address
+// that refers to all potential instances.
+func parseAbsTarget(traversal hcl.Traversal, allowPartial bool) (Targetable, tfdiags.Diagnostics) {
 	path, remain, diags := parseModuleInstancePrefix(traversal, allowPartial)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	rng := tfdiags.SourceRangeFromHCL(traversal.SourceRange())
-
 	if len(remain) == 0 {
-		return &Target{
-			Subject:     path,
-			SourceRange: rng,
-		}, diags
+		return path, diags
 	}
 
 	riAddr, moreDiags := parseResourceInstanceUnderModule(path, allowPartial, remain)
@@ -60,21 +46,12 @@ func parseTarget(traversal hcl.Traversal, allowPartial bool) (*Target, tfdiags.D
 		return nil, diags
 	}
 
-	var subject Targetable
-	switch {
-	case riAddr.Resource.Key == NoKey:
+	if riAddr.Resource.Key == NoKey {
 		// We always assume that a no-key instance is meant to
-		// be referring to the whole resource, because the distinction
-		// doesn't really matter for targets anyway.
-		subject = riAddr.ContainingResource()
-	default:
-		subject = riAddr
+		// be referring to the whole resource.
+		return riAddr.ContainingResource(), diags
 	}
-
-	return &Target{
-		Subject:     subject,
-		SourceRange: rng,
-	}, diags
+	return riAddr, diags
 }
 
 // parseConfigResourceUnderModule attempts to parse the given traversal as the
@@ -312,22 +289,22 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, allowPartial bo
 	}
 }
 
-// ParseTargetStr is a helper wrapper around ParseTarget that takes a string
-// and parses it with the HCL native syntax traversal parser before
-// interpreting it.
+// ParseAbsTargetableStr is a helper wrapper around ParseAbsTargetable that
+// takes a string and parses it with the HCL native syntax traversal parser
+// before interpreting it.
 //
 // This should be used only in specialized situations since it will cause the
 // created references to not have any meaningful source location information.
-// If a target string is coming from a source that should be identified in
-// error messages then the caller should instead parse it directly using a
-// suitable function from the HCL API and pass the traversal itself to
-// ParseTarget.
+// If a string is coming from a source that should be identified in error
+// messages then the caller should instead parse it directly using a suitable
+// function from the HCL API and pass the traversal itself to
+// ParseAbsTargetable.
 //
 // Error diagnostics are returned if either the parsing fails or the analysis
 // of the traversal fails. There is no way for the caller to distinguish the
 // two kinds of diagnostics programmatically. If error diagnostics are returned
-// the returned target may be nil or incomplete.
-func ParseTargetStr(str string) (*Target, tfdiags.Diagnostics) {
+// the returned address may be nil or incomplete.
+func ParseAbsTargetableStr(str string) (Targetable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
@@ -336,9 +313,9 @@ func ParseTargetStr(str string) (*Target, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	target, targetDiags := ParseTarget(traversal)
-	diags = diags.Append(targetDiags)
-	return target, diags
+	addr, addrDiags := ParseAbsTargetable(traversal)
+	diags = diags.Append(addrDiags)
+	return addr, diags
 }
 
 // ParseAbsResource attempts to interpret the given traversal as an absolute
@@ -350,12 +327,12 @@ func ParseTargetStr(str string) (*Target, tfdiags.Diagnostics) {
 // If error diagnostics are returned then the AbsResource value is invalid and
 // must not be used.
 func ParseAbsResource(traversal hcl.Traversal) (AbsResource, tfdiags.Diagnostics) {
-	addr, diags := ParseTarget(traversal)
+	addr, diags := ParseAbsTargetable(traversal)
 	if diags.HasErrors() {
 		return AbsResource{}, diags
 	}
 
-	switch tt := addr.Subject.(type) {
+	switch tt := addr.(type) {
 
 	case AbsResource:
 		return tt, diags
@@ -429,19 +406,19 @@ func ParseAbsResourceStr(str string) (AbsResource, tfdiags.Diagnostics) {
 // If error diagnostics are returned then the AbsResource value is invalid and
 // must not be used.
 func ParseAbsResourceInstance(traversal hcl.Traversal) (AbsResourceInstance, tfdiags.Diagnostics) {
-	target, diags := ParseTarget(traversal)
+	subject, diags := ParseAbsTargetable(traversal)
 	if diags.HasErrors() {
 		return AbsResourceInstance{}, diags
 	}
 
-	addr, validateDiags := validateResourceFromTarget(target, traversal.SourceRange().Ptr())
+	addr, validateDiags := validateResourceFromTargetable(subject, traversal.SourceRange().Ptr())
 	diags = diags.Append(validateDiags)
 	return addr, diags
 }
 
 // ParsePartialResourceInstance attempts to interpret the given traversal as a
-// partial absolute resource instance address, using the same syntax as expected
-// by ParsePartialTarget.
+// partial absolute resource instance address, which may use the [*] wildcard
+// syntax for instance keys of the module path and resource.
 //
 // If no error diagnostics are returned, the returned target includes the
 // address that was extracted and the source range it was extracted from.
@@ -449,20 +426,20 @@ func ParseAbsResourceInstance(traversal hcl.Traversal) (AbsResourceInstance, tfd
 // If error diagnostics are returned then the AbsResource value is invalid and
 // must not be used.
 func ParsePartialResourceInstance(traversal hcl.Traversal) (AbsResourceInstance, tfdiags.Diagnostics) {
-	target, diags := ParsePartialTarget(traversal)
+	subject, diags := parseAbsTarget(traversal, true)
 	if diags.HasErrors() {
 		return AbsResourceInstance{}, diags
 	}
 
-	addr, validateDiags := validateResourceFromTarget(target, traversal.SourceRange().Ptr())
+	addr, validateDiags := validateResourceFromTargetable(subject, traversal.SourceRange().Ptr())
 	diags = diags.Append(validateDiags)
 	return addr, diags
 }
 
-func validateResourceFromTarget(addr *Target, src *hcl.Range) (AbsResourceInstance, tfdiags.Diagnostics) {
+func validateResourceFromTargetable(addr Targetable, src *hcl.Range) (AbsResourceInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	switch tt := addr.Subject.(type) {
+	switch tt := addr.(type) {
 
 	case AbsResource:
 		return tt.Instance(NoKey), diags
@@ -541,34 +518,4 @@ func ParsePartialResourceInstanceStr(str string) (AbsResourceInstance, tfdiags.D
 	addr, addrDiags := ParsePartialResourceInstance(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
-}
-
-// ModuleAddr returns the module address portion of the subject of
-// the recieving target.
-//
-// Regardless of specific address type, all targets always include
-// a module address. They might also include something in that
-// module, which this method always discards if so.
-func (t *Target) ModuleAddr() ModuleInstance {
-	switch addr := t.Subject.(type) {
-	case ModuleInstance:
-		return addr
-	case Module:
-		// We assume that a module address is really
-		// referring to a module path containing only
-		// single-instance modules.
-		return addr.UnkeyedInstanceShim()
-	case AbsResourceInstance:
-		return addr.Module
-	case AbsResource:
-		return addr.Module
-	case AbsAction:
-		return addr.Module
-	case AbsActionInstance:
-		return addr.Module
-	default:
-		// The above cases should be exhaustive for all
-		// implementations of Targetable.
-		panic(fmt.Sprintf("unsupported target address type %T", addr))
-	}
 }

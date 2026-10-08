@@ -17,10 +17,10 @@ func GetRunTargets(config *configs.TestRun) ([]addrs.Targetable, tfdiags.Diagnos
 	var targets []addrs.Targetable
 
 	for _, target := range config.Options.Target {
-		addr, diags := addrs.ParseTarget(target)
+		addr, diags := addrs.ParseAbsTargetable(target)
 		diagnostics = diagnostics.Append(diags)
 		if addr != nil {
-			targets = append(targets, addr.Subject)
+			targets = append(targets, addr)
 		}
 	}
 

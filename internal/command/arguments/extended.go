@@ -132,7 +132,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		target, targetDiags := addrs.ParseTarget(traversal)
+		target, targetDiags := addrs.ParseAbsTargetable(traversal)
 		if targetDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -142,7 +142,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		o.Targets = append(o.Targets, target.Subject)
+		o.Targets = append(o.Targets, target)
 	}
 
 	for _, tr := range o.actionTargetsRaw {
@@ -166,7 +166,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			continue
 		}
 
-		o.ActionTargets = append(o.ActionTargets, target.Subject)
+		o.ActionTargets = append(o.ActionTargets, target)
 	}
 
 	if len(o.ActionTargets) > 1 {

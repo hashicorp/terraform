@@ -435,11 +435,11 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 	}
 }
 
-// TargetContains implements Targetable by returning true if the given other
+// Contains implements Targetable by returning true if the given other
 // address either matches the receiver, is a sub-module-instance of the
 // receiver, or is a targetable absolute address within a module that
 // is contained within the reciever.
-func (m ModuleInstance) TargetContains(other Targetable) bool {
+func (m ModuleInstance) Contains(other Targetable) bool {
 	switch to := other.(type) {
 	case Module:
 		if len(to) < len(m) {
@@ -496,19 +496,19 @@ func (m ModuleInstance) TargetContains(other Targetable) bool {
 		return true
 
 	case ConfigResource:
-		return m.TargetContains(to.Module)
+		return m.Contains(to.Module)
 
 	case AbsResource:
-		return m.TargetContains(to.Module)
+		return m.Contains(to.Module)
 
 	case AbsResourceInstance:
-		return m.TargetContains(to.Module)
+		return m.Contains(to.Module)
 
 	case AbsAction:
-		return m.TargetContains(to.Module)
+		return m.Contains(to.Module)
 
 	case AbsActionInstance:
-		return m.TargetContains(to.Module)
+		return m.Contains(to.Module)
 
 	default:
 		return false

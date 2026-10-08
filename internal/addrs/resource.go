@@ -189,10 +189,10 @@ func (r AbsResource) Config() ConfigResource {
 	}
 }
 
-// TargetContains implements Targetable by returning true if the given other
+// Contains implements Targetable by returning true if the given other
 // address is either equal to the receiver or is an instance of the
 // receiver.
-func (r AbsResource) TargetContains(other Targetable) bool {
+func (r AbsResource) Contains(other Targetable) bool {
 	switch to := other.(type) {
 
 	case AbsResource:
@@ -205,7 +205,7 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 		return to.String() == r.String()
 
 	case AbsResourceInstance:
-		return r.TargetContains(to.ContainingResource())
+		return r.Contains(to.ContainingResource())
 
 	default:
 		return false
@@ -327,9 +327,9 @@ func (r AbsResourceInstance) DeposedObject(key DeposedKey) AbsResourceInstanceOb
 	}
 }
 
-// TargetContains implements Targetable by returning true if the given other
+// Contains implements Targetable by returning true if the given other
 // address is equal to the receiver.
-func (r AbsResourceInstance) TargetContains(other Targetable) bool {
+func (r AbsResourceInstance) Contains(other Targetable) bool {
 	switch to := other.(type) {
 
 	// while we currently don't start with an AbsResourceInstance as a target
@@ -444,18 +444,18 @@ func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
 	}
 }
 
-// TargetContains implements Targetable by returning true if the given other
+// Contains implements Targetable by returning true if the given other
 // address is either equal to the receiver or is an instance of the
 // receiver.
-func (r ConfigResource) TargetContains(other Targetable) bool {
+func (r ConfigResource) Contains(other Targetable) bool {
 	switch to := other.(type) {
 	case ConfigResource:
 		// We'll use our stringification as a cheat-ish way to test for equality.
 		return to.String() == r.String()
 	case AbsResource:
-		return r.TargetContains(to.Config())
+		return r.Contains(to.Config())
 	case AbsResourceInstance:
-		return r.TargetContains(to.ContainingResource())
+		return r.Contains(to.ContainingResource())
 	default:
 		return false
 	}

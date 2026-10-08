@@ -125,13 +125,13 @@ func evalImportToExpression(expr hcl.Expression, keyData instances.RepetitionDat
 		return res, diags
 	}
 
-	target, targetDiags := addrs.ParseTarget(traversal)
-	diags = diags.Append(targetDiags)
+	subject, subjectDiags := addrs.ParseAbsTargetable(traversal)
+	diags = diags.Append(subjectDiags)
 	if diags.HasErrors() {
-		return res, targetDiags
+		return res, subjectDiags
 	}
 
-	switch sub := target.Subject.(type) {
+	switch sub := subject.(type) {
 	case addrs.AbsResource:
 		res = sub.Instance(addrs.NoKey)
 	case addrs.AbsResourceInstance:

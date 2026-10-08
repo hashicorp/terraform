@@ -685,10 +685,10 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 		fromMatchesTarget := false
 		toMatchesTarget := false
 		for _, targetAddr := range targets {
-			if targetAddr.TargetContains(result.From) {
+			if targetAddr.Contains(result.From) {
 				fromMatchesTarget = true
 			}
-			if targetAddr.TargetContains(result.To) {
+			if targetAddr.Contains(result.To) {
 				toMatchesTarget = true
 			}
 		}
