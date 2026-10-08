@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -44,13 +45,9 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// forgetResources lists resources that should not be destroyed, only removed
-	// from state.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules lists modules that should not be destroyed, only removed
-	// from state.
-	forgetModules []addrs.Module
+	// forget lists the modules and resources whose instances should not be
+	// destroyed, only removed from state.
+	forget []addrs.Targetable
 }
 
 var (
@@ -118,17 +115,9 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	var forget bool
-	for _, ft := range n.forgetResources {
-		if ft.Equal(n.ResourceAddr()) {
-			forget = true
-		}
-	}
-	for _, fm := range n.forgetModules {
-		if fm.Contains(n.Addr) {
-			forget = true
-		}
-	}
+	forget := slices.ContainsFunc(n.forget, func(addr addrs.Targetable) bool {
+		return addr.Contains(n.Addr)
+	})
 
 	// We don't refresh during the planDestroy walk, since that is only adding
 	// the destroy changes to the plan and the provider will not be configured

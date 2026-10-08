@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -26,13 +27,9 @@ type NodePlannableResourceInstanceOrphan struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// forgetResources lists resources that should not be destroyed, only removed
-	// from state.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules lists modules that should not be destroyed, only removed
-	// from state.
-	forgetModules []addrs.Module
+	// forget lists the modules and resources whose instances should not be
+	// destroyed, only removed from state.
+	forget []addrs.Targetable
 }
 
 var (
@@ -132,17 +129,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	var forget bool
-	for _, ft := range n.forgetResources {
-		if ft.Equal(n.ResourceAddr()) {
-			forget = true
-		}
-	}
-	for _, fm := range n.forgetModules {
-		if fm.Contains(n.Addr) {
-			forget = true
-		}
-	}
+	forget := slices.ContainsFunc(n.forget, func(addr addrs.Targetable) bool {
+		return addr.Contains(n.Addr)
+	})
 
 	if n.Config != nil && n.Config.Managed != nil {
 		if n.Config.Managed.DestroySet && !n.Config.Managed.Destroy {
