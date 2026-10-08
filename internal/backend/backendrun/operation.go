@@ -123,8 +123,8 @@ type Operation struct {
 	// behavior of the operation.
 	PlanMode             plans.Mode
 	AutoApprove          bool
-	Targets              []addrs.Targetable
-	ActionTargets        []addrs.Targetable
+	Targets              []addrs.TargetPattern
+	ActionTargets        []addrs.TargetPattern
 	ForceReplace         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue
 	StatePersistInterval int

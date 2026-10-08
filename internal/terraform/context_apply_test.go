@@ -3086,15 +3086,8 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.ConfigResource{
-				Module: addrs.RootModule,
-				Resource: addrs.Resource{
-					Mode: addrs.ManagedResourceMode,
-					Type: "nonexistent",
-					Name: "thing",
-				},
-			},
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("nonexistent.thing"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -3274,8 +3267,8 @@ func TestContext2Apply_moduleTarget(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("B", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.B"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -6092,8 +6085,8 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 
 		plan, diags := ctx.Plan(m, state, &PlanOpts{
 			Mode: plans.DestroyMode,
-			Targets: []addrs.Targetable{
-				addrs.RootModuleInstance.Child("child", addrs.NoKey),
+			Targets: []addrs.TargetPattern{
+				mustTargetPattern("module.child"),
 			},
 		})
 		if diags.HasErrors() {
@@ -7094,10 +7087,8 @@ func TestContext2Apply_targeted(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7134,10 +7125,8 @@ func TestContext2Apply_targetedCount(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7176,10 +7165,8 @@ func TestContext2Apply_targetedCountIndex(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo[1]"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7239,10 +7226,8 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "a",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.a"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7318,10 +7303,8 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7384,10 +7367,8 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child.aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7467,13 +7448,9 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(2),
-			),
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(1),
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo[2]"),
+			mustTargetPattern("aws_instance.bar[1]"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7512,8 +7489,8 @@ func TestContext2Apply_targetedModule(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7561,10 +7538,8 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	if diags.HasErrors() {
@@ -7616,8 +7591,8 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child2"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7658,10 +7633,8 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child.aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -7711,10 +7684,8 @@ func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)
@@ -8269,10 +8240,8 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "iambeingadded",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.iambeingadded"),
 		},
 	})
 	if diags.HasErrors() {
@@ -8762,8 +8731,8 @@ func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child"),
 		},
 	})
 	tfdiags.AssertNoErrors(t, diags)

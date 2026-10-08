@@ -53,11 +53,11 @@ type ApplyGraphBuilder struct {
 	// unnecessary outputs aren't included in the apply graph. The plan
 	// builder successfully handles targeting resources. In the future,
 	// outputs should go into the diff so that this is unnecessary.
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets are actions to target. As with Targets we need to remove
 	// outputs, so when/if we remove Targets we can remove this as well.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace are the resource instance addresses that the user
 	// requested to force replacement for when creating the plan, if any.

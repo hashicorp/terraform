@@ -1619,10 +1619,10 @@ func TestContext2Plan_movedResourceUntargeted(t *testing.T) {
 	t.Run("without targeting instance A", func(t *testing.T) {
 		_, diags := ctx.Plan(m, state, &PlanOpts{
 			Mode: plans.NormalMode,
-			Targets: []addrs.Targetable{
+			Targets: []addrs.TargetPattern{
 				// NOTE: addrA isn't included here, but it's pending move to addrB
 				// and so this plan request is invalid.
-				addrB,
+				mustTargetPattern(addrB.String()),
 			},
 		})
 		diags.Sort()
@@ -1659,8 +1659,8 @@ Note that adding these options may include further additional resource instances
 	t.Run("without targeting instance B", func(t *testing.T) {
 		_, diags := ctx.Plan(m, state, &PlanOpts{
 			Mode: plans.NormalMode,
-			Targets: []addrs.Targetable{
-				addrA,
+			Targets: []addrs.TargetPattern{
+				mustTargetPattern(addrA.String()),
 				// NOTE: addrB isn't included here, but it's pending move from
 				// addrA and so this plan request is invalid.
 			},
@@ -1699,8 +1699,8 @@ Note that adding these options may include further additional resource instances
 	t.Run("without targeting either instance", func(t *testing.T) {
 		_, diags := ctx.Plan(m, state, &PlanOpts{
 			Mode: plans.NormalMode,
-			Targets: []addrs.Targetable{
-				mustResourceInstanceAddr("test_object.unrelated"),
+			Targets: []addrs.TargetPattern{
+				mustTargetPattern("test_object.unrelated"),
 				// NOTE: neither addrA nor addrB are included here, but there's
 				// a pending move between them and so this is invalid.
 			},
@@ -1744,12 +1744,12 @@ Note that adding these options may include further additional resource instances
 
 		_, diags := ctx.Plan(m, state, &PlanOpts{
 			Mode: plans.NormalMode,
-			Targets: []addrs.Targetable{
+			Targets: []addrs.TargetPattern{
 				// This time we're including both addresses in the target,
 				// to get the same effect an end-user would get if following
 				// the advice in our error message in the other subtests.
-				addrA,
-				addrB,
+				mustTargetPattern(addrA.String()),
+				mustTargetPattern(addrB.String()),
 			},
 		})
 		diags.Sort()
@@ -2492,8 +2492,8 @@ resource "test_object" "b" {
 
 	_, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrA,
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern(addrA.String()),
 		},
 	})
 	//
@@ -8126,7 +8126,7 @@ resource "test_object" "test" {
 		// than an empty tuple.
 		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode:    plans.NormalMode,
-			Targets: []addrs.Targetable{mustModuleInstance(`module.child["a"]`)},
+			Targets: []addrs.TargetPattern{mustTargetPattern(`module.child["a"]`)},
 		})
 		tfdiags.AssertNoErrors(t, diags)
 	})
@@ -8177,7 +8177,7 @@ resource "test_object" "b" {
 		})
 		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode:            plans.NormalMode,
-			Targets:         []addrs.Targetable{mustModuleInstance(`module.child["a"]`)},
+			Targets:         []addrs.TargetPattern{mustTargetPattern(`module.child["a"]`)},
 			DeferralAllowed: true,
 		})
 		if assertNoDiagnostics(t, diags.ErrorsOnly()) {

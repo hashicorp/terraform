@@ -358,14 +358,11 @@ func (a ConfigAction) Equal(o ConfigAction) bool {
 	return a.Module.Equal(o.Module) && a.Action.Equal(o.Action)
 }
 
+// Contains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
 func (a ConfigAction) Contains(other Targetable) bool {
-	switch other := other.(type) {
-	case AbsAction:
-		return other.ConfigAction().Equal(a)
-	case AbsActionInstance:
-		return other.ContainingAction().ConfigAction().Equal(a)
-	}
-	return false
+	return targetContains(a, other)
 }
 
 func (a ConfigAction) UniqueKey() UniqueKey {

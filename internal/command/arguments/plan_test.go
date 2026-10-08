@@ -152,11 +152,12 @@ func TestParsePlan_tooManyArguments(t *testing.T) {
 }
 
 func TestParsePlan_targets(t *testing.T) {
-	foobarbaz, _ := addrs.ParseAbsTargetableStr("foo_bar.baz")
-	boop, _ := addrs.ParseAbsTargetableStr("module.boop")
+	foobarbaz, _ := addrs.ParseTargetStr("foo_bar.baz")
+	boop, _ := addrs.ParseTargetStr("module.boop")
+	wildcard, _ := addrs.ParseTargetStr("module.boop[*].foo_bar.baz")
 	testCases := map[string]struct {
 		args    []string
-		want    []addrs.Targetable
+		want    []addrs.TargetPattern
 		wantErr string
 	}{
 		"no targets by default": {
@@ -165,11 +166,15 @@ func TestParsePlan_targets(t *testing.T) {
 		},
 		"one target": {
 			args: []string{"-target=foo_bar.baz"},
-			want: []addrs.Targetable{foobarbaz},
+			want: []addrs.TargetPattern{foobarbaz},
 		},
 		"two targets": {
 			args: []string{"-target=foo_bar.baz", "-target", "module.boop"},
-			want: []addrs.Targetable{foobarbaz, boop},
+			want: []addrs.TargetPattern{foobarbaz, boop},
+		},
+		"wildcard target": {
+			args: []string{"-target=module.boop[*].foo_bar.baz"},
+			want: []addrs.TargetPattern{wildcard},
 		},
 		"invalid traversal": {
 			args:    []string{"-target=foo."},

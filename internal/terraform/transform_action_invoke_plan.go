@@ -13,8 +13,8 @@ import (
 
 type ActionInvokePlanTransformer struct {
 	Config          *configs.Config
-	ActionTargets   []addrs.Targetable
-	ResourceTargets []addrs.Targetable
+	ActionTargets   []addrs.TargetPattern
+	ResourceTargets []addrs.TargetPattern
 	Operation       walkOperation
 
 	queryPlanMode bool
@@ -27,7 +27,7 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 
 	// we need to track the targets we've made use of so we can report back to
 	// the user when some target is not found.
-	targetSet := addrs.MakeSet[addrs.Targetable](t.ActionTargets...)
+	targetSet := addrs.MakeSet(t.ActionTargets...)
 
 	// We could be invoking an action which is triggered from a resource,
 	// requiring us to resolve `caller`. In that case the calling resource
@@ -43,8 +43,12 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		}
 
 		for _, target := range t.ActionTargets {
+			targetConfig, ok := target.ConfigAddr().(addrs.ConfigAction)
+			if !ok {
+				continue
+			}
 			for _, callee := range caller.ActionCalls() {
-				if target.Contains(callee) {
+				if targetConfig.Equal(callee) {
 					callers := calledActions.Get(callee)
 					callers = append(callers, caller)
 					// this resource invokes the calling node
@@ -61,7 +65,8 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 		}
 
 		for _, target := range t.ActionTargets {
-			if !target.Contains(actionNode.Addr) {
+			targetConfig, ok := target.ConfigAddr().(addrs.ConfigAction)
+			if !ok || !targetConfig.Equal(actionNode.Addr) {
 				continue
 			}
 
@@ -84,23 +89,10 @@ func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
 				}
 			}
 
-			// we need to create the invoke node in the correct module scope for each target
-			var instAddr addrs.AbsActionInstance
-
-			switch target := target.(type) {
-			case addrs.AbsActionInstance:
-				instAddr = target
-			case addrs.AbsAction:
-				instAddr = target.Instance(addrs.NoKey)
-			default:
-				panic(fmt.Sprintf("invalid action addr: %#v", target))
-			}
-
 			g.Add(&nodeActionInvokeExpand{
 				Target:          target,
 				ResourceTargets: t.ResourceTargets,
 				Module:          actionNode.Addr.Module,
-				Addr:            instAddr,
 				ActionConfig:    actionNode,
 				Callers:         resourceCallers,
 			})

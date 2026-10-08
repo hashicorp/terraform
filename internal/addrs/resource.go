@@ -448,17 +448,7 @@ func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
 // address is either equal to the receiver or is an instance of the
 // receiver.
 func (r ConfigResource) Contains(other Targetable) bool {
-	switch to := other.(type) {
-	case ConfigResource:
-		// We'll use our stringification as a cheat-ish way to test for equality.
-		return to.String() == r.String()
-	case AbsResource:
-		return r.Contains(to.Config())
-	case AbsResourceInstance:
-		return r.Contains(to.ContainingResource())
-	default:
-		return false
-	}
+	return targetContains(r, other)
 }
 
 func (r ConfigResource) AddrType() TargetableAddrType {

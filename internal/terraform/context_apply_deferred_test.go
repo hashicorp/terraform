@@ -1054,7 +1054,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.a[0]"), mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1087,7 +1087,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.a"), mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1119,7 +1119,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
@@ -1163,7 +1163,7 @@ resource "test" "b" {
 		stages: []deferredActionsTestStage{
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -1209,7 +1209,7 @@ resource "test" "b" {
 			},
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				inputs: map[string]cty.Value{
 					"resource_count": cty.NumberIntVal(2),
@@ -1301,7 +1301,7 @@ resource "test" "b" {
 			// through test.b was deferred and is technically not in the plan.
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1347,7 +1347,7 @@ resource "test" "b" {
 			},
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"a:0": cty.ObjectVal(map[string]cty.Value{

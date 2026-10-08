@@ -81,52 +81,10 @@ func (m Module) targetableSigil() {
 	// Module is targetable
 }
 
-// Contains implements Targetable for Module by returning true if the given other
-// address either matches the receiver, is a sub-module-instance of the
-// receiver, or is a targetable absolute address within a module that
-// is contained within the receiver.
+// Contains implements Targetable for Module by returning true if the given
+// other address is within any instance of the receiver.
 func (m Module) Contains(other Targetable) bool {
-	switch to := other.(type) {
-
-	case Module:
-		if len(to) < len(m) {
-			// Can't be contained if the path is shorter
-			return false
-		}
-		// Other is contained if its steps match for the length of our own path.
-		for i, ourStep := range m {
-			otherStep := to[i]
-			if ourStep != otherStep {
-				return false
-			}
-		}
-		// If we fall out here then the prefixed matched, so it's contained.
-		return true
-
-	case ModuleInstance:
-		return m.Contains(to.Module())
-
-	case ConfigResource:
-		return m.Contains(to.Module)
-
-	case AbsResource:
-		return m.Contains(to.Module)
-
-	case AbsResourceInstance:
-		return m.Contains(to.Module)
-
-	case ConfigAction:
-		return m.Contains(to.Module)
-
-	case AbsAction:
-		return m.Contains(to.Module)
-
-	case AbsActionInstance:
-		return m.Contains(to.Module)
-
-	default:
-		return false
-	}
+	return targetContains(m, other)
 }
 
 func (m Module) AddrType() TargetableAddrType {

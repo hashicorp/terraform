@@ -17,13 +17,49 @@ import (
 // same syntax as used for a target. The given traversal must be absolute, or
 // this function will panic.
 //
-// A resource instance address without an instance key is returned as an
-// AbsResource, which refers to the whole resource.
+// Unlike a target, which is parsed as a TargetPattern, a module call without an
+// instance key only refers to the instance of that call without count or
+// for_each, and a resource instance address without an instance key is
+// returned as an AbsResource, which refers to the whole resource.
 //
 // If error diagnostics are returned then the address is invalid and must not
 // be used.
 func ParseAbsTargetable(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostics) {
 	return parseAbsTarget(traversal, false)
+}
+
+// ParseTarget attempts to interpret the given traversal as a target address.
+// The given traversal must be absolute, or this function will panic.
+//
+// The traversal may be a traversal pattern, such as those produced by
+// hclsyntax.ParseTraversalPartial, in which case a [*] step selects every
+// instance.
+//
+// A target is always a TargetPattern, so any module call or resource written
+// without an instance key selects every instance, the same as using an explicit
+// [*] wildcard. Use ParseTargetAction for actions, and ParseAbsTargetable to
+// parse the concrete address of a single module instance, resource, or resource
+// instance.
+//
+// If error diagnostics are returned then the TargetPattern is invalid and must
+// not be used.
+func ParseTarget(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnostics) {
+	path, remain, diags := parseModuleInstancePrefix(traversal, true)
+	if diags.HasErrors() {
+		return TargetPattern{}, diags
+	}
+
+	if len(remain) == 0 {
+		return newTargetPattern(path, moduleTargetShape, Resource{}, Action{}, NoKey), diags
+	}
+
+	riAddr, moreDiags := parseResourceInstanceUnderModule(path, true, remain)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return TargetPattern{}, diags
+	}
+
+	return newTargetPattern(riAddr.Module, resourceTargetShape, riAddr.Resource.Resource, Action{}, riAddr.Resource.Key), diags
 }
 
 // parseAbsTarget parses the concrete address of a module instance, resource,
@@ -316,6 +352,35 @@ func ParseAbsTargetableStr(str string) (Targetable, tfdiags.Diagnostics) {
 	addr, addrDiags := ParseAbsTargetable(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
+}
+
+// ParseTargetStr is a helper wrapper around ParseTarget that takes a string and
+// parses it with the HCL native syntax traversal pattern parser before
+// interpreting it.
+//
+// This should be used only in specialized situations since it will cause the
+// created references to not have any meaningful source location information.
+// If a target string is coming from a source that should be identified in
+// error messages then the caller should instead parse it directly using a
+// suitable function from the HCL API and pass the traversal itself to
+// ParseTarget.
+//
+// Error diagnostics are returned if either the parsing fails or the analysis
+// of the traversal fails. There is no way for the caller to distinguish the
+// two kinds of diagnostics programmatically. If error diagnostics are returned
+// the returned target may be incomplete.
+func ParseTargetStr(str string) (TargetPattern, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return TargetPattern{}, diags
+	}
+
+	target, targetDiags := ParseTarget(traversal)
+	diags = diags.Append(targetDiags)
+	return target, diags
 }
 
 // ParseAbsResource attempts to interpret the given traversal as an absolute

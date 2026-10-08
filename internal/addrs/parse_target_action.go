@@ -27,7 +27,7 @@ import (
 // We prevent callers accidentally including actions where they shouldn't be
 // accessible by keeping these methods separate.
 func parseAbsActionTarget(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostics) {
-	addr, diags := parseTargetAction(traversal)
+	addr, diags := parseTargetAction(traversal, false)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -39,24 +39,38 @@ func parseAbsActionTarget(traversal hcl.Traversal) (Targetable, tfdiags.Diagnost
 	return addr, diags
 }
 
-// ParseTargetAction attempts to interpret the given traversal as a targetable
-// action address. The given traversal must be absolute, or this function will
+// ParseTargetAction attempts to interpret the given traversal as an action
+// target address. The given traversal must be absolute, or this function will
 // panic.
 //
-// If error diagnostics are returned then the address is invalid and must not
-// be used.
+// The traversal may be a traversal pattern, such as those produced by
+// hclsyntax.ParseTraversalPartial, in which case a [*] step selects every
+// instance.
 //
-// This function matches the behaviour of ParseAbsTargetable, except we are
-// ensuring the caller is explicit about what kind of target they want to get.
-// We prevent callers accidentally including action targets where they
-// shouldn't be accessible by keeping these methods separate.
-func ParseTargetAction(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostics) {
-	return parseAbsActionTarget(traversal)
+// As with other targets, an action target is always parsed as a TargetPattern,
+// so any module call or action written without an instance key selects every
+// instance, the same as using an explicit [*] wildcard.
+//
+// If error diagnostics are returned then the TargetPattern is invalid and must
+// not be used.
+//
+// This function matches the behaviour of ParseTarget, except we are ensuring
+// the caller is explicit about what kind of target they want to get. We prevent
+// callers accidentally including action targets where they shouldn't be
+// accessible by keeping these methods separate.
+func ParseTargetAction(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnostics) {
+	addr, diags := parseTargetAction(traversal, true)
+	if diags.HasErrors() {
+		return TargetPattern{}, diags
+	}
+
+	return newTargetPattern(addr.Module, actionTargetShape, Resource{}, addr.Action.Action, addr.Action.Key), diags
 }
 
-// parseTargetAction parses an action instance address.
-func parseTargetAction(traversal hcl.Traversal) (AbsActionInstance, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal, false)
+// parseTargetAction parses an action instance address. If allowPattern is set,
+// any of the instance keys may be WildcardKey, for steps written as [*].
+func parseTargetAction(traversal hcl.Traversal, allowPattern bool) (AbsActionInstance, tfdiags.Diagnostics) {
+	path, remain, diags := parseModuleInstancePrefix(traversal, allowPattern)
 	if diags.HasErrors() {
 		return AbsActionInstance{}, diags
 	}
@@ -70,22 +84,22 @@ func parseTargetAction(traversal hcl.Traversal) (AbsActionInstance, tfdiags.Diag
 		})
 	}
 
-	addr, moreDiags := parseActionInstanceUnderModule(path, remain)
+	addr, moreDiags := parseActionInstanceUnderModule(path, remain, allowPattern)
 	return addr, diags.Append(moreDiags)
 }
 
 // ParseTargetActionStr is a helper wrapper around ParseTargetAction that takes
-// a string and parses it into HCL before interpreting it.
+// a string and parses it with the HCL native syntax traversal pattern parser
+// before interpreting it.
 //
-// All the same cautions apply to this as with the equivalent
-// ParseAbsTargetableStr.
-func ParseTargetActionStr(str string) (Targetable, tfdiags.Diagnostics) {
+// All the same cautions apply to this as with the equivalent ParseTargetStr.
+func ParseTargetActionStr(str string) (TargetPattern, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
-		return nil, diags
+		return TargetPattern{}, diags
 	}
 
 	target, targetDiags := ParseTargetAction(traversal)
@@ -93,7 +107,7 @@ func ParseTargetActionStr(str string) (Targetable, tfdiags.Diagnostics) {
 	return target, diags
 }
 
-func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal) (AbsActionInstance, tfdiags.Diagnostics) {
+func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal, allowPattern bool) (AbsActionInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if remain.RootName() != "action" {
@@ -161,6 +175,9 @@ func parseActionInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traver
 			}
 			return moduleAddr.ActionInstance(typeName, name, key), diags
 		case hcl.TraverseSplat:
+			if allowPattern {
+				return moduleAddr.ActionInstance(typeName, name, WildcardKey), diags
+			}
 			return AbsActionInstance{}, diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid address",

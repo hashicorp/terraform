@@ -243,3 +243,128 @@ func TestParseAbsTargetable(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTarget(t *testing.T) {
+	tcs := []struct {
+		Input string
+		// Normalized is the pattern with all wildcards written explicitly
+		Normalized string
+		Config     string
+		Key        InstanceKey
+		WantErr    string
+	}{
+		{
+			Input:      "module.foo",
+			Normalized: "module.foo[*]",
+			Config:     "module.foo",
+		},
+		{
+			Input:      "module.foo[*]",
+			Normalized: "module.foo[*]",
+			Config:     "module.foo",
+		},
+		{
+			Input:      "module.foo[*].module.bar",
+			Normalized: "module.foo[*].module.bar[*]",
+			Config:     "module.foo.module.bar",
+		},
+		{
+			Input:      `module.foo["a"].module.bar[*]`,
+			Normalized: `module.foo["a"].module.bar[*]`,
+			Config:     "module.foo.module.bar",
+		},
+		{
+			Input:      "module.foo.test.x",
+			Normalized: "module.foo[*].test.x[*]",
+			Config:     "module.foo.test.x",
+			Key:        WildcardKey,
+		},
+		{
+			Input:      "module.foo[*].test.x[0]",
+			Normalized: "module.foo[*].test.x[0]",
+			Config:     "module.foo.test.x",
+			Key:        IntKey(0),
+		},
+		{
+			Input:      "test.x[*]",
+			Normalized: "test.x[*]",
+			Config:     "test.x",
+			Key:        WildcardKey,
+		},
+		{
+			Input:      "module.foo[0].data.test.x",
+			Normalized: "module.foo[0].data.test.x[*]",
+			Config:     "module.foo.data.test.x",
+			Key:        WildcardKey,
+		},
+		{
+			Input:      `ephemeral.test.x["a"]`,
+			Normalized: `ephemeral.test.x["a"]`,
+			Config:     "ephemeral.test.x",
+			Key:        StringKey("a"),
+		},
+		{
+			Input:   "module[*].test.x",
+			WantErr: `Prefix "module." must be followed by a module name.`,
+		},
+		{
+			Input:   "aws_instance",
+			WantErr: "Resource specification must include a resource type and name.",
+		},
+		{
+			Input:   "aws_instance.foo[1].baz",
+			WantErr: "Unexpected extra operators after address.",
+		},
+		{
+			Input:   "each.key",
+			WantErr: `The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
+	}
+
+	for _, test := range tcs {
+		t.Run(test.Input, func(t *testing.T) {
+			traversal, travDiags := hclsyntax.ParseTraversalPartial([]byte(test.Input), "", hcl.InitialPos)
+			if travDiags.HasErrors() {
+				t.Fatal(travDiags.Error())
+			}
+
+			got, diags := ParseTarget(traversal)
+			if test.WantErr != "" {
+				if !diags.HasErrors() {
+					t.Fatalf("succeeded; want error: %s", test.WantErr)
+				}
+				if got, want := diags[0].Description().Detail, test.WantErr; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			}
+			if diags.HasErrors() {
+				t.Fatalf("unexpected diagnostics: %s", diags.Err())
+			}
+
+			pattern := got
+			if got, want := pattern.String(), test.Input; got != want {
+				t.Errorf("wrong string\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := pattern.format(true), test.Normalized; got != want {
+				t.Errorf("wrong normalized string\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := pattern.ConfigAddr().String(), test.Config; got != want {
+				t.Errorf("wrong config address\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := pattern.InstanceKey(), test.Key; got != want {
+				t.Errorf("wrong instance key\ngot:  %#v\nwant: %#v", got, want)
+			}
+
+			// The string form must parse back to the same pattern, since that
+			// is how targets are saved in plan files.
+			roundTrip, diags := ParseTargetStr(pattern.String())
+			if diags.HasErrors() {
+				t.Fatalf("failed to parse %q: %s", pattern, diags.Err())
+			}
+			if !pattern.Equal(roundTrip) || roundTrip.String() != test.Input {
+				t.Errorf("round trip produced %s", roundTrip)
+			}
+		})
+	}
+}
