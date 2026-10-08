@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'show: Read variable values from the plan file when showing a local plan'
+time: 2026-10-08T18:05:22.941767+02:00
+custom:
+    Issue: "39362"
