@@ -114,7 +114,7 @@ func (pem PartialExpandedModule) matches(other ModuleInstance) bool {
 	if len(other) != len(pem.module) {
 		return false
 	}
-	return targetShape{module: pem.module}.contains(targetShape{module: other})
+	return shapeContains(pem.module, other)
 }
 
 // Module returns the unexpanded module address that this pattern originated
@@ -304,14 +304,14 @@ func (per PartialExpandedResource) MatchesResource(inst AbsResource) bool {
 // the given partial module address and the resource type and name match the
 // receiver's resource type and name.
 func (per PartialExpandedResource) MatchesPartial(other PartialExpandedResource) bool {
-	return per.targetShape().contains(other.targetShape())
+	return shapeContains(per.targetShape(), other.targetShape())
 }
 
 // matches returns true if every instance selected by the given address is
 // represented by the receiver.
 func (per PartialExpandedResource) matches(addr Targetable) bool {
 	other, ok := shapeOf(addr)
-	return ok && per.targetShape().contains(other)
+	return ok && shapeContains(per.targetShape(), other)
 }
 
 // AbsResource returns the single [AbsResource] that this address represents
@@ -395,18 +395,13 @@ func (per PartialExpandedResource) IsTargetedBy(addr Targetable) bool {
 	if !ok {
 		return false
 	}
-	return target.couldContain(per.targetShape())
+	return shapeCouldContain(target, per.targetShape())
 }
 
 // targetShape returns the shape of the resource instances the receiver could
 // represent, using WildcardKey for each instance key which is not yet known.
 func (per PartialExpandedResource) targetShape() targetShape {
-	return targetShape{
-		module:   per.module.module,
-		kind:     resourceTargetShape,
-		resource: per.resource,
-		key:      WildcardKey,
-	}
+	return per.resource.Instance(WildcardKey).Absolute(per.module.module)
 }
 
 // String returns a string representation of the pattern which uses the special
@@ -599,16 +594,11 @@ func (per PartialExpandedAction) PartialExpandedModule() (PartialExpandedModule,
 // the recieving partially-expanded action address pattern.
 func (per PartialExpandedAction) MatchesAction(inst AbsAction) bool {
 	other, ok := shapeOf(inst)
-	return ok && per.targetShape().contains(other)
+	return ok && shapeContains(per.targetShape(), other)
 }
 
 // targetShape returns the shape of the action instances the receiver could
 // represent, using WildcardKey for each instance key which is not yet known.
 func (per PartialExpandedAction) targetShape() targetShape {
-	return targetShape{
-		module: per.module.module,
-		kind:   actionTargetShape,
-		action: per.action,
-		key:    WildcardKey,
-	}
+	return per.action.Instance(WildcardKey).Absolute(per.module.module)
 }

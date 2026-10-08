@@ -199,24 +199,14 @@ func (e *MoveEndpointInModule) targetShape() targetShape {
 
 	switch sub := e.relSubject.(type) {
 	case ModuleInstance:
-		return targetShape{module: append(module, sub...)}
+		return append(module, sub...)
 	case AbsModuleCall:
 		module = append(module, sub.Module...)
-		return targetShape{module: append(module, ModuleInstanceStep{Name: sub.Call.Name, InstanceKey: WildcardKey})}
+		return append(module, ModuleInstanceStep{Name: sub.Call.Name, InstanceKey: WildcardKey})
 	case AbsResource:
-		return targetShape{
-			module:   append(module, sub.Module...),
-			kind:     resourceTargetShape,
-			resource: sub.Resource,
-			key:      WildcardKey,
-		}
+		return sub.Resource.Instance(WildcardKey).Absolute(append(module, sub.Module...))
 	case AbsResourceInstance:
-		return targetShape{
-			module:   append(module, sub.Module...),
-			kind:     resourceTargetShape,
-			resource: sub.Resource.Resource,
-			key:      sub.Resource.Key,
-		}
+		return sub.Resource.Absolute(append(module, sub.Module...))
 	default:
 		panic(fmt.Sprintf("unhandled relative address type %T", sub))
 	}
@@ -231,23 +221,21 @@ func (e *MoveEndpointInModule) targetShape() targetShape {
 // resource move indicates that we should search each of the resources in
 // the given module to see if they match.
 func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
-	module := e.targetShape().module
-	return len(module) == len(addr) && targetShape{module: module}.contains(targetShape{module: addr})
+	module := e.targetShape().shapeModule()
+	return len(module) == len(addr) && shapeContains(module, addr)
 }
 
 // SelectsResource returns true if the receiver directly selects either
 // the given resource or one of its instances.
 func (e *MoveEndpointInModule) SelectsResource(addr AbsResource) bool {
-	shape := e.targetShape()
-	if shape.kind != resourceTargetShape {
+	shape, ok := e.targetShape().(AbsResourceInstance)
+	if !ok {
 		return false
 	}
 
 	// We intentionally ignore the instance key, because we consider
 	// instances to be part of the resource they belong to.
-	shape.key = WildcardKey
-	other, ok := shapeOf(addr)
-	return ok && shape.contains(other)
+	return shapeContains(shape.ContainingResource().Instance(WildcardKey), addr.Instance(WildcardKey))
 }
 
 // CanChainFrom returns true if the reciever describes an address that could
@@ -260,19 +248,21 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 	eShape := e.targetShape()
 	oShape := other.targetShape()
 
-	// The endpoints must select the same kind of object in modules at the
-	// same depth, where a module call and a module instance are both
+	// The endpoints must both select either modules or resources, in modules
+	// at the same depth, where a module call and a module instance are both
 	// considered to be a module.
-	if len(eShape.module) != len(oShape.module) || eShape.kind != oShape.kind {
+	_, eResource := eShape.(AbsResourceInstance)
+	_, oResource := oShape.(AbsResourceInstance)
+	if len(eShape.shapeModule()) != len(oShape.shapeModule()) || eResource != oResource {
 		return false
 	}
 	// A whole resource can only chain with a whole resource, and a resource
 	// instance with a resource instance.
-	if eShape.kind == resourceTargetShape && (eShape.key == WildcardKey) != (oShape.key == WildcardKey) {
+	if eResource && (shapeKey(eShape) == WildcardKey) != (shapeKey(oShape) == WildcardKey) {
 		return false
 	}
 
-	return oShape.couldContain(eShape)
+	return shapeCouldContain(oShape, eShape)
 }
 
 // NestedWithin returns true if the receiver describes an address that is
@@ -282,15 +272,17 @@ func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
 	eShape := e.targetShape()
 	oShape := other.targetShape()
 
-	if !oShape.couldContain(eShape) {
+	if !shapeCouldContain(oShape, eShape) {
 		return false
 	}
 
+	_, eModule := eShape.(ModuleInstance)
+	_, oResource := oShape.(AbsResourceInstance)
 	switch {
-	case oShape.kind == resourceTargetShape:
+	case oResource:
 		// A whole resource contains only its instances.
-		return oShape.key == WildcardKey && eShape.key != WildcardKey
-	case eShape.kind == moduleTargetShape && len(eShape.module) == len(oShape.module):
+		return shapeKey(oShape) == WildcardKey && shapeKey(eShape) != WildcardKey
+	case eModule && len(eShape.shapeModule()) == len(oShape.shapeModule()):
 		// A module call contains its instances, but otherwise a nested
 		// module must have a longer path.
 		_, oCall := other.relSubject.(AbsModuleCall)
