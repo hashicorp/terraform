@@ -107,6 +107,12 @@ func TestCloud_backendWithKVTags(t *testing.T) {
 	if workspaces[0] != "ws-billing-101" {
 		t.Fatalf("expected workspace name to be 'ws-billing-101', got %s", workspaces[0])
 	}
+
+	// Key/value tags must not also be sent as search[tags], which the server
+	// lowercases, excluding workspaces whose tag keys contain uppercase letters.
+	if tags := b.client.Workspaces.(*MockWorkspaces).lastListOptions.Tags; tags != "" {
+		t.Fatalf("expected no search[tags] for key/value tags, got %q", tags)
+	}
 }
 
 func TestCloud_DescribeTags(t *testing.T) {
