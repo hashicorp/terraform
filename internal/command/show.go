@@ -10,8 +10,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -285,7 +286,7 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Remo
 	}
 
 	if lp, ok := pf.Local(); ok {
-		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures, c.Meta.VariableValues)
+		plan, stateFile, config, err = getDataFromPlanfileReader(lp, c.Meta.AllowExperimentalFeatures)
 	} else if cp, ok := pf.Cloud(); ok {
 		redacted := c.viewType != arguments.ViewJSON
 		jsonPlan, err = c.getDataFromCloudPlan(cp, redacted)
@@ -315,7 +316,7 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 }
 
 // getDataFromPlanfileReader returns a plan, statefile, and config, extracted from a local plan file.
-func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperiments bool, variableValues map[string]arguments.UnparsedVariableValue) (*plans.Plan, *statefile.File, *configs.Config, error) {
+func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperiments bool) (*plans.Plan, *statefile.File, *configs.Config, error) {
 	// Get plan
 	plan, err := planReader.ReadPlan()
 	if err != nil {
@@ -329,7 +330,7 @@ func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperim
 	}
 
 	// Get config
-	config, diags := readConfig(planReader, allowLanguageExperiments, variableValues)
+	config, diags := readConfig(planReader, allowLanguageExperiments, plan)
 	if diags.HasErrors() {
 		return nil, nil, nil, errUnusable(diags.Err(), "local plan")
 	}
@@ -337,7 +338,7 @@ func getDataFromPlanfileReader(planReader *planfile.Reader, allowLanguageExperim
 	return plan, stateFile, config, err
 }
 
-func readConfig(r *planfile.Reader, allowLanguageExperiments bool, variableValues map[string]arguments.UnparsedVariableValue) (*configs.Config, tfdiags.Diagnostics) {
+func readConfig(r *planfile.Reader, allowLanguageExperiments bool, plan *plans.Plan) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	snap, err := r.ReadConfigSnapshot()
@@ -358,8 +359,29 @@ func readConfig(r *planfile.Reader, allowLanguageExperiments bool, variableValue
 		return nil, diags
 	}
 
-	variables, varDiags := backendrun.ParseConstVariableValues(variableValues, rootMod.Variables)
-	diags = diags.Append(varDiags)
+	// Reconstruct the configuration using the same inputs that were used to
+	// create the plan, regardless of any current variable values or defaults.
+	// Ephemeral values aren't needed here because const variables cannot be
+	// ephemeral.
+	variables := terraform.InputValues{}
+	for name, dyVal := range plan.VariableValues {
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid variable value in plan",
+				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
+			))
+			continue
+		}
+		if pvm, ok := plan.VariableMarks[name]; ok {
+			val = val.MarkWithPaths(pvm)
+		}
+		variables[name] = &terraform.InputValue{
+			Value:      val,
+			SourceType: terraform.ValueFromPlan,
+		}
+	}
 	if diags.HasErrors() {
 		return nil, diags
 	}
