@@ -337,6 +337,53 @@ func TestStateList_modules(t *testing.T) {
 		}
 	})
 
+	t.Run("all instances of a module", func(t *testing.T) {
+		// a module address selects every instance of a module call without
+		// an instance key, the same as an explicit wildcard
+		for _, addr := range []string{"module.count", "module.count[*]"} {
+			ui.OutputWriter.Reset()
+			if code := c.Run([]string{addr}); code != 0 {
+				t.Fatalf("%s: bad: %d", addr, code)
+			}
+			expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
+			actual := ui.OutputWriter.String()
+			if actual != expected {
+				t.Fatalf("%s: Expected:\n%q\n\nTo equal: %q", addr, actual, expected)
+			}
+		}
+	})
+
+	t.Run("resource in an expanded module", func(t *testing.T) {
+		// a resource address only selects the resource in a single module
+		// instance, so a module call without an instance key in a resource
+		// address doesn't select any instance of an expanded module
+		ui.OutputWriter.Reset()
+		ui.ErrorWriter.Reset()
+		if code := c.Run([]string{"module.count.test_instance.count"}); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+		if actual := ui.OutputWriter.String(); actual != "" {
+			t.Fatalf("unexpected output: %q", actual)
+		}
+		if got := ui.ErrorWriter.String(); !strings.Contains(got, "Unknown resource") {
+			t.Fatalf("wrong error: %s", got)
+		}
+	})
+
+	t.Run("wildcard in a resource address", func(t *testing.T) {
+		ui.OutputWriter.Reset()
+		ui.ErrorWriter.Reset()
+		if code := c.Run([]string{"module.count[*].test_instance.count"}); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+		if actual := ui.OutputWriter.String(); actual != "" {
+			t.Fatalf("unexpected output: %q", actual)
+		}
+		if got := ui.ErrorWriter.String(); !strings.Contains(got, "Invalid resource address") {
+			t.Fatalf("wrong error: %s", got)
+		}
+	})
+
 	t.Run("completely nonexistent module", func(t *testing.T) {
 		// finally get the state for a module with an index
 		ui.OutputWriter.Reset()
