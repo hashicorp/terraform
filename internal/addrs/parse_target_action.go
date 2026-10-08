@@ -62,7 +62,7 @@ func ParseTargetAction(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnost
 		return TargetPattern{}, diags
 	}
 
-	return newTargetPattern(addr.Module, actionTargetShape, Resource{}, addr.Action.Action, addr.Action.Key), diags
+	return newTargetPattern(addr), diags
 }
 
 // parseTargetAction parses an action instance address, with instance keys as

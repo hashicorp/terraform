@@ -48,7 +48,7 @@ func ParseTarget(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnostics) {
 	}
 
 	if len(remain) == 0 {
-		return newTargetPattern(path, moduleTargetShape, Resource{}, Action{}, NoKey), diags
+		return newTargetPattern(path), diags
 	}
 
 	riAddr, moreDiags := parseResourceInstanceUnderModule(path, wildcardInstanceKeys, remain)
@@ -57,7 +57,7 @@ func ParseTarget(traversal hcl.Traversal) (TargetPattern, tfdiags.Diagnostics) {
 		return TargetPattern{}, diags
 	}
 
-	return newTargetPattern(riAddr.Module, resourceTargetShape, riAddr.Resource.Resource, Action{}, riAddr.Resource.Key), diags
+	return newTargetPattern(riAddr), diags
 }
 
 // parseAbsTarget parses the concrete address of a module instance, resource,
