@@ -6,8 +6,8 @@ package command
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -357,6 +357,235 @@ func TestShow_planWithChanges(t *testing.T) {
 	want := `test_instance.foo must be replaced`
 	if !strings.Contains(got, want) {
 		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
+	}
+}
+
+func TestShow_planWithDynamicProviderSource(t *testing.T) {
+	const plannedSource = "terraform.io/builtin/terraform"
+	const wrongSource = "hashicorp/null"
+	tests := []struct {
+		name        string
+		defaultAttr string
+	}{
+		{name: "required"},
+		{name: "conflicting-default", defaultAttr: `default = "hashicorp/null"`},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			config := fmt.Sprintf(`
+variable "provider_source" {
+  type = string
+  const = true
+  %s
+}
+terraform {
+  required_providers {
+    terraform = {
+      source = var.provider_source
+    }
+  }
+}
+resource "terraform_data" "example" {
+  input = "saved-plan reproduction"
+}
+`, tc.defaultAttr)
+			if err := os.WriteFile("main.tf", []byte(config), 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			view, done := testView(t)
+			init := &InitCommand{Meta: Meta{Ui: testUiWrapped(t), View: view}}
+			if code := init.Run([]string{"-input=false", "-var=provider_source=" + plannedSource}); code != 0 {
+				t.Fatalf("init failed (%d):\n%s", code, done(t).All())
+			}
+			done(t)
+
+			view, done = testView(t)
+			plan := &PlanCommand{Meta: Meta{View: view}}
+			if code := plan.Run([]string{"-input=false", "-var=provider_source=" + plannedSource, "-out=tfplan"}); code != 0 {
+				t.Fatalf("plan failed (%d):\n%s", code, done(t).All())
+			}
+			done(t)
+
+			showTests := []struct {
+				name  string
+				input string
+			}{
+				{name: "no-input"},
+				{name: "conflicting-cli", input: "cli"},
+				{name: "conflicting-environment", input: "environment"},
+				{name: "conflicting-tfvars", input: "tfvars"},
+			}
+			for _, showTC := range showTests {
+				t.Run(showTC.name, func(t *testing.T) {
+					args := []string{"-json"}
+					switch showTC.input {
+					case "cli":
+						args = append(args, "-var=provider_source="+wrongSource)
+					case "environment":
+						t.Setenv("TF_VAR_provider_source", wrongSource)
+					case "tfvars":
+						if err := os.WriteFile("terraform.tfvars", []byte(`provider_source = "hashicorp/null"`), 0644); err != nil {
+							t.Fatal(err)
+						}
+						t.Cleanup(func() { os.Remove("terraform.tfvars") })
+					}
+					args = append(args, "tfplan")
+					view, done := testView(t)
+					show := &ShowCommand{Meta: Meta{View: view}}
+					code := show.Run(args)
+					output := done(t)
+					if code != 0 {
+						t.Fatalf("show failed (%d):\n%s", code, output.All())
+					}
+					var result struct {
+						Variables map[string]struct {
+							Value string `json:"value"`
+						} `json:"variables"`
+						ResourceChanges []struct {
+							Address      string `json:"address"`
+							ProviderName string `json:"provider_name"`
+						} `json:"resource_changes"`
+						Configuration struct {
+							ProviderConfig map[string]struct {
+								FullName string `json:"full_name"`
+							} `json:"provider_config"`
+						} `json:"configuration"`
+					}
+					if err := json.Unmarshal([]byte(output.Stdout()), &result); err != nil {
+						t.Fatal(err)
+					}
+					if got := result.Variables["provider_source"].Value; got != plannedSource {
+						t.Errorf("saved provider source = %q; want %q", got, plannedSource)
+					}
+					if len(result.ResourceChanges) != 1 || result.ResourceChanges[0].Address != "terraform_data.example" || result.ResourceChanges[0].ProviderName != plannedSource {
+						t.Errorf("unexpected resource changes: %#v", result.ResourceChanges)
+					}
+					if got := result.Configuration.ProviderConfig["terraform"].FullName; got != plannedSource {
+						t.Errorf("resolved provider = %q; want %q", got, plannedSource)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestShow_planWithDynamicModuleSource(t *testing.T) {
+	const plannedSource = "./child"
+	const wrongSource = "./wrong-child"
+	tests := []struct {
+		name        string
+		defaultAttr string
+	}{
+		{name: "required"},
+		{name: "conflicting-default", defaultAttr: `default = "./wrong-child"`},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			config := fmt.Sprintf(`
+variable "module_source" {
+  type = string
+  const = true
+  %s
+}
+module "child" {
+  source = var.module_source
+}
+`, tc.defaultAttr)
+			if err := os.WriteFile("main.tf", []byte(config), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Mkdir("child", 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile("child/main.tf", []byte(`
+resource "terraform_data" "example" {
+  input = "saved-plan reproduction"
+}
+`), 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			view, done := testView(t)
+			init := &InitCommand{Meta: Meta{Ui: testUiWrapped(t), View: view}}
+			if code := init.Run([]string{"-input=false", "-var=module_source=" + plannedSource}); code != 0 {
+				t.Fatalf("init failed (%d):\n%s", code, done(t).All())
+			}
+			done(t)
+
+			view, done = testView(t)
+			plan := &PlanCommand{Meta: Meta{View: view}}
+			if code := plan.Run([]string{"-input=false", "-var=module_source=" + plannedSource, "-out=tfplan"}); code != 0 {
+				t.Fatalf("plan failed (%d):\n%s", code, done(t).All())
+			}
+			done(t)
+
+			showTests := []struct {
+				name  string
+				input string
+			}{
+				{name: "no-input"},
+				{name: "conflicting-cli", input: "cli"},
+				{name: "conflicting-environment", input: "environment"},
+				{name: "conflicting-tfvars", input: "tfvars"},
+			}
+			for _, showTC := range showTests {
+				t.Run(showTC.name, func(t *testing.T) {
+					args := []string{"-json"}
+					switch showTC.input {
+					case "cli":
+						args = append(args, "-var=module_source="+wrongSource)
+					case "environment":
+						t.Setenv("TF_VAR_module_source", wrongSource)
+					case "tfvars":
+						if err := os.WriteFile("terraform.tfvars", []byte(`module_source = "./wrong-child"`), 0644); err != nil {
+							t.Fatal(err)
+						}
+						t.Cleanup(func() { os.Remove("terraform.tfvars") })
+					}
+					args = append(args, "tfplan")
+					view, done := testView(t)
+					show := &ShowCommand{Meta: Meta{View: view}}
+					code := show.Run(args)
+					output := done(t)
+					if code != 0 {
+						t.Fatalf("show failed (%d):\n%s", code, output.All())
+					}
+					var result struct {
+						Variables map[string]struct {
+							Value string `json:"value"`
+						} `json:"variables"`
+						ResourceChanges []struct {
+							Address      string `json:"address"`
+							ProviderName string `json:"provider_name"`
+						} `json:"resource_changes"`
+						Configuration struct {
+							RootModule struct {
+								ModuleCalls map[string]struct {
+									Source string `json:"source"`
+								} `json:"module_calls"`
+							} `json:"root_module"`
+						} `json:"configuration"`
+					}
+					if err := json.Unmarshal([]byte(output.Stdout()), &result); err != nil {
+						t.Fatal(err)
+					}
+					if got := result.Variables["module_source"].Value; got != plannedSource {
+						t.Errorf("saved module source = %q; want %q", got, plannedSource)
+					}
+					if len(result.ResourceChanges) != 1 || result.ResourceChanges[0].Address != "module.child.terraform_data.example" || result.ResourceChanges[0].ProviderName != "terraform.io/builtin/terraform" {
+						t.Errorf("unexpected resource changes: %#v", result.ResourceChanges)
+					}
+					if got := result.Configuration.RootModule.ModuleCalls["child"].Source; got != plannedSource {
+						t.Errorf("resolved module source = %q; want %q", got, plannedSource)
+					}
+				})
+			}
+		})
 	}
 }
 
@@ -771,7 +1000,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -864,7 +1093,7 @@ func TestShow_json_output_actions(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -961,7 +1190,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -978,7 +1207,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
 	fixtureDir := "testdata/show-json-state"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1049,7 +1278,7 @@ func TestShow_json_output_state(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}
