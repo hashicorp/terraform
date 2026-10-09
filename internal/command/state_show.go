@@ -41,7 +41,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	c.Meta.statePath = parsedArgs.StatePath
 	c.viewType = parsedArgs.ViewType
-	view := views.NewShow(parsedArgs.ViewType, c.View)
+	view := views.NewShow(parsedArgs.ViewType, false, c.View)
 
 	// Check for user-supplied plugin path
 	var err error
