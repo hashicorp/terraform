@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -671,6 +672,64 @@ func TestExpander(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 	})
+}
+
+func TestExpanderGetDeepestExistingModuleInstanceConcurrent(t *testing.T) {
+	ex := NewExpander(nil)
+	parent := mustModuleInstanceAddr(`module.parent[0]`)
+	child := mustModuleInstanceAddr(`module.parent[0].module.child["present"]`)
+	leaf := child.Child("leaf", addrs.NoKey)
+	ex.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "parent"}, 1)
+	ex.SetModuleForEach(parent, addrs.ModuleCall{Name: "child"}, map[string]cty.Value{
+		"present": cty.True,
+	})
+	ex.SetModuleSingle(child, addrs.ModuleCall{Name: "leaf"})
+
+	tests := []struct {
+		given addrs.ModuleInstance
+		want  addrs.ModuleInstance
+	}{
+		{addrs.RootModuleInstance, addrs.RootModuleInstance},
+		{leaf, leaf},
+		{mustModuleInstanceAddr(`module.parent[1].module.child["present"].module.leaf`), addrs.RootModuleInstance},
+		{mustModuleInstanceAddr(`module.parent[0].module.child["removed"].module.leaf`), parent},
+		{child.Child("leaf", addrs.IntKey(0)), child},
+	}
+
+	const iterations = 1000
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	// Register unrelated siblings at each level while querying the existing
+	// path. All queried module calls are already registered, as required by
+	// Expander, but the maps containing them are still being written to.
+	for _, addr := range []addrs.ModuleInstance{addrs.RootModuleInstance, parent, child} {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			for i := 0; i < iterations; i++ {
+				ex.SetModuleSingle(addr, addrs.ModuleCall{Name: fmt.Sprintf("sibling%d", i)})
+			}
+		}()
+	}
+	for range 4 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			for i := 0; i < iterations; i++ {
+				for _, test := range tests {
+					got := ex.GetDeepestExistingModuleInstance(test.given)
+					if !got.Equal(test.want) {
+						t.Errorf("wrong result for %s\ngot:  %s\nwant: %s", test.given, got, test.want)
+						return
+					}
+				}
+			}
+		}()
+	}
+	close(start)
+	wg.Wait()
 }
 
 func TestExpanderWithUnknowns(t *testing.T) {
