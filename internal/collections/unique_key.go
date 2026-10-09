@@ -12,7 +12,7 @@ package collections
 // when inserting elements into collection types that use unique keys.
 //
 // We use this to help with correctness of the unique-key-generator callbacks
-// used with the collection types in this package, so help with type parameter
+// used with the collection types in this package, to help with type parameter
 // inference and to raise compile-time errors if an inappropriate callback
 // is used as the key generator for a particular collection.
 type UniqueKey[T any] interface {

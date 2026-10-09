@@ -68,11 +68,8 @@ func (u *unknownProvider) ValidateListResourceConfig(request providers.ValidateL
 	return u.unconfiguredClient.ValidateListResourceConfig(request)
 }
 
-// ValidateEphemeralResourceConfig implements providers.Interface.
-func (p *unknownProvider) ValidateEphemeralResourceConfig(providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
-	return providers.ValidateEphemeralResourceConfigResponse{
-		Diagnostics: nil,
-	}
+func (u *unknownProvider) ValidateEphemeralResourceConfig(request providers.ValidateEphemeralResourceConfigRequest) providers.ValidateEphemeralResourceConfigResponse {
+	return u.unconfiguredClient.ValidateEphemeralResourceConfig(request)
 }
 
 func (u *unknownProvider) UpgradeResourceState(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
@@ -121,7 +118,6 @@ func (u *unknownProvider) ReadResource(request providers.ReadResourceRequest) pr
 	}
 }
 
-// GenerateResourceConfig implements providers.Interface
 func (p *unknownProvider) GenerateResourceConfig(req providers.GenerateResourceConfigRequest) providers.GenerateResourceConfigResponse {
 	panic("not implemented")
 }
@@ -262,38 +258,71 @@ func (u *unknownProvider) ReadDataSource(request providers.ReadDataSourceRequest
 	}
 }
 
-// OpenEphemeralResource implements providers.Interface.
-func (u *unknownProvider) OpenEphemeralResource(providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
-	// TODO: Once there's a definition for how deferred actions ought to work
-	// for ephemeral resource instances, make this report that this one needs
-	// to be deferred if the client announced that it supports deferral.
-	//
-	// For now this is just always an error, because ephemeral resources are
-	// just a prototype being developed concurrently with deferred actions.
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(tfdiags.AttributeValue(
-		tfdiags.Error,
-		"Provider configuration is unknown",
-		"Cannot open this resource instance because its associated provider configuration is unknown.",
-		nil, // nil attribute path means the overall configuration block
-	))
+func (u *unknownProvider) OpenEphemeralResource(request providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+	if request.ClientCapabilities.DeferralAllowed {
+		// For OpenEphemeralResource, we'll kind of abuse the mocking library to
+		// populate the computed values with unknown values so that future
+		// operations can still be used.
+		//
+		// PlanComputedValuesForResource populates the computed values with
+		// unknown values. This isn't the original use case for the mocking
+		// library, but it is doing exactly what we need it to do.
+
+		schema := u.GetProviderSchema().EphemeralResourceTypes[request.TypeName]
+		val, diags := mocking.PlanComputedValuesForResource(request.Config, nil, schema.Body)
+		if diags.HasErrors() {
+			// All the potential errors we get back from this function are
+			// related to the user badly defining mocks. We should never hit
+			// this as we are just using the default behaviour.
+			panic(diags.Err())
+		}
+
+		return providers.OpenEphemeralResourceResponse{
+			Result: ephemeral.StripWriteOnlyAttributes(val, schema.Body),
+			Deferred: &providers.Deferred{
+				Reason: providers.DeferredReasonProviderConfigUnknown,
+			},
+		}
+	}
+
 	return providers.OpenEphemeralResourceResponse{
-		Diagnostics: diags,
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot open this ephemeral resource instance because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
 	}
 }
 
-// RenewEphemeralResource implements providers.Interface.
 func (u *unknownProvider) RenewEphemeralResource(providers.RenewEphemeralResourceRequest) providers.RenewEphemeralResourceResponse {
-	// We don't have anything to do here because OpenEphemeralResource didn't really
-	// actually "open" anything.
-	return providers.RenewEphemeralResourceResponse{}
+	// We shouldn't ever get here as OpenEphemeralResource should return a deferred response or a diagnostic
+	return providers.RenewEphemeralResourceResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot renew this ephemeral resource instance because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
 }
 
-// CloseEphemeralResource implements providers.Interface.
 func (u *unknownProvider) CloseEphemeralResource(providers.CloseEphemeralResourceRequest) providers.CloseEphemeralResourceResponse {
-	// We don't have anything to do here because OpenEphemeralResource didn't really
-	// actually "open" anything.
-	return providers.CloseEphemeralResourceResponse{}
+	// We shouldn't ever get here as OpenEphemeralResource should return a deferred response or a diagnostic
+	return providers.CloseEphemeralResourceResponse{
+		Diagnostics: []tfdiags.Diagnostic{
+			tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Provider configuration is unknown",
+				"Cannot close this ephemeral resource instance because its associated provider configuration is unknown.",
+				nil, // nil attribute path means the overall configuration block
+			),
+		},
+	}
 }
 
 func (u *unknownProvider) CallFunction(_ providers.CallFunctionRequest) providers.CallFunctionResponse {
@@ -313,7 +342,6 @@ func (u *unknownProvider) ListResource(providers.ListResourceRequest) providers.
 	return resp
 }
 
-// ValidateStateStoreConfig implements providers.Interface.
 func (u *unknownProvider) ValidateStateStoreConfig(providers.ValidateStateStoreConfigRequest) providers.ValidateStateStoreConfigResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -327,7 +355,6 @@ func (u *unknownProvider) ValidateStateStoreConfig(providers.ValidateStateStoreC
 	}
 }
 
-// ConfigureStateStore implements providers.Interface.
 func (u *unknownProvider) ConfigureStateStore(providers.ConfigureStateStoreRequest) providers.ConfigureStateStoreResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -341,7 +368,6 @@ func (u *unknownProvider) ConfigureStateStore(providers.ConfigureStateStoreReque
 	}
 }
 
-// ReadStateBytes implements providers.Interface.
 func (u *unknownProvider) ReadStateBytes(providers.ReadStateBytesRequest) providers.ReadStateBytesResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -355,7 +381,6 @@ func (u *unknownProvider) ReadStateBytes(providers.ReadStateBytesRequest) provid
 	}
 }
 
-// WriteStateBytes implements providers.Interface.
 func (u *unknownProvider) WriteStateBytes(providers.WriteStateBytesRequest) providers.WriteStateBytesResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -395,7 +420,6 @@ func (u *unknownProvider) UnlockState(req providers.UnlockStateRequest) provider
 	}
 }
 
-// GetStates implements providers.Interface.
 func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetStatesResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -409,7 +433,6 @@ func (u *unknownProvider) GetStates(providers.GetStatesRequest) providers.GetSta
 	}
 }
 
-// DeleteState implements providers.Interface.
 func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.DeleteStateResponse {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.AttributeValue(
@@ -423,7 +446,6 @@ func (u *unknownProvider) DeleteState(providers.DeleteStateRequest) providers.De
 	}
 }
 
-// PlanAction implements providers.Interface.
 func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) providers.PlanActionResponse {
 	// TODO: Once actions support deferrals we can implement this
 	return providers.PlanActionResponse{
@@ -438,7 +460,6 @@ func (u *unknownProvider) PlanAction(request providers.PlanActionRequest) provid
 	}
 }
 
-// InvokeAction implements providers.Interface.
 func (u *unknownProvider) InvokeAction(request providers.InvokeActionRequest) providers.InvokeActionResponse {
 	return providers.InvokeActionResponse{
 		Diagnostics: []tfdiags.Diagnostic{
