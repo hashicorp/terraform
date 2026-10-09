@@ -29,6 +29,10 @@ type Declarations struct {
 	// real infrastructure described by a stack.
 	Components map[string]*Component
 
+	// EphemeralComponents are calls to trees of Terraform modules that represent
+	// ephemeral data to be produced and then consumed by the stack.
+	EphemeralComponents map[string]*EphemeralComponent
+
 	// InputVariables, LocalValues, and OutputValues together represent all
 	// of the "named values" in the stack configuration, which are just glue
 	// to pass values between scopes or to factor out common expressions for
@@ -60,6 +64,7 @@ func makeDeclarations() Declarations {
 	return Declarations{
 		EmbeddedStacks:        make(map[string]*EmbeddedStack),
 		Components:            make(map[string]*Component),
+		EphemeralComponents:   make(map[string]*EphemeralComponent),
 		InputVariables:        make(map[string]*InputVariable),
 		LocalValues:           make(map[string]*LocalValue),
 		OutputValues:          make(map[string]*OutputValue),
@@ -119,6 +124,30 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 	}
 
 	d.Components[name] = decl
+	return diags
+}
+
+func (d *Declarations) addEphemeralComponent(decl *EphemeralComponent) tfdiags.Diagnostics {
+	if decl == nil {
+		return nil
+	}
+	var diags tfdiags.Diagnostics
+
+	name := decl.Name
+	if existing, exists := d.EphemeralComponents[name]; exists {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Duplicate ephemeral component declaration",
+			Detail: fmt.Sprintf(
+				"An ephemeral component named %q was already declared at %s.",
+				name, existing.DeclRange.ToHCL(),
+			),
+			Subject: decl.DeclRange.ToHCL().Ptr(),
+		})
+		return diags
+	}
+
+	d.EphemeralComponents[name] = decl
 	return diags
 }
 
@@ -363,6 +392,11 @@ func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 	for _, decl := range other.Components {
 		diags = diags.Append(
 			d.addComponent(decl),
+		)
+	}
+	for _, decl := range other.EphemeralComponents {
+		diags = diags.Append(
+			d.addEphemeralComponent(decl),
 		)
 	}
 	for _, decl := range other.InputVariables {

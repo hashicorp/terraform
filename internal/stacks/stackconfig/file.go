@@ -94,6 +94,13 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 				ret.Declarations.addComponent(decl),
 			)
 
+		case "ephemeral_component":
+			decl, moreDiags := decodeEphemeralComponentBlock(block)
+			diags = diags.Append(moreDiags)
+			diags = diags.Append(
+				ret.Declarations.addEphemeralComponent(decl),
+			)
+
 		case "stack":
 			decl, moreDiags := decodeEmbeddedStackBlock(block)
 			diags = diags.Append(moreDiags)

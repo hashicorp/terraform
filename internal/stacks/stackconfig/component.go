@@ -112,6 +112,17 @@ func (c *Component) ModuleConfig(bundle *sourcebundle.Bundle) (*configs.Config, 
 	return nil, diags
 }
 
+var componentBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "source", Required: true},
+		{Name: "version", Required: false},
+		{Name: "for_each", Required: false},
+		{Name: "inputs", Required: false},
+		{Name: "providers", Required: false},
+		{Name: "depends_on", Required: false},
+	},
+}
+
 func decodeComponentBlock(block *hcl.Block) (*Component, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := &Component{
@@ -322,15 +333,4 @@ func decodeProvidersAttribute(attr *hcl.Attribute) (map[addrs.LocalProviderConfi
 	}
 
 	return ret, diags
-}
-
-var componentBlockSchema = &hcl.BodySchema{
-	Attributes: []hcl.AttributeSchema{
-		{Name: "source", Required: true},
-		{Name: "version", Required: false},
-		{Name: "for_each", Required: false},
-		{Name: "inputs", Required: false},
-		{Name: "providers", Required: false},
-		{Name: "depends_on", Required: false},
-	},
 }

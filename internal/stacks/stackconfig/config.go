@@ -66,6 +66,14 @@ func (config *Config) Component(component stackaddrs.ConfigComponent) *Component
 	return stack.Components[component.Item.Name]
 }
 
+func (config *Config) EphemeralComponent(ephComponent stackaddrs.ConfigEphemeralComponent) *EphemeralComponent {
+	stack := config.Stack(ephComponent.Stack)
+	if stack == nil || stack.EphemeralComponents == nil {
+		return nil
+	}
+	return stack.EphemeralComponents[ephComponent.Item.Name]
+}
+
 // ConfigNode represents a node in a tree of stacks that are to be planned and
 // applied together.
 //
@@ -297,6 +305,24 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		}
 
 		cmpn.FinalSourceAddr = effectiveSourceAddr
+	}
+
+	for _, ephCmpn := range stack.EphemeralComponents {
+		effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, ephCmpn.SourceAddr, ephCmpn.VersionConstraints, sources)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid source address",
+				Detail: fmt.Sprintf(
+					"Cannot use %q as a source address here: %s.",
+					ephCmpn.SourceAddr, err,
+				),
+				Subject: ephCmpn.SourceAddrRange.ToHCL().Ptr(),
+			})
+			continue
+		}
+
+		ephCmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
 	for addr, blocks := range stack.RemovedComponents.All() {
