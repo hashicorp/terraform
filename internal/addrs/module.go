@@ -87,10 +87,6 @@ func (m Module) Contains(other Targetable) bool {
 	return targetContains(m, other)
 }
 
-func (m Module) AddrType() TargetableAddrType {
-	return ModuleAddrType
-}
-
 // Child returns the address of a child call in the receiver, identified by the
 // given name.
 func (m Module) Child(name string) Module {

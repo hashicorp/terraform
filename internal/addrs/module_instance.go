@@ -438,81 +438,14 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 // Contains implements Targetable by returning true if the given other
 // address either matches the receiver, is a sub-module-instance of the
 // receiver, or is a targetable absolute address within a module that
-// is contained within the reciever.
+// is contained within the receiver.
+//
+// Each step's instance key must match exactly, unless it is WildcardKey which
+// matches every instance. Unlike in a TargetPattern, a step without an
+// instance key only matches the instance of a module call without count or
+// for_each.
 func (m ModuleInstance) Contains(other Targetable) bool {
-	switch to := other.(type) {
-	case Module:
-		if len(to) < len(m) {
-			// Can't be contained if the path is shorter
-			return false
-		}
-		// Other is contained if its steps match for the length of our own path.
-		for i, ourStep := range m {
-			otherStep := to[i]
-
-			// We can't contain an entire module if we have a specific instance
-			// key. The case of NoKey is OK because this address is either
-			// meant to address an unexpanded module, or a single instance of
-			// that module, and both of those are a covered in-full by the
-			// Module address.
-			if ourStep.InstanceKey != NoKey {
-				return false
-			}
-
-			if ourStep.Name != otherStep {
-				return false
-			}
-		}
-		// If we fall out here then the prefixed matched, so it's contained.
-		return true
-
-	case ModuleInstance:
-		if len(to) < len(m) {
-			return false
-		}
-		for i, ourStep := range m {
-			otherStep := to[i]
-
-			if ourStep.Name != otherStep.Name {
-				return false
-			}
-
-			// if this is our last step, because all targets are parsed as
-			// instances, this may be a ModuleInstance intended to be used as a
-			// Module.
-			if i == len(m)-1 {
-				if ourStep.InstanceKey == NoKey {
-					// If the other step is a keyed instance, then we contain that
-					// step, and if it isn't it's a match, which is true either way
-					return true
-				}
-			}
-
-			if ourStep.InstanceKey != otherStep.InstanceKey {
-				return false
-			}
-
-		}
-		return true
-
-	case ConfigResource:
-		return m.Contains(to.Module)
-
-	case AbsResource:
-		return m.Contains(to.Module)
-
-	case AbsResourceInstance:
-		return m.Contains(to.Module)
-
-	case AbsAction:
-		return m.Contains(to.Module)
-
-	case AbsActionInstance:
-		return m.Contains(to.Module)
-
-	default:
-		return false
-	}
+	return targetContains(m, other)
 }
 
 // Module returns the address of the module that this instance is an instance
@@ -538,10 +471,6 @@ func (m ModuleInstance) ContainingModule() ModuleInstance {
 
 	ret := m.Parent()
 	return ret.Child(m[len(m)-1].Name, NoKey)
-}
-
-func (m ModuleInstance) AddrType() TargetableAddrType {
-	return ModuleInstanceAddrType
 }
 
 func (m ModuleInstance) targetableSigil() {

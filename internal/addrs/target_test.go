@@ -17,12 +17,12 @@ func TestContains(t *testing.T) {
 		expect      bool
 	}{
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			mustParseTarget("module.bar"),
 			false,
 		},
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			mustParseTarget("module.foo"),
 			true,
 		},
@@ -32,74 +32,70 @@ func TestContains(t *testing.T) {
 			true,
 		},
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			RootModuleInstance,
 			false,
 		},
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			mustParseTarget("module.foo.module.bar[0]"),
 			true,
 		},
 		{
-			mustParseTarget("module.foo"),
-			mustParseTarget("module.foo.module.bar[0]"),
-			true,
-		},
-		{
-			mustParseTarget("module.foo[2]"),
+			mustParseTargetPattern("module.foo[2]"),
 			mustParseTarget("module.foo[2].module.bar[0]"),
 			true,
 		},
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			mustParseTarget("module.foo.test_resource.bar"),
 			true,
 		},
 		{
-			mustParseTarget("module.foo"),
+			mustParseTargetPattern("module.foo"),
 			mustParseTarget("module.foo.test_resource.bar[0]"),
 			true,
 		},
 
 		// Resources
 		{
-			mustParseTarget("test_resource.foo"),
+			mustParseTargetPattern("test_resource.foo"),
 			mustParseTarget("test_resource.foo[\"bar\"]"),
 			true,
 		},
 		{
-			mustParseTarget(`test_resource.foo["bar"]`),
+			mustParseTargetPattern(`test_resource.foo["bar"]`),
 			mustParseTarget(`test_resource.foo["bar"]`),
 			true,
 		},
 		{
-			mustParseTarget("test_resource.foo"),
+			mustParseTargetPattern("test_resource.foo"),
 			mustParseTarget("test_resource.foo[2]"),
 			true,
 		},
 		{
-			mustParseTarget("test_resource.foo"),
+			mustParseTargetPattern("test_resource.foo"),
 			mustParseTarget("module.bar.test_resource.foo[2]"),
 			false,
 		},
 		{
-			mustParseTarget("module.bar.test_resource.foo"),
+			mustParseTargetPattern("module.bar.test_resource.foo"),
 			mustParseTarget("module.bar.test_resource.foo[2]"),
 			true,
 		},
 		{
-			mustParseTarget("module.bar.test_resource.foo"),
+			// a keyless module step in a target selects every instance
+			mustParseTargetPattern("module.bar.test_resource.foo"),
 			mustParseTarget("module.bar[0].test_resource.foo[2]"),
-			false,
+			true,
 		},
 		{
-			mustParseTarget("module.bar.test_resource.foo"),
+			mustParseTargetPattern("module.bar.test_resource.foo"),
 			mustParseTarget("module.bar.test_resource.foo[0]"),
 			true,
 		},
 		{
-			mustParseTarget("module.bax"),
+			mustParseTargetPattern("module.bax"),
 			mustParseTarget("module.bax[0].test_resource.foo[0]"),
 			true,
 		},
@@ -119,7 +115,7 @@ func TestContains(t *testing.T) {
 			true,
 		},
 		{
-			mustParseTarget("module.bar"),
+			mustParseTargetPattern("module.bar"),
 			ConfigResource{
 				Module: []string{"bar"},
 				Resource: Resource{
@@ -131,7 +127,7 @@ func TestContains(t *testing.T) {
 			true,
 		},
 		{
-			mustParseTarget("module.bar.test_resource.foo"),
+			mustParseTargetPattern("module.bar.test_resource.foo"),
 			ConfigResource{
 				Module: []string{"bar"},
 				Resource: Resource{
@@ -179,18 +175,15 @@ func TestContains(t *testing.T) {
 			true,
 		},
 		{
-			// Parsing an ambiguous module path needs to ensure the
-			// ModuleInstance could contain the Module. This is safe because if
-			// the module could be expanded, it must have an index, meaning no
-			// index indicates that the module instance and module are
-			// functionally equivalent.
-			mustParseTarget("module.bar"),
+			// A keyless module step in a target selects every instance, so
+			// the pattern contains the entire Module.
+			mustParseTargetPattern("module.bar"),
 			Module{"bar"},
 			true,
 		},
 		{
 			// A specific ModuleInstance cannot contain a module
-			mustParseTarget("module.bar[0]"),
+			mustParseTargetPattern("module.bar[0]"),
 			Module{"bar"},
 			false,
 		},
@@ -200,8 +193,45 @@ func TestContains(t *testing.T) {
 			true,
 		},
 		{
-			mustParseTarget("module.bar[0].module.baz"),
+			mustParseTargetPattern("module.bar[0].module.baz"),
 			Module{"bar", "baz"},
+			false,
+		},
+
+		// Concrete addresses only contain the exact instances they refer to,
+		// so a step without an instance key refers only to the instance of a
+		// module call without count or for_each.
+		{
+			mustParseTarget("module.bar"),
+			mustParseTarget("module.bar[0].test_resource.foo"),
+			false,
+		},
+		{
+			mustParseTarget("module.bar"),
+			mustParseTarget("module.bar.test_resource.foo"),
+			true,
+		},
+		{
+			mustParseTarget("module.bar"),
+			Module{"bar"},
+			false,
+		},
+		{
+			mustParseTarget("module.bar.test_resource.foo"),
+			ConfigResource{
+				Module: []string{"bar"},
+				Resource: Resource{
+					Mode: ManagedResourceMode,
+					Type: "test_resource",
+					Name: "foo",
+				},
+			},
+			false,
+		},
+		{
+			// a resource instance doesn't contain the whole resource
+			RootModuleInstance.ResourceInstance(ManagedResourceMode, "test_resource", "foo", NoKey),
+			mustParseTarget("test_resource.foo"),
 			false,
 		},
 	} {
@@ -209,20 +239,6 @@ func TestContains(t *testing.T) {
 			got := test.addr.Contains(test.other)
 			if got != test.expect {
 				t.Fatalf("expected %q.Contains(%q) == %t", test.addr, test.other, test.expect)
-			}
-		})
-	}
-}
-
-func TestResourceContains(t *testing.T) {
-	for _, test := range []struct {
-		in, other Targetable
-		expect    bool
-	}{} {
-		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.in), func(t *testing.T) {
-			got := test.in.Contains(test.other)
-			if got != test.expect {
-				t.Fatalf("expected %q.Contains(%q) == %t", test.in, test.other, test.expect)
 			}
 		})
 	}
@@ -265,6 +281,12 @@ func TestContains_patterns(t *testing.T) {
 			false,
 		},
 		{
+			// a specific instance can't contain all instances
+			mustParseTarget("module.foo[0]"),
+			mustParseTargetPattern("module.foo[*]"),
+			false,
+		},
+		{
 			mustParseTargetPattern("module.foo[*].module.bar"),
 			mustParseTarget("module.foo[0].module.bar[1]"),
 			true,
@@ -272,6 +294,13 @@ func TestContains_patterns(t *testing.T) {
 		{
 			mustParseTargetPattern("module.foo[*].module.bar[0]"),
 			mustParseTarget("module.foo[1].module.bar[1]"),
+			false,
+		},
+		{
+			// a concrete address with a keyless step only contains the
+			// unkeyed instance
+			mustParseTarget("module.foo.module.bar"),
+			mustParseTarget("module.foo[0].module.bar"),
 			false,
 		},
 		{
@@ -357,6 +386,11 @@ func TestContains_patterns(t *testing.T) {
 			true,
 		},
 		{
+			mustParseTarget("module.foo[0].test_resource.x"),
+			testResourceX,
+			false,
+		},
+		{
 			mustParseTargetPattern("module.foo[*].test_resource.x[0]"),
 			mustParseTarget("module.foo[1].test_resource.x[0]"),
 			true,
@@ -396,6 +430,174 @@ func TestContains_patterns(t *testing.T) {
 			mustParseTargetPattern("module.foo[*].test_resource.x"),
 			mustParseTargetPattern("module.foo[*].test_resource.x[0]"),
 			true,
+		},
+	} {
+		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.addr), func(t *testing.T) {
+			got := test.addr.Contains(test.other)
+			if got != test.expect {
+				t.Fatalf("expected %q.Contains(%q) == %t", test.addr, test.other, test.expect)
+			}
+		})
+	}
+}
+
+func TestContains_actions(t *testing.T) {
+	wildcardFoo := ModuleInstance{{Name: "foo", InstanceKey: WildcardKey}}
+
+	for _, test := range []struct {
+		addr, other Targetable
+		expect      bool
+	}{
+		{
+			RootModule.Action("act", "a"),
+			RootModule.Action("act", "a"),
+			true,
+		},
+		{
+			RootModule.Action("act", "a"),
+			RootModule.Action("act", "b"),
+			false,
+		},
+		{
+			Module{"foo"}.Action("act", "a"),
+			mustParseTargetAction("module.foo[0].action.act.a"),
+			true,
+		},
+		{
+			Module{"foo"}.Action("act", "a"),
+			mustParseTargetAction("module.foo[1].action.act.a[2]"),
+			true,
+		},
+		{
+			RootModuleInstance,
+			Module{"foo"}.Action("act", "a"),
+			true,
+		},
+		{
+			mustParseTargetPattern("module.foo"),
+			Module{"foo"}.Action("act", "a"),
+			true,
+		},
+		{
+			// a concrete module instance doesn't contain every instance
+			mustParseTarget("module.foo"),
+			Module{"foo"}.Action("act", "a"),
+			false,
+		},
+		{
+			mustParseTarget("module.foo[0]"),
+			Module{"foo"}.Action("act", "a"),
+			false,
+		},
+		{
+			mustParseTarget("module.foo[0]"),
+			mustParseTargetAction("module.foo[0].action.act.a[1]"),
+			true,
+		},
+		{
+			// the concrete action only contains the instances in the
+			// unkeyed module instance
+			mustParseTargetAction("module.foo.action.act.a"),
+			Module{"foo"}.Action("act", "a"),
+			false,
+		},
+		{
+			// a single module instance can't contain the action from every
+			// instance of the module
+			mustParseTargetAction("module.foo[0].action.act.a"),
+			Module{"foo"}.Action("act", "a"),
+			false,
+		},
+		{
+			// a single action instance can't contain every instance
+			mustParseTargetAction("action.act.a[1]"),
+			RootModule.Action("act", "a"),
+			false,
+		},
+		{
+			mustParseTargetAction("action.act.a"),
+			mustParseTargetAction("action.act.a[1]"),
+			true,
+		},
+		{
+			mustParseTargetAction("module.foo[0].action.act.a"),
+			mustParseTargetAction("module.foo[1].action.act.a"),
+			false,
+		},
+		{
+			mustParseTargetAction("action.act.a[1]"),
+			mustParseTargetAction("action.act.a[1]"),
+			true,
+		},
+		{
+			mustParseTargetAction("action.act.a[1]"),
+			mustParseTargetAction("action.act.a"),
+			false,
+		},
+		{
+			wildcardFoo.Action("act", "a"),
+			mustParseTargetAction("module.foo[1].action.act.a[0]"),
+			true,
+		},
+		{
+			wildcardFoo.Action("act", "a"),
+			Module{"foo"}.Action("act", "a"),
+			true,
+		},
+		{
+			RootModuleInstance.ActionInstance("act", "a", WildcardKey),
+			mustParseTargetAction("action.act.a[0]"),
+			true,
+		},
+		{
+			RootModuleInstance.ActionInstance("act", "a", WildcardKey),
+			mustParseTargetAction("action.act.a"),
+			true,
+		},
+		{
+			mustParseTargetActionPattern("module.foo.action.act.a"),
+			mustParseTargetAction("module.foo[1].action.act.a[0]"),
+			true,
+		},
+		{
+			mustParseTargetActionPattern("module.foo.action.act.a"),
+			Module{"foo"}.Action("act", "a"),
+			true,
+		},
+		{
+			mustParseTargetActionPattern("module.foo[0].action.act.a"),
+			Module{"foo"}.Action("act", "a"),
+			false,
+		},
+		{
+			mustParseTargetActionPattern("action.act.a[1]"),
+			mustParseTargetAction("action.act.a[1]"),
+			true,
+		},
+		{
+			mustParseTargetActionPattern("action.act.a[1]"),
+			mustParseTargetAction("action.act.a[2]"),
+			false,
+		},
+		{
+			Module{"foo"}.Action("act", "a"),
+			mustParseTargetActionPattern("module.foo[*].action.act.a[1]"),
+			true,
+		},
+		{
+			mustParseTargetActionPattern("action.act.a"),
+			mustParseTarget("test_resource.a"),
+			false,
+		},
+		{
+			mustParseTargetAction("action.act.a"),
+			mustParseTarget("test_resource.a"),
+			false,
+		},
+		{
+			RootModule.Resource(ManagedResourceMode, "test_resource", "a"),
+			RootModule.Action("act", "a"),
+			false,
 		},
 	} {
 		t.Run(fmt.Sprintf("%s-in-%s", test.other, test.addr), func(t *testing.T) {

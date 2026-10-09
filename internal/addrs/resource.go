@@ -193,28 +193,7 @@ func (r AbsResource) Config() ConfigResource {
 // address is either equal to the receiver or is an instance of the
 // receiver.
 func (r AbsResource) Contains(other Targetable) bool {
-	switch to := other.(type) {
-
-	case AbsResource:
-		// We'll use our stringification as a cheat-ish way to test for equality.
-		return to.String() == r.String()
-
-	case ConfigResource:
-		// if an absolute resource from parsing a target address contains a
-		// ConfigResource, the string representation will match
-		return to.String() == r.String()
-
-	case AbsResourceInstance:
-		return r.Contains(to.ContainingResource())
-
-	default:
-		return false
-
-	}
-}
-
-func (r AbsResource) AddrType() TargetableAddrType {
-	return AbsResourceAddrType
+	return targetContains(r, other)
 }
 
 func (r AbsResource) String() string {
@@ -329,27 +308,11 @@ func (r AbsResourceInstance) DeposedObject(key DeposedKey) AbsResourceInstanceOb
 
 // Contains implements Targetable by returning true if the given other
 // address is equal to the receiver.
+//
+// An instance key of WildcardKey selects every instance, and so behaves the
+// same as the containing AbsResource.
 func (r AbsResourceInstance) Contains(other Targetable) bool {
-	switch to := other.(type) {
-
-	// while we currently don't start with an AbsResourceInstance as a target
-	// address, check all resource types for consistency.
-	case AbsResourceInstance:
-		// We'll use our stringification as a cheat-ish way to test for equality.
-		return to.String() == r.String()
-	case ConfigResource:
-		return to.String() == r.String()
-	case AbsResource:
-		return to.String() == r.String()
-
-	default:
-		return false
-
-	}
-}
-
-func (r AbsResourceInstance) AddrType() TargetableAddrType {
-	return AbsResourceInstanceAddrType
+	return targetContains(r, other)
 }
 
 func (r AbsResourceInstance) String() string {
@@ -449,10 +412,6 @@ func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
 // receiver.
 func (r ConfigResource) Contains(other Targetable) bool {
 	return targetContains(r, other)
-}
-
-func (r ConfigResource) AddrType() TargetableAddrType {
-	return ConfigResourceAddrType
 }
 
 func (r ConfigResource) String() string {

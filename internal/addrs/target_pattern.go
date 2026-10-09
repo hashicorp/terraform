@@ -74,11 +74,6 @@ func (p TargetPattern) Contains(other Targetable) bool {
 	return targetContains(p, other)
 }
 
-// AddrType implements Targetable.
-func (p TargetPattern) AddrType() TargetableAddrType {
-	return TargetPatternAddrType
-}
-
 // ConfigAddr returns the address of the configuration object which declares
 // all of the instances selected by the pattern, which is either a Module, a
 // ConfigResource, or a ConfigAction.
