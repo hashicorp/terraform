@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Skip Terraform lifecycle actions in Module Test
+time: 2026-07-27T12:02:54.403879+02:00
+custom:
+  Issue: "38927"

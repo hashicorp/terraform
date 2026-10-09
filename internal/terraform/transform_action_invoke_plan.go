@@ -18,10 +18,13 @@ type ActionInvokePlanTransformer struct {
 	Operation       walkOperation
 
 	queryPlanMode bool
+
+	// Skip, when true, causes the transformer to be a no-op (e.g. during test runs).
+	Skip bool
 }
 
 func (t *ActionInvokePlanTransformer) Transform(g *Graph) error {
-	if t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) == 0 {
+	if t.Skip || t.Operation != walkPlan || t.queryPlanMode || len(t.ActionTargets) == 0 {
 		return nil
 	}
 
