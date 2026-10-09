@@ -33,14 +33,14 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 			target: &MockData{
 				MockResources:   map[string]*MockResource{},
 				MockDataSources: map[string]*MockResource{},
-				Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides:       addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			result: &MockData{
 				MockResources: map[string]*MockResource{
@@ -57,7 +57,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -78,7 +78,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -98,7 +98,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -119,7 +119,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -138,7 +138,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("target")),
 				),
 			},
@@ -157,7 +157,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -178,7 +178,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -197,7 +197,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
 			},
@@ -226,7 +226,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
@@ -243,7 +243,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			target: &MockData{
 				MockResources:   map[string]*MockResource{},
@@ -255,7 +255,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			result: &MockData{
 				MockResources:   map[string]*MockResource{},
@@ -272,7 +272,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 		},
 		"ephemeral_collision_skipped": {
@@ -286,7 +286,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			target: &MockData{
 				MockResources:   map[string]*MockResource{},
@@ -298,7 +298,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			result: &MockData{
 				MockResources:   map[string]*MockResource{},
@@ -310,7 +310,7 @@ func TestMockData_Merge(t *testing.T) {
 						Defaults: cty.StringVal("current"), // current wins when skipCollisions=true
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 		},
 	}
@@ -356,14 +356,14 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
 			target: &MockData{
 				MockResources:   map[string]*MockResource{},
 				MockDataSources: map[string]*MockResource{},
-				Overrides:       addrs.MakeMap[addrs.Targetable, *Override](),
+				Overrides:       addrs.MakeMap[addrs.TargetPattern, *Override](),
 			},
 			result: &MockData{
 				MockResources: map[string]*MockResource{
@@ -380,7 +380,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -401,7 +401,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -421,7 +421,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -442,7 +442,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -461,7 +461,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("target")),
 				),
 			},
@@ -480,7 +480,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -506,7 +506,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("current"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 				),
 			},
@@ -525,7 +525,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
 			},
@@ -554,7 +554,7 @@ func TestMockData_MergeWithCollisions(t *testing.T) {
 						Defaults: cty.StringVal("target"),
 					},
 				},
-				Overrides: addrs.MakeMap[addrs.Targetable, *Override](
+				Overrides: addrs.MakeMap[addrs.TargetPattern, *Override](
 					makeOverride(t, "test_resource.my_resource", cty.StringVal("current")),
 					makeOverride(t, "test_resource.my_other_resource", cty.StringVal("target")),
 				),
@@ -669,16 +669,16 @@ func validateValues(t *testing.T, key string, actual, expected cty.Value) {
 	}
 }
 
-func makeOverride(t *testing.T, target string, values cty.Value) addrs.MapElem[addrs.Targetable, *Override] {
-	addr, diags := addrs.ParseAbsTargetableStr(target)
+func makeOverride(t *testing.T, target string, values cty.Value) addrs.MapElem[addrs.TargetPattern, *Override] {
+	addr, diags := addrs.ParseTargetStr(target)
 	if diags.HasErrors() {
 		t.Fatalf("failed to parse target: %s", diags)
 	}
 
-	return addrs.MapElem[addrs.Targetable, *Override]{
+	return addrs.MapElem[addrs.TargetPattern, *Override]{
 		Key: addr,
 		Value: &Override{
-			Target: addr,
+			Target: &addr,
 			Values: values,
 		},
 	}

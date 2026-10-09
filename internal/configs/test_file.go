@@ -79,7 +79,7 @@ type TestFile struct {
 
 	// Overrides contains any specific overrides that should be applied for this
 	// test outside any mock providers.
-	Overrides addrs.Map[addrs.Targetable, *Override]
+	Overrides addrs.Map[addrs.TargetPattern, *Override]
 
 	// Runs defines the sequential list of run blocks that should be executed in
 	// order.
@@ -129,7 +129,7 @@ type TestRun struct {
 
 	// Overrides contains any specific overrides that should be applied for this
 	// run block only outside any mock providers or overrides from the file.
-	Overrides addrs.Map[addrs.Targetable, *Override]
+	Overrides addrs.Map[addrs.TargetPattern, *Override]
 
 	// Providers specifies the set of providers that should be loaded into the
 	// module for this run block.
@@ -240,7 +240,7 @@ func (file *TestFile) Validate(config *Config) tfdiags.Diagnostics {
 
 // canTarget is a helper function, that just checks all the available
 // configurations to make sure at least one contains the specified target.
-func (file *TestFile) canTarget(config *Config, target addrs.Targetable) bool {
+func (file *TestFile) canTarget(config *Config, target addrs.TargetPattern) bool {
 	// If the target is in the main configuration, then easy.
 	if config.TargetExists(target) {
 		return true
@@ -370,7 +370,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 		VariableDefinitions: make(map[string]*Variable),
 		Providers:           make(map[string]*Provider),
 		BackendConfigs:      make(map[string]RunBlockBackend),
-		Overrides:           addrs.MakeMap[addrs.Targetable, *Override](),
+		Overrides:           addrs.MakeMap[addrs.TargetPattern, *Override](),
 	}
 
 	// we need to retrieve the file config block first, because the run blocks
@@ -565,7 +565,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := tf.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -582,7 +582,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := tf.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -599,7 +599,7 @@ func loadTestFile(body hcl.Body, experimentsAllowed bool) (*TestFile, hcl.Diagno
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := tf.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -675,7 +675,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 	diags = append(diags, contentDiags...)
 
 	r := TestRun{
-		Overrides:     addrs.MakeMap[addrs.Targetable, *Override](),
+		Overrides:     addrs.MakeMap[addrs.TargetPattern, *Override](),
 		File:          file,
 		Name:          block.Labels[0],
 		NameDeclRange: block.LabelRanges[0],
@@ -757,7 +757,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := r.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -774,7 +774,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := r.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -791,7 +791,7 @@ func decodeTestRunBlock(block *hcl.Block, file *TestFile, experimentsAllowed boo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target
+				subject := *override.Target
 				if previous, ok := r.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,

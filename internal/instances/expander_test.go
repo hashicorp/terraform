@@ -32,6 +32,14 @@ func TestExpanderWithOverrides(t *testing.T) {
 		return addr
 	}
 
+	mustTargetPattern := func(t *testing.T, s string) addrs.TargetPattern {
+		target, diags := addrs.ParseTargetStr(s)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
+		}
+		return target
+	}
+
 	tcs := map[string]struct {
 		// Hook to install chosen overrides.
 		overrides mocking.InitLocalOverrides
@@ -67,8 +75,8 @@ func TestExpanderWithOverrides(t *testing.T) {
 			wantPartials: make(map[string]bool),
 		},
 		"instanced child module single instance overridden": {
-			overrides: func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(mustModuleInstance(t, "module.double[0]"), &configs.Override{})
+			overrides: func(overrides addrs.Map[addrs.TargetPattern, *configs.Override]) {
+				overrides.Put(mustTargetPattern(t, "module.double[0]"), &configs.Override{})
 			},
 			expander: func(expander *Expander) {
 				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "double"}, 2)
@@ -80,8 +88,8 @@ func TestExpanderWithOverrides(t *testing.T) {
 			wantPartials: make(map[string]bool),
 		},
 		"instanced child module single instance overridden includes overrides": {
-			overrides: func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(mustModuleInstance(t, "module.double[0]"), &configs.Override{})
+			overrides: func(overrides addrs.Map[addrs.TargetPattern, *configs.Override]) {
+				overrides.Put(mustTargetPattern(t, "module.double[0]"), &configs.Override{})
 			},
 			expander: func(expander *Expander) {
 				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "double"}, 2)
@@ -95,8 +103,8 @@ func TestExpanderWithOverrides(t *testing.T) {
 			wantPartials: make(map[string]bool),
 		},
 		"deeply nested child module with parent overridden": {
-			overrides: func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(mustModuleInstance(t, "module.double[0]"), &configs.Override{})
+			overrides: func(overrides addrs.Map[addrs.TargetPattern, *configs.Override]) {
+				overrides.Put(mustTargetPattern(t, "module.double[0]"), &configs.Override{})
 			},
 			expander: func(expander *Expander) {
 				expander.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "double"}, 2)
@@ -107,8 +115,8 @@ func TestExpanderWithOverrides(t *testing.T) {
 			wantPartials: make(map[string]bool),
 		},
 		"unknown child module overridden by instanced module": {
-			overrides: func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(mustModuleInstance(t, "module.unknown[0]"), &configs.Override{})
+			overrides: func(overrides addrs.Map[addrs.TargetPattern, *configs.Override]) {
+				overrides.Put(mustTargetPattern(t, "module.unknown[0]"), &configs.Override{})
 			},
 			expander: func(expander *Expander) {
 				expander.SetModuleCountUnknown(addrs.RootModuleInstance, addrs.ModuleCall{Name: "unknown"})
@@ -119,8 +127,8 @@ func TestExpanderWithOverrides(t *testing.T) {
 			},
 		},
 		"unknown child module overridden by instanced module includes overrides": {
-			overrides: func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(mustModuleInstance(t, "module.unknown"), &configs.Override{})
+			overrides: func(overrides addrs.Map[addrs.TargetPattern, *configs.Override]) {
+				overrides.Put(mustTargetPattern(t, "module.unknown"), &configs.Override{})
 			},
 			expander: func(expander *Expander) {
 				expander.SetModuleCountUnknown(addrs.RootModuleInstance, addrs.ModuleCall{Name: "unknown"})
