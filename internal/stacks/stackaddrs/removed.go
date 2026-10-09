@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -137,108 +136,61 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 
 	var diags tfdiags.Diagnostics
 
-	removedFrom := RemovedFrom{}
-
-	current, moreDiags := exprToComponentTraversal(expr)
+	// The instance keys can be expressions, which are evaluated later with
+	// the context of the removed block.
+	steps, moreDiags := addrs.ParseAddressExpr(expr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return RemovedFrom{}, diags
 	}
 
-	for current != nil {
+	removedFrom := RemovedFrom{}
+	for len(steps) > 0 {
+		// Each part of the address is either "stack" or "component", followed
+		// by a name and an optional instance key.
+		if len(steps) < 2 {
+			return RemovedFrom{}, diags.Append(diag)
+		}
+		kind, ok := addressExprStepName(steps[0])
+		if !ok {
+			return RemovedFrom{}, diags.Append(diag)
+		}
+		name, ok := steps[1].Step.(hcl.TraverseAttr)
+		if !ok {
+			return RemovedFrom{}, diags.Append(diag)
+		}
+		steps = steps[2:]
 
-		// we're going to parse the traversal in sets of 2-3 depending on
-		// the indices, so we'll check that now.
-		nextTraversal := current.Current
-
-		for len(nextTraversal) > 0 {
-			var currentTraversal hcl.Traversal
-			var indexExpr hcl.Expression
-
-			switch {
-			case len(nextTraversal) < 2:
-				// this is simply an error, we always need at least 2 values
-				// for either stack.name or component.name.
-				return RemovedFrom{}, diags.Append(diag)
-			case len(nextTraversal) == 2:
-				indexExpr = current.Index
-				currentTraversal = nextTraversal
-				nextTraversal = nil
-			case len(nextTraversal) == 3:
-				if current.Index != nil {
-					// this is an error, the last traversal should be taking
-					// its index from the outer value if it exists, and to be
-					// exactly three means something is invalid somewhere.
-					return RemovedFrom{}, diags.Append(diag)
-				}
-
-				index, ok := nextTraversal[2].(hcl.TraverseIndex)
-				if !ok {
-					// This is an error, with exactly 3 we don't have another
-					// traversal to go to after this so the last entry must
-					// be the index.
-					return RemovedFrom{}, diags.Append(diag)
-				}
-
-				currentTraversal = nextTraversal
-				nextTraversal = nil
-				indexExpr = hcl.StaticExpr(index.Key, index.SrcRange)
-
-			default: // len(nextTraversal) > 3
-				if index, ok := nextTraversal[2].(hcl.TraverseIndex); ok {
-					currentTraversal = nextTraversal[:3]
-					nextTraversal = nextTraversal[3:]
-					indexExpr = hcl.StaticExpr(index.Key, index.SrcRange)
-					break
-				}
-				currentTraversal = nextTraversal[:2]
-				nextTraversal = nextTraversal[2:]
-			}
-
-			var name string
-
-			switch root := currentTraversal[0].(type) {
-			case hcl.TraverseRoot:
-				name = root.Name
-			case hcl.TraverseAttr:
-				name = root.Name
-			default:
-				return RemovedFrom{}, diags.Append(diag)
-			}
-
-			switch name {
-			case "component":
-				name, ok := currentTraversal[1].(hcl.TraverseAttr)
-				if !ok {
-					return RemovedFrom{}, diags.Append(diag)
-				}
-
-				if len(nextTraversal) > 0 || current.Rest != nil {
-					return RemovedFrom{}, diags.Append(diag)
-				}
-
-				removedFrom.Component = &ComponentRemovedFrom{
-					Name:  name.Name,
-					Index: indexExpr,
-				}
-				return removedFrom, diags
-			case "stack":
-				name, ok := currentTraversal[1].(hcl.TraverseAttr)
-				if !ok {
-					return RemovedFrom{}, diags.Append(diag)
-				}
-
-				removedFrom.Stack = append(removedFrom.Stack, StackRemovedFrom{
-					Name:  name.Name,
-					Index: indexExpr,
-				})
-
-			default:
-				return RemovedFrom{}, diags.Append(diag)
+		var index hcl.Expression
+		if len(steps) > 0 {
+			if steps[0].Key != nil {
+				index = steps[0].Key
+				steps = steps[1:]
+			} else if idx, ok := steps[0].Step.(hcl.TraverseIndex); ok {
+				index = hcl.StaticExpr(idx.Key, idx.SrcRange)
+				steps = steps[1:]
 			}
 		}
 
-		current = current.Rest
+		switch kind {
+		case "component":
+			// A component must be the last part of the address.
+			if len(steps) > 0 {
+				return RemovedFrom{}, diags.Append(diag)
+			}
+			removedFrom.Component = &ComponentRemovedFrom{
+				Name:  name.Name,
+				Index: index,
+			}
+			return removedFrom, diags
+		case "stack":
+			removedFrom.Stack = append(removedFrom.Stack, StackRemovedFrom{
+				Name:  name.Name,
+				Index: index,
+			})
+		default:
+			return RemovedFrom{}, diags.Append(diag)
+		}
 	}
 
 	// if we fall out, then we're just targeting a stack directly instead of a
@@ -246,70 +198,16 @@ func ParseRemovedFrom(expr hcl.Expression) (RemovedFrom, tfdiags.Diagnostics) {
 	return removedFrom, diags
 }
 
-type parsedFromExpr struct {
-	Current hcl.Traversal
-	Index   hcl.Expression
-	Rest    *parsedFromExpr
-}
-
-// exprToComponentTraversal converts an HCL expression into a traversal that
-// represents the component being targeted. We have to handle parsing this
-// ourselves because removed block from arguments can contain index expressions
-// which are not supported by hcl.AbsTraversalForExpr.
-//
-// The return values are (1) the part of the expression that can be converted
-// into a traversal, (2) the index at the end of the traversal if it is an
-// expression, (3) the remainder of the expression that needs to be parsed
-// after (1) has been, and (4) the diagnostics.
-func exprToComponentTraversal(expr hcl.Expression) (*parsedFromExpr, hcl.Diagnostics) {
-	switch e := expr.(type) {
-	case *hclsyntax.IndexExpr:
-
-		current, diags := exprToComponentTraversal(e.Collection)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		for next := current; next != nil; next = next.Rest {
-			if next.Rest == nil {
-				next.Index = e.Key
-			}
-		}
-
-		return current, diags
-
-	case *hclsyntax.RelativeTraversalExpr:
-
-		current, diags := exprToComponentTraversal(e.Source)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		for next := current; next != nil; next = next.Rest {
-			if next.Rest == nil {
-				next.Rest = &parsedFromExpr{
-					Current: e.Traversal,
-				}
-				break
-			}
-		}
-
-		return current, diags
-
+// addressExprStepName returns the name in the given step of an address, if it
+// isn't an instance key.
+func addressExprStepName(step addrs.AddressExprStep) (string, bool) {
+	switch step := step.Step.(type) {
+	case hcl.TraverseRoot:
+		return step.Name, true
+	case hcl.TraverseAttr:
+		return step.Name, true
 	default:
-
-		// For anything else, just rely on the default traversal logic.
-
-		t, diags := hcl.AbsTraversalForExpr(expr)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-		return &parsedFromExpr{
-			Current: t,
-			Index:   nil,
-			Rest:    nil,
-		}, diags
-
+		return "", false
 	}
 }
 

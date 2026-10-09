@@ -38,33 +38,35 @@ var _ Targetable = TargetPattern{}
 // newTargetPattern converts an address returned from parsing a traversal
 // pattern into a TargetPattern. Instance keys of WildcardKey were written as
 // [*], while those of NoKey were omitted, and both select every instance.
-func newTargetPattern(module ModuleInstance, kind targetShapeKind, resource Resource, action Action, key InstanceKey) TargetPattern {
+func newTargetPattern(addr targetShape) TargetPattern {
+	parsed := addr.shapeModule()
 	p := TargetPattern{
-		shape: targetShape{
-			module:   make(ModuleInstance, len(module)),
-			kind:     kind,
-			resource: resource,
-			action:   action,
-		},
-		explicitModule: make([]bool, len(module)),
+		explicitModule: make([]bool, len(parsed)),
 	}
 
-	for i, step := range module {
+	module := make(ModuleInstance, len(parsed))
+	for i, step := range parsed {
 		p.explicitModule[i] = step.InstanceKey == WildcardKey
 		if step.InstanceKey == NoKey {
 			step.InstanceKey = WildcardKey
 		}
-		p.shape.module[i] = step
+		module[i] = step
 	}
 
-	if kind != moduleTargetShape {
-		p.explicitKey = key == WildcardKey
-		if key == NoKey {
-			key = WildcardKey
-		}
-		p.shape.key = key
+	key := shapeKey(addr)
+	p.explicitKey = key == WildcardKey
+	if key == NoKey {
+		key = WildcardKey
 	}
 
+	switch addr := addr.(type) {
+	case AbsResourceInstance:
+		p.shape = addr.Resource.Resource.Instance(key).Absolute(module)
+	case AbsActionInstance:
+		p.shape = addr.Action.Action.Instance(key).Absolute(module)
+	default:
+		p.shape = module
+	}
 	return p
 }
 
@@ -78,14 +80,15 @@ func (p TargetPattern) Contains(other Targetable) bool {
 // all of the instances selected by the pattern, which is either a Module, a
 // ConfigResource, or a ConfigAction.
 func (p TargetPattern) ConfigAddr() Targetable {
-	mod := p.shape.module.Module()
-	switch p.shape.kind {
-	case resourceTargetShape:
-		return ConfigResource{Module: mod, Resource: p.shape.resource}
-	case actionTargetShape:
-		return ConfigAction{Module: mod, Action: p.shape.action}
+	switch shape := p.shape.(type) {
+	case AbsResourceInstance:
+		return shape.ConfigResource()
+	case AbsActionInstance:
+		return shape.ConfigAction()
+	case ModuleInstance:
+		return shape.Module()
 	default:
-		return mod
+		return RootModule
 	}
 }
 
@@ -93,7 +96,7 @@ func (p TargetPattern) ConfigAddr() Targetable {
 // the pattern, which is WildcardKey when every instance is selected. Patterns
 // selecting a module always return NoKey.
 func (p TargetPattern) InstanceKey() InstanceKey {
-	return p.shape.key
+	return shapeKey(p.shape)
 }
 
 // String returns the pattern using the same syntax it was parsed from, which
@@ -135,7 +138,11 @@ func (p TargetPattern) format(allExplicit bool) string {
 		}
 	}
 
-	for i, step := range p.shape.module {
+	if p.shape == nil {
+		return ""
+	}
+
+	for i, step := range p.shape.shapeModule() {
 		if i > 0 {
 			buf.WriteByte('.')
 		}
@@ -145,11 +152,11 @@ func (p TargetPattern) format(allExplicit bool) string {
 	}
 
 	var object string
-	switch p.shape.kind {
-	case resourceTargetShape:
-		object = p.shape.resource.String()
-	case actionTargetShape:
-		object = p.shape.action.String()
+	switch shape := p.shape.(type) {
+	case AbsResourceInstance:
+		object = shape.Resource.Resource.String()
+	case AbsActionInstance:
+		object = shape.Action.Action.String()
 	default:
 		return buf.String()
 	}
@@ -157,32 +164,49 @@ func (p TargetPattern) format(allExplicit bool) string {
 		buf.WriteByte('.')
 	}
 	buf.WriteString(object)
-	formatKey(p.shape.key, p.explicitKey)
+	formatKey(shapeKey(p.shape), p.explicitKey)
 	return buf.String()
 }
 
-type targetShapeKind int
+// targetShape is a common representation of every Targetable address, which
+// allows Contains to use the same rules for all address types. It's
+// implemented only by ModuleInstance, AbsResourceInstance, and
+// AbsActionInstance.
+//
+// Any step of the module path, or the instance key of the resource or action,
+// can be WildcardKey to select every instance. Configuration addresses select
+// every instance of every module, and so all of their steps are wildcards.
+// Addresses of a whole resource or action select every instance, so use
+// WildcardKey for its instance key.
+type targetShape interface {
+	Targetable
 
-const (
-	moduleTargetShape targetShapeKind = iota
-	resourceTargetShape
-	actionTargetShape
+	// shapeModule returns the module path of the address. Only the address
+	// types which can be a targetShape implement it.
+	shapeModule() ModuleInstance
+}
+
+var (
+	_ targetShape = ModuleInstance(nil)
+	_ targetShape = AbsResourceInstance{}
+	_ targetShape = AbsActionInstance{}
 )
 
-// targetShape is a common representation of every Targetable address, which
-// allows Contains to use the same rules for all address types.
-//
-// Any step of the module path, or the instance key, can be WildcardKey to
-// select every instance. Configuration addresses select every instance of
-// every module, and so all of their steps are wildcards. Addresses of a whole
-// resource or action select every instance, so use WildcardKey for the key.
-type targetShape struct {
-	module   ModuleInstance
-	kind     targetShapeKind
-	resource Resource
-	action   Action
-	// key is only used for resources and actions
-	key InstanceKey
+func (m ModuleInstance) shapeModule() ModuleInstance      { return m }
+func (r AbsResourceInstance) shapeModule() ModuleInstance { return r.Module }
+func (a AbsActionInstance) shapeModule() ModuleInstance   { return a.Module }
+
+// shapeKey returns the instance key of the resource or action in the given
+// shape, or NoKey for a module.
+func shapeKey(s targetShape) InstanceKey {
+	switch s := s.(type) {
+	case AbsResourceInstance:
+		return s.Resource.Key
+	case AbsActionInstance:
+		return s.Action.Key
+	default:
+		return NoKey
+	}
 }
 
 // targetContains implements Contains for every Targetable address type,
@@ -193,7 +217,7 @@ func targetContains(container, other Targetable) bool {
 		return false
 	}
 	o, ok := shapeOf(other)
-	return ok && c.contains(o)
+	return ok && shapeContains(c, o)
 }
 
 // CouldContain returns true if the container could contain any of the
@@ -211,31 +235,31 @@ func CouldContain(container, other Targetable) bool {
 		return false
 	}
 	o, ok := shapeOf(other)
-	return ok && c.couldContain(o)
+	return ok && shapeCouldContain(c, o)
 }
 
 func shapeOf(addr Targetable) (targetShape, bool) {
 	switch addr := addr.(type) {
 	case TargetPattern:
-		return addr.shape, true
+		return addr.shape, addr.shape != nil
 	case Module:
-		return targetShape{module: allModuleInstances(addr)}, true
+		return allModuleInstances(addr), true
 	case ModuleInstance:
-		return targetShape{module: addr}, true
+		return addr, true
 	case ConfigResource:
-		return targetShape{module: allModuleInstances(addr.Module), kind: resourceTargetShape, resource: addr.Resource, key: WildcardKey}, true
+		return addr.Resource.Instance(WildcardKey).Absolute(allModuleInstances(addr.Module)), true
 	case AbsResource:
-		return targetShape{module: addr.Module, kind: resourceTargetShape, resource: addr.Resource, key: WildcardKey}, true
+		return addr.Instance(WildcardKey), true
 	case AbsResourceInstance:
-		return targetShape{module: addr.Module, kind: resourceTargetShape, resource: addr.Resource.Resource, key: addr.Resource.Key}, true
+		return addr, true
 	case ConfigAction:
-		return targetShape{module: allModuleInstances(addr.Module), kind: actionTargetShape, action: addr.Action, key: WildcardKey}, true
+		return addr.Action.Instance(WildcardKey).Absolute(allModuleInstances(addr.Module)), true
 	case AbsAction:
-		return targetShape{module: addr.Module, kind: actionTargetShape, action: addr.Action, key: WildcardKey}, true
+		return addr.Instance(WildcardKey), true
 	case AbsActionInstance:
-		return targetShape{module: addr.Module, kind: actionTargetShape, action: addr.Action.Action, key: addr.Action.Key}, true
+		return addr, true
 	default:
-		return targetShape{}, false
+		return nil, false
 	}
 }
 
@@ -249,49 +273,50 @@ func allModuleInstances(m Module) ModuleInstance {
 	return ret
 }
 
-// contains returns true if every address selected by other is also selected
-// by the receiver. A module contains everything within it, while resources
-// and actions only contain their own instances.
-func (s targetShape) contains(other targetShape) bool {
-	return s.compare(other, func(key, otherKey InstanceKey) bool {
+// shapeContains returns true if every address selected by other is also
+// selected by s. A module contains everything within it, while resources and
+// actions only contain their own instances.
+func shapeContains(s, other targetShape) bool {
+	return shapeCompare(s, other, func(key, otherKey InstanceKey) bool {
 		return key == WildcardKey || key == otherKey
 	})
 }
 
-// couldContain is like contains, but treats any wildcards in other as
-// instance keys which are not yet known, and so returns true if any of the
-// addresses which other could eventually represent might be contained by the
-// receiver.
-func (s targetShape) couldContain(other targetShape) bool {
-	return s.compare(other, func(key, otherKey InstanceKey) bool {
+// shapeCouldContain is like shapeContains, but treats any wildcards in other
+// as instance keys which are not yet known, and so returns true if any of the
+// addresses which other could eventually represent might be contained by s.
+func shapeCouldContain(s, other targetShape) bool {
+	return shapeCompare(s, other, func(key, otherKey InstanceKey) bool {
 		return key == WildcardKey || otherKey == WildcardKey || key == otherKey
 	})
 }
 
-func (s targetShape) compare(other targetShape, keysMatch func(key, otherKey InstanceKey) bool) bool {
-	if len(other.module) < len(s.module) {
+func shapeCompare(s, other targetShape, keysMatch func(key, otherKey InstanceKey) bool) bool {
+	module, otherModule := s.shapeModule(), other.shapeModule()
+	if len(otherModule) < len(module) {
 		return false
 	}
-	for i, step := range s.module {
-		otherStep := other.module[i]
+	for i, step := range module {
+		otherStep := otherModule[i]
 		if step.Name != otherStep.Name || !keysMatch(step.InstanceKey, otherStep.InstanceKey) {
 			return false
 		}
 	}
 
-	switch s.kind {
-	case moduleTargetShape:
+	switch s := s.(type) {
+	case ModuleInstance:
+		// A module contains everything within it.
 		return true
-	case resourceTargetShape:
-		return other.kind == resourceTargetShape &&
-			len(other.module) == len(s.module) &&
-			s.resource.Equal(other.resource) &&
-			keysMatch(s.key, other.key)
-	case actionTargetShape:
-		return other.kind == actionTargetShape &&
-			len(other.module) == len(s.module) &&
-			s.action.Equal(other.action) &&
-			keysMatch(s.key, other.key)
+	case AbsResourceInstance:
+		o, ok := other.(AbsResourceInstance)
+		return ok && len(o.Module) == len(s.Module) &&
+			s.Resource.Resource.Equal(o.Resource.Resource) &&
+			keysMatch(s.Resource.Key, o.Resource.Key)
+	case AbsActionInstance:
+		o, ok := other.(AbsActionInstance)
+		return ok && len(o.Module) == len(s.Module) &&
+			s.Action.Action.Equal(o.Action.Action) &&
+			keysMatch(s.Action.Key, o.Action.Key)
 	default:
 		return false
 	}
