@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -182,6 +183,15 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
+	// The graph binds each object to a provider based on the given
+	// configuration, which must agree with the providers used to create the
+	// plan. We must check this before making any changes.
+	moreDiags = checkPlannedProviders(graph, plan.Changes)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
 	moreDiags = checkExternalProviders(config, plan, nil, opts.ExternalProviders)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -327,6 +337,104 @@ func checkApplyTimeVariables(needed collections.Set[string], gotValues InputValu
 			}
 		}
 	}
+	return diags
+}
+
+// checkPlannedProviders returns errors for any planned resource instance change
+// or action invocation that the apply graph binds to a different provider
+// configuration than the one that was used to plan it.
+func checkPlannedProviders(g *Graph, changes *plans.ChangesSrc) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	type plannedObject struct {
+		instance addrs.UniqueKey
+		deposed  states.DeposedKey
+	}
+	plannedProviders := make(map[plannedObject]addrs.AbsProviderConfig, len(changes.Resources))
+	for _, rc := range changes.Resources {
+		plannedProviders[plannedObject{rc.Addr.UniqueKey(), rc.DeposedKey}] = rc.ProviderAddr
+	}
+
+	type providerMismatch struct {
+		planned, current addrs.AbsProviderConfig
+	}
+	resourceMismatches := addrs.MakeMap[addrs.AbsResourceInstance, providerMismatch]()
+	actionConfigs := addrs.MakeMap[addrs.ConfigAction, *NodeActionConfig]()
+
+	for v := range g.VerticesSeq() {
+		if n, ok := v.(*NodeActionConfig); ok {
+			actionConfigs.Put(n.Addr, n)
+			continue
+		}
+
+		ri, ok := v.(GraphNodeResourceInstance)
+		if !ok {
+			continue
+		}
+		pc, ok := v.(GraphNodeProviderConsumer)
+		if !ok {
+			continue
+		}
+		ref := pc.Provider()
+		if ref.Offline || !ref.Resolved {
+			// Offline nodes never call a provider. All others have a resolved
+			// provider once the graph is built.
+			continue
+		}
+
+		addr := ri.ResourceInstanceAddr()
+		dk := states.NotDeposed
+		if dn, ok := v.(GraphNodeDeposedResourceInstanceObject); ok {
+			dk = dn.DeposedInstanceObjectKey()
+		}
+		planned, ok := plannedProviders[plannedObject{addr.UniqueKey(), dk}]
+		if !ok && dk != states.NotDeposed {
+			// A create_before_destroy replacement deposes the current object
+			// under a newly-allocated key, so the node that destroys it acts
+			// on the planned change for the current object.
+			planned, ok = plannedProviders[plannedObject{addr.UniqueKey(), states.NotDeposed}]
+		}
+		if !ok || planned.Equal(ref.Addr) {
+			continue
+		}
+		resourceMismatches.Put(addr, providerMismatch{planned: planned, current: ref.Addr})
+	}
+
+	mismatches := resourceMismatches.Elements()
+	sort.Slice(mismatches, func(i, j int) bool {
+		return mismatches[i].Key.Less(mismatches[j].Key)
+	})
+	for _, mismatch := range mismatches {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider has changed since the plan was created",
+			fmt.Sprintf(
+				"Terraform planned the change for %s using %s, but the configuration now selects %s instead. This can happen when a provider source in required_providers depends on data that is not saved in the plan, such as the contents of a file.\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				mismatch.Key, mismatch.Value.planned, mismatch.Value.current,
+			),
+		))
+	}
+
+	reportedActions := addrs.MakeSet[addrs.AbsActionInstance]()
+	for _, ai := range changes.ActionInvocations {
+		n, ok := actionConfigs.GetOk(ai.Addr.ConfigAction())
+		if !ok || n.ResolvedProvider.Provider.IsZero() || ai.ProviderAddr.Equal(n.ResolvedProvider) {
+			continue
+		}
+		if reportedActions.Has(ai.Addr) {
+			continue
+		}
+		reportedActions.Add(ai.Addr)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider has changed since the plan was created",
+			fmt.Sprintf(
+				"Terraform planned the invocation of %s using %s, but the configuration now selects %s instead. This can happen when a provider source in required_providers depends on data that is not saved in the plan, such as the contents of a file.\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				ai.Addr, ai.ProviderAddr, n.ResolvedProvider,
+			),
+		))
+	}
+
 	return diags
 }
 
