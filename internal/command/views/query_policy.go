@@ -15,6 +15,7 @@ import (
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/mitchellh/colorstring"
 )
 
 type queryPolicyResult string
@@ -109,7 +110,7 @@ func ParsePolicyQuerySummary(line []byte) (PolicyQuerySummary, error) {
 
 // RenderPolicyQuerySummariesHuman renders a complete human-readable policy
 // section for one or more list blocks.
-func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
+func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary, colorize *colorstring.Colorize) string {
 	if len(summaries) == 0 {
 		return ""
 	}
@@ -135,7 +136,7 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 	fmt.Fprintf(&buf, "Evaluated %d policies.", len(policies))
 	for _, summary := range ordered {
 		buf.WriteString("\n\n")
-		buf.WriteString(renderQueryPolicySummaryHuman(summary))
+		buf.WriteString(renderQueryPolicySummaryHuman(summary, colorize))
 	}
 	return buf.String()
 }
@@ -397,10 +398,10 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 	}
 }
 
-func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
+func renderQueryPolicySummaryHuman(summary PolicyQuerySummary, colorize *colorstring.Colorize) string {
 	var buf strings.Builder
 
-	fmt.Fprintf(&buf, "Policy results for %s - %s\n", summary.ListBlockAddress, toPolicyResultLabel(summary.OverallResult))
+	fmt.Fprintf(&buf, "Policy results for %s - %s\n", summary.ListBlockAddress, toPolicyResultLabel(summary.OverallResult, colorize))
 
 	maxLen := 0
 	for _, r := range summary.Results {
@@ -411,7 +412,7 @@ func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
 
 	for _, result := range summary.Results {
 		identity := formatQueryPolicyIdentity(result.Identity)
-		label := toPolicyResultLabel(result.Result)
+		label := toPolicyResultLabel(result.Result, colorize)
 		if result.Result == queryPolicyResultPass && len(result.Policies) == 0 {
 			label = "N/A"
 		}
@@ -429,11 +430,14 @@ func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
 	return strings.TrimRight(buf.String(), "\n")
 }
 
-func toPolicyResultLabel(r queryPolicyResult) string {
+func toPolicyResultLabel(r queryPolicyResult, colorize *colorstring.Colorize) string {
 	switch r {
 	case queryPolicyResultPass:
 		return "Passed"
 	case queryPolicyResultFail:
+		if colorize != nil {
+			return colorize.Color("[red]Failed[reset]")
+		}
 		return "Failed"
 	case queryPolicyResultError:
 		return "Error"
