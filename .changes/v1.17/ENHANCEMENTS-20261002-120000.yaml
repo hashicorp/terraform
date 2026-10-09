@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'query: `terraform query -policies` now prints a summary of failed, passed, unknown, and errored resources after the policy results'
+time: 2026-10-02T12:00:00.000000-04:00
+custom:
+    Issue: "39325"
