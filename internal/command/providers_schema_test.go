@@ -21,7 +21,6 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/workdir"
-
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
