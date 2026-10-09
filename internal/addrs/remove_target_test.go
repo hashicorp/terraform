@@ -124,7 +124,7 @@ func TestParseRemoveTarget(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Input, func(t *testing.T) {
-			traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(test.Input), "", hcl.InitialPos)
+			traversal, hclDiags := hclsyntax.ParseTraversalAbsPattern([]byte(test.Input), "", hcl.InitialPos)
 			if hclDiags.HasErrors() {
 				// We're not trying to test the HCL parser here, so any
 				// failures at this point are likely to be bugs in the

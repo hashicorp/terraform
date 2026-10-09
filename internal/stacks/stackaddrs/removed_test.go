@@ -427,7 +427,7 @@ func TestParseRemovedFrom_Components(t *testing.T) {
 }
 
 func mustStackInstance(t *testing.T, str string) StackInstance {
-	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.InitialPos)
+	traversal, hclDiags := hclsyntax.ParseTraversalAbsPattern([]byte(str), "", hcl.InitialPos)
 	if len(hclDiags) > 0 {
 		t.Fatal(hclDiags.Error())
 	}

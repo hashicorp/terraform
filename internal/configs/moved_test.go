@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -208,4 +209,68 @@ func mustMoveEndpointFromExpr(expr hcl.Expression) *addrs.MoveEndpoint {
 	}
 
 	return ep
+}
+
+// Wildcards are valid traversal syntax, but they are not valid in moved and
+// removed blocks, which must refer to specific objects.
+func TestMovedRemovedBlock_wildcards(t *testing.T) {
+	mustExpr := func(src string) hcl.Expression {
+		expr, diags := hclsyntax.ParseExpression([]byte(src), "", hcl.InitialPos)
+		if diags.HasErrors() {
+			t.Fatal(diags.Error())
+		}
+		return expr
+	}
+	block := func(typ string, attrs map[string]string) *hcl.Block {
+		content := &hcl.BodyContent{Attributes: hcl.Attributes{}}
+		for name, src := range attrs {
+			content.Attributes[name] = &hcl.Attribute{Name: name, Expr: mustExpr(src)}
+		}
+		return &hcl.Block{Type: typ, Body: hcltest.MockBody(content)}
+	}
+
+	for name, tc := range map[string]struct {
+		decode  func() hcl.Diagnostics
+		wantErr string
+	}{
+		"moved from": {
+			decode: func() hcl.Diagnostics {
+				_, diags := decodeMovedBlock(block("moved", map[string]string{
+					"from": "module.a[*]",
+					"to":   "module.b",
+				}))
+				return diags
+			},
+			wantErr: "The module instance key cannot be a wildcard in this address.",
+		},
+		"moved to": {
+			decode: func() hcl.Diagnostics {
+				_, diags := decodeMovedBlock(block("moved", map[string]string{
+					"from": "test_instance.a",
+					"to":   "test_instance.b[*]",
+				}))
+				return diags
+			},
+			wantErr: "The resource instance key cannot be a wildcard in this address.",
+		},
+		"removed from": {
+			decode: func() hcl.Diagnostics {
+				_, diags := decodeRemovedBlock(block("removed", map[string]string{
+					"from": "module.a[*].test_instance.b",
+				}))
+				return diags
+			},
+			wantErr: `Module address must be a module (e.g. "module.foo"), not a module instance (e.g. "module.foo[1]").`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			diags := tc.decode()
+			if !diags.HasErrors() {
+				t.Fatalf("unexpected success")
+			}
+			if got := diags[0].Detail; got != tc.wantErr {
+				t.Errorf("wrong error\ngot:  %s\nwant: %s", got, tc.wantErr)
+			}
+		})
+	}
 }

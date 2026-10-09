@@ -9,7 +9,77 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/json"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 )
+
+func TestTestRunOptions_targetPatterns(t *testing.T) {
+	want := []string{
+		"test_resource.a",
+		"module.child[*].test_resource.b",
+		"module.child.module.grandchild[1]",
+	}
+
+	sources := map[string]func() (hcl.Body, hcl.Diagnostics){
+		"native": func() (hcl.Body, hcl.Diagnostics) {
+			f, diags := hclsyntax.ParseConfig([]byte(`
+run "test" {
+  plan_options {
+    target = [
+      test_resource.a,
+      module.child[*].test_resource.b,
+      module.child.module.grandchild[1],
+    ]
+  }
+}
+`), "main.tftest.hcl", hcl.InitialPos)
+			return f.Body, diags
+		},
+		"json": func() (hcl.Body, hcl.Diagnostics) {
+			f, diags := json.Parse([]byte(`{
+  "run": {
+    "test": {
+      "plan_options": {
+        "target": [
+          "test_resource.a",
+          "module.child[*].test_resource.b",
+          "module.child.module.grandchild[1]"
+        ]
+      }
+    }
+  }
+}`), "main.tftest.json")
+			return f.Body, diags
+		},
+	}
+
+	for name, source := range sources {
+		t.Run(name, func(t *testing.T) {
+			body, diags := source()
+			if diags.HasErrors() {
+				t.Fatal(diags.Error())
+			}
+
+			file, diags := loadTestFile(body, false)
+			if diags.HasErrors() {
+				t.Fatal(diags.Error())
+			}
+
+			var got []string
+			for _, traversal := range file.Runs[0].Options.Target {
+				target, diags := addrs.ParseTarget(traversal)
+				if diags.HasErrors() {
+					t.Fatal(diags.Err())
+				}
+				got = append(got, target.String())
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Fatalf("wrong targets\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestTestRun_Validate(t *testing.T) {
 	tcs := map[string]struct {
