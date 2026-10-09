@@ -6,11 +6,12 @@ package oss
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
-
-	"strings"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
@@ -35,6 +36,37 @@ func testACC(t *testing.T) {
 
 func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
+}
+
+func TestBackendConfigSignatureV4(t *testing.T) {
+	var authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	config := map[string]interface{}{
+		"access_key": "test-access-key",
+		"secret_key": "test-secret-key",
+		"region":     "cn-qingdao",
+		"endpoint":   server.URL,
+		"bucket":     "terraform-backend-oss-test",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if got := b.ossClient.Config.AuthVersion; got != oss.AuthV4 {
+		t.Fatalf("wrong OSS signature version: got %q, want %q", got, oss.AuthV4)
+	}
+	if got := b.ossClient.Config.Region; got != "cn-qingdao" {
+		t.Fatalf("wrong OSS signing region: got %q, want %q", got, "cn-qingdao")
+	}
+
+	_, _ = b.ossClient.ListBuckets()
+	if !strings.HasPrefix(authorization, "OSS4-HMAC-SHA256 ") {
+		t.Fatalf("wrong OSS authorization scheme: got %q, want OSS4-HMAC-SHA256", authorization)
+	}
 }
 
 func TestBackendConfig(t *testing.T) {

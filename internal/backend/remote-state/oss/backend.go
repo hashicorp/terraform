@@ -408,7 +408,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		endpoint = fmt.Sprintf("%s://%s", protocol, endpoint)
 	}
 	log.Printf("[DEBUG] Instantiate OSS client using endpoint: %#v", endpoint)
-	var options []oss.ClientOption
+	options := []oss.ClientOption{
+		oss.AuthVersion(oss.AuthV4),
+		oss.Region(region),
+	}
 	if securityToken != "" {
 		options = append(options, oss.SecurityToken(securityToken))
 	}
