@@ -60,6 +60,7 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	// Work with data/body
 	if data != nil {
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "Terraform-http-client/1.1")
 		req.ContentLength = int64(len(*data))
 
 		// Generate the MD5
