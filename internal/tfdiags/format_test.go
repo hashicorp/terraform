@@ -5,6 +5,7 @@ package tfdiags
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -104,6 +105,72 @@ func TestCompactValueStr(t *testing.T) {
 			got := CompactValueStr(test.Val)
 			if got != test.Want {
 				t.Errorf("wrong result\nvalue: %#v\ngot:   %s\nwant:  %s", test.Val, got, test.Want)
+			}
+		})
+	}
+}
+
+func TestFormatValueStr(t *testing.T) {
+	deprecatedObj := cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("example"),
+	}).Mark(marks.Deprecation)
+
+	sensitiveObj := cty.ObjectVal(map[string]cty.Value{
+		"username": cty.StringVal("admin"),
+		"password": cty.StringVal("hunter2").Mark(marks.Sensitive),
+	})
+
+	tests := []struct {
+		Name     string
+		Val      cty.Value
+		WantSub  []string
+		NotWant  []string
+		WantFail bool
+	}{
+		{
+			Name: "plain value",
+			Val: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("example"),
+			}),
+			WantSub: []string{`"id": "example"`},
+		},
+		{
+			// https://github.com/hashicorp/terraform/issues/39365: values
+			// carrying non-sensitive marks (such as provider deprecation
+			// marks) must render instead of failing JSON marshalling.
+			Name:    "deprecated mark renders",
+			Val:     deprecatedObj,
+			WantSub: []string{`"id": "example"`},
+		},
+		{
+			Name:    "sensitive stays redacted",
+			Val:     sensitiveObj,
+			WantSub: []string{`"username": "admin"`, "(sensitive value)"},
+			NotWant: []string{"hunter2"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Name, func(t *testing.T) {
+			got, err := FormatValueStr(test.Val)
+			if test.WantFail {
+				if err == nil {
+					t.Fatalf("expected failure, got:\n%s", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			for _, want := range test.WantSub {
+				if !strings.Contains(got, want) {
+					t.Errorf("missing %q in:\n%s", want, got)
+				}
+			}
+			for _, notWant := range test.NotWant {
+				if strings.Contains(got, notWant) {
+					t.Errorf("leaked %q in:\n%s", notWant, got)
+				}
 			}
 		})
 	}

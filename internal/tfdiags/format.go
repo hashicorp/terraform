@@ -159,6 +159,12 @@ func FormatValueStr(val cty.Value) (string, error) {
 		return "", fmt.Errorf("unexpected error transforming value: %s", err)
 	}
 
+	// Any marks remaining here are safe for display: sensitive, ephemeral,
+	// and unknown values were redacted above. ctyjson.Marshal cannot handle
+	// marked values at all, so drop the rest (such as provider deprecation
+	// marks) instead of failing on them.
+	val, _ = val.UnmarkDeep()
+
 	jsonVal, err := ctyjson.Marshal(val, val.Type())
 	if err != nil {
 		return "", fmt.Errorf("unexpected error marshalling value: %s", err)
