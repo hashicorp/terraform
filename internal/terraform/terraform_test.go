@@ -382,12 +382,23 @@ func mustActionInstanceAddr(s string) addrs.AbsActionInstance {
 	return addr
 }
 
-func mustActionAddr(s string) addrs.AbsAction {
-	addr, diags := addrs.ParseAbsActionStr(s)
+// mustTargetPattern parses a target in the same way as the -target option.
+func mustTargetPattern(s string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
-	return addr
+	return target
+}
+
+// mustActionTargetPattern parses a target in the same way as the -invoke
+// option.
+func mustActionTargetPattern(s string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetActionStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return target
 }
 
 // HookRecordApplyOrder is a test hook that records the order of applies

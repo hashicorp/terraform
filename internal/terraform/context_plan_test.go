@@ -4009,10 +4009,8 @@ func TestContext2Plan_targeted(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4065,8 +4063,8 @@ func TestContext2Plan_targetedCrossModule(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("B", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.B"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4134,8 +4132,8 @@ func TestContext2Plan_targetedModuleWithProvider(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child2"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4194,10 +4192,8 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "orphan",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.orphan"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4263,10 +4259,8 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
-				addrs.ManagedResourceMode, "aws_instance", "orphan",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child.aws_instance.orphan"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4308,11 +4302,9 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "blue",
-			),
-			addrs.RootModuleInstance.Child("blue_mod", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.blue"),
+			mustTargetPattern("module.blue_mod"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4367,10 +4359,8 @@ func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 	})
 
 	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("mod", addrs.NoKey).Resource(
-				addrs.ManagedResourceMode, "aws_instance", "a",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.mod.aws_instance.a"),
 		},
 	})
 	if diags.HasErrors() {
@@ -4417,10 +4407,8 @@ func TestContext2Plan_targetedOverTen(t *testing.T) {
 	})
 
 	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(1),
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.foo[1]"),
 		},
 	})
 	if diags.HasErrors() {
@@ -5915,18 +5903,18 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 
-	targets := []addrs.Targetable{}
+	targets := []addrs.TargetPattern{}
 	target, diags := addrs.ParseTargetStr("module.mod[1].aws_instance.foo[0]")
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-	targets = append(targets, target.Subject)
+	targets = append(targets, target)
 
 	target, diags = addrs.ParseTargetStr("module.mod[2]")
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
-	targets = append(targets, target.Subject)
+	targets = append(targets, target)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5984,7 +5972,7 @@ resource "aws_instance" "foo" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	targets := []addrs.Targetable{target.Subject}
+	targets := []addrs.TargetPattern{target}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6015,6 +6003,206 @@ resource "aws_instance" "foo" {
 
 	for res, action := range expected {
 		t.Errorf("missing %s change for %s", action, res)
+	}
+}
+
+func TestContext2Plan_targetPatterns(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "outer" {
+  count  = 2
+  source = "./outer"
+}
+`,
+		"outer/main.tf": `
+resource "aws_instance" "foo" {
+}
+
+module "inner" {
+  source = "./inner"
+}
+`,
+		"outer/inner/main.tf": `
+resource "aws_instance" "bar" {
+}
+`,
+	})
+
+	allBars := []string{
+		"module.outer[0].module.inner.aws_instance.bar",
+		"module.outer[1].module.inner.aws_instance.bar",
+	}
+
+	for name, tc := range map[string]struct {
+		target addrs.TargetPattern
+		want   []string
+	}{
+		"keyless module step selects every instance": {
+			target: mustTargetPattern("module.outer.aws_instance.foo"),
+			want: []string{
+				"module.outer[0].aws_instance.foo",
+				"module.outer[1].aws_instance.foo",
+			},
+		},
+		"keyless nested module": {
+			target: mustTargetPattern("module.outer.module.inner"),
+			want:   allBars,
+		},
+		"keyless nested resource": {
+			target: mustTargetPattern("module.outer.module.inner.aws_instance.bar"),
+			want:   allBars,
+		},
+		"explicit wildcard": {
+			target: mustTargetPattern("module.outer[*].module.inner.aws_instance.bar"),
+			want:   allBars,
+		},
+		"single module instance": {
+			target: mustTargetPattern("module.outer[0].module.inner"),
+			want:   []string{"module.outer[0].module.inner.aws_instance.bar"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			p := testProvider("aws")
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+				Mode:    plans.NormalMode,
+				Targets: []addrs.TargetPattern{tc.target},
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			var got []string
+			for _, res := range plan.Changes.Resources {
+				if res.Action != plans.Create {
+					t.Errorf("unexpected %s action for %s", res.Action, res.Addr)
+				}
+				got = append(got, res.Addr.String())
+			}
+			sort.Strings(got)
+
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Fatalf("wrong planned resources\n%s", diff)
+			}
+		})
+	}
+}
+
+// Instances from module instances which no longer exist, or whose expansion
+// is not known yet, must only be planned when they are targeted.
+func TestContext2Plan_targetedModuleInstanceOrphans(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "keys" {
+  type = set(string)
+}
+
+module "m" {
+  for_each = var.keys
+  source   = "./m"
+}
+`,
+		"m/main.tf": `
+resource "test_object" "a" {
+  test_string = "new"
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		for _, key := range []string{"x", "y"} {
+			s.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr(fmt.Sprintf("module.m[%q].test_object.a", key)),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(fmt.Sprintf(`{"test_string":%q}`, key)),
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+		}
+	})
+
+	for name, tc := range map[string]struct {
+		keys   cty.Value
+		target string
+
+		wantChanges  []string
+		wantDeferred []string
+		// wantRefreshed lists the test_string values of refreshed instances
+		wantRefreshed []string
+	}{
+		"untargeted orphan": {
+			// module.m["y"] no longer exists, but is not targeted
+			keys:          cty.SetVal([]cty.Value{cty.StringVal("x")}),
+			target:        `module.m["x"].test_object.a`,
+			wantChanges:   []string{`module.m["x"].test_object.a Update`},
+			wantRefreshed: []string{"x"},
+		},
+		"targeted orphan": {
+			keys:          cty.SetVal([]cty.Value{cty.StringVal("x")}),
+			target:        `module.m["y"]`,
+			wantChanges:   []string{`module.m["y"].test_object.a Delete`},
+			wantRefreshed: []string{"y"},
+		},
+		"unknown expansion": {
+			// either instance could be an orphan, but only module.m["x"] is
+			// targeted
+			keys:          cty.UnknownVal(cty.Set(cty.String)),
+			target:        `module.m["x"].test_object.a`,
+			wantDeferred:  []string{`module.m[*].test_object.a[*]`},
+			wantRefreshed: []string{"x"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var mu sync.Mutex
+			var refreshed []string
+			p := simpleMockProvider()
+			p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+				mu.Lock()
+				defer mu.Unlock()
+				refreshed = append(refreshed, req.PriorState.GetAttr("test_string").AsString())
+				return providers.ReadResourceResponse{NewState: req.PriorState}
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode:            plans.NormalMode,
+				DeferralAllowed: true,
+				Targets:         []addrs.TargetPattern{mustTargetPattern(tc.target)},
+				SetVariables: InputValues{
+					"keys": {Value: tc.keys, SourceType: ValueFromCaller},
+				},
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			var gotChanges, gotDeferred []string
+			for _, change := range plan.Changes.Resources {
+				gotChanges = append(gotChanges, fmt.Sprintf("%s %s", change.Addr, change.Action))
+			}
+			for _, deferred := range plan.DeferredResources {
+				gotDeferred = append(gotDeferred, deferred.ChangeSrc.Addr.String())
+			}
+			sort.Strings(gotChanges)
+			sort.Strings(gotDeferred)
+			sort.Strings(refreshed)
+
+			if diff := cmp.Diff(tc.wantChanges, gotChanges); diff != "" {
+				t.Errorf("wrong planned changes\n%s", diff)
+			}
+			if diff := cmp.Diff(tc.wantDeferred, gotDeferred); diff != "" {
+				t.Errorf("wrong deferred changes\n%s", diff)
+			}
+			if diff := cmp.Diff(tc.wantRefreshed, refreshed); diff != "" {
+				t.Errorf("wrong refreshed instances\n%s", diff)
+			}
+		})
 	}
 }
 
@@ -6217,8 +6405,8 @@ func TestContext2Plan_targetedModuleInstance(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("mod", addrs.IntKey(0)),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.mod[0]"),
 		},
 	})
 	if diags.HasErrors() {

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'resource-identity: fixed an issue where resource identity could be nil during delete'
+time: 2026-09-25T12:33:49.337193-04:00
+custom:
+    Issue: "39285"

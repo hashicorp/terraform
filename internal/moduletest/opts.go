@@ -12,15 +12,15 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func GetRunTargets(config *configs.TestRun) ([]addrs.Targetable, tfdiags.Diagnostics) {
+func GetRunTargets(config *configs.TestRun) ([]addrs.TargetPattern, tfdiags.Diagnostics) {
 	var diagnostics tfdiags.Diagnostics
-	var targets []addrs.Targetable
+	var targets []addrs.TargetPattern
 
 	for _, target := range config.Options.Target {
 		addr, diags := addrs.ParseTarget(target)
 		diagnostics = diagnostics.Append(diags)
-		if addr != nil {
-			targets = append(targets, addr.Subject)
+		if !diags.HasErrors() {
+			targets = append(targets, addr)
 		}
 	}
 

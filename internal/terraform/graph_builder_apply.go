@@ -31,10 +31,6 @@ type ApplyGraphBuilder struct {
 	// Changes describes the changes that we need apply.
 	Changes *plans.ChangesSrc
 
-	// DeferredChanges describes the changes that were deferred during the plan
-	// and should not be applied.
-	DeferredChanges []*plans.DeferredResourceInstanceChangeSrc
-
 	// State is the current state
 	State *states.State
 
@@ -57,11 +53,11 @@ type ApplyGraphBuilder struct {
 	// unnecessary outputs aren't included in the apply graph. The plan
 	// builder successfully handles targeting resources. In the future,
 	// outputs should go into the diff so that this is unnecessary.
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets are actions to target. As with Targets we need to remove
 	// outputs, so when/if we remove Targets we can remove this as well.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace are the resource instance addresses that the user
 	// requested to force replacement for when creating the plan, if any.
@@ -172,11 +168,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ActionDiffTransformer{
 			Changes: b.Changes,
 			Config:  b.Config,
-		},
-
-		// Creates nodes for all the deferred changes.
-		&DeferredTransformer{
-			DeferredChanges: b.DeferredChanges,
 		},
 
 		// Add nodes and edges for check block assertions. Check block data

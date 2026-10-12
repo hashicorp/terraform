@@ -2498,6 +2498,129 @@ resource "test_object" "a" {
 				},
 			},
 
+			"deferred destroys also defer the actions they trigger": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: false,
+				planOpts: &PlanOpts{
+					Mode:            plans.DestroyMode,
+					DeferralAllowed: true,
+				},
+
+				planResourceFn: func(_ *testing.T, req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return providers.PlanResourceChangeResponse{
+						PlannedState: req.ProposedNewState,
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonAbsentPrereq,
+						},
+					}
+				},
+
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected 0 actions in plan, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					if len(p.DeferredResources) != 1 {
+						t.Fatalf("expected 1 resource to be deferred, got %d", len(p.DeferredResources))
+					}
+					if got := p.DeferredResources[0].DeferredReason; got != providers.DeferredReasonAbsentPrereq {
+						t.Fatalf("expected resource to be deferred due to absent prereq, got %s", got)
+					}
+
+					if len(p.DeferredActionInvocations) != 1 {
+						t.Fatalf("expected 1 deferred action in plan, got %d", len(p.DeferredActionInvocations))
+					}
+					deferredAction := p.DeferredActionInvocations[0]
+					if deferredAction.DeferredReason != providers.DeferredReasonDeferredPrereq {
+						t.Fatalf("expected deferred action to be deferred due to deferred prereq, got %s", deferredAction.DeferredReason)
+					}
+					if got := deferredAction.ActionInvocationInstanceSrc.Addr.String(); got != "action.test_action.hello" {
+						t.Fatalf("expected deferred action.test_action.hello, got %s", got)
+					}
+				},
+			},
+
+			"deferred destroy actions also defer the destroy": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "hello" {}
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events = [before_destroy]
+      actions = [action.test_action.hello]
+    }
+  }
+}
+`,
+				},
+				buildState: func(s *states.SyncState) {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"name":"current"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				},
+				expectPlanActionCalled: true,
+				planOpts: &PlanOpts{
+					Mode:            plans.DestroyMode,
+					DeferralAllowed: true,
+				},
+				planActionFn: func(*testing.T, providers.PlanActionRequest) providers.PlanActionResponse {
+					return providers.PlanActionResponse{
+						Deferred: &providers.Deferred{
+							Reason: providers.DeferredReasonProviderConfigUnknown,
+						},
+					}
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if len(p.Changes.Resources) != 0 {
+						t.Fatalf("expected no planned resource changes, got %d", len(p.Changes.Resources))
+					}
+					if len(p.Changes.ActionInvocations) != 0 {
+						t.Fatalf("expected no planned actions, got %d", len(p.Changes.ActionInvocations))
+					}
+
+					if len(p.DeferredResources) != 1 {
+						t.Fatalf("expected 1 deferred resource, got %d", len(p.DeferredResources))
+					}
+					deferredResource := p.DeferredResources[0]
+					if got := deferredResource.DeferredReason; got != providers.DeferredReasonAbsentPrereq {
+						t.Fatalf("expected resource to be deferred due to absent prereq, got %s", got)
+					}
+					if got := deferredResource.ChangeSrc.Action; got != plans.Delete {
+						t.Fatalf("expected deferred delete, got %s", got)
+					}
+
+					if len(p.DeferredActionInvocations) != 1 {
+						t.Fatalf("expected 1 deferred action, got %d", len(p.DeferredActionInvocations))
+					}
+				},
+			},
+
 			"deferred resources also defer the actions they trigger": {
 				module: map[string]string{
 					"main.tf": `
@@ -2619,6 +2742,58 @@ resource "test_object" "a" {
 				assertPlan: func(t *testing.T, plan *plans.Plan) {
 					if len(plan.DeferredResources) != 1 {
 						t.Fatal("expected resource to be deferred, because action was deferred")
+					}
+				},
+			},
+			"action expansion with unknown instances in multiple module instances": {
+				// Each module instance must record its own deferred action
+				// expansion, and the triggering resources in every instance
+				// must be deferred as a result.
+				module: map[string]string{
+					"main.tf": `
+variable "actions" {
+  type = set(string)
+}
+module "mod" {
+  source  = "./mod"
+  count   = 2
+  actions = var.actions
+}
+`,
+					"mod/mod.tf": `
+variable "actions" {
+  type = set(string)
+}
+action "test_action" "hello" {
+  for_each = var.actions
+}
+resource "other_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_create]
+      actions = [action.test_action.hello["a"]]
+    }
+  }
+}
+`,
+				},
+				expectPlanActionCalled: false,
+				planOpts: &PlanOpts{
+					Mode:            plans.NormalMode,
+					DeferralAllowed: true,
+					SetVariables: InputValues{
+						"actions": &InputValue{
+							Value:      cty.UnknownVal(cty.Set(cty.String)),
+							SourceType: ValueFromCLIArg,
+						},
+					},
+				},
+				assertPlan: func(t *testing.T, p *plans.Plan) {
+					if got := len(p.DeferredResources); got != 2 {
+						t.Fatalf("expected 2 deferred resources, got %d", got)
+					}
+					if got := len(p.Changes.ActionInvocations); got != 0 {
+						t.Fatalf("expected 0 planned action invocations, got %d", got)
 					}
 				},
 			},
@@ -2796,16 +2971,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -2859,17 +3026,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.NoKey),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod.action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -2901,6 +3059,60 @@ module "mod" {
 				},
 			},
 
+			"action invoke in all instances of an expanded module": {
+				module: map[string]string{
+					"mod/main.tf": `
+action "test_action" "one" {
+  config {
+    attr = "one"
+  }
+}
+action "test_action" "two" {
+  config {
+    attr = "two"
+  }
+}
+`,
+					"main.tf": `
+module "mod" {
+  count = 2
+  source = "./mod"
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						// a keyless module step in a target selects every
+						// instance of the module
+						mustActionTargetPattern("module.mod.action.test_action.one"),
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					var got []string
+					for _, ais := range plan.Changes.ActionInvocations {
+						ai, err := ais.Decode(&testActionSchema)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if _, ok := ai.ActionTrigger.(*plans.InvokeActionTrigger); !ok {
+							t.Fatalf("expected invoke action trigger type but was %T", ai.ActionTrigger)
+						}
+						got = append(got, ai.Addr.String())
+					}
+					slices.Sort(got)
+
+					want := []string{
+						"module.mod[0].action.test_action.one",
+						"module.mod[1].action.test_action.one",
+					}
+					if diff := cmp.Diff(want, got); diff != "" {
+						t.Fatalf("wrong invocations: %s", diff)
+					}
+				},
+			},
+
 			"action invoke in expanded module": {
 				module: map[string]string{
 					"mod/main.tf": `
@@ -2924,17 +3136,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.NoKey,
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[1].action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -2985,17 +3188,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(1)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(1),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[1].action.test_action.one[1]"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3025,17 +3219,8 @@ module "mod" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Module: addrs.RootModuleInstance.Child("mod", addrs.IntKey(3)),
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(0),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("module.mod[3].action.test_action.one[0]"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3067,13 +3252,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3151,16 +3331,8 @@ action "test_action" "two" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsActionInstance{
-							Action: addrs.ActionInstance{
-								Action: addrs.Action{
-									Type: "test_action",
-									Name: "one",
-								},
-								Key: addrs.IntKey(0),
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[0]"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3192,6 +3364,68 @@ action "test_action" "two" {
 				},
 			},
 
+			"action invoke with count (explicit wildcard)": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[*]"),
+					},
+				},
+				expectPlanActionCalled: true,
+				assertPlan: func(t *testing.T, plan *plans.Plan) {
+					var got []string
+					for _, ai := range plan.Changes.ActionInvocations {
+						got = append(got, ai.Addr.String())
+					}
+					slices.Sort(got)
+
+					want := []string{
+						"action.test_action.one[0]",
+						"action.test_action.one[1]",
+					}
+					if diff := cmp.Diff(want, got); diff != "" {
+						t.Fatalf("wrong invocations: %s", diff)
+					}
+				},
+			},
+
+			"action invoke with count (missing instance)": {
+				module: map[string]string{
+					"main.tf": `
+action "test_action" "one" {
+  count = 2
+
+  config {
+    attr = "${count.index}"
+  }
+}
+`,
+				},
+				planOpts: &PlanOpts{
+					Mode: plans.RefreshOnlyMode,
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one[5]"),
+					},
+				},
+				expectPlanActionCalled: false,
+				assertPlanDiagnostics: func(t *testing.T, diags tfdiags.Diagnostics) {
+					if !strings.Contains(diags.Err().Error(), "invoked target action.test_action.one[5] not found") {
+						t.Fatalf("expected 'invoked target action.test_action.one[5] not found', got: '%s'", diags.Err())
+					}
+				},
+			},
+
 			"invoke action with reference": {
 				module: map[string]string{
 					"main.tf": `
@@ -3208,13 +3442,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3275,13 +3504,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3346,15 +3570,10 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
-					Targets: []addrs.Targetable{mustResourceInstanceAddr("test_object.a[0]")},
+					Targets: []addrs.TargetPattern{mustTargetPattern("test_object.a[0]")},
 				},
 				expectPlanActionCalled: true,
 				buildState: func(state *states.SyncState) {
@@ -3390,13 +3609,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3458,13 +3672,8 @@ action "test_action" "one" {
 				planOpts: &PlanOpts{
 					Mode:        plans.RefreshOnlyMode,
 					SkipRefresh: true,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3525,13 +3734,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: false,
@@ -3562,13 +3766,8 @@ action "test_action" "one" {
 				},
 				planOpts: &PlanOpts{
 					Mode: plans.RefreshOnlyMode,
-					ActionTargets: []addrs.Targetable{
-						addrs.AbsAction{
-							Action: addrs.Action{
-								Type: "test_action",
-								Name: "one",
-							},
-						},
+					ActionTargets: []addrs.TargetPattern{
+						mustActionTargetPattern("action.test_action.one"),
 					},
 				},
 				expectPlanActionCalled: true,
@@ -3959,8 +4158,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4034,8 +4233,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						mustResourceInstanceAddr("test_object.a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4114,8 +4313,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a").Instance(addrs.IntKey(2)),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a[2]"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4187,8 +4386,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// We only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				// There is a warning related to targeting that we will just ignore
@@ -4254,8 +4453,8 @@ resource "test_object" "a" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
@@ -4326,8 +4525,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {
@@ -4404,8 +4603,8 @@ resource "test_object" "b" {
 				planOpts: &PlanOpts{
 					Mode: plans.NormalMode,
 					// Only target resource a
-					Targets: []addrs.Targetable{
-						addrs.RootModuleInstance.Resource(addrs.ManagedResourceMode, "test_object", "a"),
+					Targets: []addrs.TargetPattern{
+						mustTargetPattern("test_object.a"),
 					},
 				},
 				assertPlanDiagnostics: func(t *testing.T, d tfdiags.Diagnostics) {

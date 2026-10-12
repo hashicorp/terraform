@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 
+	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	disco "github.com/hashicorp/terraform-svchost/disco"
 
@@ -18,6 +20,11 @@ import (
 // their originating provider registries.
 type RegistrySource struct {
 	services *disco.Disco
+
+	// httpClient returns the client shared by every request this source
+	// makes, built on first use so it picks up the request settings as late
+	// as the per-request client it replaced did.
+	httpClient func() *retryablehttp.Client
 }
 
 var _ Source = (*RegistrySource)(nil)
@@ -26,7 +33,8 @@ var _ Source = (*RegistrySource)(nil)
 // providers from their originating provider registries.
 func NewRegistrySource(services *disco.Disco) *RegistrySource {
 	return &RegistrySource{
-		services: services,
+		services:   services,
+		httpClient: sync.OnceValue(newRegistryHTTPClient),
 	}
 }
 
@@ -144,7 +152,7 @@ func (s *RegistrySource) registryClient(hostname svchost.Hostname) (*registryCli
 		return nil, fmt.Errorf("failed to retrieve credentials for %s: %s", hostname, err)
 	}
 
-	return newRegistryClient(url, creds), nil
+	return &registryClient{baseURL: url, creds: creds, httpClient: s.httpClient()}, nil
 }
 
 func (s *RegistrySource) ForDisplay(provider addrs.Provider) string {

@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -16,7 +17,7 @@ import (
 // provided will contain every target provided, and each implementing graph
 // node must filter this list to targets considered relevant.
 type GraphNodeTargetable interface {
-	SetTargets([]addrs.Targetable)
+	SetTargets([]addrs.TargetPattern)
 }
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
@@ -24,7 +25,7 @@ type GraphNodeTargetable interface {
 // their dependencies.
 type TargetsTransformer struct {
 	// List of targeted resource names specified by the user.
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 }
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
@@ -46,26 +47,26 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 // Returns a set of targeted nodes. A targeted node is either addressed
 // directly, address indirectly via its container, or it's a dependency of a
 // targeted node.
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targetable) dag.VertexSet {
+func (t *TargetsTransformer) selectTargetedNodes(g *Graph, targets []addrs.TargetPattern) dag.VertexSet {
 	targetedNodes := dag.NewVertexSet()
-	if len(addrs) == 0 {
+	if len(targets) == 0 {
 		return targetedNodes
 	}
 
 	vertices := g.VerticesSeq()
 
 	for v := range vertices {
-		if t.nodeIsTarget(v, addrs) {
+		if t.nodeIsTarget(v, targets) {
 			// We need to add everything this node depends on or that is closely associated with
 			// this node. In case of resource nodes, action triggers are considered closely related
 			// since they belong to the resource.
-			t.addVertexDependenciesToTargetedNodes(g, v, targetedNodes, addrs)
+			t.addVertexDependenciesToTargetedNodes(g, v, targetedNodes, targets)
 
 			// We inform nodes that ask about the list of targets - helps for nodes
 			// that need to dynamically expand. Note that this only occurs for nodes
 			// that are already directly targeted.
 			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(addrs)
+				tn.SetTargets(targets)
 			}
 		}
 	}
@@ -122,25 +123,15 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	return targetedNodes
 }
 
-func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
+func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.TargetPattern) bool {
 	var vertexAddr addrs.Targetable
 	switch r := v.(type) {
-	case *nodeApplyableDeferredPartialInstance:
-
-		// Partial instances are not targeted directly, but they might be
-		// targeted after they have been expanded so we need to perform a custom
-		// check for them here.
-		//
-		// The other types of nodes can be targeted directly, and are handled
-		// together.
-
-		for _, targetAddr := range targets {
-			if r.PartialAddr.IsTargetedBy(targetAddr) {
-				return true
-			}
-		}
-		return false
-
+	case *nodePlannablePartialExpandedResource:
+		// A partial-expanded resource represents instances whose keys are not
+		// all known yet, so it is targeted if any of them could be.
+		return slices.ContainsFunc(targets, func(target addrs.TargetPattern) bool {
+			return r.addr.IsTargetedBy(target)
+		})
 	case GraphNodeResourceInstance:
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
@@ -148,34 +139,22 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 
 	// invoke nodes are implicitly targeted
 	case *nodeActionInvokeExpand:
-		vertexAddr = r.Addr
+		vertexAddr = r.Target
 	case *nodeActionInvokeApplyInstance:
 		vertexAddr = r.ActionInvocation.Addr
 
 	default:
-		// Only partial nodes and resource and resource instance nodes can be
+		// Only resource, resource instance, and action invocation nodes can be
 		// targeted.
 		return false
 	}
 
+	// Before expansion happens, nodes only know their configuration address,
+	// so they are targeted if a target could contain any of the instances
+	// they will expand into. For an expanded address, this is the same as
+	// Contains.
 	for _, targetAddr := range targets {
-		switch vertexAddr.(type) {
-		case addrs.ConfigResource:
-			// Before expansion happens, we only have nodes that know their
-			// ConfigResource address.  We need to take the more specific
-			// target addresses and generalize them in order to compare with a
-			// ConfigResource.
-			switch target := targetAddr.(type) {
-			case addrs.AbsResourceInstance:
-				targetAddr = target.ContainingResource().Config()
-			case addrs.AbsResource:
-				targetAddr = target.Config()
-			case addrs.ModuleInstance:
-				targetAddr = target.Module()
-			}
-		}
-
-		if targetAddr.TargetContains(vertexAddr) {
+		if addrs.CouldContain(targetAddr, vertexAddr) {
 			return true
 		}
 	}
@@ -189,13 +168,13 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 // triggering node has planned so that we can ensure the actions are only planned if the triggering
 // resource has an action (Create / Update) corresponding to one of the events in the action trigger
 // blocks event list.
-func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.VertexSet, addrs []addrs.Targetable) {
+func (t *TargetsTransformer) addVertexDependenciesToTargetedNodes(g *Graph, v dag.Vertex, targetedNodes dag.VertexSet, targets []addrs.TargetPattern) {
 	if targetedNodes.Contains(v) {
 		return
 	}
 	targetedNodes.Add(v)
 
 	for d := range g.Ancestors(v).All() {
-		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, addrs)
+		t.addVertexDependenciesToTargetedNodes(g, d, targetedNodes, targets)
 	}
 }

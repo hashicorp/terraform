@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sync"
 	"testing"
+	"testing/synctest"
 
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -63,56 +64,61 @@ func TestPlan_configLoaderRace(t *testing.T) {
 		t.Fatalf("failed to install modules: %s", instDiags.Err())
 	}
 
-	mockFS := &mockFS{
-		Fs:             afero.NewOsFs(),
-		loadingStarted: make(chan struct{}),
-		proceed:        make(chan struct{}),
-	}
-	testLoader, err := configload.NewLoader(&configload.Config{
-		ModulesDir: modulesDir,
-		OverrideFS: mockFS,
-	})
-	if err != nil {
-		t.Fatalf("failed to create test loader: %s", err)
-	}
-	if err := testLoader.RefreshModules(); err != nil {
-		t.Fatalf("failed to refresh modules: %s", err)
-	}
-
 	view, done := testView(t)
 	defer done(t)
-	// Wire the diagnostics renderer to read this loader's sources,
-	// mirroring what Meta.initConfigLoader does for a non-injected loader.
-	view.SetConfigSources(testLoader.Sources)
 
-	shutdownCh := make(chan struct{})
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(planFixtureProvider()),
-			View:             view,
-			configLoader:     testLoader,
-			ShutdownCh:       shutdownCh,
-		},
-	}
+	// Everything the command blocks on must be created within the bubble, so
+	// that the 5 second shutdown timeout in RunOperation uses the fake clock.
+	synctest.Test(t, func(t *testing.T) {
+		mockFS := &mockFS{
+			Fs:             afero.NewOsFs(),
+			loadingStarted: make(chan struct{}),
+			proceed:        make(chan struct{}),
+		}
+		testLoader, err := configload.NewLoader(&configload.Config{
+			ModulesDir: modulesDir,
+			OverrideFS: mockFS,
+		})
+		if err != nil {
+			t.Fatalf("failed to create test loader: %s", err)
+		}
+		if err := testLoader.RefreshModules(); err != nil {
+			t.Fatalf("failed to refresh modules: %s", err)
+		}
 
-	go func() {
-		// Wait until the modules begin loading
-		<-mockFS.loadingStarted
+		// Wire the diagnostics renderer to read this loader's sources,
+		// mirroring what Meta.initConfigLoader does for a non-injected loader.
+		view.SetConfigSources(testLoader.Sources)
 
-		// Cancel the operation, which after 5 seconds will trigger the read side of
-		// the race condition (via the diagnostic renderer).
-		close(shutdownCh)
+		shutdownCh := make(chan struct{})
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(planFixtureProvider()),
+				View:             view,
+				configLoader:     testLoader,
+				ShutdownCh:       shutdownCh,
+			},
+		}
 
-		// Allow one module load to proceed, which will trigger the write side of
-		// the race condition (via the module being stored in the shared parser).
-		//
-		// The next module load will block until the shutdown has completed/timed
-		// out (which is where the race condition would occur).
-		mockFS.proceed <- struct{}{}
-	}()
+		go func() {
+			// Wait until the modules begin loading
+			<-mockFS.loadingStarted
 
-	c.Run([]string{})
+			// Cancel the operation, which after 5 seconds will trigger the read side of
+			// the race condition (via the diagnostic renderer).
+			close(shutdownCh)
 
-	// Now that the run command has timed out, allow the remaining modules to proceed
-	close(mockFS.proceed)
+			// Allow one module load to proceed, which will trigger the write side of
+			// the race condition (via the module being stored in the shared parser).
+			//
+			// The next module load will block until the shutdown has completed/timed
+			// out (which is where the race condition would occur).
+			mockFS.proceed <- struct{}{}
+		}()
+
+		c.Run([]string{})
+
+		// Now that the run command has timed out, allow the remaining modules to proceed
+		close(mockFS.proceed)
+	})
 }

@@ -533,6 +533,72 @@ func TestFileSet(t *testing.T) {
 	}
 }
 
+func TestFileSet_symlinks(t *testing.T) {
+	t.Run("dangling target", func(t *testing.T) {
+		dir := t.TempDir()
+		writeTestFile(t, filepath.Join(dir, "real.txt"))
+		symlinkTestFile(t, "missing.txt", filepath.Join(dir, "dangling.txt"))
+
+		tests := map[string]cty.Value{
+			"*.txt":        cty.SetVal([]cty.Value{cty.StringVal("real.txt")}),
+			"dangling.txt": cty.SetValEmpty(cty.String),
+		}
+		for pattern, want := range tests {
+			got, err := testFileSet(dir, cty.StringVal("."), cty.StringVal(pattern))
+			if err != nil {
+				t.Fatalf("unexpected error for pattern %q: %s", pattern, err)
+			}
+
+			if !got.RawEquals(want) {
+				t.Errorf("wrong result for pattern %q\ngot:  %#v\nwant: %#v", pattern, got, want)
+			}
+		}
+	})
+
+	t.Run("non-directory target component", func(t *testing.T) {
+		dir := t.TempDir()
+		writeTestFile(t, filepath.Join(dir, "real.txt"))
+		writeTestFile(t, filepath.Join(dir, "plain"))
+		symlinkTestFile(t, filepath.Join("plain", "child"), filepath.Join(dir, "unresolvable.txt"))
+
+		got, err := testFileSet(dir, cty.StringVal("."), cty.StringVal("*.txt"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		want := cty.SetVal([]cty.Value{cty.StringVal("real.txt")})
+		if !got.RawEquals(want) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+
+	t.Run("regular file target", func(t *testing.T) {
+		dir := t.TempDir()
+		writeTestFile(t, filepath.Join(dir, "target"))
+		symlinkTestFile(t, "target", filepath.Join(dir, "linked.txt"))
+
+		got, err := testFileSet(dir, cty.StringVal("."), cty.StringVal("*.txt"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		want := cty.SetVal([]cty.Value{cty.StringVal("linked.txt")})
+		if !got.RawEquals(want) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+
+	t.Run("symlink loop", func(t *testing.T) {
+		dir := t.TempDir()
+		symlinkTestFile(t, "loop.txt", filepath.Join(dir, "loop.txt"))
+
+		_, err := testFileSet(dir, cty.StringVal("."), cty.StringVal("*.txt"))
+		if err == nil {
+			t.Fatal("succeeded; want error")
+		}
+	})
+}
+
 func TestFileBase64(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
@@ -733,4 +799,18 @@ func testFileSet(baseDir string, path, pattern cty.Value) (cty.Value, error) {
 func testFileBase64(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileFunc(baseDir, true, noopWrapper)
 	return fn.Call([]cty.Value{path})
+}
+
+func writeTestFile(t *testing.T, path string) {
+	t.Helper()
+	if err := os.WriteFile(path, nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func symlinkTestFile(t *testing.T, target, link string) {
+	t.Helper()
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatalf("cannot create symlink: %s", err)
+	}
 }

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/states"
@@ -21,34 +20,21 @@ type StateIdentitiesCommand struct {
 	StateMeta
 }
 
-func (c *StateIdentitiesCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var statePath string
-	var jsonOutput bool
-	cmdFlags := c.Meta.defaultFlagSet("state identities")
-	cmdFlags.StringVar(&statePath, "state", "", "path")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return cli.RunResultHelp
-	}
-	args = cmdFlags.Args()
+func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
+	rawArgs = c.Meta.process(rawArgs)
 
-	if !jsonOutput {
-		c.Ui.Error(
-			"The `terraform state identities` command requires the `-json` flag.\n")
-		cmdFlags.Usage()
+	args, diags := arguments.ParseStateIdentities(rawArgs)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
-	view := arguments.ViewJSON // See above
 
-	if statePath != "" {
-		c.Meta.statePath = statePath
+	if args.StatePath != "" {
+		c.Meta.statePath = args.StatePath
 	}
 
 	// Load the backend
-	b, diags := c.backend(".", view)
+	b, diags := c.backend(".", args.ViewType)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -80,10 +66,10 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 	}
 
 	var addrs []addrs.AbsResourceInstance
-	if len(args) == 0 {
+	if len(args.Addrs) == 0 {
 		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
 	} else {
-		addrs, diags = c.lookupResourceInstanceAddrs(state, args...)
+		addrs, diags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
 	}
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -94,7 +80,7 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 	for _, addr := range addrs {
 		// If the resource exists but identity is nil, skip it, as it is not required to be present
 		if is := state.ResourceInstance(addr); is != nil && is.Current.IdentityJSON != nil {
-			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
+			if args.ID == "" || args.ID == states.LegacyInstanceObjectID(is.Current) {
 				var rawIdentity map[string]any
 				if err := json.Unmarshal(is.Current.IdentityJSON, &rawIdentity); err != nil {
 					c.Ui.Error(fmt.Sprintf("Failed to unmarshal identity JSON: %s", err))
@@ -147,6 +133,8 @@ Options:
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
+
+  -json               Outputs the identities in JSON format. This flag is required.
 
 `
 	return strings.TrimSpace(helpText)

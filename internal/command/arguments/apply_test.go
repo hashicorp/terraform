@@ -170,7 +170,7 @@ func TestParseApply_targets(t *testing.T) {
 	boop, _ := addrs.ParseTargetStr("module.boop")
 	testCases := map[string]struct {
 		args    []string
-		want    []addrs.Targetable
+		want    []addrs.TargetPattern
 		wantErr string
 	}{
 		"no targets by default": {
@@ -179,11 +179,11 @@ func TestParseApply_targets(t *testing.T) {
 		},
 		"one target": {
 			args: []string{"-target=foo_bar.baz"},
-			want: []addrs.Targetable{foobarbaz.Subject},
+			want: []addrs.TargetPattern{foobarbaz},
 		},
 		"two targets": {
 			args: []string{"-target=foo_bar.baz", "-target", "module.boop"},
-			want: []addrs.Targetable{foobarbaz.Subject, boop.Subject},
+			want: []addrs.TargetPattern{foobarbaz, boop},
 		},
 		"invalid traversal": {
 			args:    []string{"-target=foo."},

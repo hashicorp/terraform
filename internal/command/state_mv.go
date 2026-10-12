@@ -367,7 +367,20 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 
 		// Look for any dependencies that may be effected and
-		// remove them to ensure they are recreated in full.
+		// remove them to ensure they are recreated in full. Dependencies are
+		// recorded as configuration addresses, so we compare them with the
+		// configuration object containing whatever was moved.
+		var configFrom addrs.Targetable
+		switch addr := rawAddrFrom.(type) {
+		case addrs.ModuleInstance:
+			configFrom = addr.Module()
+		case addrs.AbsResource:
+			configFrom = addr.Config()
+		case addrs.AbsResourceInstance:
+			configFrom = addr.ConfigResource()
+		default:
+			configFrom = rawAddrFrom
+		}
 		for _, mod := range stateTo.Modules {
 			for _, res := range mod.Resources {
 				for _, ins := range res.Instances {
@@ -379,7 +392,7 @@ func (c *StateMvCommand) Run(args []string) int {
 						// check both directions here, since we may be moving
 						// an instance which is in a resource, or a module
 						// which can contain a resource.
-						if dep.TargetContains(rawAddrFrom) || rawAddrFrom.TargetContains(dep) {
+						if dep.Contains(configFrom) || configFrom.Contains(dep) {
 							ins.Current.Dependencies = nil
 							break
 						}

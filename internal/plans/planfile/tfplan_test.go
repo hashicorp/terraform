@@ -566,12 +566,8 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				),
 			),
 		},
-		TargetAddrs: []addrs.Targetable{
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "woot",
-			}.Absolute(addrs.RootModuleInstance),
+		TargetAddrs: []addrs.TargetPattern{
+			mustParseTargetPattern("test_thing.woot"),
 		},
 		Backend: &plans.Backend{
 			Type: "local",
@@ -611,6 +607,14 @@ func mustNewDynamicValueStr(val string) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+func mustParseTargetPattern(str string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetStr(str)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return target
 }
 
 // TestTFPlanRoundTripDestroy ensures that encoding and decoding null values for
@@ -670,12 +674,8 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
-		TargetAddrs: []addrs.Targetable{
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "woot",
-			}.Absolute(addrs.RootModuleInstance),
+		TargetAddrs: []addrs.TargetPattern{
+			mustParseTargetPattern("test_thing.woot"),
 		},
 		Backend: &plans.Backend{
 			Type: "local",

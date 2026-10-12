@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -26,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	tfui "github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -113,19 +115,22 @@ func TestApply_approveNo(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	_ = testInputMap(t, map[string]string{
+	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "no",
 	})
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
 	ui := testUiWrapped(t, new(cli.MockUi))
-
-	p := applyFixtureProvider()
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -156,20 +161,22 @@ func TestApply_approveYes(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	p := applyFixtureProvider()
-
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"approve": "yes",
 	})
+
+	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
 
 	// Do not use the NewMockUi initializer here, as we want to delay
 	// the call to init until after setting up the input mocks
 	ui := testUiWrapped(t, new(cli.MockUi))
-
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -536,29 +543,33 @@ func TestApply_input(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-input"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
+	// Set up the UI input for the test
+	//
 	// The configuration for this test includes a declaration of variable
 	// "foo" with no default, and we don't set it on the command line below,
 	// so the apply command will produce an interactive prompt for the
 	// value of var.foo. We'll answer "foo" here, and we expect the output
 	// value "result" to echo that back to us below.
-	defaultInputReader = bytes.NewBufferString("foo\n")
-	defaultInputWriter = new(bytes.Buffer)
-
-	statePath := testTempFile(t)
+	//
+	// Don't disable input, so input would be asked
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+		Reader: bytes.NewBufferString("foo\n"),
+		Writer: new(bytes.Buffer),
+	}, nil, nil)
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
 
+	statePath := testTempFile(t)
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
@@ -586,25 +597,25 @@ func TestApply_inputPartial(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-input-partial"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	// Set some default reader/writers for the inputs
-	defaultInputReader = bytes.NewBufferString("one\ntwo\n")
-	defaultInputWriter = new(bytes.Buffer)
-
-	statePath := testTempFile(t)
+	// Don't disable input, so input would be asked
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+		Reader: bytes.NewBufferString("one\ntwo\n"),
+		Writer: new(bytes.Buffer),
+	}, nil, nil)
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
 
+	statePath := testTempFile(t)
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
@@ -664,22 +675,23 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	// Set some default reader/writers for the inputs
-	defaultInputReader = new(bytes.Buffer)
-	defaultInputWriter = new(bytes.Buffer)
+	// Don't disable input, so input would be asked
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+		Reader: new(bytes.Buffer),
+		Writer: new(bytes.Buffer),
+	}, nil, nil)
 
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1026,14 +1038,13 @@ output "foobar" {
 
 // Test unhappy paths when applying a plan file describing a state store.
 func TestApply_plan_stateStore_errorCases(t *testing.T) {
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
+		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		defaultInputReader = new(bytes.Buffer)
-		defaultInputWriter = new(bytes.Buffer)
+		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+			Reader: new(bytes.Buffer),
+			Writer: new(bytes.Buffer),
+		}, nil, nil)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1093,6 +1104,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
+					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1114,9 +1126,12 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	})
 
 	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
+		// Don't disable input, so input would be asked
 		// Set some default reader/writers for the inputs
-		defaultInputReader = new(bytes.Buffer)
-		defaultInputWriter = new(bytes.Buffer)
+		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+			Reader: new(bytes.Buffer),
+			Writer: new(bytes.Buffer),
+		}, nil, nil)
 
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
@@ -1176,6 +1191,7 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
+					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1275,9 +1291,6 @@ func TestApply_plan_noBackup(t *testing.T) {
 }
 
 func TestApply_plan_remoteState(t *testing.T) {
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
@@ -1285,9 +1298,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Don't disable input, so input would be asked
 	// Set some default reader/writers for the inputs
-	defaultInputReader = new(bytes.Buffer)
-	defaultInputWriter = new(bytes.Buffer)
+	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
+		Reader: new(bytes.Buffer),
+		Writer: new(bytes.Buffer),
+	}, nil, nil)
 
 	// Create a remote state
 	state := testState()
@@ -1326,10 +1342,13 @@ func TestApply_plan_remoteState(t *testing.T) {
 	})
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			View:             view,
 		},
 	}
@@ -1765,8 +1784,8 @@ foo = "bar"
 		},
 
 		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
-			defer close()
+			inputUi := testInteractiveInput(t, []string{"bar"})
+			c.testingOverrides.UIInput = inputUi
 
 			args := []string{
 				"-state", statePath,
@@ -1856,8 +1875,8 @@ foo = "bar"
 		},
 
 		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			close := testInteractiveInput(t, []string{"bar"})
-			defer close()
+			uiInput := testInteractiveInput(t, []string{"bar"})
+			c.Meta.testingOverrides.UIInput = uiInput
 
 			args := []string{
 				"-state", statePath,
@@ -2239,7 +2258,7 @@ func TestApply_changedTargets_applyTime(t *testing.T) {
 				if diags.HasErrors() {
 					t.Fatalf("invalid plan target %q: %s", rawTarget, diags.Err())
 				}
-				plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+				plan.TargetAddrs = append(plan.TargetAddrs, target)
 			}
 			planPath := testPlanFile(t, snap, states.NewState(), plan)
 			statePath := testTempFile(t)
@@ -2421,67 +2440,79 @@ func TestApply_shutdown(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
 	t.Chdir(td)
 
-	cancelled := make(chan struct{})
-	shutdownCh := make(chan struct{})
-
 	statePath := testTempFile(t)
-	p := testProvider()
-
 	view, done := testView(t)
-	c := &ApplyCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-			ShutdownCh:       shutdownCh,
-		},
-	}
 
-	p.StopFn = func() error {
-		close(cancelled)
-		return nil
-	}
+	// The channels must be created within the bubble, so that the command
+	// blocking on ShutdownCh is durably blocked.
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		cancelled := make(chan struct{})
+		shutdownCh := make(chan struct{})
 
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-		resp.PlannedState = req.ProposedNewState
-		return
-	}
+		p := testProvider()
 
-	var once sync.Once
-	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
-		// only cancel once
-		once.Do(func() {
-			shutdownCh <- struct{}{}
-		})
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				ShutdownCh:       shutdownCh,
+			},
+		}
 
-		// Because of the internal lock in the MockProvider, we can't
-		// coordiante directly with the calling of Stop, and making the
-		// MockProvider concurrent is disruptive to a lot of existing tests.
-		// Wait here a moment to help make sure the main goroutine gets to the
-		// Stop call before we exit, or the plan may finish before it can be
-		// canceled.
-		time.Sleep(200 * time.Millisecond)
+		p.StopFn = func() error {
+			close(cancelled)
+			return nil
+		}
 
-		resp.NewState = req.PlannedState
-		return
-	}
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			resp.PlannedState = req.ProposedNewState
+			return
+		}
 
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Body: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"ami": {Type: cty.String, Optional: true},
+		var once sync.Once
+		p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+			// only cancel once
+			once.Do(func() {
+				shutdownCh <- struct{}{}
+			})
+
+			// Because of the internal lock in the MockProvider, we can't
+			// coordiante directly with the calling of Stop, and making the
+			// MockProvider concurrent is disruptive to a lot of existing tests.
+			// Wait here a moment to help make sure the main goroutine gets to the
+			// Stop call before we exit, or the plan may finish before it can be
+			// canceled.
+			time.Sleep(200 * time.Millisecond)
+
+			resp.NewState = req.PlannedState
+			return
+		}
+
+		p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_instance": {
+					Body: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"ami": {Type: cty.String, Optional: true},
+						},
 					},
 				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"-auto-approve",
-	}
-	code := c.Run(args)
+		args := []string{
+			"-state", statePath,
+			"-auto-approve",
+		}
+		code = c.Run(args)
+
+		select {
+		case <-cancelled:
+		default:
+			t.Error("command not cancelled")
+		}
+	})
 	output := done(t)
 	if code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
@@ -2489,12 +2520,6 @@ func TestApply_shutdown(t *testing.T) {
 
 	if _, err := os.Stat(statePath); err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	select {
-	case <-cancelled:
-	default:
-		t.Fatal("command not cancelled")
 	}
 
 	state := testStateRead(t, statePath)
@@ -3101,14 +3126,14 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	// Create new env
 	{
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		newCmd := &WorkspaceNewCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
-			t.Fatal("error creating workspace")
+			t.Fatalf("error creating workspace: %s", done(t).All())
 		}
 	}
 
@@ -3392,7 +3417,10 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	code := c.Run(args)
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run(args)
+	})
 	output := done(t)
 	if code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
