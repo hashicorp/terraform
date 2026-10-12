@@ -241,6 +241,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Failed",
 				"policy.deny: denied summary (mandatory)",
 				"Policy evaluation skipped",
+				"resource state.\n\nEvaluated 2 policies.",
 				"Summary: 1 failed, 1 passed, 0 unknown, 0 errored",
 			},
 			countOnce: []string{"Policy evaluation skipped"},
@@ -1009,7 +1010,7 @@ func TestQueryPolicyView_routesSameAddressDiagnosticsByPolicyIdentity(t *testing
 	if len(summary.PassedPolicies) != 2 {
 		t.Fatalf("evaluated policy metadata count = %d, want 2", len(summary.PassedPolicies))
 	}
-	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}); !strings.HasPrefix(got, "Evaluated 2 policies.\npolicy.shared\npolicy.shared\n\n") {
+	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}, nil); !strings.HasPrefix(got, "Evaluated 2 policies.\npolicy.shared\npolicy.shared\n\n") {
 		t.Fatalf("same-named policies from distinct sets were not listed independently:\n%s", got)
 	}
 
@@ -1179,15 +1180,15 @@ Policy results for block.z - Failed
     - p.z: denied (mandatory)
 
 Summary: 1 failed, 1 passed, 0 unknown, 0 errored`
-	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
+	if got := RenderPolicyQuerySummariesHuman(summaries, nil); got != want {
 		t.Fatalf("unexpected policy summary output\nwant:\n%s\n\ngot:\n%s", want, got)
 	}
 	summaries[0].PassedPolicies[0], summaries[0].PassedPolicies[1] = summaries[0].PassedPolicies[1], summaries[0].PassedPolicies[0]
 	summaries[0], summaries[1] = summaries[1], summaries[0]
-	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
+	if got := RenderPolicyQuerySummariesHuman(summaries, nil); got != want {
 		t.Fatalf("policy summary output changed with input order\nwant:\n%s\n\ngot:\n%s", want, got)
 	}
-	if got := RenderPolicyQuerySummariesHuman(nil); got != "" {
+	if got := RenderPolicyQuerySummariesHuman(nil, nil); got != "" {
 		t.Fatalf("empty policy summary output = %q, want empty", got)
 	}
 }
@@ -1543,7 +1544,7 @@ Summary: 0 failed, 1 passed, 0 unknown, 0 errored`,
 			if len(summaries) != 1 {
 				t.Fatalf("policy summary records = %d, want 1", len(summaries))
 			}
-			if got := RenderPolicyQuerySummariesHuman(summaries); got != tc.want {
+			if got := RenderPolicyQuerySummariesHuman(summaries, nil); got != tc.want {
 				t.Fatalf("unexpected rendered summary\nwant:\n%s\n\ngot:\n%s", tc.want, got)
 			}
 		})

@@ -24,8 +24,10 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -598,38 +600,40 @@ func TestCloud_queryV2RetriesTransportErrors(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsPolicySummaries(t *testing.T) {
-	passOutput := `Evaluated 1 policies.
+	passOutput := "\n" + `Evaluated 1 policies.
 policy.a
 
 Policy results for list.test.a - Passed
   id=a  Passed
 
-Summary: 0 failed, 1 pass, 0 unknown, 0 error
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
 `
 	malformed := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"","overall_result":"pass","results":[],"passed_policies":[]}`
 	plainQuery := `{"@level":"info","@message":"Starting query","type":"list_start","list_start":{"address":"list.test.a"}}
 {"@level":"info","@message":"Result found","type":"list_resource_found","list_resource_found":{"address":"list.test.a","display_name":"Alpha","identity":{"id":"a"}}}
 {"@level":"info","@message":"List complete","type":"list_complete","list_complete":{"address":"list.test.a"}}`
 
-	allNAOutput := `Evaluated 0 policies.
+	allNAOutput := "\n" + `Evaluated 0 policies.
 
 Policy results for list.test.b - N/A
   id=x  N/A
   id=y  N/A
 
-Summary: 0 failed, 0 pass, 0 unknown, 0 error
+Summary: 0 failed, 0 passed, 0 unknown, 0 errored
 `
-	mixedNAOutput := `Evaluated 1 policies.
+	mixedNAOutput := "\n" + `Evaluated 1 policies.
 policy.p
 
 Policy results for list.test.c - Passed
   id=p  Passed
   id=n  N/A
 
-Summary: 0 failed, 1 pass, 0 unknown, 0 error
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
 `
 	mixedResultsLog := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.d","overall_result":"error","results":[{"identity":{"id":"f"},"target_address":"test.d_0","result":"fail","policies":[{"policy_metadata":{"policy_name":"policy.a"},"diagnostics":[],"result":"fail"},{"policy_metadata":{"policy_name":"policy.b"},"diagnostics":[],"result":"fail"}]},{"identity":{"id":"u"},"target_address":"test.d_1","result":"unknown","policies":[]},{"identity":{"id":"e"},"target_address":"test.d_2","result":"error","policies":[]}],"passed_policies":[]}`
-	combinedOutput := `Evaluated 2 policies.
+	combinedOutput := "\n" + `Evaluated 2 policies.
+policy.a
+policy.b
 
 Policy results for list.test.a - Passed
   id=a  Passed
@@ -639,12 +643,19 @@ Policy results for list.test.b - N/A
   id=y  N/A
 
 Policy results for list.test.d - Error
-  id=f  Failed
+  id=f  ` + mockColorize().Color("[red]Failed[reset]") + `
   id=u  Unknown
   id=e  Error
 
-Summary: 1 failed, 1 pass, 1 unknown, 1 error
+Summary: 1 failed, 1 passed, 1 unknown, 1 errored
 `
+	warningLog := `{"@level":"warn","@message":"Policy evaluation skipped","type":"diagnostic","diagnostic":{"severity":"warning","summary":"Policy evaluation skipped","detail":"Policy evaluation cannot be performed without resource state."}}`
+
+	warningOutput := format.DiagnosticFromJSON(&viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityWarning,
+		Summary:  "Policy evaluation skipped",
+		Detail:   "Policy evaluation cannot be performed without resource state.",
+	}, mockColorize(), 78)
 
 	for _, tc := range []struct {
 		name    string
@@ -652,6 +663,11 @@ Summary: 1 failed, 1 pass, 1 unknown, 1 error
 		want    string
 	}{
 		{name: "query and summary", records: plainQuery + "\n" + policySummaryPassLog, want: "list.test.a   id=a   Alpha\n\n" + passOutput},
+		{
+			name:    "query warning and summary",
+			records: plainQuery + "\n" + warningLog + "\n" + policySummaryPassLog,
+			want:    "list.test.a   id=a   Alpha\n\n" + warningOutput + passOutput,
+		},
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
 		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
 		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
