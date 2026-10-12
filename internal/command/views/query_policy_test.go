@@ -972,7 +972,7 @@ func TestQueryPolicyView_routesSameAddressDiagnosticsByPolicyIdentity(t *testing
 	if len(summary.PassedPolicies) != 2 {
 		t.Fatalf("evaluated policy metadata count = %d, want 2", len(summary.PassedPolicies))
 	}
-	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}); !strings.HasPrefix(got, "Evaluated 2 policies.\npolicy.shared\npolicy.shared\n\n") {
+	if got := RenderPolicyQuerySummariesHuman([]PolicyQuerySummary{summary}, nil); !strings.HasPrefix(got, "Evaluated 2 policies.\npolicy.shared\npolicy.shared\n\n") {
 		t.Fatalf("same-named policies from distinct sets were not listed independently:\n%s", got)
 	}
 
@@ -1176,10 +1176,10 @@ Policy results for block.z - Failed
 	}
 	summaries[0].PassedPolicies[0], summaries[0].PassedPolicies[1] = summaries[0].PassedPolicies[1], summaries[0].PassedPolicies[0]
 	summaries[0], summaries[1] = summaries[1], summaries[0]
-	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
+	if got := RenderPolicyQuerySummariesHuman(summaries, nil); got != want {
 		t.Fatalf("policy summary output changed with input order\nwant:\n%s\n\ngot:\n%s", want, got)
 	}
-	if got := RenderPolicyQuerySummariesHuman(nil); got != "" {
+	if got := RenderPolicyQuerySummariesHuman(nil, nil); got != "" {
 		t.Fatalf("empty policy summary output = %q, want empty", got)
 	}
 }
