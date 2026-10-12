@@ -165,7 +165,7 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 
 	fmt.Fprintf(
 		&buf,
-		"\n\nSummary: %d failed, %d pass, %d unknown, %d error",
+		"\n\nSummary: %d failed, %d passed, %d unknown, %d errored",
 		failed, passed, unknown, errored,
 	)
 

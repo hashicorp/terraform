@@ -241,7 +241,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Failed",
 				"policy.deny: denied summary (mandatory)",
 				"Policy evaluation skipped",
-				"Summary: 1 failed, 1 pass, 0 unknown, 0 error",
+				"Summary: 1 failed, 1 passed, 0 unknown, 0 errored",
 			},
 			countOnce: []string{"Policy evaluation skipped"},
 		},
@@ -257,7 +257,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"id=i-1",
 				"id=i-2",
 				"Passed",
-				"Summary: 0 failed, 2 pass, 0 unknown, 0 error",
+				"Summary: 0 failed, 2 passed, 0 unknown, 0 errored",
 			},
 		},
 		{
@@ -273,7 +273,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"id=i-2",
 				"Failed",
 				"policy.deny: denied (mandatory)",
-				"Summary: 2 failed, 0 pass, 0 unknown, 0 error",
+				"Summary: 2 failed, 0 passed, 0 unknown, 0 errored",
 			},
 		},
 		{
@@ -286,7 +286,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Policy results for aws_instance.example - Unknown",
 				"id=i-1",
 				"Unknown",
-				"Summary: 0 failed, 0 pass, 1 unknown, 0 error",
+				"Summary: 0 failed, 0 passed, 1 unknown, 0 errored",
 			},
 			notWant: []string{"N/A"},
 		},
@@ -306,7 +306,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"  id=i-error    Error",
 				"policy.fail: fail diagnostic (mandatory)",
 				"policy.error: error diagnostic (mandatory)",
-				"Summary: 1 failed, 1 pass, 1 unknown, 1 error",
+				"Summary: 1 failed, 1 passed, 1 unknown, 1 errored",
 			},
 			notWant: []string{
 				"policy.pass: pass diagnostic (mandatory)",
@@ -332,7 +332,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"id=i-1",
 				"Error",
 				"policy.error: evaluation failed (mandatory)",
-				"Summary: 0 failed, 0 pass, 0 unknown, 1 error",
+				"Summary: 0 failed, 0 passed, 0 unknown, 1 errored",
 			},
 			notWant: []string{"Error: evaluation failed"},
 		},
@@ -348,7 +348,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"id=i-1",
 				"Error",
 				"Error: evaluation failed",
-				"Summary: 0 failed, 0 pass, 0 unknown, 1 error",
+				"Summary: 0 failed, 0 passed, 0 unknown, 1 errored",
 			},
 			notWant: []string{"N/A"},
 		},
@@ -390,7 +390,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"id=i-1",
 				"id=i-2",
 				"N/A",
-				"Summary: 0 failed, 0 pass, 0 unknown, 0 error",
+				"Summary: 0 failed, 0 passed, 0 unknown, 0 errored",
 			},
 			notWant: []string{"Unknown"},
 		},
@@ -407,7 +407,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Passed",
 				"id=i-2",
 				"N/A",
-				"Summary: 0 failed, 1 pass, 0 unknown, 0 error",
+				"Summary: 0 failed, 1 passed, 0 unknown, 0 errored",
 			},
 			notWant: []string{"Unknown"},
 		},
@@ -429,7 +429,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 					{address: "policy.type", result: policy.AllowResult},
 				}))
 			},
-			want: []string{"Summary: 1 failed, 0 pass, 0 unknown, 0 error"},
+			want: []string{"Summary: 1 failed, 0 passed, 0 unknown, 0 errored"},
 		},
 		{
 			name: "four_resources_fail_same_policy",
@@ -438,7 +438,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 					v.PolicyResult(fmt.Sprintf("aws_instance.example_%d", i), queryEvalResp(listBlockAddr, map[string]string{"id": fmt.Sprintf("i-%d", i)}, policy.DenyResult, []policyResultSpec{{address: "policy.owner", result: policy.DenyResult}}))
 				}
 			},
-			want: []string{"Summary: 4 failed, 0 pass, 0 unknown, 0 error"},
+			want: []string{"Summary: 4 failed, 0 passed, 0 unknown, 0 errored"},
 		},
 	}
 
@@ -1178,7 +1178,7 @@ Policy results for block.z - Failed
   id=z  Failed
     - p.z: denied (mandatory)
 
-Summary: 1 failed, 1 pass, 0 unknown, 0 error`
+Summary: 1 failed, 1 passed, 0 unknown, 0 errored`
 	if got := RenderPolicyQuerySummariesHuman(summaries); got != want {
 		t.Fatalf("unexpected policy summary output\nwant:\n%s\n\ngot:\n%s", want, got)
 	}
@@ -1496,7 +1496,7 @@ Policy results for aws_instance.example - N/A
   id=i-1  N/A
   id=i-2  N/A
 
-Summary: 0 failed, 0 pass, 0 unknown, 0 error`,
+Summary: 0 failed, 0 passed, 0 unknown, 0 errored`,
 		},
 		{
 			name: "mixed n/a and pass",
@@ -1512,7 +1512,7 @@ Policy results for aws_instance.example - Passed
   id=i-1  Passed
   id=i-2  N/A
 
-Summary: 0 failed, 1 pass, 0 unknown, 0 error`,
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored`,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
