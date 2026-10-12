@@ -290,10 +290,10 @@ go get github.com/hashicorp/hcl/v2@2.0.0
 
 This command will download the requested version (2.0.0 in the above example) and record that version selection in the `go.mod` file. It will also record checksums for the module in the `go.sum`.
 
-To complete the dependency change, clean up any redundancy in the module metadata files by running:
+To complete the dependency change, clean up any redundancy in the module metadata files and synchronise the change in nested Go modules (e.g. the remote state backends) by running:
 
 ```
-go mod tidy
+make syncdeps
 ```
 
 To ensure that the upgrade has worked correctly, be sure to run the unit test suite at least once:
