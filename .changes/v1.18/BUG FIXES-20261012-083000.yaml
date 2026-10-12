@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`terraform test`: Failed assertions no longer panic with "value has marks" when a referenced value carries non-sensitive marks such as provider deprecation marks'
+time: 2026-10-12T08:30:00.0000-04:00
+custom:
+    Issue: "39365"
