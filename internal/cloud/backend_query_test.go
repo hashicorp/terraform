@@ -605,6 +605,8 @@ policy.a
 
 Policy results for list.test.a - Passed
   id=a  Passed
+
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
 `
 	malformed := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"","overall_result":"pass","results":[],"passed_policies":[]}`
 	plainQuery := `{"@level":"info","@message":"Starting query","type":"list_start","list_start":{"address":"list.test.a"}}
@@ -616,6 +618,8 @@ Policy results for list.test.a - Passed
 Policy results for list.test.b - N/A
   id=x  N/A
   id=y  N/A
+
+Summary: 0 failed, 0 passed, 0 unknown, 0 errored
 `
 	mixedNAOutput := "\n" + `Evaluated 1 policies.
 policy.p
@@ -623,6 +627,27 @@ policy.p
 Policy results for list.test.c - Passed
   id=p  Passed
   id=n  N/A
+
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
+`
+	mixedResultsLog := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.d","overall_result":"error","results":[{"identity":{"id":"f"},"target_address":"test.d_0","result":"fail","policies":[{"policy_metadata":{"policy_name":"policy.a"},"diagnostics":[],"result":"fail"},{"policy_metadata":{"policy_name":"policy.b"},"diagnostics":[],"result":"fail"}]},{"identity":{"id":"u"},"target_address":"test.d_1","result":"unknown","policies":[]},{"identity":{"id":"e"},"target_address":"test.d_2","result":"error","policies":[]}],"passed_policies":[]}`
+	combinedOutput := "\n" + `Evaluated 2 policies.
+policy.a
+policy.b
+
+Policy results for list.test.a - Passed
+  id=a  Passed
+
+Policy results for list.test.b - N/A
+  id=x  N/A
+  id=y  N/A
+
+Policy results for list.test.d - Error
+  id=f  ` + mockColorize().Color("[red]Failed[reset]") + `
+  id=u  Unknown
+  id=e  Error
+
+Summary: 1 failed, 1 passed, 1 unknown, 1 errored
 `
 	warningLog := `{"@level":"warn","@message":"Policy evaluation skipped","type":"diagnostic","diagnostic":{"severity":"warning","summary":"Policy evaluation skipped","detail":"Policy evaluation cannot be performed without resource state."}}`
 
@@ -646,6 +671,11 @@ Policy results for list.test.c - Passed
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
 		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
 		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
+		{
+			name:    "combined resource outcomes across list blocks",
+			records: mixedResultsLog + "\n" + policySummaryAllNALog + "\n" + policySummaryPassLog,
+			want:    combinedOutput,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := renderQueryRunLogsForTest(t, tc.records); got != tc.want {
