@@ -205,39 +205,19 @@ func (c *Config) DescendantForInstance(path addrs.ModuleInstance) *Config {
 // within the configuration.
 //
 // This doesn't consider instance expansion, so we're only making sure the
-// target could exist if the instance expansion expands correctly.
-func (c *Config) TargetExists(target addrs.Targetable) bool {
-	switch target.AddrType() {
-	case addrs.ConfigResourceAddrType:
-		addr := target.(addrs.ConfigResource)
+// configuration declares the object whose instances the target selects.
+func (c *Config) TargetExists(target addrs.TargetPattern) bool {
+	switch addr := target.ConfigAddr().(type) {
+	case addrs.Module:
+		return c.Descendant(addr) != nil
+	case addrs.ConfigResource:
 		module := c.Descendant(addr.Module)
-		if module != nil {
-			return module.Module.ResourceByAddr(addr.Resource) != nil
-		} else {
-			return false
-		}
-	case addrs.AbsResourceInstanceAddrType:
-		addr := target.(addrs.AbsResourceInstance)
-		module := c.DescendantForInstance(addr.Module)
-		if module != nil {
-			return module.Module.ResourceByAddr(addr.Resource.Resource) != nil
-		} else {
-			return false
-		}
-	case addrs.AbsResourceAddrType:
-		addr := target.(addrs.AbsResource)
-		module := c.DescendantForInstance(addr.Module)
-		if module != nil {
-			return module.Module.ResourceByAddr(addr.Resource) != nil
-		} else {
-			return false
-		}
-	case addrs.ModuleAddrType:
-		return c.Descendant(target.(addrs.Module)) != nil
-	case addrs.ModuleInstanceAddrType:
-		return c.DescendantForInstance(target.(addrs.ModuleInstance)) != nil
+		return module != nil && module.Module.ResourceByAddr(addr.Resource) != nil
+	case addrs.ConfigAction:
+		module := c.Descendant(addr.Module)
+		return module != nil && module.Module.Actions[addr.Action.String()] != nil
 	default:
-		panic(fmt.Errorf("unrecognized targetable type: %d", target.AddrType()))
+		panic(fmt.Sprintf("unrecognized target %s", target))
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -618,18 +619,23 @@ func TestTest_Interrupt(t *testing.T) {
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	// The interrupt channel must be created within the bubble, otherwise the
+	// command blocking on ShutdownCh is not durably blocked and the fake clock
+	// can never advance past the provider's sleep.
+	synctest.Test(t, func(t *testing.T) {
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
 
-	c.Run(nil)
+		c.Run(nil)
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "Interrupt received") {
@@ -1786,7 +1792,9 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			view = views.NewView(testStreams)
 			meta.View = view
 			c := &TestCommand{Meta: meta}
-			c.Run([]string{"-json", "-no-color"})
+			synctest.Test(t, func(t *testing.T) {
+				c.Run([]string{"-json", "-no-color"})
+			})
 			output := testDone(t).All()
 
 			// Split the log into lines
@@ -1840,18 +1848,22 @@ func TestTest_InterruptSkipsRemaining(t *testing.T) {
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	// The interrupt channel must be created within the bubble, so that the
+	// command blocking on ShutdownCh is durably blocked.
+	synctest.Test(t, func(t *testing.T) {
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
 
-	c.Run([]string{"-no-color"})
+		c.Run([]string{"-no-color"})
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "skip_me.tftest.hcl... skip") {
@@ -1872,18 +1884,22 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 	provider := testing_command.NewProvider(nil)
 	view, done := testView(t)
 
-	interrupt := make(chan struct{})
-	provider.Interrupt = interrupt
+	// The interrupt channel must be created within the bubble, so that the
+	// command blocking on ShutdownCh is durably blocked.
+	synctest.Test(t, func(t *testing.T) {
+		interrupt := make(chan struct{})
+		provider.Interrupt = interrupt
 
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-			ShutdownCh:       interrupt,
-		},
-	}
+		c := &TestCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
+			},
+		}
 
-	c.Run(nil)
+		c.Run(nil)
+	})
 	output := done(t).All()
 
 	if !strings.Contains(output, "Two interrupts received") {
@@ -4701,7 +4717,10 @@ func TestTest_LongRunningTest(t *testing.T) {
 		},
 	}
 
-	code := c.Run([]string{"-no-color"})
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run([]string{"-no-color"})
+	})
 	output := done(t)
 
 	if code != 0 {
@@ -4725,8 +4744,8 @@ Success! 1 passed, 0 failed.
 	}
 }
 
-// This test takes around 10 seconds to complete, as we're testing the progress
-// updates that are printed every 2 seconds. Sorry!
+// This test covers the progress updates that are printed every 2 seconds. The
+// command runs within a synctest bubble, so the waits use a fake clock.
 func TestTest_LongRunningTestJSON(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "long_running")), td)
@@ -4742,7 +4761,10 @@ func TestTest_LongRunningTestJSON(t *testing.T) {
 		},
 	}
 
-	code := c.Run([]string{"-json"})
+	var code int
+	synctest.Test(t, func(t *testing.T) {
+		code = c.Run([]string{"-json"})
+	})
 	output := done(t)
 
 	if code != 0 {

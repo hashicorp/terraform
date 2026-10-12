@@ -114,28 +114,22 @@ func (v *values[LocalType, AbsType]) GetPlaceholderResult(addr addrs.InPartialEx
 	if !v.placeholder.Has(modAddr) {
 		return cty.DynamicVal
 	}
-	placeholders := v.placeholder.Get(modAddr)
 
-	// We'll now search the placeholders for just the ones that match the
-	// given address, and take the one that has the longest known module prefix.
-	longestVal := cty.DynamicVal
-	longestLen := -1
-
-	for _, elem := range placeholders.Elems {
-		candidate := elem.Key
-		lenKnown := candidate.ModuleLevelsKnown()
-		if lenKnown < longestLen {
-			continue
+	// We'll now search the placeholders for just the ones that include the
+	// given address, and take the most specific of them, which is the one with
+	// the longest known module prefix.
+	var candidates []addrs.MapElem[addrs.InPartialExpandedModule[LocalType], cty.Value]
+	for _, elem := range v.placeholder.Get(modAddr).Elems {
+		if addrs.Equivalent(elem.Key.Local, addr.Local) && elem.Key.Module.MatchesPartial(addr.Module) {
+			candidates = append(candidates, elem)
 		}
-		if !addrs.Equivalent(candidate.Local, addr.Local) {
-			continue
-		}
-		if !candidate.Module.MatchesPartial(addr.Module) {
-			continue
-		}
-		longestVal = elem.Value
-		longestLen = lenKnown
 	}
 
-	return longestVal
+	best, ok := addrs.MostSpecific(candidates, func(a, b addrs.MapElem[addrs.InPartialExpandedModule[LocalType], cty.Value]) bool {
+		return a.Key.Module.MatchesPartial(b.Key.Module)
+	})
+	if !ok {
+		return cty.DynamicVal
+	}
+	return best.Value
 }

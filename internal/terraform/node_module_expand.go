@@ -148,6 +148,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 			} else {
 				// -1 represents "unknown"
 				expander.SetModuleCountUnknown(module, call)
+				globalCtx.Deferrals().ReportModuleExpansionDeferred(module.UnexpandedChild(call))
 			}
 
 		case n.ModuleCall.ForEach != nil:
@@ -160,6 +161,7 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 				expander.SetModuleForEach(module, call, forEach)
 			} else {
 				expander.SetModuleForEachUnknown(module, call)
+				globalCtx.Deferrals().ReportModuleExpansionDeferred(module.UnexpandedChild(call))
 			}
 
 		default:

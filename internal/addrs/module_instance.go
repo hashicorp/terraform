@@ -4,13 +4,10 @@
 package addrs
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,7 +27,7 @@ var (
 )
 
 func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagnostics) {
-	mi, remain, diags := parseModuleInstancePrefix(traversal, false)
+	mi, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	if len(remain) != 0 {
 		if len(remain) == len(traversal) {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -78,127 +75,6 @@ func ParseModuleInstanceStr(str string) (ModuleInstance, tfdiags.Diagnostics) {
 	addr, addrDiags := ParseModuleInstance(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
-}
-
-func parseModuleInstancePrefix(traversal hcl.Traversal, allowPartial bool) (ModuleInstance, hcl.Traversal, tfdiags.Diagnostics) {
-	remain := traversal
-	var mi ModuleInstance
-	var diags tfdiags.Diagnostics
-
-LOOP:
-	for len(remain) > 0 {
-		var next string
-		switch tt := remain[0].(type) {
-		case hcl.TraverseRoot:
-			next = tt.Name
-		case hcl.TraverseAttr:
-			next = tt.Name
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Module address prefix must be followed by dot and then a name.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			break LOOP
-		}
-
-		if next != "module" {
-			break
-		}
-
-		kwRange := remain[0].SourceRange()
-		remain = remain[1:]
-		// If we have the prefix "module" then we should be followed by an
-		// module call name, as an attribute, and then optionally an index step
-		// giving the instance key.
-		if len(remain) == 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Prefix \"module.\" must be followed by a module name.",
-				Subject:  &kwRange,
-			})
-			break
-		}
-
-		var moduleName string
-		switch tt := remain[0].(type) {
-		case hcl.TraverseAttr:
-			moduleName = tt.Name
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address operator",
-				Detail:   "Prefix \"module.\" must be followed by a module name.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			break LOOP
-		}
-		remain = remain[1:]
-		step := ModuleInstanceStep{
-			Name: moduleName,
-		}
-
-		if len(remain) > 0 {
-			switch idx := remain[0].(type) {
-			case hcl.TraverseIndex:
-				remain = remain[1:]
-
-				switch idx.Key.Type() {
-				case cty.String:
-					step.InstanceKey = StringKey(idx.Key.AsString())
-				case cty.Number:
-					var idxInt int
-					err := gocty.FromCtyValue(idx.Key, &idxInt)
-					if err == nil {
-						step.InstanceKey = IntKey(idxInt)
-					} else {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid address operator",
-							Detail:   fmt.Sprintf("Invalid module index: %s.", err),
-							Subject:  idx.SourceRange().Ptr(),
-						})
-					}
-				default:
-					// Should never happen, because no other types are allowed in traversal indices.
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid address operator",
-						Detail:   "Invalid module key: must be either a string or an integer.",
-						Subject:  idx.SourceRange().Ptr(),
-					})
-				}
-
-			case hcl.TraverseSplat:
-				if allowPartial {
-					remain = remain[1:]
-					step.InstanceKey = WildcardKey
-				}
-			}
-		}
-
-		mi = append(mi, step)
-	}
-
-	var retRemain hcl.Traversal
-	if len(remain) > 0 {
-		retRemain = make(hcl.Traversal, len(remain))
-		copy(retRemain, remain)
-		// The first element here might be either a TraverseRoot or a
-		// TraverseAttr, depending on whether we had a module address on the
-		// front. To make life easier for callers, we'll normalize to always
-		// start with a TraverseRoot.
-		if tt, ok := retRemain[0].(hcl.TraverseAttr); ok {
-			retRemain[0] = hcl.TraverseRoot{
-				Name:     tt.Name,
-				SrcRange: tt.SrcRange,
-			}
-		}
-	}
-
-	return mi, retRemain, diags
 }
 
 // UnkeyedInstanceShim is a shim method for converting a Module address to the
@@ -435,84 +311,17 @@ func (m ModuleInstance) CallInstance() (ModuleInstance, ModuleCallInstance) {
 	}
 }
 
-// TargetContains implements Targetable by returning true if the given other
+// Contains implements Targetable by returning true if the given other
 // address either matches the receiver, is a sub-module-instance of the
 // receiver, or is a targetable absolute address within a module that
-// is contained within the reciever.
-func (m ModuleInstance) TargetContains(other Targetable) bool {
-	switch to := other.(type) {
-	case Module:
-		if len(to) < len(m) {
-			// Can't be contained if the path is shorter
-			return false
-		}
-		// Other is contained if its steps match for the length of our own path.
-		for i, ourStep := range m {
-			otherStep := to[i]
-
-			// We can't contain an entire module if we have a specific instance
-			// key. The case of NoKey is OK because this address is either
-			// meant to address an unexpanded module, or a single instance of
-			// that module, and both of those are a covered in-full by the
-			// Module address.
-			if ourStep.InstanceKey != NoKey {
-				return false
-			}
-
-			if ourStep.Name != otherStep {
-				return false
-			}
-		}
-		// If we fall out here then the prefixed matched, so it's contained.
-		return true
-
-	case ModuleInstance:
-		if len(to) < len(m) {
-			return false
-		}
-		for i, ourStep := range m {
-			otherStep := to[i]
-
-			if ourStep.Name != otherStep.Name {
-				return false
-			}
-
-			// if this is our last step, because all targets are parsed as
-			// instances, this may be a ModuleInstance intended to be used as a
-			// Module.
-			if i == len(m)-1 {
-				if ourStep.InstanceKey == NoKey {
-					// If the other step is a keyed instance, then we contain that
-					// step, and if it isn't it's a match, which is true either way
-					return true
-				}
-			}
-
-			if ourStep.InstanceKey != otherStep.InstanceKey {
-				return false
-			}
-
-		}
-		return true
-
-	case ConfigResource:
-		return m.TargetContains(to.Module)
-
-	case AbsResource:
-		return m.TargetContains(to.Module)
-
-	case AbsResourceInstance:
-		return m.TargetContains(to.Module)
-
-	case AbsAction:
-		return m.TargetContains(to.Module)
-
-	case AbsActionInstance:
-		return m.TargetContains(to.Module)
-
-	default:
-		return false
-	}
+// is contained within the receiver.
+//
+// Each step's instance key must match exactly, unless it is WildcardKey which
+// matches every instance. Unlike in a TargetPattern, a step without an
+// instance key only matches the instance of a module call without count or
+// for_each.
+func (m ModuleInstance) Contains(other Targetable) bool {
+	return targetContains(m, other)
 }
 
 // Module returns the address of the module that this instance is an instance
@@ -538,10 +347,6 @@ func (m ModuleInstance) ContainingModule() ModuleInstance {
 
 	ret := m.Parent()
 	return ret.Child(m[len(m)-1].Name, NoKey)
-}
-
-func (m ModuleInstance) AddrType() TargetableAddrType {
-	return ModuleInstanceAddrType
 }
 
 func (m ModuleInstance) targetableSigil() {

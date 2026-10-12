@@ -109,7 +109,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 	if empty {
-		view.Output(views.OutputInitEmptyMessage)
+		view.LogInitSuccessEmpty()
 		return 0
 	}
 
@@ -445,22 +445,21 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// still the final thing shown.
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
-	output := views.OutputInitSuccessMessage
 	if cloud {
-		output = views.OutputInitSuccessCloudMessage
+		view.LogInitSuccessCloud()
+	} else {
+		view.LogInitSuccess()
 	}
-
-	view.Output(output)
 
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
-		output = views.OutputInitSuccessCLIMessage
 		if cloud {
-			output = views.OutputInitSuccessCLICloudMessage
+			view.LogCallToActionCLICloud()
+		} else {
+			view.LogCallToActionCLI()
 		}
-		view.Output(output)
 	}
 	return 0
 }

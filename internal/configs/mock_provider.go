@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 var (
@@ -103,7 +102,7 @@ type MockData struct {
 	MockResources          map[string]*MockResource
 	MockDataSources        map[string]*MockResource
 	MockEphemeralResources map[string]*MockResource
-	Overrides              addrs.Map[addrs.Targetable, *Override]
+	Overrides              addrs.Map[addrs.TargetPattern, *Override]
 }
 
 // Merge will merge the target MockData object into the current MockData.
@@ -225,7 +224,7 @@ const (
 // replacement values that should be used in place of whatever the underlying
 // provider would normally do.
 type Override struct {
-	Target *addrs.Target
+	Target *addrs.TargetPattern
 	Values cty.Value
 
 	BlockName string
@@ -256,7 +255,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 		MockResources:          make(map[string]*MockResource),
 		MockDataSources:        make(map[string]*MockResource),
 		MockEphemeralResources: make(map[string]*MockResource),
-		Overrides:              addrs.MakeMap[addrs.Targetable, *Override](),
+		Overrides:              addrs.MakeMap[addrs.TargetPattern, *Override](),
 	}
 
 	for _, block := range content.Blocks {
@@ -307,7 +306,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := *override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -324,7 +323,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := *override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -341,7 +340,7 @@ func decodeMockDataBody(body hcl.Body, useForPlanDefault bool, source OverrideSo
 			diags = append(diags, overrideDiags...)
 
 			if override != nil && override.Target != nil {
-				subject := override.Target.Subject
+				subject := *override.Target
 				if previous, ok := data.Overrides.GetOk(subject); ok {
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
@@ -400,14 +399,11 @@ func decodeOverrideModuleBlock(block *hcl.Block, useForPlanDefault bool, source 
 	override, diags := decodeOverrideBlock(block, "outputs", "override_module", useForPlanDefault, source)
 
 	if override.Target != nil {
-		switch override.Target.Subject.AddrType() {
-		case addrs.ModuleAddrType, addrs.ModuleInstanceAddrType:
-			// Do nothing, we're good here.
-		default:
+		if _, ok := override.Target.ConfigAddr().(addrs.Module); !ok {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target modules from override_module blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target modules from override_module blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -421,30 +417,11 @@ func decodeOverrideResourceBlock(block *hcl.Block, useForPlanDefault bool, sourc
 	override, diags := decodeOverrideBlock(block, "values", "override_resource", useForPlanDefault, source)
 
 	if override.Target != nil {
-		var mode addrs.ResourceMode
-
-		switch override.Target.Subject.AddrType() {
-		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
-			mode = subject.Resource.Resource.Mode
-		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
-			mode = subject.Resource.Mode
-		default:
+		if addr, ok := override.Target.ConfigAddr().(addrs.ConfigResource); !ok || addr.Resource.Mode != addrs.ManagedResourceMode {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target.Subject),
-				Subject:  override.TargetRange.Ptr(),
-			})
-			return nil, diags
-		}
-
-		if mode != addrs.ManagedResourceMode {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target resources from override_resource blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -458,30 +435,11 @@ func decodeOverrideEphemeralBlock(block *hcl.Block, useForPlanDefault bool, sour
 	override, diags := decodeOverrideBlock(block, "values", "override_ephemeral", useForPlanDefault, source)
 
 	if override.Target != nil {
-		var mode addrs.ResourceMode
-
-		switch override.Target.Subject.AddrType() {
-		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
-			mode = subject.Resource.Resource.Mode
-		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
-			mode = subject.Resource.Mode
-		default:
+		if addr, ok := override.Target.ConfigAddr().(addrs.ConfigResource); !ok || addr.Resource.Mode != addrs.EphemeralResourceMode {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
-				Subject:  override.TargetRange.Ptr(),
-			})
-			return nil, diags
-		}
-
-		if mode != addrs.EphemeralResourceMode {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target ephemeral resources from override_ephemeral blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -495,30 +453,11 @@ func decodeOverrideDataBlock(block *hcl.Block, useForPlanDefault bool, source Ov
 	override, diags := decodeOverrideBlock(block, "values", "override_data", useForPlanDefault, source)
 
 	if override.Target != nil {
-		var mode addrs.ResourceMode
-
-		switch override.Target.Subject.AddrType() {
-		case addrs.AbsResourceInstanceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResourceInstance)
-			mode = subject.Resource.Resource.Mode
-		case addrs.AbsResourceAddrType:
-			subject := override.Target.Subject.(addrs.AbsResource)
-			mode = subject.Resource.Mode
-		default:
+		if addr, ok := override.Target.ConfigAddr().(addrs.ConfigResource); !ok || addr.Resource.Mode != addrs.DataResourceMode {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target.Subject),
-				Subject:  override.TargetRange.Ptr(),
-			})
-			return nil, diags
-		}
-
-		if mode != addrs.DataResourceMode {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid override target",
-				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target.Subject),
+				Detail:   fmt.Sprintf("You can only target data sources from override_data blocks, not %s.", override.Target),
 				Subject:  override.TargetRange.Ptr(),
 			})
 			return nil, diags
@@ -552,9 +491,11 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 		traversal, traversalDiags := hcl.AbsTraversalForExpr(target.Expr)
 		diags = append(diags, traversalDiags...)
 		if traversal != nil {
-			var targetDiags tfdiags.Diagnostics
-			override.Target, targetDiags = addrs.ParseTarget(traversal)
+			target, targetDiags := addrs.ParseTarget(traversal)
 			diags = append(diags, targetDiags.ToHCL()...)
+			if !targetDiags.HasErrors() {
+				override.Target = &target
+			}
 		}
 	} else {
 		diags = diags.Append(&hcl.Diagnostic{

@@ -8,13 +8,13 @@ type ProviderLockingLogger interface {
 	LogProviderLockfileUpdated()
 }
 
-const previousLockInfoHuman = `
+const createdLockInfoHuman = `
 Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider
 selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when
 you run "terraform init" in the future.`
 
-const previousLockInfoJSON = `
+const createdLockInfoJSON = `
 Terraform has created a lock file .terraform.lock.hcl to record the provider
 selections it made above. Include this file in your version control repository
 so that Terraform can guarantee to make the same selections by default when

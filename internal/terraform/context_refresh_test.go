@@ -278,10 +278,8 @@ func TestContext2Refresh_targeted(t *testing.T) {
 
 	_, diags := ctx.Refresh(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "me",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.me"),
 		},
 	})
 	if diags.HasErrors() {
@@ -360,10 +358,8 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 	_, diags := ctx.Refresh(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "me",
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.me"),
 		},
 	})
 	if diags.HasErrors() {
@@ -450,10 +446,8 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 
 	_, diags := ctx.Refresh(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "me", addrs.IntKey(0),
-			),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("aws_instance.me[0]"),
 		},
 	})
 	if diags.HasErrors() {

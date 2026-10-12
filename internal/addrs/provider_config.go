@@ -122,7 +122,7 @@ var _ UniqueKeyer = AbsProviderConfig{}
 // This type of address is typically not used prominently in the UI, except in
 // error messages that refer to provider configurations.
 func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there
@@ -261,7 +261,7 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 //
 // We will not use this address form for any new file formats.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
-	modInst, remain, diags := parseModuleInstancePrefix(traversal, false)
+	modInst, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	var ret AbsProviderConfig
 
 	// Providers cannot resolve within module instances, so verify that there

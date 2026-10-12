@@ -173,23 +173,11 @@ func (a AbsAction) ConfigAction() ConfigAction {
 	}
 }
 
-// TargetContains implements Targetable
-func (a AbsAction) TargetContains(other Targetable) bool {
-	switch to := other.(type) {
-	case AbsAction:
-		return a.Equal(to)
-	case AbsActionInstance:
-		return a.Equal(to.ContainingAction())
-	case ConfigAction:
-		return a.ConfigAction().Equal(to)
-	default:
-		return false
-	}
-}
-
-// AddrType implements Targetable
-func (a AbsAction) AddrType() TargetableAddrType {
-	return ActionAddrType
+// Contains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
+func (a AbsAction) Contains(other Targetable) bool {
+	return targetContains(a, other)
 }
 
 func (a AbsAction) String() string {
@@ -271,23 +259,13 @@ func (a AbsActionInstance) String() string {
 	return fmt.Sprintf("%s.%s", a.Module.String(), a.Action.String())
 }
 
-// TargetContains implements Targetable
-func (a AbsActionInstance) TargetContains(other Targetable) bool {
-	switch to := other.(type) {
-	case AbsAction:
-		return to.Equal(a.ContainingAction()) && a.Action.Key == NoKey
-	case AbsActionInstance:
-		return to.Equal(a)
-	case ConfigAction:
-		return a.ConfigAction().Equal(to)
-	default:
-		return false
-	}
-}
-
-// AddrType implements Targetable
-func (a AbsActionInstance) AddrType() TargetableAddrType {
-	return ActionInstanceAddrType
+// Contains implements Targetable by returning true if the given other
+// address is equal to the receiver.
+//
+// An instance key of WildcardKey selects every instance, and so behaves the
+// same as the containing AbsAction.
+func (a AbsActionInstance) Contains(other Targetable) bool {
+	return targetContains(a, other)
 }
 
 func (a AbsActionInstance) Equal(o AbsActionInstance) bool {
@@ -342,11 +320,6 @@ func (a ConfigAction) Absolute(module ModuleInstance) AbsAction {
 	}
 }
 
-// AddrType implements Targetable
-func (a ConfigAction) AddrType() TargetableAddrType {
-	return ActionAddrType
-}
-
 func (a ConfigAction) String() string {
 	if len(a.Module) == 0 {
 		return a.Action.String()
@@ -358,14 +331,11 @@ func (a ConfigAction) Equal(o ConfigAction) bool {
 	return a.Module.Equal(o.Module) && a.Action.Equal(o.Action)
 }
 
-func (a ConfigAction) TargetContains(other Targetable) bool {
-	switch other := other.(type) {
-	case AbsAction:
-		return other.ConfigAction().Equal(a)
-	case AbsActionInstance:
-		return other.ContainingAction().ConfigAction().Equal(a)
-	}
-	return false
+// Contains implements Targetable by returning true if the given other
+// address is either equal to the receiver or is an instance of the
+// receiver.
+func (a ConfigAction) Contains(other Targetable) bool {
+	return targetContains(a, other)
 }
 
 func (a ConfigAction) UniqueKey() UniqueKey {
@@ -412,134 +382,24 @@ func ParseAbsActionInstanceStr(str string) (AbsActionInstance, tfdiags.Diagnosti
 // If error diagnostics are returned then the AbsResource value is invalid and
 // must not be used.
 func ParseAbsActionInstance(traversal hcl.Traversal) (AbsActionInstance, tfdiags.Diagnostics) {
-	moduleAddr, remain, diags := parseModuleInstancePrefix(traversal, false)
-	if diags.HasErrors() {
-		return AbsActionInstance{}, diags
-	}
-
-	if remain.IsRelative() {
-		// (relative means that there's either nothing left or what's next isn't an identifier)
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid action address",
-			Detail:   "Module path must be followed by an action instance address.",
-			Subject:  remain.SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
-
-	if remain.RootName() != "action" {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid address",
-			Detail:   "Action address must start with \"action.\".",
-			Subject:  remain[0].SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
-	remain = remain[1:]
-
-	if len(remain) < 2 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid address",
-			Detail:   "Action specification must include an action type and name.",
-			Subject:  remain.SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
-
-	var actionType, name string
-	switch tt := remain[0].(type) {
-	case hcl.TraverseRoot:
-		actionType = tt.Name
-	case hcl.TraverseAttr:
-		actionType = tt.Name
-	default:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid action address",
-			Detail:   "An action name is required.",
-			Subject:  remain[0].SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
-
-	switch tt := remain[1].(type) {
-	case hcl.TraverseAttr:
-		name = tt.Name
-	default:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid address",
-			Detail:   "An action name is required.",
-			Subject:  remain[1].SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
-
-	remain = remain[2:]
-	switch len(remain) {
-	case 0:
-		return moduleAddr.ActionInstance(actionType, name, NoKey), diags
-	case 1:
-		switch tt := remain[0].(type) {
-		case hcl.TraverseIndex:
-			key, err := ParseInstanceKey(tt.Key)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid address",
-					Detail:   fmt.Sprintf("Invalid resource instance key: %s.", err),
-					Subject:  remain[0].SourceRange().Ptr(),
-				})
-				return AbsActionInstance{}, diags
-			}
-			return moduleAddr.ActionInstance(actionType, name, key), diags
-		case hcl.TraverseSplat:
-			// Not yet supported!
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address",
-				Detail:   "Action instance key must be given in square brackets.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			return AbsActionInstance{}, diags
-		default:
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid address",
-				Detail:   "Action instance key must be given in square brackets.",
-				Subject:  remain[0].SourceRange().Ptr(),
-			})
-			return AbsActionInstance{}, diags
-		}
-	default:
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid address",
-			Detail:   "Unexpected extra operators after address.",
-			Subject:  remain[1].SourceRange().Ptr(),
-		})
-		return AbsActionInstance{}, diags
-	}
+	return parseTargetAction(traversal, knownInstanceKeys)
 }
 
 // ParseAbsAction attempts to interpret the given traversal as an absolute
-// action address, using the same syntax as expected by ParseTarget.
+// action address, using the same syntax as expected by ParseTargetAction.
 //
-// If no error diagnostics are returned, the returned target includes the
-// address that was extracted and the source range it was extracted from.
+// If no error diagnostics are returned, the returned address includes the
+// action that was extracted.
 //
 // If error diagnostics are returned then the AbsAction value is invalid and
 // must not be used.
 func ParseAbsAction(traversal hcl.Traversal) (AbsAction, tfdiags.Diagnostics) {
-	addr, diags := ParseTargetAction(traversal)
+	addr, diags := parseAbsActionTarget(traversal)
 	if diags.HasErrors() {
 		return AbsAction{}, diags
 	}
 
-	switch tt := addr.Subject.(type) {
+	switch tt := addr.(type) {
 
 	case AbsAction:
 		return tt, diags

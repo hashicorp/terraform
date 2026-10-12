@@ -430,8 +430,8 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "graph-builder-plan-target-module-provider"),
 		Plugins: simpleMockPluginLibrary(),
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child2"),
 		},
 		Operation: walkPlan,
 	}

@@ -546,6 +546,15 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, knownModule
 		}
 	}()
 
+	// Targeting applies to every node added above, including those which
+	// aren't within a known module instance: the partial-expanded resources,
+	// and the instances from module instances which are not yet known or no
+	// longer exist.
+	if err := (&TargetsTransformer{Targets: n.Targets}).Transform(&g); err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
 	// We might expect an address because it's in an import block, but have no
 	// config and aren't generating any. This isn't caught during validation
 	// because generateConfigPath is only a plan option.
@@ -797,9 +806,6 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 
 		// Attach the state
 		&AttachStateTransformer{State: state},
-
-		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
 	}
 
 	b := &BasicGraphBuilder{

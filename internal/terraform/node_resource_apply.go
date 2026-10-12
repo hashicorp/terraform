@@ -15,8 +15,6 @@ import (
 // NodeApplyableResource nodes into their respective modules.
 type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
-
-	PartialExpansions []addrs.PartialExpandedResource
 }
 
 var (
@@ -68,13 +66,12 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	return nil, diags
 }
 
+// checkForPartialExpansion reports whether the given resource was deferred
+// during planning because its expansion was unknown. If so, its expansion is
+// recorded as unknown again rather than being evaluated.
 func (n *nodeExpandApplyableResource) checkForPartialExpansion(ctx EvalContext, addr addrs.AbsResource) bool {
-	if len(n.PartialExpansions) == 0 {
-		return false
-	}
-
 	expander := ctx.InstanceExpander()
-	for _, per := range n.PartialExpansions {
+	for _, per := range ctx.Deferrals().PartialExpandedResources(n.Addr) {
 		if per.MatchesResource(addr) {
 			// Resources that are partially expanded shouldn't evaluate count or for_each expressions
 			// as we have already deferred them, so any resulting evaluations were not part of the plan.

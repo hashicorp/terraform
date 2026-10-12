@@ -6,6 +6,7 @@ package terraform
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -1053,7 +1054,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a[0]"), mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.a[0]"), mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1086,7 +1087,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.a"), mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.a"), mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1118,7 +1119,7 @@ resource "test" "c" {
 					"resource_count": cty.UnknownVal(cty.Number),
 				},
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
@@ -1162,7 +1163,7 @@ resource "test" "b" {
 		stages: []deferredActionsTestStage{
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				inputs: map[string]cty.Value{
 					"resource_count": cty.UnknownVal(cty.Number),
@@ -1208,7 +1209,7 @@ resource "test" "b" {
 			},
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustResourceInstanceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				inputs: map[string]cty.Value{
 					"resource_count": cty.NumberIntVal(2),
@@ -1300,7 +1301,7 @@ resource "test" "b" {
 			// through test.b was deferred and is technically not in the plan.
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"<unknown>": cty.ObjectVal(map[string]cty.Value{
@@ -1346,7 +1347,7 @@ resource "test" "b" {
 			},
 			{
 				buildOpts: func(opts *PlanOpts) {
-					opts.Targets = []addrs.Targetable{mustAbsResourceAddr("test.b")}
+					opts.Targets = []addrs.TargetPattern{mustTargetPattern("test.b")}
 				},
 				wantPlanned: map[string]cty.Value{
 					"a:0": cty.ObjectVal(map[string]cty.Value{
@@ -2545,6 +2546,106 @@ resource "test" "a" {
 				},
 				wantOutputs: make(map[string]cty.Value),
 				complete:    false,
+			},
+		},
+	}
+
+	// moduleUnknownExpansionWithoutResources verifies that a module call with
+	// unknown expansion causes the plan to be incomplete, even when there are
+	// no resources beneath it which could be reported as deferred.
+	moduleUnknownExpansionWithoutResources = deferredActionsTest{
+		configs: map[string]string{
+			"main.tf": `
+variable "keys" {
+  type = set(string)
+}
+
+variable "n" {
+  type = number
+}
+
+module "a" {
+  source   = "./leaf"
+  for_each = var.keys
+  value    = each.key
+}
+
+module "b" {
+  source = "./counted"
+  n      = var.n
+}
+
+output "a" {
+  value = [for m in module.a : m.value]
+}
+
+output "b" {
+  value = module.b.count
+}
+`,
+			"leaf/main.tf": `
+variable "value" {
+  type = string
+}
+
+output "value" {
+  value = var.value
+}
+`,
+			"counted/main.tf": `
+variable "n" {
+  type = number
+}
+
+module "c" {
+  source = "../leaf"
+  count  = var.n
+  value  = "c"
+}
+
+output "count" {
+  value = length(module.c)
+}
+`,
+		},
+		stages: []deferredActionsTestStage{
+			// Unknown for_each on a module call in the root module.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.UnknownVal(cty.Set(cty.String)),
+					"n":    cty.NumberIntVal(1),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+			},
+			// Unknown count on a module call within a known module instance.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.SetVal([]cty.Value{cty.StringVal("x")}),
+					"n":    cty.UnknownVal(cty.Number),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				complete:     false,
+			},
+			// Everything is known, so the plan is complete.
+			{
+				inputs: map[string]cty.Value{
+					"keys": cty.SetVal([]cty.Value{cty.StringVal("x")}),
+					"n":    cty.NumberIntVal(2),
+				},
+				wantPlanned:  map[string]cty.Value{},
+				wantActions:  map[string]plans.Action{},
+				wantDeferred: map[string]ExpectedDeferred{},
+				wantApplied:  map[string]cty.Value{},
+				wantOutputs: map[string]cty.Value{
+					"a": cty.TupleVal([]cty.Value{cty.StringVal("x")}),
+					"b": cty.NumberIntVal(2),
+				},
+				complete: true,
 			},
 		},
 	}
@@ -3867,6 +3968,7 @@ func TestContextApply_deferredActions(t *testing.T) {
 		"data_read_but_forbidden":                                 readDataSourceButForbiddenTest,
 		"plan_destroy_resource_change_but_forbidden":              planDestroyResourceChangeButForbidden,
 		"module_deferred_for_each_value":                          moduleDeferredForEachValue,
+		"module_unknown_expansion_without_resources":              moduleUnknownExpansionWithoutResources,
 		"module_inner_resource_instance_deferred":                 moduleInnerResourceInstanceDeferred,
 		"unknown_import_id":                                       unknownImportId,
 		"unknown_import_defers_config_generation":                 unknownImportDefersConfigGeneration,
@@ -4284,6 +4386,13 @@ func (provider *deferredActionsProvider) Provider() providers.Interface {
 			}
 		},
 		ApplyResourceChangeFn: func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			if req.PlannedState.IsNull() {
+				// Deletes are not recorded as applied changes.
+				return providers.ApplyResourceChangeResponse{
+					NewState: req.PlannedState,
+				}
+			}
+
 			key := req.Config.GetAttr("name").AsString()
 			newState := req.PlannedState
 
@@ -4370,4 +4479,153 @@ func mustParseJson(values map[string]interface{}) []byte {
 		panic(err)
 	}
 	return data
+}
+
+func TestContextApply_deferredChangeDecodeError(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "each" {
+  type = set(string)
+}
+
+resource "test" "a" {
+  for_each = var.each
+  name     = "a:${each.key}"
+}
+
+resource "test" "b" {
+  name = "b"
+}
+`,
+	})
+
+	provider := &deferredActionsProvider{
+		t:               t,
+		deferralAllowed: true,
+		plannedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+		appliedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+		},
+	})
+
+	plan, diags := ctx.Plan(cfg, states.NewState(), &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		SetVariables: InputValues{
+			"each": &InputValue{
+				Value:      cty.UnknownVal(cty.Set(cty.String)),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+	if len(plan.DeferredResources) != 1 {
+		t.Fatalf("expected 1 deferred resource, got %d", len(plan.DeferredResources))
+	}
+
+	// Corrupt the deferred change so that it can't be decoded.
+	plan.DeferredResources[0].ChangeSrc.After = plans.DynamicValue([]byte{0xff})
+
+	_, diags = ctx.Apply(plan, cfg, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected apply to fail")
+	}
+	if got, want := diags.Err().Error(), "Failed to decode deferred change"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+	}
+	if len(provider.appliedChanges.changes) != 0 {
+		t.Fatalf("expected nothing to be applied, got %d changes", len(provider.appliedChanges.changes))
+	}
+}
+
+// TestContextApply_deferredWithDeposedObject verifies that a deposed object
+// which was planned for destruction is destroyed during apply, even though
+// the current object of the same resource instance was deferred.
+func TestContextApply_deferredWithDeposedObject(t *testing.T) {
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "each" {
+  type = set(string)
+}
+
+resource "test" "a" {
+  for_each = var.each
+  name     = "a:${each.key}"
+}
+
+resource "test" "b" {
+  name           = "b"
+  upstream_names = [for v in test.a : v.name]
+}
+`,
+	})
+
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test.b"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: mustParseJson(map[string]interface{}{"name": "b"}),
+		}, providerAddr)
+		s.SetResourceInstanceDeposed(mustResourceInstanceAddr("test.b"), states.DeposedKey("00000001"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: mustParseJson(map[string]interface{}{"name": "b-old"}),
+		}, providerAddr)
+	})
+
+	provider := &deferredActionsProvider{
+		t:               t,
+		deferralAllowed: true,
+		plannedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+		appliedChanges:  &deferredActionsChanges{changes: make(map[string]cty.Value)},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider.Provider()),
+		},
+	})
+
+	plan, diags := ctx.Plan(cfg, state, &PlanOpts{
+		Mode:            plans.NormalMode,
+		DeferralAllowed: true,
+		SetVariables: InputValues{
+			"each": &InputValue{
+				Value:      cty.UnknownVal(cty.Set(cty.String)),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	gotDeferred := make(map[string]providers.DeferredReason)
+	for _, dc := range plan.DeferredResources {
+		gotDeferred[dc.ChangeSrc.Addr.String()] = dc.DeferredReason
+	}
+	wantDeferred := map[string]providers.DeferredReason{
+		"test.a[*]": providers.DeferredReasonInstanceCountUnknown,
+		"test.b":    providers.DeferredReasonDeferredPrereq,
+	}
+	if diff := cmp.Diff(wantDeferred, gotDeferred); diff != "" {
+		t.Fatalf("wrong deferred resources\n%s", diff)
+	}
+	deposedChange := plan.Changes.ResourceInstanceDeposed(mustResourceInstanceAddr("test.b"), states.DeposedKey("00000001"))
+	if deposedChange == nil || deposedChange.Action != plans.Delete {
+		t.Fatalf("expected a planned delete for the deposed object, got %#v", deposedChange)
+	}
+
+	newState, diags := ctx.Apply(plan, cfg, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	instance := newState.ResourceInstance(mustResourceInstanceAddr("test.b"))
+	if instance == nil || instance.Current == nil {
+		t.Fatal("expected the current object for test.b to remain")
+	}
+	if len(instance.Deposed) != 0 {
+		t.Fatalf("expected the deposed object to be destroyed, got %d deposed objects", len(instance.Deposed))
+	}
 }

@@ -23,8 +23,9 @@ func (c *WorkspaceCommand) Run(args []string) int {
 	c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
-	cmdFlags := c.Meta.extendedFlagSet("workspace")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	// Don't attempt to parse subcommands or flags here, as this command
+	// always returns cli.RunResultHelp and triggers the Help() method to be
+	// rendered via hashicorp/cli.
 
 	return cli.RunResultHelp
 }
@@ -102,14 +103,6 @@ You can create this workspace with the "new" subcommand
 or include the "-or-create" flag with the "select" subcommand.`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
-
-	envCreated = `
-[reset][green][bold]Created and switched to workspace %q![reset][green]
-
-You're now on a new, empty workspace. Workspaces isolate their state,
-so if you run "terraform plan" Terraform will not see any existing state
-for this configuration.
-`
 
 	envDeleted = `[reset][green]Deleted workspace %q!`
 

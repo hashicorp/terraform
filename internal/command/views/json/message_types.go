@@ -5,6 +5,12 @@ package json
 
 type MessageType string
 
+// The following message types are used and documented EXTERNALLY, so changing their values
+// is a breaking change to JSON output.
+//
+// Keep docs/internals/machine-readable-ui.mdx up to date with this list when making changes:
+// https://github.com/hashicorp/web-unified-docs/blob/main/content/terraform/<VERSION>/docs/internals/machine-readable-ui.mdx
+
 const (
 	// Generic messages
 	MessageVersion    MessageType = "version"
@@ -66,6 +72,10 @@ const (
 	MessagePolicyEvaluationResult MessageType = "policy_result"
 	MessagePolicyQuerySummary     MessageType = "policy_query_summary"
 
+	// State Locker messages
+	MessageStateLockAcquire MessageType = "state_lock_acquire"
+	MessageStateLockRelease MessageType = "state_lock_release"
+
 	// Provider installation messages
 	MessageProviderInstallationStart           MessageType = "provider_installation_start"
 	MessageStateStoreProviderInstallationStart MessageType = "state_store_provider_installation_start"
@@ -90,7 +100,9 @@ const (
 	MessageProviderAutomaticApproval    MessageType = "provider_automatic_approval"
 
 	// Backend/state store initialization messages
-	MessageStateStoreInitializationStart MessageType = "state_store_initialization_start"
+	MessageStateStoreInitializationStart     MessageType = "state_store_initialization_start"
+	MessageInitializingBackendMessage        MessageType = "initializing_backend_message"
+	MessageInitializingTerraformCloudMessage MessageType = "initializing_terraform_cloud_message"
 
 	// State migration-related messages
 	MessageMigrationStart                             MessageType = "migration_start"
@@ -101,4 +113,26 @@ const (
 	MessageMigrationSourceInitializationComplete      MessageType = "migration_source_initialization_complete"
 	MessageMigrationDestinationInitializationStart    MessageType = "migration_destination_initialization_start"
 	MessageMigrationDestinationInitializationComplete MessageType = "migration_destination_initialization_complete"
+
+	// Init-specific message codes (NOT message types)
+	//
+	// NOTE: These are not used to set the `type` field in the JSON output from the init command.
+	// Instead, the init command's JSON output was implemented so that some messages are logged with
+	// `"type": "init_output"` and a `message_code` field that takes the const values below.
+	// In a future major version we should make init's JSON output align with the conventions used
+	// elsewhere in the CLI. For now these consts are here to demonstrate that they're public-facing
+	// and changes are potentially breaking.
+	MessageCopyingConfigurationMessage       MessageType = "copying_configuration_message"
+	MessageOutputInitSuccessMessage          MessageType = "output_init_success_message"
+	MessageOutputInitEmptyMessage            MessageType = "output_init_empty_message"
+	MessageOutputInitSuccessCloudMessage     MessageType = "output_init_success_cloud_message"
+	MessageUpgradingModulesMessage           MessageType = "upgrading_modules_message"
+	MessageInitializingModulesMessage        MessageType = "initializing_modules_message"
+	MessageInitializingProviderPluginMessage MessageType = "initializing_provider_plugin_message"
+	MessageLockInfo                          MessageType = "lock_info"
+	MessageDependenciesLockChangesInfo       MessageType = "dependencies_lock_changes_info"
+	// TODO - Remove these and their JSON output; machine readable output does not need calls to action
+	MessageOutputInitSuccessCLIMessage      MessageType = "output_init_success_cli_message"
+	MessageOutputInitSuccessCLICloudMessage MessageType = "output_init_success_cli_cloud_message"
+	MessageBackendConfiguredSuccess         MessageType = "backend_configured_success"
 )

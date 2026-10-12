@@ -1,7 +1,7 @@
 // Copyright IBM Corp. 2014, 2026
 // SPDX-License-Identifier: BUSL-1.1
 
-package command
+package ui
 
 import (
 	"bufio"
@@ -24,16 +24,9 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
-var (
-	defaultInputReader   io.Reader
-	defaultInputWriter   io.Writer
-	testInputResponse    []string
-	testInputResponseMap map[string]string
-)
-
-// UIInput is an implementation of terraform.UIInput that asks the CLI
+// uIInput is an implementation of terraform.UIInput that asks the CLI
 // for input stdin.
-type UIInput struct {
+type uIInput struct {
 	// Colorize will color the output.
 	Colorize *colorstring.Colorize
 
@@ -41,6 +34,10 @@ type UIInput struct {
 	// Stdin and Stdout respectively.
 	Reader io.Reader
 	Writer io.Writer
+
+	// Test input responses for automated testing.
+	testInputResponse    []string
+	testInputResponseMap map[string]string
 
 	listening int32
 	result    chan string
@@ -51,17 +48,43 @@ type UIInput struct {
 	once        sync.Once
 }
 
-func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
+// The InputRequester interface is used by calling code to interact with the UI input system.
+//
+// To force use of constructors and enable uiInput not being exported,
+// we make calling code use interfaces.
+type InputRequester interface {
+	terraform.UIInput
+}
+
+type InputRequesterForTest interface {
+	terraform.UIInput
+	InputRequester
+
+	// Used for integration testing external to the ui package.
+	RemainingTestInputResponses() map[string]string
+
+	// Used for testing internal to the ui package.
+	getListening() int32
+}
+
+type UIInputOptions struct {
+	Colorize *colorstring.Colorize
+	Reader   io.Reader
+	Writer   io.Writer
+}
+
+func NewUIInput(opts UIInputOptions) InputRequester {
+	i := &uIInput{
+		Colorize: opts.Colorize,
+		Reader:   opts.Reader,
+		Writer:   opts.Writer,
+	}
+
 	i.once.Do(i.init)
 
+	// If a Reader or Writer wasn't provided, fall back to the OS standard streams.
 	r := i.Reader
 	w := i.Writer
-	if r == nil {
-		r = defaultInputReader
-	}
-	if w == nil {
-		w = defaultInputWriter
-	}
 	if r == nil {
 		r = os.Stdin
 	}
@@ -69,6 +92,33 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		w = os.Stdout
 	}
 
+	i.Reader = r
+	i.Writer = w
+
+	return i
+}
+
+func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string) InputRequesterForTest {
+	i := NewUIInput(opts).(*uIInput)
+	i.testInputResponse = testInputResponse
+	i.testInputResponseMap = testInputResponseMap
+
+	return i
+}
+
+// Implements InputRequesterForTest.
+func (i *uIInput) RemainingTestInputResponses() map[string]string {
+	// Entries are deleted as they are consumed.
+	return i.testInputResponseMap
+}
+
+// Implements InputRequesterForTest.
+func (i *uIInput) getListening() int32 {
+	return atomic.LoadInt32(&i.listening)
+}
+
+// Implements terraform.UIInput.
+func (i *uIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
 	// Make sure we only ask for input once at a time. Terraform
 	// should enforce this, but it doesn't hurt to verify.
 	i.l.Lock()
@@ -105,27 +155,27 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 	buf.WriteString("  [bold]Enter a value:[reset] ")
 
 	// Ask the user for their input
-	if _, err := fmt.Fprint(w, i.Colorize.Color(buf.String())); err != nil {
+	if _, err := fmt.Fprint(i.Writer, i.Colorize.Color(buf.String())); err != nil {
 		return "", err
 	}
 
 	// If we have test results, return those. testInputResponse is the
 	// "old" way of doing it and we should remove that.
-	if testInputResponse != nil {
-		v := testInputResponse[0]
-		testInputResponse = testInputResponse[1:]
+	if len(i.testInputResponse) != 0 {
+		v := i.testInputResponse[0]
+		i.testInputResponse = i.testInputResponse[1:]
 		return v, nil
 	}
 
 	// testInputResponseMap is the new way for test responses, based on
 	// the query ID.
-	if testInputResponseMap != nil {
-		v, ok := testInputResponseMap[opts.Id]
+	if len(i.testInputResponseMap) != 0 {
+		v, ok := i.testInputResponseMap[opts.Id]
 		if !ok {
 			return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
 		}
 
-		delete(testInputResponseMap, opts.Id)
+		delete(i.testInputResponseMap, opts.Id)
 		return v, nil
 	}
 
@@ -142,7 +192,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		if opts.Secret && isatty.IsTerminal(os.Stdin.Fd()) {
 			line, err = speakeasy.Ask("")
 		} else {
-			buf := bufio.NewReader(r)
+			buf := bufio.NewReader(i.Reader)
 			line, err = buf.ReadString('\n')
 		}
 		if err != nil {
@@ -158,7 +208,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		return "", errors.New(err)
 
 	case line := <-i.result:
-		fmt.Fprint(w, "\n")
+		fmt.Fprint(i.Writer, "\n")
 
 		if line == "" {
 			line = opts.Default
@@ -168,13 +218,13 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 	case <-ctx.Done():
 		// Print a newline so that any further output starts properly
 		// on a new line.
-		fmt.Fprintln(w)
+		fmt.Fprintln(i.Writer)
 
 		return "", ctx.Err()
 	case <-sigCh:
 		// Print a newline so that any further output starts properly
 		// on a new line.
-		fmt.Fprintln(w)
+		fmt.Fprintln(i.Writer)
 
 		// Mark that we were interrupted so future Ask calls fail.
 		i.interrupted = true
@@ -183,7 +233,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 	}
 }
 
-func (i *UIInput) init() {
+func (i *uIInput) init() {
 	i.result = make(chan string)
 	i.err = make(chan string)
 
