@@ -40,14 +40,9 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 		// here, but other commands should produce a user-visible error before
 		// too long.)
 
-		// We assume here that we want to autocomplete for the current working
-		// directory, since we don't have enough context to know where to
-		// find any config path argument, and it might be _after_ the argument
-		// we're trying to complete here anyway.
-		configPath, err := ModulePath(nil)
-		if err != nil {
-			return nil
-		}
+		// We want to autocomplete for the current working directory, which is either
+		// set by the user via the -chdir flag or is the current working directory by default.
+		configPath := m.WorkingDir.RootModuleDir()
 
 		b, diags := m.backend(configPath, arguments.ViewHuman)
 		if diags.HasErrors() {
