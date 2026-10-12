@@ -119,20 +119,31 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 		return ordered[i].ListBlockAddress < ordered[j].ListBlockAddress
 	})
 
-	policies := make(map[queryPolicyKey]struct{})
+	policies := make(map[queryPolicyKey]viewjson.PolicyMetadata)
 	for _, summary := range ordered {
 		for _, metadata := range summary.PassedPolicies {
-			policies[queryPolicyKeyFromMetadata(metadata)] = struct{}{}
+			policies[queryPolicyKeyFromMetadata(metadata)] = metadata
 		}
 		for _, result := range summary.Results {
 			for _, pol := range result.Policies {
-				policies[queryPolicyKeyFromMetadata(pol.PolicyMetadata)] = struct{}{}
+				policies[queryPolicyKeyFromMetadata(pol.PolicyMetadata)] = pol.PolicyMetadata
 			}
 		}
 	}
 
+	evaluated := make([]viewjson.PolicyMetadata, 0, len(policies))
+	for _, metadata := range policies {
+		evaluated = append(evaluated, metadata)
+	}
+	sort.Slice(evaluated, func(i, j int) bool {
+		return queryPolicyMetadataLess(evaluated[i], evaluated[j])
+	})
+
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "Evaluated %d policies.", len(policies))
+	fmt.Fprintf(&buf, "Evaluated %d policies.", len(evaluated))
+	for _, metadata := range evaluated {
+		fmt.Fprintf(&buf, "\n%s", metadata.PolicyName)
+	}
 	for _, summary := range ordered {
 		buf.WriteString("\n\n")
 		buf.WriteString(renderQueryPolicySummaryHuman(summary))

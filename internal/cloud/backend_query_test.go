@@ -599,6 +599,7 @@ func TestCloud_queryV2RetriesTransportErrors(t *testing.T) {
 
 func TestCloud_renderQueryRunLogsPolicySummaries(t *testing.T) {
 	passOutput := `Evaluated 1 policies.
+policy.a
 
 Policy results for list.test.a - Passed
   id=a  Passed
@@ -615,6 +616,7 @@ Policy results for list.test.b - N/A
   id=y  N/A
 `
 	mixedNAOutput := `Evaluated 1 policies.
+policy.p
 
 Policy results for list.test.c - Passed
   id=p  Passed
