@@ -38,7 +38,7 @@ var LogFunc = function.New(&function.Spec{
 		}
 
 		result := math.Log(num) / math.Log(base)
-		if math.IsNaN(result) {
+		if math.IsNaN(result) || math.IsInf(result, 0) {
 			return cty.UnknownVal(cty.String), fmt.Errorf("result is not a number")
 		}
 
@@ -72,7 +72,7 @@ var PowFunc = function.New(&function.Spec{
 		}
 
 		result := math.Pow(num, power)
-		if math.IsNaN(result) {
+		if math.IsNaN(result) || math.IsInf(result, 0) {
 			return cty.UnknownVal(cty.String), fmt.Errorf("result is not a number")
 		}
 
