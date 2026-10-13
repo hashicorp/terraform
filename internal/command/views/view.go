@@ -40,6 +40,58 @@ type View struct {
 	configSources func() map[string][]byte
 }
 
+type viewMessage struct {
+	text string
+
+	wrapped bool
+	view    *View
+}
+
+// Colorize applies colorization to the message text, if colorization is enabled.
+func (m *viewMessage) Colorize() HumanReadableMessage {
+	m.text = m.view.colorize.Color(m.text)
+	return m
+}
+
+// WordWrap applies word wrapping to the message text at the specified width.
+func (m *viewMessage) WordWrap(width int) HumanReadableMessage {
+	if m.wrapped {
+		return m
+	}
+
+	m.text = format.WordWrap(m.text, width)
+	m.wrapped = true
+	return m
+}
+
+// String returns the underlying text of the message,
+// which may have been colorized and/or word-wrapped.
+func (m *viewMessage) String() string {
+	return m.text
+}
+
+// Print prints the message text to the terminal.
+func (m *viewMessage) Print() {
+	m.view.streams.Print(m.text)
+}
+
+// Println prints the message text to the terminal with a newline.
+func (m *viewMessage) Println() {
+	m.view.streams.Println(m.text)
+}
+
+// A human-readable message can be colorized and word-wrapped
+// to improve readability in the terminal.
+type HumanReadableMessage interface {
+	Colorize() HumanReadableMessage
+	WordWrap(width int) HumanReadableMessage
+
+	String() string
+
+	Print()
+	Println()
+}
+
 // Initialize a View with the given streams, a disabled colorize object, and a
 // no-op configSources callback.
 func NewView(streams *terminal.Streams) *View {
@@ -195,6 +247,13 @@ var _ Spacer = (*View)(nil)
 // Spacer logs an empty line to space-out human-readable output.
 func (v *View) Spacer() {
 	v.streams.Println()
+}
+
+func (v *View) Message(message string) HumanReadableMessage {
+	return &viewMessage{
+		text: message,
+		view: v,
+	}
 }
 
 // HelpPrompt is intended to be called from commands which fail to parse all
