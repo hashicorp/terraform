@@ -640,17 +640,6 @@ func (b *Cloud) Workspaces() ([]string, tfdiags.Diagnostics) {
 		options.Tags = strings.Join(b.WorkspaceMapping.TagsAsSet, ",")
 	} else if b.WorkspaceMapping.Strategy() == WorkspaceKVTagsStrategy {
 		options.TagBindings = b.WorkspaceMapping.asTFETagBindings()
-
-		// Populate keys, too, just in case backend does not support key/value tags.
-		// The backend will end up applying both filters but that should always
-		// be the same result set anyway.
-		for _, tag := range options.TagBindings {
-			if options.Tags != "" {
-				options.Tags = options.Tags + ","
-			}
-			options.Tags = options.Tags + tag.Key
-		}
-
 	}
 	log.Printf("[TRACE] cloud: Listing workspaces with tag bindings %q", b.WorkspaceMapping.DescribeTags())
 
