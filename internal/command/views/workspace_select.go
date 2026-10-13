@@ -40,7 +40,7 @@ var _ WorkspaceSelect = (*WorkspaceSelectHuman)(nil)
 
 func (v *WorkspaceSelectHuman) CreatedWorkspace(workspace string, diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	v.print(fmt.Sprintf(EnvCreated, workspace))
+	v.print(fmt.Sprintf(envCreated, workspace))
 }
 
 func (v *WorkspaceSelectHuman) SelectedWorkspace(workspace string, diags tfdiags.Diagnostics) {

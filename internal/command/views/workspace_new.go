@@ -46,7 +46,7 @@ func (v *WorkspaceNewHuman) LogWorkspaceCreationSuccess(workspaceName string, di
 	v.view.Diagnostics(diags)
 
 	msg := fmt.Sprintf(
-		strings.TrimSpace(EnvCreated), workspaceName)
+		strings.TrimSpace(envCreated), workspaceName)
 
 	v.log(msg)
 }

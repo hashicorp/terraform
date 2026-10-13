@@ -182,9 +182,7 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	}
 
 	//// Select Workspace
-	ui = testUiWrapped(t)
-	view, _ = testView(t)
-	meta.Ui = ui
+	view, done = testView(t)
 	meta.View = view
 	selCmd := &WorkspaceSelectCommand{
 		Meta: meta,
@@ -192,12 +190,13 @@ func TestWorkspace_allCommands_pluggableStateStore(t *testing.T) {
 	selectedWorkspace := preExistingState
 	args = []string{selectedWorkspace}
 	code = selCmd.Run(args)
+	output := done(t)
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s\n%s", code, ui.ErrorWriter, ui.OutputWriter)
+		t.Fatalf("bad: %d\n\n%s", code, output.All())
 	}
 	expectedMsg = fmt.Sprintf("Switched to workspace %q.", selectedWorkspace)
-	if !strings.Contains(ui.OutputWriter.String(), expectedMsg) {
-		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, ui.OutputWriter)
+	if !strings.Contains(output.All(), expectedMsg) {
+		t.Errorf("unexpected output, expected %q, but got:\n%s", expectedMsg, output.All())
 	}
 
 	//// Show Workspace
@@ -361,14 +360,13 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 	selCmd := &WorkspaceSelectCommand{}
 	args = []string{backend.DefaultStateName}
-	ui = testUiWrapped(t)
+	view, done := testView(t)
 	selCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
 	if code := selCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	current, _ = newCmd.Workspace()
@@ -405,20 +403,18 @@ func TestWorkspace_cannotCreateOrSelectEmptyStringWorkspace(t *testing.T) {
 		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
 	}
 
-	ui := testUiWrapped(t)
-	view, _ = testView(t)
+	view, done = testView(t)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: workdir.NewDir("."),
 		},
 	}
 	if code := selectCmd.Run(args); code == 0 {
-		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", ui.OutputWriter)
+		t.Fatalf("expected failure when trying to select the the \"\" workspace.\noutput: %s", done(t).All())
 	}
 
-	gotStderr = ui.ErrorWriter.String()
+	gotStderr = done(t).Stderr()
 	if want, got := `The workspace name "" is not allowed`, gotStderr; !strings.Contains(got, want) {
 		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
 	}
@@ -530,14 +526,13 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	}
 
 	selCmd := &WorkspaceSelectCommand{}
-	ui := testUiWrapped(t)
+	view, done = testView(t)
 	selCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
 	if code := selCmd.Run(env); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	showCmd = &WorkspaceShowCommand{}
@@ -962,21 +957,19 @@ func TestWorkspace_cannotDeleteDefaultWorkspace(t *testing.T) {
 	// Select the non-default "test" workspace
 	selectCmd := &WorkspaceSelectCommand{}
 	args := []string{"test"}
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	selectCmd.Meta = Meta{
-		Ui:         ui,
 		View:       view,
 		WorkingDir: workdir.NewDir("."),
 	}
 	if code := selectCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Assert there is a default and "test" workspace, and "test" is selected
 	listCmd := &WorkspaceListCommand{}
-	ui = testUiWrapped(t)
-	view, done := testView(t)
+	ui := testUiWrapped(t)
+	view, done = testView(t)
 	listCmd.Meta = Meta{
 		Ui:         ui,
 		View:       view,
@@ -1117,11 +1110,9 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 
 	// Assert `terraform env select "default"` returns expected deprecation warning
-	ui := testUiWrapped(t)
-	view, _ = testView(t)
+	view, done = testView(t)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: workdir.NewDir("."),
 		},
@@ -1130,12 +1121,13 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	defaultWorkspace := "default"
 	args = []string{defaultWorkspace}
 	if code := selectCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	if !strings.Contains(ui.OutputWriter.String(), expectedWarning) {
+	output := done(t)
+	if !strings.Contains(output.Stdout(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			ui.OutputWriter.String(),
+			output.All(),
 		)
 	}
 
@@ -1150,18 +1142,18 @@ func TestWorkspace_envCommandDeprecationWarnings(t *testing.T) {
 	}
 	args = []string{}
 	if code := listCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	output := done(t)
+	output = done(t)
 	if !strings.Contains(output.Stdout(), expectedWarning) {
 		t.Fatalf("expected the command to return a warning, but it was missing.\nwanted: %s\ngot: %s",
 			expectedWarning,
-			output.Stdout(),
+			output.All(),
 		)
 	}
 
 	// Assert `terraform env list -json` returns expected deprecation warning
-	ui = testUiWrapped(t)
+	ui := testUiWrapped(t)
 	view, done = testView(t)
 	listCmd = &WorkspaceListCommand{
 		Meta: Meta{
@@ -1270,21 +1262,25 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	}
 
 	// Select
-	meta, ui, _, _ := newMeta(false)
+	meta, _, _, done = newMeta(false)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
-	args = []string{"default", "extra-arg"} // The select subcommand only accepts a single argument, so this should error
-	if code := selectCmd.Run(args); code != cli.RunResultHelp {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	args = []string{
+		"-no-color",
+		"default",
+		"extra-arg", // The select subcommand only accepts a single argument, so this should error
 	}
-	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
-	if ui.ErrorWriter.String() != expectedError {
-		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	if code := selectCmd.Run(args); code == 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	expectedError = "\nError: Expected a single argument: NAME.\n\n"
+	if done(t).Stderr() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
 	}
 
 	// Delete
-	meta, ui, _, _ = newMeta(false)
+	meta, ui, _, _ := newMeta(false)
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
@@ -1421,15 +1417,15 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color enabled
 	useColor = true
-	meta, ui, _, _ := newMeta(useColor)
+	meta, _, _, done = newMeta(useColor)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
 	args := []string{"test_a"}
 	if code := selectCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	actual = ui.OutputWriter.String()
+	actual = done(t).Stdout()
 	expectedOutput = "\x1b[0m\x1b[32mSwitched to workspace \"test_a\".\x1b[0m\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
@@ -1437,15 +1433,18 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color disabled
 	useColor = false
-	meta, ui, _, _ = newMeta(useColor)
+	meta, _, _, done = newMeta(useColor)
 	selectCmd = &WorkspaceSelectCommand{
 		Meta: meta,
 	}
-	args = []string{"test_b"}
-	if code := selectCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	args = []string{
+		"test_b",
+		"-no-color",
 	}
-	actual = ui.OutputWriter.String()
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	actual = done(t).Stdout()
 	expectedOutput = "Switched to workspace \"test_b\".\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
@@ -1453,7 +1452,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from deleting a workspace with color enabled
 	useColor = true
-	meta, ui, _, _ = newMeta(useColor)
+	meta, ui, _, _ := newMeta(useColor)
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
