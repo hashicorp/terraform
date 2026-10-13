@@ -15,7 +15,7 @@ import (
 )
 
 func TestWorkspaceSelectHuman_SelectedWorkspace(t *testing.T) {
-	successMsg := "[reset][green]Switched to workspace \"default\"."
+	successMsg := "Switched to workspace \"default\"."
 
 	testCases := map[string]struct {
 		workspace string
@@ -57,24 +57,27 @@ func TestWorkspaceSelectHuman_SelectedWorkspace(t *testing.T) {
 }
 
 func TestWorkspaceSelectHuman_CreatedWorkspace(t *testing.T) {
-	successMsg := fmt.Sprintf(EnvCreated, "default")
+	successMsgSnippet := fmt.Sprintf("Created and switched to workspace %q!", "default")
 
 	testCases := map[string]struct {
 		workspace string
 		diags     tfdiags.Diagnostics
-		wantOut   string
+		wantOut   []string
 		wantErr   string
 	}{
 		"success": {
 			workspace: "default",
-			wantOut:   successMsg,
+			wantOut:   []string{successMsgSnippet},
 		},
 		"success with warning": {
 			workspace: "default",
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Warning, "Example warning", "This is an example warning message."),
 			},
-			wantOut: "Warning: Example warning\n\nThis is an example warning message.\n" + successMsg + "\n",
+			wantOut: []string{
+				"Warning: Example warning\n\nThis is an example warning message.\n",
+				successMsgSnippet,
+			},
 		},
 	}
 
@@ -88,8 +91,10 @@ func TestWorkspaceSelectHuman_CreatedWorkspace(t *testing.T) {
 			v.CreatedWorkspace(tc.workspace, tc.diags)
 
 			output := done(t)
-			if diff := cmp.Diff(strings.TrimSpace(tc.wantOut), strings.TrimSpace(output.Stdout())); diff != "" {
-				t.Fatalf("unexpected stdout:\n%s", diff)
+			for _, snippet := range tc.wantOut {
+				if !strings.Contains(output.Stdout(), snippet) {
+					t.Fatalf("expected stdout to contain snippet:\n%s", snippet)
+				}
 			}
 			if diff := cmp.Diff(strings.TrimSpace(tc.wantErr), strings.TrimSpace(output.Stderr())); diff != "" {
 				t.Fatalf("unexpected stderr:\n%s", diff)

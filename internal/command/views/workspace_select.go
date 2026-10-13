@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -39,14 +40,18 @@ var _ WorkspaceSelect = (*WorkspaceSelectHuman)(nil)
 
 func (v *WorkspaceSelectHuman) CreatedWorkspace(workspace string, diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	v.view.streams.Printf(EnvCreated, workspace)
+	v.print(fmt.Sprintf(EnvCreated, workspace))
 }
 
 func (v *WorkspaceSelectHuman) SelectedWorkspace(workspace string, diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	v.view.streams.Printf(`[reset][green]Switched to workspace %q.`, workspace)
+	v.print(fmt.Sprintf(`[reset][green]Switched to workspace %q.`, workspace))
 }
 
 func (v *WorkspaceSelectHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
+}
+
+func (v *WorkspaceSelectHuman) print(message string) {
+	v.view.streams.Println(v.view.colorize.Color(strings.TrimSpace(message)))
 }
