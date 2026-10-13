@@ -125,7 +125,7 @@ func (s *StateMigrateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (s *StateMigrateHuman) LogStateMigrationStart(source string, destination string) {
-	s.log(fmt.Sprintf(logStateMigrationStartHuman, source, destination))
+	s.view.ColorPrintln(fmt.Sprintf(logStateMigrationStartHuman, source, destination))
 }
 
 func (s *StateMigrateHuman) LogStateMigrationComplete(_, _ string) {
@@ -147,7 +147,7 @@ func (s *StateMigrateHuman) LogStateMigrationErrored(failMode stateMigrationFail
 		panic(fmt.Sprintf("(*StateMigrateHuman)LogStateMigrationErrored: called incorrectly with unknown failure mode : %q", failMode))
 	}
 
-	s.log(msg)
+	s.view.ColorPrintln(msg)
 }
 
 func (s *StateMigrateHuman) LogMigrationSourceInitializationStart(_ string) {
@@ -167,12 +167,7 @@ func (s *StateMigrateHuman) LogMigrationDestinationInitializationComplete(_ stri
 }
 
 func (s *StateMigrateHuman) LogStateMigrationFinalized(source string, destination string) {
-	s.log(fmt.Sprintf(logStateMigrationFinalizedHuman, source, destination))
-}
-
-func (s *StateMigrateHuman) log(preparedMessage string) {
-	msg := s.view.colorize.Color(strings.TrimSpace(preparedMessage))
-	s.view.streams.Println(msg)
+	s.view.ColorPrintln(fmt.Sprintf(logStateMigrationFinalizedHuman, source, destination))
 }
 
 // Implements Spacer
@@ -182,84 +177,84 @@ func (s *StateMigrateHuman) Spacer() {
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProvidersStart() {
-	s.log("[reset][bold]Installing providers...")
+	s.view.ColorPrintln("[reset][bold]Installing providers...")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveApproval() {
-	s.log("[reset][bold]The state store provider was approved by the user.")
+	s.view.ColorPrintln("[reset][bold]The state store provider was approved by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogInteractiveRejection() {
-	s.log("[reset][bold]The state store provider was rejected by the user.")
+	s.view.ColorPrintln("[reset][bold]The state store provider was rejected by the user.")
 }
 
 // Implements StateStoreProviderTrustLogger interface.
 func (s *StateMigrateHuman) LogAutomaticApproval() {
-	s.log("[reset][bold]The state store provider was approved automatically.")
+	s.view.ColorPrintln("[reset][bold]The state store provider was approved automatically.")
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	s.log(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	s.view.ColorPrintln(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	s.log(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
+	s.view.ColorPrintln(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
+	s.view.ColorPrintln(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
+	s.view.ColorPrintln(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	s.log(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
+	s.view.ColorPrintln(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
+	s.view.ColorPrintln(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	s.log(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
+	s.view.ColorPrintln(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	s.log(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
+	s.view.ColorPrintln(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	msg := fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
-	s.log(msg)
+	s.view.ColorPrintln(msg)
 }
 
 // Implements ProviderInstallationLogger interface.
 func (s *StateMigrateHuman) LogPartnerAndCommunityProviders() {
-	s.log(logPartnerAndCommunityProviders)
+	s.view.ColorPrintln(logPartnerAndCommunityProviders)
 }
 
 // Implements DependencyLockLogger interface.
 func (s *StateMigrateHuman) LogProviderLockfileCreated() {
-	s.log(createdLockInfoHuman)
+	s.view.ColorPrintln(createdLockInfoHuman)
 }
 
 // Implements DependencyLockLogger interface.
 func (s *StateMigrateHuman) LogProviderLockfileUpdated() {
-	s.log(dependenciesLockChangesInfo)
+	s.view.ColorPrintln(dependenciesLockChangesInfo)
 }
 
 type StateMigrateJSON struct {

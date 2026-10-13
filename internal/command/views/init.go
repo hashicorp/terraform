@@ -149,25 +149,25 @@ func (v *InitHuman) PolicyResult(addr string, resp policy.EvaluationResponse) {
 }
 
 func (v *InitHuman) LogConfigurationCopyingStart(moduleSource string) {
-	v.print(fmt.Sprintf("[reset][bold]Copying configuration[reset] from %q...", moduleSource))
+	v.view.ColorPrintln(fmt.Sprintf("[reset][bold]Copying configuration[reset] from %q...", moduleSource))
 }
 
 func (v *InitHuman) LogInitializingBackendStart() {
-	v.print("\n[reset][bold]Initializing the backend...")
+	v.view.ColorPrintln("\n[reset][bold]Initializing the backend...")
 }
 
 func (v *InitHuman) LogMigrateBackendUnsetStart(backendType string) {
-	v.print(fmt.Sprintf(`Terraform has detected you're unconfiguring your previously set %q backend.`, backendType))
+	v.view.ColorPrintln(fmt.Sprintf(`Terraform has detected you're unconfiguring your previously set %q backend.`, backendType))
 }
 
 func (v *InitHuman) LogMigrateBackendUnsetEnd(backendType string) {
-	v.print(fmt.Sprintf(`[reset][green]
+	v.view.ColorPrintln(fmt.Sprintf(`[reset][green]
 
 Successfully unset the backend %q. Terraform will now operate locally.`, backendType))
 }
 
 func (v *InitHuman) LogMigrateBackendReconfigured() {
-	v.print(`[reset][bold]Backend configuration changed![reset]
+	v.view.ColorPrintln(`[reset][bold]Backend configuration changed![reset]
 
 Terraform has detected that the configuration specified for the backend
 has changed. Terraform will now check for existing state in the backends.
@@ -175,55 +175,55 @@ has changed. Terraform will now check for existing state in the backends.
 }
 
 func (v *InitHuman) LogMigrateFromBackendToBackend(oldType, newType string) {
-	v.print(fmt.Sprintf(`[reset]Terraform detected that the backend type changed from %q to %q.`, oldType, newType))
+	v.view.ColorPrintln(fmt.Sprintf(`[reset]Terraform detected that the backend type changed from %q to %q.`, oldType, newType))
 }
 
 func (v *InitHuman) LogMigrateFromBackendToCloud(backendType string) {
-	v.print(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", backendType))
+	v.view.ColorPrintln(fmt.Sprintf("Migrating from backend %q to HCP Terraform.", backendType))
 }
 
 func (v *InitHuman) LogMigrateFromCloudToBackend(backendType string) {
-	v.print(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", backendType))
+	v.view.ColorPrintln(fmt.Sprintf("Migrating from HCP Terraform to backend %q.", backendType))
 }
 
 func (v *InitHuman) LogMigrateFromCloudToLocal() {
-	v.print("Migrating from HCP Terraform or Terraform Enterprise to local state.")
+	v.view.ColorPrintln("Migrating from HCP Terraform or Terraform Enterprise to local state.")
 }
 
 func (v *InitHuman) LogMigrateCloudConfigurationChanged() {
-	v.print("HCP Terraform configuration has changed.")
+	v.view.ColorPrintln("HCP Terraform configuration has changed.")
 }
 
 func (v *InitHuman) LogInitializingHCPTerraformStart() {
-	v.print("\n[reset][bold]Initializing HCP Terraform...")
+	v.view.ColorPrintln("\n[reset][bold]Initializing HCP Terraform...")
 }
 
 func (v *InitHuman) LogInitSuccess() {
-	v.print("[reset][bold][green]Terraform has been successfully initialized![reset][green]")
+	v.view.ColorPrintln("[reset][bold][green]Terraform has been successfully initialized![reset][green]")
 }
 
 func (v *InitHuman) LogInitSuccessCloud() {
-	v.print("[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]")
+	v.view.ColorPrintln("[reset][bold][green]HCP Terraform has been successfully initialized![reset][green]")
 }
 
 func (v *InitHuman) LogInitSuccessEmpty() {
-	v.print(strings.TrimSpace(outputInitEmpty))
+	v.view.ColorPrintln(strings.TrimSpace(outputInitEmpty))
 }
 
 func (v *InitHuman) LogCallToActionCLI() {
-	v.print(strings.TrimSpace(outputInitSuccessCLI))
+	v.view.ColorPrintln(strings.TrimSpace(outputInitSuccessCLI))
 }
 
 func (v *InitHuman) LogCallToActionCLICloud() {
-	v.print(strings.TrimSpace(outputInitSuccessCLICloud))
+	v.view.ColorPrintln(strings.TrimSpace(outputInitSuccessCLICloud))
 }
 
 func (v *InitHuman) LogBackendConfiguredSuccess(backendType string) {
-	v.print(fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessHuman), backendType))
+	v.view.ColorPrintln(fmt.Sprintf(strings.TrimSpace(backendConfiguredSuccessHuman), backendType))
 }
 
 func (v *InitHuman) LogInstallProvidersStart() {
-	v.print("\n[reset][bold]Initializing provider plugins...")
+	v.view.ColorPrintln("\n[reset][bold]Initializing provider plugins...")
 }
 
 func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, cons getproviders.VersionConstraints, storeType string) {
@@ -232,73 +232,73 @@ func (v *InitHuman) LogInstallStateStoreProviderStart(pAddr tfaddr.Provider, con
 		consSuffix = fmt.Sprintf(" (%s)", getproviders.VersionConstraintsString(cons))
 	}
 	params := []any{pAddr.ForDisplay(), consSuffix, storeType}
-	v.print(fmt.Sprintf("[reset][bold]Installing provider %s%s for state store %q...", params...))
+	v.view.ColorPrintln(fmt.Sprintf("[reset][bold]Installing provider %s%s for state store %q...", params...))
 }
 
 func (v *InitHuman) LogInitializingStateStoreStart(storeType string) {
-	v.print(fmt.Sprintf("\n[reset][bold]Initializing the state store %q...", storeType))
+	v.view.ColorPrintln(fmt.Sprintf("\n[reset][bold]Initializing the state store %q...", storeType))
 }
 
 func (v *InitHuman) LogInteractiveApproval() {
-	v.print("[reset][bold]The state store provider was approved by the user.")
+	v.view.ColorPrintln("[reset][bold]The state store provider was approved by the user.")
 }
 
 func (v *InitHuman) LogInteractiveRejection() {
-	v.print("[reset][bold]The state store provider was rejected by the user.")
+	v.view.ColorPrintln("[reset][bold]The state store provider was rejected by the user.")
 }
 
 func (v *InitHuman) LogAutomaticApproval() {
-	v.print("[reset][bold]The state store provider was approved automatically.")
+	v.view.ColorPrintln("[reset][bold]The state store provider was approved automatically.")
 }
 
 func (v *InitHuman) LogFindingMatchingVersion(providerAddr addrs.Provider, versionConstraints getproviders.VersionConstraints) {
-	v.print(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
+	v.view.ColorPrintln(fmt.Sprintf("- Finding %s versions matching %q...", providerAddr.ForDisplay(), getproviders.VersionConstraintsString(versionConstraints)))
 }
 
 func (v *InitHuman) LogFindingLatestVersion(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
+	v.view.ColorPrintln(fmt.Sprintf("- Finding latest version of %s...", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogProviderVersionAlreadyInstalled(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
+	v.view.ColorPrintln(fmt.Sprintf("- Using previously-installed %s v%s", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogUsingProviderVersionFromCacheDir(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
+	v.view.ColorPrintln(fmt.Sprintf("- Using %s v%s from the shared cache directory", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogBuiltInProviderAvailable(providerAddr addrs.Provider) {
-	v.print(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
+	v.view.ColorPrintln(fmt.Sprintf("- %s is built in to Terraform", providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionStart(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
+	v.view.ColorPrintln(fmt.Sprintf("- Installing %s v%s...", providerAddr.ForDisplay(), version))
 }
 
 func (v *InitHuman) LogReusingPreviousProviderVersion(providerAddr addrs.Provider, version getproviders.Version) {
-	v.print(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
+	v.view.ColorPrintln(fmt.Sprintf("- Reusing version %s of %s from the dependency lock file", version, providerAddr.ForDisplay()))
 }
 
 func (v *InitHuman) LogInstallProviderVersionComplete(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult) {
-	v.print(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
+	v.view.ColorPrintln(fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, "")) // add empty key id to the end
 }
 
 func (v *InitHuman) LogInstallProviderVersionCompleteWithKeyID(providerAddr addrs.Provider, version getproviders.Version, auth *getproviders.PackageAuthenticationResult, keyID string) {
 	keyDetails := fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID) // key id needs to be formatted for human output
 	msg := fmt.Sprintf("- Installed %s v%s (%s%s)", providerAddr.ForDisplay(), version, auth, keyDetails)
-	v.print(msg)
+	v.view.ColorPrintln(msg)
 }
 
 func (v *InitHuman) LogPartnerAndCommunityProviders() {
-	v.print(logPartnerAndCommunityProviders)
+	v.view.ColorPrintln(logPartnerAndCommunityProviders)
 }
 
 func (v *InitHuman) LogProviderLockfileCreated() {
-	v.print(createdLockInfoHuman)
+	v.view.ColorPrintln(createdLockInfoHuman)
 }
 
 func (v *InitHuman) LogProviderLockfileUpdated() {
-	v.print(dependenciesLockChangesInfo)
+	v.view.ColorPrintln(dependenciesLockChangesInfo)
 }
 
 // Implements ModuleInstallationLogger
@@ -311,36 +311,29 @@ func (v *InitHuman) LogModuleDownload(packageAddr string, version *version.Versi
 	} else {
 		message = fmt.Sprintf("Downloading %s %s for %s...", packageAddr, version, modulePath)
 	}
-	v.print(strings.TrimSpace(message))
+	v.view.ColorPrintln(strings.TrimSpace(message))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallation(modulePath string) {
-	v.print(fmt.Sprintf("- %s", modulePath))
+	v.view.ColorPrintln(fmt.Sprintf("- %s", modulePath))
 }
 
 // Implements ModuleInstallationLogger
 //
 // See logging in hook_module_install.go
 func (v *InitHuman) LogModuleInstallationWithLocalPath(modulePath, localDir string) {
-	v.print(fmt.Sprintf("- %s in %s", modulePath, localDir))
+	v.view.ColorPrintln(fmt.Sprintf("- %s in %s", modulePath, localDir))
 }
 
 func (v *InitHuman) LogModuleUpgrade() {
-	v.print("[reset][bold]Upgrading modules...")
+	v.view.ColorPrintln("[reset][bold]Upgrading modules...")
 }
 
 func (v *InitHuman) LogModuleInitialization() {
-	v.print("[reset][bold]Initializing modules...")
-}
-
-// print formats (trims whitespace & applies colour) and
-// prints the formatted message to the stdout stream.
-func (v *InitHuman) print(message string) {
-	message = v.view.colorize.Color(strings.TrimSpace(message))
-	v.view.streams.Println(message)
+	v.view.ColorPrintln("[reset][bold]Initializing modules...")
 }
 
 // The InitJSON implementation renders streaming JSON logs, suitable for
