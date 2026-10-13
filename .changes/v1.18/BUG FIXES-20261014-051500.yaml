@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'test: Include the `-run-parallelism` option in the `terraform test -help` output.'
+time: 2026-10-14T05:15:00.000000+08:00
+custom:
+    Issue: "39384"
