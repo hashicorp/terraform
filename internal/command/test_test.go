@@ -440,6 +440,14 @@ func TestTest_Runs(t *testing.T) {
 		"ephemeral_output_referenced": {
 			code: 0,
 		},
+		"deprecated_output": {
+			code: 0,
+			expectedOut: []string{
+				"3 passed, 0 failed.",
+				"Deprecated value used",
+				"This output is deprecated!",
+			},
+		},
 		"no-tests": {
 			code: 0,
 		},
