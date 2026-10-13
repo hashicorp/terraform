@@ -6,6 +6,7 @@ require (
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501
 	github.com/aliyun/aliyun-oss-go-sdk v2.2.7+incompatible
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
+	github.com/aliyun/credentials-go v1.4.13
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/terraform v0.0.0-00010101000000-000000000000
@@ -18,6 +19,7 @@ require (
 require (
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-versions v1.0.2 // indirect
@@ -60,7 +62,7 @@ require (
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/ini.v1 v1.66.2 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
 replace github.com/hashicorp/terraform/internal/backend/remote-state/azure => ../azure
