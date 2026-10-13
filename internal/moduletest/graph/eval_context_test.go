@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -622,6 +623,46 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			expectedStatus:  moduletest.Pass,
 			expectedOutputs: cty.EmptyObjectVal,
 		},
+		"deprecated_output_values": {
+			configs: map[string]string{
+				"main.tf": `
+					output "old" {
+						value = { nested = "example" }
+						deprecated = "Use the new output."
+					}
+					output "secret" {
+						value = "secret"
+						sensitive = true
+						deprecated = "Use the new secret."
+					}
+					output "temporary" {
+						value = "temporary"
+						ephemeral = true
+						deprecated = "Use the new temporary output."
+					}
+				`,
+				"main.tftest.hcl": `
+					run "test_case" {
+						assert {
+							condition = output.old.nested == "example"
+							error_message = "Expected the deprecated output's value."
+						}
+					}
+				`,
+			},
+			state:          states.NewState(),
+			provider:       &testing_provider.MockProvider{},
+			expectedStatus: moduletest.Pass,
+			expectedOutputs: cty.ObjectVal(map[string]cty.Value{
+				"old": cty.ObjectVal(map[string]cty.Value{
+					"nested": cty.StringVal("example"),
+				}).Mark(marks.NewDeprecation("Use the new output.", "old")),
+				"secret": cty.StringVal("secret").Mark(marks.Sensitive).
+					Mark(marks.NewDeprecation("Use the new secret.", "secret")),
+				"temporary": cty.StringVal("temporary").Mark(marks.Ephemeral).
+					Mark(marks.NewDeprecation("Use the new temporary output.", "temporary")),
+			}),
+		},
 		"output_values": {
 			configs: map[string]string{
 				"main.tf": `
@@ -716,8 +757,10 @@ func TestEvalContext_Evaluate(t *testing.T) {
 			// a plan against the given config and state and use its
 			// resulting scope.
 			_, planScope, diags := tfCtx.PlanAndEval(config, test.state, &terraform.PlanOpts{
-				Mode:         plans.NormalMode,
-				SetVariables: test.variables,
+				Mode:                       plans.NormalMode,
+				SetVariables:               test.variables,
+				AllowRootEphemeralOutputs:  true,
+				AllowRootDeprecatedOutputs: true,
 			}, addrs.RootModuleInstance)
 			if diags.HasErrors() {
 				t.Fatalf("unexpected errors\n%s", diags.Err().Error())

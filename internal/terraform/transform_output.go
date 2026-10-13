@@ -39,6 +39,12 @@ type OutputTransformer struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// Overrides supplies the values for any output variables that should be
 	// overridden by the testing framework.
 	Overrides *mocking.Overrides
@@ -67,14 +73,15 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		addr := addrs.OutputValue{Name: o.Name}
 
 		node := &nodeExpandOutput{
-			Addr:                      addr,
-			Module:                    c.Path,
-			Config:                    o,
-			Destroying:                t.Destroying,
-			RefreshOnly:               t.RefreshOnly,
-			Planning:                  t.Planning,
-			Overrides:                 t.Overrides,
-			AllowRootEphemeralOutputs: t.AllowRootEphemeralOutputs,
+			Addr:                       addr,
+			Module:                     c.Path,
+			Config:                     o,
+			Destroying:                 t.Destroying,
+			RefreshOnly:                t.RefreshOnly,
+			Planning:                   t.Planning,
+			Overrides:                  t.Overrides,
+			AllowRootEphemeralOutputs:  t.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: t.AllowRootDeprecatedOutputs,
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)

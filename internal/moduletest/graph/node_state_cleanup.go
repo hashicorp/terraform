@@ -125,14 +125,15 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                      plans.NormalMode,
-		SetVariables:              setVariables,
-		Overrides:                 ctx.GetOverrides(run.Name),
-		ExternalProviders:         providers,
-		SkipRefresh:               true,
-		OverridePreventDestroy:    true,
-		DeferralAllowed:           ctx.deferralAllowed,
-		AllowRootEphemeralOutputs: true,
+		Mode:                       plans.NormalMode,
+		SetVariables:               setVariables,
+		Overrides:                  ctx.GetOverrides(run.Name),
+		ExternalProviders:          providers,
+		SkipRefresh:                true,
+		OverridePreventDestroy:     true,
+		DeferralAllowed:            ctx.deferralAllowed,
+		AllowRootEphemeralOutputs:  true,
+		AllowRootDeprecatedOutputs: true,
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
@@ -177,14 +178,15 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                      plans.DestroyMode,
-		SetVariables:              setVariables,
-		Overrides:                 ctx.GetOverrides(run.Name),
-		ExternalProviders:         providers,
-		SkipRefresh:               true,
-		OverridePreventDestroy:    true,
-		DeferralAllowed:           ctx.deferralAllowed,
-		AllowRootEphemeralOutputs: true,
+		Mode:                       plans.DestroyMode,
+		SetVariables:               setVariables,
+		Overrides:                  ctx.GetOverrides(run.Name),
+		ExternalProviders:          providers,
+		SkipRefresh:                true,
+		OverridePreventDestroy:     true,
+		DeferralAllowed:            ctx.deferralAllowed,
+		AllowRootEphemeralOutputs:  true,
+		AllowRootDeprecatedOutputs: true,
 	}
 
 	tfCtx, _ := terraform.NewContext(n.opts.ContextOpts)
