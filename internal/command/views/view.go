@@ -197,6 +197,11 @@ func (v *View) Spacer() {
 	v.streams.Println()
 }
 
+// ColorPrintln logs a message to standard output, applying colorization if enabled.
+func (v *View) ColorPrintln(message string) {
+	v.streams.Println(v.colorize.Color(message))
+}
+
 // HelpPrompt is intended to be called from commands which fail to parse all
 // of their CLI arguments successfully. It refers users to the full help output
 // rather than rendering it directly, which can be overwhelming and confusing.
