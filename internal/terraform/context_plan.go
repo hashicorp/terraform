@@ -167,6 +167,12 @@ type PlanOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file).
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -1023,63 +1029,66 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			return nil, walkPlan, diags
 		}
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			ForceReplace:              opts.ForceReplace,
-			skipRefresh:               opts.SkipRefresh,
-			preDestroyRefresh:         opts.PreDestroyRefresh,
-			Operation:                 walkPlan,
-			ExternalReferences:        opts.ExternalReferences,
-			Overrides:                 opts.Overrides,
-			ImportTargets:             c.findImportTargets(config),
-			forgetResources:           forgetResources,
-			forgetModules:             forgetModules,
-			GenerateConfigPath:        opts.GenerateConfigPath,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			queryPlan:                 opts.Query,
-			overridePreventDestroy:    opts.OverridePreventDestroy,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-			PolicyClient:              opts.PolicyClient,
+			Config:                     config,
+			State:                      prevRunState,
+			RootVariableValues:         opts.SetVariables,
+			ExternalProviderConfigs:    externalProviderConfigs,
+			Plugins:                    c.plugins,
+			Targets:                    opts.Targets,
+			ForceReplace:               opts.ForceReplace,
+			skipRefresh:                opts.SkipRefresh,
+			preDestroyRefresh:          opts.PreDestroyRefresh,
+			Operation:                  walkPlan,
+			ExternalReferences:         opts.ExternalReferences,
+			Overrides:                  opts.Overrides,
+			ImportTargets:              c.findImportTargets(config),
+			forgetResources:            forgetResources,
+			forgetModules:              forgetModules,
+			GenerateConfigPath:         opts.GenerateConfigPath,
+			SkipGraphValidation:        c.graphOpts.SkipGraphValidation,
+			queryPlan:                  opts.Query,
+			overridePreventDestroy:     opts.OverridePreventDestroy,
+			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
+			PolicyClient:               opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			ActionTargets:             opts.ActionTargets,
-			skipRefresh:               opts.SkipRefresh,
-			skipPlanChanges:           true, // this activates "refresh only" mode.
-			Operation:                 walkPlan,
-			ExternalReferences:        opts.ExternalReferences,
-			Overrides:                 opts.Overrides,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-			PolicyClient:              opts.PolicyClient,
+			Config:                     config,
+			State:                      prevRunState,
+			RootVariableValues:         opts.SetVariables,
+			ExternalProviderConfigs:    externalProviderConfigs,
+			Plugins:                    c.plugins,
+			Targets:                    opts.Targets,
+			ActionTargets:              opts.ActionTargets,
+			skipRefresh:                opts.SkipRefresh,
+			skipPlanChanges:            true, // this activates "refresh only" mode.
+			Operation:                  walkPlan,
+			ExternalReferences:         opts.ExternalReferences,
+			Overrides:                  opts.Overrides,
+			SkipGraphValidation:        c.graphOpts.SkipGraphValidation,
+			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
+			PolicyClient:               opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:                    config,
-			State:                     prevRunState,
-			RootVariableValues:        opts.SetVariables,
-			ExternalProviderConfigs:   externalProviderConfigs,
-			Plugins:                   c.plugins,
-			Targets:                   opts.Targets,
-			skipRefresh:               opts.SkipRefresh,
-			Operation:                 walkPlanDestroy,
-			Overrides:                 opts.Overrides,
-			SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-			overridePreventDestroy:    opts.OverridePreventDestroy,
-			AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-			PolicyClient:              opts.PolicyClient,
+			Config:                     config,
+			State:                      prevRunState,
+			RootVariableValues:         opts.SetVariables,
+			ExternalProviderConfigs:    externalProviderConfigs,
+			Plugins:                    c.plugins,
+			Targets:                    opts.Targets,
+			skipRefresh:                opts.SkipRefresh,
+			Operation:                  walkPlanDestroy,
+			Overrides:                  opts.Overrides,
+			SkipGraphValidation:        c.graphOpts.SkipGraphValidation,
+			overridePreventDestroy:     opts.OverridePreventDestroy,
+			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
+			PolicyClient:               opts.PolicyClient,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
