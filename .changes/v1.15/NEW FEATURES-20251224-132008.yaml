@@ -1,0 +1,5 @@
+kind: NEW FEATURES
+body: Add s3 backend options `state_tags` and `lock_tags`
+time: 2025-12-24T13:20:08.187193113+01:00
+custom:
+    Issue: "38030"
