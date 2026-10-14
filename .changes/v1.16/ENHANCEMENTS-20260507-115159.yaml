@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`terraform show`: Added a new `-json-redacted` option that preserves the machine-readable JSON but masking sensitive values.'
+time: 2026-05-07T11:51:59.34567-04:00
+custom:
+    Issue: "38537"
