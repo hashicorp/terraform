@@ -23,9 +23,9 @@ import (
 // also provides access to the underlying configuration module that is being
 // evaluated by this scope.
 //
-// This is typically used to share code between removed and component blocks
-// which both load and execute Terraform configurations.
-type ConfigComponentExpressionScope[Addr any] interface {
+// This is typically used to share code between removed, component, and ephemeral_component
+// blocks which all load and execute Terraform configurations.
+type ConfigComponentExpressionScope[Addr fmt.Stringer] interface {
 	ExpressionScope
 
 	Addr() Addr
@@ -39,7 +39,7 @@ type ConfigComponentExpressionScope[Addr any] interface {
 //
 // This function should be called during static evaluations of components and
 // removed blocks.
-func EvalProviderTypes(ctx context.Context, stack *StackConfig, providers map[addrs.LocalProviderConfig]hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[stackaddrs.ConfigComponent]) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
+func EvalProviderTypes[Addr fmt.Stringer](ctx context.Context, stack *StackConfig, providers map[addrs.LocalProviderConfig]hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (addrs.Set[addrs.RootProviderConfig], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	neededProviders := requiredProviderInstances(ctx, scope)
@@ -169,13 +169,11 @@ func EvalProviderTypes(ctx context.Context, stack *StackConfig, providers map[ad
 	return ret, diags
 }
 
-// EvalProviderValues evaluates the provider configuration for a component, and
-// returns the provider configuration instances that should be used in the
-// component.
+// EvalProviderValues evaluates the provider configuration for a component or an ephemeral component,
+// and returns the provider configuration instances that should be used in the component.
 //
-// This function should be called during dynamic evaluations of components and
-// removed blocks.
-func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.LocalProviderConfig]hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, map[addrs.RootProviderConfig]addrs.Provider, tfdiags.Diagnostics) {
+// This function should be called during dynamic evaluations of components, removed, and ephemeral_component blocks.
+func EvalProviderValues[Addr fmt.Stringer](ctx context.Context, main *Main, providers map[addrs.LocalProviderConfig]hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, map[addrs.RootProviderConfig]addrs.Provider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	knownProviders := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)
 	unknownProviders := make(map[addrs.RootProviderConfig]addrs.Provider)
@@ -227,7 +225,13 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	// when compared to how we resolved the configProviders. But we don't have
 	// the information we need to do it the other way around.
 
-	previousProviders := main.PreviousProviderInstances(scope.Addr(), phase)
+	var previousProviders addrs.Set[addrs.RootProviderConfig]
+
+	// Only normal components have previous providers to lookup in plan or state
+	if componentAddr, ok := any(scope.Addr()).(stackaddrs.AbsComponentInstance); ok {
+		previousProviders = main.PreviousProviderInstances(componentAddr, phase)
+	}
+
 	for localProviderAddr, expr := range providers {
 		provider := moduleTree.ProviderForConfigAddr(localProviderAddr)
 
@@ -310,7 +314,7 @@ func EvalProviderValues(ctx context.Context, main *Main, providers map[addrs.Loc
 	return knownProviders, unknownProviders, diags
 }
 
-func evalProviderValue(ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[stackaddrs.AbsComponentInstance]) (stackaddrs.AbsProviderConfigInstance, bool, tfdiags.Diagnostics) {
+func evalProviderValue[Addr fmt.Stringer](ctx context.Context, sourceAddr addrs.RootProviderConfig, componentAddr addrs.LocalProviderConfig, expr hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (stackaddrs.AbsProviderConfigInstance, bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var ret stackaddrs.AbsProviderConfigInstance
 
@@ -398,7 +402,7 @@ func evalProviderValue(ctx context.Context, sourceAddr addrs.RootProviderConfig,
 // If any modules in the component's root module tree are invalid then this
 // result could under-promise or over-promise depending on the kind of
 // invalidity.
-func requiredProviderInstances[Addr any](ctx context.Context, scope ConfigComponentExpressionScope[Addr]) addrs.Map[addrs.RootProviderConfig, configs.RequiredProviderConfig] {
+func requiredProviderInstances[Addr fmt.Stringer](ctx context.Context, scope ConfigComponentExpressionScope[Addr]) addrs.Map[addrs.RootProviderConfig, configs.RequiredProviderConfig] {
 	moduleTree := scope.ModuleTree(ctx)
 	if moduleTree == nil || moduleTree.Root == nil {
 		return addrs.MakeMap[addrs.RootProviderConfig, configs.RequiredProviderConfig]()
@@ -409,7 +413,7 @@ func requiredProviderInstances[Addr any](ctx context.Context, scope ConfigCompon
 // neededProviderSchemas returns the provider schemas for all of the providers
 // required by the configuration of the given component, along with any
 // diagnostics that were encountered while fetching those schemas.
-func neededProviderSchemas[Addr any](ctx context.Context, main *Main, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics, bool) {
+func neededProviderSchemas[Addr fmt.Stringer](ctx context.Context, main *Main, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (map[addrs.Provider]providers.ProviderSchema, tfdiags.Diagnostics, bool) {
 	var diags tfdiags.Diagnostics
 	skipFutherValidation := false
 

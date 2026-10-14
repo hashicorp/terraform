@@ -47,6 +47,12 @@ func ParseReference(traversal hcl.Traversal) (Reference, hcl.Traversal, tfdiags.
 		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
 		return ret, remain, diags
 
+	case "ephemeral_component":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		ret.Target = EphemeralComponent{Name: name}
+		ret.SourceRange = tfdiags.SourceRangeFromHCL(rng)
+		return ret, remain, diags
+
 	case "stack":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		ret.Target = StackCall{Name: name}

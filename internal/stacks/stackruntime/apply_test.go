@@ -65,11 +65,12 @@ func TestApply(t *testing.T) {
 	}
 
 	tcs := map[string]struct {
-		path   string
-		skip   bool
-		state  *stackstate.State
-		store  *stacks_testing_provider.ResourceStore
-		cycles []TestCycle
+		path    string
+		skip    bool
+		state   *stackstate.State
+		store   *stacks_testing_provider.ResourceStore
+		authVal string
+		cycles  []TestCycle
 	}{
 		"built-in provider used not present in required": {
 			path: "with-built-in-provider",
@@ -2234,7 +2235,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 		},
 		"ephemeral-module-outputs": {
 			path: "ephemeral-module-output",
-			skip: true, // TODO(issues/37822): Enable this.
 			cycles: []TestCycle{
 				{
 					wantPlannedChanges: []stackplan.PlannedChange{
@@ -2242,27 +2242,34 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							Applyable: true,
 						},
 						&stackplan.PlannedChangeComponentInstance{
-							Addr:                mustAbsComponentInstance("component.ephemeral_in"),
-							PlanApplyable:       false,
-							PlanComplete:        true,
-							Action:              plans.Create,
-							RequiredComponents:  collections.NewSet(mustAbsComponent("component.ephemeral_out")),
-							PlannedInputValues:  make(map[string]plans.DynamicValue),
-							PlannedOutputValues: make(map[string]cty.Value),
-							PlannedCheckResults: new(states.CheckResults),
-							PlanTimestamp:       fakePlanTimestamp,
+							Addr:                    mustAbsComponentInstance("component.in"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      make(map[string]plans.DynamicValue),
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
 						},
-						&stackplan.PlannedChangeComponentInstance{
-							Addr:               mustAbsComponentInstance("component.ephemeral_out"),
-							PlanApplyable:      false,
-							PlanComplete:       true,
-							Action:             plans.Create,
-							PlannedInputValues: make(map[string]plans.DynamicValue),
-							PlannedOutputValues: map[string]cty.Value{
-								"value": cty.DynamicVal, // ephemeral
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("8453e0fa5aa2"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
 							},
-							PlannedCheckResults: new(states.CheckResults),
-							PlanTimestamp:       fakePlanTimestamp,
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
 						},
 						&stackplan.PlannedChangeHeader{
 							TerraformVersion: version.SemVer,
@@ -2273,26 +2280,657 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 					},
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstance{
-							ComponentAddr:         mustAbsComponent("component.ephemeral_in"),
-							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_in"),
-							Dependencies: collections.NewSet[stackaddrs.AbsComponent](
-								mustAbsComponent("component.ephemeral_out"),
-							),
-							OutputValues: make(map[addrs.OutputValue]cty.Value),
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
 							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("input"): cty.UnknownVal(cty.String), // ephemeral
+								mustInputVariable("input"): cty.NullVal(cty.String), // ephemeral
 							},
 						},
-						&stackstate.AppliedChangeComponentInstance{
-							ComponentAddr:         mustAbsComponent("component.ephemeral_out"),
-							ComponentInstanceAddr: mustAbsComponentInstance("component.ephemeral_out"),
-							Dependents: collections.NewSet[stackaddrs.AbsComponent](
-								mustAbsComponent("component.ephemeral_in"),
-							),
-							OutputValues:   make(map[addrs.OutputValue]cty.Value),
-							InputVariables: make(map[addrs.InputVariable]cty.Value),
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":         "8453e0fa5aa2",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
 						},
 					},
+				},
+			},
+		},
+		"ephemeral-component-output-to-provider": {
+			path:    "ephemeral-component-output-to-provider",
+			authVal: "secret", // populated by ephemeral.testing_resource
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                mustAbsComponentInstance("component.in"),
+							PlanApplyable:       true,
+							PlanComplete:        true,
+							Action:              plans.Create,
+							PlannedInputValues:  make(map[string]plans.DynamicValue),
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("auth-success"),
+										"value": cty.NullVal(cty.String),
+									})),
+								},
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables:        map[addrs.InputVariable]cty.Value{},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "auth-success",
+									"value": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-expanded-component-to-provider": {
+			path:    "ephemeral-expanded-component-to-provider",
+			authVal: "secret", // populated by ephemeral.testing_resource
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in[\"a\"]"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp[string](),
+							PlannedInputValues:      map[string]plans.DynamicValue{"id": mustPlanDynamicValueDynamicType(cty.StringVal("a"))},
+							PlannedInputValueMarks:  map[string][]cty.PathValueMarks{"id": nil},
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"a\"].testing_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":    cty.String,
+										"value": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("a"),
+										"value": cty.NullVal(cty.String),
+									})),
+								},
+								RequiredReplace: cty.NewPathSet(),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in[\"b\"]"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp[string](),
+							PlannedInputValues:      map[string]plans.DynamicValue{"id": mustPlanDynamicValueDynamicType(cty.StringVal("b"))},
+							PlannedInputValueMarks:  map[string][]cty.PathValueMarks{"id": nil},
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"b\"].testing_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":    cty.StringVal("b"),
+										"value": cty.NullVal(cty.String),
+									})),
+								},
+								RequiredReplace: cty.NewPathSet(),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   mustStackInputVariable("provider_set"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in[\"a\"]"),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"): cty.StringVal("a"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"a\"].testing_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "a",
+									"value": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in[\"b\"]"),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"): cty.StringVal("b"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"b\"].testing_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "b",
+									"value": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("provider_set"),
+							Value: cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-expanded-to-expanded": {
+			path: "ephemeral-expanded-to-expanded",
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in[\"a\"]"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      map[string]plans.DynamicValue{"id": mustPlanDynamicValueDynamicType(cty.StringVal("a"))},
+							PlannedInputValueMarks:  map[string][]cty.PathValueMarks{"id": nil},
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"a\"].testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("a"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
+								RequiredReplace: cty.NewPathSet(),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in[\"b\"]"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      map[string]plans.DynamicValue{"id": mustPlanDynamicValueDynamicType(cty.StringVal("b"))},
+							PlannedInputValueMarks:  map[string][]cty.PathValueMarks{"id": nil},
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"b\"].testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("b"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
+								RequiredReplace: cty.NewPathSet(),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeRootInputValue{
+							Addr:   mustStackInputVariable("provider_set"),
+							Action: plans.Create,
+							Before: cty.NullVal(cty.DynamicPseudoType),
+							After:  cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in[\"a\"]"),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("a"),
+								mustInputVariable("input"): cty.NullVal(cty.String),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"a\"].testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":         "a",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in[\"b\"]"),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("id"):    cty.StringVal("b"),
+								mustInputVariable("input"): cty.NullVal(cty.String),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in[\"b\"].testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":         "b",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("provider_set"),
+							Value: cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")}),
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-optional-input": {
+			path: "ephemeral-optional-input",
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      make(map[string]plans.DynamicValue),
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("optional-test"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								// TODO:@austinvalle: Default component input variables are not marked at all in stacks,
+								// which feels like a bug (both for sensitive + ephemeral)
+								//
+								// mustInputVariable("input"): cty.NullVal(cty.String),
+								mustInputVariable("input"): cty.StringVal("default-secret"),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":         "optional-test",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-output-through-locals": {
+			path: "ephemeral-output-through-locals",
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      make(map[string]plans.DynamicValue),
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("8453e0fa5aa2"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.NullVal(cty.String),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":         "8453e0fa5aa2",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-through-embedded-stack": {
+			path:    "ephemeral-through-embedded-stack",
+			authVal: "embedded-stack-secret", // populated by stack.child -> ephemeral.testing_resource
+			cycles: []TestCycle{
+				{
+					wantPlannedChanges: []stackplan.PlannedChange{
+						&stackplan.PlannedChangeApplyable{
+							Applyable: true,
+						},
+						&stackplan.PlannedChangeComponentInstance{
+							Addr:                    mustAbsComponentInstance("component.in"),
+							PlanApplyable:           true,
+							PlanComplete:            true,
+							Action:                  plans.Create,
+							ApplyTimeInputVariables: collections.NewSetCmp("input"),
+							PlannedInputValues:      make(map[string]plans.DynamicValue),
+							PlannedOutputValues:     make(map[string]cty.Value),
+							PlannedCheckResults:     new(states.CheckResults),
+							PlanTimestamp:           fakePlanTimestamp,
+						},
+						&stackplan.PlannedChangeResourceInstancePlanned{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							ChangeSrc: &plans.ResourceInstanceChangeSrc{
+								Addr:         mustAbsResourceInstance("testing_write_only_resource.resource"),
+								PrevRunAddr:  mustAbsResourceInstance("testing_write_only_resource.resource"),
+								ProviderAddr: mustDefaultRootProvider("testing"),
+								ChangeSrc: plans.ChangeSrc{
+									Action: plans.Create,
+									Before: mustPlanDynamicValue(cty.NullVal(cty.Object(map[string]cty.Type{
+										"id":         cty.String,
+										"value":      cty.String,
+										"write_only": cty.String,
+									}))),
+									After: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+										"id":         cty.StringVal("8453e0fa5aa2"),
+										"value":      cty.NullVal(cty.String),
+										"write_only": cty.NullVal(cty.String),
+									})),
+								},
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackplan.PlannedChangeHeader{
+							TerraformVersion: version.SemVer,
+						},
+						&stackplan.PlannedChangePlannedTimestamp{
+							PlannedTimestamp: fakePlanTimestamp,
+						},
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							Dependents:            collections.NewSet[stackaddrs.AbsComponent](),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.NullVal(cty.String),
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":         "8453e0fa5aa2",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status: states.ObjectReady,
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+					},
+				},
+			},
+		},
+		"ephemeral-output-to-non-ephemeral-input": {
+			path: "ephemeral-output-to-non-ephemeral-input",
+			cycles: []TestCycle{
+				{
+					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Ephemeral value not allowed",
+							Detail:   `The input variable "input" does not accept ephemeral values.`,
+							Subject: &hcl.Range{
+								Filename: mainBundleSourceAddrStr("ephemeral-output-to-non-ephemeral-input/ephemeral-output-to-non-ephemeral-input.tfcomponent.hcl"),
+								Start:    hcl.Pos{Line: 25, Column: 12, Byte: 339},
+								End:      hcl.Pos{Line: 27, Column: 4, Byte: 386},
+							},
+						})
+					}),
+				},
+			},
+		},
+		"ephemeral-value-to-for-each": {
+			path: "ephemeral-value-to-for-each",
+			cycles: []TestCycle{
+				{
+					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid for_each value",
+							Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
+							Subject: &hcl.Range{
+								Filename: mainBundleSourceAddrStr("ephemeral-value-to-for-each/ephemeral-value-to-for-each.tfcomponent.hcl"),
+								Start:    hcl.Pos{Line: 19, Column: 14, Byte: 265},
+								End:      hcl.Pos{Line: 19, Column: 52, Byte: 303},
+							},
+						})
+					}),
 				},
 			},
 		},
@@ -2325,7 +2963,11 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 						provider := stacks_testing_provider.NewProviderWithData(t, store)
-						provider.Authentication = "authn"
+						if tc.authVal == "" {
+							provider.Authentication = "authn"
+						} else {
+							provider.Authentication = tc.authVal
+						}
 						return provider, nil
 					},
 				},
@@ -2339,6 +2981,10 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 					t.Run("plan", func(t *testing.T) {
 						plan = testContext.Plan(t, ctx, state, cycle)
 					})
+					if !plan.Applyable {
+						// A plan with errors can't be applied, so we can return now if the test was expecting diagnostics
+						return
+					}
 					t.Run("apply", func(t *testing.T) {
 						state = testContext.Apply(t, ctx, plan, cycle)
 					})

@@ -14,7 +14,7 @@ type StaticEvaler interface {
 	Plannable
 }
 
-// walkDynamicObjects is a generic helper for visiting all of the "static
+// walkStaticObjects is a generic helper for visiting all of the "static
 // objects" in scope for a particular [Main] object. "Static objects"
 // essentially means the objects that are involved in the validation
 // operation, which typically includes objects representing static
@@ -56,12 +56,15 @@ func walkStaticObjectsInStackConfig[Output any](
 		visit(ctx, walk, obj)
 	}
 
-	// TODO: All of the other static object types
 	for _, obj := range stackConfig.LocalValues() {
 		visit(ctx, walk, obj)
 	}
 
 	for _, obj := range stackConfig.Providers() {
+		visit(ctx, walk, obj)
+	}
+
+	for _, obj := range stackConfig.EphemeralComponents() {
 		visit(ctx, walk, obj)
 	}
 

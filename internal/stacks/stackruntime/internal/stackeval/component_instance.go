@@ -88,7 +88,7 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 
 		// We actually checked the errors statically already, so we only care about
 		// the value here.
-		val, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl, phase, c)
+		val, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, decl.Inputs, decl.DeclRange, phase, c)
 		if diags.HasErrors() {
 			return cty.NilVal, diags
 		}
@@ -463,7 +463,7 @@ func (c *ComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan *plans
 		return noOpResult, diags
 	}
 
-	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, c.call.config.config.ProviderConfigs, c)
+	result, moreDiags := ApplyComponentPlan(ctx, c.main, &modifiedPlan, inputValues, c.call.config.config.ProviderConfigs, c)
 	return result, diags.Append(moreDiags)
 }
 

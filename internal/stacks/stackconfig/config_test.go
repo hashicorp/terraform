@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -366,4 +368,164 @@ func TestComponentSourceResolution(t *testing.T) {
 			t.Logf("Component resolved to local path: %s", localPath)
 		})
 	})
+}
+
+func TestLoadConfigDirEphemeralComponents(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-component.git").(sourceaddrs.RemoteSource)
+	config, diags := LoadConfigDir(rootAddr, bundle)
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
+	}
+
+	testingProvider := addrs.LocalProviderConfig{LocalName: "testing"}
+
+	t.Run("declarations", func(t *testing.T) {
+		if got, want := len(config.Root.Stack.EphemeralComponents), 2; got != want {
+			t.Errorf("wrong number of ephemeral components %d; want %d", got, want)
+		}
+		if got, want := len(config.Root.Stack.Components), 0; got != want {
+			t.Errorf("wrong number of components %d; want %d", got, want)
+		}
+	})
+	t.Run("basic", func(t *testing.T) {
+		cfg, ok := config.Root.Stack.EphemeralComponents["basic"]
+		if !ok {
+			t.Fatal("Root stack config has no ephemeral component named \"basic\".")
+		}
+		if got, want := cfg.Name, "basic"; got != want {
+			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := cfg.SourceAddr.String(), "./ephemeral-output"; got != want {
+			t.Errorf("wrong source address\ngot:  %s\nwant: %s", got, want)
+		}
+		if cfg.FinalSourceAddr == nil {
+			t.Fatal("FinalSourceAddr was not resolved")
+		}
+		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-component.git//ephemeral-output"; got != want {
+			t.Errorf("wrong final source address\ngot:  %s\nwant: %s", got, want)
+		}
+		if cfg.ForEach != nil {
+			t.Error("unexpected for_each expression")
+		}
+		if cfg.Inputs != nil {
+			t.Error("unexpected inputs expression")
+		}
+		if got, want := len(cfg.DependsOn), 0; got != want {
+			t.Errorf("wrong number of depends_on references %d; want %d", got, want)
+		}
+		if _, ok := cfg.ProviderConfigs[testingProvider]; !ok || len(cfg.ProviderConfigs) != 1 {
+			t.Errorf("wrong provider configs %#v; want a single %q entry", cfg.ProviderConfigs, testingProvider.LocalName)
+		}
+	})
+	t.Run("expanded", func(t *testing.T) {
+		cfg, ok := config.Root.Stack.EphemeralComponents["expanded"]
+		if !ok {
+			t.Fatal("Root stack config has no ephemeral component named \"expanded\".")
+		}
+		if got, want := cfg.Name, "expanded"; got != want {
+			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-component.git//ephemeral-output"; got != want {
+			t.Errorf("wrong final source address\ngot:  %s\nwant: %s", got, want)
+		}
+		if cfg.ForEach == nil {
+			t.Error("for_each expression was not decoded")
+		}
+		if cfg.Inputs == nil {
+			t.Error("inputs expression was not decoded")
+		}
+		if _, ok := cfg.ProviderConfigs[testingProvider]; !ok || len(cfg.ProviderConfigs) != 1 {
+			t.Errorf("wrong provider configs %#v; want a single %q entry", cfg.ProviderConfigs, testingProvider.LocalName)
+		}
+		if got, want := len(cfg.DependsOn), 1; got != want {
+			t.Fatalf("wrong number of depends_on references %d; want %d", got, want)
+		}
+		if got, want := cfg.DependsOn[0].RootName(), "ephemeral_component"; got != want {
+			t.Errorf("wrong depends_on root\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("lookup by address", func(t *testing.T) {
+		addr := stackaddrs.ConfigEphemeralComponent{
+			Stack: stackaddrs.RootStack,
+			Item:  stackaddrs.EphemeralComponent{Name: "basic"},
+		}
+		if got, want := config.EphemeralComponent(addr), config.Root.Stack.EphemeralComponents["basic"]; got != want || got == nil {
+			t.Errorf("wrong ephemeral component for %s\ngot:  %p\nwant: %p", addr, got, want)
+		}
+		addr.Item.Name = "nonexistent"
+		if got := config.EphemeralComponent(addr); got != nil {
+			t.Errorf("unexpected ephemeral component for %s", addr)
+		}
+	})
+	t.Run("module config", func(t *testing.T) {
+		moduleCfg, diags := config.Root.Stack.EphemeralComponents["basic"].ModuleConfig(bundle)
+		if len(diags) != 0 {
+			t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
+		}
+		if out, ok := moduleCfg.Module.Outputs["value"]; !ok || !out.Ephemeral {
+			t.Errorf("expected an ephemeral output named \"value\" in the ephemeral component's module")
+		}
+	})
+}
+
+func TestLoadConfigDirEphemeralComponentErrors(t *testing.T) {
+	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-component-errored.git").(sourceaddrs.RemoteSource)
+	_, gotDiags := LoadConfigDir(rootAddr, bundle)
+
+	sort.SliceStable(gotDiags, func(i, j int) bool {
+		if gotDiags[i].Severity() != gotDiags[j].Severity() {
+			return gotDiags[i].Severity() < gotDiags[j].Severity()
+		}
+
+		if gotDiags[i].Description().Summary != gotDiags[j].Description().Summary {
+			return gotDiags[i].Description().Summary < gotDiags[j].Description().Summary
+		}
+
+		return gotDiags[i].Description().Detail < gotDiags[j].Description().Detail
+	})
+
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(tfdiags.Error, "Duplicate ephemeral component declaration", "An ephemeral component named \"dupe\" was already declared at git::https://example.com/ephemeral-component-errored.git//main.tfcomponent.hcl:10,1-27."),
+	}
+
+	count := len(wantDiags)
+	if len(gotDiags) > count {
+		count = len(gotDiags)
+	}
+
+	for i := 0; i < count; i++ {
+		if i >= len(wantDiags) {
+			t.Errorf("unexpected diagnostic:\n%s", gotDiags[i])
+			continue
+		}
+
+		if i >= len(gotDiags) {
+			t.Errorf("missing diagnostic:\n%s", wantDiags[i])
+			continue
+		}
+
+		got, want := gotDiags[i], wantDiags[i]
+
+		if got, want := got.Severity(), want.Severity(); got != want {
+			t.Errorf("diagnostics[%d] severity\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Summary, want.Description().Summary; got != want {
+			t.Errorf("diagnostics[%d] summary\ngot:  %s\nwant: %s", i, got, want)
+		}
+
+		if got, want := got.Description().Detail, want.Description().Detail; got != want {
+			t.Errorf("diagnostics[%d] detail\ngot:  %s\nwant: %s", i, got, want)
+		}
+	}
 }
