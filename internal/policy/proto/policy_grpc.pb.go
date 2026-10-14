@@ -22,10 +22,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Policy_Setup_FullMethodName            = "/proto.Policy/Setup"
-	Policy_EvaluateResource_FullMethodName = "/proto.Policy/EvaluateResource"
-	Policy_EvaluateProvider_FullMethodName = "/proto.Policy/EvaluateProvider"
-	Policy_EvaluateModule_FullMethodName   = "/proto.Policy/EvaluateModule"
+	Policy_Setup_FullMethodName                   = "/proto.Policy/Setup"
+	Policy_EvaluateResource_FullMethodName        = "/proto.Policy/EvaluateResource"
+	Policy_EvaluateProvider_FullMethodName        = "/proto.Policy/EvaluateProvider"
+	Policy_EvaluateModule_FullMethodName          = "/proto.Policy/EvaluateModule"
+	Policy_ValidateProviderSchemas_FullMethodName = "/proto.Policy/ValidateProviderSchemas"
 )
 
 // PolicyClient is the client API for Policy service.
@@ -49,6 +50,12 @@ type PolicyClient interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(ctx context.Context, in *PolicyEvaluateModuleRequest, opts ...grpc.CallOption) (*PolicyEvaluateModuleResponse, error)
+	// ValidateProviderSchemas validates the loaded policies against the given
+	// provider schemas and returns any structural errors. The client calls this
+	// after Setup, once it has resolved the provider schemas for the run, so a
+	// policy referencing an attribute a provider does not have fails early rather
+	// than partway through evaluation.
+	ValidateProviderSchemas(ctx context.Context, in *ValidateProviderSchemasRequest, opts ...grpc.CallOption) (*ValidateProviderSchemasResponse, error)
 }
 
 type policyClient struct {
@@ -99,6 +106,16 @@ func (c *policyClient) EvaluateModule(ctx context.Context, in *PolicyEvaluateMod
 	return out, nil
 }
 
+func (c *policyClient) ValidateProviderSchemas(ctx context.Context, in *ValidateProviderSchemasRequest, opts ...grpc.CallOption) (*ValidateProviderSchemasResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ValidateProviderSchemasResponse)
+	err := c.cc.Invoke(ctx, Policy_ValidateProviderSchemas_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PolicyServer is the server API for Policy service.
 // All implementations must embed UnimplementedPolicyServer
 // for forward compatibility.
@@ -120,6 +137,12 @@ type PolicyServer interface {
 	// EvaluateModule evaluates a module configuration against the store modules.
 	// This method is specifically designed for module-level policy evaluation.
 	EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error)
+	// ValidateProviderSchemas validates the loaded policies against the given
+	// provider schemas and returns any structural errors. The client calls this
+	// after Setup, once it has resolved the provider schemas for the run, so a
+	// policy referencing an attribute a provider does not have fails early rather
+	// than partway through evaluation.
+	ValidateProviderSchemas(context.Context, *ValidateProviderSchemasRequest) (*ValidateProviderSchemasResponse, error)
 	mustEmbedUnimplementedPolicyServer()
 }
 
@@ -141,6 +164,9 @@ func (UnimplementedPolicyServer) EvaluateProvider(context.Context, *PolicyEvalua
 }
 func (UnimplementedPolicyServer) EvaluateModule(context.Context, *PolicyEvaluateModuleRequest) (*PolicyEvaluateModuleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EvaluateModule not implemented")
+}
+func (UnimplementedPolicyServer) ValidateProviderSchemas(context.Context, *ValidateProviderSchemasRequest) (*ValidateProviderSchemasResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ValidateProviderSchemas not implemented")
 }
 func (UnimplementedPolicyServer) mustEmbedUnimplementedPolicyServer() {}
 func (UnimplementedPolicyServer) testEmbeddedByValue()                {}
@@ -235,6 +261,24 @@ func _Policy_EvaluateModule_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Policy_ValidateProviderSchemas_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ValidateProviderSchemasRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PolicyServer).ValidateProviderSchemas(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Policy_ValidateProviderSchemas_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PolicyServer).ValidateProviderSchemas(ctx, req.(*ValidateProviderSchemasRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Policy_ServiceDesc is the grpc.ServiceDesc for Policy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -257,6 +301,10 @@ var Policy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EvaluateModule",
 			Handler:    _Policy_EvaluateModule_Handler,
+		},
+		{
+			MethodName: "ValidateProviderSchemas",
+			Handler:    _Policy_ValidateProviderSchemas_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

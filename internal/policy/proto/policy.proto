@@ -27,6 +27,12 @@ service Policy {
   // EvaluateModule evaluates a module configuration against the store modules.
   // This method is specifically designed for module-level policy evaluation.
   rpc EvaluateModule(PolicyEvaluateModuleRequest) returns (PolicyEvaluateModuleResponse) {}
+  // ValidateProviderSchemas validates the loaded policies against the given
+  // provider schemas and returns any structural errors. The client calls this
+  // after Setup, once it has resolved the provider schemas for the run, so a
+  // policy referencing an attribute a provider does not have fails early rather
+  // than partway through evaluation.
+  rpc ValidateProviderSchemas(ValidateProviderSchemasRequest) returns (ValidateProviderSchemasResponse) {}
 }
 
 // SetupRequest is the message body for the Setup RPC.
@@ -233,4 +239,40 @@ message PolicyEvaluateModuleResponse {
 
   // PolicyDetails contains detailed information about each policy evaluation
   repeated PolicyEvaluationDetail policy_details = 2;
+}
+
+// ValidateProviderSchemasRequest carries the provider schemas to validate the
+// already-loaded policies against.
+message ValidateProviderSchemasRequest {
+  repeated ProviderSchema provider_schemas = 1;
+}
+
+// ValidateProviderSchemasResponse returns the diagnostics from validating the
+// loaded policies against the provider schemas — an error for each reference to
+// something a provider does not offer.
+message ValidateProviderSchemasResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+// ProviderSchema is one provider's schema: its configuration and the object
+// type of each resource and data source it offers. It lets the plugin check
+// policies structurally without any plan data. Object types are encoded with
+// cty's JSON type encoding (cty/json.MarshalType); an empty encoding means an
+// empty object type.
+message ProviderSchema {
+  // type is the provider type, e.g. "aws".
+  string type = 1;
+
+  // local_names are the required_providers local names (aliases) that also
+  // refer to this provider, so a provider policy labelled by an alias resolves.
+  repeated string local_names = 2;
+
+  // config is the cty JSON encoding of the provider configuration object type.
+  bytes config = 3;
+
+  // resources maps a resource type to the cty JSON encoding of its object type.
+  map<string, bytes> resources = 4;
+
+  // data_sources maps a data-source type to the cty JSON encoding of its object type.
+  map<string, bytes> data_sources = 5;
 }
