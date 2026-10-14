@@ -1,5 +1,0 @@
-kind: NOTES
-body: 'Prevent a HTTP/2 resource exhaustion via CVE-2026-78669. Exploitation would require a compromised (untrusted) provider/module registry. Such a threat is considered to be outside the perimeter of Terraform core security guarantees.'
-time: 2026-10-13T09:50:02.281793+01:00
-custom:
-    Issue: "39375"
