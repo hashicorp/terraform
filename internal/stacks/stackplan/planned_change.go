@@ -204,6 +204,13 @@ type PlannedChangeComponentInstance struct {
 	// of this component instance.
 	RequiredComponents collections.Set[stackaddrs.AbsComponent]
 
+	// ApplyTimeInputVariables are the names of the root input variables
+	// whose values must be re-supplied during the apply phase.
+	//
+	// These are ephemeral variables that were set (non-null) during the planning phase and
+	// must be re-supplied, potentially with a different value.
+	ApplyTimeInputVariables collections.Set[string]
+
 	// PlannedInputValues records our best approximation of the component's
 	// topmost input values during the planning phase. This could contain
 	// unknown values if one component is configured from results of another.
@@ -254,6 +261,11 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 		}
 	}
 
+	applyTimeInputVariables := make([]string, 0, pc.ApplyTimeInputVariables.Len())
+	for applyTimeInputVariable := range pc.ApplyTimeInputVariables.All() {
+		applyTimeInputVariables = append(applyTimeInputVariables, applyTimeInputVariable)
+	}
+
 	var planTimestampStr string
 	var zeroTime time.Time
 	if pc.PlanTimestamp != zeroTime {
@@ -298,6 +310,7 @@ func (pc *PlannedChangeComponentInstance) PlannedChangeProto() (*stacks.PlannedC
 	err = anypb.MarshalFrom(&raw, &tfstackdata1.PlanComponentInstance{
 		ComponentInstanceAddr:   pc.Addr.String(),
 		PlanTimestamp:           planTimestampStr,
+		ApplyTimeInputVariables: applyTimeInputVariables,
 		PlannedInputValues:      plannedInputValues,
 		PlannedAction:           planproto.NewAction(pc.Action),
 		Mode:                    mode,

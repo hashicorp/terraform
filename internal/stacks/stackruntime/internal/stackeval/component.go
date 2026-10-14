@@ -50,8 +50,8 @@ func newComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
-// for this stack call, with the following exceptions:
-//   - If the stack call doesn't use "for_each" at all, returns [cty.NilVal].
+// for this component, with the following exceptions:
+//   - If the component doesn't use "for_each" at all, returns [cty.NilVal].
 //   - If the for_each expression is present but too invalid to evaluate,
 //     returns [cty.DynamicVal] to represent that the for_each value cannot
 //     be determined.
@@ -60,7 +60,7 @@ func newComponent(main *Main, addr stackaddrs.AbsComponent, stack *Stack, config
 // guaranteed to be:
 // - Either a set of strings, a map of any element type, or an object type
 // - Known and not null (only the top-level value)
-// - Not sensitive (only the top-level value)
+// - Not sensitive or ephemeral (only the top-level value)
 func (c *Component) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value {
 	ret, _ := c.CheckForEachValue(ctx, phase)
 	return ret
@@ -76,7 +76,7 @@ func (c *Component) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // then callers can assume that the result value will be:
 // - Either a set of strings, a map of any element type, or an object type
 // - Known and not null (except for nested map/object element values)
-// - Not sensitive (only the top-level value)
+// - Not sensitive or ephemeral (only the top-level value)
 //
 // If the diagnostics _does_ include errors then the result might be
 // [cty.DynamicVal], which represents that the for_each expression was so invalid
@@ -128,7 +128,7 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 //
 // This function doesn't return any diagnostics describing ways in which the
 // for_each expression is invalid because we assume that the main plan walk
-// will visit the stack call directly and ask it to check itself, and that
+// will visit the component directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
 func (c *Component) Instances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, bool) {
 	ret, unknown, _ := c.CheckInstances(ctx, phase)
@@ -216,7 +216,7 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 		for instKey, inst := range insts {
 			k, ok := instKey.(addrs.StringKey)
 			if !ok {
-				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
+				panic(fmt.Sprintf("component with for_each has invalid instance key of type %T", instKey))
 			}
 			elems[string(k)] = inst.ResultValue(ctx, phase)
 		}
@@ -233,11 +233,11 @@ func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value 
 		}
 		if len(insts) != 1 {
 			// Should not happen: we should have exactly one instance with addrs.NoKey
-			panic("single-instance stack call does not have exactly one instance")
+			panic("single-instance component does not have exactly one instance")
 		}
 		inst, ok := insts[addrs.NoKey]
 		if !ok {
-			panic("single-instance stack call does not have an addrs.NoKey instance")
+			panic("single-instance component does not have an addrs.NoKey instance")
 		}
 		return inst.ResultValue(ctx, phase)
 	}

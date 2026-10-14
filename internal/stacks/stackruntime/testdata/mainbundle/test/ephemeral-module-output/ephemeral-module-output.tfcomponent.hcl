@@ -7,22 +7,22 @@ required_providers {
 
 provider "testing" "main" {}
 
-component "ephemeral_out" {
-  source = "./ephemeral-output"
+ephemeral_component "out" {
+  source = "./out"
 
   providers = {
     testing = provider.testing.main
   }
 }
 
-component "ephemeral_in" {
-  source = "./ephemeral-input"
+component "in" {
+  source = "./in"
 
   providers = {
     testing = provider.testing.main
   }
 
   inputs = {
-    input = component.ephemeral_out.value
+    input = ephemeral_component.out.value
   }
 }

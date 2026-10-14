@@ -231,7 +231,7 @@ func (r *RemovedComponentInstance) ApplyModuleTreePlan(ctx context.Context, plan
 	// unknown variables. With that in mind, we can just the plan directly
 	// onto the shared function with no modifications.
 
-	return ApplyComponentPlan(ctx, r.main, plan, r.call.config.config.ProviderConfigs, r)
+	return ApplyComponentPlan(ctx, r.main, plan, nil, r.call.config.config.ProviderConfigs, r)
 }
 
 func (r *RemovedComponentInstance) ApplyResult(ctx context.Context) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {

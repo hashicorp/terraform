@@ -256,7 +256,7 @@ func (c *ComponentConfig) CheckInputVariableValues(ctx context.Context, phase Ev
 	varDecls := c.RootModuleVariableDecls(ctx)
 
 	// We don't care about the returned value, only that it has no errors.
-	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, c.config, phase, c)
+	_, diags := EvalComponentInputVariables(ctx, varDecls, wantTy, defs, c.config.Inputs, c.config.DeclRange, phase, c)
 	return diags
 }
 

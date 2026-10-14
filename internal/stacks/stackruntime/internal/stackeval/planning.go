@@ -161,7 +161,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	// for any operations that require configured clients. This is
 	// because we want to provide the clients built using the provider
 	// configurations from the stack that exist outside of Terraform's
-	// concerns. There are provided directly in the PlanOpts argument.
+	// concerns. These are provided directly in the PlanOpts argument.
 
 	providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
 	for addr := range providerSchemas {

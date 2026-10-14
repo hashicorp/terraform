@@ -95,7 +95,7 @@ type ApplyableComponentInstance interface {
 	PlaceholderApplyResultForSkippedApply(plan *plans.Plan) *ComponentInstanceApplyResult
 }
 
-func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
+func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, inputValues terraform.InputValues, requiredProviders map[addrs.LocalProviderConfig]hcl.Expression, inst ApplyableComponentInstance) (*ComponentInstanceApplyResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// NOTE WELL: This function MUST either successfully apply the component
@@ -254,6 +254,16 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			}
 		}()
 
+		// We can only provide the ephemeral input values during apply
+		ephemeralInputValues := make(terraform.InputValues)
+		for k, v := range moduleTree.Module.Variables {
+			if v.Ephemeral {
+				if iv, ok := inputValues[k]; ok {
+					ephemeralInputValues[k] = iv
+				}
+			}
+		}
+
 		// NOTE: tfCtx.Apply tends to make changes to the given plan while it
 		// works, and so code after this point should not make any further use
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
@@ -262,6 +272,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
+			SetVariables:              ephemeralInputValues,
 		})
 		diags = diags.Append(moreDiags)
 	} else {

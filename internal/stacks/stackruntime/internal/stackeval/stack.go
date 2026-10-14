@@ -42,14 +42,15 @@ type Stack struct {
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu                 sync.Mutex
-	inputVariables     map[stackaddrs.InputVariable]*InputVariable
-	localValues        map[stackaddrs.LocalValue]*LocalValue
-	stackCalls         map[stackaddrs.StackCall]*StackCall
-	outputValues       map[stackaddrs.OutputValue]*OutputValue
-	components         map[stackaddrs.Component]*Component
-	providers          map[stackaddrs.ProviderConfigRef]*Provider
-	removedInitialised bool
+	mu                  sync.Mutex
+	inputVariables      map[stackaddrs.InputVariable]*InputVariable
+	localValues         map[stackaddrs.LocalValue]*LocalValue
+	stackCalls          map[stackaddrs.StackCall]*StackCall
+	outputValues        map[stackaddrs.OutputValue]*OutputValue
+	components          map[stackaddrs.Component]*Component
+	ephemeralComponents map[stackaddrs.EphemeralComponent]*EphemeralComponent
+	providers           map[stackaddrs.ProviderConfigRef]*Provider
+	removedInitialised  bool
 }
 
 var (
@@ -335,6 +336,33 @@ func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase Ev
 	}
 }
 
+func (s *Stack) EphemeralComponents() map[stackaddrs.EphemeralComponent]*EphemeralComponent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We intentionally save a non-nil map below even if it's empty so that
+	// we can unambiguously recognize whether we've loaded this or not.
+	if s.ephemeralComponents != nil {
+		return s.ephemeralComponents
+	}
+
+	decls := s.config.config.Stack
+	ret := make(map[stackaddrs.EphemeralComponent]*EphemeralComponent, len(decls.EphemeralComponents))
+	for _, c := range decls.EphemeralComponents {
+		absAddr := stackaddrs.AbsEphemeralComponent{
+			Stack: s.addr,
+			Item:  stackaddrs.EphemeralComponent{Name: c.Name},
+		}
+		ret[absAddr.Item] = newEphemeralComponent(s.main, absAddr, s, s.config.EphemeralComponent(absAddr.Item))
+	}
+	s.ephemeralComponents = ret
+	return ret
+}
+
+func (s *Stack) EphemeralComponent(addr stackaddrs.EphemeralComponent) *EphemeralComponent {
+	return s.EphemeralComponents()[addr]
+}
+
 func (s *Stack) ProviderByLocalAddr(localAddr stackaddrs.ProviderConfigRef) *Provider {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -519,6 +547,18 @@ func (s *Stack) resolveExpressionReference(
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared component",
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.EphemeralComponent:
+		ret := s.EphemeralComponent(addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared ephemeral component",
+				Detail:   fmt.Sprintf("There is no ephemeral component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags

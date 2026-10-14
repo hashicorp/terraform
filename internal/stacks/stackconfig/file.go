@@ -231,6 +231,7 @@ var rootConfigSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "stack", LabelNames: []string{"name"}},
 		{Type: "component", LabelNames: []string{"name"}},
+		{Type: "ephemeral_component", LabelNames: []string{"name"}},
 		{Type: "variable", LabelNames: []string{"name"}},
 		{Type: "locals"},
 		{Type: "output", LabelNames: []string{"name"}},

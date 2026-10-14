@@ -38,16 +38,17 @@ type StackConfig struct {
 
 	// The remaining fields are where we memoize related objects that we've
 	// constructed and returned. Must lock "mu" before interacting with these.
-	mu                sync.Mutex
-	children          map[stackaddrs.StackStep]*StackConfig
-	inputVariables    map[stackaddrs.InputVariable]*InputVariableConfig
-	localValues       map[stackaddrs.LocalValue]*LocalValueConfig
-	outputValues      map[stackaddrs.OutputValue]*OutputValueConfig
-	stackCalls        map[stackaddrs.StackCall]*StackCallConfig
-	removedStackCalls collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]
-	components        map[stackaddrs.Component]*ComponentConfig
-	removedComponents collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
-	providers         map[stackaddrs.ProviderConfig]*ProviderConfig
+	mu                  sync.Mutex
+	children            map[stackaddrs.StackStep]*StackConfig
+	inputVariables      map[stackaddrs.InputVariable]*InputVariableConfig
+	localValues         map[stackaddrs.LocalValue]*LocalValueConfig
+	outputValues        map[stackaddrs.OutputValue]*OutputValueConfig
+	stackCalls          map[stackaddrs.StackCall]*StackCallConfig
+	removedStackCalls   collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]
+	components          map[stackaddrs.Component]*ComponentConfig
+	removedComponents   collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
+	ephemeralComponents map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig
+	providers           map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
 var (
@@ -62,15 +63,16 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		config: config,
 		main:   main,
 
-		children:          make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
-		inputVariables:    make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
-		localValues:       make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
-		outputValues:      make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
-		stackCalls:        make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
-		removedStackCalls: collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig](),
-		components:        make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
-		removedComponents: collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
-		providers:         make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
+		children:            make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
+		inputVariables:      make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		localValues:         make(map[stackaddrs.LocalValue]*LocalValueConfig, len(config.Stack.Declarations.LocalValues)),
+		outputValues:        make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
+		stackCalls:          make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
+		removedStackCalls:   collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig](),
+		components:          make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
+		removedComponents:   collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
+		ephemeralComponents: make(map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig, len(config.Stack.Declarations.EphemeralComponents)),
+		providers:           make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
 
@@ -452,6 +454,39 @@ func (s *StackConfig) RemovedComponents() collections.Map[stackaddrs.ConfigCompo
 	return ret
 }
 
+// EphemeralComponent returns an [EphemeralComponentConfig] representing the ephemeral_component call
+// declared within this stack config that matches the given address, or nil if there is no such declaration.
+func (s *StackConfig) EphemeralComponent(addr stackaddrs.EphemeralComponent) *EphemeralComponentConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.ephemeralComponents[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.EphemeralComponents[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.addr, addr)
+		ret = newEphemeralComponentConfig(s.main, cfgAddr, s, cfg)
+		s.ephemeralComponents[addr] = ret
+	}
+	return ret
+}
+
+// EphemeralComponents returns a map of the objects representing all of the
+// component calls declared inside this stack configuration.
+func (s *StackConfig) EphemeralComponents() map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig {
+	if len(s.config.Stack.EphemeralComponents) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig, len(s.config.Stack.EphemeralComponents))
+	for name := range s.config.Stack.EphemeralComponents {
+		addr := stackaddrs.EphemeralComponent{Name: name}
+		ret[addr] = s.EphemeralComponent(addr)
+	}
+	return ret
+}
+
 // ResolveExpressionReference implements ExpressionScope, providing the
 // global scope for evaluation within an unexpanded stack during the validate
 // phase.
@@ -512,6 +547,18 @@ func (s *StackConfig) resolveExpressionReference(
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared component",
 				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+			return nil, diags
+		}
+		return ret, diags
+	case stackaddrs.EphemeralComponent:
+		ret := s.EphemeralComponent(addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared ephemeral component",
+				Detail:   fmt.Sprintf("There is no ephemeral component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags

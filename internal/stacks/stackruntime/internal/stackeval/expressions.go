@@ -18,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -125,6 +124,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	varVals := make(map[string]cty.Value)
 	localVals := make(map[string]cty.Value)
 	componentVals := make(map[string]cty.Value)
+	ephemeralComponentVals := make(map[string]cty.Value)
 	stackVals := make(map[string]cty.Value)
 	providerVals := make(map[string]map[string]cty.Value)
 	eachVals := make(map[string]cty.Value)
@@ -142,6 +142,8 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 			localVals[addr.Name] = val
 		case stackaddrs.Component:
 			componentVals[addr.Name] = val
+		case stackaddrs.EphemeralComponent:
+			ephemeralComponentVals[addr.Name] = val
 		case stackaddrs.StackCall:
 			stackVals[addr.Name] = val
 		case stackaddrs.ProviderConfigRef:
@@ -201,11 +203,12 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	}
 	hclCtx := &hcl.EvalContext{
 		Variables: map[string]cty.Value{
-			"var":       cty.ObjectVal(varVals),
-			"local":     cty.ObjectVal(localVals),
-			"component": cty.ObjectVal(componentVals),
-			"stack":     cty.ObjectVal(stackVals),
-			"provider":  cty.ObjectVal(providerValVals),
+			"var":                 cty.ObjectVal(varVals),
+			"local":               cty.ObjectVal(localVals),
+			"component":           cty.ObjectVal(componentVals),
+			"ephemeral_component": cty.ObjectVal(ephemeralComponentVals),
+			"stack":               cty.ObjectVal(stackVals),
+			"provider":            cty.ObjectVal(providerValVals),
 		},
 		Functions: fakeScope.Functions(),
 	}
@@ -228,12 +231,12 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	return hclCtx, diags
 }
 
-func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.Variable, wantTy cty.Type, defs *typeexpr.Defaults, decl *stackconfig.Component, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.Variable, wantTy cty.Type, defs *typeexpr.Defaults, inputExpr hcl.Expression, declRng tfdiags.SourceRange, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	v := cty.EmptyObjectVal
-	expr := decl.Inputs
-	rng := decl.DeclRange
+	expr := inputExpr
+	rng := declRng
 	var hclCtx *hcl.EvalContext
 	if expr != nil {
 		result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, scope)

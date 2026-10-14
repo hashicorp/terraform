@@ -98,6 +98,11 @@ func walkDynamicObjectsInStack[Output any](
 			}
 		})
 	}
+
+	for ephComponent := range stack.EphemeralComponents() {
+		walkEphemeralComponent(ctx, walk, stack, ephComponent, phase, visit)
+	}
+
 	for _, variable := range stack.InputVariables() {
 		visit(ctx, walk, variable)
 	}
@@ -401,4 +406,43 @@ func walkEmbeddedStack[Output any](
 
 	})
 
+}
+
+func walkEphemeralComponent[Output any](
+	ctx context.Context,
+	walk *walkWithOutput[Output],
+	stack *Stack,
+	addr stackaddrs.EphemeralComponent,
+	phase EvalPhase,
+	visit func(ctx context.Context, walk *walkWithOutput[Output], obj DynamicEvaler)) {
+
+	var wg sync.WaitGroup
+
+	ephComponent := stack.EphemeralComponent(addr)
+	if ephComponent != nil {
+		visit(ctx, walk, ephComponent) // first, just visit the ephemeral component directly
+
+		// then visit the component instances. we must do this in an async task as
+		// we evaulate the for_each valuate within the instances call.
+
+		wg.Add(1)
+		walk.AsyncTask(ctx, func(ctx context.Context) {
+			defer wg.Done()
+
+			insts, unknown := ephComponent.Instances(ctx, phase)
+			if unknown {
+				// TODO:@austinvalle: I'm fairly certain this is needed, but need to double check...
+				// My thought is that an unknown ephemeral component expansion will still want an instance "registered"
+				// that will return dynamic val and can be detected as deferred.
+				inst := ephComponent.UnknownInstance(ctx, addrs.WildcardKey, phase)
+				visit(ctx, walk, inst)
+
+				return
+			}
+
+			for _, inst := range insts {
+				visit(ctx, walk, inst)
+			}
+		})
+	}
 }
