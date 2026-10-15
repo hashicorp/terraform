@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -24,6 +25,8 @@ type Version interface {
 type VersionOutput struct {
 	// format_version is required for us to be able to change the JSON output in future
 	FormatVersion string `json:"format_version"`
+
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 
 	Version            string            `json:"terraform_version"`
 	Platform           string            `json:"platform"`
@@ -123,14 +126,13 @@ func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 // LogVersion prints the version information in JSON format.
 // The schema of the output is versioned using the format_version field, which is standard for commands with 'static log' JSON output.
 func (v *VersionJSON) LogVersion(version string, platform string, providerSelections map[addrs.Provider]*depsfile.ProviderLock, outdated bool, latest string, diags tfdiags.Diagnostics) {
-	v.legacyView.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
-
 	output := VersionOutput{
 		FormatVersion:      v.formatVersion,
 		Version:            version,
 		Platform:           platform,
 		ProviderSelections: make(map[string]string),
 		Outdated:           outdated,
+		Diagnostics:        v.view.prepareDiagnostics(diags),
 	}
 
 	for provider, lock := range providerSelections {

@@ -133,6 +133,7 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			platform: "linux_amd64",
 			wantOutput: `{
   "format_version": "1.0",
+  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
@@ -161,6 +162,7 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			},
 			wantOutput: `{
   "format_version": "1.0",
+  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {
@@ -180,6 +182,7 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			diags:              nil,
 			wantOutput: `{
   "format_version": "1.0",
+  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
@@ -198,12 +201,15 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 					"Watch out, or you'll trip!",
 				),
 			},
-			wantOutput: `
-Warning: Your shoelaces are untied
-
-Watch out, or you'll trip!
-{
+			wantOutput: `{
   "format_version": "1.0",
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "summary": "Your shoelaces are untied",
+      "detail": "Watch out, or you'll trip!"
+    }
+  ],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
