@@ -102,13 +102,6 @@ Workspace %q doesn't exist.
 You can create this workspace with the "new" subcommand 
 or include the "-or-create" flag with the "select" subcommand.`
 
-	envDelCurrent = `
-Workspace %[1]q is your active workspace.
-
-You cannot delete the currently active workspace. Please switch
-to another workspace and try again.
-`
-
 	envIsOverriddenNote = `
 
 The active workspace is being overridden using the TF_WORKSPACE environment

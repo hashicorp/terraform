@@ -224,3 +224,10 @@ Options:
 func (c *WorkspaceDeleteCommand) Synopsis() string {
 	return "Delete a workspace"
 }
+
+const envDelCurrent = `
+Workspace %[1]q is your active workspace.
+
+You cannot delete the currently active workspace. Please switch
+to another workspace and try again.
+`
