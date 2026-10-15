@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/moduleref"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/xlab/treeprint"
@@ -103,9 +104,9 @@ func NewModulesJSON(view *View) *ModulesJSON {
 }
 
 type ModulesOutput struct {
-	FormatVersion string         `json:"format_version"`
-	Modules       []ModuleOutput `json:"modules"`
-	// TODO: Add Diagnostics field
+	FormatVersion string                  `json:"format_version"`
+	Modules       []ModuleOutput          `json:"modules"`
+	Diagnostics   []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 type ModuleOutput struct {
@@ -116,8 +117,8 @@ type ModuleOutput struct {
 
 var _ Modules = (*ModulesJSON)(nil)
 
-func (v *ModulesJSON) Display(manifest moduleref.Manifest, _ tfdiags.Diagnostics) int {
-	flattenedManifest := flattenManifest(manifest, v.formatVersion)
+func (v *ModulesJSON) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	flattenedManifest := flattenManifest(manifest, v.formatVersion, v.view.prepareDiagnostics(diags))
 	v.view.Print(flattenedManifest)
 	return 0
 }
@@ -125,7 +126,7 @@ func (v *ModulesJSON) Display(manifest moduleref.Manifest, _ tfdiags.Diagnostics
 // FlattenManifest returns the nested contents of a moduleref.Manifest as
 // a ModulesOutput with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
-func flattenManifest(m moduleref.Manifest, formatVersion string) ModulesOutput {
+func flattenManifest(m moduleref.Manifest, formatVersion string, diags []*viewsjson.Diagnostic) ModulesOutput {
 	var flatten func(records []*moduleref.Record)
 	recordList := make([]ModuleOutput, 0) // Ensure non-nil slice for JSON output
 	flatten = func(records []*moduleref.Record) {
@@ -154,6 +155,7 @@ func flattenManifest(m moduleref.Manifest, formatVersion string) ModulesOutput {
 	ret := ModulesOutput{
 		FormatVersion: formatVersion,
 		Modules:       recordList,
+		Diagnostics:   diags,
 	}
 	return ret
 }
