@@ -4,6 +4,7 @@
 package statemgr
 
 import (
+	"bytes"
 	"context"
 	"io/ioutil"
 	"os"
@@ -285,6 +286,95 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 			t.Errorf("wrong marker value in backup state file\ngot:  %#v\nwant: %#v", got, want)
 		}
 	})
+}
+
+// TestFilesystem_writeStateFailureDoesNotCorrupt verifies that when a
+// writeState call fails while serializing the new snapshot, the existing
+// on-disk state file is left untouched: it still contains the original,
+// valid, fully-readable state rather than an empty or truncated file.
+//
+// This exercises the robust-write behavior: writeState serializes the full
+// snapshot into an in-memory buffer first and only truncates/overwrites the
+// real state file once a complete payload is available. Against the old
+// in-place implementation (which did Seek(0)+Truncate(0) and then
+// statefile.Write(s.file, s.stateFileOut) directly) this test would FAIL:
+// the file would already have been truncated to empty before serialization
+// failed, so the re-read below would find an empty/corrupt file instead of
+// the original state.
+//
+// We drive the write through the (unexported) writeState with a non-nil
+// SnapshotMeta so that the serial-comparison path (StatesMarshalEqual, which
+// itself panics on an unserializable state) is skipped and the failure
+// happens specifically at the final snapshot serialization that FEAT-002
+// made robust.
+func TestFilesystem_writeStateFailureDoesNotCorrupt(t *testing.T) {
+	defer testOverrideVersion(t, "1.2.3")()
+
+	// testFilesystem writes a valid TestFullInitialState() snapshot to the
+	// temp file and refreshes from it, so the file starts out holding a
+	// known-good, fully-readable state.
+	ls := testFilesystem(t)
+	defer os.Remove(ls.readPath)
+
+	// Capture the exact original bytes and the parsed original state so we
+	// can prove nothing changed after the failed write.
+	originalBytes, err := os.ReadFile(ls.path)
+	if err != nil {
+		t.Fatalf("failed to read original state file: %s", err)
+	}
+	if len(originalBytes) == 0 {
+		t.Fatalf("precondition failed: original state file is empty")
+	}
+	origState := TestFullInitialState()
+
+	// Build a state that cannot be serialized: an unknown output value causes
+	// statefile.Write to fail with a serialization diagnostic, while still
+	// being a non-nil *states.State (so we exercise the real write path, not
+	// the nil-state truncate shortcut).
+	badState := states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(
+			addrs.OutputValue{Name: "unserializable"}.Absolute(addrs.RootModuleInstance),
+			cty.UnknownVal(cty.String),
+			false, // not sensitive
+		)
+	})
+
+	// (a) writeState must report the serialization failure. Passing a non-nil
+	// meta forces the metadata and skips the StatesMarshalEqual serial check,
+	// so the error surfaces from the final buffer serialization.
+	meta := &SnapshotMeta{Lineage: "test-lineage", Serial: 1}
+	err = ls.writeState(badState, meta)
+	if err == nil {
+		t.Fatal("expected writeState to fail serializing an unknown output value, but it succeeded")
+	}
+
+	// (b) The on-disk file must still contain the original, valid state.
+	// First, the raw bytes should be byte-for-byte unchanged.
+	afterBytes, err := os.ReadFile(ls.path)
+	if err != nil {
+		t.Fatalf("failed to re-read state file after failed write: %s", err)
+	}
+	if !bytes.Equal(originalBytes, afterBytes) {
+		t.Fatalf("state file was modified by a failed write\noriginal (%d bytes):\n%s\nafter (%d bytes):\n%s",
+			len(originalBytes), originalBytes, len(afterBytes), afterBytes)
+	}
+
+	// And it must still parse back into the original state via statefile.Read.
+	fh, err := os.Open(ls.path)
+	if err != nil {
+		t.Fatalf("failed to open state file for re-read: %s", err)
+	}
+	defer fh.Close()
+	sf, err := statefile.Read(fh)
+	if err != nil {
+		t.Fatalf("state file is no longer readable after a failed write: %s", err)
+	}
+	if sf.State == nil || !sf.State.Equal(origState) {
+		for _, problem := range deep.Equal(origState, sf.State) {
+			t.Error(problem)
+		}
+		t.Fatalf("on-disk state changed after a failed write")
+	}
 }
 
 func TestFilesystem_nonExist(t *testing.T) {

@@ -1,0 +1,3 @@
+kind: BUG FIXES
+body: Local state files are now written more robustly, avoiding truncation or corruption of an existing state file if serialization fails during a write.
+time: 2026-10-02T17:45:00.000000-04:00
