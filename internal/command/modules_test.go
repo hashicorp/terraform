@@ -180,7 +180,7 @@ func TestModules_uninstalledModules(t *testing.T) {
 		t.Fatalf("expected to see a `not installed` error message: %s\n", output)
 	}
 
-	if !strings.Contains(output, `Run "terraform init"`) {
+	if !strings.Contains(output, `Run \"terraform init\"`) {
 		t.Fatalf("expected error message to ask user to run terraform init: %s\n", output)
 	}
 }
