@@ -124,10 +124,6 @@ func (s *Filesystem) State() *states.State {
 // WriteState is an incorrect implementation of Writer that actually also
 // persists.
 func (s *Filesystem) WriteState(state *states.State) error {
-	// TODO: this should use a more robust method of writing state, by first
-	// writing to a temp file on the same filesystem, and renaming the file over
-	// the original.
-
 	defer s.mutex()()
 
 	if s.readFile == nil {
@@ -188,15 +184,15 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	}
 	s.file.State = state.DeepCopy()
 
-	if _, err := s.stateFileOut.Seek(0, io.SeekStart); err != nil {
-		return err
-	}
-	if err := s.stateFileOut.Truncate(0); err != nil {
-		return err
-	}
-
 	if state == nil {
-		// if we have no state, don't write anything else.
+		// if we have no state, don't write anything else: just truncate the
+		// file so it's left empty.
+		if _, err := s.stateFileOut.Seek(0, io.SeekStart); err != nil {
+			return err
+		}
+		if err := s.stateFileOut.Truncate(0); err != nil {
+			return err
+		}
 		log.Print("[TRACE] statemgr.Filesystem: state is nil, so leaving the file empty")
 		return nil
 	}
@@ -216,7 +212,31 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	}
 
 	log.Printf("[TRACE] statemgr.Filesystem: writing snapshot at %s", s.path)
-	if err := statefile.Write(s.file, s.stateFileOut); err != nil {
+
+	// Serialize the full snapshot into an in-memory buffer first. We must not
+	// touch the real state file until we know we have a complete, valid
+	// payload: if serialization fails after we've truncated the file, the
+	// on-disk state would be left empty or corrupted. By serializing first we
+	// guarantee that a mid-serialization failure leaves the original file
+	// bytes untouched.
+	//
+	// Note we deliberately write through s.stateFileOut (the long-lived handle
+	// that holds the OS lock) rather than writing a temp file and renaming it
+	// over s.path: that handle is required for Windows mandatory locking and
+	// for the lock lifecycle in Unlock, so it must remain the handle state is
+	// written through.
+	var buf bytes.Buffer
+	if err := statefile.Write(s.file, &buf); err != nil {
+		return err
+	}
+
+	if _, err := s.stateFileOut.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	if err := s.stateFileOut.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := buf.WriteTo(s.stateFileOut); err != nil {
 		return err
 	}
 
