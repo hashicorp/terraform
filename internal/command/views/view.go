@@ -209,6 +209,11 @@ For more help on using this command, run:
   terraform %s -help
 `
 
+// wrapToStderr will word-wrap the given message to the output column width of stderr.
+func (v *View) wrapToStderr(msg string) string {
+	return format.WordWrap(msg, v.errorColumns())
+}
+
 // outputColumns returns the number of text character cells any non-error
 // output should be wrapped to.
 //

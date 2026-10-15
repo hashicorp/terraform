@@ -69,7 +69,7 @@ func (v *OperationHuman) Interrupted() {
 }
 
 func (v *OperationHuman) FatalInterrupt() {
-	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
+	v.view.streams.Eprintln(v.view.wrapToStderr(fatalInterrupt))
 }
 
 func (v *OperationHuman) Stopping() {

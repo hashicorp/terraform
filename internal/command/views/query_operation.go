@@ -36,7 +36,7 @@ func (v *QueryOperationHuman) Interrupted() {
 }
 
 func (v *QueryOperationHuman) FatalInterrupt() {
-	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
+	v.view.streams.Eprintln(v.view.wrapToStderr(fatalInterrupt))
 }
 
 func (v *QueryOperationHuman) Stopping() {
