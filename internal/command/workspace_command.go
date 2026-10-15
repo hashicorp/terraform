@@ -102,14 +102,6 @@ Workspace %q doesn't exist.
 You can create this workspace with the "new" subcommand 
 or include the "-or-create" flag with the "select" subcommand.`
 
-	envDeleted = `[reset][green]Deleted workspace %q!`
-
-	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty.
-The resources managed by the deleted workspace may still exist,
-but are no longer manageable by Terraform since the state has
-been deleted.
-`
-
 	envDelCurrent = `
 Workspace %[1]q is your active workspace.
 
