@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -288,7 +287,7 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	skipCleanup := run != nil && run.Config.SkipCleanup
 	if state.HasManagedResourceInstanceObjects() {
 		if skipCleanup {
-			t.view.streams.Print(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier), t.view.outputColumns()))
+			t.view.streams.Print(t.view.wrapToStdout(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier)))
 			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 				if resource.DeposedKey != states.NotDeposed {
 					t.view.streams.Printf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)

@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -44,15 +43,13 @@ type ValidateHuman struct {
 var _ Validate = (*ValidateHuman)(nil)
 
 func (v *ValidateHuman) Results(diags tfdiags.Diagnostics) int {
-	columns := v.view.outputColumns()
-
 	if len(diags) == 0 {
-		v.view.streams.Println(format.WordWrap(v.view.colorize.Color(validateSuccess), columns))
+		v.view.streams.Println(v.view.wrapToStdout(v.view.colorize.Color(validateSuccess)))
 	} else {
 		v.Diagnostics(diags)
 
 		if !diags.HasErrors() {
-			v.view.streams.Println(format.WordWrap(v.view.colorize.Color(validateWarnings), columns))
+			v.view.streams.Println(v.view.wrapToStdout(v.view.colorize.Color(validateWarnings)))
 		}
 	}
 
