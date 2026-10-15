@@ -114,7 +114,7 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 	manifestWithRef := resolver.Resolve(config)
 
 	// Render the new manifest with references
-	return view.Display(*manifestWithRef)
+	return view.Display(*manifestWithRef, diags)
 }
 
 // internalManifest will use the configuration loader to refresh and load the
