@@ -73,12 +73,6 @@ func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 type ValidateJSON struct {
 	view *JSONStaticView[ValidateOutput]
 
-	// Legacy view for logging warnings in human-readable format
-	// The `version` command's JSON output was implemented in a way that still produces
-	// human-readable output when diagnostics are logged. This is preserved, as updating
-	// it is a breaking change, but this should be amended in a future major version.
-	legacyView *View
-
 	formatVersion string
 }
 
@@ -92,7 +86,6 @@ func NewValidateJSON(view *View) *ValidateJSON {
 
 	return &ValidateJSON{
 		view:          NewJSONStaticView[ValidateOutput](view),
-		legacyView:    view,
 		formatVersion: formatVersion,
 	}
 }
@@ -103,10 +96,11 @@ type ValidateOutput struct {
 	// We include some summary information that is actually redundant
 	// with the detailed diagnostics, but avoids the need for callers
 	// to re-implement our logic for deciding these.
-	Valid        bool                    `json:"valid"`
-	ErrorCount   int                     `json:"error_count"`
-	WarningCount int                     `json:"warning_count"`
-	Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
+	Valid        bool `json:"valid"`
+	ErrorCount   int  `json:"error_count"`
+	WarningCount int  `json:"warning_count"`
+
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
@@ -142,8 +136,14 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 }
 
 // Diagnostics should only be called if the validation walk cannot be executed.
-// In this case, we choose to render human-readable diagnostic output,
-// primarily for backwards compatibility.
 func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.legacyView.Diagnostics(diags)
+	if len(diags) == 0 {
+		return
+	}
+
+	output := ValidateOutput{
+		FormatVersion: v.formatVersion,
+		Diagnostics:   v.view.prepareDiagnostics(diags),
+	}
+	v.view.Print(output)
 }

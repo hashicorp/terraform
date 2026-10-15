@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -75,7 +76,7 @@ func TestValidateHuman(t *testing.T) {
 	}
 }
 
-func TestValidateJSON(t *testing.T) {
+func TestValidateJSON_Results(t *testing.T) {
 	testCases := map[string]struct {
 		diag        tfdiags.Diagnostic
 		wantSuccess bool
@@ -130,6 +131,62 @@ func TestValidateJSON(t *testing.T) {
 
 			if err := json.Unmarshal([]byte(got), &result); err != nil {
 				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestValidateJSON_Diagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diag       tfdiags.Diagnostics
+		wantOutput string
+	}{
+		"error": {
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Configuration is missing random_pet",
+					"Every configuration should have a random_pet.",
+				),
+			},
+			`{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 0,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Configuration is missing random_pet",
+      "detail": "Every configuration should have a random_pet."
+    }
+  ]
+}
+`,
+		},
+		"nothing rendered when there are no diags": {
+			tfdiags.Diagnostics{},
+			"",
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewValidate(arguments.ViewJSON, view)
+
+			v.Diagnostics(tc.diag)
+
+			output := done(t)
+			gotErr := output.Stderr()
+			if gotErr != "" {
+				t.Errorf("unexpected stderr output:\n%s", gotErr)
+			}
+
+			got := output.Stdout()
+			if diff := cmp.Diff(tc.wantOutput, got); diff != "" {
+				t.Errorf("unexpected output diff:\n%s", diff)
 			}
 		})
 	}
