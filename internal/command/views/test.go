@@ -562,7 +562,8 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 			Path:     file.Name,
 			Run:      run.Name,
 			Progress: json.ToTestProgress(progress),
-			Status:   json.ToTestStatus(run.Status)},
+			Status:   json.ToTestStatus(run.Status),
+		},
 		"@testfile", file.Name,
 		"@testrun", run.Name)
 
@@ -705,7 +706,6 @@ func (t *TestJSON) FatalInterrupt() {
 }
 
 func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-
 	message := json.TestFatalInterrupt{
 		States: make(map[string][]json.TestFailedResource),
 	}
