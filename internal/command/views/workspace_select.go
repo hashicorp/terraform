@@ -40,18 +40,14 @@ var _ WorkspaceSelect = (*WorkspaceSelectHuman)(nil)
 
 func (v *WorkspaceSelectHuman) CreatedWorkspace(workspace string, diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	v.print(fmt.Sprintf(envCreated, workspace))
+	v.view.streams.Println(v.view.colorize.Color(fmt.Sprintf(strings.TrimSpace(envCreated), workspace)))
 }
 
 func (v *WorkspaceSelectHuman) SelectedWorkspace(workspace string, diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	v.print(fmt.Sprintf(`[reset][green]Switched to workspace %q.`, workspace))
+	v.view.streams.Println(v.view.colorize.Color(fmt.Sprintf(`[reset][green]Switched to workspace %q.`, workspace)))
 }
 
 func (v *WorkspaceSelectHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-}
-
-func (v *WorkspaceSelectHuman) print(message string) {
-	v.view.streams.Println(v.view.colorize.Color(strings.TrimSpace(message)))
 }
