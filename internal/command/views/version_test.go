@@ -247,3 +247,63 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestVersionJSON_Diagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diags tfdiags.Diagnostics
+
+		wantOutput string
+	}{
+		"errors are rendered alongside format_version and zero-values": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Error!",
+					"Fix your error!",
+				),
+			},
+			wantOutput: `{
+  "format_version": "1.0",
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Error!",
+      "detail": "Fix your error!"
+    }
+  ],
+  "terraform_version": "",
+  "platform": "",
+  "provider_selections": {},
+  "terraform_outdated": false
+}
+`,
+		},
+		"skip if no diags": {
+			diags:      tfdiags.Diagnostics{},
+			wantOutput: ``,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewVersion(arguments.ViewJSON, view)
+
+			v.Diagnostics(
+				tc.diags,
+			)
+
+			output := done(t)
+			gotErr := output.Stderr()
+			if gotErr != "" {
+				t.Errorf("unexpected stderr output:\n%s", gotErr)
+			}
+
+			got := output.Stdout()
+			if diff := cmp.Diff(tc.wantOutput, got); diff != "" {
+				t.Errorf("unexpected output diff:\n%s", diff)
+			}
+		})
+	}
+}
