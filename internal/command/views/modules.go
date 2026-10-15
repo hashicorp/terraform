@@ -15,7 +15,7 @@ import (
 
 type Modules interface {
 	// Display renders the list of module entries.
-	Display(manifest moduleref.Manifest) int
+	Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -38,7 +38,9 @@ type ModulesHuman struct {
 
 var _ Modules = (*ModulesHuman)(nil)
 
-func (v *ModulesHuman) Display(manifest moduleref.Manifest) int {
+func (v *ModulesHuman) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	v.view.Diagnostics(diags) // Print any warnings
+
 	if len(manifest.Records) == 0 {
 		v.view.streams.Println("No modules found in configuration.")
 		return 0
@@ -114,7 +116,7 @@ type ModuleOutput struct {
 
 var _ Modules = (*ModulesJSON)(nil)
 
-func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
+func (v *ModulesJSON) Display(manifest moduleref.Manifest, _ tfdiags.Diagnostics) int {
 	flattenedManifest := flattenManifest(manifest, v.formatVersion)
 	v.view.Print(flattenedManifest)
 	return 0
