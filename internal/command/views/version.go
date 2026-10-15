@@ -26,12 +26,12 @@ type VersionOutput struct {
 	// format_version is required for us to be able to change the JSON output in future
 	FormatVersion string `json:"format_version"`
 
-	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
-
 	Version            string            `json:"terraform_version"`
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
+
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 func NewVersion(vt arguments.ViewType, view *View) Version {

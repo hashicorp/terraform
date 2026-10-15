@@ -133,11 +133,11 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			platform: "linux_amd64",
 			wantOutput: `{
   "format_version": "1.0",
-  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `,
 		},
@@ -162,14 +162,14 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			},
 			wantOutput: `{
   "format_version": "1.0",
-  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {
     "registry.terraform.io/hashicorp/test1": "1.2.3",
     "registry.terraform.io/hashicorp/test2": "0.0.0"
   },
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `,
 		},
@@ -182,11 +182,11 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			diags:              nil,
 			wantOutput: `{
   "format_version": "1.0",
-  "diagnostics": [],
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
-  "terraform_outdated": true
+  "terraform_outdated": true,
+  "diagnostics": []
 }
 `,
 		},
@@ -203,17 +203,17 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			},
 			wantOutput: `{
   "format_version": "1.0",
+  "terraform_version": "1.0.0",
+  "platform": "linux_amd64",
+  "provider_selections": {},
+  "terraform_outdated": false,
   "diagnostics": [
     {
       "severity": "warning",
       "summary": "Your shoelaces are untied",
       "detail": "Watch out, or you'll trip!"
     }
-  ],
-  "terraform_version": "1.0.0",
-  "platform": "linux_amd64",
-  "provider_selections": {},
-  "terraform_outdated": false
+  ]
 }
 `,
 		},
@@ -264,17 +264,17 @@ func TestVersionJSON_Diagnostics(t *testing.T) {
 			},
 			wantOutput: `{
   "format_version": "1.0",
+  "terraform_version": "",
+  "platform": "",
+  "provider_selections": {},
+  "terraform_outdated": false,
   "diagnostics": [
     {
       "severity": "error",
       "summary": "Error!",
       "detail": "Fix your error!"
     }
-  ],
-  "terraform_version": "",
-  "platform": "",
-  "provider_selections": {},
-  "terraform_outdated": false
+  ]
 }
 `,
 		},
