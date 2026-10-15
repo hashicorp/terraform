@@ -81,12 +81,6 @@ func (v *ModulesHuman) Diagnostics(diags tfdiags.Diagnostics) {
 type ModulesJSON struct {
 	view *JSONStaticView[ModulesOutput]
 
-	// Legacy view for logging warnings in human-readable format
-	// The `modules` command's JSON output was implemented in a way that still produces
-	// human-readable output when diagnostics are logged. This is preserved, as updating
-	// it is a breaking change, but this should be amended in a future major version.
-	legacyView *View
-
 	formatVersion string
 }
 
@@ -98,7 +92,6 @@ func NewModulesJSON(view *View) *ModulesJSON {
 
 	return &ModulesJSON{
 		view:          NewJSONStaticView[ModulesOutput](view),
-		legacyView:    view,
 		formatVersion: formatVersion,
 	}
 }
@@ -160,9 +153,10 @@ func flattenManifest(m moduleref.Manifest, formatVersion string, diags []*viewsj
 	return ret
 }
 
-// Diagnostics produces human-readable output, despite the -json flag being used.
-// This was a bug in the original implementation of JSON output and should be updated in future.
-// TODO: Make diagnostics be rendered using the `ModuleOutput` struct, instead of human-readable format.
+// Diagnostics prints a JSON output that contains only the format and diagnostics information.
 func (v *ModulesJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.legacyView.Diagnostics(diags)
+	v.view.Print(ModulesOutput{
+		FormatVersion: v.formatVersion,
+		Diagnostics:   v.view.prepareDiagnostics(diags),
+	})
 }
