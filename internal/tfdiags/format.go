@@ -148,6 +148,10 @@ func FormatValueStrUnderTest(val cty.Value) (string, error) {
 	var buf bytes.Buffer
 
 	val, err := cty.Transform(val, func(path cty.Path, val cty.Value) (cty.Value, error) {
+		// Remove any deprecation marks as we consider them
+		// not relevant in the context of test outputs
+		val, _ = marks.GetDeprecationMarks(val)
+
 		// If a value is sensitive or ephemeral or unknown, we redact it, otherwise
 		// we return the value as is.
 		if marks.Has(val, marks.Sensitive) || marks.Has(val, marks.Ephemeral) || !val.IsKnown() {
