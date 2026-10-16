@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
 
@@ -47,11 +48,19 @@ type originLookup interface {
 // For the leaves without an origin it returns why, following P2 contract §4.
 // A key path whose planned value is null gets no entry.
 //
+// A reference is only an origin when the planned value comes from it. On an
+// update or a no-op, an attribute that ignore_changes covers keeps its prior
+// value, so its key paths get no origins and the reason IGNORE_CHANGES; on a
+// create or a replace, ignore_changes doesn't apply. A key path whose planned
+// value doesn't keep the configured value, which is configured, or
+// cty.NilVal if it isn't available, gets no origins and the reason
+// PROVIDER_CHANGED.
+//
 // overridden reports whether a module instance is overridden by test
 // overrides, or is nil without overrides. The outputs of an overridden module
 // come from the override instead of its configuration, so nothing in it is
 // followed.
-func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, planned cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
+func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, action plans.Action, planned, configured cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
 	if planned == cty.NilVal || len(keyPaths) == 0 {
 		return nil
 	}
@@ -61,6 +70,10 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(ad
 	}
 	e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
 	rec := e.record(addr, planned)
+	if rec != nil {
+		rec.action = action
+		rec.configured = configured
+	}
 
 	var ret []*proto.KeyOrigins
 	for _, kp := range keyPaths {
@@ -91,6 +104,11 @@ type originRecord struct {
 	provider addrs.Provider
 	self     originSym
 	planned  cty.Value
+	// action is the action of the record's change.
+	action plans.Action
+	// configured is the configuration value the record was planned with, or
+	// cty.NilVal if it isn't available.
+	configured cty.Value
 }
 
 // record returns the record of the resource instance at addr, or nil if its
@@ -129,7 +147,7 @@ func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value) *
 // value has n leaves, and the reasons for the leaves without an origin.
 // countable is false if the number of planned leaves isn't known.
 func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Origin, []proto.NoOriginReason) {
-	if policyIgnoresChanges(r.rc, kp[0]) {
+	if policyIgnoreChangesApplies(r.action) && policyIgnoresChanges(r.rc, kp[0]) {
 		return nil, []proto.NoOriginReason{proto.NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON}
 	}
 	if !policyBodySets(r.body, kp[0]) {
@@ -188,6 +206,9 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 			reasons[policyStructureReason(sym)] = true
 		}
 	}
+	if len(refs) > 0 && !policyPlanKeepsConfig(r.configured, r.planned, kp) {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
+	}
 	sort.Slice(refs, func(i, j int) bool {
 		if a, b := refs[i].addr.String(), refs[j].addr.String(); a != b {
 			return a < b
@@ -242,6 +263,66 @@ func policyBodySets(body *hclsyntax.Body, name string) bool {
 	return false
 }
 
+// policyIgnoreChangesApplies returns true if ignore_changes applies to the
+// planned value of a change with the given action: an update or a no-op of an
+// existing object keeps the prior values of the ignored attributes. A create
+// has no prior object, and a replace plans the new object from the whole
+// configuration.
+func policyIgnoreChangesApplies(action plans.Action) bool {
+	return action == plans.Update || action == plans.NoOp
+}
+
+// policyPlanKeepsConfig returns true if the planned value of a record at a
+// key path keeps the configured value, so the references the configuration
+// makes there are where the planned value comes from: every non-null
+// configured leaf has a planned leaf of its own that is known and equal, or
+// unknown like the configured leaf. Leaves are compared as a multiset,
+// because sets have no order and the key matching doesn't use the order of
+// lists either. A configured leaf that is null can get a planned value from
+// the provider, which computes it; that leaf has no reference. It returns
+// false if configured is cty.NilVal: whether the provider changed the value
+// can't be told.
+func policyPlanKeepsConfig(configured, planned cty.Value, kp []string) bool {
+	if configured == cty.NilVal || planned == cty.NilVal {
+		return false
+	}
+	configured, _ = configured.UnmarkDeep()
+	planned, _ = planned.UnmarkDeep()
+	cfgLeaves, ok := policyValueLeaves(configured, kp)
+	if !ok {
+		return false
+	}
+	plannedLeaves, ok := policyValueLeaves(planned, kp)
+	if !ok {
+		return false
+	}
+	used := make([]bool, len(plannedLeaves))
+	for _, c := range cfgLeaves {
+		found := false
+		for i, p := range plannedLeaves {
+			if !used[i] && policySameLeaf(c, p) {
+				used[i], found = true, true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// policySameLeaf returns true if a planned leaf keeps a configured leaf: both
+// are known and equal, or both are unknown. A known planned value for an
+// unknown configured one, or the reverse, isn't the same value as far as
+// Terraform can tell.
+func policySameLeaf(c, p cty.Value) bool {
+	if !c.IsKnown() || !p.IsKnown() {
+		return !c.IsKnown() && !p.IsKnown()
+	}
+	return c.Type().Equals(p.Type()) && c.Equals(p).True()
+}
+
 // policyIgnoresChanges returns true if the resource's ignore_changes covers
 // the attribute name, or might cover it.
 func policyIgnoresChanges(rc *configs.Resource, name string) bool {
@@ -277,36 +358,44 @@ func policyIgnoresChanges(rc *configs.Resource, name string) bool {
 // value is one leaf. ok is false if the number can't be known: a wholly
 // unknown collection or object, or a value that doesn't fit the key path.
 func policyPlannedLeaves(v cty.Value, steps []string) (n int, ok bool) {
+	leaves, ok := policyValueLeaves(v, steps)
+	return len(leaves), ok
+}
+
+// policyValueLeaves returns the leaves of a value at a key path like
+// policyPlannedLeaves counts them.
+func policyValueLeaves(v cty.Value, steps []string) ([]cty.Value, bool) {
 	if v.IsNull() {
-		return 0, true
+		return nil, true
 	}
 	ty := v.Type()
 	if !v.IsKnown() {
 		if len(steps) == 0 && ty.IsPrimitiveType() {
-			return 1, true
+			return []cty.Value{v}, true
 		}
-		return 0, false
+		return nil, false
 	}
 	switch {
 	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
+		var ret []cty.Value
 		for it := v.ElementIterator(); it.Next(); {
 			_, el := it.Element()
-			c, ok := policyPlannedLeaves(el, steps)
+			leaves, ok := policyValueLeaves(el, steps)
 			if !ok {
-				return 0, false
+				return nil, false
 			}
-			n += c
+			ret = append(ret, leaves...)
 		}
-		return n, true
+		return ret, true
 	case len(steps) > 0:
 		if !ty.IsObjectType() || !ty.HasAttribute(steps[0]) {
-			return 0, false
+			return nil, false
 		}
-		return policyPlannedLeaves(v.GetAttr(steps[0]), steps[1:])
+		return policyValueLeaves(v.GetAttr(steps[0]), steps[1:])
 	case ty.IsPrimitiveType():
-		return 1, true
+		return []cty.Value{v}, true
 	default:
-		return 0, false
+		return nil, false
 	}
 }
 

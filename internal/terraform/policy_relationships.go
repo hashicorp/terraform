@@ -785,7 +785,8 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 			return
 		}
 		if c.origins != nil {
-			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.After, c.keyPaths[key], c.origins)
+			configured, _ := c.ps.resourceConfigValue(addr)
+			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.Action, change.After, configured, c.keyPaths[key], c.origins)
 		}
 	}
 	if policyRecordHasPriorAttrs(change.Action, c.includePrior[key]) {

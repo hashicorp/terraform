@@ -920,6 +920,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	if diags.HasErrors() {
 		return nil, nil, deferred, diags
 	}
+	if pg := ctx.PolicyGraph(); pg != nil {
+		pg.resourceConfigured(n.Addr, origConfigVal)
+	}
 
 	metaConfigVal, metaDiags := n.Provider().getProviderMeta(ctx, n.Addr.Resource, n.ProviderMetas)
 	diags = diags.Append(metaDiags)

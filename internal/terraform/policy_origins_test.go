@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -45,6 +46,9 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 		noOrigin map[string]map[string][]string
 		// records are records that must exist, by relRecordKey.
 		records []string
+		// actions are the actions of records, by relRecordKey; not checked
+		// for records without an entry.
+		actions map[string]proto.ResourceAction
 	}{
 		// Followed forms.
 		"direct reference": {
@@ -896,26 +900,157 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.w":       {"net_id": {"EXPRESSION"}, "zone": {"EXPRESSION"}, "net_ids": {"EXPRESSION"}},
 			},
 		},
-		"no_origin: ignore_changes and computed attributes": {
+		"ignore_changes on create": {
 			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
 				resource "test_vm" "v" {
-					net_id = "x"
+					net_id = test_net.a.id
 					lifecycle {
 						ignore_changes = [net_id]
 					}
 				}
 				resource "test_vm" "all" {
-					net_id = "x"
+					net_id = test_net.a.id
 					lifecycle {
 						ignore_changes = all
 					}
 				}
 			`},
+			// ignore_changes doesn't apply without a prior object, so the
+			// planned value comes from the reference.
 			computedZone: true,
-			want:         map[string]map[string][]string{},
+			want: map[string]map[string][]string{
+				"test_vm.v":   {"net_id": {"test_net.a.id"}},
+				"test_vm.all": {"net_id": {"test_net.a.id"}},
+			},
 			noOrigin: map[string]map[string][]string{
-				"test_vm.v":   {"net_id": {"IGNORE_CHANGES"}, "zone": {"NOT_CONFIGURED"}},
-				"test_vm.all": {"net_id": {"IGNORE_CHANGES"}, "zone": {"IGNORE_CHANGES"}},
+				"test_net.a":  {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.v":   {"zone": {"NOT_CONFIGURED"}},
+				"test_vm.all": {"zone": {"NOT_CONFIGURED"}},
+			},
+			actions: map[string]proto.ResourceAction{"test_vm.v": relCreate, "test_vm.all": relCreate},
+		},
+		"ignore_changes on update": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_vm" "v" {
+					name   = "new"
+					net_id = test_net.a.id
+					zone   = test_net.a.name
+					lifecycle {
+						ignore_changes = [net_id]
+					}
+				}
+				resource "test_vm" "all" {
+					name   = "new"
+					net_id = test_net.a.id
+					zone   = test_net.a.name
+					lifecycle {
+						ignore_changes = all
+					}
+				}
+				resource "test_vm" "literal" {
+					net_id = "x"
+					lifecycle {
+						ignore_changes = [net_id]
+					}
+				}
+				resource "test_vm" "replaced" {
+					net_id = test_net.a.id
+					lifecycle {
+						ignore_changes = [net_id]
+					}
+				}
+			`},
+			state: func(s *states.SyncState) {
+				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
+				relNetState(s, "test_vm.v", `{"id":"v-id","name":"old","net_id":"other-id","zone":"a","nic":[]}`)
+				relNetState(s, "test_vm.all", `{"id":"all-id","name":"old","net_id":"other-id","zone":"a","nic":[]}`)
+				relNetState(s, "test_vm.literal", `{"id":"l-id","net_id":"y","nic":[]}`)
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_vm.replaced"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"id":"r-id","net_id":"other-id","nic":[]}`),
+					Status:    states.ObjectTainted,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+			},
+			// An attribute in ignore_changes keeps its prior value on an
+			// update or a no-op, whatever the configuration says; the other
+			// attributes still come from their references. A replace plans
+			// the new object from the whole configuration.
+			want: map[string]map[string][]string{
+				"test_vm.v":        {"zone": {"test_net.a.name"}},
+				"test_vm.replaced": {"net_id": {"test_net.a.id"}},
+			},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.v":       {"net_id": {"IGNORE_CHANGES"}},
+				"test_vm.all":     {"net_id": {"IGNORE_CHANGES"}, "zone": {"IGNORE_CHANGES"}},
+				"test_vm.literal": {"net_id": {"IGNORE_CHANGES"}},
+			},
+			actions: map[string]proto.ResourceAction{
+				"test_vm.v":        relUpdate,
+				"test_vm.all":      relNoOp,
+				"test_vm.literal":  relNoOp,
+				"test_vm.replaced": proto.ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION,
+			},
+		},
+		"provider changed the value": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "a" {
+					name = "a"
+				}
+				resource "test_net" "b" {
+					name = "b"
+				}
+				resource "test_vm" "known" {
+					net_id = test_net.a.name
+					zone   = test_net.b.name
+				}
+				resource "test_vm" "unknown" {
+					net_id = test_net.a.id
+					zone   = test_net.a.name
+				}
+				resource "test_vm" "list" {
+					net_ids = [test_net.b.name, test_net.a.name]
+				}
+				resource "test_vm" "list_changed" {
+					net_ids = [test_net.a.name, test_net.b.id]
+				}
+			`},
+			// A legacy provider plans other values than the configured ones:
+			// it upper-cases a known net_id, plans a known value for an
+			// unknown one and an unknown zone for a known one, sorts
+			// net_ids, and plans a known value for an unknown element. Only
+			// a planned value that keeps the configured leaves, in any
+			// order, comes from the references.
+			planFn: relLegacyPlanFn(func(addr, name string, v cty.Value) cty.Value {
+				switch {
+				case name == "net_id" && v.IsKnown():
+					return cty.StringVal(strings.ToUpper(v.AsString()))
+				case name == "net_id":
+					return cty.StringVal("fixed")
+				case name == "zone" && addr == "unknown":
+					return cty.UnknownVal(cty.String)
+				case name == "net_ids" && addr == "list":
+					return cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})
+				case name == "net_ids":
+					return cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b-id")})
+				}
+				return v
+			}),
+			want: map[string]map[string][]string{
+				"test_vm.known": {"zone": {"test_net.b.name"}},
+				"test_vm.list":  {"net_ids": {"test_net.a.name", "test_net.b.name"}},
+			},
+			noOrigin: map[string]map[string][]string{
+				"test_net.a":           {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_net.b":           {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
+				"test_vm.known":        {"net_id": {"PROVIDER_CHANGED"}},
+				"test_vm.unknown":      {"net_id": {"PROVIDER_CHANGED"}, "zone": {"PROVIDER_CHANGED"}},
+				"test_vm.list_changed": {"net_ids": {"PROVIDER_CHANGED"}},
 			},
 		},
 		"no_origin: unsupported": {
@@ -1323,6 +1458,13 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					t.Errorf("missing record %s", key)
 				}
 			}
+			for key, action := range test.actions {
+				if rec, ok := records[key]; !ok {
+					t.Errorf("missing record %s", key)
+				} else if rec.Action != action {
+					t.Errorf("%s: wrong action %s, want %s", key, rec.Action, action)
+				}
+			}
 			for addr, rec := range records {
 				if len(rec.Origins) > 0 && (rec.Source != proto.RecordSource_PLANNED_RECORD_SOURCE || rec.Attrs == nil || rec.DeposedKey != "") {
 					t.Errorf("%s: unexpected origins on a %s record", addr, rec.Source)
@@ -1341,6 +1483,121 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				if diff := cmp.Diff(test.noOrigin, gotNoOrigin); diff != "" {
 					t.Fatalf("wrong no-origin reasons (-want +got):\n%s", diff)
 				}
+			}
+		})
+	}
+}
+
+// relLegacyPlanFn returns a PlanResourceChangeFn of a legacy provider that
+// plans unknown ids for new objects, and replaces the proposed value of each
+// top-level attribute of a test_vm with what fn returns for the resource
+// name and attribute name.
+func relLegacyPlanFn(fn func(addr, name string, v cty.Value) cty.Value) func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	return func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		var resp providers.PlanResourceChangeResponse
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			return resp
+		}
+		attrs := req.ProposedNewState.AsValueMap()
+		for name, v := range attrs {
+			switch {
+			case name == "id" && v.IsNull():
+				attrs[name] = cty.UnknownVal(cty.String)
+			case req.TypeName == "test_vm" && !v.IsNull():
+				// The resource name isn't in the request, so the test
+				// configurations tell resources apart by their values.
+				attrs[name] = fn(relLegacyPlanName(req.Config), name, v)
+			}
+		}
+		resp.PlannedState = cty.ObjectVal(attrs)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+}
+
+// relLegacyPlanName tells the test_vm resources of the "provider changed the
+// value" test apart by their configuration.
+func relLegacyPlanName(cfg cty.Value) string {
+	switch {
+	case !cfg.GetAttr("net_ids").IsNull():
+		l := cfg.GetAttr("net_ids").AsValueSlice()
+		if l[1].IsKnown() {
+			return "list"
+		}
+		return "list_changed"
+	case cfg.GetAttr("net_id").IsKnown():
+		return "known"
+	default:
+		return "unknown"
+	}
+}
+
+func TestPolicyPlanKeepsConfig(t *testing.T) {
+	obj := func(attrs map[string]cty.Value) cty.Value {
+		return cty.ObjectVal(map[string]cty.Value{
+			"net_id":  attrs["net_id"],
+			"net_set": attrs["net_set"],
+			"nic":     attrs["nic"],
+		})
+	}
+	nic := func(netIDs ...cty.Value) cty.Value {
+		var elems []cty.Value
+		for _, id := range netIDs {
+			elems = append(elems, cty.ObjectVal(map[string]cty.Value{"net_id": id, "name": cty.StringVal("n")}))
+		}
+		if len(elems) == 0 {
+			return cty.ListValEmpty(cty.Object(map[string]cty.Type{"net_id": cty.String, "name": cty.String}))
+		}
+		return cty.ListVal(elems)
+	}
+	str := cty.StringVal
+	unknown := cty.UnknownVal(cty.String)
+	null := cty.NullVal(cty.String)
+	set := func(vals ...cty.Value) cty.Value { return cty.SetVal(vals) }
+	tests := map[string]struct {
+		configured, planned cty.Value
+		kp                  string
+		want                bool
+	}{
+		"equal":                         {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", true},
+		"marked":                        {obj(map[string]cty.Value{"net_id": str("a").Mark(marks.Sensitive)}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", true},
+		"different":                     {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": str("A")}), "net_id", false},
+		"unknown kept unknown":          {obj(map[string]cty.Value{"net_id": unknown}), obj(map[string]cty.Value{"net_id": unknown}), "net_id", true},
+		"unknown planned known":         {obj(map[string]cty.Value{"net_id": unknown}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", false},
+		"known planned unknown":         {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": unknown}), "net_id", false},
+		"known planned null":            {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": null}), "net_id", false},
+		"not available":                 {cty.NilVal, obj(map[string]cty.Value{"net_id": str("a")}), "net_id", false},
+		"other attributes are ignored":  {obj(map[string]cty.Value{"net_id": str("a"), "net_set": set(str("x"))}), obj(map[string]cty.Value{"net_id": str("a"), "net_set": set(str("y"))}), "net_id", true},
+		"set":                           {obj(map[string]cty.Value{"net_set": set(str("a"), unknown)}), obj(map[string]cty.Value{"net_set": set(unknown, str("a"))}), "net_set", true},
+		"set element changed":           {obj(map[string]cty.Value{"net_set": set(str("a"), str("b"))}), obj(map[string]cty.Value{"net_set": set(str("a"), str("c"))}), "net_set", false},
+		"set element known":             {obj(map[string]cty.Value{"net_set": set(str("a"), unknown)}), obj(map[string]cty.Value{"net_set": set(str("a"), str("b"))}), "net_set", false},
+		"wholly unknown set":            {obj(map[string]cty.Value{"net_set": cty.UnknownVal(cty.Set(cty.String))}), obj(map[string]cty.Value{"net_set": cty.UnknownVal(cty.Set(cty.String))}), "net_set", false},
+		"nested blocks":                 {obj(map[string]cty.Value{"nic": nic(unknown, str("b"))}), obj(map[string]cty.Value{"nic": nic(str("b"), unknown)}), "nic.net_id", true},
+		"null configured leaf computed": {obj(map[string]cty.Value{"nic": nic(unknown, null)}), obj(map[string]cty.Value{"nic": nic(unknown, str("c"))}), "nic.net_id", true},
+		"nested block dropped":          {obj(map[string]cty.Value{"nic": nic(unknown, str("b"))}), obj(map[string]cty.Value{"nic": nic(unknown)}), "nic.net_id", false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			for _, v := range []*cty.Value{&test.configured, &test.planned} {
+				if *v == cty.NilVal {
+					continue
+				}
+				// Fill in the attributes the test leaves out.
+				attrs := v.AsValueMap()
+				if attrs["net_id"] == cty.NilVal {
+					attrs["net_id"] = null
+				}
+				if attrs["net_set"] == cty.NilVal {
+					attrs["net_set"] = cty.NullVal(cty.Set(cty.String))
+				}
+				if attrs["nic"] == cty.NilVal {
+					attrs["nic"] = cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String, "name": cty.String})))
+				}
+				*v = cty.ObjectVal(attrs)
+			}
+			if got := policyPlanKeepsConfig(test.configured, test.planned, strings.Split(test.kp, ".")); got != test.want {
+				t.Errorf("got %t, want %t", got, test.want)
 			}
 		})
 	}
@@ -1583,7 +1840,8 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 			}
 
 			// A record in the module.
-			got := originsFor(cfg, exp, overridden, childVM, cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)}), [][]string{{"net_id"}}, lookup)
+			val := cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)})
+			got := originsFor(cfg, exp, overridden, childVM, plans.Create, val, val, [][]string{{"net_id"}}, lookup)
 			if len(got) != 1 {
 				t.Fatalf("expected one entry for the key path, got %v", got)
 			}

@@ -6,9 +6,11 @@ package terraform
 import (
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -33,6 +35,12 @@ type policySubgraph struct {
 	// providers records the provider configurations configured during the
 	// walk. It's non-nil only when the walk has a relationship run.
 	providers *policyProviderTable
+
+	// configVals are the unmarked configuration values of the managed
+	// resource instances planned during the walk, by address, so origins can
+	// check that the planned value keeps the configured one. It's non-nil
+	// only when the walk is a plan with a relationship run.
+	configVals map[string]cty.Value
 }
 
 func newPolicySubgraph() *policySubgraph {
@@ -45,8 +53,34 @@ func newPolicySubgraphForRun(run *policyRunOpts) *policySubgraph {
 	ps := &policySubgraph{run: run}
 	if run != nil {
 		ps.providers = newPolicyProviderTable()
+		if run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE {
+			ps.configVals = make(map[string]cty.Value)
+		}
 	}
 	return ps
+}
+
+// resourceConfigured records the configuration value that a managed resource
+// instance was planned with. It has no effect unless the walk is a plan with
+// a relationship run.
+func (ps *policySubgraph) resourceConfigured(addr addrs.AbsResourceInstance, val cty.Value) {
+	if ps.configVals == nil {
+		return
+	}
+	val, _ = val.UnmarkDeep()
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+	ps.configVals[addr.String()] = val
+}
+
+// resourceConfigValue returns the configuration value that a managed
+// resource instance was planned with during the walk; ok is false if it
+// wasn't recorded.
+func (ps *policySubgraph) resourceConfigValue(addr addrs.AbsResourceInstance) (val cty.Value, ok bool) {
+	ps.lock.Lock()
+	defer ps.lock.Unlock()
+	val, ok = ps.configVals[addr.String()]
+	return val, ok
 }
 
 func (ps *policySubgraph) Add(node *nodeResourcePolicy) {
