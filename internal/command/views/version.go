@@ -113,6 +113,7 @@ func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		return
 	}
+
 	output := VersionOutput{
 		FormatVersion: v.formatVersion,
 		Diagnostics:   v.view.prepareDiagnostics(diags),
@@ -121,7 +122,14 @@ func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 		ProviderSelections: make(map[string]string),
 	}
 
-	v.view.Print(output)
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }
 
 // LogVersion prints the version information in JSON format.
