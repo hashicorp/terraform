@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/e2e"
 )
 
-// Reproduction of the scenario reported in https://github.com/hashicorp/terraform/issues/39299
+// Regression test for https://github.com/hashicorp/terraform/issues/39299
 func TestFmt_errorWritingToFile(t *testing.T) {
 	switch runtime.GOOS {
 	case "darwin", "linux":
@@ -28,11 +28,11 @@ func TestFmt_errorWritingToFile(t *testing.T) {
 
 	// Assert that main.tf has content before running fmt
 	mainPath := filepath.Join(tf.WorkDir(), "main.tf")
-	content, err := os.ReadFile(mainPath)
+	originalContent, err := os.ReadFile(mainPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading test file: %s", err)
 	}
-	if len(content) == 0 {
+	if len(originalContent) == 0 {
 		t.Fatal("expected main.tf to contain config, but it is empty")
 	}
 
@@ -52,8 +52,7 @@ func TestFmt_errorWritingToFile(t *testing.T) {
 
 	// But, we need to wrap the command above in a shell command to enforce `ulimit -f 0`.
 	// This:
-	//   * Causes an error in fmt when writing formatted content to the file,
-	//     resulting in the file being left empty.
+	//   * Causes an error in fmt when writing formatted content to the file.
 	//   * Only impacts this command and not the entire test process.
 	cmd := exec.Command(
 		"/bin/sh", "-c",
@@ -76,12 +75,15 @@ func TestFmt_errorWritingToFile(t *testing.T) {
 		t.Fatalf("expected stderr to contain '%s', but got: %s", expectErr, stderr)
 	}
 
-	// Finally, confirm that the error made main.tf empty
-	content, err = os.ReadFile(mainPath)
+	// Finally, confirm that the error hasn't impacted the original content in main.tf
+	latestContent, err := os.ReadFile(mainPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading test file: %s", err)
 	}
-	if len(content) != 0 {
-		t.Fatalf("expected main.tf to be empty after error, but got: %s", string(content))
+	if len(latestContent) == 0 {
+		t.Fatalf("expected main.tf to not be empty after error, but got: %s", string(latestContent))
+	}
+	if !bytes.Equal(originalContent, latestContent) {
+		t.Fatalf("expected main.tf content to remain unchanged, but it changed")
 	}
 }
