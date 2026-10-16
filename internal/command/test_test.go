@@ -370,9 +370,11 @@ func TestTest_Runs(t *testing.T) {
 		},
 		"ephemeral_input_with_error": {
 			expectedOut: []string{"Error message refers to ephemeral values", "1 passed, 1 failed."},
-			expectedErr: []string{"Test assertion failed",
+			expectedErr: []string{
+				"Test assertion failed",
 				`│ - "(ephemeral value)"
-    │ + "bar"`},
+    │ + "bar"`,
+			},
 			code: 1,
 		},
 		"ephemeral_resource": {
@@ -1783,7 +1785,8 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
 							return pInst(), nil
 						},
-					}},
+					},
+				},
 				Ui:             ui,
 				View:           view,
 				Streams:        initStreams,
@@ -3087,7 +3090,6 @@ can remove the provider configuration again.
 
 	for file, tc := range tcs {
 		t.Run(file, func(t *testing.T) {
-
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
 			t.Chdir(td)
@@ -3395,7 +3397,6 @@ func TestTest_SkipCleanup(t *testing.T) {
 	}
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
-
 		expected := `
 Warning: Duplicate "skip_cleanup" block
 
@@ -3499,7 +3500,6 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	}
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
-
 		expected := `main.tftest.hcl... in progress
   run "test"... pass
   run "test_two"... pass
@@ -3673,7 +3673,6 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	}
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
-
 		expected := []string{
 			`{"@level":"warn","@message":"Warning: Duplicate \"skip_cleanup\" block","@module":"terraform.ui","diagnostic":{"detail":"The run \"test_three\" has a skip_cleanup attribute set, but shares state with an earlier run \"test_two\" that also has skip_cleanup set. The later run takes precedence, and this attribute is ignored for the earlier run.","range":{"end":{"byte":163,"column":15,"line":15},"filename":"main.tftest.hcl","start":{"byte":151,"column":3,"line":15}},"severity":"warning","snippet":{"code":"  skip_cleanup = true","context":"run \"test_three\"","highlight_end_offset":14,"highlight_start_offset":2,"start_line":15,"values":[]},"summary":"Duplicate \"skip_cleanup\" block"},"type":"diagnostic"}`,
 			`{"@level":"info","@message":"Found 1 file and 5 run blocks","@module":"terraform.ui","test_abstract":{"main.tftest.hcl":["test","test_two","test_three","test_four","test_five"]},"type":"test_abstract"}`,
@@ -3763,7 +3762,6 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	}
 
 	t.Run("skipped resources should not be deleted", func(t *testing.T) {
-
 		expected := `main.tftest.hcl... in progress
   run "test"... pass
   run "test_two"... pass
@@ -4400,7 +4398,6 @@ not.
 }
 
 func TestTest_UnknownAndNulls(t *testing.T) {
-
 	tcs := map[string]struct {
 		code   int
 		stdout string
@@ -4562,7 +4559,6 @@ operation, and the specified output value is only known after apply.
 			}
 		})
 	}
-
 }
 
 func TestTest_SensitiveInputValues(t *testing.T) {
@@ -5276,7 +5272,8 @@ test_resource_id = %s`, resourceId, resourceId)
 				"apply_fail":           cty.False,
 				"destroy_wait_seconds": cty.NullVal(cty.Number),
 				"defer":                cty.NullVal(cty.Bool),
-			})},
+			}),
+		},
 	}
 	provider := testing_command.NewProvider(resourceStore)
 
@@ -5373,7 +5370,6 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 
 	for tn, tc := range cases {
 		t.Run(tn, func(t *testing.T) {
-
 			// SETUP
 			td := t.TempDir()
 			testCopyDir(t, testFixturePath(path.Join("test", "valid-use-local-backend/no-prior-state")), td)
@@ -5538,7 +5534,6 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 			if provider.ResourceCount() > 0 {
 				t.Fatalf("should have deleted all resources on completion but left %v", provider.ResourceString())
 			}
-
 		})
 	}
 }
@@ -6049,7 +6044,6 @@ func TestTest_TeardownOrder(t *testing.T) {
 						setupTeardownStart = parsedTime
 					}
 				}
-
 			} else {
 				if ts, ok := obj["@timestamp"].(string); ok {
 					parsedTime, _ := time.Parse(time.RFC3339, ts)
