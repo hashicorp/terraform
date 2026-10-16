@@ -42,6 +42,7 @@ var (
 						"destroy_wait_seconds": {Type: cty.Number, Optional: true},
 						"write_only":           {Type: cty.String, Optional: true, WriteOnly: true},
 						"defer":                {Type: cty.Bool, Optional: true},
+						"deprecated":           {Type: cty.String, Computed: true, Deprecated: true},
 					},
 				},
 			},
