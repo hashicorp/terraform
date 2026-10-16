@@ -24,7 +24,7 @@ type JSONStaticView[T any] struct {
 	schema T
 }
 
-// Print is a shared convenience method for printing the given data as indented JSON.
+// Print is a shared convenience method for printing the given data as indented JSON to stdout.
 // Methods that intentionally do not indent their output should not use this function.
 // Examples: `metadata function`, `providers schema`
 func (v *JSONStaticView[T]) Print(data T) {
@@ -35,6 +35,22 @@ func (v *JSONStaticView[T]) Print(data T) {
 	}
 
 	v.view.streams.Println(string(b))
+}
+
+// Eprint is a shared convenience method for printing the given data as indented JSON to stderr.
+// Methods that intentionally do not indent their output should not use this function.
+// Examples: `metadata function`, `providers schema`
+//
+// This method is intended to be used when the data includes an error diagnostic, i.e. when a command
+// is returning early due to an error and the output contains diagnostics along with zero-values.
+func (v *JSONStaticView[T]) Eprint(data T) {
+	b, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		// Should never happen because we fully-control the input here
+		panic(err)
+	}
+
+	v.view.streams.Eprintln(string(b))
 }
 
 func (v *JSONStaticView[T]) prepareDiagnostics(diags tfdiags.Diagnostics) []*viewsjson.Diagnostic {
