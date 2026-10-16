@@ -513,10 +513,12 @@ const (
 	NoOriginReason_VARIABLE_NO_ORIGIN_REASON    NoOriginReason = 3 // a root module variable, or a module variable left at its default
 	NoOriginReason_EXPRESSION_NO_ORIGIN_REASON  NoOriginReason = 4 // function call, conditional, for, operator, multi-part template,
 	// non-literal index or key, splat over for_each
-	NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON   NoOriginReason = 5 // the attribute isn't set in the configuration (the provider computes it)
-	NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON   NoOriginReason = 6
-	NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON NoOriginReason = 7 // the planned value's shape differs from the configuration
-	NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON      NoOriginReason = 8 // anything else: JSON syntax, override files, no configuration,
+	NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON NoOriginReason = 5 // the attribute isn't set in the configuration (the provider computes it)
+	NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON NoOriginReason = 6 // an update or no-op keeps the prior value of an attribute in
+	// ignore_changes; not sent for creates and replaces
+	NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON NoOriginReason = 7 // the planned value differs from the configured one, or Core
+	// can't tell whether it does
+	NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON NoOriginReason = 8 // anything else: JSON syntax, override files, no configuration,
 )
 
 // Enum value maps for NoOriginReason.

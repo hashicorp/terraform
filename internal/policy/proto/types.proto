@@ -148,8 +148,10 @@ enum NoOriginReason {
   EXPRESSION_NO_ORIGIN_REASON = 4;       // function call, conditional, for, operator, multi-part template,
                                          // non-literal index or key, splat over for_each
   NOT_CONFIGURED_NO_ORIGIN_REASON = 5;   // the attribute isn't set in the configuration (the provider computes it)
-  IGNORE_CHANGES_NO_ORIGIN_REASON = 6;
-  PROVIDER_CHANGED_NO_ORIGIN_REASON = 7; // the planned value's shape differs from the configuration
+  IGNORE_CHANGES_NO_ORIGIN_REASON = 6;   // an update or no-op keeps the prior value of an attribute in
+                                         // ignore_changes; not sent for creates and replaces
+  PROVIDER_CHANGED_NO_ORIGIN_REASON = 7; // the planned value differs from the configured one, or Core
+                                         // can't tell whether it does
   UNSUPPORTED_NO_ORIGIN_REASON = 8;      // anything else: JSON syntax, override files, no configuration,
                                          // whole-object references, map keys and set elements, type
                                          // mismatch, null target, unknown expansion, path/terraform/self,
