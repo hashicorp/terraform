@@ -1911,10 +1911,11 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 
 		c.Run(nil)
 	})
-	output := done(t).All()
 
-	if !strings.Contains(output, "Two interrupts received") {
-		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	output := done(t)
+
+	if !strings.Contains(output.Stderr(), "Two interrupts received") {
+		t.Errorf("output didn't produce the right output:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
 
 	cleanupMessage := `Terraform was interrupted while executing main.tftest.hcl, and may not have
@@ -1928,8 +1929,8 @@ test:
 
 	// It's really important that the above message is printed, so we're testing
 	// for it specifically and making sure it contains all the resources.
-	if !strings.Contains(output, cleanupMessage) {
-		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	if !strings.Contains(output.Stderr(), cleanupMessage) {
+		t.Errorf("output didn't produce the right output:\n\nstdout:\n%s\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
 
 	// This time the test command shouldn't have cleaned up the resource because
