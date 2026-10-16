@@ -195,7 +195,7 @@ func (v *OperationJSON) Interrupted() {
 }
 
 func (v *OperationJSON) FatalInterrupt() {
-	v.view.Log(fatalInterrupt)
+	v.view.log.Error(fatalInterrupt)
 }
 
 func (v *OperationJSON) Stopping() {

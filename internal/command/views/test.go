@@ -698,11 +698,11 @@ func (t *TestJSON) Diagnostics(run *moduletest.Run, file *moduletest.File, diags
 }
 
 func (t *TestJSON) Interrupted() {
-	t.view.Log(interrupted)
+	t.view.log.Error(interrupted)
 }
 
 func (t *TestJSON) FatalInterrupt() {
-	t.view.Log(fatalInterrupt)
+	t.view.log.Error(fatalInterrupt)
 }
 
 func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {

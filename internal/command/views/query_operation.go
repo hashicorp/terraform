@@ -131,7 +131,7 @@ func (v *QueryOperationJSON) Interrupted() {
 }
 
 func (v *QueryOperationJSON) FatalInterrupt() {
-	v.view.Log(fatalInterrupt)
+	v.view.log.Error(fatalInterrupt)
 }
 
 func (v *QueryOperationJSON) Stopping() {
