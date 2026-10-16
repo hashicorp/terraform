@@ -5230,6 +5230,7 @@ test_resource_id = %s`, resourceId, resourceId)
 				"apply_fail":           cty.False,
 				"destroy_wait_seconds": cty.NullVal(cty.Number),
 				"defer":                cty.NullVal(cty.Bool),
+				"deprecated":           cty.NullVal(cty.String),
 			})},
 	}
 	provider := testing_command.NewProvider(resourceStore)
