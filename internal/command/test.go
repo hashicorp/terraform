@@ -76,6 +76,9 @@ Options:
   -parallelism=n        Limit the number of concurrent operations within the 
   						plan/apply operation of a test run. Defaults to 10.
 
+  -run-parallelism=n    Limit the number of test runs that can be executed in
+                        parallel within a single test file. Defaults to 10.
+
   -test-directory=path	Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
