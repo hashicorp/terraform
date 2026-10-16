@@ -180,13 +180,13 @@ func TestValidateJSON_Diagnostics(t *testing.T) {
 
 			output := done(t)
 			gotErr := output.Stderr()
-			if gotErr != "" {
-				t.Errorf("unexpected stderr output:\n%s", gotErr)
+			if diff := cmp.Diff(tc.wantOutput, gotErr); diff != "" {
+				t.Errorf("unexpected output diff:\n%s", diff)
 			}
 
 			got := output.Stdout()
-			if diff := cmp.Diff(tc.wantOutput, got); diff != "" {
-				t.Errorf("unexpected output diff:\n%s", diff)
+			if got != "" {
+				t.Errorf("unexpected stdout output:\n%s", got)
 			}
 		})
 	}

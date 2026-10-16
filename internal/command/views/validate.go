@@ -145,5 +145,13 @@ func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
 		FormatVersion: v.formatVersion,
 		Diagnostics:   v.view.prepareDiagnostics(diags),
 	}
-	v.view.Print(output)
+
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }
