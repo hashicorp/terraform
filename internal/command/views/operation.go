@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -65,11 +64,11 @@ type OperationHuman struct {
 var _ Operation = (*OperationHuman)(nil)
 
 func (v *OperationHuman) Interrupted() {
-	v.view.streams.Println(format.WordWrap(interrupted, v.view.outputColumns()))
+	v.view.streams.Println(v.view.wrapToStdout(interrupted))
 }
 
 func (v *OperationHuman) FatalInterrupt() {
-	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
+	v.view.streams.Eprintln(v.view.wrapToStderr(fatalInterrupt))
 }
 
 func (v *OperationHuman) Stopping() {
@@ -161,24 +160,21 @@ func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 
 	if genConfigPath != "" {
 		v.view.streams.Println(
-			format.WordWrap(
-				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
-				v.view.outputColumns(),
+			v.view.wrapToStdout(
+				"\n" + strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
 			))
 	}
 
 	if planPath == "" {
 		v.view.streams.Println(
-			format.WordWrap(
-				"\n"+strings.TrimSpace(planHeaderNoOutput),
-				v.view.outputColumns(),
+			v.view.wrapToStdout(
+				"\n" + strings.TrimSpace(planHeaderNoOutput),
 			),
 		)
 	} else {
 		v.view.streams.Println(
-			format.WordWrap(
-				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
-				v.view.outputColumns(),
+			v.view.wrapToStdout(
+				"\n" + strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
 			),
 		)
 	}

@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -91,7 +90,7 @@ func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 
 	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
-		v.view.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.view.outputColumns()))
+		v.view.streams.Printf("\n%s\n\n", v.view.wrapToStdout(stateOutPathPostApply))
 		v.view.streams.Printf("State path: %s\n", stateOutPath)
 	}
 }

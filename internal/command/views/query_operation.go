@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -32,11 +31,11 @@ type QueryOperationHuman struct {
 var _ Operation = (*QueryOperationHuman)(nil)
 
 func (v *QueryOperationHuman) Interrupted() {
-	v.view.streams.Println(format.WordWrap(interrupted, v.view.outputColumns()))
+	v.view.streams.Println(v.view.wrapToStdout(interrupted))
 }
 
 func (v *QueryOperationHuman) FatalInterrupt() {
-	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
+	v.view.streams.Eprintln(v.view.wrapToStderr(fatalInterrupt))
 }
 
 func (v *QueryOperationHuman) Stopping() {
@@ -76,7 +75,7 @@ func (v *QueryOperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas)
 
 	if len(emptyBlocks) > 0 {
 		msg := fmt.Sprintf(v.view.colorize.Color("[bold][yellow]Warning:[reset][bold] list block(s) [%s] returned 0 results.\n"), strings.Join(emptyBlocks, ", "))
-		v.view.streams.Println(format.WordWrap(msg, v.view.outputColumns()))
+		v.view.streams.Println(v.view.wrapToStdout(msg))
 	}
 
 	if v.queryPolicy == nil || !v.queryPolicy.HasResults() {
