@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'validate: The `validate` command now returns diagnostics in JSON format when the `-json` flag is supplied.'
+time: 2026-10-15T14:47:20.704506+01:00
+custom:
+    Issue: "39395"
