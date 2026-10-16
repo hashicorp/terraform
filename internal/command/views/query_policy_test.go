@@ -450,28 +450,32 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 			tc.setup(v)
 			v.Plan(tc.plan, tc.schemas)
 
-			output := done(t).All()
+			output := done(t)
+			allOutput := output.All()
 			for _, want := range tc.want {
-				if !strings.Contains(output, want) {
-					t.Errorf("expected output to contain %q\nfull output:\n%s", want, output)
+				if !strings.Contains(allOutput, want) {
+					t.Errorf("expected output to contain %q\nfull output:\n%s", want, allOutput)
 				}
 				if strings.HasPrefix(want, "Summary:") {
-					if strings.Count(output, "Summary:") != 1 {
-						t.Errorf("expected exactly one final summary\nfull output:\n%s", output)
+					if strings.Count(allOutput, "Summary:") != 1 {
+						t.Errorf("expected exactly one final summary\nfull output:\n%s", allOutput)
 					}
-					if !strings.HasSuffix(strings.TrimSpace(output), want) {
-						t.Errorf("expected summary to be the final output line\nfull output:\n%s", output)
+					stdout := output.Stdout()
+					// We cannot make assertions about the end of done(t).All(),
+					// as stdout and stderr aren't mixed consistently (flakey).
+					if !strings.HasSuffix(strings.TrimSpace(stdout), want) {
+						t.Errorf("expected summary to be the final output line in stdout\n\nfull stdout:\n%s\n\nfull output:\n%s", stdout, allOutput)
 					}
 				}
 			}
 			for _, notWant := range tc.notWant {
-				if strings.Contains(output, notWant) {
-					t.Errorf("expected output NOT to contain %q\nfull output:\n%s", notWant, output)
+				if strings.Contains(allOutput, notWant) {
+					t.Errorf("expected output NOT to contain %q\nfull output:\n%s", notWant, allOutput)
 				}
 			}
 			for _, once := range tc.countOnce {
-				if n := strings.Count(output, once); n != 1 {
-					t.Errorf("expected %q to appear exactly once, got %d times\nfull output:\n%s", once, n, output)
+				if n := strings.Count(allOutput, once); n != 1 {
+					t.Errorf("expected %q to appear exactly once, got %d times\nfull output:\n%s", once, n, allOutput)
 				}
 			}
 		})
@@ -689,7 +693,8 @@ func TestNewQueryHuman_hooksRouteToOperation(t *testing.T) {
 			listBlockAddr,
 			map[string]string{"id": "i-1"},
 			policy.DenyResult,
-			[]policyResultSpec{{address: "policy.deny", result: policy.DenyResult,
+			[]policyResultSpec{{
+				address: "policy.deny", result: policy.DenyResult,
 				diagnostics: []policy.Diagnostic{policy.NewErrorDiagnostic("denied", "detail", policy.DenyResult)},
 			}},
 		)); err != nil {

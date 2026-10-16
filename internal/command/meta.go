@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -595,34 +594,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	}
 
 	return &opts, err
-}
-
-// defaultFlagSet creates a default flag set for commands.
-// See also command/arguments/default.go
-func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
-	f := flag.NewFlagSet(n, flag.ContinueOnError)
-	f.SetOutput(ioutil.Discard)
-
-	// Set the default Usage to empty
-	f.Usage = func() {}
-
-	return f
-}
-
-// extendedFlagSet adds custom flags that are mostly used by commands
-// that are used to run an operation like plan or apply.
-func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
-	f := m.defaultFlagSet(n)
-
-	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
-	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
-
-	// commands that bypass locking will supply their own flag on this var,
-	// but set the initial meta value to true as a failsafe.
-	m.stateLock = true
-
-	return f
 }
 
 // process will process any -no-color entries out of the arguments. This
