@@ -1326,7 +1326,7 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-empty"), td)
 	t.Chdir(td)
 
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	opts := &BackendOpts{
 		ConfigOverride: configs.SynthBody("synth", map[string]cty.Value{
 			"path": cty.StringVal("hello"),

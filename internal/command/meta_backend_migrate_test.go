@@ -286,7 +286,7 @@ func TestBackendMigrate_promptMultiStatePattern(t *testing.T) {
 	}
 	for name, tc := range cases {
 		t.Log("Test: ", name)
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 
 		// Ask for input
 		input := map[string]string{}
