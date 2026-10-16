@@ -4,10 +4,10 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -22,15 +22,23 @@ type WorkspaceSelectCommand struct {
 func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	// Process global flags and configure the view/UI.
-	rawArgs = c.Meta.process(rawArgs)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	diags = diags.Append(envCommandWarningDiag(c.LegacyName))
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
 	// Process command-specific arguments.
-	args, diags := arguments.ParseWorkspaceSelect(rawArgs)
+	args, parseDiags := arguments.ParseWorkspaceSelect(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewWorkspaceSelect(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return cli.RunResultHelp
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Block selecting a workspace if an environment variable will override the new selection anyway.
@@ -39,16 +47,18 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	// workspace; this command should help users recover from those errors, not block them.
 	current, isOverridden, _ := c.WorkspaceOverridden()
 	if isOverridden {
-		c.Ui.Error(envIsOverriddenSelectError)
+		diags = diags.Append(errors.New(envIsOverriddenSelectError))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
 	c.bypassWorkspaceNameValidityCheck = true // allow selecting a new workspace when the current one is invalid.
 	configPath := c.WorkingDir.RootModuleDir()
-	b, diags := c.backend(configPath, args.ViewType)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, bDiags := c.backend(configPath, args.ViewType)
+	diags = diags.Append(bDiags)
+	if bDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -57,14 +67,14 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 
 	states, wDiags := b.Workspaces()
 	if wDiags.HasErrors() {
-		c.Ui.Error(wDiags.Err().Error())
+		view.Diagnostics(wDiags)
 		return 1
 	}
-	c.showDiagnostics(diags) // output warnings, if any
 
 	name := args.Name
 	if name == current {
 		// already using this workspace
+		view.Diagnostics(diags) // output warnings, if any
 		return 0
 	}
 
@@ -81,32 +91,30 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	if !found {
 		if args.OrCreate {
 			_, sDiags := b.StateMgr(name)
+			diags = diags.Append(sDiags)
 			if sDiags.HasErrors() {
-				c.Ui.Error(sDiags.Err().Error())
+				view.Diagnostics(diags)
 				return 1
 			}
 			newState = true
 		} else {
-			c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
+			diags = diags.Append(fmt.Errorf(envDoesNotExist, name))
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
 
 	err := c.SetWorkspace(name)
 	if err != nil {
-		c.Ui.Error(err.Error())
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if newState {
-		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-			strings.TrimSpace(views.EnvCreated), name)))
+		view.CreatedWorkspace(name, diags)
 	} else {
-		c.Ui.Output(
-			c.Colorize().Color(
-				fmt.Sprintf(envChanged, name),
-			),
-		)
+		view.SelectedWorkspace(name, diags)
 	}
 
 	return 0

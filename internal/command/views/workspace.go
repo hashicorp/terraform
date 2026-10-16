@@ -3,7 +3,7 @@
 
 package views
 
-const EnvCreated = `
+const envCreated = `
 [reset][green][bold]Created and switched to workspace %q![reset][green]
 
 You're now on a new, empty workspace. Workspaces isolate their state,

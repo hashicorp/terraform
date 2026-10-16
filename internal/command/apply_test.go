@@ -3140,10 +3140,10 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Switch to it
 	{
 		args := []string{"test"}
-		ui := testUiWrapped(t)
+		view, _ := testView(t)
 		selCmd := &WorkspaceSelectCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 		if code := selCmd.Run(args); code != 0 {
