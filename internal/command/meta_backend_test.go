@@ -3484,10 +3484,14 @@ func testMetaBackend(t *testing.T) *Meta {
 	view, _ := testView(t)
 	m.View = view
 	m.process(args)
-	f := m.extendedFlagSet("test")
-	if err := f.Parse(args); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+
+	// Set meta fields that were previously set in this helper by
+	// calling m.extendedFlagSet with no flags.
+	// In non-test scenarios, these fields would be set by a command
+	// using parsed flag values returned from the `arguments` package.
+	m.input = true
+	m.compactWarnings = false
+	m.stateLock = true
 
 	// metaBackend tests are verifying migrate actions
 	m.migrateState = true
