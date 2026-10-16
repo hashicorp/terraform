@@ -273,7 +273,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 						// the values in a more human-readable way than the general case.
 						// If the value is unknown, we'll leave it to the general case to handle.
 						if testDiag != nil && val.IsKnown() {
-							valBuf, err := tfdiags.FormatValueStr(val)
+							valBuf, err := tfdiags.FormatValueStrUnderTest(val)
 							if err != nil {
 								panic(err)
 							}
@@ -317,7 +317,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 				if testDiag != nil {
 					// If the test assertion is a binary expression, we'll include the human-readable
 					// formatted LHS and RHS values in the diagnostic snippet.
-					diagnostic.Snippet.TestAssertionExpr = formatRunBinaryDiag(ctx, fromExpr.Expression)
+					diagnostic.Snippet.TestAssertionExpr = formatTestRunBinaryDiag(ctx, fromExpr.Expression)
 					if diagnostic.Snippet.TestAssertionExpr != nil {
 						diagnostic.Snippet.TestAssertionExpr.ShowVerbose = testDiag.IsTestVerboseMode()
 					}
@@ -494,10 +494,10 @@ func statementStr(val cty.Value, includeUnknown, includeSensitive, includeEpheme
 	}
 }
 
-// formatRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
+// formatTestRunBinaryDiag formats the binary expression that caused the failed run diagnostic.
 // The LHS and RHS values are formatted in a more human-readable way, redacting
 // sensitive and ephemeral values only for the exact values that hold the mark(s).
-func formatRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticTestBinaryExpr {
+func formatTestRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticTestBinaryExpr {
 	bExpr, ok := expr.(*hclsyntax.BinaryOpExpr)
 	if !ok {
 		return nil
@@ -506,11 +506,11 @@ func formatRunBinaryDiag(ctx *hcl.EvalContext, expr hcl.Expression) *DiagnosticT
 	lhs, _ := bExpr.LHS.Value(ctx)
 	rhs, _ := bExpr.RHS.Value(ctx)
 
-	lhsStr, err := tfdiags.FormatValueStr(lhs)
+	lhsStr, err := tfdiags.FormatValueStrUnderTest(lhs)
 	if err != nil {
 		panic(err)
 	}
-	rhsStr, err := tfdiags.FormatValueStr(rhs)
+	rhsStr, err := tfdiags.FormatValueStrUnderTest(rhs)
 	if err != nil {
 		panic(err)
 	}
