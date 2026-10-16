@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-tfe"
@@ -323,18 +324,20 @@ func (t *TestHuman) FatalInterrupt() {
 }
 
 func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-	t.view.streams.Eprint(t.view.wrapToStderr(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name)))
+	// We build the summary and then write it to stderr all at once.
+	str := &strings.Builder{}
+	str.WriteString(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name))
 
 	// Print out the main state first, this is the state that isn't associated
 	// with a run block.
 	if state, exists := existingStates[configs.TestMainStateIdentifier]; exists && !state.Empty() {
-		t.view.streams.Eprint(t.view.wrapToStderr("\nTerraform has already created the following resources from the module under test:\n"))
+		str.WriteString("\nTerraform has already created the following resources from the module under test:\n")
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+				str.WriteString(fmt.Sprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey))
 				continue
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource.ResourceInstance))
 		}
 	}
 
@@ -343,18 +346,19 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 			continue
 		}
 
-		t.view.streams.Eprint(t.view.wrapToStderr(fmt.Sprintf("\nTerraform has already created the following resources for %q:\n", key)))
+		str.WriteString(fmt.Sprintf("\nTerraform has already created the following resources for %q:\n", key))
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+				str.WriteString(fmt.Sprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey))
 				continue
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource.ResourceInstance))
 		}
 	}
 
 	if len(created) == 0 {
-		// No planned changes, so we won't print anything.
+		// No planned changes, so we print and return early.
+		t.view.streams.Eprint(t.view.wrapToStderr(str.String()))
 		return
 	}
 
@@ -369,11 +373,14 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 			module = fmt.Sprintf("%q", run.Config.Module.Source.String())
 		}
 
-		t.view.streams.Eprint(t.view.wrapToStderr(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module)))
+		str.WriteString(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module))
 		for _, resource := range resources {
-			t.view.streams.Eprintf("  - %s\n", resource)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource))
 		}
 	}
+
+	// Print to stderr.
+	t.view.streams.Eprint(t.view.wrapToStderr(str.String()))
 }
 
 func (t *TestHuman) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {
