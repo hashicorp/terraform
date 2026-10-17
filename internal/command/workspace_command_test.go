@@ -1299,15 +1299,13 @@ func TestWorkspace_extraArgError(t *testing.T) {
 
 // Test human output from commands, with color enabled or disabled
 func TestWorkspace_humanOutput(t *testing.T) {
-	newMeta := func(colourEnabled bool) (Meta, *tfui.WrappedMockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
-		ui := testUiWrapped(t)
+	newMeta := func(colourEnabled bool) (Meta, *views.View, func(t *testing.T) *terminal.TestOutput) {
 		view, done := testView(t)
 		return Meta{
-			Ui:         ui,
 			View:       view,
 			Color:      colourEnabled,
 			WorkingDir: workdir.NewDir("."),
-		}, ui, view, done
+		}, view, done
 	}
 
 	// Create a temporary working directory that is empty
@@ -1320,7 +1318,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 	// Assert output from creating a workspace with color enabled
 	for _, env := range envsSet1 {
 		useColor := true
-		meta, _, _, done := newMeta(useColor)
+		meta, _, done := newMeta(useColor)
 		newCmd := &WorkspaceNewCommand{
 			Meta: meta,
 		}
@@ -1337,7 +1335,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 	// Assert output from creating a workspace with color disabled
 	for _, env := range envsSet2 {
 		useColor := false
-		meta, _, _, done := newMeta(useColor)
+		meta, _, done := newMeta(useColor)
 		newCmd := &WorkspaceNewCommand{
 			Meta: meta,
 		}
@@ -1360,7 +1358,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from listing workspaces with color enabled
 	useColor := true
-	meta, _, _, done := newMeta(useColor)
+	meta, _, done := newMeta(useColor)
 	listCmd := &WorkspaceListCommand{
 		Meta: meta,
 	}
@@ -1375,7 +1373,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from listing workspaces with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	listCmd = &WorkspaceListCommand{
 		Meta: meta,
 	}
@@ -1390,7 +1388,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
@@ -1405,7 +1403,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	showCmd = &WorkspaceShowCommand{
 		Meta: meta,
 	}
@@ -1420,7 +1418,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
@@ -1436,7 +1434,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	selectCmd = &WorkspaceSelectCommand{
 		Meta: meta,
 	}
@@ -1455,7 +1453,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from deleting a workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
@@ -1473,7 +1471,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from deleting a workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
@@ -1492,7 +1490,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert error output from deleting a non-existent workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
@@ -1508,7 +1506,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert error output from deleting a non-existent workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
