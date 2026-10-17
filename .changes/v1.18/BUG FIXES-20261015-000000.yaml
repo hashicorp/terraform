@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'core: Terminate managed provider plugin processes when Terraform crashes, instead of leaving them running after the panic handler exits'
+time: 2026-10-15T12:00:00.000000-04:00
+custom:
+    Issue: "39408"

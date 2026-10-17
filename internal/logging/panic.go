@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin"
 )
 
 // This output is shown if a panic happens.
@@ -82,6 +83,13 @@ func PanicHandler() {
 	// The following mimics the implementation of debug.PrintStack, but
 	// without the hard-coded reference to os.Stderr.
 	stderr.Write(debug.Stack())
+
+	// os.Exit skips all deferred calls, including the deferred
+	// plugin.CleanupClients in main that normally terminates managed
+	// provider plugin processes, so kill them here to avoid leaving
+	// orphaned plugin processes behind after a crash. This is a no-op
+	// when no managed clients exist.
+	plugin.CleanupClients()
 
 	// An exit code of 11 keeps us out of the way of the detailed exitcodes
 	// from plan, and also happens to be the same code as SIGSEGV which is
