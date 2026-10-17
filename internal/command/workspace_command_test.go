@@ -1280,31 +1280,29 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	}
 
 	// Delete
-	meta, ui, _, _ := newMeta(false)
+	meta, _, _, done = newMeta(false)
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
 	args = []string{"default", "extra-arg"} // The delete subcommand only accepts a single argument, so this should error
 	if code := deleteCmd.Run(args); code != cli.RunResultHelp {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
-	if ui.ErrorWriter.String() != expectedError {
-		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, ui.ErrorWriter.String())
+	if done(t).Stderr() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
 	}
 }
 
 // Test human output from commands, with color enabled or disabled
 func TestWorkspace_humanOutput(t *testing.T) {
-	newMeta := func(colourEnabled bool) (Meta, *tfui.WrappedMockUi, *views.View, func(t *testing.T) *terminal.TestOutput) {
-		ui := testUiWrapped(t)
+	newMeta := func(colourEnabled bool) (Meta, *views.View, func(t *testing.T) *terminal.TestOutput) {
 		view, done := testView(t)
 		return Meta{
-			Ui:         ui,
 			View:       view,
 			Color:      colourEnabled,
 			WorkingDir: workdir.NewDir("."),
-		}, ui, view, done
+		}, view, done
 	}
 
 	// Create a temporary working directory that is empty
@@ -1317,7 +1315,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 	// Assert output from creating a workspace with color enabled
 	for _, env := range envsSet1 {
 		useColor := true
-		meta, _, _, done := newMeta(useColor)
+		meta, _, done := newMeta(useColor)
 		newCmd := &WorkspaceNewCommand{
 			Meta: meta,
 		}
@@ -1334,7 +1332,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 	// Assert output from creating a workspace with color disabled
 	for _, env := range envsSet2 {
 		useColor := false
-		meta, _, _, done := newMeta(useColor)
+		meta, _, done := newMeta(useColor)
 		newCmd := &WorkspaceNewCommand{
 			Meta: meta,
 		}
@@ -1357,7 +1355,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from listing workspaces with color enabled
 	useColor := true
-	meta, _, _, done := newMeta(useColor)
+	meta, _, done := newMeta(useColor)
 	listCmd := &WorkspaceListCommand{
 		Meta: meta,
 	}
@@ -1372,7 +1370,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from listing workspaces with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	listCmd = &WorkspaceListCommand{
 		Meta: meta,
 	}
@@ -1387,7 +1385,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	showCmd := &WorkspaceShowCommand{
 		Meta: meta,
 	}
@@ -1402,7 +1400,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from showing the current workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	showCmd = &WorkspaceShowCommand{
 		Meta: meta,
 	}
@@ -1417,7 +1415,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color enabled
 	useColor = true
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	selectCmd := &WorkspaceSelectCommand{
 		Meta: meta,
 	}
@@ -1433,13 +1431,13 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from selecting a workspace with color disabled
 	useColor = false
-	meta, _, _, done = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	selectCmd = &WorkspaceSelectCommand{
 		Meta: meta,
 	}
 	args = []string{
-		"test_b",
 		"-no-color",
+		"test_b",
 	}
 	if code := selectCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
@@ -1452,15 +1450,17 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from deleting a workspace with color enabled
 	useColor = true
-	meta, ui, _, _ := newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd := &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
-	args = []string{"test_c"}
-	if code := deleteCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	args = []string{
+		"test_c",
 	}
-	actual = ui.OutputWriter.String()
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	actual = done(t).Stdout()
 	expectedOutput = "\x1b[0m\x1b[32mDeleted workspace \"test_c\"!\x1b[0m\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
@@ -1468,15 +1468,18 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert output from deleting a workspace with color disabled
 	useColor = false
-	meta, ui, _, _ = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
-	args = []string{"test_d"}
-	if code := deleteCmd.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	args = []string{
+		"-no-color",
+		"test_d",
 	}
-	actual = ui.OutputWriter.String()
+	if code := deleteCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+	actual = done(t).Stdout()
 	expectedOutput = "Deleted workspace \"test_d\"!\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
@@ -1484,32 +1487,35 @@ func TestWorkspace_humanOutput(t *testing.T) {
 
 	// Assert error output from deleting a non-existent workspace with color enabled
 	useColor = true
-	meta, ui, _, _ = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
 	args = []string{"foobar"}
 	if code := deleteCmd.Run(args); code != 1 {
-		t.Fatalf("expected error but got code %d:\n\n%s\n\n%s", code, ui.OutputWriter, ui.ErrorWriter)
+		t.Fatalf("expected error but got code %d:\n\n%s", code, done(t).All())
 	}
-	actual = ui.ErrorWriter.String()
-	expectedOutput = "\x1b[31mWorkspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\x1b[0m\x1b[0m\n"
+	actual = done(t).Stderr()
+	expectedOutput = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mWorkspace \"foobar\" doesn't exist.\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0mYou can create this workspace with the \"new\" subcommand \n\x1b[31m│\x1b[0m \x1b[0mor include the \"-or-create\" flag with the \"select\" subcommand.\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0m\n\x1b[31m╵\x1b[0m\x1b[0m\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
 	}
 
 	// Assert error output from deleting a non-existent workspace with color disabled
 	useColor = false
-	meta, ui, _, _ = newMeta(useColor)
+	meta, _, done = newMeta(useColor)
 	deleteCmd = &WorkspaceDeleteCommand{
 		Meta: meta,
 	}
-	args = []string{"foobar"}
-	if code := deleteCmd.Run(args); code != 1 {
-		t.Fatalf("expected error but got code %d:\n\n%s\n\n%s", code, ui.OutputWriter, ui.ErrorWriter)
+	args = []string{
+		"-no-color",
+		"foobar",
 	}
-	actual = ui.ErrorWriter.String()
-	expectedOutput = "Workspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\n"
+	if code := deleteCmd.Run(args); code != 1 {
+		t.Fatalf("expected error but got code %d:\n\n%s", code, done(t).All())
+	}
+	actual = done(t).Stderr()
+	expectedOutput = "\nError: Workspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\n\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
 	}
