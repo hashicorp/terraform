@@ -85,6 +85,13 @@ func initCommands(
 
 	wd := WorkingDir(originalWorkingDir, os.Getenv("TF_DATA_DIR"))
 
+	var browserLauncher webbrowser.Launcher
+	if _, ok := os.LookupEnv("TF_BROWSER_ENV"); ok {
+		browserLauncher = webbrowser.NewBrowserEnvLauncher()
+	} else {
+		browserLauncher = webbrowser.NewNativeLauncher()
+	}
+
 	meta := command.Meta{
 		WorkingDir: wd,
 		Streams:    streams,
@@ -95,7 +102,7 @@ func initCommands(
 		Ui:               Ui,
 
 		Services:        services,
-		BrowserLauncher: webbrowser.NewNativeLauncher(),
+		BrowserLauncher: browserLauncher,
 
 		RunningInAutomation: inAutomation,
 		CLIConfigDir:        configDir,
