@@ -161,8 +161,9 @@ func apply(tfCtx *terraform.Context, run *configs.TestRun, module *configs.Confi
 	}
 
 	applyOpts := &terraform.ApplyOpts{
-		SetVariables:               ephemeralVariables,
-		ExternalProviders:          providers,
+		SetVariables:      ephemeralVariables,
+		ExternalProviders: providers,
+		// TODO:@austinvalle: Add comment about ephemeral data / pipeline we added as alternative
 		AllowRootEphemeralOutputs:  true,
 		AllowRootDeprecatedOutputs: true,
 	}

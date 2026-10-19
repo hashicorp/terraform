@@ -126,14 +126,15 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 				return plans.NormalMode
 			}
 		}(),
-		Targets:                    targets,
-		ForceReplace:               replaces,
-		SkipRefresh:                !run.Options.Refresh,
-		SetVariables:               variables,
-		ExternalReferences:         references,
-		ExternalProviders:          providers,
-		Overrides:                  ctx.GetOverrides(run.Name),
-		DeferralAllowed:            ctx.deferralAllowed,
+		Targets:            targets,
+		ForceReplace:       replaces,
+		SkipRefresh:        !run.Options.Refresh,
+		SetVariables:       variables,
+		ExternalReferences: references,
+		ExternalProviders:  providers,
+		Overrides:          ctx.GetOverrides(run.Name),
+		DeferralAllowed:    ctx.deferralAllowed,
+		// TODO:@austinvalle: Add comment about ephemeral data / pipeline we added as alternative
 		AllowRootEphemeralOutputs:  true,
 		AllowRootDeprecatedOutputs: true,
 	}
