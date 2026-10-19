@@ -125,13 +125,18 @@ func (n *NodeStateCleanup) restore(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                       plans.NormalMode,
-		SetVariables:               setVariables,
-		Overrides:                  ctx.GetOverrides(run.Name),
-		ExternalProviders:          providers,
-		SkipRefresh:                true,
-		OverridePreventDestroy:     true,
-		DeferralAllowed:            ctx.deferralAllowed,
+		Mode:                   plans.NormalMode,
+		SetVariables:           setVariables,
+		Overrides:              ctx.GetOverrides(run.Name),
+		ExternalProviders:      providers,
+		SkipRefresh:            true,
+		OverridePreventDestroy: true,
+		DeferralAllowed:        ctx.deferralAllowed,
+
+		// FIXME: Currently, terraform test and it's usage of ephemeral outputs
+		// violates the ephemeral resource lifecycle (Open, Renew, Close), as any
+		// ephemeral resources that produce the values we use are already closed before
+		// the test runtime receives them.
 		AllowRootEphemeralOutputs:  true,
 		AllowRootDeprecatedOutputs: true,
 	}
@@ -178,13 +183,18 @@ func (n *NodeStateCleanup) destroy(ctx *EvalContext, file *configs.TestFile, run
 	setVariables, _, _ := FilterVariablesToModule(module, variables)
 
 	planOpts := &terraform.PlanOpts{
-		Mode:                       plans.DestroyMode,
-		SetVariables:               setVariables,
-		Overrides:                  ctx.GetOverrides(run.Name),
-		ExternalProviders:          providers,
-		SkipRefresh:                true,
-		OverridePreventDestroy:     true,
-		DeferralAllowed:            ctx.deferralAllowed,
+		Mode:                   plans.DestroyMode,
+		SetVariables:           setVariables,
+		Overrides:              ctx.GetOverrides(run.Name),
+		ExternalProviders:      providers,
+		SkipRefresh:            true,
+		OverridePreventDestroy: true,
+		DeferralAllowed:        ctx.deferralAllowed,
+
+		// FIXME: Currently, terraform test and it's usage of ephemeral outputs
+		// violates the ephemeral resource lifecycle (Open, Renew, Close), as any
+		// ephemeral resources that produce the values we use are already closed before
+		// the test runtime receives them.
 		AllowRootEphemeralOutputs:  true,
 		AllowRootDeprecatedOutputs: true,
 	}

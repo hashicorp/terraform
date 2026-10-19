@@ -134,7 +134,11 @@ func plan(ctx *EvalContext, tfCtx *terraform.Context, file *configs.TestFile, ru
 		ExternalProviders:  providers,
 		Overrides:          ctx.GetOverrides(run.Name),
 		DeferralAllowed:    ctx.deferralAllowed,
-		// TODO:@austinvalle: Add comment about ephemeral data / pipeline we added as alternative
+
+		// FIXME: Currently, terraform test and it's usage of ephemeral outputs
+		// violates the ephemeral resource lifecycle (Open, Renew, Close), as any
+		// ephemeral resources that produce the values we use are already closed before
+		// the test runtime receives them.
 		AllowRootEphemeralOutputs:  true,
 		AllowRootDeprecatedOutputs: true,
 	}

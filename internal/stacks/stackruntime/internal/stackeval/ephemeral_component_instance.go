@@ -200,7 +200,7 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 			// Ephemeral components produce result values the same way, by using the plan operation to produce output values
 			case PlanPhase, ApplyPhase:
 				var diags tfdiags.Diagnostics
-				// TODO:@austinvalle: What about hooks?
+				// TODO:@austinvalle: Add hooks for terraform module runtime? There are ephemeral resource ones, but not sure if they are useful?
 				// h := hooksFromContext(ctx)
 
 				opts, moreDiags := c.PlanOpts(ctx, phase)
@@ -258,11 +258,9 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 				}
 
 				tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
-					// TODO:@austinvalle: Do we need any hooks? Since we won't have managed resources to report on progress
 					Providers:                providerFactories,
 					PreloadedProviderSchemas: providerSchemas,
-					// TODO:@austinvalle: Should we remove provisioners since we don't have managed resources? I think so...
-					Provisioners: c.main.availableProvisioners(),
+					Provisioners:             c.main.availableProvisioners(),
 				})
 				if err != nil {
 					// Should not get here because we should always pass a valid ContextOpts above.
@@ -287,7 +285,8 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 					}
 				}()
 
-				// TODO:@austinvalle: Add comment about why we always use the plan operation for ephemeral components
+				// Ephemeral components don't produce a plan or state, however they do need to evaluate the configuration with
+				// configured providers, so we always use the plan operation to achieve that.
 				_, planScope, moreDiags := tfCtx.PlanAndEval(moduleTree, nil, opts, addrs.RootModuleInstance)
 				diags = diags.Append(moreDiags)
 
@@ -359,7 +358,6 @@ func (c *EphemeralComponentInstance) DeclRange() *hcl.Range {
 	return c.call.config.config.DeclRange.ToHCL().Ptr()
 }
 
-// TODO:@austinvalle: Is this the right pattern to follow here? I.e. just internally validating by executing
 func (c *EphemeralComponentInstance) checkValid(ctx context.Context, phase EvalPhase) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
