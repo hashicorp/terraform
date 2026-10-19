@@ -78,6 +78,29 @@ func TestWrapConfig(raw map[string]interface{}) hcl.Body {
 func TestBackendStates(t *testing.T, b Backend) {
 	t.Helper()
 
+	// Release each fixture's lock before reading or deleting its workspace.
+	// For local state this also closes the file handle used by the write.
+	persistState := func(name string, mgr statemgr.Full, state *states.State) {
+		t.Helper()
+		lockID, err := mgr.Lock(statemgr.NewLockInfo())
+		if err != nil {
+			t.Fatalf("error locking %s state: %s", name, err)
+		}
+		if lockID != "" {
+			defer func() {
+				if err := mgr.Unlock(lockID); err != nil {
+					t.Errorf("error unlocking %s state: %s", name, err)
+				}
+			}()
+		}
+		if err := mgr.WriteState(state); err != nil {
+			t.Fatalf("error writing %s state: %s", name, err)
+		}
+		if err := mgr.PersistState(nil); err != nil {
+			t.Fatalf("error persisting %s state: %s", name, err)
+		}
+	}
+
 	noDefault := false
 	if _, sDiags := b.StateMgr(DefaultStateName); sDiags.HasErrors() {
 		if sDiags.Err().Error() == ErrDefaultWorkspaceNotSupported.Error() {
@@ -132,12 +155,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		barState := states.NewState()
 
 		// write a known state to foo
-		if err := foo.WriteState(fooState); err != nil {
-			t.Fatal("error writing foo state:", err)
-		}
-		if err := foo.PersistState(nil); err != nil {
-			t.Fatal("error persisting foo state:", err)
-		}
+		persistState("foo", foo, fooState)
 
 		// We'll make "bar" different by adding a fake resource state to it.
 		barState.SyncWrapper().SetResourceInstanceCurrent(
@@ -160,12 +178,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		)
 
 		// write a distinct known state to bar
-		if err := bar.WriteState(barState); err != nil {
-			t.Fatalf("bad: %s", err)
-		}
-		if err := bar.PersistState(nil); err != nil {
-			t.Fatalf("bad: %s", err)
-		}
+		persistState("bar", bar, barState)
 
 		// verify that foo is unchanged with the existing state manager
 		if err := foo.RefreshState(); err != nil {
