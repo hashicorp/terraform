@@ -7,7 +7,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -70,6 +75,65 @@ type PolicyRunContribution struct {
 	// and the run's type statuses, and before it finishes the run. The
 	// context replaces the walk's stop context, which is gone by then.
 	Subjects []func(context.Context) tfdiags.Diagnostics
+
+	// Variables are the key paths of Records whose leaves include values of
+	// root module input variables, in a plan. The caller resolves them: with
+	// the origins of what the variable's value comes from if it knows (e.g.
+	// a Stacks component input that refers directly to another component's
+	// output, see Outputs), and with the reason VARIABLE otherwise. Until
+	// then the key paths only have the origins and reasons of their other
+	// leaves.
+	Variables map[*proto.KeyOrigins][]PolicyVariableOrigin
+
+	// Outputs resolves leaves through the walk's root module outputs in a
+	// plan; nil in an apply, whose records have no origins.
+	Outputs PolicyOutputOrigins
+}
+
+// PolicyOutputOrigins returns the origins of a leaf of a value that comes
+// from a root module output of a walk: the output named output, the
+// traversal rest into it, and then the path of the leaf. The origins'
+// addresses are the walk's own, unqualified. A leaf that comes from a root
+// module variable of the walk in turn is returned in vars, for the caller to
+// resolve again.
+type PolicyOutputOrigins func(output string, rest hcl.Traversal, leaf PolicyVariableOrigin) (origins []*proto.Origin, reasons []proto.NoOriginReason, vars []PolicyVariableOrigin)
+
+// policyOutputOrigins returns the PolicyOutputOrigins of a walk with the
+// given origin lookup.
+func policyOutputOrigins(cfg *configs.Config, exp *instances.Expander, lookup *relationshipOriginLookup) PolicyOutputOrigins {
+	return func(output string, rest hcl.Traversal, leaf PolicyVariableOrigin) ([]*proto.Origin, []proto.NoOriginReason, []PolicyVariableOrigin) {
+		reason := func(r proto.NoOriginReason) ([]*proto.Origin, []proto.NoOriginReason, []PolicyVariableOrigin) {
+			return nil, []proto.NoOriginReason{r}, nil
+		}
+		if cfg == nil || cfg.Module.Outputs[output] == nil {
+			return reason(proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON)
+		}
+		e := &originEval{cfg: cfg, exp: exp, overridden: lookup.overridden, lookup: lookup, rootVariables: true}
+		sym := e.steps(e.eval(cfg.Module.Outputs[output].Expr, &originScope{mod: addrs.RootModuleInstance, cfg: cfg}), rest)
+		for _, step := range leaf.path {
+			if step.name != "" {
+				sym = e.getAttr(sym, step.name)
+			} else {
+				sym = e.index(sym, symLit{val: cty.NumberIntVal(step.index)})
+			}
+		}
+		switch sym := sym.(type) {
+		case symRef:
+			if len(sym.path) == 0 || !e.originAllowed(sym, leaf.ty) {
+				return reason(proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON)
+			}
+			return []*proto.Origin{{Address: sym.addr.String(), Path: policyOriginPath(sym.path)}}, nil, nil
+		case symVar:
+			return nil, nil, []PolicyVariableOrigin{{Variable: sym.name, path: sym.path, ty: leaf.ty}}
+		case symLit:
+			if sym.val.IsNull() {
+				return reason(proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON)
+			}
+			return reason(proto.NoOriginReason_LITERAL_NO_ORIGIN_REASON)
+		default:
+			return reason(policyStructureReason(sym))
+		}
+	}
 }
 
 // PolicyProviderSchemas returns the provider schemas of a BeginRun request
@@ -101,7 +165,7 @@ func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) bool {
 	if shared.ID == "" || shared.Contribute == nil {
 		return false
 	}
-	records, statuses, providers := collectRelationshipBatch(ctx, ps, shared.Spec)
+	records, statuses, providers, origins := collectRelationshipBatchWithOrigins(ctx, ps, shared.Spec)
 	prefix := shared.AddressPrefix
 	for _, record := range records {
 		record.Address = prefix + record.Address
@@ -121,6 +185,13 @@ func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) bool {
 	}
 	for _, provider := range providers {
 		provider.ConfigAddress = prefix + provider.ConfigAddress
+	}
+
+	var variables map[*proto.KeyOrigins][]PolicyVariableOrigin
+	var outputs PolicyOutputOrigins
+	if origins != nil {
+		variables = origins.variables
+		outputs = policyOutputOrigins(ctx.Config(), ctx.InstanceExpander(), origins)
 	}
 
 	op := walkPlan
@@ -162,6 +233,8 @@ func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) bool {
 		Statuses:  statuses,
 		Providers: providers,
 		Subjects:  subjects,
+		Variables: variables,
+		Outputs:   outputs,
 	})
 	return true
 }

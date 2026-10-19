@@ -43,6 +43,9 @@ type relationshipsTestClient struct {
 	failStatuses bool
 	// rejected lists the runs whose statuses failed to report.
 	rejected map[string]bool
+	// byOrigin switches the relationship policy to
+	// blockRelatesToOKBucket.
+	byOrigin bool
 }
 
 const relationshipsTestProvider = "registry.terraform.io/hashicorp/testing"
@@ -59,7 +62,9 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 		c.log("begin %s %s %s", req.RunId, req.Runtime, req.Stage)
 		return &policyproto.BeginRunResponse{Spec: &policyproto.CollectionSpec{Types: []*policyproto.TypeSpec{
 			{ProviderSource: relationshipsTestProvider, Type: "testing_resource"},
-			{ProviderSource: relationshipsTestProvider, Type: "testing_deferred_resource"},
+			{ProviderSource: relationshipsTestProvider, Type: "testing_deferred_resource", KeyPaths: []*policyproto.AttributePath{
+				{Steps: []*policyproto.AttributePath_Step{{Selector: &policyproto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
+			}},
 		}}}, nil
 	}
 	c.ReportInstancesFn = func(_ context.Context, req *policyproto.ReportInstancesRequest) (*policyproto.ReportInstancesResponse, error) {
@@ -98,6 +103,9 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 		if req.Target == "testing_deferred_resource" {
 			// The relationship policy, in the same evaluation.
 			result := c.blockHasBucket(req.RunID)
+			if c.byOrigin {
+				result = c.blockRelatesToOKBucket(req.RunID, req.Meta.GetAddress())
+			}
 			resp.Overall = result
 			resp.Policies = append(resp.Policies, mockPolicyObj(result))
 			resp.Enforcements = append(resp.Enforcements, policy.EnforcementResult{Result: result, Message: "block has a bucket"})

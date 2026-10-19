@@ -416,6 +416,10 @@ type relationshipOriginLookup struct {
 	// overridden reports whether a module instance is overridden by the
 	// walk's test overrides; nil without overrides.
 	overridden func(addrs.ModuleInstance) bool
+	// variables are the key paths whose leaves include root module
+	// variables, with those leaves, for a walk that contributes to a shared
+	// run; nil otherwise, and root variables have no origin.
+	variables map[*proto.KeyOrigins][]PolicyVariableOrigin
 }
 
 var _ originLookup = (*relationshipOriginLookup)(nil)
@@ -520,6 +524,15 @@ func policyOverriddenModules(overrides *mocking.Overrides) func(addrs.ModuleInst
 // instances of the walk's relationship run for the given spec. It must be
 // called after the walk's changes and state are final.
 func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.CollectionSpec) ([]*proto.InstanceRecord, []*proto.TypeStatus, []*proto.ProviderInstance) {
+	records, statuses, providers, _ := collectRelationshipBatchWithOrigins(ctx, ps, spec)
+	return records, statuses, providers
+}
+
+// collectRelationshipBatchWithOrigins is collectRelationshipBatch that also
+// returns the origin lookup of a plan run, or nil. For a walk that
+// contributes to a shared run, the lookup has the key paths whose leaves
+// include root module variables.
+func collectRelationshipBatchWithOrigins(ctx EvalContext, ps *policySubgraph, spec *proto.CollectionSpec) ([]*proto.InstanceRecord, []*proto.TypeStatus, []*proto.ProviderInstance, *relationshipOriginLookup) {
 	c := &relationshipCollector{
 		ctx:          ctx,
 		ps:           ps,
@@ -581,6 +594,9 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 			planned:    make(map[string]cty.Value),
 			overridden: policyOverriddenModules(ctx.Overrides()),
 		}
+		if ps.run.Shared != nil {
+			c.origins.variables = make(map[*proto.KeyOrigins][]PolicyVariableOrigin)
+		}
 		for _, change := range changes {
 			if change.Addr.Resource.Resource.Mode != addrs.ManagedResourceMode || change.DeposedKey != states.NotDeposed || change.After == cty.NilVal {
 				continue
@@ -638,7 +654,7 @@ func collectRelationshipBatch(ctx EvalContext, ps *policySubgraph, spec *proto.C
 	// the provider table, so they need a static class too.
 	statuses := c.statuses()
 	c.addStaticProviderClasses()
-	return c.records, statuses, ps.providers.all()
+	return c.records, statuses, ps.providers.all(), c.origins
 }
 
 // addStaticProviderClasses computes the class of the provider configurations
@@ -792,7 +808,11 @@ func (c *relationshipCollector) addChangeRecord(change *plans.ResourceInstanceCh
 		}
 		if c.origins != nil {
 			configured, _ := c.ps.resourceConfigValue(addr)
-			rec.Origins = originsFor(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.Action, change.After, configured, c.keyPaths[key], c.origins)
+			var variables func(*proto.KeyOrigins, []PolicyVariableOrigin)
+			if c.origins.variables != nil {
+				variables = func(ko *proto.KeyOrigins, vars []PolicyVariableOrigin) { c.origins.variables[ko] = vars }
+			}
+			rec.Origins = originsForVariables(c.ctx.Config(), c.ctx.InstanceExpander(), c.origins.overridden, addr, change.Action, change.After, configured, c.keyPaths[key], c.origins, variables)
 		}
 	}
 	if policyRecordHasPriorAttrs(change.Action, c.includePrior[key]) {

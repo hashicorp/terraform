@@ -441,3 +441,15 @@ their walk's evaluation context, so `core::getresources` still sees only the
 subject's component's resources. This
 end-of-deployment batch mirrors the end-of-walk batch of a Terraform CLI run;
 streaming is a later optimization.
+
+In a plan, origins cross components: a leaf of a record that comes from a
+root module variable of its component is left for the run to resolve. If the
+component's `inputs` set that variable to a direct reference to another
+component instance's output (`component.x.out`, `component.x["k"].out` or
+`component.x[each.key].out`, optionally with attribute and index steps),
+`finishPolicyRun` gives the leaf the origins of that output, which the
+producing walk traces through its root module like any other origin, with
+component-qualified addresses. Anything else, such as a function call, keeps
+the reason `VARIABLE`, and the engine relates the leaf by value. The records
+with such leaves are only reported then. References through embedded stacks'
+inputs and outputs aren't followed yet.

@@ -8,9 +8,13 @@ import (
 	"log"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -71,6 +75,21 @@ type policyRun struct {
 	// incomplete are the types incomplete for a reason outside the walks.
 	incomplete map[policyTypeKey]bool
 	subjects   []func(context.Context) tfdiags.Diagnostics
+	// walks are the walks that joined, by component instance address.
+	walks map[string]*policyWalk
+	// pending are the records whose origins finish resolves before it
+	// reports them.
+	pending []*proto.InstanceRecord
+}
+
+// policyWalk is a component instance's walk in the run.
+type policyWalk struct {
+	addr stackaddrs.AbsComponentInstance
+	// inputs is the component's inputs expression, or nil.
+	inputs hcl.Expression
+	// variables and outputs are those of the walk's contribution.
+	variables map[*proto.KeyOrigins][]terraform.PolicyVariableOrigin
+	outputs   terraform.PolicyOutputOrigins
 }
 
 type policyTypeKey struct{ source, typeName string }
@@ -88,6 +107,7 @@ func newPolicyRun(m *Main) *policyRun {
 		providers:  make(map[string]uint32),
 		statuses:   make(map[policyTypeKey]*proto.TypeStatus),
 		incomplete: make(map[policyTypeKey]bool),
+		walks:      make(map[string]*policyWalk),
 	}
 	switch {
 	case m.Applying():
@@ -165,8 +185,9 @@ func (r *policyRun) beginRun(ctx context.Context) {
 }
 
 // join returns the run for the walk of a component instance, or nil if the
-// walk has none. The walk must contribute to the run or fail.
-func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstance) *terraform.SharedPolicyRun {
+// walk has none. The walk must contribute to the run or fail. inputs is the
+// component's inputs expression, or nil.
+func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstance, inputs hcl.Expression) *terraform.SharedPolicyRun {
 	if r == nil {
 		return nil
 	}
@@ -178,12 +199,16 @@ func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstan
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.joined++
+	walk := &policyWalk{addr: addr, inputs: inputs}
+	r.walks[addr.String()] = walk
 	shared := &terraform.SharedPolicyRun{
 		ID:            r.id,
 		Spec:          r.spec,
 		Failed:        r.failed,
 		AddressPrefix: addr.String() + ".",
-		Contribute:    r.contribute,
+		Contribute: func(c terraform.PolicyRunContribution) {
+			r.contribute(walk, c)
+		},
 	}
 	if !r.diagnosticsGiven {
 		// One walk reports the diagnostics of BeginRun.
@@ -194,12 +219,15 @@ func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstan
 }
 
 // contribute reports a walk's records right away and keeps its statuses and
-// subjects for finish.
-func (r *policyRun) contribute(c terraform.PolicyRunContribution) {
+// subjects for finish. The records with origins to resolve wait for finish
+// too.
+func (r *policyRun) contribute(walk *policyWalk, c terraform.PolicyRunContribution) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.contributed++
 	r.subjects = append(r.subjects, c.Subjects...)
+	walk.variables = c.Variables
+	walk.outputs = c.Outputs
 
 	// The walk's provider ids are its own; the run's are by config address,
 	// which the walk qualified with its component instance.
@@ -242,19 +270,183 @@ func (r *policyRun) contribute(c terraform.PolicyRunContribution) {
 		}
 	}
 
-	if len(c.Records) == 0 && len(providers) == 0 {
+	records := c.Records[:0:0]
+	for _, record := range c.Records {
+		if slices.ContainsFunc(record.Origins, func(ko *proto.KeyOrigins) bool { return c.Variables[ko] != nil }) {
+			r.pending = append(r.pending, record)
+			continue
+		}
+		records = append(records, record)
+	}
+
+	if len(records) == 0 && len(providers) == 0 {
 		return
 	}
 	// The statuses only go out in finish, once every walk has contributed.
-	for _, req := range terraform.PolicyRunReports(c.Records, nil, providers, r.id) {
+	r.report(records, nil, providers)
+}
+
+// report reports records, statuses and providers to the run. r.mu must be
+// held. It reports whether it succeeded.
+func (r *policyRun) report(records []*proto.InstanceRecord, statuses []*proto.TypeStatus, providers []*proto.ProviderInstance) bool {
+	for _, req := range terraform.PolicyRunReports(records, statuses, providers, r.id) {
 		resp, err := r.client.ReportInstances(r.ctx, req)
 		if err != nil {
 			log.Printf("[WARN] policy: failed to report instances for relationship run %s: %s", r.id, err)
 			r.incompleteAll()
-			return
+			return false
 		}
 		logPolicyRunDiagnostics("ReportInstances", r.id, resp.GetDiagnostics())
 	}
+	return true
+}
+
+// resolveVariableOrigins completes the key paths of the pending records
+// whose leaves come from root module variables of their component. A
+// variable whose component input refers directly to another component
+// instance's output (componentOutputRef) gets the origins of that output,
+// qualified with the producing component instance; any other variable keeps
+// the reason VARIABLE, and the engine relates it by value. r.mu must be
+// held.
+func (r *policyRun) resolveVariableOrigins() {
+	for _, walk := range r.walks {
+		for ko, vars := range walk.variables {
+			var reasons []proto.NoOriginReason
+			for _, v := range vars {
+				origins, more := r.resolveVariable(walk, v, 0)
+				ko.Origins = append(ko.Origins, origins...)
+				reasons = append(reasons, more...)
+			}
+			ko.Origins = policyUniqueOrigins(ko.Origins)
+			ko.NoOrigin = append(ko.NoOrigin, reasons...)
+			slices.Sort(ko.NoOrigin)
+			ko.NoOrigin = slices.Compact(ko.NoOrigin)
+		}
+	}
+}
+
+// policyMaxComponentHops bounds how many component inputs and outputs the
+// origin of a value is followed through.
+const policyMaxComponentHops = 16
+
+func (r *policyRun) resolveVariable(walk *policyWalk, v terraform.PolicyVariableOrigin, hops int) ([]*proto.Origin, []proto.NoOriginReason) {
+	variable := []proto.NoOriginReason{proto.NoOriginReason_VARIABLE_NO_ORIGIN_REASON}
+	if hops >= policyMaxComponentHops {
+		return nil, variable
+	}
+	producerAddr, output, rest, ok := componentOutputRef(walk.inputs, v.Variable, walk.addr)
+	if !ok {
+		return nil, variable
+	}
+	producer := r.walks[producerAddr.String()]
+	if producer == nil || producer.outputs == nil {
+		return nil, variable
+	}
+	origins, reasons, vars := producer.outputs(output, rest, v)
+	prefix := producerAddr.String() + "."
+	for _, o := range origins {
+		o.Address = prefix + o.Address
+	}
+	for _, next := range vars {
+		moreOrigins, moreReasons := r.resolveVariable(producer, next, hops+1)
+		origins = append(origins, moreOrigins...)
+		reasons = append(reasons, moreReasons...)
+	}
+	return origins, reasons
+}
+
+// componentOutputRef returns the component instance output that the input
+// variable name of a component instance refers to directly in the
+// component's inputs, and the traversal into the output, if it does:
+// `component.x.out`, `component.x["k"].out` or `component.x[each.key].out`,
+// optionally followed by attribute and index steps. Anything else, such as a
+// function call or a template, isn't a direct reference.
+//
+// Embedded stacks aren't followed: a reference to a stack input variable or
+// to an embedded stack's output isn't a direct reference here.
+func componentOutputRef(inputs hcl.Expression, name string, consumer stackaddrs.AbsComponentInstance) (stackaddrs.AbsComponentInstance, string, hcl.Traversal, bool) {
+	var none stackaddrs.AbsComponentInstance
+	obj, ok := inputs.(*hclsyntax.ObjectConsExpr)
+	if !ok {
+		return none, "", nil, false
+	}
+	var value hclsyntax.Expression
+	for _, item := range obj.Items {
+		key, diags := item.KeyExpr.Value(nil)
+		if diags.HasErrors() || !key.IsKnown() || key.IsNull() || key.Type() != cty.String {
+			if kw := hcl.ExprAsKeyword(item.KeyExpr); kw != "" {
+				key = cty.StringVal(kw)
+			} else {
+				continue
+			}
+		}
+		if key.AsString() == name {
+			value = item.ValueExpr
+		}
+	}
+
+	var trav hcl.Traversal
+	var instanceKey addrs.InstanceKey = addrs.NoKey
+	switch expr := value.(type) {
+	case *hclsyntax.ScopeTraversalExpr:
+		trav = expr.Traversal
+		if len(trav) > 2 {
+			if idx, ok := trav[2].(hcl.TraverseIndex); ok {
+				key, err := addrs.ParseInstanceKey(idx.Key)
+				if err != nil {
+					return none, "", nil, false
+				}
+				instanceKey = key
+				trav = append(trav[:2:2], trav[3:]...)
+			}
+		}
+	case *hclsyntax.RelativeTraversalExpr:
+		// component.x[each.key].out
+		index, ok := expr.Source.(*hclsyntax.IndexExpr)
+		if !ok {
+			return none, "", nil, false
+		}
+		coll, ok := index.Collection.(*hclsyntax.ScopeTraversalExpr)
+		if !ok {
+			return none, "", nil, false
+		}
+		key, ok := index.Key.(*hclsyntax.ScopeTraversalExpr)
+		if !ok || len(key.Traversal) != 2 || key.Traversal.RootName() != "each" {
+			return none, "", nil, false
+		}
+		if attr, ok := key.Traversal[1].(hcl.TraverseAttr); !ok || attr.Name != "key" || consumer.Item.Key == addrs.NoKey {
+			return none, "", nil, false
+		}
+		instanceKey = consumer.Item.Key
+		trav = append(slices.Clone(coll.Traversal), expr.Traversal...)
+	default:
+		return none, "", nil, false
+	}
+
+	if len(trav) < 3 || trav.RootName() != "component" {
+		return none, "", nil, false
+	}
+	component, ok := trav[1].(hcl.TraverseAttr)
+	if !ok {
+		return none, "", nil, false
+	}
+	output, ok := trav[2].(hcl.TraverseAttr)
+	if !ok {
+		return none, "", nil, false
+	}
+	producer := stackaddrs.AbsComponentInstance{
+		Stack: consumer.Stack,
+		Item:  stackaddrs.ComponentInstance{Component: stackaddrs.Component{Name: component.Name}, Key: instanceKey},
+	}
+	return producer, output.Name, trav[3:], true
+}
+
+// policyUniqueOrigins sorts origins by address and path and removes
+// duplicates.
+func policyUniqueOrigins(origins []*proto.Origin) []*proto.Origin {
+	key := func(o *proto.Origin) string { return o.Address + "#" + o.Path.String() }
+	slices.SortFunc(origins, func(a, b *proto.Origin) int { return strings.Compare(key(a), key(b)) })
+	return slices.CompactFunc(origins, func(a, b *proto.Origin) bool { return key(a) == key(b) })
 }
 
 // skipped notes a component instance whose walk doesn't run, because its
@@ -296,6 +488,13 @@ func (m *Main) finishPolicyRun(ctx context.Context, errored bool) tfdiags.Diagno
 	}
 
 	r.mu.Lock()
+	// Every walk has contributed, so the origins of values passed between
+	// components can be resolved now.
+	r.resolveVariableOrigins()
+	if len(r.pending) > 0 {
+		r.report(r.pending, nil, nil)
+		r.pending = nil
+	}
 	if errored || r.joined != r.contributed {
 		r.incompleteAll()
 	}
@@ -375,4 +574,13 @@ func logPolicyRunDiagnostics(call, runID string, diags []*proto.Diagnostic) {
 		}
 		log.Printf("[%s] policy: %s for relationship run %s: %s: %s", level, call, runID, diag.GetSummary(), diag.GetDetail())
 	}
+}
+
+// policyComponentInputs returns the inputs expression of a component
+// instance, or nil for anything else, such as a removed component instance.
+func policyComponentInputs(scope any) hcl.Expression {
+	if inst, ok := scope.(*ComponentInstance); ok {
+		return inst.call.config.config.Inputs
+	}
+	return nil
 }

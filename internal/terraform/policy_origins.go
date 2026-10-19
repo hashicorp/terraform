@@ -61,6 +61,16 @@ type originLookup interface {
 // come from the override instead of its configuration, so nothing in it is
 // followed.
 func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, action plans.Action, planned, configured cty.Value, keyPaths [][]string, lookup originLookup) []*proto.KeyOrigins {
+	return originsForVariables(cfg, exp, overridden, addr, action, planned, configured, keyPaths, lookup, nil)
+}
+
+// originsForVariables is originsFor for a walk that contributes to a shared
+// run. When variables isn't nil, it follows root module input variables
+// instead of giving their leaves the reason VARIABLE: it calls variables with
+// each key path whose leaves include root variables, and the caller, which
+// may know where a variable's value comes from, completes the key path's
+// origins and reasons with them.
+func originsForVariables(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, action plans.Action, planned, configured cty.Value, keyPaths [][]string, lookup originLookup, variables func(*proto.KeyOrigins, []PolicyVariableOrigin)) []*proto.KeyOrigins {
 	if planned == cty.NilVal || len(keyPaths) == 0 {
 		return nil
 	}
@@ -68,7 +78,7 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(ad
 	if planned.IsNull() {
 		return nil
 	}
-	e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
+	e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup, rootVariables: variables != nil}
 	rec := e.record(addr, planned)
 	if rec != nil {
 		rec.action = action
@@ -85,13 +95,18 @@ func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(ad
 			continue
 		}
 		origins, reasons := []*proto.Origin(nil), []proto.NoOriginReason{proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON}
+		var vars []PolicyVariableOrigin
 		if rec != nil {
-			origins, reasons = rec.keyPath(kp, n, countable)
+			origins, reasons, vars = rec.keyPath(kp, n, countable)
 		}
-		if len(origins) == 0 && len(reasons) == 0 {
+		if len(origins) == 0 && len(reasons) == 0 && len(vars) == 0 {
 			continue
 		}
-		ret = append(ret, &proto.KeyOrigins{KeyPath: policyAttrPath(kp), Origins: origins, NoOrigin: reasons})
+		ko := &proto.KeyOrigins{KeyPath: policyAttrPath(kp), Origins: origins, NoOrigin: reasons}
+		if len(vars) > 0 {
+			variables(ko, vars)
+		}
+		ret = append(ret, ko)
 	}
 	return ret
 }
@@ -144,21 +159,22 @@ func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value) *
 }
 
 // keyPath returns the origins of the record at a key path whose planned
-// value has n leaves, and the reasons for the leaves without an origin.
+// value has n leaves, the reasons for the leaves without an origin, and the
+// leaves that are root module variables when the evaluation follows them.
 // countable is false if the number of planned leaves isn't known.
-func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Origin, []proto.NoOriginReason) {
+func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Origin, []proto.NoOriginReason, []PolicyVariableOrigin) {
 	if policyIgnoreChangesApplies(r.action) && policyIgnoresChanges(r.rc, kp[0]) {
-		return nil, []proto.NoOriginReason{proto.NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON}
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_IGNORE_CHANGES_NO_ORIGIN_REASON}, nil
 	}
 	if !policyBodySets(r.body, kp[0]) {
-		return nil, []proto.NoOriginReason{proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON}
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON}, nil
 	}
 	leaves, reason, ok := r.e.leaves(r.self, r.planned.Type(), kp)
 	if !ok {
-		return nil, []proto.NoOriginReason{reason}
+		return nil, []proto.NoOriginReason{reason}, nil
 	}
 	if !countable {
-		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}, nil
 	}
 
 	// Leaves that are known to be null contribute no planned leaves, unless
@@ -174,12 +190,13 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 	}
 	allPlanned := n == len(leaves)
 	if !allPlanned && n != len(leaves)-k {
-		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}, nil
 	}
 
 	seen := make(map[string]bool)
 	reasons := make(map[proto.NoOriginReason]bool)
 	var refs []symRef
+	var vars []PolicyVariableOrigin
 	for i, leaf := range leaves {
 		if knownNull[i] && !allPlanned {
 			continue
@@ -196,6 +213,13 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 			}
 			seen[id] = true
 			refs = append(refs, sym)
+		case symVar:
+			id := "var." + sym.name + "#" + originPathString(sym.path)
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			vars = append(vars, PolicyVariableOrigin{Variable: sym.name, path: sym.path, ty: leaf.ty})
 		case symLit:
 			if sym.val.IsNull() {
 				reasons[proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON] = true
@@ -206,8 +230,8 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 			reasons[policyStructureReason(sym)] = true
 		}
 	}
-	if len(refs) > 0 && !policyPlanKeepsConfig(r.configured, r.planned, kp) {
-		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}
+	if (len(refs) > 0 || len(vars) > 0) && !policyPlanKeepsConfig(r.configured, r.planned, kp) {
+		return nil, []proto.NoOriginReason{proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON}, nil
 	}
 	sort.Slice(refs, func(i, j int) bool {
 		if a, b := refs[i].addr.String(), refs[j].addr.String(); a != b {
@@ -224,7 +248,7 @@ func (r *originRecord) keyPath(kp []string, n int, countable bool) ([]*proto.Ori
 		ret = append(ret, reason)
 	}
 	sort.Slice(ret, func(i, j int) bool { return ret[i] < ret[j] })
-	return origins, ret
+	return origins, ret, vars
 }
 
 // knownNull returns true if a leaf of the record at key path kp is known to
@@ -422,6 +446,35 @@ func (o symOpaque) why() proto.NoOriginReason {
 	return o.reason
 }
 
+// symVar is the value of a root module input variable, or of one of its
+// attributes or elements when path isn't empty. Only an evaluation for a
+// shared run follows root variables (originEval.rootVariables): the run's
+// owner may know where a variable's value comes from, e.g. a Terraform Stacks
+// component input that refers to another component's output. Otherwise a
+// root variable is opaqueVariable.
+type symVar struct {
+	name string
+	path []originStep
+}
+
+func (v symVar) withStep(step originStep) symVar {
+	path := make([]originStep, len(v.path), len(v.path)+1)
+	copy(path, v.path)
+	return symVar{name: v.name, path: append(path, step)}
+}
+
+// PolicyVariableOrigin is a leaf of a record's key path whose value is the
+// value of a root module input variable, or of one of its attributes or
+// elements. A walk that contributes to a shared run leaves resolving it to
+// its caller (see PolicyRunContribution.Variables).
+type PolicyVariableOrigin struct {
+	// Variable is the name of the root module input variable.
+	Variable string
+	// path is the path into the variable's value; ty is the leaf's type.
+	path []originStep
+	ty   cty.Type
+}
+
 // symLit is a literal value, or count.index or each.key.
 type symLit struct{ val cty.Value }
 
@@ -522,6 +575,9 @@ type originEval struct {
 	overridden func(addrs.ModuleInstance) bool
 	lookup     originLookup
 	depth      int
+	// rootVariables makes root module input variables symVars instead of
+	// opaqueVariable.
+	rootVariables bool
 }
 
 func (e *originEval) moduleOverridden(mod addrs.ModuleInstance) bool {
@@ -745,6 +801,8 @@ func (e *originEval) getAttr(base originSym, name string) originSym {
 		return base.attr(name)
 	case symRef:
 		return base.withStep(originStep{name: name})
+	case symVar:
+		return base.withStep(originStep{name: name})
 	case symOpaque:
 		return base
 	default:
@@ -768,6 +826,16 @@ func (e *originEval) index(base originSym, key originSym) originSym {
 			return opaqueUnsupported
 		}
 		return ref.withStep(originStep{index: i})
+	}
+	if v, ok := base.(symVar); ok {
+		if lit.val.Type() == cty.String {
+			return v.withStep(originStep{name: lit.val.AsString()})
+		}
+		i, ok := policyElementIndex(lit.val)
+		if !ok {
+			return opaqueUnsupported
+		}
+		return v.withStep(originStep{index: i})
 	}
 	k, err := addrs.ParseInstanceKey(lit.val)
 	if err != nil {
@@ -952,6 +1020,9 @@ func instanceKeyKnown(key addrs.InstanceKey, keyType addrs.InstanceKeyType, keys
 // call, in the parent module instance.
 func (e *originEval) variable(name string, s *originScope) originSym {
 	if s.mod.IsRoot() || s.cfg.Parent == nil {
+		if e.rootVariables && s.mod.IsRoot() {
+			return symVar{name: name}
+		}
 		return opaqueVariable
 	}
 	parentMod, callInst := s.mod.CallInstance()
@@ -1074,7 +1145,7 @@ func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originL
 			return nil, proto.NoOriginReason_PROVIDER_CHANGED_NO_ORIGIN_REASON, false
 		}
 		switch s := s.(type) {
-		case symObj, symRef:
+		case symObj, symRef, symVar:
 			return e.leaves(e.getAttr(s, steps[0]), ty.AttributeType(steps[0]), steps[1:])
 		case symSeq:
 			// A single nested block.
@@ -1096,6 +1167,8 @@ func policyStructureReason(s originSym) proto.NoOriginReason {
 	switch s := s.(type) {
 	case symOpaque:
 		return s.why()
+	case symVar:
+		return proto.NoOriginReason_VARIABLE_NO_ORIGIN_REASON
 	case symLit:
 		if s.val.IsNull() {
 			return proto.NoOriginReason_NOT_CONFIGURED_NO_ORIGIN_REASON
