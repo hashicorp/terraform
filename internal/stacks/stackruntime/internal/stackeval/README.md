@@ -462,3 +462,10 @@ its class is computed from the stack provider configuration's value like the
 Terraform CLI computes it, with one key for the whole run, which the walks use
 for their own classes too. Two configurations with the same value have the
 same class.
+
+An apply skips a component instance whose plan has nothing to apply. Like a
+Terraform CLI apply of such a plan, which reports and evaluates its unchanged
+instances, the run still gets the component instance's contribution, without
+a walk (`terraform.Context.ContributeSkippedApply`): a record of every
+instance in its state and one evaluation per no-op change, so its types can be
+complete.

@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -519,24 +518,6 @@ func policyUniqueOrigins(origins []*proto.Origin) []*proto.Origin {
 	key := func(o *proto.Origin) string { return o.Address + "#" + o.Path.String() }
 	slices.SortFunc(origins, func(a, b *proto.Origin) int { return strings.Compare(key(a), key(b)) })
 	return slices.CompactFunc(origins, func(a, b *proto.Origin) bool { return key(a) == key(b) })
-}
-
-// skipped notes a component instance whose walk doesn't run, because its
-// plan has nothing to apply: the instances in its state aren't reported, so
-// their types are incomplete.
-func (r *policyRun) skipped(state *states.State) {
-	if r == nil || state == nil {
-		return
-	}
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, ms := range state.Modules {
-		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode == addrs.ManagedResourceMode && len(rs.Instances) > 0 {
-				r.incomplete[policyTypeKey{rs.ProviderConfig.Provider.String(), rs.Addr.Resource.Type}] = true
-			}
-		}
-	}
 }
 
 // incompleteAll marks every type of the run incomplete. r.mu must be held.

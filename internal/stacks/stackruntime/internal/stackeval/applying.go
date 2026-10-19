@@ -270,7 +270,16 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// and just propagate the prior state (including any refreshing we
 		// did during the plan phase) forward.
 		newState = plan.PriorState
-		main.PolicyRun().skipped(newState)
+		if run := main.PolicyRun(); run != nil {
+			// Like a Terraform CLI apply of a plan without changes, the
+			// deployment's run gets the component's instances from its state
+			// and evaluates their no-op changes.
+			diags = diags.Append(tfCtx.ContributeSkippedApply(plan, moduleTree, &terraform.ApplyOpts{
+				ExternalProviders: providerClients,
+				PolicyClient:      main.PolicyClient(),
+				PolicyRun:         run.join(ctx, inst.Addr(), policyComponentInputs(inst), known),
+			}))
+		}
 	}
 
 	if newState != nil {
