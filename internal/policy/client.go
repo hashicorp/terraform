@@ -320,7 +320,6 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		PriorAttrs:   priorAttrs,
 		Metadata:     req.Meta,
 		RunId:        req.RunID,
-		Selection:    req.Selection,
 	}
 
 	// Register the callback functions with the callback service, so that they are available
@@ -498,7 +497,6 @@ func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 		Meta:       req.Meta,
 		Callbacks:  req.Callbacks,
 		RunID:      req.RunID,
-		Selection:  req.Selection,
 	}
 }
 

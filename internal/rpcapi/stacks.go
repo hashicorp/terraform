@@ -1530,9 +1530,7 @@ func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackr
 				mp = make(map[string]policy.EvaluationResponse)
 				resultMap.Put(h.ComponentAddr, mp)
 			}
-			// A resource gets the results of its policies without and with
-			// relationships separately; see policy.EvaluationResponse.Merge.
-			mp[h.ResourceAddr] = mp[h.ResourceAddr].Merge(h.Result)
+			mp[h.ResourceAddr] = h.Result
 			return nil
 		}
 	}

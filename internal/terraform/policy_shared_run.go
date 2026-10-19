@@ -20,17 +20,15 @@ import (
 // deployment and operation (runtime STACKS), and each component's walk
 // contributes its instances to it.
 //
-// A walk with a shared run doesn't begin or finish a run. Inside the walk it
-// evaluates only the resource policies without relationships, exactly as a
-// walk without a run would (getresources still sees only the walk's own
-// resources). Instead of evaluating the relationship policies, it hands the
-// caller its records, its type statuses and one evaluation per subject; the
-// caller reports the statuses and runs the evaluations once every walk has
-// contributed.
+// A walk with a shared run doesn't begin or finish a run, and evaluates no
+// policy itself. It hands the caller its records, its type statuses and one
+// evaluation per subject, with every policy; the caller reports the statuses
+// and runs the evaluations once every walk has contributed. The evaluations
+// use the walk's context, so getresources still sees only the walk's own
+// resources.
 type SharedPolicyRun struct {
 	// ID is the id of the run, or "" if the run didn't begin because
-	// BeginRun failed. Without a run the walk evaluates every policy itself,
-	// like a walk whose own BeginRun failed.
+	// BeginRun failed.
 	ID string
 
 	// Spec is the collection spec that BeginRun returned.
@@ -80,31 +78,28 @@ func PolicyProviderSchemas(schemas *schemarepo.Schemas) []*proto.ProviderSchema 
 	return policyProviderSchemas(schemas)
 }
 
-// policyEvaluationScope is the relationship run and the policy selection of
-// a resource evaluation, and the prefix that qualifies the subject's address
-// in the run.
+// policyEvaluationScope is the relationship run of a resource evaluation,
+// and the prefix that qualifies the subject's address in the run.
 type policyEvaluationScope struct {
 	runID         string
-	selection     proto.PolicySelection
 	addressPrefix string
 }
 
 // walkEvaluationScope returns the scope of the resource evaluations inside
-// the walk.
+// the walk. A walk that contributed to a shared run evaluates nothing itself.
 func (ps *policySubgraph) walkEvaluationScope() policyEvaluationScope {
-	if ps.run != nil && ps.run.Shared != nil && ps.run.Shared.ID != "" {
-		return policyEvaluationScope{selection: proto.PolicySelection_NON_RELATIONSHIP_POLICY_SELECTION}
-	}
 	return policyEvaluationScope{runID: ps.RunID()}
 }
 
 // contributeToSharedRun collects the walk's relationship batch and hands it,
 // with an evaluation per subject, to the shared run. It must be called after
-// the walk's changes and state are final.
-func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) {
+// the walk's changes and state are final. It reports whether it contributed;
+// if so, the shared run evaluates every subject of the walk, once and with
+// every policy, and the walk evaluates nothing itself.
+func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) bool {
 	shared := ps.run.Shared
 	if shared.ID == "" || shared.Contribute == nil {
-		return
+		return false
 	}
 	records, statuses, providers := collectRelationshipBatch(ctx, ps, shared.Spec)
 	prefix := shared.AddressPrefix
@@ -134,7 +129,6 @@ func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) {
 	}
 	scope := policyEvaluationScope{
 		runID:         shared.ID,
-		selection:     proto.PolicySelection_RELATIONSHIP_POLICY_SELECTION,
 		addressPrefix: prefix,
 	}
 	var subjects []func(context.Context) tfdiags.Diagnostics
@@ -169,6 +163,7 @@ func (ps *policySubgraph) contributeToSharedRun(ctx EvalContext) {
 		Providers: providers,
 		Subjects:  subjects,
 	})
+	return true
 }
 
 // deferredPolicyEvalContext is the EvalContext of a subject evaluation that

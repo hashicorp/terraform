@@ -49,7 +49,6 @@ func evaluatePoliciesInScope(ctx EvalContext, target addrs.AbsResourceInstance, 
 		Meta:       meta,
 		Callbacks:  callbacks,
 		RunID:      scope.runID,
-		Selection:  scope.selection,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information

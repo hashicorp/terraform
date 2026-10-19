@@ -6,7 +6,6 @@ package policy
 import (
 	"context"
 	"path/filepath"
-	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -127,10 +126,6 @@ type (
 		// RunID is the relationship run the evaluation belongs to, or "" when
 		// there is no relationship run. Only used for resource evaluations.
 		RunID string
-
-		// Selection limits a resource evaluation to the policies with or
-		// without relationships. The zero value evaluates them all.
-		Selection proto.PolicySelection
 	}
 
 	EnforcementResult struct {
@@ -285,42 +280,5 @@ func CtyToPolicyValue(raw cty.Value) PolicyValue {
 	return PolicyValue{
 		Raw:           raw,
 		RedactedPaths: redactedPaths,
-	}
-}
-
-// Merge combines two responses for the same object, such as the results of
-// its resource policies without and with relationships, which a Stacks
-// deployment evaluates separately. The overall result is the more severe one.
-func (r EvaluationResponse) Merge(o EvaluationResponse) EvaluationResponse {
-	if r.Empty() || (r.Overall == InvalidResult && len(r.Policies) == 0 && len(r.Diagnostics) == 0) {
-		// r has no policy, or is the zero response.
-		return o
-	}
-	if o.Empty() {
-		return r
-	}
-	if resultSeverity(o.Overall) > resultSeverity(r.Overall) {
-		r.Overall = o.Overall
-	}
-	r.Enforcements = append(slices.Clip(r.Enforcements), o.Enforcements...)
-	r.Policies = append(slices.Clip(r.Policies), o.Policies...)
-	r.Diagnostics = append(slices.Clip(r.Diagnostics), o.Diagnostics...)
-	return r
-}
-
-func resultSeverity(result EvaluateResult) int {
-	switch result {
-	case AllowResult:
-		return 1
-	case UnknownResult:
-		return 2
-	case DenyResult:
-		return 3
-	case PolicyErrorResult:
-		return 4
-	case SetupErrorResult:
-		return 5
-	default:
-		return 0
 	}
 }

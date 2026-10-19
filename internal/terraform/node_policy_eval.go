@@ -40,19 +40,21 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
 	var runDiags policy.Diagnostics
 	runFailed := false
+	contributed := false
 	switch {
 	case policyGraph.run == nil:
 	case policyGraph.run.Shared != nil:
 		// The walk contributes to its caller's run (Terraform Stacks), which
-		// reports the statuses and evaluates the relationship policies once
-		// every walk has contributed: an end-of-deployment batch that mirrors
-		// the end-of-walk batch of a walk's own run. Streaming is a later
-		// optimization for both. See SharedPolicyRun.
+		// reports the statuses and evaluates every subject, once and with
+		// every policy, after every walk has contributed: an
+		// end-of-deployment batch that mirrors the end-of-walk batch of a
+		// walk's own run. Streaming is a later optimization for both. See
+		// SharedPolicyRun.
 		shared := policyGraph.run.Shared
 		runDiags = shared.Diagnostics
 		runFailed = shared.Failed
 		if !runFailed {
-			policyGraph.contributeToSharedRun(ctx)
+			contributed = policyGraph.contributeToSharedRun(ctx)
 		}
 	default:
 		runDiags = policyGraph.startRelationshipRun(ctx, spanCtx)
@@ -69,6 +71,11 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	if runFailed {
 		// The relationship run didn't begin, so no policy is evaluated. There
 		// is no subgraph whose finish node ends the span, so end it here.
+		span.End()
+		return nil, diags
+	}
+	if contributed {
+		// The caller evaluates the subjects; the walk evaluates nothing.
 		span.End()
 		return nil, diags
 	}

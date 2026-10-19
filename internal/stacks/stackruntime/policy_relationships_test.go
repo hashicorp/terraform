@@ -27,7 +27,7 @@ import (
 // relationshipsTestClient is a policy client with relationships whose fake
 // relationship policy requires every testing_deferred_resource (the "block")
 // to have a testing_resource (the "bucket") in the same run. Its
-// policies without relationships call getresources for testing_resource.
+// policy without relationships calls getresources for testing_resource.
 type relationshipsTestClient struct {
 	*policy.MockClient
 
@@ -85,20 +85,22 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 		return &policyproto.FinishRunResponse{}, nil
 	}
 	c.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-		c.log("evaluate %s %s %s %s", req.Selection, req.RunID, req.Target, req.Meta.GetAddress())
-		var resp policy.EvaluationResponse
-		if req.Selection != policyproto.PolicySelection_RELATIONSHIP_POLICY_SELECTION {
-			resources, _, err := req.Callbacks.GetResources(ctx, "testing_resource", cty.NullVal(cty.DynamicPseudoType))
-			if err != nil {
-				t.Errorf("getresources failed: %s", err)
-			}
-			c.mu.Lock()
-			c.getResources[req.Target] = len(resources)
-			c.mu.Unlock()
-			resp = relationshipsTestResponse(policy.AllowResult, "plain")
+		c.log("evaluate %s %s %s", req.RunID, req.Target, req.Meta.GetAddress())
+		// A policy without relationships that calls getresources.
+		resources, _, err := req.Callbacks.GetResources(ctx, "testing_resource", cty.NullVal(cty.DynamicPseudoType))
+		if err != nil {
+			t.Errorf("getresources failed: %s", err)
 		}
-		if req.Selection != policyproto.PolicySelection_NON_RELATIONSHIP_POLICY_SELECTION && req.Target == "testing_deferred_resource" {
-			resp = resp.Merge(relationshipsTestResponse(c.blockHasBucket(req.RunID), "block has a bucket"))
+		c.mu.Lock()
+		c.getResources[req.Target] = len(resources)
+		c.mu.Unlock()
+		resp := relationshipsTestResponse(policy.AllowResult, "plain")
+		if req.Target == "testing_deferred_resource" {
+			// The relationship policy, in the same evaluation.
+			result := c.blockHasBucket(req.RunID)
+			resp.Overall = result
+			resp.Policies = append(resp.Policies, mockPolicyObj(result))
+			resp.Enforcements = append(resp.Enforcements, policy.EnforcementResult{Result: result, Message: "block has a bucket"})
 		}
 		return resp
 	}
@@ -193,7 +195,7 @@ func relationshipsTestProviders(t *testing.T) map[addrs.Provider]providers.Facto
 
 // checkDeploymentRun checks that the client saw exactly one STACKS run for
 // the deployment: begun once, its statuses reported once after every
-// component's records, the relationship policies evaluated only after that,
+// component's records, every resource evaluated once only after that,
 // and finished once. It returns the run's id.
 func checkDeploymentRun(t *testing.T, c *relationshipsTestClient, stage policyproto.EvaluationStage) string {
 	t.Helper()
@@ -228,22 +230,21 @@ func checkDeploymentRun(t *testing.T, c *relationshipsTestClient, stage policypr
 		}
 	}
 
+	// Every resource instance is evaluated exactly once, with every policy,
+	// in the run and after its statuses.
 	statusesAt := c.indexOf(wantStatuses)
-	relationshipEval := fmt.Sprintf("evaluate %s %s testing_deferred_resource component.block.testing_deferred_resource.block", policyproto.PolicySelection_RELATIONSHIP_POLICY_SELECTION, runID)
-	if at := c.indexOf(relationshipEval); at < statusesAt {
-		t.Errorf("want the relationship evaluation %q after the statuses, got:\n%s", relationshipEval, strings.Join(c.events, "\n"))
+	wantEvals := []string{
+		fmt.Sprintf("evaluate %s testing_deferred_resource component.block.testing_deferred_resource.block", runID),
+		fmt.Sprintf("evaluate %s testing_resource component.bucket.testing_resource.bucket", runID),
 	}
-	for _, e := range c.eventsWithPrefix("evaluate ") {
-		if strings.HasPrefix(e, "evaluate "+policyproto.PolicySelection_NON_RELATIONSHIP_POLICY_SELECTION.String()+"  ") {
-			// Policies without relationships: in the walk, without the run,
-			// with the component's own address.
-			if strings.Contains(e, "component.") {
-				t.Errorf("evaluation without relationships has a component-qualified address: %s", e)
-			}
-			continue
-		}
-		if e != relationshipEval && !strings.HasPrefix(e, fmt.Sprintf("evaluate %s %s testing_resource component.bucket.", policyproto.PolicySelection_RELATIONSHIP_POLICY_SELECTION, runID)) {
-			t.Errorf("unexpected evaluation: %s", e)
+	gotEvals := c.eventsWithPrefix("evaluate ")
+	slices.Sort(gotEvals)
+	if !slices.Equal(gotEvals, wantEvals) {
+		t.Errorf("want one evaluation per resource instance\ngot:  %q\nwant: %q", gotEvals, wantEvals)
+	}
+	for _, e := range wantEvals {
+		if at := c.indexOf(e); at < statusesAt {
+			t.Errorf("want the evaluation %q after the statuses, got:\n%s", e, strings.Join(c.events, "\n"))
 		}
 	}
 
@@ -315,8 +316,9 @@ func TestApply_PolicyRelationshipsAcrossComponents(t *testing.T) {
 	checkRelationshipResults(t, got)
 }
 
-// getresources in a policy without relationships stays scoped to the
-// component being evaluated, as it was before the deployment's run.
+// getresources stays scoped to the component of the resource being
+// evaluated, even though the evaluation happens at the end of the
+// deployment, in its run.
 func TestPlan_PolicyGetResourcesScopedToComponent(t *testing.T) {
 	ctx := context.Background()
 	client := newRelationshipsTestClient(t)
@@ -328,6 +330,9 @@ func TestPlan_PolicyGetResourcesScopedToComponent(t *testing.T) {
 		DependencyLocks:   relationshipsTestLocks(),
 		PolicyClient:      client,
 	})
+
+	// The evaluations happened at the end of the deployment.
+	checkDeploymentRun(t, client, policyproto.EvaluationStage_PLAN_EVALUATION_STAGE)
 
 	want := map[string]int{
 		"testing_resource":          1, // component.bucket sees its bucket

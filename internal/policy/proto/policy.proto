@@ -124,10 +124,6 @@ message PolicyEvaluateResourceRequest {
   // there is no relationship run.
   string run_id = 6;
 
-  // selection limits the evaluation to the policies with or without
-  // relationships. The default runs them all.
-  PolicySelection selection = 7;
-
   message ResourceMetadata {
     string provider_type = 1;
     Operation operation = 2;

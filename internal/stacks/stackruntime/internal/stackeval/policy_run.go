@@ -32,11 +32,11 @@ const policySubjectParallelism = 10
 // policyRun is the relationship run of a deployment's plan or apply: one run
 // with runtime STACKS that every component instance's walk contributes to.
 //
-// Each walk still evaluates the resource policies without relationships
-// itself, during the walk, with getresources scoped to the component. The
-// walks only report their records to this run. Once every component instance
-// is done, finish reports the deployment-wide type statuses, evaluates the
-// relationship policies of every subject, and finishes the run. That
+// The walks evaluate no policy themselves; they report their records to this
+// run and hand back their subjects. Once every component instance is done,
+// finish reports the deployment-wide type statuses, evaluates every subject
+// once with every policy (getresources still scoped to the subject's
+// component), and finishes the run. That
 // end-of-deployment batch mirrors the end-of-walk batch of a Terraform CLI
 // run; streaming statuses and evaluations as types become complete is a
 // later optimization.

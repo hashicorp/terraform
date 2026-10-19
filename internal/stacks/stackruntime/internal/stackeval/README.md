@@ -428,14 +428,16 @@ When the policy client supports relationships, the plan, and likewise the
 apply, of a deployment is one relationship run with runtime `STACKS`
 (`policy_run.go`). The first component instance whose Terraform walk reaches
 its policy phase begins it, with the schemas of every provider in the
-deployment. Each walk evaluates the policies without relationships itself, as
-without a run, so `core::getresources` sees only that component's resources,
-and reports its resource instances to the run with component-qualified
-addresses (`component.foo["a"].aws_s3_bucket.b`), but no type statuses.
+deployment. Each walk evaluates no policy itself: it reports its resource
+instances to the run with component-qualified addresses
+(`component.foo["a"].aws_s3_bucket.b`), but no type statuses, and hands back
+one evaluation per subject.
 
 Once `PlanAll` or `ApplyPlan` has walked every object, `Main.finishPolicyRun`
-sends the type statuses merged across all walks, evaluates the relationship
-policies of every walk's subjects, reporting their results through the
-component instances' policy hooks, and finishes the run. This
+sends the type statuses merged across all walks, evaluates every subject once,
+with every policy and the run's id, reporting the results through the
+component instances' policy hooks, and finishes the run. The evaluations use
+their walk's evaluation context, so `core::getresources` still sees only the
+subject's component's resources. This
 end-of-deployment batch mirrors the end-of-walk batch of a Terraform CLI run;
 streaming is a later optimization.

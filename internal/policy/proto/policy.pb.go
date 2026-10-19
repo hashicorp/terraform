@@ -176,10 +176,7 @@ type PolicyEvaluateResourceRequest struct {
 	PriorAttrs *ResourceAttributes `protobuf:"bytes,5,opt,name=prior_attrs,json=priorAttrs,proto3" json:"prior_attrs,omitempty"`
 	// run_id is the relationship run this evaluation belongs to, or "" when
 	// there is no relationship run.
-	RunId string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
-	// selection limits the evaluation to the policies with or without
-	// relationships. The default runs them all.
-	Selection     PolicySelection `protobuf:"varint,7,opt,name=selection,proto3,enum=proto.PolicySelection" json:"selection,omitempty"`
+	RunId         string `protobuf:"bytes,6,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -254,13 +251,6 @@ func (x *PolicyEvaluateResourceRequest) GetRunId() string {
 		return x.RunId
 	}
 	return ""
-}
-
-func (x *PolicyEvaluateResourceRequest) GetSelection() PolicySelection {
-	if x != nil {
-		return x.Selection
-	}
-	return PolicySelection_ALL_POLICY_SELECTION
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation
@@ -2414,7 +2404,7 @@ const file_policy_proto_rawDesc = "" +
 	"\rrelationships\x18\x03 \x01(\bR\rrelationships\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
-	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xdc\x04\n" +
+	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01\"\xa6\x04\n" +
 	"\x1dPolicyEvaluateResourceRequest\x12#\n" +
 	"\revaluation_id\x18\x01 \x01(\rR\fevaluationId\x12\x1a\n" +
 	"\bresource\x18\x02 \x01(\tR\bresource\x12/\n" +
@@ -2422,8 +2412,7 @@ const file_policy_proto_rawDesc = "" +
 	"\bmetadata\x18\x04 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12:\n" +
 	"\vprior_attrs\x18\x05 \x01(\v2\x19.proto.ResourceAttributesR\n" +
 	"priorAttrs\x12\x15\n" +
-	"\x06run_id\x18\x06 \x01(\tR\x05runId\x124\n" +
-	"\tselection\x18\a \x01(\x0e2\x16.proto.PolicySelectionR\tselection\x1a\xec\x01\n" +
+	"\x06run_id\x18\x06 \x01(\tR\x05runId\x1a\xec\x01\n" +
 	"\x10ResourceMetadata\x12#\n" +
 	"\rprovider_type\x18\x01 \x01(\tR\fproviderType\x12.\n" +
 	"\toperation\x18\x02 \x01(\x0e2\x10.proto.OperationR\toperation\x12\x1f\n" +
@@ -2672,20 +2661,19 @@ var file_policy_proto_goTypes = []any{
 	nil,                        // 43: proto.ProviderSchema.WriteOnlyPathsEntry
 	(*Diagnostic)(nil),         // 44: proto.Diagnostic
 	(*ResourceAttributes)(nil), // 45: proto.ResourceAttributes
-	(PolicySelection)(0),       // 46: proto.PolicySelection
-	(EvaluateResult)(0),        // 47: proto.EvaluateResult
-	(*Range)(nil),              // 48: proto.Range
-	(*Snippet)(nil),            // 49: proto.Snippet
-	(EvaluationStage)(0),       // 50: proto.EvaluationStage
-	(PlanMode)(0),              // 51: proto.PlanMode
-	(RunRuntime)(0),            // 52: proto.RunRuntime
-	(*AttributePath)(nil),      // 53: proto.AttributePath
-	(ResourceAction)(0),        // 54: proto.ResourceAction
-	(RecordSource)(0),          // 55: proto.RecordSource
-	(NoOriginReason)(0),        // 56: proto.NoOriginReason
-	(TypeCompleteness)(0),      // 57: proto.TypeCompleteness
-	(Operation)(0),             // 58: proto.Operation
-	(*AttributePaths)(nil),     // 59: proto.AttributePaths
+	(EvaluateResult)(0),        // 46: proto.EvaluateResult
+	(*Range)(nil),              // 47: proto.Range
+	(*Snippet)(nil),            // 48: proto.Snippet
+	(EvaluationStage)(0),       // 49: proto.EvaluationStage
+	(PlanMode)(0),              // 50: proto.PlanMode
+	(RunRuntime)(0),            // 51: proto.RunRuntime
+	(*AttributePath)(nil),      // 52: proto.AttributePath
+	(ResourceAction)(0),        // 53: proto.ResourceAction
+	(RecordSource)(0),          // 54: proto.RecordSource
+	(NoOriginReason)(0),        // 55: proto.NoOriginReason
+	(TypeCompleteness)(0),      // 56: proto.TypeCompleteness
+	(Operation)(0),             // 57: proto.Operation
+	(*AttributePaths)(nil),     // 58: proto.AttributePaths
 }
 var file_policy_proto_depIdxs = []int32{
 	27, // 0: proto.PolicySetupRequest.client_capabilities:type_name -> proto.PolicySetupRequest.ClientCapabilities
@@ -2695,84 +2683,83 @@ var file_policy_proto_depIdxs = []int32{
 	45, // 4: proto.PolicyEvaluateResourceRequest.attrs:type_name -> proto.ResourceAttributes
 	32, // 5: proto.PolicyEvaluateResourceRequest.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
 	45, // 6: proto.PolicyEvaluateResourceRequest.prior_attrs:type_name -> proto.ResourceAttributes
-	46, // 7: proto.PolicyEvaluateResourceRequest.selection:type_name -> proto.PolicySelection
-	47, // 8: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
-	48, // 9: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
-	4,  // 10: proto.PolicyEvaluationDetail.enforce_results:type_name -> proto.EnforceBlockResult
-	44, // 11: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
-	47, // 12: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
-	48, // 13: proto.EnforceBlockResult.range:type_name -> proto.Range
-	44, // 14: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
-	49, // 15: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
-	47, // 16: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
-	3,  // 17: proto.PolicyEvaluateResourceResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	45, // 18: proto.PolicyEvaluateProviderRequest.attrs:type_name -> proto.ResourceAttributes
-	33, // 19: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
-	47, // 20: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
-	3,  // 21: proto.PolicyEvaluateProviderResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	45, // 22: proto.PolicyEvaluateModuleRequest.attrs:type_name -> proto.ResourceAttributes
-	34, // 23: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
-	47, // 24: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
-	3,  // 25: proto.PolicyEvaluateModuleResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
-	12, // 26: proto.BeginRunRequest.provider_schemas:type_name -> proto.ProviderSchema
-	50, // 27: proto.BeginRunRequest.stage:type_name -> proto.EvaluationStage
-	51, // 28: proto.BeginRunRequest.plan_mode:type_name -> proto.PlanMode
-	52, // 29: proto.BeginRunRequest.runtime:type_name -> proto.RunRuntime
-	15, // 30: proto.BeginRunResponse.spec:type_name -> proto.CollectionSpec
-	44, // 31: proto.BeginRunResponse.diagnostics:type_name -> proto.Diagnostic
-	35, // 32: proto.ProviderSchema.resources:type_name -> proto.ProviderSchema.ResourcesEntry
-	36, // 33: proto.ProviderSchema.data_sources:type_name -> proto.ProviderSchema.DataSourcesEntry
-	37, // 34: proto.ProviderSchema.ephemeral_resources:type_name -> proto.ProviderSchema.EphemeralResourcesEntry
-	38, // 35: proto.ProviderSchema.list_resources:type_name -> proto.ProviderSchema.ListResourcesEntry
-	39, // 36: proto.ProviderSchema.state_stores:type_name -> proto.ProviderSchema.StateStoresEntry
-	40, // 37: proto.ProviderSchema.actions:type_name -> proto.ProviderSchema.ActionsEntry
-	41, // 38: proto.ProviderSchema.resource_identities:type_name -> proto.ProviderSchema.ResourceIdentitiesEntry
-	42, // 39: proto.ProviderSchema.functions:type_name -> proto.ProviderSchema.FunctionsEntry
-	43, // 40: proto.ProviderSchema.write_only_paths:type_name -> proto.ProviderSchema.WriteOnlyPathsEntry
-	14, // 41: proto.Function.parameters:type_name -> proto.FunctionParameter
-	14, // 42: proto.Function.variadic_parameter:type_name -> proto.FunctionParameter
-	16, // 43: proto.CollectionSpec.types:type_name -> proto.TypeSpec
-	53, // 44: proto.TypeSpec.key_paths:type_name -> proto.AttributePath
-	19, // 45: proto.ReportInstancesRequest.providers:type_name -> proto.ProviderInstance
-	20, // 46: proto.ReportInstancesRequest.records:type_name -> proto.InstanceRecord
-	23, // 47: proto.ReportInstancesRequest.statuses:type_name -> proto.TypeStatus
-	44, // 48: proto.ReportInstancesResponse.diagnostics:type_name -> proto.Diagnostic
-	54, // 49: proto.InstanceRecord.action:type_name -> proto.ResourceAction
-	55, // 50: proto.InstanceRecord.source:type_name -> proto.RecordSource
-	45, // 51: proto.InstanceRecord.attrs:type_name -> proto.ResourceAttributes
-	45, // 52: proto.InstanceRecord.prior_attrs:type_name -> proto.ResourceAttributes
-	21, // 53: proto.InstanceRecord.origins:type_name -> proto.KeyOrigins
-	53, // 54: proto.KeyOrigins.key_path:type_name -> proto.AttributePath
-	22, // 55: proto.KeyOrigins.origins:type_name -> proto.Origin
-	56, // 56: proto.KeyOrigins.no_origin:type_name -> proto.NoOriginReason
-	53, // 57: proto.Origin.path:type_name -> proto.AttributePath
-	57, // 58: proto.TypeStatus.completeness:type_name -> proto.TypeCompleteness
-	24, // 59: proto.TypeStatus.deferred:type_name -> proto.DeferredInstance
-	44, // 60: proto.FinishRunResponse.diagnostics:type_name -> proto.Diagnostic
-	31, // 61: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
-	29, // 62: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
-	58, // 63: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
-	13, // 64: proto.ProviderSchema.FunctionsEntry.value:type_name -> proto.Function
-	59, // 65: proto.ProviderSchema.WriteOnlyPathsEntry.value:type_name -> proto.AttributePaths
-	0,  // 66: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
-	2,  // 67: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
-	6,  // 68: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
-	8,  // 69: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
-	10, // 70: proto.Policy.BeginRun:input_type -> proto.BeginRunRequest
-	17, // 71: proto.Policy.ReportInstances:input_type -> proto.ReportInstancesRequest
-	25, // 72: proto.Policy.FinishRun:input_type -> proto.FinishRunRequest
-	1,  // 73: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
-	5,  // 74: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
-	7,  // 75: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
-	9,  // 76: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
-	11, // 77: proto.Policy.BeginRun:output_type -> proto.BeginRunResponse
-	18, // 78: proto.Policy.ReportInstances:output_type -> proto.ReportInstancesResponse
-	26, // 79: proto.Policy.FinishRun:output_type -> proto.FinishRunResponse
-	73, // [73:80] is the sub-list for method output_type
-	66, // [66:73] is the sub-list for method input_type
-	66, // [66:66] is the sub-list for extension type_name
-	66, // [66:66] is the sub-list for extension extendee
-	0,  // [0:66] is the sub-list for field type_name
+	46, // 7: proto.PolicyEvaluationDetail.result:type_name -> proto.EvaluateResult
+	47, // 8: proto.PolicyEvaluationDetail.def_range:type_name -> proto.Range
+	4,  // 9: proto.PolicyEvaluationDetail.enforce_results:type_name -> proto.EnforceBlockResult
+	44, // 10: proto.PolicyEvaluationDetail.diagnostics:type_name -> proto.Diagnostic
+	46, // 11: proto.EnforceBlockResult.result:type_name -> proto.EvaluateResult
+	47, // 12: proto.EnforceBlockResult.range:type_name -> proto.Range
+	44, // 13: proto.EnforceBlockResult.diagnostics:type_name -> proto.Diagnostic
+	48, // 14: proto.EnforceBlockResult.snippet:type_name -> proto.Snippet
+	46, // 15: proto.PolicyEvaluateResourceResponse.result:type_name -> proto.EvaluateResult
+	3,  // 16: proto.PolicyEvaluateResourceResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	45, // 17: proto.PolicyEvaluateProviderRequest.attrs:type_name -> proto.ResourceAttributes
+	33, // 18: proto.PolicyEvaluateProviderRequest.metadata:type_name -> proto.PolicyEvaluateProviderRequest.ProviderMetadata
+	46, // 19: proto.PolicyEvaluateProviderResponse.result:type_name -> proto.EvaluateResult
+	3,  // 20: proto.PolicyEvaluateProviderResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	45, // 21: proto.PolicyEvaluateModuleRequest.attrs:type_name -> proto.ResourceAttributes
+	34, // 22: proto.PolicyEvaluateModuleRequest.metadata:type_name -> proto.PolicyEvaluateModuleRequest.ModuleMetadata
+	46, // 23: proto.PolicyEvaluateModuleResponse.result:type_name -> proto.EvaluateResult
+	3,  // 24: proto.PolicyEvaluateModuleResponse.policy_details:type_name -> proto.PolicyEvaluationDetail
+	12, // 25: proto.BeginRunRequest.provider_schemas:type_name -> proto.ProviderSchema
+	49, // 26: proto.BeginRunRequest.stage:type_name -> proto.EvaluationStage
+	50, // 27: proto.BeginRunRequest.plan_mode:type_name -> proto.PlanMode
+	51, // 28: proto.BeginRunRequest.runtime:type_name -> proto.RunRuntime
+	15, // 29: proto.BeginRunResponse.spec:type_name -> proto.CollectionSpec
+	44, // 30: proto.BeginRunResponse.diagnostics:type_name -> proto.Diagnostic
+	35, // 31: proto.ProviderSchema.resources:type_name -> proto.ProviderSchema.ResourcesEntry
+	36, // 32: proto.ProviderSchema.data_sources:type_name -> proto.ProviderSchema.DataSourcesEntry
+	37, // 33: proto.ProviderSchema.ephemeral_resources:type_name -> proto.ProviderSchema.EphemeralResourcesEntry
+	38, // 34: proto.ProviderSchema.list_resources:type_name -> proto.ProviderSchema.ListResourcesEntry
+	39, // 35: proto.ProviderSchema.state_stores:type_name -> proto.ProviderSchema.StateStoresEntry
+	40, // 36: proto.ProviderSchema.actions:type_name -> proto.ProviderSchema.ActionsEntry
+	41, // 37: proto.ProviderSchema.resource_identities:type_name -> proto.ProviderSchema.ResourceIdentitiesEntry
+	42, // 38: proto.ProviderSchema.functions:type_name -> proto.ProviderSchema.FunctionsEntry
+	43, // 39: proto.ProviderSchema.write_only_paths:type_name -> proto.ProviderSchema.WriteOnlyPathsEntry
+	14, // 40: proto.Function.parameters:type_name -> proto.FunctionParameter
+	14, // 41: proto.Function.variadic_parameter:type_name -> proto.FunctionParameter
+	16, // 42: proto.CollectionSpec.types:type_name -> proto.TypeSpec
+	52, // 43: proto.TypeSpec.key_paths:type_name -> proto.AttributePath
+	19, // 44: proto.ReportInstancesRequest.providers:type_name -> proto.ProviderInstance
+	20, // 45: proto.ReportInstancesRequest.records:type_name -> proto.InstanceRecord
+	23, // 46: proto.ReportInstancesRequest.statuses:type_name -> proto.TypeStatus
+	44, // 47: proto.ReportInstancesResponse.diagnostics:type_name -> proto.Diagnostic
+	53, // 48: proto.InstanceRecord.action:type_name -> proto.ResourceAction
+	54, // 49: proto.InstanceRecord.source:type_name -> proto.RecordSource
+	45, // 50: proto.InstanceRecord.attrs:type_name -> proto.ResourceAttributes
+	45, // 51: proto.InstanceRecord.prior_attrs:type_name -> proto.ResourceAttributes
+	21, // 52: proto.InstanceRecord.origins:type_name -> proto.KeyOrigins
+	52, // 53: proto.KeyOrigins.key_path:type_name -> proto.AttributePath
+	22, // 54: proto.KeyOrigins.origins:type_name -> proto.Origin
+	55, // 55: proto.KeyOrigins.no_origin:type_name -> proto.NoOriginReason
+	52, // 56: proto.Origin.path:type_name -> proto.AttributePath
+	56, // 57: proto.TypeStatus.completeness:type_name -> proto.TypeCompleteness
+	24, // 58: proto.TypeStatus.deferred:type_name -> proto.DeferredInstance
+	44, // 59: proto.FinishRunResponse.diagnostics:type_name -> proto.Diagnostic
+	31, // 60: proto.PolicySetupResponse.ServerCapabilities.configurations:type_name -> proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry
+	29, // 61: proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntry.value:type_name -> proto.PolicySetupResponse.TerraformConfiguration
+	57, // 62: proto.PolicyEvaluateResourceRequest.ResourceMetadata.operation:type_name -> proto.Operation
+	13, // 63: proto.ProviderSchema.FunctionsEntry.value:type_name -> proto.Function
+	58, // 64: proto.ProviderSchema.WriteOnlyPathsEntry.value:type_name -> proto.AttributePaths
+	0,  // 65: proto.Policy.Setup:input_type -> proto.PolicySetupRequest
+	2,  // 66: proto.Policy.EvaluateResource:input_type -> proto.PolicyEvaluateResourceRequest
+	6,  // 67: proto.Policy.EvaluateProvider:input_type -> proto.PolicyEvaluateProviderRequest
+	8,  // 68: proto.Policy.EvaluateModule:input_type -> proto.PolicyEvaluateModuleRequest
+	10, // 69: proto.Policy.BeginRun:input_type -> proto.BeginRunRequest
+	17, // 70: proto.Policy.ReportInstances:input_type -> proto.ReportInstancesRequest
+	25, // 71: proto.Policy.FinishRun:input_type -> proto.FinishRunRequest
+	1,  // 72: proto.Policy.Setup:output_type -> proto.PolicySetupResponse
+	5,  // 73: proto.Policy.EvaluateResource:output_type -> proto.PolicyEvaluateResourceResponse
+	7,  // 74: proto.Policy.EvaluateProvider:output_type -> proto.PolicyEvaluateProviderResponse
+	9,  // 75: proto.Policy.EvaluateModule:output_type -> proto.PolicyEvaluateModuleResponse
+	11, // 76: proto.Policy.BeginRun:output_type -> proto.BeginRunResponse
+	18, // 77: proto.Policy.ReportInstances:output_type -> proto.ReportInstancesResponse
+	26, // 78: proto.Policy.FinishRun:output_type -> proto.FinishRunResponse
+	72, // [72:79] is the sub-list for method output_type
+	65, // [65:72] is the sub-list for method input_type
+	65, // [65:65] is the sub-list for extension type_name
+	65, // [65:65] is the sub-list for extension extendee
+	0,  // [0:65] is the sub-list for field type_name
 }
 
 func init() { file_policy_proto_init() }
