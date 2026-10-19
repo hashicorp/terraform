@@ -258,9 +258,14 @@ func TestPlan(t *testing.T) {
 							"write_only_input": mustPlanDynamicValueDynamicType(cty.StringVal("secret")),
 						},
 						PlannedInputValueMarks: map[string][]cty.PathValueMarks{
-							"datasource_id":    nil,
-							"resource_id":      nil,
-							"write_only_input": nil,
+							"datasource_id": nil,
+							"resource_id":   nil,
+							"write_only_input": {
+								{
+									Path:  cty.Path{},
+									Marks: cty.NewValueMarks(marks.Sensitive),
+								},
+							},
 						},
 						PlannedOutputValues: make(map[string]cty.Value),
 						PlannedCheckResults: &states.CheckResults{},

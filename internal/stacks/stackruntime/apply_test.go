@@ -2666,8 +2666,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"ephemeral-optional-input": {
-			path: "ephemeral-optional-input",
+		"optional-input-marks": {
+			path: "optional-input-marks",
 			cycles: []TestCycle{
 				{
 					wantPlannedChanges: []stackplan.PlannedChange{
@@ -2679,11 +2679,21 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							PlanApplyable:           true,
 							PlanComplete:            true,
 							Action:                  plans.Create,
-							ApplyTimeInputVariables: collections.NewSetCmp("input"),
-							PlannedInputValues:      make(map[string]plans.DynamicValue),
-							PlannedOutputValues:     make(map[string]cty.Value),
-							PlannedCheckResults:     new(states.CheckResults),
-							PlanTimestamp:           fakePlanTimestamp,
+							ApplyTimeInputVariables: collections.NewSetCmp("ephemeral_input"),
+							PlannedInputValues: map[string]plans.DynamicValue{
+								"sensitive_input": mustPlanDynamicValueDynamicType(cty.StringVal("default-sensitive")),
+							},
+							PlannedInputValueMarks: map[string][]cty.PathValueMarks{
+								"sensitive_input": {
+									{
+										Path:  cty.Path{},
+										Marks: cty.NewValueMarks(marks.Sensitive),
+									},
+								},
+							},
+							PlannedOutputValues: make(map[string]cty.Value),
+							PlannedCheckResults: new(states.CheckResults),
+							PlanTimestamp:       fakePlanTimestamp,
 						},
 						&stackplan.PlannedChangeResourceInstancePlanned{
 							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
@@ -2721,11 +2731,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
 							OutputValues:          make(map[addrs.OutputValue]cty.Value),
 							InputVariables: map[addrs.InputVariable]cty.Value{
-								// TODO:@austinvalle: Default component input variables are not marked at all in stacks,
-								// which feels like a bug (both for sensitive + ephemeral)
-								//
-								// mustInputVariable("input"): cty.NullVal(cty.String),
-								mustInputVariable("input"): cty.StringVal("default-secret"),
+								mustInputVariable("ephemeral_input"): cty.NullVal(cty.String),
+								mustInputVariable("sensitive_input"): cty.StringVal("default-sensitive").Mark(marks.Sensitive),
 							},
 						},
 						&stackstate.AppliedChangeResourceInstanceObject{
