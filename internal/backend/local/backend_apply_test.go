@@ -367,7 +367,8 @@ func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, 
 	_, configLoader, configCleanup := tftesting.MustLoadConfigForTests(t, configDir, "tests")
 
 	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
+	baseView := views.NewView(streams)
+	view := views.NewOperation(arguments.ViewHuman, false, baseView)
 
 	// Many of our tests use an overridden "test" provider that's just in-memory
 	// inside the test process, not a separate plugin on disk.
@@ -378,7 +379,7 @@ func testOperationApply(t *testing.T, configDir string) (*backendrun.Operation, 
 		Type:            backendrun.OperationTypeApply,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
-		StateLocker:     clistate.NewNoopLocker(),
+		StateLocker:     clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, baseView)),
 		View:            view,
 		DependencyLocks: depLocks,
 	}, configCleanup, done

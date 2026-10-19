@@ -54,6 +54,11 @@ func TestLocalRun(t *testing.T) {
 	}
 
 	// LocalRun() retains a lock on success
+	defer func() {
+		if diags := op.StateLocker.Unlock(); diags.HasErrors() {
+			t.Errorf("failed to unlock state: %s", diags.Err())
+		}
+	}()
 	assertBackendStateLocked(t, b)
 }
 
@@ -135,6 +140,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error creating state file %s: %s", b.StatePath, err)
 	}
+	defer sf.Close()
 	if err := statefile.Write(statefile.New(states.NewState(), "boop", 3), sf); err != nil {
 		t.Fatalf("unexpected error writing state file: %s", err)
 	}
@@ -184,10 +190,12 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
-	planFile, err := planfile.OpenWrapped(planPath)
+	planReader, err := planfile.Open(planPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading planfile: %s", err)
 	}
+	defer planReader.Close()
+	planFile := planfile.NewWrappedLocal(planReader)
 
 	streams, _ := terminal.StreamsForTesting(t)
 	view := views.NewView(streams)

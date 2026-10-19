@@ -183,8 +183,20 @@ func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, tfdiags.
 }
 
 func testStateFile(t *testing.T, path string, s *states.State) {
+	t.Helper()
 	stateFile := statemgr.NewFilesystem(path)
-	stateFile.WriteState(s)
+	lockID, err := stateFile.Lock(statemgr.NewLockInfo())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := stateFile.Unlock(lockID); err != nil {
+			t.Error(err)
+		}
+	}()
+	if err := stateFile.WriteState(s); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
@@ -203,28 +215,43 @@ func mustResourceInstanceAddr(s string) addrs.AbsResourceInstance {
 	return addr
 }
 
-// assertBackendStateUnlocked attempts to lock the backend state. Failure
-// indicates that the state was indeed locked and therefore this function will
-// return true.
+// assertBackendStateUnlocked verifies that the backend state can be locked,
+// releasing the lock before returning true on success.
 func assertBackendStateUnlocked(t *testing.T, b *Local) bool {
 	t.Helper()
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
-	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+	stateMgr, diags := b.StateMgr(backend.DefaultStateName)
+	if diags.HasErrors() {
+		t.Errorf("failed to get state manager: %s", diags.Err())
+		return false
+	}
+	lockID, err := stateMgr.Lock(statemgr.NewLockInfo())
+	if err != nil {
 		t.Errorf("state is already locked: %s", err.Error())
+		return false
+	}
+	if err := stateMgr.Unlock(lockID); err != nil {
+		t.Errorf("failed to unlock state: %s", err)
 		return false
 	}
 	return true
 }
 
-// assertBackendStateLocked attempts to lock the backend state. Failure
-// indicates that the state was already locked and therefore this function will
-// return false.
+// assertBackendStateLocked verifies that the backend state is already locked,
+// returning true when an attempt to acquire the lock fails.
 func assertBackendStateLocked(t *testing.T, b *Local) bool {
 	t.Helper()
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
-	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+	stateMgr, diags := b.StateMgr(backend.DefaultStateName)
+	if diags.HasErrors() {
+		t.Errorf("failed to get state manager: %s", diags.Err())
+		return false
+	}
+	lockID, err := stateMgr.Lock(statemgr.NewLockInfo())
+	if err != nil {
 		return true
 	}
+	if err := stateMgr.Unlock(lockID); err != nil {
+		t.Errorf("failed to unlock state: %s", err)
+	}
 	t.Error("unexpected success locking state")
-	return true
+	return false
 }
