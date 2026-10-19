@@ -813,6 +813,7 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	defer pr.Close()
 
 	snap, err := pr.ReadConfigSnapshot()
 	if err != nil {

@@ -112,6 +112,7 @@ func TestRoundtrip(t *testing.T) {
 	if !ok {
 		t.Fatalf("failed to open plan file as a local plan file")
 	}
+	defer pr.Close()
 	if wpf.IsCloud() {
 		t.Fatalf("wrapped plan claims to be both kinds of plan at once")
 	}
