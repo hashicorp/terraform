@@ -431,9 +431,9 @@ func walkEphemeralComponent[Output any](
 
 			insts, unknown := ephComponent.Instances(ctx, phase)
 			if unknown {
-				// TODO:@austinvalle: I'm fairly certain this is needed, but need to double check...
-				// My thought is that an unknown ephemeral component expansion will still want an instance "registered"
-				// that will return dynamic val and can be detected as deferred.
+				// An unknown expansion still needs an instance to evaluate, so that errors in
+				// the module that depend on its input values are reported. The instance is
+				// treated as deferred, as its upstream for_each is unknown.
 				inst := ephComponent.UnknownInstance(ctx, addrs.WildcardKey, phase)
 				visit(ctx, walk, inst)
 

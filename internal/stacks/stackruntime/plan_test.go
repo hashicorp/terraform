@@ -1419,6 +1419,32 @@ func TestPlan(t *testing.T) {
 				},
 			},
 		},
+		"ephemeral-unknown-for-each-invalid-input": {
+			path: "ephemeral-unknown-for-each-invalid-input",
+			cycle: TestCycle{
+				planInputs: map[string]cty.Value{
+					"names": cty.UnknownVal(cty.Set(cty.String)),
+				},
+				// This diagnostic only shows up during due to the unknown expansion
+				wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+					return diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid function argument",
+						Detail:   "Invalid value for \"v\" parameter: cannot convert \"not-a-number\" to number; given string must be a decimal representation of a number.",
+						Subject: &hcl.Range{
+							Filename: mainBundleSourceAddrStr("ephemeral-unknown-for-each-invalid-input/ephemeral-unknown-for-each-invalid-input.tf"),
+							Start:    hcl.Pos{Line: 6, Column: 21, Byte: 68},
+							End:      hcl.Pos{Line: 6, Column: 31, Byte: 78},
+						},
+						Context: &hcl.Range{
+							Filename: mainBundleSourceAddrStr("ephemeral-unknown-for-each-invalid-input/ephemeral-unknown-for-each-invalid-input.tf"),
+							Start:    hcl.Pos{Line: 6, Column: 12, Byte: 59},
+							End:      hcl.Pos{Line: 6, Column: 32, Byte: 79},
+						},
+					})
+				}),
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
