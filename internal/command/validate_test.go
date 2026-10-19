@@ -538,11 +538,11 @@ func TestValidate_ensure_json_diags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 		}
-		if output.Stderr() != "" {
-			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		if output.Stdout() != "" {
+			t.Fatalf("Expected output, all json output should go to stderr, got stdout: %s", output.Stdout())
 		}
 
-		gotString := output.Stdout()
+		gotString := output.Stderr()
 
 		var got map[string]any
 		err := json.Unmarshal([]byte(gotString), &got)
@@ -557,11 +557,11 @@ func TestValidate_ensure_json_diags(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 		}
-		if output.Stderr() != "" {
-			t.Fatalf("Expected output, all json output should go to stdout, got stderr: %s", output.Stderr())
+		if output.Stdout() != "" {
+			t.Fatalf("Expected output, all json output should go to stderr, got stdout: %s", output.Stdout())
 		}
 
-		gotString := output.Stdout()
+		gotString := output.Stderr()
 
 		var got map[string]any
 		err := json.Unmarshal([]byte(gotString), &got)

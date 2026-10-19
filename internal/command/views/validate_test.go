@@ -176,7 +176,11 @@ func TestValidateJSON_Diagnostics(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewValidate(arguments.ViewJSON, view)
 
-			v.Diagnostics(tc.diag)
+			code := v.Diagnostics(tc.diag)
+
+			if code != 1 {
+				t.Errorf("expected 1 return code, got %d", code)
+			}
 
 			output := done(t)
 			gotErr := output.Stderr()

@@ -18,7 +18,7 @@ type Validate interface {
 	Results(diags tfdiags.Diagnostics) int
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
-	Diagnostics(diags tfdiags.Diagnostics)
+	Diagnostics(diags tfdiags.Diagnostics) int
 }
 
 // NewValidate returns an initialized Validate implementation for the given ViewType.
@@ -63,8 +63,9 @@ const validateSuccess = "[green][bold]Success![reset] The configuration is valid
 
 const validateWarnings = "[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above.\n"
 
-func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) {
+func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) int {
 	v.view.Diagnostics(diags)
+	return 1
 }
 
 // The ValidateJSON implementation renders validation results as a JSON object.
@@ -136,9 +137,9 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 }
 
 // Diagnostics should only be called if the validation walk cannot be executed.
-func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
+func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) int {
 	if len(diags) == 0 {
-		return
+		return 1 // Edge case; no diagnostics to report but this method should only be called when we return 1.
 	}
 
 	output := ValidateOutput{
@@ -154,4 +155,5 @@ func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
 		// using this method incorrectly.
 		v.view.Print(output)
 	}
+	return 1
 }
