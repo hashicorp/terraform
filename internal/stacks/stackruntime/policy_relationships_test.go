@@ -37,6 +37,12 @@ type relationshipsTestClient struct {
 	// getResources counts the testing_resource objects getresources returned
 	// to an evaluation, by its target type.
 	getResources map[string]int
+
+	// failStatuses makes the ReportInstances that carries the statuses
+	// fail with a transport error.
+	failStatuses bool
+	// rejected lists the runs whose statuses failed to report.
+	rejected map[string]bool
 }
 
 const relationshipsTestProvider = "registry.terraform.io/hashicorp/testing"
@@ -46,6 +52,7 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 	c := &relationshipsTestClient{
 		MockClient:   policy.NewTestMockClient(t),
 		getResources: make(map[string]int),
+		rejected:     make(map[string]bool),
 	}
 	c.RelationshipsSupportedResponse = true
 	c.BeginRunFn = func(_ context.Context, req *policyproto.BeginRunRequest) (*policyproto.BeginRunResponse, error) {
@@ -65,6 +72,12 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 			statuses = append(statuses, s.Type+"="+s.Completeness.String())
 		}
 		c.log("report %s records=%s statuses=%s", req.RunId, strings.Join(addrs, ","), strings.Join(statuses, ","))
+		if c.failStatuses && len(req.Statuses) > 0 {
+			c.mu.Lock()
+			c.rejected[req.RunId] = true
+			c.mu.Unlock()
+			return nil, fmt.Errorf("connection lost")
+		}
 		return &policyproto.ReportInstancesResponse{}, nil
 	}
 	c.FinishRunFn = func(_ context.Context, req *policyproto.FinishRunRequest) (*policyproto.FinishRunResponse, error) {
@@ -101,6 +114,13 @@ func (c *relationshipsTestClient) log(format string, args ...any) {
 // blockHasBucket evaluates the relationship policy against the run's
 // reports. EvaluateFn holds the mock's lock, so it can read them.
 func (c *relationshipsTestClient) blockHasBucket(runID string) policy.EvaluateResult {
+	c.mu.Lock()
+	rejected := c.rejected[runID]
+	c.mu.Unlock()
+	if rejected {
+		// Like the engine, fail closed on a run whose data didn't arrive.
+		return policy.PolicyErrorResult
+	}
 	hasBucket := false
 	complete := false
 	for _, req := range c.ReportInstancesRequests {
@@ -367,5 +387,33 @@ func TestPlan_PolicyRelationshipsDeferredComponent(t *testing.T) {
 		if got[typ] != w {
 			t.Errorf("%s: got status %q, want %q", typ, got[typ], w)
 		}
+	}
+}
+
+// When the statuses fail to report, the relationship policies are still
+// evaluated in the run, and fail closed, instead of giving no result.
+func TestPlan_PolicyRelationshipsStatusesReportFails(t *testing.T) {
+	ctx := context.Background()
+	client := newRelationshipsTestClient(t)
+	client.failStatuses = true
+
+	got := planAndCollectPolicyResults(t, ctx, PlanRequest{
+		PlanMode:          plans.NormalMode,
+		Config:            loadMainBundleConfigForTest(t, "policy-relationships-cross-component"),
+		ProviderFactories: relationshipsTestProviders(t),
+		DependencyLocks:   relationshipsTestLocks(),
+		PolicyClient:      client,
+	})
+
+	block, ok := got["component.block"]["testing_deferred_resource.block"]
+	if !ok || block.Overall != policy.PolicyErrorResult {
+		t.Errorf("block: want an error result, got %s (present: %t)", block.Overall, ok)
+	}
+	if !slices.ContainsFunc(block.Enforcements, func(e policy.EnforcementResult) bool { return e.Message == "block has a bucket" }) {
+		t.Errorf("block: the relationship policy wasn't evaluated: %#v", block.Enforcements)
+	}
+	finishes := client.eventsWithPrefix("finish ")
+	if len(finishes) != 1 || !strings.HasSuffix(finishes[0], "aborted=true") {
+		t.Errorf("want FinishRun once, aborted: %v", finishes)
 	}
 }

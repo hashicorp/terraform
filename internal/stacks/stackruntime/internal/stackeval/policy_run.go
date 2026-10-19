@@ -48,7 +48,10 @@ type policyRun struct {
 
 	// begin begins the run when the first component instance joins it,
 	// once the walks need it; the fields below it are only set then.
-	begin       sync.Once
+	begin sync.Once
+	// ctx is the operation's context, without its cancellation, for the
+	// walks' ReportInstances calls.
+	ctx         context.Context
 	id          string
 	spec        *proto.CollectionSpec
 	failed      bool
@@ -167,7 +170,10 @@ func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstan
 	if r == nil {
 		return nil
 	}
-	r.begin.Do(func() { r.beginRun(ctx) })
+	r.begin.Do(func() {
+		r.ctx = context.WithoutCancel(ctx)
+		r.beginRun(ctx)
+	})
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -241,7 +247,7 @@ func (r *policyRun) contribute(c terraform.PolicyRunContribution) {
 	}
 	// The statuses only go out in finish, once every walk has contributed.
 	for _, req := range terraform.PolicyRunReports(c.Records, nil, providers, r.id) {
-		resp, err := r.client.ReportInstances(context.Background(), req)
+		resp, err := r.client.ReportInstances(r.ctx, req)
 		if err != nil {
 			log.Printf("[WARN] policy: failed to report instances for relationship run %s: %s", r.id, err)
 			r.incompleteAll()
@@ -326,8 +332,12 @@ func (m *Main) finishPolicyRun(ctx context.Context, errored bool) tfdiags.Diagno
 	// whole deployment: the end-of-deployment counterpart of a CLI walk's
 	// end-of-walk batch. Streaming the evaluations as their types become
 	// complete is a later optimization.
+	//
+	// The subjects are evaluated even when the statuses failed to report,
+	// as in a Terraform run, so the engine fails the relationship policies
+	// closed instead of them giving no result.
 	var diags tfdiags.Diagnostics
-	if reported && ctx.Err() == nil {
+	if ctx.Err() == nil {
 		var wg sync.WaitGroup
 		var diagsMu sync.Mutex
 		sem := make(chan struct{}, policySubjectParallelism)
