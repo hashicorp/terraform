@@ -73,7 +73,6 @@ type EphemeralComponent struct {
 	ProviderConfigs map[addrs.LocalProviderConfig]hcl.Expression
 
 	ForEach   hcl.Expression
-	DependsOn []hcl.Traversal
 	DeclRange tfdiags.SourceRange
 }
 
@@ -112,7 +111,6 @@ var ephemeralComponentBlockSchema = &hcl.BodySchema{
 		{Name: "for_each", Required: false},
 		{Name: "inputs", Required: false},
 		{Name: "providers", Required: false},
-		{Name: "depends_on", Required: false},
 	},
 }
 
@@ -166,10 +164,6 @@ func decodeEphemeralComponentBlock(block *hcl.Block) (*EphemeralComponent, tfdia
 		var providerDiags tfdiags.Diagnostics
 		ret.ProviderConfigs, providerDiags = decodeProvidersAttribute(attr)
 		diags = diags.Append(providerDiags)
-	}
-	if attr, exists := content.Attributes["depends_on"]; exists {
-		ret.DependsOn, hclDiags = configs.DecodeDependsOn(attr)
-		diags = diags.Append(hclDiags)
 	}
 
 	return ret, diags

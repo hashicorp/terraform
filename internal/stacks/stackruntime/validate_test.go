@@ -274,6 +274,22 @@ var (
 				return diags
 			},
 		},
+		"ephemeral-depends-on-ephemeral-component": {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid depends_on target",
+					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"ephemeral_component.out\".",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-depends-on-ephemeral-component/ephemeral-depends-on-ephemeral-component.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 31, Column: 17, Byte: 516},
+						End:      hcl.Pos{Line: 31, Column: 40, Byte: 539},
+					},
+				})
+				return diags
+			},
+		},
 		filepath.Join("with-single-input", "depends-on-invalid"): {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics

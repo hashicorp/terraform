@@ -250,12 +250,8 @@ func (c *EphemeralComponentConfig) checkValid(ctx context.Context, phase EvalPha
 		variableDiags := c.CheckInputVariableValues(ctx, phase)
 		diags = diags.Append(variableDiags)
 
-		dependsOnDiags := ValidateDependsOn(c.stack, c.config.DependsOn)
-		diags = diags.Append(dependsOnDiags)
-
-		// We don't actually exit if we found errors with the input variables
-		// or depends_on attribute, we can still validate the actual module tree
-		// without them.
+		// We don't actually exit if we found errors with the input variables,
+		// we can still validate the actual module tree without them.
 
 		providerTypes, providerDiags := EvalProviderTypes(ctx, c.stack, c.config.ProviderConfigs, phase, c)
 		diags = diags.Append(providerDiags)

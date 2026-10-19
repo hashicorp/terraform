@@ -252,16 +252,6 @@ func ValidateDependsOn(source *StackConfig, traversals []hcl.Traversal) tfdiags.
 					Subject:  ref.SourceRange.ToHCL().Ptr(),
 				})
 			}
-		case stackaddrs.EphemeralComponent:
-			// Make sure this ephemeral component exists.
-			if source.EphemeralComponent(addr) == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid depends_on target",
-					Detail:   fmt.Sprintf("The depends_on reference %q does not exist.", addr),
-					Subject:  ref.SourceRange.ToHCL().Ptr(),
-				})
-			}
 		default:
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,

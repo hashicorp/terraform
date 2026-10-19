@@ -415,9 +415,6 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 		if cfg.Inputs != nil {
 			t.Error("unexpected inputs expression")
 		}
-		if got, want := len(cfg.DependsOn), 0; got != want {
-			t.Errorf("wrong number of depends_on references %d; want %d", got, want)
-		}
 		if _, ok := cfg.ProviderConfigs[testingProvider]; !ok || len(cfg.ProviderConfigs) != 1 {
 			t.Errorf("wrong provider configs %#v; want a single %q entry", cfg.ProviderConfigs, testingProvider.LocalName)
 		}
@@ -441,12 +438,6 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 		}
 		if _, ok := cfg.ProviderConfigs[testingProvider]; !ok || len(cfg.ProviderConfigs) != 1 {
 			t.Errorf("wrong provider configs %#v; want a single %q entry", cfg.ProviderConfigs, testingProvider.LocalName)
-		}
-		if got, want := len(cfg.DependsOn), 1; got != want {
-			t.Fatalf("wrong number of depends_on references %d; want %d", got, want)
-		}
-		if got, want := cfg.DependsOn[0].RootName(), "ephemeral_component"; got != want {
-			t.Errorf("wrong depends_on root\ngot:  %s\nwant: %s", got, want)
 		}
 	})
 	t.Run("lookup by address", func(t *testing.T) {

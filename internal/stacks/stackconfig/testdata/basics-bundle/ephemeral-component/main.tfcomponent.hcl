@@ -30,8 +30,6 @@ ephemeral_component "expanded" {
   providers = {
     testing = provider.testing.main
   }
-
-  depends_on = [ephemeral_component.basic]
 }
 
 output "value" {
