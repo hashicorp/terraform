@@ -5023,6 +5023,63 @@ permission denied..
 	}
 }
 
+func TestTest_DeprecatedValueInFailedAssertion(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "deprecated_value_in_assertion")), td)
+	t.Chdir(td)
+
+	provider := testing_command.NewProvider(nil)
+
+	streams, done := terminal.StreamsForTesting(t)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               testUiWrapped(t),
+		View:             views.NewView(streams),
+		Streams:          streams,
+		ProviderSource:   newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}}),
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+	output := done(t)
+	if code := init.Run([]string{}); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	// Reset the streams for the next command.
+	streams, done = terminal.StreamsForTesting(t)
+	meta.Streams = streams
+	meta.View = views.NewView(streams)
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color"})
+	output = done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d: %s", code, output.All())
+	}
+
+	expectedOut := `main.tftest.hcl... in progress
+  run "failing_assertion_on_deprecated_value"... fail
+main.tftest.hcl... tearing down
+main.tftest.hcl... fail
+
+Failure! 0 passed, 1 failed.
+`
+	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
+		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
+	}
+
+	if !strings.Contains(output.Stderr(), "Test assertion failed") {
+		t.Errorf("expected stderr to report a failed assertion, got:\n%s", output.Stderr())
+	}
+}
+
 // TestTest_ValidateBackendConfiguration tests validation of how backends are declared in test files:
 // * it's not valid to re-use the same backend config (i.e the same state file)
 // * it's not valid to use a deprecated backend type
@@ -5276,6 +5333,7 @@ test_resource_id = %s`, resourceId, resourceId)
 				"apply_fail":           cty.False,
 				"destroy_wait_seconds": cty.NullVal(cty.Number),
 				"defer":                cty.NullVal(cty.Bool),
+				"deprecated":           cty.NullVal(cty.String),
 			})},
 	}
 	provider := testing_command.NewProvider(resourceStore)
