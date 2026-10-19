@@ -453,3 +453,12 @@ component-qualified addresses. Anything else, such as a function call, keeps
 the reason `VARIABLE`, and the engine relates the leaf by value. The records
 with such leaves are only reported then. References through embedded stacks'
 inputs and outputs aren't followed yet.
+
+A provider configuration passed in from the stack is one provider instance in
+the run, whichever components it's passed to: its `config_address` is the
+stack provider configuration instance (`provider.aws.this`,
+`provider.aws.this["k"]`, prefixed with the stack for an embedded stack), and
+its class is computed from the stack provider configuration's value like the
+Terraform CLI computes it, with one key for the whole run, which the walks use
+for their own classes too. Two configurations with the same value have the
+same class.

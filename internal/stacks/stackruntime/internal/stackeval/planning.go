@@ -210,7 +210,8 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	if opts != nil && opts.PolicyClient != nil && !opts.PreDestroyRefresh {
 		// The walk contributes to the deployment's relationship run instead
 		// of beginning its own.
-		opts.PolicyRun = main.PolicyRun().join(ctx, scope.Addr(), policyComponentInputs(scope))
+		known, _, _ := EvalProviderValues(ctx, main, policyComponentProviders(scope), PlanPhase, scope)
+		opts.PolicyRun = main.PolicyRun().join(ctx, scope.Addr(), policyComponentInputs(scope), known)
 	}
 
 	plan, moreDiags := tfCtx.Plan(moduleTree, state, opts)

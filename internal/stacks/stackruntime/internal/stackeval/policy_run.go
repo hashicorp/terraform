@@ -5,6 +5,8 @@ package stackeval
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"log"
 	"slices"
 	"sort"
@@ -70,6 +72,9 @@ type policyRun struct {
 	diagnosticsGiven    bool
 	// providers are the run's provider instance ids, by config address.
 	providers map[string]uint32
+	// providerKey is the run's key for provider classes, shared by its
+	// walks and its stack provider configurations.
+	providerKey []byte
 	// statuses are the merged statuses of the walks, by type.
 	statuses map[policyTypeKey]*proto.TypeStatus
 	// incomplete are the types incomplete for a reason outside the walks.
@@ -87,6 +92,10 @@ type policyWalk struct {
 	addr stackaddrs.AbsComponentInstance
 	// inputs is the component's inputs expression, or nil.
 	inputs hcl.Expression
+	// providers are the stack provider configuration instances of the
+	// walk's root provider configurations, by the walk's (component
+	// qualified) config address.
+	providers map[string]*proto.ProviderInstance
 	// variables and outputs are those of the walk's contribution.
 	variables map[*proto.KeyOrigins][]terraform.PolicyVariableOrigin
 	outputs   terraform.PolicyOutputOrigins
@@ -108,6 +117,10 @@ func newPolicyRun(m *Main) *policyRun {
 		statuses:   make(map[policyTypeKey]*proto.TypeStatus),
 		incomplete: make(map[policyTypeKey]bool),
 		walks:      make(map[string]*policyWalk),
+	}
+	run.providerKey = make([]byte, 32)
+	if _, err := rand.Read(run.providerKey); err != nil {
+		return nil
 	}
 	switch {
 	case m.Applying():
@@ -186,8 +199,9 @@ func (r *policyRun) beginRun(ctx context.Context) {
 
 // join returns the run for the walk of a component instance, or nil if the
 // walk has none. The walk must contribute to the run or fail. inputs is the
-// component's inputs expression, or nil.
-func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstance, inputs hcl.Expression) *terraform.SharedPolicyRun {
+// component's inputs expression, or nil. known are the stack provider
+// configuration instances of the component's root provider configurations.
+func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstance, inputs hcl.Expression, known map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance) *terraform.SharedPolicyRun {
 	if r == nil {
 		return nil
 	}
@@ -195,17 +209,19 @@ func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstan
 		r.ctx = context.WithoutCancel(ctx)
 		r.beginRun(ctx)
 	})
+	providers := r.stackProviders(ctx, addr, known)
 
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.joined++
-	walk := &policyWalk{addr: addr, inputs: inputs}
+	walk := &policyWalk{addr: addr, inputs: inputs, providers: providers}
 	r.walks[addr.String()] = walk
 	shared := &terraform.SharedPolicyRun{
 		ID:            r.id,
 		Spec:          r.spec,
 		Failed:        r.failed,
 		AddressPrefix: addr.String() + ".",
+		ProviderKey:   r.providerKey,
 		Contribute: func(c terraform.PolicyRunContribution) {
 			r.contribute(walk, c)
 		},
@@ -230,11 +246,18 @@ func (r *policyRun) contribute(walk *policyWalk, c terraform.PolicyRunContributi
 	walk.outputs = c.Outputs
 
 	// The walk's provider ids are its own; the run's are by config address,
-	// which the walk qualified with its component instance.
+	// which the walk qualified with its component instance. A provider
+	// configuration from the stack is the stack's provider configuration
+	// instance, whichever components it's passed to.
 	ids := make(map[uint32]uint32, len(c.Providers))
 	var providers []*proto.ProviderInstance
 	for _, p := range c.Providers {
 		local := p.Id
+		if sp, ok := walk.providers[p.ConfigAddress]; ok {
+			p.ConfigAddress = sp.ConfigAddress
+			p.ConfigClass = sp.ConfigClass
+			p.Known = sp.Known
+		}
 		id, ok := r.providers[p.ConfigAddress]
 		if !ok {
 			id = uint32(len(r.providers) + 1)
@@ -284,6 +307,55 @@ func (r *policyRun) contribute(walk *policyWalk, c terraform.PolicyRunContributi
 	}
 	// The statuses only go out in finish, once every walk has contributed.
 	r.report(records, nil, providers)
+}
+
+// stackProviders returns the stack provider configuration instances of a
+// component instance's root provider configurations, by the walk's config
+// address, with their classes computed like a walk computes those of its
+// own provider configurations, with the run's key.
+func (r *policyRun) stackProviders(ctx context.Context, component stackaddrs.AbsComponentInstance, known map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance) map[string]*proto.ProviderInstance {
+	phase := PlanPhase
+	if r.stage == proto.EvaluationStage_APPLY_EVALUATION_STAGE {
+		phase = ApplyPhase
+	}
+	ret := make(map[string]*proto.ProviderInstance, len(known))
+	for root, addr := range known {
+		p := &proto.ProviderInstance{
+			ConfigAddress: addr.String(),
+			Source:        root.Provider.String(),
+		}
+		ret[component.String()+"."+root.AbsProviderConfig().String()] = p
+		stack := r.main.Stack(ctx, addr.Stack, phase)
+		if stack == nil {
+			continue
+		}
+		config := stack.Provider(addr.Item.ProviderConfig)
+		if config == nil {
+			continue
+		}
+		insts, _ := config.Instances(ctx, phase)
+		inst := insts[addr.Item.Key]
+		if inst == nil {
+			continue
+		}
+		// The address as written in the stack configuration, with the
+		// provider's local name.
+		local := inst.provider.config.config.LocalAddr
+		p.ConfigAddress = fmt.Sprintf("provider.%s.%s", local.LocalName, local.Alias)
+		if addr.Item.Key != addrs.NoKey {
+			p.ConfigAddress += addr.Item.Key.String()
+		}
+		if !addr.Stack.IsRoot() {
+			p.ConfigAddress = addr.Stack.String() + "." + p.ConfigAddress
+		}
+		schema, err := r.main.ProviderType(inst.ProviderType().Addr()).Schema(ctx)
+		if err != nil || schema.Provider.Body == nil {
+			continue
+		}
+		p.ConfigClass = terraform.PolicyProviderClass(r.providerKey, root.Provider, inst.ProviderArgs(ctx, phase), schema.Provider.Body.ImpliedType())
+		p.Known = p.ConfigClass != nil
+	}
+	return ret
 }
 
 // report reports records, statuses and providers to the run. r.mu must be
@@ -581,6 +653,18 @@ func logPolicyRunDiagnostics(call, runID string, diags []*proto.Diagnostic) {
 func policyComponentInputs(scope any) hcl.Expression {
 	if inst, ok := scope.(*ComponentInstance); ok {
 		return inst.call.config.config.Inputs
+	}
+	return nil
+}
+
+// policyComponentProviders returns the provider configuration expressions of
+// a component instance or removed component instance, or nil.
+func policyComponentProviders(scope any) map[addrs.LocalProviderConfig]hcl.Expression {
+	switch inst := scope.(type) {
+	case *ComponentInstance:
+		return inst.call.config.config.ProviderConfigs
+	case *RemovedComponentInstance:
+		return inst.call.config.config.ProviderConfigs
 	}
 	return nil
 }

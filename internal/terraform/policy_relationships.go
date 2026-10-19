@@ -1019,6 +1019,14 @@ func (t *policyProviderTable) unconfiguredAddrs() []addrs.AbsProviderConfig {
 }
 
 func (t *policyProviderTable) class(provider addrs.Provider, cfg cty.Value, cfgType cty.Type) []byte {
+	return PolicyProviderClass(t.key[:], provider, cfg, cfgType)
+}
+
+// PolicyProviderClass returns the class of a provider configuration value:
+// HMAC-SHA256(key, source || 0x00 || msgpack(cfg, cfgType)), or nil if it
+// can't be computed. cfgType is the implied type of the provider's
+// configuration schema.
+func PolicyProviderClass(key []byte, provider addrs.Provider, cfg cty.Value, cfgType cty.Type) []byte {
 	if cfgType == cty.NilType || cfg == cty.NilVal {
 		return nil
 	}
@@ -1031,7 +1039,7 @@ func (t *policyProviderTable) class(provider addrs.Provider, cfg cty.Value, cfgT
 		log.Printf("[WARN] policy: failed to encode the configuration of %s for relationship checks: %s", provider, err)
 		return nil
 	}
-	mac := hmac.New(sha256.New, t.key[:])
+	mac := hmac.New(sha256.New, key)
 	mac.Write([]byte(provider.String()))
 	mac.Write([]byte{0})
 	mac.Write(encoded)

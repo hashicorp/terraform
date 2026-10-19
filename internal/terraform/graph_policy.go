@@ -53,6 +53,10 @@ func newPolicySubgraphForRun(run *policyRunOpts) *policySubgraph {
 	ps := &policySubgraph{run: run}
 	if run != nil {
 		ps.providers = newPolicyProviderTable()
+		if run.Shared != nil && len(run.Shared.ProviderKey) == len(ps.providers.key) {
+			// The classes are comparable across the walks of the run.
+			copy(ps.providers.key[:], run.Shared.ProviderKey)
+		}
 		if run.Stage == proto.EvaluationStage_PLAN_EVALUATION_STAGE {
 			ps.configVals = make(map[string]cty.Value)
 		}

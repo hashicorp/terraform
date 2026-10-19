@@ -55,6 +55,11 @@ type SharedPolicyRun struct {
 	// walk's hooks with unqualified addresses.
 	AddressPrefix string
 
+	// ProviderKey is the run's key for provider classes (32 bytes), so that
+	// the classes of the provider configurations of all walks are
+	// comparable. Without it the walk uses its own key.
+	ProviderKey []byte
+
 	// Contribute receives the walk's contribution once its changes and state
 	// are final. It's called at most once per walk, from the walk.
 	Contribute func(PolicyRunContribution)
