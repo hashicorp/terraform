@@ -169,7 +169,7 @@ func FromState(ctx context.Context, state *states.State, plan *stackplan.Compone
 			ourChange.OutputValues[addrs.OutputValue{Name: name}] = val
 		}
 		for name, value := range applyTimeInputs.AsValueMap() {
-			// TODO:@austinvalle: I'm pretty sure this is necessary, but should double check
+			// Any ephemeral inputs used during apply are stored as null in state.
 			ourChange.InputVariables[addrs.InputVariable{Name: name}] = ephemeral.RemoveEphemeralValues(value)
 		}
 		changes = append(changes, ourChange)
