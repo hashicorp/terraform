@@ -133,13 +133,19 @@ func (c *EphemeralComponentConfig) CheckModuleTree(ctx context.Context) (*config
 	)
 }
 
-// TODO:@austinvalle: Doc comment about extra validation
+// validateEphemeralModuleTreeForStacks imposes the additional static validation
+// constraints for modules used by ephemeral components, on top of those that
+// apply to all stack components.
+//
+// An ephemeral component never produces a plan or state, so any module in its tree
+// that declares managed resources, or other blocks that are only meaningful
+// alongside managed resources or state, is rejected.
 func validateEphemeralModuleTreeForStacks(startNode *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Ephemeral components have a superset of the static validation rules for normal components
 	diags = diags.Append(validateModuleForStacks(startNode.Path, startNode.Module))
-	diags = diags.Append(validateEphemeralModuleForStacks(startNode.Path, startNode.Module))
+	diags = diags.Append(validateEphemeralModuleForStacks(startNode.Module))
 
 	for _, childNode := range startNode.Children {
 		diags = diags.Append(validateEphemeralModuleTreeForStacks(childNode))
@@ -147,10 +153,68 @@ func validateEphemeralModuleTreeForStacks(startNode *configs.Config) tfdiags.Dia
 	return diags
 }
 
-func validateEphemeralModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tfdiags.Diagnostics {
+func validateEphemeralModuleForStacks(module *configs.Module) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// TODO:@austinvalle: Validate that an ephemeral module tree doesn't have managed resources
+	// Managed resources can't be used, because an ephemeral component never produces
+	// a plan or state to track them in.
+	for _, r := range module.ManagedResources {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Managed resource not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare managed resources, because ephemeral components have no plan or state.",
+			Subject:  r.DeclRange.Ptr(),
+		})
+	}
+
+	// Check results are stored in the plan, which an ephemeral component
+	// discards, so a failing check would be silently lost.
+	for _, c := range module.Checks {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Check block not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare check blocks, because ephemeral components have no plan to record check results in.",
+			Subject:  c.DeclRange.Ptr(),
+		})
+	}
+
+	// Actions can only be triggered by a managed resource or by an explicit
+	// invocation, neither of which is possible for an ephemeral component.
+	for _, a := range module.Actions {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Action block not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare actions, because ephemeral components do not support running actions.",
+			Subject:  a.DeclRange.Ptr(),
+		})
+	}
+
+	// These blocks all target managed resources or state addresses, and an
+	// ephemeral component has no state.
+	for _, i := range module.Import {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Import block not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare import blocks, because ephemeral components have no state to import into.",
+			Subject:  i.DeclRange.Ptr(),
+		})
+	}
+	for _, m := range module.Moved {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Moved block not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare moved blocks, because ephemeral components have no state to move objects within.",
+			Subject:  m.DeclRange.Ptr(),
+		})
+	}
+	for _, r := range module.Removed {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Removed block not allowed in ephemeral component",
+			Detail:   "A module used by an ephemeral component cannot declare removed blocks, because ephemeral components have no state to remove objects from.",
+			Subject:  r.DeclRange.Ptr(),
+		})
+	}
 
 	return diags
 }

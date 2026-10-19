@@ -290,6 +290,82 @@ var (
 				return diags
 			},
 		},
+		"ephemeral-component-unsupported-blocks": {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Managed resource not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare managed resources, because ephemeral components have no plan or state.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 19, Column: 1, Byte: 226},
+						End:      hcl.Pos{Line: 19, Column: 35, Byte: 260},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Managed resource not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare managed resources, because ephemeral components have no plan or state.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/child/child.tf"),
+						Start:    hcl.Pos{Line: 10, Column: 1, Byte: 124},
+						End:      hcl.Pos{Line: 10, Column: 37, Byte: 160},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Check block not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare check blocks, because ephemeral components have no plan to record check results in.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 23, Column: 1, Byte: 286},
+						End:      hcl.Pos{Line: 23, Column: 16, Byte: 301},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Action block not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare actions, because ephemeral components do not support running actions.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 30, Column: 1, Byte: 392},
+						End:      hcl.Pos{Line: 30, Column: 34, Byte: 425},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Import block not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare import blocks, because ephemeral components have no state to import into.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 34, Column: 1, Byte: 443},
+						End:      hcl.Pos{Line: 34, Column: 7, Byte: 449},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Moved block not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare moved blocks, because ephemeral components have no state to move objects within.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 39, Column: 1, Byte: 497},
+						End:      hcl.Pos{Line: 39, Column: 6, Byte: 502},
+					},
+				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Removed block not allowed in ephemeral component",
+					Detail:   "A module used by an ephemeral component cannot declare removed blocks, because ephemeral components have no state to remove objects from.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 44, Column: 1, Byte: 569},
+						End:      hcl.Pos{Line: 44, Column: 8, Byte: 576},
+					},
+				})
+				return diags
+			},
+		},
 		filepath.Join("with-single-input", "depends-on-invalid"): {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
