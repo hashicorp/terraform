@@ -5,7 +5,6 @@ package local
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -120,10 +119,10 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 	if sDiags.HasErrors() {
 		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
-	defaultStatePath := fmt.Sprintf("%s/%s", td, path)
-	if _, err := os.Stat(defaultStatePath); !strings.Contains(err.Error(), "no such file or directory") {
+	defaultStatePath := filepath.Join(td, path)
+	if _, err := os.Stat(defaultStatePath); !os.IsNotExist(err) {
 		if err != nil {
-			t.Fatalf("expected \"no such file or directory\" error when accessing file %q, got: %s", path, err)
+			t.Fatalf("expected a missing-file error when accessing file %q, got: %s", path, err)
 		}
 		t.Fatalf("expected the state file %q to not exist, but it did", path)
 	}
@@ -137,12 +136,8 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err := stmgr.WriteState(s)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
-	}
-	_, err = os.Stat(defaultStatePath)
-	if err != nil {
+	testWriteState(t, stmgr, s)
+	if _, err := os.Stat(defaultStatePath); err != nil {
 		// The file should exist post-WriteState
 		t.Fatalf("unexpected error when getting stats on the state file %q", path)
 	}
@@ -154,11 +149,8 @@ func TestLocal_useOfPathAttribute(t *testing.T) {
 	if sDiags.HasErrors() {
 		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
-	fizzbuzzStatePath := fmt.Sprintf("%s/terraform.tfstate.d/%s/terraform.tfstate", td, workspace)
-	err = stmgr.WriteState(s)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
-	}
+	fizzbuzzStatePath := filepath.Join(td, DefaultWorkspaceDir, workspace, DefaultStateFilename)
+	testWriteState(t, stmgr, s)
 
 	// The file should exist post-WriteState
 	checkState(t, fizzbuzzStatePath, s.String())
@@ -174,7 +166,7 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 
 	// The path value doesn't have the expected .tfstate file extension
 	path := "foobar.docx"
-	fullPath := fmt.Sprintf("%s/%s", td, path)
+	fullPath := filepath.Join(td, path)
 	config := cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.StringVal(path), // Set
 		"workspace_dir": cty.NullVal(cty.String),
@@ -196,10 +188,7 @@ func TestLocal_pathAttributeWrongExtension(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err := stmgr.WriteState(s)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
-	}
+	testWriteState(t, stmgr, s)
 
 	// The file should exist post-WriteState, despite the odd file extension,
 	// be readable, and contain the correct state
@@ -232,7 +221,7 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 	// ./terraform.tfstate is used.
 	// Unaffected by the `workspace_dir` location.
 	workspace := backend.DefaultStateName
-	defaultStatePath := fmt.Sprintf("%s/terraform.tfstate", td)
+	defaultStatePath := filepath.Join(td, DefaultStateFilename)
 	stmgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
 		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
@@ -243,25 +232,19 @@ func TestLocal_useOfWorkspaceDirAttribute(t *testing.T) {
 			Value: cty.StringVal("foobar"),
 		},
 	}
-	err := stmgr.WriteState(s)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
-	}
+	testWriteState(t, stmgr, s)
 	// Assert state
 	checkState(t, defaultStatePath, s.String())
 
 	// Writing to a non-default workspace's state creates a file
 	// that's affected by the `workspace_dir` location
 	workspace = "fizzbuzz"
-	fizzbuzzStatePath := fmt.Sprintf("%s/%s/%s/terraform.tfstate", td, workspaceDir, workspace)
+	fizzbuzzStatePath := filepath.Join(td, workspaceDir, workspace, DefaultStateFilename)
 	stmgr, sDiags = b.StateMgr(workspace)
 	if sDiags.HasErrors() {
 		t.Fatalf("unexpected error returned from StateMgr: %s", sDiags.Err())
 	}
-	err = stmgr.WriteState(s)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
-	}
+	testWriteState(t, stmgr, s)
 	// Assert state
 	checkState(t, fizzbuzzStatePath, s.String())
 }
@@ -560,21 +543,21 @@ func TestLocal_PathsConflictWith(t *testing.T) {
 	originalBackend := New()
 
 	// Create a default workspace state file in a non-root directory
-	originalBackend.StatePath = "foobar/terraform.tfstate"
+	originalBackend.StatePath = filepath.Join(foobar, DefaultStateFilename)
 	defaultStatePath := filepath.Join(td, originalBackend.StatePath)
-	stmgrDefault, _ := originalBackend.StateMgr("")
-	err := stmgrDefault.WriteState(exampleState)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
+	stmgrDefault, diags := originalBackend.StateMgr("")
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
+	testWriteState(t, stmgrDefault, exampleState)
 	checkState(t, defaultStatePath, exampleState.String())
 
 	// Create a non-default workspace and state file there
-	stmgrFoobar, _ := originalBackend.StateMgr(foobar)
-	err = stmgrFoobar.WriteState(exampleState)
-	if err != nil {
-		t.Fatalf("unexpected error returned from WriteState")
+	stmgrFoobar, diags := originalBackend.StateMgr(foobar)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
+	testWriteState(t, stmgrFoobar, exampleState)
 	foobarStatePath := filepath.Join(td, DefaultWorkspaceDir, foobar, DefaultStateFilename)
 	checkState(t, foobarStatePath, exampleState.String())
 

@@ -184,17 +184,21 @@ func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, tfdiags.
 
 func testStateFile(t *testing.T, path string, s *states.State) {
 	t.Helper()
-	stateFile := statemgr.NewFilesystem(path)
-	lockID, err := stateFile.Lock(statemgr.NewLockInfo())
+	testWriteState(t, statemgr.NewFilesystem(path), s)
+}
+
+func testWriteState(t *testing.T, stateMgr statemgr.Full, s *states.State) {
+	t.Helper()
+	lockID, err := stateMgr.Lock(statemgr.NewLockInfo())
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() {
-		if err := stateFile.Unlock(lockID); err != nil {
+		if err := stateMgr.Unlock(lockID); err != nil {
 			t.Error(err)
 		}
 	}()
-	if err := stateFile.WriteState(s); err != nil {
+	if err := stateMgr.WriteState(s); err != nil {
 		t.Fatal(err)
 	}
 }
