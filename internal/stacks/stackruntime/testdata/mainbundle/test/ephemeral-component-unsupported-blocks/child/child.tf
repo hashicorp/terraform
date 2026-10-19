@@ -10,3 +10,7 @@ terraform {
 resource "testing_resource" "nested" {
   value = "hello"
 }
+
+output "value" {
+  value = "hello"
+}

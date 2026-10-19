@@ -48,3 +48,7 @@ removed {
     destroy = false
   }
 }
+
+output "not_ephemeral" {
+  value = var.input
+}

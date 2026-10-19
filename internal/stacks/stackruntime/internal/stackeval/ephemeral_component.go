@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -187,6 +188,17 @@ func (c *EphemeralComponent) UnknownInstance(ctx context.Context, key addrs.Inst
 }
 
 func (c *EphemeralComponent) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
+	val := c.resultValue(ctx, phase)
+	if val == cty.NilVal {
+		// Then we errored during instance calculation, this should have
+		// been caught before we got here.
+		return val
+	}
+
+	return val.Mark(marks.Ephemeral)
+}
+
+func (c *EphemeralComponent) resultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	decl := c.config.config
 	insts, unknown := c.Instances(ctx, phase)
 

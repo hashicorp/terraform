@@ -363,6 +363,16 @@ var (
 						End:      hcl.Pos{Line: 44, Column: 8, Byte: 576},
 					},
 				})
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Non-ephemeral root output not allowed in ephemeral component",
+					Detail:   "All root module outputs of an ephemeral component must be declared with ephemeral = true.",
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Start:    hcl.Pos{Line: 52, Column: 1, Byte: 652},
+						End:      hcl.Pos{Line: 52, Column: 23, Byte: 674},
+					},
+				})
 				return diags
 			},
 		},

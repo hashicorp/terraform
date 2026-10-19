@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -175,6 +176,15 @@ func (c *EphemeralComponentInstance) ResultValue(ctx context.Context, phase Eval
 }
 
 func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
+	val, diags := c.checkResultValue(ctx, phase)
+
+	// Each output carries its own ephemeral mark, but we mark the whole result
+	// so that the placeholder unknown values returned when the component is
+	// deferred or invalid can never be treated as non-ephemeral.
+	return val.Mark(marks.Ephemeral), diags
+}
+
+func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
 		ctx, c.tracingName(), c.resultValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
@@ -281,7 +291,7 @@ func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase
 				_, planScope, moreDiags := tfCtx.PlanAndEval(moduleTree, nil, opts, addrs.RootModuleInstance)
 				diags = diags.Append(moreDiags)
 
-				ephOutputVals := ephemeralOutputValuesFromScope(ctx, moduleTree, planScope)
+				ephOutputVals := ephemeralOutputValuesFromScope(moduleTree, planScope)
 
 				// TODO:@austinvalle: Eventually we need to switch to using the normal "Plan" method and whatever
 				// concurrency pipeline we use to return ephemeral data while keeping the actual plan operation running (so TF core will renew/close).
@@ -289,9 +299,6 @@ func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase
 				// 	return nil
 				// })
 
-				// TODO:@austinvalle: Do we need to mark anything using the outputs? Should we mark the entire object as ephemeral?
-				// I believe the outputs at this point will be marked because of the lang.Scope, but switching to a different mode
-				// we should ensure the values stay marked (or we mark them ourselves if not possible).
 				return cty.ObjectVal(ephOutputVals), diags
 
 			default:
@@ -303,16 +310,13 @@ func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase
 	))
 }
 
-func ephemeralOutputValuesFromScope(ctx context.Context, config *configs.Config, scope *lang.Scope) map[string]cty.Value {
+func ephemeralOutputValuesFromScope(config *configs.Config, scope *lang.Scope) map[string]cty.Value {
 	if config == nil || scope == nil {
 		return nil
 	}
 
 	ephOutputVals := make(map[string]cty.Value, 0)
 	for _, oc := range config.Module.Outputs {
-		// TODO:@austinvalle: Should we allow non-ephemeral outputs to be used in ephemeral components?
-		// Thus, becoming ephemeral here? I'm leaning towards no + statically validating this... but
-		// could be convinced!
 		if !oc.Ephemeral {
 			continue
 		}

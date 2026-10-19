@@ -145,7 +145,7 @@ func validateEphemeralModuleTreeForStacks(startNode *configs.Config) tfdiags.Dia
 
 	// Ephemeral components have a superset of the static validation rules for normal components
 	diags = diags.Append(validateModuleForStacks(startNode.Path, startNode.Module))
-	diags = diags.Append(validateEphemeralModuleForStacks(startNode.Module))
+	diags = diags.Append(validateEphemeralModuleForStacks(startNode.Path, startNode.Module))
 
 	for _, childNode := range startNode.Children {
 		diags = diags.Append(validateEphemeralModuleTreeForStacks(childNode))
@@ -153,7 +153,7 @@ func validateEphemeralModuleTreeForStacks(startNode *configs.Config) tfdiags.Dia
 	return diags
 }
 
-func validateEphemeralModuleForStacks(module *configs.Module) tfdiags.Diagnostics {
+func validateEphemeralModuleForStacks(moduleAddr addrs.Module, module *configs.Module) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Managed resources can't be used, because an ephemeral component never produces
@@ -214,6 +214,19 @@ func validateEphemeralModuleForStacks(module *configs.Module) tfdiags.Diagnostic
 			Detail:   "A module used by an ephemeral component cannot declare removed blocks, because ephemeral components have no state to remove objects from.",
 			Subject:  r.DeclRange.Ptr(),
 		})
+	}
+
+	if moduleAddr.IsRoot() {
+		for _, o := range module.Outputs {
+			if !o.Ephemeral {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Non-ephemeral root output not allowed in ephemeral component",
+					Detail:   "All root module outputs of an ephemeral component must be declared with ephemeral = true.",
+					Subject:  o.DeclRange.Ptr(),
+				})
+			}
+		}
 	}
 
 	return diags
