@@ -39,6 +39,16 @@ func (n *nodeResourcePolicy) Name() string {
 }
 
 func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
+	var scope policyEvaluationScope
+	if pg := ctx.PolicyGraph(); pg != nil {
+		scope = pg.walkEvaluationScope()
+	}
+	return n.evaluate(ctx, operation, scope)
+}
+
+// evaluate evaluates the resource instance's policies in the given scope and
+// reports the result through the PolicyResult hook.
+func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, scope policyEvaluationScope) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	client := ctx.PolicyClient()
 	config := ctx.Config()
@@ -71,7 +81,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		Operation:    policyOperation,
 		ModulePath:   n.ResourceAddr.Module.String(),
 
-		Address:        n.ResourceAddr.String(),
+		Address:        scope.addressPrefix + n.ResourceAddr.String(),
 		ProviderSource: providerAddr.Provider.String(),
 	}
 	if pg := ctx.PolicyGraph(); pg != nil {
@@ -91,7 +101,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+	result := evaluatePoliciesInScope(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks, scope)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

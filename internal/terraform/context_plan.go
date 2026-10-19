@@ -178,6 +178,12 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
+
+	// PolicyRun is a relationship run that the caller owns and that the walk
+	// contributes to instead of beginning its own; see SharedPolicyRun. Only
+	// Terraform Stacks sets it. It has no effect without a PolicyClient with
+	// the relationships capability.
+	PolicyRun *SharedPolicyRun
 }
 
 // Plan generates an execution plan by comparing the given configuration

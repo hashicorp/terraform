@@ -111,7 +111,7 @@ func (ps *policySubgraph) RunID() string {
 // otherwise. So the deposed object of a create-before-destroy replace, whose
 // key the apply allocates, has the key of the replace's change, "".
 func (ps *policySubgraph) subjectDeposedKey(addr addrs.AbsResourceInstance, key states.DeposedKey) string {
-	if key == states.NotDeposed || ps.run == nil || ps.RunID() == "" {
+	if key == states.NotDeposed || ps.run == nil || (ps.RunID() == "" && (ps.run.Shared == nil || ps.run.Shared.ID == "")) {
 		return ""
 	}
 	for _, change := range ps.run.AppliedChanges {

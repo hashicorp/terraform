@@ -261,6 +261,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
+			PolicyRun:                 main.PolicyRun().join(ctx, inst.Addr()),
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -269,6 +270,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// and just propagate the prior state (including any refreshing we
 		// did during the plan phase) forward.
 		newState = plan.PriorState
+		main.PolicyRun().skipped(newState)
 	}
 
 	if newState != nil {

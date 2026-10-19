@@ -57,6 +57,10 @@ type ApplyOpts struct {
 	// When set, policy evaluation logic will be executed in the graph.
 	// When nil, that logic will be skipped.
 	PolicyClient policy.Client
+
+	// PolicyRun is a relationship run that the caller owns and that the walk
+	// contributes to; see PlanOpts.PolicyRun.
+	PolicyRun *SharedPolicyRun
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that
@@ -208,7 +212,7 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 
 	// The apply walk removes changes from the working changes as it applies
 	// them, so the relationship run needs its own copy of the changes slice.
-	policyRun := c.applyPolicyRunOpts(plan, schemas, changes.Resources, opts.PolicyClient, opts.ExternalProviders)
+	policyRun := c.applyPolicyRunOpts(plan, schemas, changes.Resources, opts.PolicyClient, opts.ExternalProviders, opts.PolicyRun)
 
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{

@@ -274,8 +274,8 @@ type RunRuntime int32
 const (
 	RunRuntime_INVALID_RUN_RUNTIME RunRuntime = 0
 	RunRuntime_CLI_RUN_RUNTIME     RunRuntime = 1
-	RunRuntime_TEST_RUN_RUNTIME    RunRuntime = 2 // not sent in P1
-	RunRuntime_STACKS_RUN_RUNTIME  RunRuntime = 3 // not sent in P1
+	RunRuntime_TEST_RUN_RUNTIME    RunRuntime = 2 // reserved; not sent yet
+	RunRuntime_STACKS_RUN_RUNTIME  RunRuntime = 3 // one run per Stacks deployment and operation
 )
 
 // Enum value maps for RunRuntime.
@@ -319,6 +319,61 @@ func (x RunRuntime) Number() protoreflect.EnumNumber {
 // Deprecated: Use RunRuntime.Descriptor instead.
 func (RunRuntime) EnumDescriptor() ([]byte, []int) {
 	return file_types_proto_rawDescGZIP(), []int{4}
+}
+
+// PolicySelection selects which resource policies an EvaluateResource runs.
+type PolicySelection int32
+
+const (
+	// ALL_POLICY_SELECTION runs every matching resource policy.
+	PolicySelection_ALL_POLICY_SELECTION PolicySelection = 0
+	// NON_RELATIONSHIP_POLICY_SELECTION runs only the policies without every
+	// or some blocks. Stacks evaluates them inside each component's walk.
+	PolicySelection_NON_RELATIONSHIP_POLICY_SELECTION PolicySelection = 1
+	// RELATIONSHIP_POLICY_SELECTION runs only the policies with every or some
+	// blocks. Stacks evaluates them once the deployment's run is complete.
+	PolicySelection_RELATIONSHIP_POLICY_SELECTION PolicySelection = 2
+)
+
+// Enum value maps for PolicySelection.
+var (
+	PolicySelection_name = map[int32]string{
+		0: "ALL_POLICY_SELECTION",
+		1: "NON_RELATIONSHIP_POLICY_SELECTION",
+		2: "RELATIONSHIP_POLICY_SELECTION",
+	}
+	PolicySelection_value = map[string]int32{
+		"ALL_POLICY_SELECTION":              0,
+		"NON_RELATIONSHIP_POLICY_SELECTION": 1,
+		"RELATIONSHIP_POLICY_SELECTION":     2,
+	}
+)
+
+func (x PolicySelection) Enum() *PolicySelection {
+	p := new(PolicySelection)
+	*p = x
+	return p
+}
+
+func (x PolicySelection) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PolicySelection) Descriptor() protoreflect.EnumDescriptor {
+	return file_types_proto_enumTypes[5].Descriptor()
+}
+
+func (PolicySelection) Type() protoreflect.EnumType {
+	return &file_types_proto_enumTypes[5]
+}
+
+func (x PolicySelection) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PolicySelection.Descriptor instead.
+func (PolicySelection) EnumDescriptor() ([]byte, []int) {
+	return file_types_proto_rawDescGZIP(), []int{5}
 }
 
 // Terraform's plans.Action for a managed resource instance, verbatim.
@@ -377,11 +432,11 @@ func (x ResourceAction) String() string {
 }
 
 func (ResourceAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_types_proto_enumTypes[5].Descriptor()
+	return file_types_proto_enumTypes[6].Descriptor()
 }
 
 func (ResourceAction) Type() protoreflect.EnumType {
-	return &file_types_proto_enumTypes[5]
+	return &file_types_proto_enumTypes[6]
 }
 
 func (x ResourceAction) Number() protoreflect.EnumNumber {
@@ -390,7 +445,7 @@ func (x ResourceAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ResourceAction.Descriptor instead.
 func (ResourceAction) EnumDescriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{5}
+	return file_types_proto_rawDescGZIP(), []int{6}
 }
 
 // RecordSource says where an instance record of a relationship run came from.
@@ -433,11 +488,11 @@ func (x RecordSource) String() string {
 }
 
 func (RecordSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_types_proto_enumTypes[6].Descriptor()
+	return file_types_proto_enumTypes[7].Descriptor()
 }
 
 func (RecordSource) Type() protoreflect.EnumType {
-	return &file_types_proto_enumTypes[6]
+	return &file_types_proto_enumTypes[7]
 }
 
 func (x RecordSource) Number() protoreflect.EnumNumber {
@@ -446,7 +501,7 @@ func (x RecordSource) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RecordSource.Descriptor instead.
 func (RecordSource) EnumDescriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{6}
+	return file_types_proto_rawDescGZIP(), []int{7}
 }
 
 // TypeCompleteness says whether every instance of a resource type has been
@@ -487,11 +542,11 @@ func (x TypeCompleteness) String() string {
 }
 
 func (TypeCompleteness) Descriptor() protoreflect.EnumDescriptor {
-	return file_types_proto_enumTypes[7].Descriptor()
+	return file_types_proto_enumTypes[8].Descriptor()
 }
 
 func (TypeCompleteness) Type() protoreflect.EnumType {
-	return &file_types_proto_enumTypes[7]
+	return &file_types_proto_enumTypes[8]
 }
 
 func (x TypeCompleteness) Number() protoreflect.EnumNumber {
@@ -500,7 +555,7 @@ func (x TypeCompleteness) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TypeCompleteness.Descriptor instead.
 func (TypeCompleteness) EnumDescriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{7}
+	return file_types_proto_rawDescGZIP(), []int{8}
 }
 
 // NoOriginReason says why some leaves of a key path have no origin.
@@ -558,11 +613,11 @@ func (x NoOriginReason) String() string {
 }
 
 func (NoOriginReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_types_proto_enumTypes[8].Descriptor()
+	return file_types_proto_enumTypes[9].Descriptor()
 }
 
 func (NoOriginReason) Type() protoreflect.EnumType {
-	return &file_types_proto_enumTypes[8]
+	return &file_types_proto_enumTypes[9]
 }
 
 func (x NoOriginReason) Number() protoreflect.EnumNumber {
@@ -571,7 +626,7 @@ func (x NoOriginReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use NoOriginReason.Descriptor instead.
 func (NoOriginReason) EnumDescriptor() ([]byte, []int) {
-	return file_types_proto_rawDescGZIP(), []int{8}
+	return file_types_proto_rawDescGZIP(), []int{9}
 }
 
 type ResourceAttributes struct {
@@ -868,7 +923,11 @@ const file_types_proto_rawDesc = "" +
 	"\x13INVALID_RUN_RUNTIME\x10\x00\x12\x13\n" +
 	"\x0fCLI_RUN_RUNTIME\x10\x01\x12\x14\n" +
 	"\x10TEST_RUN_RUNTIME\x10\x02\x12\x16\n" +
-	"\x12STACKS_RUN_RUNTIME\x10\x03*\xd8\x02\n" +
+	"\x12STACKS_RUN_RUNTIME\x10\x03*u\n" +
+	"\x0fPolicySelection\x12\x18\n" +
+	"\x14ALL_POLICY_SELECTION\x10\x00\x12%\n" +
+	"!NON_RELATIONSHIP_POLICY_SELECTION\x10\x01\x12!\n" +
+	"\x1dRELATIONSHIP_POLICY_SELECTION\x10\x02*\xd8\x02\n" +
 	"\x0eResourceAction\x12\x1b\n" +
 	"\x17INVALID_RESOURCE_ACTION\x10\x00\x12\x19\n" +
 	"\x15NO_OP_RESOURCE_ACTION\x10\x01\x12\x1a\n" +
@@ -914,7 +973,7 @@ func file_types_proto_rawDescGZIP() []byte {
 	return file_types_proto_rawDescData
 }
 
-var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
+var file_types_proto_enumTypes = make([]protoimpl.EnumInfo, 10)
 var file_types_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_types_proto_goTypes = []any{
 	(EvaluateResult)(0),        // 0: proto.EvaluateResult
@@ -922,19 +981,20 @@ var file_types_proto_goTypes = []any{
 	(EvaluationStage)(0),       // 2: proto.EvaluationStage
 	(PlanMode)(0),              // 3: proto.PlanMode
 	(RunRuntime)(0),            // 4: proto.RunRuntime
-	(ResourceAction)(0),        // 5: proto.ResourceAction
-	(RecordSource)(0),          // 6: proto.RecordSource
-	(TypeCompleteness)(0),      // 7: proto.TypeCompleteness
-	(NoOriginReason)(0),        // 8: proto.NoOriginReason
-	(*ResourceAttributes)(nil), // 9: proto.ResourceAttributes
-	(*AttributePath)(nil),      // 10: proto.AttributePath
-	(*AttributePaths)(nil),     // 11: proto.AttributePaths
-	(*AttributePath_Step)(nil), // 12: proto.AttributePath.Step
+	(PolicySelection)(0),       // 5: proto.PolicySelection
+	(ResourceAction)(0),        // 6: proto.ResourceAction
+	(RecordSource)(0),          // 7: proto.RecordSource
+	(TypeCompleteness)(0),      // 8: proto.TypeCompleteness
+	(NoOriginReason)(0),        // 9: proto.NoOriginReason
+	(*ResourceAttributes)(nil), // 10: proto.ResourceAttributes
+	(*AttributePath)(nil),      // 11: proto.AttributePath
+	(*AttributePaths)(nil),     // 12: proto.AttributePaths
+	(*AttributePath_Step)(nil), // 13: proto.AttributePath.Step
 }
 var file_types_proto_depIdxs = []int32{
-	10, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
-	12, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
-	10, // 2: proto.AttributePaths.paths:type_name -> proto.AttributePath
+	11, // 0: proto.ResourceAttributes.redacted_paths:type_name -> proto.AttributePath
+	13, // 1: proto.AttributePath.steps:type_name -> proto.AttributePath.Step
+	11, // 2: proto.AttributePaths.paths:type_name -> proto.AttributePath
 	3,  // [3:3] is the sub-list for method output_type
 	3,  // [3:3] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
@@ -957,7 +1017,7 @@ func file_types_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_types_proto_rawDesc), len(file_types_proto_rawDesc)),
-			NumEnums:      9,
+			NumEnums:      10,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,

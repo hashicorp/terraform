@@ -98,8 +98,20 @@ enum PlanMode {
 enum RunRuntime {
   INVALID_RUN_RUNTIME = 0;
   CLI_RUN_RUNTIME = 1;
-  TEST_RUN_RUNTIME = 2;     // not sent in P1
-  STACKS_RUN_RUNTIME = 3;   // not sent in P1
+  TEST_RUN_RUNTIME = 2;     // reserved; not sent yet
+  STACKS_RUN_RUNTIME = 3;   // one run per Stacks deployment and operation
+}
+
+// PolicySelection selects which resource policies an EvaluateResource runs.
+enum PolicySelection {
+  // ALL_POLICY_SELECTION runs every matching resource policy.
+  ALL_POLICY_SELECTION = 0;
+  // NON_RELATIONSHIP_POLICY_SELECTION runs only the policies without every
+  // or some blocks. Stacks evaluates them inside each component's walk.
+  NON_RELATIONSHIP_POLICY_SELECTION = 1;
+  // RELATIONSHIP_POLICY_SELECTION runs only the policies with every or some
+  // blocks. Stacks evaluates them once the deployment's run is complete.
+  RELATIONSHIP_POLICY_SELECTION = 2;
 }
 
 // Terraform's plans.Action for a managed resource instance, verbatim.

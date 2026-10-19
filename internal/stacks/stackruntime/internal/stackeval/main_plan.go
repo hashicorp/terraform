@@ -60,6 +60,7 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 	// raw state or state description keys that we'll need to delete during the
 	// apply phase.
 
+	var seenAnyErrors atomic.Bool
 	diags, err := promising.MainTask(ctx, func(ctx context.Context) (tfdiags.Diagnostics, error) {
 		// The idea here is just to iterate over everything in the configuration,
 		// find its corresponding evaluation object, and then ask it to validate
@@ -68,7 +69,6 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		// resolution to achieve the correct evaluation order.
 
 		var seenSelfDepDiag atomic.Bool
-		var seenAnyErrors atomic.Bool
 		reportDiags := func(diags tfdiags.Diagnostics) {
 			for _, diag := range diags {
 				if diag.Severity() == tfdiags.Error {
@@ -142,6 +142,9 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		return complete(), nil
 	})
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
+	// Every component instance has planned, so the deployment's relationship
+	// run can evaluate its relationship policies.
+	diags = diags.Append(m.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

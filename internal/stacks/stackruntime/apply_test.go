@@ -5163,7 +5163,7 @@ func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRe
 			}
 
 			// Merge the two results together
-			existingResults[data.ResourceAddr] = data.Result
+			existingResults[data.ResourceAddr] = existingResults[data.ResourceAddr].Merge(data.Result)
 
 			return a
 		},

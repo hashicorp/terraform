@@ -89,6 +89,11 @@ type Main struct {
 	providerTypes           map[addrs.Provider]*ProviderType
 	providerFunctionResults *lang.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
+
+	// policyRun is the deployment's relationship run, once policyRunInit is
+	// set; see Main.PolicyRun.
+	policyRun     *policyRun
+	policyRunInit bool
 }
 
 type mainValidating struct {

@@ -421,3 +421,21 @@ difference for the apply phase is that anything which refers to a component
 instance will block until the `ChangeExec`-managed apply phase for that
 component instance has completed. Otherwise, the usual data-flow-driven
 scheduling decides on the evaluation order for all other object types.
+
+## Policy Relationship Runs
+
+When the policy client supports relationships, the plan, and likewise the
+apply, of a deployment is one relationship run with runtime `STACKS`
+(`policy_run.go`). The first component instance whose Terraform walk reaches
+its policy phase begins it, with the schemas of every provider in the
+deployment. Each walk evaluates the policies without relationships itself, as
+without a run, so `core::getresources` sees only that component's resources,
+and reports its resource instances to the run with component-qualified
+addresses (`component.foo["a"].aws_s3_bucket.b`), but no type statuses.
+
+Once `PlanAll` or `ApplyPlan` has walked every object, `Main.finishPolicyRun`
+sends the type statuses merged across all walks, evaluates the relationship
+policies of every walk's subjects, reporting their results through the
+component instances' policy hooks, and finishes the run. This
+end-of-deployment batch mirrors the end-of-walk batch of a Terraform CLI run;
+streaming is a later optimization.

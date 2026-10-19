@@ -58,6 +58,10 @@ type policyRunOpts struct {
 	// alone: those with interactive input values, and the external providers
 	// the caller configured.
 	OutsideConfigProviders map[string]bool
+
+	// Shared is the caller's run that the walk contributes to, or nil when
+	// the walk begins and finishes its own run.
+	Shared *SharedPolicyRun
 }
 
 // policyOutsideConfigProviders returns the addresses of the root provider
@@ -125,6 +129,7 @@ func (c *Context) planPolicyRunOpts(config *configs.Config, prevRunState *states
 		Targeted:               len(opts.Targets) > 0 || len(opts.ActionTargets) > 0,
 		Schemas:                schemas,
 		OutsideConfigProviders: c.policyOutsideConfigProviders(opts.ExternalProviders),
+		Shared:                 opts.PolicyRun,
 	}
 }
 
@@ -132,7 +137,7 @@ func (c *Context) planPolicyRunOpts(config *configs.Config, prevRunState *states
 // of the given plan, or nil if the walk has no relationship run. changes are
 // the decoded changes of the plan, before the walk, and external are the
 // apply's external providers.
-func (c *Context) applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes []*plans.ResourceInstanceChange, client policy.Client, external map[addrs.RootProviderConfig]providers.Interface) *policyRunOpts {
+func (c *Context) applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schemas, changes []*plans.ResourceInstanceChange, client policy.Client, external map[addrs.RootProviderConfig]providers.Interface, shared *SharedPolicyRun) *policyRunOpts {
 	if _, ok := policyRelationshipsClient(client); !ok {
 		return nil
 	}
@@ -147,6 +152,7 @@ func (c *Context) applyPolicyRunOpts(plan *plans.Plan, schemas *schemarepo.Schem
 		Schemas:                schemas,
 		AppliedChanges:         append([]*plans.ResourceInstanceChange(nil), changes...),
 		OutsideConfigProviders: c.policyOutsideConfigProviders(external),
+		Shared:                 shared,
 	}
 }
 

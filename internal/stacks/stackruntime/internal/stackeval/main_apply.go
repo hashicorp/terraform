@@ -72,6 +72,7 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	emitStateKeyDiscardEvents(ctx, discardRawKeys, discardDescKeys, outp)
 
 	log.Printf("[TRACE] stackeval.ApplyPlan starting")
+	var seenAnyErrors atomic.Bool
 	withDiags, err := promising.MainTask(ctx, func(ctx context.Context) (withDiagnostics[*Main], error) {
 		// We'll register all of the changes we intend to make up front, so we
 		// can error rather than deadlock if something goes wrong and causes
@@ -307,6 +308,9 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 		ws, complete := newWalkStateCustomDiags(
 			func(diags tfdiags.Diagnostics) {
 				for _, diag := range diags {
+					if diag.Severity() == tfdiags.Error {
+						seenAnyErrors.Store(true)
+					}
 					if diagIsPromiseSelfReference(diag) {
 						// We'll discard all but the first promise-self-reference
 						// diagnostic we see; these tend to get duplicated
@@ -360,6 +364,11 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	diags := withDiags.Diagnostics
 	main := withDiags.Result
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
+	if main != nil {
+		// Every component instance has applied, so the deployment's
+		// relationship run can evaluate its relationship policies.
+		diags = diags.Append(main.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
+	}
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}
