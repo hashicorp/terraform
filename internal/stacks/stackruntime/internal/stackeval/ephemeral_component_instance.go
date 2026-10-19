@@ -178,6 +178,14 @@ func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase
 	return withCtyDynamicValPlaceholder(doOnceWithDiags(
 		ctx, c.tracingName(), c.resultValue.For(phase),
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+			if phase == ApplyPhase && c.call.requiredComponentsPlanIncompleteInApply(ctx) {
+				// A required component wasn't fully planned, so it won't be
+				// applied and it's output values can't be used as inputs.
+				// Consumers of this ephemeral component will be deferred for the
+				// same reason, so this unknown result prevents any additional errors.
+				return cty.DynamicVal, nil
+			}
+
 			switch phase {
 			// Ephemeral components produce result values the same way, by using the plan operation to produce output values
 			case PlanPhase, ApplyPhase:
@@ -191,8 +199,10 @@ func (c *EphemeralComponentInstance) CheckResultValue(ctx context.Context, phase
 					return cty.DynamicVal, diags
 				}
 
-				// TODO:@austinvalle: Should we be checking "required components / required ephemeral components" to determine when to set:
-				// opts.ExternalDependencyDeferred = true
+				// We don't produce ephemeral data until all of the components we depend on have complete plans.
+				if phase == PlanPhase && c.call.requiredComponentsPlanIncompleteInPlan(ctx) {
+					opts.ExternalDependencyDeferred = true
+				}
 
 				// The instance is upstream deferred if the for_each value for this instance or any parent stack is unknown.
 				if c.addr.Item.Key == addrs.WildcardKey {

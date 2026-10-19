@@ -69,6 +69,7 @@ func FromPlan(ctx context.Context, config *configs.Config, plan *plans.Plan, ref
 		PlanApplyable:                  plan.Applyable,
 		PlanComplete:                   plan.Complete,
 		RequiredComponents:             producer.RequiredComponents(ctx),
+		ApplyTimeInputVariables:        plan.ApplyTimeVariables,
 		PlannedInputValues:             plan.VariableValues,
 		PlannedInputValueMarks:         plan.VariableMarks,
 		PlannedOutputValues:            outputs,

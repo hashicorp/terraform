@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -5855,6 +5856,278 @@ func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-cha
 				continue
 			}
 			diags = append(diags, diag)
+		}
+	}
+}
+
+func TestApplyWithEphemeralComponentDeferredUpstream(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+			return stacks_testing_provider.NewProvider(t), nil
+		},
+	}
+	req := PlanRequest{
+		Config:             cfg,
+		ProviderFactories:  providerFactories,
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config:            cfg,
+		Plan:              plan,
+		ProviderFactories: providerFactories,
+		DependencyLocks:   *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	// Every consumer should be deferred, so there is nothing to apply for them.
+	for _, change := range applyChanges {
+		if obj, ok := change.(*stackstate.AppliedChangeResourceInstanceObject); ok {
+			t.Errorf("unexpected applied resource %s", obj.ResourceInstanceObjectAddr)
+		}
+	}
+}
+
+// The ephemeral component here references a known output from a component, however
+// the component itself is deferred, which we detect and assert that the ephemeral component
+// does not execute.
+func TestApplyWithEphemeralComponentKnownOutputFromDeferred(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream-known-output")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var opened atomic.Int32
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+			provider := stacks_testing_provider.NewProvider(t)
+			openFn := provider.OpenEphemeralResourceFn
+			provider.OpenEphemeralResourceFn = func(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+				opened.Add(1)
+				return openFn(req)
+			}
+			return provider, nil
+		},
+	}
+	req := PlanRequest{
+		Config:             cfg,
+		ProviderFactories:  providerFactories,
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The ephemeral component must not be opened while the component it uses
+	// a value from has an incomplete plan.
+	if got, want := opened.Swap(0), int32(0); got != want {
+		t.Errorf("wrong number of ephemeral resources opened during plan: got %d, want %d", got, want)
+	}
+
+	applyReq := ApplyRequest{
+		Config:            cfg,
+		Plan:              plan,
+		ProviderFactories: providerFactories,
+		DependencyLocks:   *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	_, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	if got, want := opened.Load(), int32(0); got != want {
+		t.Errorf("wrong number of ephemeral resources opened during apply: got %d, want %d", got, want)
+	}
+}
+
+func TestApplyWithEphemeralComponentDeferredUpstreamToProvider(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream-to-provider")
+
+	fakePlanTimestamp, err := time.Parse(time.RFC3339, "1991-08-25T20:57:08Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	lock := depsfile.NewLocks()
+	lock.SetProvider(
+		addrs.NewDefaultProvider("testing"),
+		providerreqs.MustParseVersion("0.1.0"),
+		providerreqs.MustParseVersionConstraints("0.1.0"),
+		providerreqs.PreferredHashes([]providerreqs.Hash{}),
+	)
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+			return stacks_testing_provider.NewProvider(t), nil
+		},
+	}
+	req := PlanRequest{
+		Config:             cfg,
+		ProviderFactories:  providerFactories,
+		DependencyLocks:    *lock,
+		ForcePlanTimestamp: &fakePlanTimestamp,
+	}
+	resp := PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+	go Plan(ctx, &req, &resp)
+	planChanges, diags := collectPlanOutput(changesCh, diagsCh)
+	if len(diags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", diags.ErrWithWarnings())
+	}
+
+	planLoader := stackplan.NewLoader()
+	for _, change := range planChanges {
+		proto, err := change.PlannedChangeProto()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, rawMsg := range proto.Raw {
+			err = planLoader.AddRaw(rawMsg)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	plan, err := planLoader.Plan()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	applyReq := ApplyRequest{
+		Config:            cfg,
+		Plan:              plan,
+		ProviderFactories: providerFactories,
+		DependencyLocks:   *lock,
+	}
+
+	applyChangesCh := make(chan stackstate.AppliedChange)
+	diagsCh = make(chan tfdiags.Diagnostic)
+	applyResp := ApplyResponse{
+		AppliedChanges: applyChangesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	go Apply(ctx, &applyReq, &applyResp)
+	applyChanges, applyDiags := collectApplyOutput(applyChangesCh, diagsCh)
+	if len(applyDiags) > 0 {
+		t.Fatalf("expected no diagnostics, got %s", applyDiags.ErrWithWarnings())
+	}
+
+	// The component using the provider is deferred through the ephemeral
+	// component the provider is configured from, so there is nothing to apply.
+	for _, change := range applyChanges {
+		if obj, ok := change.(*stackstate.AppliedChangeResourceInstanceObject); ok {
+			t.Errorf("unexpected applied resource %s", obj.ResourceInstanceObjectAddr)
 		}
 	}
 }

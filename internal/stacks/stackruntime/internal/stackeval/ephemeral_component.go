@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -266,11 +267,53 @@ func (c *EphemeralComponent) References(context.Context) []stackaddrs.AbsReferen
 	for _, expr := range cfg.ProviderConfigs {
 		ret = append(ret, ReferencesInExpr(expr)...)
 	}
-	ret = append(ret, referencesInTraversals(cfg.DependsOn)...)
 	return makeReferencesAbsolute(ret, c.addr.Stack)
 }
 
-// TODO:@austinvalle: Implement required components? I think we need this for deferrals to work properly
+// RequiredComponents returns the set of components that this ephemeral component depends on.
+func (c *EphemeralComponent) RequiredComponents(ctx context.Context, phase EvalPhase) collections.Set[stackaddrs.AbsComponent] {
+	return c.main.requiredComponentsForReferrer(ctx, c, phase)
+}
+
+// requiredComponentsPlanIncompleteInApply returns true if the plan being
+// applied has an incomplete plan for any of the components this ephemeral
+// component depends on.
+//
+// Ephemeral data is never stored in the plan, so ephemeral components are
+// evaluated again during apply. A component with an incomplete plan doesn't
+// get applied, so its output values can't be relied upon and an ephemeral
+// component depending on it must not be evaluated.
+func (c *EphemeralComponent) requiredComponentsPlanIncompleteInApply(ctx context.Context) bool {
+	plan := c.main.PlanBeingApplied()
+	for depAddr := range c.RequiredComponents(ctx, ApplyPhase).All() {
+		for _, depInst := range plan.ComponentInstances(depAddr) {
+			if !depInst.PlanComplete {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// requiredComponentsPlanIncompleteInPlan returns true if any of the required
+// components of this ephemeral component has an incomplete plan, or can't be
+// resolved. It can be called only during the planning phase.
+func (c *EphemeralComponent) requiredComponentsPlanIncompleteInPlan(ctx context.Context) bool {
+	for depAddr := range c.RequiredComponents(ctx, PlanPhase).All() {
+		depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
+		if depStack == nil {
+			return true // to be conservative
+		}
+		depComponent := depStack.Component(depAddr.Item)
+		if depComponent == nil {
+			return true // to be conservative
+		}
+		if !depComponent.PlanIsComplete(ctx) {
+			return true
+		}
+	}
+	return false
+}
 
 func (c *EphemeralComponent) CheckApply(ctx context.Context) ([]stackstate.AppliedChange, tfdiags.Diagnostics) {
 	return nil, c.checkValid(ctx, ApplyPhase)
