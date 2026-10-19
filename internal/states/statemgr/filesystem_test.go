@@ -169,6 +169,7 @@ func TestFilesystem_backup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer bfh.Close()
 	bf, err := statefile.Read(bfh)
 	if err != nil {
 		t.Fatal(err)
@@ -240,6 +241,11 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 	backupPath := outFile.Name() + ".backup"
 
 	ls := NewFilesystemBetweenPaths(inFile.Name(), outFile.Name())
+	defer func() {
+		if ls.stateFileOut != nil {
+			ls.stateFileOut.Close()
+		}
+	}()
 	ls.SetBackupPath(backupPath)
 
 	newState := states.BuildState(func(ss *states.SyncState) {
@@ -262,6 +268,7 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer bfh.Close()
 		bf, err := statefile.Read(bfh)
 		if err != nil {
 			t.Fatal(err)
@@ -276,6 +283,7 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer ofh.Close()
 		of, err := statefile.Read(ofh)
 		if err != nil {
 			t.Fatal(err)
