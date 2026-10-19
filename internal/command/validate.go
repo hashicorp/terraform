@@ -41,7 +41,8 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		if args.ViewType == arguments.ViewHuman {
 			defer c.View.HelpPrompt("validate")
 		}
-		return view.Diagnostics(diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// If the query flag is set, include query files in the validation.
@@ -56,7 +57,8 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		return view.Diagnostics(diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	var varDiags tfdiags.Diagnostics
@@ -65,19 +67,22 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	})
 	if varDiags.HasErrors() {
 		diags = diags.Append(varDiags)
-		return view.Diagnostics(diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	dir, err := filepath.Abs(args.Path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("unable to locate module: %s", err))
-		return view.Diagnostics(diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
-		return view.Diagnostics(diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	validateDiags := c.validate(dir)
@@ -89,7 +94,11 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	// check before submitting a change.
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
-	return view.Results(diags)
+	view.Results(diags)
+	if diags.HasErrors() {
+		return 1 // Return 1 when the config is invalid.
+	}
+	return 0
 }
 
 func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {

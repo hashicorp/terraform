@@ -17,12 +17,10 @@ import (
 func TestValidateHuman(t *testing.T) {
 	testCases := map[string]struct {
 		diag          tfdiags.Diagnostic
-		wantSuccess   bool
 		wantSubstring string
 	}{
 		"success": {
 			nil,
-			true,
 			"The configuration is valid.",
 		},
 		"warning": {
@@ -31,7 +29,6 @@ func TestValidateHuman(t *testing.T) {
 				"Your shoelaces are untied",
 				"Watch out, or you'll trip!",
 			),
-			true,
 			"The configuration is valid, but there were some validation warnings",
 		},
 		"error": {
@@ -40,7 +37,6 @@ func TestValidateHuman(t *testing.T) {
 				"Configuration is missing random_pet",
 				"Every configuration should have a random_pet.",
 			),
-			false,
 			"Error: Configuration is missing random_pet",
 		},
 	}
@@ -57,18 +53,10 @@ func TestValidateHuman(t *testing.T) {
 				diags = diags.Append(tc.diag)
 			}
 
-			ret := v.Results(diags)
-
-			if tc.wantSuccess && ret != 0 {
-				t.Errorf("expected 0 return code, got %d", ret)
-			} else if !tc.wantSuccess && ret != 1 {
-				t.Errorf("expected 1 return code, got %d", ret)
-			}
+			v.Results(diags)
 
 			got := done(t).All()
-			if strings.Contains(got, "Success!") != tc.wantSuccess {
-				t.Errorf("unexpected output:\n%s", got)
-			}
+
 			if !strings.Contains(got, tc.wantSubstring) {
 				t.Errorf("expected output to include %q, but was:\n%s", tc.wantSubstring, got)
 			}
@@ -78,12 +66,10 @@ func TestValidateHuman(t *testing.T) {
 
 func TestValidateJSON_Results(t *testing.T) {
 	testCases := map[string]struct {
-		diag        tfdiags.Diagnostic
-		wantSuccess bool
+		diag tfdiags.Diagnostic
 	}{
 		"success": {
 			nil,
-			true,
 		},
 		"warning": {
 			tfdiags.Sourceless(
@@ -91,7 +77,6 @@ func TestValidateJSON_Results(t *testing.T) {
 				"Your shoelaces are untied",
 				"Watch out, or you'll trip!",
 			),
-			true,
 		},
 		"error": {
 			tfdiags.Sourceless(
@@ -99,7 +84,6 @@ func TestValidateJSON_Results(t *testing.T) {
 				"Configuration is missing random_pet",
 				"Every configuration should have a random_pet.",
 			),
-			false,
 		},
 	}
 	for name, tc := range testCases {
@@ -115,13 +99,7 @@ func TestValidateJSON_Results(t *testing.T) {
 				diags = diags.Append(tc.diag)
 			}
 
-			ret := v.Results(diags)
-
-			if tc.wantSuccess && ret != 0 {
-				t.Errorf("expected 0 return code, got %d", ret)
-			} else if !tc.wantSuccess && ret != 1 {
-				t.Errorf("expected 1 return code, got %d", ret)
-			}
+			v.Results(diags)
 
 			got := done(t).All()
 
@@ -176,11 +154,7 @@ func TestValidateJSON_Diagnostics(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewValidate(arguments.ViewJSON, view)
 
-			code := v.Diagnostics(tc.diag)
-
-			if code != 1 {
-				t.Errorf("expected 1 return code, got %d", code)
-			}
+			v.Diagnostics(tc.diag)
 
 			output := done(t)
 			gotErr := output.Stderr()

@@ -15,10 +15,10 @@ import (
 type Validate interface {
 	// Results renders the diagnostics returned from a validation walk, and
 	// returns a CLI exit code: 0 if there are no errors, 1 otherwise
-	Results(diags tfdiags.Diagnostics) int
+	Results(diags tfdiags.Diagnostics)
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
-	Diagnostics(diags tfdiags.Diagnostics) int
+	Diagnostics(diags tfdiags.Diagnostics)
 }
 
 // NewValidate returns an initialized Validate implementation for the given ViewType.
@@ -42,7 +42,7 @@ type ValidateHuman struct {
 
 var _ Validate = (*ValidateHuman)(nil)
 
-func (v *ValidateHuman) Results(diags tfdiags.Diagnostics) int {
+func (v *ValidateHuman) Results(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		v.view.streams.Println(v.view.wrapToStdout(v.view.colorize.Color(validateSuccess)))
 	} else {
@@ -52,20 +52,14 @@ func (v *ValidateHuman) Results(diags tfdiags.Diagnostics) int {
 			v.view.streams.Println(v.view.wrapToStdout(v.view.colorize.Color(validateWarnings)))
 		}
 	}
-
-	if diags.HasErrors() {
-		return 1
-	}
-	return 0
 }
 
 const validateSuccess = "[green][bold]Success![reset] The configuration is valid.\n"
 
 const validateWarnings = "[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above.\n"
 
-func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) int {
+func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
-	return 1
 }
 
 // The ValidateJSON implementation renders validation results as a JSON object.
@@ -104,7 +98,7 @@ type ValidateOutput struct {
 	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
-func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
+func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) {
 	output := ValidateOutput{
 		FormatVersion: v.formatVersion,
 		Valid:         true, // until proven otherwise
@@ -129,17 +123,12 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 	output.Diagnostics = v.view.prepareDiagnostics(diags)
 
 	v.view.Print(output)
-
-	if diags.HasErrors() {
-		return 1
-	}
-	return 0
 }
 
 // Diagnostics should only be called if the validation walk cannot be executed.
-func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) int {
+func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
-		return 1 // Edge case; no diagnostics to report but this method should only be called when we return 1.
+		return
 	}
 
 	output := ValidateOutput{
@@ -155,5 +144,4 @@ func (v *ValidateJSON) Diagnostics(diags tfdiags.Diagnostics) int {
 		// using this method incorrectly.
 		v.view.Print(output)
 	}
-	return 1
 }
