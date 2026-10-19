@@ -269,9 +269,17 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, input
 		// of either "modifiedPlan" or "plan" (since they share lots of the same
 		// pointers to mutable objects and so both can get modified together.)
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
-			ExternalProviders:          providerClients,
-			PolicyClient:               main.PolicyClient(),
-			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+			ExternalProviders: providerClients,
+			PolicyClient:      main.PolicyClient(),
+
+			// Components can't produce ephemeral outputs as their ordering during destroy would create a cycle with any
+			// components referencing the ephemeral output (or indirectly referencing it, for example, via a provider). Ephemeral
+			// values can't be stored in plan/state (thus it must be computed on every run) and the order of components is reversed
+			// during destroy.
+			//
+			// The only way to produce ephemeral data in stacks is with the ephemeral_component block, which is similar to a normal
+			// component, but the results are never stored in plan/state and they cannot contain managed resources (as they can't be destroyed).
+			AllowRootEphemeralOutputs:  false,
 			AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 			SetVariables:               ephemeralInputValues,
 		})

@@ -197,8 +197,16 @@ func (r *RemovedComponentConfig) CheckValid(ctx context.Context, phase EvalPhase
 		}()
 
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
-			ExternalProviders:          providerClients,
-			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+			ExternalProviders: providerClients,
+
+			// Components can't produce ephemeral outputs as their ordering during destroy would create a cycle with any
+			// components referencing the ephemeral output (or indirectly referencing it, for example, via a provider). Ephemeral
+			// values can't be stored in plan/state (thus it must be computed on every run) and the order of components is reversed
+			// during destroy.
+			//
+			// The only way to produce ephemeral data in stacks is with the ephemeral_component block, which is similar to a normal
+			// component, but the results are never stored in plan/state and they cannot contain managed resources (as they can't be destroyed).
+			AllowRootEphemeralOutputs:  false,
 			AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 		}))
 		return diags, nil
