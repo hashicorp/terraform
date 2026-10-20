@@ -88,7 +88,7 @@ func NewModulesJSON(view *View) *ModulesJSON {
 	// FormatVersion represents the version of the json format and will be
 	// incremented for any change to this format that requires changes to a
 	// consuming parser.
-	const formatVersion = "1.0"
+	const formatVersion = "1.1"
 
 	return &ModulesJSON{
 		view:          NewJSONStaticView[ModulesOutput](view),

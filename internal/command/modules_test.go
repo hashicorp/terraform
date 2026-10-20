@@ -335,4 +335,4 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	}
 }
 
-var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
+var expectedOutputJSON = `{"format_version":"1.1","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
