@@ -221,6 +221,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				node = &NodeDestroyDeposedResourceInstanceObject{
 					NodeAbstractResourceInstance: abstract,
 					DeposedKey:                   dk,
+
+					// A change for an object which is already deposed must be for
+					// an object left over from a previous run.
+					leftover: rc.DeposedKey != states.NotDeposed,
 				}
 			}
 			if dk == states.NotDeposed {
@@ -242,6 +246,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				node = &NodeForgetDeposedResourceInstanceObject{
 					NodeAbstractResourceInstance: abstract,
 					DeposedKey:                   dk,
+
+					// A change for an object which is already deposed must be for
+					// an object left over from a previous run.
+					leftover: rc.DeposedKey != states.NotDeposed,
 				}
 			}
 

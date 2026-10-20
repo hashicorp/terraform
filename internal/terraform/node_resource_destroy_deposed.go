@@ -24,6 +24,7 @@ import (
 type ConcreteResourceInstanceDeposedNodeFunc func(*NodeAbstractResourceInstance, states.DeposedKey) dag.Vertex
 
 type GraphNodeDeposedResourceInstanceObject interface {
+	GraphNodeCreateBeforeDestroy
 	DeposedInstanceObjectKey() states.DeposedKey
 }
 
@@ -210,6 +211,11 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 type NodeDestroyDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+
+	// leftover is set when the object was already deposed in the prior state,
+	// rather than being deposed by a create_before_destroy replacement during
+	// this apply.
+	leftover bool
 }
 
 var (
@@ -246,6 +252,18 @@ func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Referen
 }
 
 // GraphNodeDestroyer
+// StateDependencies returns the dependencies stored with the deposed object
+// itself, falling back to those of the current object when the object will
+// only be deposed during apply.
+func (n *NodeDestroyDeposedResourceInstanceObject) StateDependencies() []addrs.ConfigResource {
+	if s := n.instanceState; s != nil {
+		if obj := s.Deposed[n.DeposedKey]; obj != nil {
+			return obj.Dependencies
+		}
+	}
+	return n.NodeAbstractResourceInstance.StateDependencies()
+}
+
 func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
 	return &addr
@@ -253,9 +271,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResou
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyDeposedResourceInstanceObject) CreateBeforeDestroy() bool {
-	// A deposed instance is always CreateBeforeDestroy by definition, since
-	// we use deposed only to handle create-before-destroy.
-	return true
+	// An object deposed during this apply is destroyed after its replacement
+	// is created. An object left over from a previous run already has its
+	// replacement, so is no longer ordered as create_before_destroy.
+	return !n.leftover
 }
 
 // GraphNodeDestroyerCBD
@@ -338,6 +357,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 type NodeForgetDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+
+	// leftover is set when the object was already deposed in the prior state,
+	// rather than being deposed by a create_before_destroy replacement during
+	// this apply.
+	leftover bool
 }
 
 var (
@@ -357,14 +381,27 @@ func (n *NodeForgetDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (forget deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
 }
 
+// StateDependencies returns the dependencies stored with the deposed object
+// itself, falling back to those of the current object when the object will
+// only be deposed during apply.
+func (n *NodeForgetDeposedResourceInstanceObject) StateDependencies() []addrs.ConfigResource {
+	if s := n.instanceState; s != nil {
+		if obj := s.Deposed[n.DeposedKey]; obj != nil {
+			return obj.Dependencies
+		}
+	}
+	return n.NodeAbstractResourceInstance.StateDependencies()
+}
+
 func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
 }
 
 func (n *NodeForgetDeposedResourceInstanceObject) CreateBeforeDestroy() bool {
-	// A deposed instance is always CreateBeforeDestroy by definition, since
-	// we use deposed only to handle create-before-destroy.
-	return true
+	// An object deposed during this apply is forgotten after its replacement
+	// is created. An object left over from a previous run already has its
+	// replacement, so is no longer ordered as create_before_destroy.
+	return !n.leftover
 }
 
 func (n *NodeForgetDeposedResourceInstanceObject) ForceCreateBeforeDestroy() {
