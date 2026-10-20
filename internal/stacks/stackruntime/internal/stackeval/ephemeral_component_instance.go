@@ -210,7 +210,11 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 				}
 
 				// We don't produce ephemeral data until all of the components we depend on have complete plans.
-				if phase == PlanPhase && c.call.requiredComponentsPlanIncompleteInPlan(ctx) {
+				//
+				// This check isn't needed when destroying as all component outputs come from prior state. In addition,
+				// waiting on those components would result in a cycle as the order of components is reversed
+				// during destroy.
+				if phase == PlanPhase && c.mode != plans.DestroyMode && c.call.requiredComponentsPlanIncompleteInPlan(ctx) {
 					opts.ExternalDependencyDeferred = true
 				}
 

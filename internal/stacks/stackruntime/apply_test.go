@@ -2374,6 +2374,19 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 						},
 					},
 				},
+				{
+					path: "ephemeral-component-output-to-provider-removed",
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+					},
+				},
 			},
 		},
 		"ephemeral-expanded-component-to-provider": {
@@ -2942,6 +2955,117 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"removed block with ephemeral input": {
+			path: "removed-block-ephemeral-input",
+			cycles: []TestCycle{
+				{
+					planInputs:  map[string]cty.Value{"secret": cty.StringVal("secret")},
+					applyInputs: map[string]cty.Value{"secret": cty.StringVal("secret")},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("secret"): cty.NullVal(cty.String), // ephemeral
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":         "removed-block",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("secret"),
+							Value: cty.NullVal(cty.String), // ephemeral
+						},
+					},
+				},
+				// The removed block has no inputs and the ephemeral value is not stored in
+				// state, so the variable is null while the component is destroyed.
+				{
+					path: "removed-block-ephemeral-input-removed",
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("secret"),
+							Value: cty.NilVal, // the variable is no longer declared
+						},
+					},
+				},
+			},
+		},
+		"removed block with non-nullable ephemeral input": {
+			path: "removed-block-ephemeral-input-validated",
+			cycles: []TestCycle{
+				{
+					planInputs:  map[string]cty.Value{"secret": cty.StringVal("secret")},
+					applyInputs: map[string]cty.Value{"secret": cty.StringVal("secret")},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.in"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("secret"): cty.NullVal(cty.String), // ephemeral
+							},
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+									"id":         "removed-block",
+									"value":      nil,
+									"write_only": nil,
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("secret"),
+							Value: cty.NullVal(cty.String), // ephemeral
+						},
+					},
+				},
+				{
+					// TODO:@austinvalle: Not sure what/if we can do about this... This is a limitation because
+					// ephemeral values can't be stored in state and a removed block has no inputs, so there
+					// is no way to provide a value for a variable in a module tree that doesn't accept null.
+					path: "removed-block-ephemeral-input-validated-removed",
+					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Required variable not set",
+							Detail:   "Unsuitable value for var.secret set from outside of the configuration: required variable may not be set to null.",
+							Subject: &hcl.Range{
+								Filename: mainBundleSourceAddrStr("removed-block-ephemeral-input-validated/in/in.tf"),
+								Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+								End:      hcl.Pos{Line: 1, Column: 18, Byte: 17},
+							},
+						})
+					}),
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {
@@ -2965,26 +3089,33 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				store = stacks_testing_provider.NewResourceStore()
 			}
 
-			testContext := TestContext{
-				timestamp: &fakePlanTimestamp,
-				config:    loadMainBundleConfigForTest(t, tc.path),
-				providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
-						provider := stacks_testing_provider.NewProviderWithData(t, store)
-						if tc.authVal == "" {
-							provider.Authentication = "authn"
-						} else {
-							provider.Authentication = tc.authVal
-						}
-						return provider, nil
+			newTestContext := func(path string) TestContext {
+				return TestContext{
+					timestamp: &fakePlanTimestamp,
+					config:    loadMainBundleConfigForTest(t, path),
+					providers: map[addrs.Provider]providers.Factory{
+						addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+							provider := stacks_testing_provider.NewProviderWithData(t, store)
+							if tc.authVal == "" {
+								provider.Authentication = "authn"
+							} else {
+								provider.Authentication = tc.authVal
+							}
+							return provider, nil
+						},
 					},
-				},
-				dependencyLocks: *lock,
+					dependencyLocks: *lock,
+				}
 			}
 
 			state := tc.state
 			for ix, cycle := range tc.cycles {
 				t.Run(strconv.FormatInt(int64(ix), 10), func(t *testing.T) {
+					cyclePath := tc.path
+					if cycle.path != "" {
+						cyclePath = cycle.path
+					}
+					testContext := newTestContext(cyclePath)
 					var plan *stackplan.Plan
 					t.Run("plan", func(t *testing.T) {
 						plan = testContext.Plan(t, ctx, state, cycle)
@@ -6136,5 +6267,179 @@ func TestApplyWithEphemeralComponentDeferredUpstreamToProvider(t *testing.T) {
 		if obj, ok := change.(*stackstate.AppliedChangeResourceInstanceObject); ok {
 			t.Errorf("unexpected applied resource %s", obj.ResourceInstanceObjectAddr)
 		}
+	}
+}
+
+// TestApplyDestroyWithEphemeralComponent destroys stacks where the component "a" feeds the
+// ephemeral component "e". As the order of components is reversed when destroying, "e" must
+// still be able to read from "a" and anything depending on "e" must be destroyed before "a".
+func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
+	tcs := map[string]struct {
+		path          string
+		destroyInputs map[string]cty.Value
+
+		// aIDs are the ids of the resources in component "a", which default to "a". The
+		// ephemeral component must only be executed while all of them exist.
+		aIDs []string
+
+		// wantDestroyed are the resources expected to be destroyed, in groups that are destroyed
+		// in order. The order within a group isn't significant to allow for for_each instances to be
+		// asserted against, which don't destroy in a specified order.
+		wantDestroyed [][]string
+
+		// wantRemaining are the components expected to still be in state after the destroy.
+		wantRemaining []string
+	}{
+		// a -> e -> provider "auth" -> b
+		"consumed-by-provider": {
+			path:          "ephemeral-component-destroy-order",
+			wantDestroyed: [][]string{{"b"}, {"a"}},
+		},
+		// The same chain as "consumed-by-provider", with one chain per instance (x and y) of a, e and b.
+		"for-each": {
+			path:          "ephemeral-component-destroy-for-each",
+			aIDs:          []string{"a-x", "a-y"},
+			wantDestroyed: [][]string{{"b-x", "b-y"}, {"a-x", "a-y"}},
+		},
+		// Same as "consumed-by-provider", but the plan to destroy "a" is incomplete (deferred) as its
+		// for_each is unknown. This must not stop "b" from being destroyed, as "b" never
+		// needed "a" to be destroyed first and "e" will retrieve it's input data from state.
+		"incomplete-destroy-plan": {
+			path: "ephemeral-component-destroy-deferred-required",
+			destroyInputs: map[string]cty.Value{
+				"a_names": cty.UnknownVal(cty.Set(cty.String)),
+			},
+			wantDestroyed: [][]string{{"b"}},
+			wantRemaining: []string{`component.a["x"]`},
+		},
+		// a -> e -> stack input -> provider "auth" -> b (in the embedded stack)
+		"consumed-in-embedded-stack": {
+			path:          "ephemeral-component-destroy-embedded-consumer",
+			wantDestroyed: [][]string{{"b"}, {"a"}},
+		},
+		// a -> stack input -> e (in the embedded stack) -> stack output -> provider "auth" -> b
+		"ephemeral-component-in-embedded-stack": {
+			path:          "ephemeral-component-destroy-embedded-ephemeral",
+			wantDestroyed: [][]string{{"b"}, {"a"}},
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+
+			fakePlanTimestamp, err := time.Parse(time.RFC3339, "2021-01-01T00:00:00Z")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			lock := depsfile.NewLocks()
+			lock.SetProvider(
+				addrs.NewDefaultProvider("testing"),
+				providerreqs.MustParseVersion("0.1.0"),
+				providerreqs.MustParseVersionConstraints("0.1.0"),
+				providerreqs.PreferredHashes([]providerreqs.Hash{}),
+			)
+
+			aIDs := tc.aIDs
+			if aIDs == nil {
+				aIDs = []string{"a"}
+			}
+
+			var mu sync.Mutex
+			var destroyed []string
+			var opened []bool // whether "a" still existed each time the ephemeral resource was opened
+
+			store := stacks_testing_provider.NewResourceStore()
+			testContext := TestContext{
+				timestamp: &fakePlanTimestamp,
+				config:    loadMainBundleConfigForTest(t, tc.path),
+				providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+						provider := stacks_testing_provider.NewProviderWithData(t, store)
+						provider.Authentication = "secret" // populated by ephemeral.testing_resource
+
+						// Store the order of the destroy operations
+						applyFn := provider.ApplyResourceChangeFn
+						provider.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+							if req.PlannedState.IsNull() {
+								mu.Lock()
+								destroyed = append(destroyed, req.PriorState.GetAttr("id").AsString())
+								mu.Unlock()
+							}
+							return applyFn(req)
+						}
+
+						// Check if all of the expected component "a" resources exist when we're opening
+						openFn := provider.OpenEphemeralResourceFn
+						provider.OpenEphemeralResourceFn = func(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+							aExists := true
+							for _, id := range aIDs {
+								if _, ok := store.Get(id); !ok {
+									aExists = false
+								}
+							}
+							mu.Lock()
+							opened = append(opened, aExists)
+							mu.Unlock()
+							return openFn(req)
+						}
+						return provider, nil
+					},
+				},
+				dependencyLocks: *lock,
+			}
+
+			// Initial plan/apply to create resources for the destroy test
+			createPlan := testContext.Plan(t, ctx, nil, TestCycle{})
+			state := testContext.Apply(t, ctx, createPlan, TestCycle{})
+
+			destroyed, opened = nil, nil
+
+			destroyCycle := TestCycle{planMode: plans.DestroyMode, planInputs: tc.destroyInputs}
+			destroyPlan := testContext.Plan(t, ctx, state, destroyCycle)
+			state = testContext.Apply(t, ctx, destroyPlan, destroyCycle)
+
+			// Assert on remaining component instances in state
+			var remaining []string
+			for addr := range state.AllComponentInstances() {
+				remaining = append(remaining, addr.String())
+			}
+			sort.Strings(remaining)
+			if diff := cmp.Diff(tc.wantRemaining, remaining); diff != "" {
+				t.Errorf("wrong components remaining in state\n%s", diff)
+			}
+
+			// Retrieve the instances destroyed in order, expanded instances are not ordered, thus the grouping complexity
+			var gotDestroyed [][]string
+			remainingDestroyed := destroyed
+			for _, group := range tc.wantDestroyed {
+				n := min(len(group), len(remainingDestroyed))
+				got := remainingDestroyed[:n]
+				sort.Strings(got)
+				gotDestroyed = append(gotDestroyed, got)
+				remainingDestroyed = remainingDestroyed[n:]
+			}
+
+			// Append any instances that were destroyed we might not be expecting
+			if len(remainingDestroyed) != 0 {
+				gotDestroyed = append(gotDestroyed, remainingDestroyed)
+			}
+
+			// Assert that the order/exact instances we expected are destroyed
+			if diff := cmp.Diff(tc.wantDestroyed, gotDestroyed); diff != "" {
+				t.Errorf("wrong destroy order\n%s", diff)
+			}
+
+			// Assert the ephemeral resource was only opened before component "a" was destroyed
+			if len(opened) == 0 {
+				t.Errorf("the ephemeral component was never executed")
+			}
+			for i, aExisted := range opened {
+				if !aExisted {
+					t.Errorf("execution %d of the ephemeral component happened after component.a was destroyed", i+1)
+				}
+			}
+		})
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
@@ -299,6 +300,12 @@ func (c *EphemeralComponent) requiredComponentsPlanIncompleteInApply(ctx context
 	plan := c.main.PlanBeingApplied()
 	for depAddr := range c.RequiredComponents(ctx, ApplyPhase).All() {
 		for _, depInst := range plan.ComponentInstances(depAddr) {
+			if depInst.PlannedAction == plans.Delete || depInst.PlannedAction == plans.Forget {
+				// A component that is being destroyed is ignored, as the output values it
+				// returns come from the prior state captured in the plan, rather than from the
+				// result of applying it.
+				continue
+			}
 			if !depInst.PlanComplete {
 				return true
 			}

@@ -53,6 +53,10 @@ type TestContext struct {
 // TestCycle defines a single plan / apply cycle that should be performed within
 // a test.
 type TestCycle struct {
+	// path is the main bundle config to use for this cycle instead of the one
+	// for the test, which is useful when a cycle changes the configuration.
+	path string
+
 	// Validate options
 
 	wantValidateDiags tfdiags.Diagnostics
