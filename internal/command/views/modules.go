@@ -155,8 +155,22 @@ func flattenManifest(m moduleref.Manifest, formatVersion string, diags []*viewsj
 
 // Diagnostics prints a JSON output that contains only the format and diagnostics information.
 func (v *ModulesJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Print(ModulesOutput{
+	if len(diags) == 0 {
+		return
+	}
+
+	output := ModulesOutput{
 		FormatVersion: v.formatVersion,
+		Modules:       []ModuleOutput{}, // Ensure non-nil slice for JSON output
 		Diagnostics:   v.view.prepareDiagnostics(diags),
-	})
+	}
+
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }
