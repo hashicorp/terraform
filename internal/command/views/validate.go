@@ -77,7 +77,7 @@ func NewValidateJSON(view *View) *ValidateJSON {
 	// FormatVersion represents the version of the json format and will be
 	// incremented for any change to this format that requires changes to a
 	// consuming parser.
-	const formatVersion = "1.1"
+	const formatVersion = "1.0"
 
 	return &ValidateJSON{
 		view:          NewJSONStaticView[ValidateOutput](view),

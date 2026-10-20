@@ -128,7 +128,7 @@ func TestValidateJSON_Diagnostics(t *testing.T) {
 				),
 			},
 			`{
-  "format_version": "1.1",
+  "format_version": "1.0",
   "valid": false,
   "error_count": 0,
   "warning_count": 0,
