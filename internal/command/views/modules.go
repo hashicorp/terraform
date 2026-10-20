@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/moduleref"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/xlab/treeprint"
@@ -15,7 +16,7 @@ import (
 
 type Modules interface {
 	// Display renders the list of module entries.
-	Display(manifest moduleref.Manifest) int
+	Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -38,7 +39,9 @@ type ModulesHuman struct {
 
 var _ Modules = (*ModulesHuman)(nil)
 
-func (v *ModulesHuman) Display(manifest moduleref.Manifest) int {
+func (v *ModulesHuman) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	v.view.Diagnostics(diags) // Print any warnings
+
 	if len(manifest.Records) == 0 {
 		v.view.streams.Println("No modules found in configuration.")
 		return 0
@@ -78,12 +81,6 @@ func (v *ModulesHuman) Diagnostics(diags tfdiags.Diagnostics) {
 type ModulesJSON struct {
 	view *JSONStaticView[ModulesOutput]
 
-	// Legacy view for logging warnings in human-readable format
-	// The `modules` command's JSON output was implemented in a way that still produces
-	// human-readable output when diagnostics are logged. This is preserved, as updating
-	// it is a breaking change, but this should be amended in a future major version.
-	legacyView *View
-
 	formatVersion string
 }
 
@@ -91,19 +88,18 @@ func NewModulesJSON(view *View) *ModulesJSON {
 	// FormatVersion represents the version of the json format and will be
 	// incremented for any change to this format that requires changes to a
 	// consuming parser.
-	const formatVersion = "1.0"
+	const formatVersion = "1.1"
 
 	return &ModulesJSON{
 		view:          NewJSONStaticView[ModulesOutput](view),
-		legacyView:    view,
 		formatVersion: formatVersion,
 	}
 }
 
 type ModulesOutput struct {
-	FormatVersion string         `json:"format_version"`
-	Modules       []ModuleOutput `json:"modules"`
-	// TODO: Add Diagnostics field
+	FormatVersion string                  `json:"format_version"`
+	Modules       []ModuleOutput          `json:"modules"`
+	Diagnostics   []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 type ModuleOutput struct {
@@ -114,8 +110,8 @@ type ModuleOutput struct {
 
 var _ Modules = (*ModulesJSON)(nil)
 
-func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
-	flattenedManifest := flattenManifest(manifest, v.formatVersion)
+func (v *ModulesJSON) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	flattenedManifest := flattenManifest(manifest, v.formatVersion, v.view.prepareDiagnostics(diags))
 	v.view.Print(flattenedManifest)
 	return 0
 }
@@ -123,7 +119,7 @@ func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
 // FlattenManifest returns the nested contents of a moduleref.Manifest as
 // a ModulesOutput with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
-func flattenManifest(m moduleref.Manifest, formatVersion string) ModulesOutput {
+func flattenManifest(m moduleref.Manifest, formatVersion string, diags []*viewsjson.Diagnostic) ModulesOutput {
 	var flatten func(records []*moduleref.Record)
 	recordList := make([]ModuleOutput, 0) // Ensure non-nil slice for JSON output
 	flatten = func(records []*moduleref.Record) {
@@ -152,13 +148,29 @@ func flattenManifest(m moduleref.Manifest, formatVersion string) ModulesOutput {
 	ret := ModulesOutput{
 		FormatVersion: formatVersion,
 		Modules:       recordList,
+		Diagnostics:   diags,
 	}
 	return ret
 }
 
-// Diagnostics produces human-readable output, despite the -json flag being used.
-// This was a bug in the original implementation of JSON output and should be updated in future.
-// TODO: Make diagnostics be rendered using the `ModuleOutput` struct, instead of human-readable format.
+// Diagnostics prints a JSON output that contains only the format and diagnostics information.
 func (v *ModulesJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.legacyView.Diagnostics(diags)
+	if len(diags) == 0 {
+		return
+	}
+
+	output := ModulesOutput{
+		FormatVersion: v.formatVersion,
+		Modules:       []ModuleOutput{}, // Ensure non-nil slice for JSON output
+		Diagnostics:   v.view.prepareDiagnostics(diags),
+	}
+
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }
