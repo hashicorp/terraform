@@ -63,8 +63,8 @@ var (
 	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
-func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
+func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.Addr
 }
 
 func (n *NodePlanDeposedResourceInstanceObject) Name() string {
@@ -264,9 +264,8 @@ func (n *NodeDestroyDeposedResourceInstanceObject) StateDependencies() []addrs.C
 	return n.NodeAbstractResourceInstance.StateDependencies()
 }
 
-func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 // GraphNodeDestroyerCBD
@@ -393,8 +392,8 @@ func (n *NodeForgetDeposedResourceInstanceObject) StateDependencies() []addrs.Co
 	return n.NodeAbstractResourceInstance.StateDependencies()
 }
 
-func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
+func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.Addr
 }
 
 func (n *NodeForgetDeposedResourceInstanceObject) CreateBeforeDestroy() bool {

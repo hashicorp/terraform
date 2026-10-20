@@ -30,8 +30,8 @@ var (
 	_ GraphNodeDestroyer           = (*NodeForgetResourceInstance)(nil)
 )
 
-func (n *NodeForgetResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
+func (n *NodeForgetResourceInstance) DestroyAddr() addrs.AbsResourceInstance {
+	return n.Addr
 }
 
 func (n *NodeForgetResourceInstance) References() []*addrs.Reference {

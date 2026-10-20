@@ -143,7 +143,7 @@ func (t *CBDEdgeTransformer) Transform(g *Graph) error {
 
 			// First reverse the edges that are directly from creators to their
 			// deposed instance nodes
-			if c.CreateAddr().Equal(*v.(GraphNodeDestroyer).DestroyAddr()) {
+			if c.CreateAddr().Equal(v.(GraphNodeDestroyer).DestroyAddr()) {
 				// the diff transformer ensures that leftover state deposed
 				// nodes are no longer CreateBeforeDestroy, so we know that all
 				// deposed objects here will be reversed.
