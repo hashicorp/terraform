@@ -1,16 +1,32 @@
-## 1.18.0 (Unreleased)
+## 1.18.0 (October 21, 2026)
 
 
-EXPERIMENTS:
+ENHANCEMENTS:
 
-Experiments are only enabled in alpha releases of Terraform CLI. The following features are not yet available in stable releases.
+* genconfig: use hcl-native printing instead of falling back to go string ([#39193](https://github.com/hashicorp/terraform/issues/39193))
 
-- The experimental "deferred actions" feature, enabled by passing the `-allow-deferral` option to `terraform plan`, permits `count` and `for_each` arguments in `module`, `resource`, and `data` blocks to have unknown values and allows providers to react more flexibly to unknown values.
-- `terraform test cleanup`: The experimental `test cleanup` command. In experimental builds of Terraform, a manifest file and state files for each failed cleanup operation during test operations are saved within the `.terraform` local directory. The `test cleanup` command will attempt to clean up the local state files left behind automatically, without requiring manual intervention.
-- `terraform test`: `backend` blocks and `skip_cleanup` attributes:
-  - Test authors can now specify `backend` blocks within `run` blocks in Terraform Test files. Run blocks with `backend` blocks will load state from the specified backend instead of starting from empty state on every execution. This allows test authors to keep long-running test infrastructure alive between test operations, saving time during regular test operations.
-  - Test authors can now specify `skip_cleanup` attributes within test files and within run blocks. The `skip_cleanup` attribute tells `terraform test` not to clean up state files produced by run blocks with this attribute set to true. The state files for affected run blocks will be written to disk within the `.terraform` directory, where they can then be cleaned up manually using the also experimental `terraform test cleanup` command.
-- `terraform query`: The experimental `-policies` flag permits specifying one or more policy set directory paths to evaluate policies against resources discovered by list blocks during a query operation.
+* terraform init: Requests to a provider registry now reuse a single connection instead of opening a new one for every request ([#39262](https://github.com/hashicorp/terraform/issues/39262))
+
+
+BUG FIXES:
+
+* `textdecodebase64`: Accept valid UTF-8 strings containing the U+FFFD replacement character ([#39256](https://github.com/hashicorp/terraform/issues/39256))
+
+* fix(cli): properly validate apply time -targets match plan -targets ([#39257](https://github.com/hashicorp/terraform/issues/39257))
+
+* fix(fileset): skip dangling symlinks and other matched paths that no longer resolve, while continuing to return other regular-file matches. ([#39260](https://github.com/hashicorp/terraform/issues/39260))
+
+* version: The `version` command now returns diagnostics in JSON format when the `-json` flag is supplied. ([#39394](https://github.com/hashicorp/terraform/issues/39394))
+
+
+NOTES:
+
+* init: Terraform will no longer produce a duplicated version log message in JSON output when configuring a backend for the first time. ([#39266](https://github.com/hashicorp/terraform/issues/39266))
+
+* modules: The `modules` command now shows diagnostics in its JSON format output ([#39396](https://github.com/hashicorp/terraform/issues/39396))
+
+* test: The -help output now lists the -run-parallelism option ([#39384](https://github.com/hashicorp/terraform/issues/39384))
+
 
 ## Previous Releases
 
