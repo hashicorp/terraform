@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/backend/remote-state/oci
 
-go 1.26.8
+go 1.26.10
 
 require (
 	github.com/google/go-cmp v0.7.0
