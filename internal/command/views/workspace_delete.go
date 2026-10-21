@@ -13,7 +13,7 @@ import (
 // The WorkspaceDelete view is used for the `workspace delete` subcommand.
 type WorkspaceDelete interface {
 	// LogWorkspaceDeletionSuccess is called when a workspace has been successfully deleted.
-	// The state may have been empty or contained resources, that data is communicated through the diagnostics.
+	// The state may have been empty or contained resources, the latter is communicated to the user through warning diagnostics.
 	LogWorkspaceDeletionSuccess(workspaceName string, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
