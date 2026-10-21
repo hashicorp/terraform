@@ -1,5 +1,0 @@
-kind: NEW FEATURES
-body: Terraform now supports variables and locals in provider requirements
-time: 2026-04-23T12:05:56.014251+02:00
-custom:
-    Issue: "39153"
