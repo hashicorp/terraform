@@ -207,7 +207,6 @@ We need to implement our feature so it makes sense in the context of other featu
 
 There are two contradicting perspectives on the language feature you are designing that need balancing: Openness (what is allowed to be expressed) and Closeness (what can not be expressed).
 
-<!-- figure: openness vs closeness diagram from the original document -->
 
 To make the terms clear, let's take the task of filtering resources a policy applies to.
 
@@ -235,7 +234,6 @@ policy "no_public_buckets" {
 
 The closeness vs openness of the language feature is a spectrum, there are a lot of different solutions in between that are viable.
 
-<!-- figure: openness/closeness spectrum from the original document -->
 
 Each side of the spectrum has different trade-offs. Open designs are very expressive, allowing the user maximum freedom. That freedom comes at a cost: more contracts to be honored on the language side, fewer options for catching footguns and doing optimizations at the language level. The more a design is closed the more the language is in control of the constraints and can manage complexity for the user that with open solutions the user needs to account for.
 
