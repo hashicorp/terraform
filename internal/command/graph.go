@@ -121,14 +121,17 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 
 			switch args.Format {
 			case "mermaid":
-				return c.resourceOnlyGraphMermaid(g)
+				graphStr := c.resourceOnlyGraphMermaid(g)
+				c.Streams.Stdout.File.WriteString(graphStr)
+				return 0
 			case "", "dot":
-				return c.resourceOnlyGraph(g)
+				graphStr := c.resourceOnlyGraph(g)
+				c.Streams.Stdout.File.WriteString(graphStr)
+				return 0
 			default:
 				c.Ui.Error(fmt.Sprintf("Unsupported graph format: %s", args.Format))
 				return 1
 			}
-
 		} else {
 			args.GraphType = "apply"
 		}
@@ -221,8 +224,9 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *GraphCommand) resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigResource]) int {
-	out := c.Streams.Stdout.File
+func (c *GraphCommand) resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigResource]) string {
+	out := &strings.Builder{}
+
 	fmt.Fprintln(out, "digraph G {")
 	// Horizontal presentation is easier to read because our nodes tend
 	// to be much wider than they are tall. The leftmost nodes in the output
@@ -306,11 +310,12 @@ func (c *GraphCommand) resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigR
 	}
 
 	fmt.Fprintln(out, "}")
-	return 0
+
+	return out.String()
 }
 
-func (c *GraphCommand) resourceOnlyGraphMermaid(graph addrs.DirectedGraph[addrs.ConfigResource]) int {
-	out := c.Streams.Stdout.File
+func (c *GraphCommand) resourceOnlyGraphMermaid(graph addrs.DirectedGraph[addrs.ConfigResource]) string {
+	out := &strings.Builder{}
 
 	// use left-to-right layout by default
 	fmt.Fprintln(out, "flowchart LR")
@@ -320,7 +325,7 @@ func (c *GraphCommand) resourceOnlyGraphMermaid(graph addrs.DirectedGraph[addrs.
 	if len(allAddrs) == 0 {
 		fmt.Fprintln(out, "  %% This configuration does not contain any resources.")
 		fmt.Fprintln(out, "  %% For a more detailed graph, try: terraform graph -type=plan")
-		return 0
+		return out.String()
 	}
 
 	addrsOrder := make([]addrs.ConfigResource, 0, len(allAddrs))
@@ -381,7 +386,7 @@ func (c *GraphCommand) resourceOnlyGraphMermaid(graph addrs.DirectedGraph[addrs.
 		}
 	}
 
-	return 0
+	return out.String()
 }
 
 func (c *GraphCommand) Help() string {
