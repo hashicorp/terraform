@@ -866,17 +866,19 @@ func TestRemote_planLockTimeout(t *testing.T) {
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
 
+	sigint := make(chan os.Signal, 1)
+	// Register before starting the operation so the lock-timeout signal cannot
+	// arrive before a listener exists.
+	signal.Notify(sigint, syscall.SIGINT)
+	defer signal.Stop(sigint)
+
 	_, err = b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
 	}
 
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGINT)
 	select {
 	case <-sigint:
-		// Stop redirecting SIGINT signals.
-		signal.Stop(sigint)
 	case <-time.After(200 * time.Millisecond):
 		t.Fatalf("expected lock timeout after 50 milliseconds, waited 200 milliseconds")
 	}
