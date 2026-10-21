@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'query: report Unknown and N/A results for policy evaluations of discovered resources'
+time: 2026-08-25T12:40:58-04:00
+custom:
+    Issue: "39058"
