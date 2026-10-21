@@ -73,7 +73,7 @@ This kind of prototype is a somewhat complete implementation of the feature. It 
 - that we can still throw it away if we learn that the design is not good enough. We need to leave this door open since we might learn something new during the implementation that makes us want to change the design. We should not be afraid to throw away a full prototype if we learn that the design is not good enough.
 - that we can be more lenient with code quality and documentation than in the final implementation since we might throw it away. We should focus on what makes us keep the velocity of the prototype and implementation high. (See the note on documentation in "During Prototyping" — rationale and intention should still be documented even when code quality is relaxed.)
 
-This prototype is very close to the final implementation. Once done we can ideally just polish it and merge it into the main branch.
+This prototype is very close to the final implementation. Once done we can ideally just polish it and merge it into the main branch. This should be our quality standard at least. Depending on the situation we might decide it is good enough to use or we want to reimplement it from scratch to fix some design flaws we found along the way. The prototype needs to be good enough that both options are possible.
 
 We should aim for this prototype if the feature is high in complexity or touches complex parts of the codebase (e.g. the graph or evaluation). If the feature involves language design it's a good hint that we need to use this kind of prototype; it's a "high cost, high security that we are doing the right thing" kind of situation.
 
@@ -129,6 +129,10 @@ This is compatible with being lenient on code quality — the point is to docume
 
 Starting a prototype several times with different solution strategies can be helpful to ensure the problem area is discovered in depth. When testing design hypotheses, also consider building alternatives side-by-side and presenting them to users; The comparison often reveals preferences the team did not anticipate.
 It can be tempting to continue with the original plan for the prototype even if road-blocks are uncovered, but it is often wise to take a step back and rethink the plan. This will deepen the understanding on the problem domain and inform a better design.
+
+### Note and Discuss Error Scenarios
+
+Depending on the level of the prototype we might skip over error handling and edge cases to keep focus. Making a habit out of noting down where things can go wrong, what invalid input might look like and where external systems might fail can help us revisit these scenarios later and ensure we don't miss them in the final implementation. It can also help us to discuss these scenarios with colleagues from other teams to make sure expectations are aligned and we don't miss any important scenarios.
 
 ## After Prototyping
 
