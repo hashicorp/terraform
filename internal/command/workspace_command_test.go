@@ -844,7 +844,7 @@ func TestWorkspace_deleteRejectsEmptyString(t *testing.T) {
 		workspace,
 	}
 	if code := delCmd.Run(args); code == 0 {
-		t.Fatalf("expected code %d but got %d. Output: %s", cli.RunResultHelp, code, done(t).All())
+		t.Fatalf("expected code 1 but got %d. Output: %s", code, done(t).All())
 	}
 	output := done(t)
 	if !strings.Contains(output.Stderr(), "got an empty string") {
