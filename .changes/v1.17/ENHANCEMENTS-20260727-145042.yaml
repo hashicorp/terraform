@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'command/init: Enrich log messages with provider versions'
+time: 2026-07-27T14:50:42.336341+01:00
+custom:
+    Issue: "38918"
