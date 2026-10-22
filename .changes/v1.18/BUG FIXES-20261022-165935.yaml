@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'state: Release file handles after unlocked writes to improve Windows compatibility'
+time: 2026-10-22T16:59:35.046795+02:00
+custom:
+    Issue: "39435"
