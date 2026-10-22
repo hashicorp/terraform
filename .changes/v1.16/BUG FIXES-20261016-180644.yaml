@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'command/test: Avoid panic when testing schema w/ deprecated values'
-time: 2026-10-16T18:06:44.56834+01:00
-custom:
-    Issue: "39406"
