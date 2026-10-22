@@ -6289,17 +6289,22 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 
 		// wantRemaining are the components expected to still be in state after the destroy.
 		wantRemaining []string
+
+		// wantLeases is how many ephemeral resources are opened by the destroy.
+		wantLeases int
 	}{
 		// a -> e -> provider "auth" -> b
 		"consumed-by-provider": {
 			path:          "ephemeral-component-destroy-order",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
+			wantLeases:    2,
 		},
 		// The same chain as "consumed-by-provider", with one chain per instance (x and y) of a, e and b.
 		"for-each": {
 			path:          "ephemeral-component-destroy-for-each",
 			aIDs:          []string{"a-x", "a-y"},
 			wantDestroyed: [][]string{{"b-x", "b-y"}, {"a-x", "a-y"}},
+			wantLeases:    4,
 		},
 		// Same as "consumed-by-provider", but the plan to destroy "a" is incomplete (deferred) as its
 		// for_each is unknown. This must not stop "b" from being destroyed, as "b" never
@@ -6311,16 +6316,19 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 			},
 			wantDestroyed: [][]string{{"b"}},
 			wantRemaining: []string{`component.a["x"]`},
+			wantLeases:    2,
 		},
 		// a -> e -> stack input -> provider "auth" -> b (in the embedded stack)
 		"consumed-in-embedded-stack": {
 			path:          "ephemeral-component-destroy-embedded-consumer",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
+			wantLeases:    2,
 		},
 		// a -> stack input -> e (in the embedded stack) -> stack output -> provider "auth" -> b
 		"ephemeral-component-in-embedded-stack": {
 			path:          "ephemeral-component-destroy-embedded-ephemeral",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
+			wantLeases:    2,
 		},
 	}
 
@@ -6351,13 +6359,14 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 			var opened []bool // whether "a" still existed each time the ephemeral resource was opened
 
 			store := stacks_testing_provider.NewResourceStore()
+			leases := &ephemeralLeases{open: make(map[string]bool, 0)}
 			testContext := TestContext{
 				timestamp: &fakePlanTimestamp,
 				config:    loadMainBundleConfigForTest(t, tc.path),
 				providers: map[addrs.Provider]providers.Factory{
 					addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
 						provider := stacks_testing_provider.NewProviderWithData(t, store)
-						provider.Authentication = "secret" // populated by ephemeral.testing_resource
+						leases.track(provider)
 
 						// Store the order of the destroy operations
 						applyFn := provider.ApplyResourceChangeFn
@@ -6395,10 +6404,12 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 			state := testContext.Apply(t, ctx, createPlan, TestCycle{})
 
 			destroyed, opened = nil, nil
+			leases.reset()
 
 			destroyCycle := TestCycle{planMode: plans.DestroyMode, planInputs: tc.destroyInputs}
 			destroyPlan := testContext.Plan(t, ctx, state, destroyCycle)
 			state = testContext.Apply(t, ctx, destroyPlan, destroyCycle)
+			assertEphemeralLeases(t, leases, "destroy", tc.wantLeases)
 
 			// Assert on remaining component instances in state
 			var remaining []string
@@ -6440,6 +6451,44 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 					t.Errorf("execution %d of the ephemeral component happened after component.a was destroyed", i+1)
 				}
 			}
+		})
+	}
+}
+
+// TestApplyEphemeralComponentLifecycle verifies that ephemeral components satisfy the ephemeral resource lifecycle of:
+// - Opening ephemeral resource
+// - Using the ephemeral value
+// - Closing the ephemeral resource (any future use of the ephemeral value is invalid)
+func TestApplyEphemeralComponentLifecycle(t *testing.T) {
+	tcs := map[string]struct {
+		bundle         string
+		expectedLeases int
+	}{
+		"output to provider": {
+			bundle:         "ephemeral-component-output-to-provider",
+			expectedLeases: 1,
+		},
+		"expanded": {
+			bundle:         "ephemeral-expanded-component-to-provider",
+			expectedLeases: 2,
+		},
+		"multiple": {
+			bundle:         "ephemeral-component-multiple",
+			expectedLeases: 2,
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			ctx := context.Background()
+			leases := &ephemeralLeases{open: make(map[string]bool, 0)}
+			testContext := newEphemeralLeaseContext(t, tc.bundle, leases)
+
+			plan := testContext.Plan(t, ctx, nil, TestCycle{})
+			assertEphemeralLeases(t, leases, "plan", tc.expectedLeases)
+
+			testContext.Apply(t, ctx, plan, TestCycle{})
+			assertEphemeralLeases(t, leases, "apply", tc.expectedLeases)
 		})
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -118,6 +119,12 @@ type PlanGraphBuilder struct {
 	SkipGraphValidation bool
 
 	PolicyClient policy.Client
+
+	// EphemeralHold, when set, adds a node that keeps the walk (and any open
+	// ephemeral resources) running until the returned channel is closed.
+	//
+	// See [PlanOpts.EphemeralHold]
+	EphemeralHold func(scope *lang.Scope) <-chan struct{}
 
 	// If true, the graph builder will generate a query plan instead of a
 	// normal plan. This is used for the "terraform query" command.
@@ -310,7 +317,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ForcedCBDTransformer{},
 
 		// Close any ephemeral resource instances.
-		&ephemeralResourceCloseTransformer{skip: b.Operation == walkValidate},
+		&ephemeralResourceCloseTransformer{
+			skip: b.Operation == walkValidate,
+			hold: b.EphemeralHold,
+		},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

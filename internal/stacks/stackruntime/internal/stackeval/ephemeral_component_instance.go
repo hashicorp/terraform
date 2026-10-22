@@ -163,7 +163,10 @@ func (c *EphemeralComponentInstance) PlanOpts(ctx context.Context, phase EvalPha
 		// which enables us to order the ephemeral components so they do not create cycles
 		// during destroy.
 		AllowRootEphemeralOutputs: true,
-		PolicyClient:              c.main.PolicyClient(),
+
+		// TODO:@austinvalle: Should policies be run on ephemeral components? Currently all policy
+		// is related to managed resources.
+		PolicyClient: c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
@@ -200,7 +203,7 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 			// Ephemeral components produce result values the same way, by using the plan operation to produce output values
 			case PlanPhase, ApplyPhase:
 				var diags tfdiags.Diagnostics
-				// TODO:@austinvalle: Add hooks for terraform module runtime? There are ephemeral resource ones, but not sure if they are useful?
+				// TODO:@austinvalle: Add hooks for terraform modules runtime? There are ephemeral resource ones, but not sure if they are useful?
 				// h := hooksFromContext(ctx)
 
 				opts, moreDiags := c.PlanOpts(ctx, phase)
@@ -276,31 +279,26 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 					return cty.DynamicVal, diags
 				}
 
-				// When our given context is cancelled, we want to instruct the
-				// modules runtime to stop the running operation. We use this
-				// nested context to ensure that we don't leak a goroutine when the
-				// parent context isn't cancelled.
-				operationCtx, operationCancel := context.WithCancel(ctx)
-				defer operationCancel()
-				go func() {
-					<-operationCtx.Done()
-					if ctx.Err() == context.Canceled {
-						tfCtx.Stop()
-					}
-				}()
-
 				// Ephemeral components don't produce a plan or state, however they do need to evaluate the configuration with
-				// configured providers, so we always use the plan operation to achieve that.
-				_, planScope, moreDiags := tfCtx.PlanAndEval(moduleTree, nil, opts, addrs.RootModuleInstance)
+				// configured providers, so we will run a plan operation to achieve that. This plan operation is encapsulated
+				// by [ephemeralComponentEvalSession] as the modules runtime must be kept running to ensure ephemeral resources
+				// are renewed while the stacks runtime uses the data, then closed when we release the session.
+				evalSession := startEphemeralComponentEvalSession(ctx, tfCtx, moduleTree, opts)
+				planScope, isHeld, moreDiags := evalSession.Wait()
 				diags = diags.Append(moreDiags)
+				if !isHeld {
+					// The operation ended without producing an evaluation scope, so something went wrong. There are no
+					// ephemeral values to use or release.
+					return cty.DynamicVal, diags
+				}
 
 				ephOutputVals := ephemeralOutputValuesFromScope(moduleTree, planScope)
 
-				// TODO:@austinvalle: Eventually we need to switch to using the normal "Plan" method and whatever
-				// concurrency pipeline we use to return ephemeral data while keeping the actual plan operation running (so TF core will renew/close).
-				// c.main.RegisterCleanup(func(ctx context.Context) tfdiags.Diagnostics {
-				// 	return nil
-				// })
+				// Release the operation at the end of the stacks runtime plan or apply. This must run before the cleanup
+				// of the provider clients that the modules runtime uses to close the ephemeral resources.
+				c.main.RegisterEphemeralComponentCleanup(func(context.Context) tfdiags.Diagnostics {
+					return evalSession.Release()
+				})
 
 				return cty.ObjectVal(ephOutputVals), diags
 

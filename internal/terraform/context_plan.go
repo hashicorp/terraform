@@ -184,6 +184,25 @@ type PlanOpts struct {
 
 	// Optional policy client to enable live policy evaluations.
 	PolicyClient policy.Client
+
+	// EphemeralHold is a callback function that indicates the caller wants to keep all
+	// ephemeral resources in the module open until the channel returned by said function
+	// is closed. This allows Terraform core to manage the ephemeral resource lifecycle
+	// (open, renew, close), while also allowing root ephemeral outputs to be consumed by
+	// the caller. The only consumer of this field is the stacks runtime "ephemeral_component" block.
+	//
+	// The callback function is called at most once, only after every other node in the plan walk
+	// completed without errors, and is passed a scope that evaluates expressions in the
+	// root module based on the result of the walk. The walk then blocks until the returned
+	// channel is closed, or until [Context.Stop] is called, after which, the ephemeral resources
+	// will be closed.
+	//
+	// If the walk encounters errors the function is never called, and the
+	// diagnostics are returned from the plan operation as usual.
+	//
+	// The plan operation does not return until the channel is released, so
+	// callers must run it concurrently with whatever consumes the scope.
+	EphemeralHold func(scope *lang.Scope) <-chan struct{}
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -809,11 +828,14 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, nil, diags
 	}
 
+	// The pre-destroy refresh walk is an internal implementation detail used
+	// only to refresh state before producing the real destroy plan.
 	if opts.PreDestroyRefresh {
-		// The pre-destroy refresh walk is an internal implementation detail used
-		// only to refresh state before producing the real destroy plan. Policy
-		// results should come only from the actual destroy plan walk.
+		// Policy results should come only from the actual destroy plan walk.
 		opts.PolicyClient = nil
+
+		// EphemeralHold is only executed once, so ignore during the pre-destroy refresh walk.
+		opts.EphemeralHold = nil
 	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
@@ -1088,6 +1110,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
 			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 			PolicyClient:               opts.PolicyClient,
+			EphemeralHold:              opts.EphemeralHold,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -1109,6 +1132,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
 			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 			PolicyClient:               opts.PolicyClient,
+			EphemeralHold:              opts.EphemeralHold,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -1128,6 +1152,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
 			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 			PolicyClient:               opts.PolicyClient,
+			EphemeralHold:              opts.EphemeralHold,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

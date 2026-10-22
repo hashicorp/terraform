@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"maps"
+	"slices"
 	"sync"
 	"time"
 
@@ -83,12 +84,13 @@ type Main struct {
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
-	mu                      sync.Mutex
-	mainStackConfig         *StackConfig
-	mainStack               *Stack
-	providerTypes           map[addrs.Provider]*ProviderType
-	providerFunctionResults *lang.FunctionResults
-	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
+	mu                             sync.Mutex
+	mainStackConfig                *StackConfig
+	mainStack                      *Stack
+	providerTypes                  map[addrs.Provider]*ProviderType
+	providerFunctionResults        *lang.FunctionResults
+	cleanupFuncs                   []func(context.Context) tfdiags.Diagnostics
+	ephemeralComponentCleanupFuncs []func(context.Context) tfdiags.Diagnostics
 }
 
 type mainValidating struct {
@@ -560,7 +562,32 @@ func (m *Main) RegisterCleanup(cb func(ctx context.Context) tfdiags.Diagnostics)
 	m.mu.Unlock()
 }
 
+// RegisterEphemeralComponentCleanup registers the cleanup of an ephemeral
+// component, which releases the Terraform modules runtime plan operation that holds
+// any ephemeral resources open.
+//
+// Callbacks registered this way differ from [Main.RegisterCleanup] in two ways:
+//
+//   - They all run before any callback registered with [Main.RegisterCleanup].
+//     Releasing the operation closes the ephemeral resources, which is done
+//     through a provider client, so it must happen before those clients are
+//     terminated by their own regular cleanups, regardless of which was created
+//     first.
+//
+//   - They run in the reverse of their registration order. An ephemeral
+//     component can only start once the components it consumes have produced
+//     their values, so registration order follows dependency order. A later
+//     component may use a provider that was configured from an earlier
+//     component's value, so it must be released first, or its resources would
+//     be closed after the values it relies on are gone.
+func (m *Main) RegisterEphemeralComponentCleanup(cb func(ctx context.Context) tfdiags.Diagnostics) {
+	m.mu.Lock()
+	m.ephemeralComponentCleanupFuncs = append(m.ephemeralComponentCleanupFuncs, cb)
+	m.mu.Unlock()
+}
+
 // DoCleanup executes any cleanup functions previously registered using
+// [Main.RegisterEphemeralComponentCleanup] (in reverse order) and then
 // [Main.RegisterCleanup], returning any collected diagnostics.
 //
 // Call this only once evaluation has completed and there aren't any requests
@@ -570,9 +597,16 @@ func (m *Main) RegisterCleanup(cb func(ctx context.Context) tfdiags.Diagnostics)
 func (m *Main) DoCleanup(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	m.mu.Lock()
+	ephemeralFuncs := m.ephemeralComponentCleanupFuncs
+	m.ephemeralComponentCleanupFuncs = nil
 	funcs := m.cleanupFuncs
 	m.cleanupFuncs = nil
 	m.mu.Unlock()
+	for _, cb := range slices.Backward(ephemeralFuncs) {
+		diags = diags.Append(
+			cb(ctx),
+		)
+	}
 	for _, cb := range funcs {
 		diags = diags.Append(
 			cb(ctx),
