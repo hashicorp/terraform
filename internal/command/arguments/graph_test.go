@@ -19,7 +19,15 @@ func TestParseGraph_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
+				ModuleDepth: -1,
+				Vars:        &Vars{},
+			},
+		},
+		"mermaid format": {
+			[]string{"-format=mermaid"},
+			&Graph{
+				ViewType:    ViewMermaidGraph,
 				ModuleDepth: -1,
 				Vars:        &Vars{},
 			},
@@ -27,7 +35,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"plan type": {
 			[]string{"-type=plan"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				GraphType:   "plan",
 				ModuleDepth: -1,
 				Vars:        &Vars{},
@@ -36,7 +44,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"apply type": {
 			[]string{"-type=apply"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				GraphType:   "apply",
 				ModuleDepth: -1,
 				Vars:        &Vars{},
@@ -46,7 +54,7 @@ func TestParseGraph_valid(t *testing.T) {
 			[]string{"-draw-cycles", "-type=plan"},
 			&Graph{
 				DrawCycles:  true,
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				GraphType:   "plan",
 				ModuleDepth: -1,
 				Vars:        &Vars{},
@@ -55,7 +63,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"plan file": {
 			[]string{"-plan=tfplan"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				Plan:        "tfplan",
 				ModuleDepth: -1,
 				Vars:        &Vars{},
@@ -64,7 +72,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"verbose": {
 			[]string{"-verbose"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				Verbose:     true,
 				ModuleDepth: -1,
 				Vars:        &Vars{},
@@ -73,7 +81,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"module-depth": {
 			[]string{"-module-depth=2"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				ModuleDepth: 2,
 				Vars:        &Vars{},
 			},
@@ -81,7 +89,7 @@ func TestParseGraph_valid(t *testing.T) {
 		"all flags": {
 			[]string{"-draw-cycles", "-type=plan-destroy", "-plan=tfplan", "-verbose", "-module-depth=3"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				DrawCycles:  true,
 				GraphType:   "plan-destroy",
 				Plan:        "tfplan",
@@ -116,7 +124,7 @@ func TestParseGraph_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-wat"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				ModuleDepth: -1,
 				Vars:        &Vars{},
 			},
@@ -131,7 +139,7 @@ func TestParseGraph_invalid(t *testing.T) {
 		"positional argument": {
 			[]string{"extra"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				ModuleDepth: -1,
 				Vars:        &Vars{},
 			},
@@ -146,7 +154,7 @@ func TestParseGraph_invalid(t *testing.T) {
 		"too many positional arguments": {
 			[]string{"bad", "bad"},
 			&Graph{
-				Format:      "dot",
+				ViewType:    ViewDotGraph,
 				ModuleDepth: -1,
 				Vars:        &Vars{},
 			},

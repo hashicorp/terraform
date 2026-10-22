@@ -13,6 +13,10 @@ const (
 	ViewHuman ViewType = 'H'
 	ViewJSON  ViewType = 'J'
 	ViewRaw   ViewType = 'R'
+
+	// Specific view types for graph representations
+	ViewDotGraph     ViewType = 'D'
+	ViewMermaidGraph ViewType = 'M'
 )
 
 func (vt ViewType) String() string {
