@@ -9,12 +9,12 @@ import (
 )
 
 type Graph interface {
-	// Log a pre-prepared graph representation along with any diagnostics.
+	// Log a pre-prepared graph representation.
 	//
 	// Calling code generates the string, so owns handling whether output is dot or mermaid format.
 	// In future we could refactor that logic into a GraphMermaid and GraphDot views, with human-
 	// readable diagnostics. This is similar to the 'raw' view for the `output` command.
-	Graph(graph string, diags tfdiags.Diagnostics)
+	Graph(graph string)
 
 	// Log diagnostics raised when the command fails to prepare a graph.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -33,8 +33,9 @@ type GraphHuman struct {
 	view *View
 }
 
-func (v *GraphHuman) Graph(graph string, diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+func (v *GraphHuman) Graph(graph string) {
+	// No diagnostics are logged here, as warning diagnostics going to stdout could
+	// disrupt use of the graph output.
 
 	v.view.streams.Println(graph)
 }

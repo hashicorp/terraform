@@ -139,11 +139,11 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 			switch args.Format {
 			case "mermaid":
 				graphStr := c.resourceOnlyGraphMermaid(g)
-				view.Graph(graphStr, diags)
+				view.Graph(graphStr)
 				return 0
 			case "", "dot":
 				graphStr := c.resourceOnlyGraph(g)
-				view.Graph(graphStr, diags)
+				view.Graph(graphStr)
 				return 0
 			default:
 				diags = diags.Append(fmt.Errorf("Unsupported graph format: %s", args.Format))
@@ -235,7 +235,7 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Graph(graphStr, diags)
+	view.Graph(graphStr)
 	return 0
 }
 

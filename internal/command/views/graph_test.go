@@ -4,7 +4,6 @@
 package views
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -18,22 +17,10 @@ func TestGraphHuman_Graph(t *testing.T) {
 	graphStr := "literally anything can be passed in; command package has string builder logic"
 
 	testCases := map[string]struct {
-		diags      tfdiags.Diagnostics
 		wantStdout string
 	}{
 		"success": {
-			diags:      nil,
 			wantStdout: graphStr,
-		},
-		"success with warning": {
-			diags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Example warning",
-					"This is an example warning message.",
-				),
-			},
-			wantStdout: fmt.Sprintf("Warning: Example warning\n\nThis is an example warning message.\n%s", graphStr),
 		},
 	}
 	for name, tc := range testCases {
@@ -43,7 +30,7 @@ func TestGraphHuman_Graph(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewGraph(arguments.ViewHuman, view)
 
-			v.Graph(graphStr, tc.diags)
+			v.Graph(graphStr)
 
 			output := done(t)
 
@@ -65,9 +52,21 @@ func TestGraphHuman_Graph(t *testing.T) {
 
 func TestGraphHuman_Diagnostics(t *testing.T) {
 	testCases := map[string]struct {
-		diags   tfdiags.Diagnostics
-		wantLog string
+		diags      tfdiags.Diagnostics
+		wantStdout string
+		wantStderr string
 	}{
+		"warning": {
+			tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Example warning",
+					"This is an example warning message.",
+				),
+			},
+			"Warning: Example warning\n\nThis is an example warning message.",
+			"",
+		},
 		"error": {
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -76,6 +75,7 @@ func TestGraphHuman_Diagnostics(t *testing.T) {
 					"This is an example error message.",
 				),
 			},
+			"",
 			"Error: Example error\n\nThis is an example error message.",
 		},
 	}
@@ -91,12 +91,11 @@ func TestGraphHuman_Diagnostics(t *testing.T) {
 			// Assert contents
 			output := done(t)
 			gotStdout := strings.TrimSpace(output.Stdout())
-			want := ""
-			if diff := cmp.Diff(want, gotStdout); diff != "" {
+			if diff := cmp.Diff(tc.wantStdout, gotStdout); diff != "" {
 				t.Fatalf("unexpected diff in human output:\n%s", diff)
 			}
 			gotStderr := strings.TrimSpace(output.Stderr())
-			if diff := cmp.Diff(tc.wantLog, gotStderr); diff != "" {
+			if diff := cmp.Diff(tc.wantStderr, gotStderr); diff != "" {
 				t.Fatalf("unexpected diff in human output:\n%s", diff)
 			}
 		})
