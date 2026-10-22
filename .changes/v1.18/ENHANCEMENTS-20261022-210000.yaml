@@ -1,0 +1,3 @@
+kind: ENHANCEMENTS
+body: 'backend/oss: Add the optional force_path_style setting to support storing state through OSS PrivateLink endpoints.'
+time: 2026-10-22T21:00:00+08:00
