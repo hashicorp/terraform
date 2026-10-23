@@ -188,30 +188,6 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	var graphStr string
-
-	opts := &dag.DotOpts{
-		DrawCycles: args.DrawCycles,
-		MaxDepth:   args.ModuleDepth,
-		Verbose:    args.Verbose,
-	}
-
-	switch args.ViewType {
-	case arguments.ViewMermaidGraph:
-		graphStr, err = terraform.GraphMermaid(g, opts)
-	case arguments.ViewDotGraph:
-		graphStr, err = terraform.GraphDot(g, opts)
-	default:
-		diags = diags.Append(fmt.Errorf("Unsupported graph format: %s", args.ViewType))
-		view.Diagnostics(diags)
-		return 1
-	}
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error converting graph: %w", err))
-		view.Diagnostics(diags)
-		return 1
-	}
-
 	if diags.HasErrors() {
 		// For this command we only show diagnostics if there are errors,
 		// because printing out naked warnings could upset a naive program
@@ -220,7 +196,12 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Graph(graphStr)
+	opts := &dag.DotOpts{
+		DrawCycles: args.DrawCycles,
+		MaxDepth:   args.ModuleDepth,
+		Verbose:    args.Verbose,
+	}
+	view.Graph(g, opts)
 	return 0
 }
 
