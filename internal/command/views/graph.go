@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -23,12 +24,9 @@ type Graph interface {
 	// Unexported logic for rendering a resource-only graph.
 	resourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigResource]) string
 
-	// Log a pre-prepared graph representation.
-	//
-	// Calling code generates the string, so owns handling whether output is dot or mermaid format.
-	// In future we could refactor that logic into a GraphMermaid and GraphDot views, with human-
-	// readable diagnostics. This is similar to the 'raw' view for the `output` command.
-	Graph(graph string)
+	// Log a representation of the whole graph.
+	// This uses logic from the `dag` package to generate the graph.
+	Graph(g *terraform.Graph, opts *dag.DotOpts)
 
 	// Log diagnostics raised when the command fails to prepare a graph.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -56,11 +54,11 @@ func (v *GraphDot) ResourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigResou
 	v.view.streams.Println(v.resourceOnlyGraph(graph))
 }
 
-func (v *GraphDot) Graph(g string) {
+func (v *GraphDot) Graph(g *terraform.Graph, opts *dag.DotOpts) {
 	// No diagnostics are logged here, as warning diagnostics going to stdout could
 	// disrupt use of the graph output.
 
-	v.view.streams.Println(g)
+	v.view.streams.Println(string(g.Dot(opts)))
 }
 
 func (v *GraphDot) Diagnostics(diags tfdiags.Diagnostics) {
@@ -168,11 +166,11 @@ func (v *GraphMermaid) ResourceOnlyGraph(graph addrs.DirectedGraph[addrs.ConfigR
 	v.view.streams.Println(v.resourceOnlyGraph(graph))
 }
 
-func (v *GraphMermaid) Graph(g string) {
+func (v *GraphMermaid) Graph(g *terraform.Graph, opts *dag.DotOpts) {
 	// No diagnostics are logged here, as warning diagnostics going to stdout could
 	// disrupt use of the graph output.
 
-	v.view.streams.Println(g)
+	v.view.streams.Println(string(g.Mermaid(opts)))
 }
 
 func (v *GraphMermaid) Diagnostics(diags tfdiags.Diagnostics) {
