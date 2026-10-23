@@ -2234,6 +2234,43 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"ephemeral-component-module-features": {
+			path: "ephemeral-component-module-features",
+			// Populated by the credentials component which uses a bunch of
+			// different Terraform module language features.
+			authVal: "secret",
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("credential-keys", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("credential-keys"),
+					"value": cty.StringVal("a,b"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.consumer"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.consumer"),
+							OutputValues:          make(map[addrs.OutputValue]cty.Value),
+							InputVariables:        make(map[addrs.InputVariable]cty.Value),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.consumer.testing_resource.authenticated"),
+							NewStateSrc: &states.ResourceInstanceObjectSrc{
+								AttrsJSON: mustMarshalJSONAttrs(map[string]interface{}{
+									"id":    "authenticated-consumer",
+									"value": "authenticated",
+								}),
+								Status:       states.ObjectReady,
+								Dependencies: make([]addrs.ConfigResource, 0),
+							},
+							ProviderConfigAddr: mustDefaultRootProvider("testing"),
+							Schema:             stacks_testing_provider.TestingResourceSchema,
+						},
+					},
+				},
+			},
+		},
 		"ephemeral-module-outputs": {
 			path: "ephemeral-module-output",
 			cycles: []TestCycle{
