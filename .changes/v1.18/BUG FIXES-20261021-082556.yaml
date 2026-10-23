@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Don't let orphaned instances which conflict with configuration block planning changes
+time: 2026-10-21T08:25:56.684743-04:00
+custom:
+    Issue: "39413"

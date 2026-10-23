@@ -49,9 +49,8 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 	return n.ResourceInstanceAddr().String() + " (orphan)"
 }
 
-func (n *NodePlannableResourceInstanceOrphan) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+func (n *NodePlannableResourceInstanceOrphan) DestroyAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 // GraphNodeExecutable

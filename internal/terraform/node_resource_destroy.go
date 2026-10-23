@@ -51,9 +51,8 @@ func (n *NodeDestroyResourceInstance) Provider() ProviderRef {
 }
 
 // GraphNodeDestroyer
-func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+func (n *NodeDestroyResourceInstance) DestroyAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 // GraphNodeDestroyerCBD

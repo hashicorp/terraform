@@ -14,17 +14,15 @@ import (
 // GraphNodeDestroyer must be implemented by nodes that destroy resources.
 type GraphNodeDestroyer interface {
 	dag.Vertex
-	// DestroyAddr is the address of the resource that is being
-	// destroyed by this node. If this returns nil, then this node
-	// is not destroying anything.
-	DestroyAddr() *addrs.AbsResourceInstance
+	// DestroyAddr is the address of the resource that is being destroyed.
+	DestroyAddr() addrs.AbsResourceInstance
 }
 
 // GraphNodeCreator must be implemented by nodes that create OR update resources.
 type GraphNodeCreator interface {
 	dag.Vertex
-	// CreateAddr is the address of the resource being created or updated
-	CreateAddr() *addrs.AbsResourceInstance
+	// CreateAddr is the address of the resource being created or updated.
+	CreateAddr() addrs.AbsResourceInstance
 }
 
 // DestroyEdgeTransformer is a GraphTransformer that creates the proper
@@ -41,6 +39,10 @@ type GraphNodeCreator interface {
 // dependent resources will block parent resources from deleting. Concrete
 // example: VPC with subnets, the VPC can't be deleted while there are
 // still subnets.
+//
+// Deposed objects left over from a previous run already have their
+// replacement, so they are only ordered by their destroy dependencies, and not
+// against any create or update.
 type DestroyEdgeTransformer struct {
 	// FIXME: GraphNodeCreators are not always applying changes, and should not
 	// participate in the destroy graph if there are no operations which could
@@ -140,12 +142,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	for v := range g.VerticesSeq() {
 		switch n := v.(type) {
 		case GraphNodeDestroyer:
-			addrP := n.DestroyAddr()
-			if addrP == nil {
-				log.Printf("[WARN] DestroyEdgeTransformer: %q (%T) has no destroy address", n.Name(), v)
-				continue
-			}
-			addr := *addrP
+			addr := n.DestroyAddr()
 
 			key := addr.String()
 			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", n.Name(), v, key)
@@ -164,7 +161,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			}
 
 			// NoOp changes should not participate in the destroy dependencies.
-			rc := t.Changes.ResourceInstance(*addr)
+			rc := t.Changes.ResourceInstance(addr)
 			if rc != nil && rc.Action != plans.NoOp {
 				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
 			}
@@ -178,6 +175,10 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	}
 
 	// Go through and connect creators to destroyers.
+	//
+	// destroyFirst records destroy nodes which are part of a replacement and
+	// will be executed first, i.e. they are not create-before-destroy
+	destroyFirst := dag.NewVertexSet()
 	for v := range g.VerticesSeq() {
 		creator, ok := v.(GraphNodeCreator)
 		if !ok {
@@ -185,16 +186,16 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 
 		addr := creator.CreateAddr()
-		if addr == nil {
-			continue
-		}
-
-		for _, destroyer := range destroyers.Get(*addr) {
+		for _, destroyer := range destroyers.Get(addr) {
 			log.Printf(
 				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
 				creator.Name(), destroyer.Name())
 
 			g.Connect(creator, destroyer)
+
+			if _, ok := destroyer.(GraphNodeDeposedResourceInstanceObject); !ok {
+				destroyFirst.Add(destroyer)
+			}
 		}
 	}
 
@@ -229,6 +230,16 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource.Get(resAddr) {
+					// The plan forces configured dependencies of a CBD
+					// replacement to be CBD too. A stored dependency planned
+					// for destroy-first replacement therefore must no longer be
+					// a configured dependency. Let current configuration take
+					// precedence by omitting this stored destroy edge.
+					if replacedCreateBeforeDestroy(des) && destroyFirst.Contains(desDep) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping stored dependency of %s on %s, which is no longer in the configuration\n", des.Name(), desDep.Name())
+						continue
+					}
+
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
 						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", desDep.Name(), des.Name())
 						t.tryInterProviderDestroyEdge(g, desDep, des)
@@ -252,7 +263,39 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	// Deposed objects left over from a previous run already have their
+	// respective replacements and updates already completed, so they are only
+	// ordered relative to other destroy nodes, and not against any create or
+	// update. We remove these edges in a single pass after the fact, because
+	// the above logic can add them in multiple places.
+	for _, ds := range destroyers.Iter() {
+		for _, des := range ds {
+			// Leftover deposed nodes are detected by the diff transformer, and
+			// have their CreateBeforeDestroy status stripped. This check
+			// ensures that des is a GraphNodeDeposedResourceInstanceObject
+			// which is not CreateBeforeDestroy.
+			if deposedCBD, ok := des.(GraphNodeDeposedResourceInstanceObject); !ok || deposedCBD.CreateBeforeDestroy() {
+				continue
+			}
+
+			for src := range g.EdgesTo(des).All() {
+				if _, ok := src.(GraphNodeCreator); ok {
+					log.Printf("[TRACE] DestroyEdgeTransformer: removing edge %s -> %s for leftover deposed object", src.Name(), des.Name())
+					g.RemoveEdge(src, des)
+				}
+			}
+		}
+	}
+
 	return nil
+}
+
+// replacedCreateBeforeDestroy returns true if v destroys an object which is
+// deposed by a create_before_destroy replacement in this apply. Deposed objects
+// left over from a previous run are not create_before_destroy.
+func replacedCreateBeforeDestroy(v dag.Vertex) bool {
+	dn, ok := v.(GraphNodeDeposedResourceInstanceObject)
+	return ok && dn.CreateBeforeDestroy()
 }
 
 // Remove nodes that aren't needed, when planning or applying a full destroy.

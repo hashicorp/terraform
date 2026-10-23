@@ -43,9 +43,8 @@ func (n *NodePlanDestroyableResourceInstance) Name() string {
 }
 
 // GraphNodeDestroyer
-func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+func (n *NodePlanDestroyableResourceInstance) DestroyAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 func (n *NodePlanDestroyableResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
