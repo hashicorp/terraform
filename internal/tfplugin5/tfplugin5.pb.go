@@ -4536,9 +4536,9 @@ type PlanResourceChange_Response struct {
 	// specific details of the legacy SDK type system, and are not a general
 	// mechanism to avoid proper type handling in providers.
 	//
-	//	====              DO NOT USE THIS              ====
-	//	==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
-	//	====              DO NOT USE THIS              ====
+	//     ====              DO NOT USE THIS              ====
+	//     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+	//     ====              DO NOT USE THIS              ====
 	LegacyTypeSystem bool `protobuf:"varint,5,opt,name=legacy_type_system,json=legacyTypeSystem,proto3" json:"legacy_type_system,omitempty"`
 	// deferred is set if the provider is deferring the change. If set the caller
 	// needs to handle the deferral.
@@ -4732,9 +4732,9 @@ type ApplyResourceChange_Response struct {
 	// specific details of the legacy SDK type system, and are not a general
 	// mechanism to avoid proper type handling in providers.
 	//
-	//	====              DO NOT USE THIS              ====
-	//	==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
-	//	====              DO NOT USE THIS              ====
+	//     ====              DO NOT USE THIS              ====
+	//     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+	//     ====              DO NOT USE THIS              ====
 	LegacyTypeSystem bool                  `protobuf:"varint,4,opt,name=legacy_type_system,json=legacyTypeSystem,proto3" json:"legacy_type_system,omitempty"`
 	NewIdentity      *ResourceIdentityData `protobuf:"bytes,5,opt,name=new_identity,json=newIdentity,proto3" json:"new_identity,omitempty"`
 	unknownFields    protoimpl.UnknownFields
