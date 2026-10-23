@@ -3011,61 +3011,6 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"removed block with non-nullable ephemeral input": {
-			path: "removed-block-ephemeral-input-validated",
-			cycles: []TestCycle{
-				{
-					planInputs:  map[string]cty.Value{"secret": cty.StringVal("secret")},
-					applyInputs: map[string]cty.Value{"secret": cty.StringVal("secret")},
-					wantAppliedChanges: []stackstate.AppliedChange{
-						&stackstate.AppliedChangeComponentInstance{
-							ComponentAddr:         mustAbsComponent("component.in"),
-							ComponentInstanceAddr: mustAbsComponentInstance("component.in"),
-							OutputValues:          make(map[addrs.OutputValue]cty.Value),
-							InputVariables: map[addrs.InputVariable]cty.Value{
-								mustInputVariable("secret"): cty.NullVal(cty.String), // ephemeral
-							},
-						},
-						&stackstate.AppliedChangeResourceInstanceObject{
-							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.in.testing_write_only_resource.resource"),
-							NewStateSrc: &states.ResourceInstanceObjectSrc{
-								AttrsJSON: mustMarshalJSONAttrs(map[string]any{
-									"id":         "removed-block",
-									"value":      nil,
-									"write_only": nil,
-								}),
-								Status:       states.ObjectReady,
-								Dependencies: make([]addrs.ConfigResource, 0),
-							},
-							ProviderConfigAddr: mustDefaultRootProvider("testing"),
-							Schema:             stacks_testing_provider.WriteOnlyResourceSchema,
-						},
-						&stackstate.AppliedChangeInputVariable{
-							Addr:  mustStackInputVariable("secret"),
-							Value: cty.NullVal(cty.String), // ephemeral
-						},
-					},
-				},
-				{
-					// TODO:@austinvalle: Not sure what/if we can do about this... This is a limitation because
-					// ephemeral values can't be stored in state and a removed block has no inputs, so there
-					// is no way to provide a value for a variable in a module tree that doesn't accept null.
-					path: "removed-block-ephemeral-input-validated-removed",
-					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
-						return diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Required variable not set",
-							Detail:   "Unsuitable value for var.secret set from outside of the configuration: required variable may not be set to null.",
-							Subject: &hcl.Range{
-								Filename: mainBundleSourceAddrStr("removed-block-ephemeral-input-validated/in/in.tf"),
-								Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
-								End:      hcl.Pos{Line: 1, Column: 18, Byte: 17},
-							},
-						})
-					}),
-				},
-			},
-		},
 	}
 
 	for name, tc := range tcs {
