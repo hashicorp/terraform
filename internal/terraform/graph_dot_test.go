@@ -133,6 +133,46 @@ digraph {
 }
 					`,
 		},
+		{
+			Name: "cycle not drawn",
+			Opts: dag.DotOpts{
+				DrawCycles: false, // Do not draw cycles
+			},
+			Graph: func() *Graph {
+				var g Graph
+				root := stringV("root")
+				g.Add(root)
+
+				vA := g.Add(stringV("A"))
+
+				vB := g.Add(stringV("B"))
+
+				vC := g.Add(stringV("C"))
+
+				g.Connect(vA, root)
+				g.Connect(vA, vC)
+				g.Connect(vB, vA)
+				g.Connect(vC, vB)
+
+				return &g
+			},
+			Expect: `
+digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] A"
+		"[root] B"
+		"[root] C"
+		"[root] root"
+		"[root] A" -> "[root] C"
+		"[root] A" -> "[root] root"
+		"[root] B" -> "[root] A"
+		"[root] C" -> "[root] B"
+	}
+}
+					`,
+		},
 	}
 	for _, tc := range cases {
 		tn := tc.Name
