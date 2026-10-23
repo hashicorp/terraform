@@ -10,13 +10,14 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateIdentitiesCommand is a Command implementation that lists the resource identities
 // within a state file.
 type StateIdentitiesCommand struct {
-	Meta
 	StateMeta
 }
 
@@ -25,7 +26,7 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 
 	args, diags := arguments.ParseStateIdentities(rawArgs)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		c.View.Diagnostics(diags)
 		return 1
 	}
 
@@ -33,10 +34,12 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 		c.Meta.statePath = args.StatePath
 	}
 
+	view := views.NewStateIdentities(args.ViewType, c.View)
+
 	// Load the backend
 	b, diags := c.backend(".", args.ViewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -46,22 +49,47 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(sDiags)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading the state",
+			`Please ensure that your Terraform state exists and that you've
+configured it properly. You can use the "-state" flag to point
+Terraform at another state file.`,
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No state file was found",
+			`State management commands require a state file. Run this command
+in a directory where Terraform has been run or use the -state flag
+to point the command to a specific state location.`,
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -72,33 +100,26 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 		addrs, diags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	output := make(map[string]any)
+	identities := make(map[string]json.RawMessage)
 	for _, addr := range addrs {
 		// If the resource exists but identity is nil, skip it, as it is not required to be present
 		if is := state.ResourceInstance(addr); is != nil && is.Current.IdentityJSON != nil {
 			if args.ID == "" || args.ID == states.LegacyInstanceObjectID(is.Current) {
-				var rawIdentity map[string]any
-				if err := json.Unmarshal(is.Current.IdentityJSON, &rawIdentity); err != nil {
-					c.Ui.Error(fmt.Sprintf("Failed to unmarshal identity JSON: %s", err))
-					return 1
-				}
-				output[addr.String()] = rawIdentity
+				identities[addr.String()] = is.Current.IdentityJSON
 			}
 		}
 	}
 
-	outputJSON, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to marshal output JSON: %s", err))
+	view.Identities(identities)
+
+	view.Diagnostics(diags)
+	if diags.HasErrors() {
 		return 1
 	}
-
-	c.Ui.Output(string(outputJSON))
-	c.showDiagnostics(diags)
 
 	return 0
 }
