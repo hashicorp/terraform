@@ -10,6 +10,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/apparentlymart/go-versions/versions"
 
@@ -420,15 +421,21 @@ NeedProvider:
 				// that _does_ match. This might still not work out, but if
 				// it does then it allows us to avoid returning a checksum
 				// mismatch error.
+				//
+				// Hashing a large provider package can take most of a second,
+				// so we hash at most once, and only if something needs it.
+				cachedHash := sync.OnceValues(cached.Hash)
 				acceptablePackage := false
 				if len(preferredHashes) != 0 {
-					var err error
-					acceptablePackage, err = cached.MatchesAnyHash(preferredHashes)
-					if err != nil {
-						// If we can't calculate the checksum for the cached
-						// package then we'll just treat it as a checksum failure.
-						acceptablePackage = false
+					// If we can't calculate the checksum for the cached
+					// package then we'll just treat it as a checksum failure.
+					if h, err := cachedHash(); err == nil {
+						acceptablePackage = slices.Contains(preferredHashes, h)
 					}
+				}
+				linkHashes := preferredHashes
+				if acceptablePackage {
+					linkHashes = nil // already verified above
 				}
 
 				if !acceptablePackage && i.globalCacheDirMayBreakDependencyLockFile {
@@ -485,7 +492,7 @@ NeedProvider:
 						continue
 					}
 
-					err := i.targetDir.LinkFromOtherCache(cached, preferredHashes)
+					err := i.targetDir.LinkFromOtherCache(cached, linkHashes)
 					if err != nil {
 						errs[provider] = err
 						if cb := evts.LinkFromCacheFailure; cb != nil {
@@ -537,7 +544,7 @@ NeedProvider:
 						// codepath below where we're able to also include the
 						// checksums from the origin registry.
 					}
-					newHash, err := cached.Hash()
+					newHash, err := cachedHash()
 					if err != nil {
 						err := fmt.Errorf("after linking %s from provider cache at %s, failed to compute a checksum for it: %s", provider, i.globalCacheDir.baseDir, err)
 						errs[provider] = err
