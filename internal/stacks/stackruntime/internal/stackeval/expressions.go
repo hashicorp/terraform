@@ -320,16 +320,17 @@ func EvalComponentInputVariables(ctx context.Context, decls map[string]*configs.
 		for varName, varDecl := range decls {
 			varVal := v.GetAttr(varName)
 
+			var varMarks []any
 			if varDecl.Ephemeral {
-				marksToAdd = append(marksToAdd, cty.PathValueMarks{
-					Path:  cty.GetAttrPath(varName),
-					Marks: cty.NewValueMarks(marks.Ephemeral),
-				})
+				varMarks = append(varMarks, marks.Ephemeral)
 			}
 			if varDecl.Sensitive {
+				varMarks = append(varMarks, marks.Sensitive)
+			}
+			if len(varMarks) > 0 {
 				marksToAdd = append(marksToAdd, cty.PathValueMarks{
 					Path:  cty.GetAttrPath(varName),
-					Marks: cty.NewValueMarks(marks.Sensitive),
+					Marks: cty.NewValueMarks(varMarks...),
 				})
 			}
 

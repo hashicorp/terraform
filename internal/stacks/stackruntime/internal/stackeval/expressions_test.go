@@ -18,10 +18,236 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/collections"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+func TestEvalComponentInputVariables(t *testing.T) {
+	decls := map[string]*configs.Variable{
+		"plain":     {},
+		"ephemeral": {Ephemeral: true},
+		"sensitive": {Sensitive: true},
+		"both":      {Ephemeral: true, Sensitive: true},
+	}
+	inputTy := cty.Object(map[string]cty.Type{
+		"plain": cty.String, "ephemeral": cty.String, "sensitive": cty.String, "both": cty.String,
+	})
+	optionalInputTy := cty.ObjectWithOptionalAttrs(inputTy.AttributeTypes(), []string{"plain", "ephemeral", "sensitive", "both"})
+	defaults := &typeexpr.Defaults{
+		Type: optionalInputTy,
+		DefaultValues: map[string]cty.Value{
+			"plain":     cty.StringVal("default"),
+			"ephemeral": cty.StringVal("default"),
+			"sensitive": cty.StringVal("default"),
+			"both":      cty.StringVal("default"),
+		},
+	}
+
+	tests := map[string]struct {
+		decls     map[string]*configs.Variable
+		wantTy    cty.Type
+		defaults  *typeexpr.Defaults
+		inputs    hcl.Expression
+		want      cty.Value
+		wantDiags tfdiags.Diagnostics
+	}{
+		"known": {
+			decls:  decls,
+			wantTy: inputTy,
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("value"),
+				"ephemeral": cty.StringVal("value"),
+				"sensitive": cty.StringVal("value"),
+				"both":      cty.StringVal("value"),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("value"),
+				"ephemeral": cty.StringVal("value").Mark(marks.Ephemeral),
+				"sensitive": cty.StringVal("value").Mark(marks.Sensitive),
+				"both":      cty.StringVal("value").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"null": {
+			decls:  decls,
+			wantTy: inputTy,
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.NullVal(cty.String),
+				"ephemeral": cty.NullVal(cty.String),
+				"sensitive": cty.NullVal(cty.String),
+				"both":      cty.NullVal(cty.String),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.NullVal(cty.String),
+				"ephemeral": cty.NullVal(cty.String).Mark(marks.Ephemeral),
+				"sensitive": cty.NullVal(cty.String).Mark(marks.Sensitive),
+				"both":      cty.NullVal(cty.String).Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"unknown": {
+			decls:  decls,
+			wantTy: inputTy,
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.UnknownVal(cty.String),
+				"ephemeral": cty.UnknownVal(cty.String),
+				"sensitive": cty.UnknownVal(cty.String),
+				"both":      cty.UnknownVal(cty.String),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.UnknownVal(cty.String),
+				"ephemeral": cty.UnknownVal(cty.String).Mark(marks.Ephemeral),
+				"sensitive": cty.UnknownVal(cty.String).Mark(marks.Sensitive),
+				"both":      cty.UnknownVal(cty.String).Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"already sensitive": {
+			decls:  decls,
+			wantTy: inputTy,
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("value").Mark(marks.Sensitive),
+				"ephemeral": cty.StringVal("value").Mark(marks.Sensitive),
+				"sensitive": cty.StringVal("value").Mark(marks.Sensitive),
+				"both":      cty.StringVal("value").Mark(marks.Sensitive),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("value").Mark(marks.Sensitive),
+				"ephemeral": cty.StringVal("value").Mark(marks.Sensitive).Mark(marks.Ephemeral),
+				"sensitive": cty.StringVal("value").Mark(marks.Sensitive),
+				"both":      cty.StringVal("value").Mark(marks.Sensitive).Mark(marks.Ephemeral),
+			}),
+		},
+		"default omitted": {
+			decls:    decls,
+			wantTy:   optionalInputTy,
+			defaults: defaults,
+			inputs:   hcltest.MockExprLiteral(cty.EmptyObjectVal),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("default"),
+				"ephemeral": cty.StringVal("default").Mark(marks.Ephemeral),
+				"sensitive": cty.StringVal("default").Mark(marks.Sensitive),
+				"both":      cty.StringVal("default").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"default null": {
+			decls:    decls,
+			wantTy:   optionalInputTy,
+			defaults: defaults,
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.NullVal(cty.String),
+				"ephemeral": cty.NullVal(cty.String),
+				"sensitive": cty.NullVal(cty.String),
+				"both":      cty.NullVal(cty.String),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("default"),
+				"ephemeral": cty.StringVal("default").Mark(marks.Ephemeral),
+				"sensitive": cty.StringVal("default").Mark(marks.Sensitive),
+				"both":      cty.StringVal("default").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"default without inputs": {
+			decls:    decls,
+			wantTy:   optionalInputTy,
+			defaults: defaults,
+			want: cty.ObjectVal(map[string]cty.Value{
+				"plain":     cty.StringVal("default"),
+				"ephemeral": cty.StringVal("default").Mark(marks.Ephemeral),
+				"sensitive": cty.StringVal("default").Mark(marks.Sensitive),
+				"both":      cty.StringVal("default").Mark(marks.Ephemeral).Mark(marks.Sensitive),
+			}),
+		},
+		"preserve nested marks": {
+			decls: map[string]*configs.Variable{"input": {Ephemeral: true}},
+			wantTy: cty.Object(map[string]cty.Type{
+				"input": cty.Object(map[string]cty.Type{"secret": cty.String, "plain": cty.String}),
+			}),
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"input": cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("value").Mark(marks.Sensitive).Mark(marks.Ephemeral),
+					"plain":  cty.StringVal("plain"),
+				}),
+			})),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"input": cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("value").Mark(marks.Sensitive).Mark(marks.Ephemeral),
+					"plain":  cty.StringVal("plain"),
+				}).Mark(marks.Ephemeral),
+			}),
+		},
+		"reject whole value": {
+			decls: map[string]*configs.Variable{
+				"input": {}, "other": {Ephemeral: true, Sensitive: true},
+			},
+			wantTy: cty.Object(map[string]cty.Type{"input": cty.String, "other": cty.String}),
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"input": cty.StringVal("secret").Mark(marks.Ephemeral),
+				"other": cty.StringVal("other"),
+			})),
+			want: cty.UnknownVal(cty.Object(map[string]cty.Type{"input": cty.String, "other": cty.String})),
+			wantDiags: tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   `The input variable "input" does not accept ephemeral values.`,
+				Subject:  &hcl.Range{Filename: "MockExprLiteral"},
+				Extra:    diagnosticCausedByEphemeral(true),
+			}),
+		},
+		"reject nested value": {
+			decls: map[string]*configs.Variable{
+				"input": {}, "other": {Ephemeral: true, Sensitive: true},
+			},
+			wantTy: cty.Object(map[string]cty.Type{
+				"input": cty.Object(map[string]cty.Type{"secret": cty.String}), "other": cty.String,
+			}),
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"input": cty.ObjectVal(map[string]cty.Value{"secret": cty.StringVal("secret").Mark(marks.Ephemeral)}),
+				"other": cty.StringVal("other"),
+			})),
+			want: cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"input": cty.Object(map[string]cty.Type{"secret": cty.String}), "other": cty.String,
+			})),
+			wantDiags: tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   `The input variable "input" does not accept ephemeral values, so the value for .secret is not compatible.`,
+				Subject:  &hcl.Range{Filename: "MockExprLiteral"},
+				Extra:    diagnosticCausedByEphemeral(true),
+			}),
+		},
+		"reject unknown value": {
+			decls: map[string]*configs.Variable{
+				"input": {}, "other": {Ephemeral: true, Sensitive: true},
+			},
+			wantTy: cty.Object(map[string]cty.Type{"input": cty.String, "other": cty.String}),
+			inputs: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+				"input": cty.UnknownVal(cty.String).Mark(marks.Ephemeral),
+				"other": cty.StringVal("other"),
+			})),
+			want: cty.UnknownVal(cty.Object(map[string]cty.Type{"input": cty.String, "other": cty.String})),
+			wantDiags: tfdiags.Diagnostics{}.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Ephemeral value not allowed",
+				Detail:   `The input variable "input" does not accept ephemeral values.`,
+				Subject:  &hcl.Range{Filename: "MockExprLiteral"},
+				Extra:    diagnosticCausedByEphemeral(true),
+			}),
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, diags := EvalComponentInputVariables(
+				context.Background(), test.decls, test.wantTy, test.defaults, test.inputs, tfdiags.SourceRange{}, PlanPhase, newStaticExpressionScope(),
+			)
+			tfdiags.AssertDiagnosticsAndExtrasMatch(t, diags, test.wantDiags)
+			if diff := cmp.Diff(test.want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestEvalExpr(t *testing.T) {
 	t.Run("literal", func(t *testing.T) {
