@@ -44,8 +44,11 @@ func TestStateIdentities(t *testing.T) {
 
 	// Test that outputs were displayed
 	expected := `{
-		"test_instance.foo": {"id": "my-foo-id"},
-		"test_instance.bar": {"id": "my-bar-id"}
+		"format_version": "1.0",
+		"identities": {
+			"test_instance.foo": {"id": "my-foo-id"},
+			"test_instance.bar": {"id": "my-bar-id"}
+		}
 	}`
 	actual := out.Stdout()
 
@@ -89,7 +92,10 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 	}
 
 	// Test that an empty output is displayed with no error
-	expected := `{}`
+	expected := `{
+		"format_version": "1.0",
+		"identities": {}
+	}`
 	actual := out.Stdout()
 
 	// Normalize JSON strings
@@ -134,7 +140,10 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 
 	// Test that outputs were displayed
 	expected := `{
-		"test_instance.foo": {"id": "my-foo-id"}
+		"format_version": "1.0",
+		"identities": {
+			"test_instance.foo": {"id": "my-foo-id"}
+		}
 	}`
 	actual := out.Stdout()
 
@@ -179,9 +188,23 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 	}
 
 	// Test that output is empty
+	expected := `{
+		"format_version": "1.0",
+		"identities": {}
+	}`
 	actual := out.Stdout()
-	if actual != "{}\n" {
-		t.Fatalf("Expected an empty output but got: %q", actual)
+
+	// Normalize JSON strings
+	var expectedJSON, actualJSON map[string]any
+	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
+	}
+	if err := json.Unmarshal([]byte(actual), &actualJSON); err != nil {
+		t.Fatalf("Failed to unmarshal actual JSON: %s", err)
+	}
+
+	if !reflect.DeepEqual(expectedJSON, actualJSON) {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", expected, actual)
 	}
 }
 
@@ -237,10 +260,13 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 
 	// Test that outputs were displayed
 	expected := `{
-		"null_resource.a": {
-			"project": "my-project",
-			"role": "roles/viewer",
-			"member": "user:peter@example.com"
+		"format_version": "1.0",
+		"identities": {
+			"null_resource.a": {
+				"project": "my-project",
+				"role": "roles/viewer",
+				"member": "user:peter@example.com"
+			}
 		}
 	}`
 	actual := out.Stdout()
@@ -292,10 +318,13 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 
 	// Test that outputs were displayed
 	expected := `{
-		"null_resource.a": {
-			"project": "my-project",
-			"role": "roles/viewer",
-			"member": "user:peter@example.com"
+		"format_version": "1.0",
+		"identities": {
+			"null_resource.a": {
+				"project": "my-project",
+				"role": "roles/viewer",
+				"member": "user:peter@example.com"
+			}
 		}
 	}`
 	actual := out.Stdout()
@@ -365,13 +394,16 @@ func TestStateIdentities_modules(t *testing.T) {
 
 		// resources in the module and any submodules should be included in the outputs
 		expected := `{
-			"module.nest.test_instance.nest": {
-				"project": "my-project-nest",
-				"role": "roles/viewer-nest"
-			},
-			"module.nest.module.subnest.test_instance.subnest": {
-				"project": "my-project-subnest",
-				"role": "roles/viewer-subnest"
+			"format_version": "1.0",
+			"identities": {
+				"module.nest.test_instance.nest": {
+					"project": "my-project-nest",
+					"role": "roles/viewer-nest"
+				},
+				"module.nest.module.subnest.test_instance.subnest": {
+					"project": "my-project-subnest",
+					"role": "roles/viewer-subnest"
+				}
 			}
 		}`
 		actual := out.Stdout()
@@ -409,9 +441,12 @@ func TestStateIdentities_modules(t *testing.T) {
 			t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 		}
 		expected := `{
-			"module.nonexist.module.child.test_instance.child": {
-				"project": "my-project-child",
-				"role": "roles/viewer-child"
+			"format_version": "1.0",
+			"identities": {
+				"module.nonexist.module.child.test_instance.child": {
+					"project": "my-project-child",
+					"role": "roles/viewer-child"
+				}
 			}
 		}`
 		actual := out.Stdout()
@@ -449,13 +484,16 @@ func TestStateIdentities_modules(t *testing.T) {
 			t.Fatalf("bad: %d: %s", code, out.Stderr())
 		}
 		expected := `{
-			"module.count[0].test_instance.count": {
-				"project": "my-project-count-0",
-				"role": "roles/viewer-count-0"
-			},
-			"module.count[1].test_instance.count": {
-				"project": "my-project-count-1",
-				"role": "roles/viewer-count-1"
+			"format_version": "1.0",
+			"identities": {
+				"module.count[0].test_instance.count": {
+					"project": "my-project-count-0",
+					"role": "roles/viewer-count-0"
+				},
+				"module.count[1].test_instance.count": {
+					"project": "my-project-count-1",
+					"role": "roles/viewer-count-1"
+				}
 			}
 		}`
 		actual := out.Stdout()
@@ -543,11 +581,14 @@ func TestStateIdentities_stateStore(t *testing.T) {
 
 	// Test that outputs were displayed
 	expected := `{
-  "test_instance.bar": {
-    "id": "my-bar-id"
-  },
-  "test_instance.foo": {
-    "id": "my-foo-id"
+  "format_version": "1.0",
+  "identities": {
+    "test_instance.bar": {
+      "id": "my-bar-id"
+    },
+    "test_instance.foo": {
+      "id": "my-foo-id"
+    }
   }
 }
 `
