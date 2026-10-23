@@ -3011,6 +3011,37 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		"ephemeral-component-invalid-provider": {
+			path: "ephemeral-component-invalid-provider",
+			cycles: []TestCycle{
+				{
+					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+						return diags.Append(
+							&hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Cannot evaluate ephemeral_component",
+								Detail:   "Cannot retrieve ephemeral data for ephemeral_component.out because its provider configuration assignments are invalid.",
+								Subject: &hcl.Range{
+									Filename: mainBundleSourceAddrStr("ephemeral-component-invalid-provider/ephemeral-component-invalid-provider.tfcomponent.hcl"),
+									Start:    hcl.Pos{Line: 12, Column: 1, Byte: 155},
+									End:      hcl.Pos{Line: 12, Column: 26, Byte: 180},
+								},
+							},
+							&hcl.Diagnostic{
+								Severity: hcl.DiagError,
+								Summary:  "Invalid index",
+								Detail:   "The given key does not identify an element in this collection value.",
+								Subject: &hcl.Range{
+									Filename: mainBundleSourceAddrStr("ephemeral-component-invalid-provider/ephemeral-component-invalid-provider.tfcomponent.hcl"),
+									Start:    hcl.Pos{Line: 16, Column: 36, Byte: 254},
+									End:      hcl.Pos{Line: 16, Column: 47, Byte: 265},
+								},
+							},
+						)
+					}),
+				},
+			},
+		},
 	}
 
 	for name, tc := range tcs {

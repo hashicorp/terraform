@@ -366,6 +366,9 @@ func (c *EphemeralComponentInstance) checkValid(ctx context.Context, phase EvalP
 	_, moreDiags := c.CheckInputVariableValues(ctx, phase)
 	diags = diags.Append(moreDiags)
 
+	_, _, moreDiags = EvalProviderValues(ctx, c.main, c.call.config.config.ProviderConfigs, phase, c)
+	diags = diags.Append(moreDiags)
+
 	_, moreDiags = c.CheckResultValue(ctx, phase)
 	diags = diags.Append(moreDiags)
 

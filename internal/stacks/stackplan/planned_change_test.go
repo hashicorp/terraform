@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -117,8 +118,9 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Component: stackaddrs.Component{Name: "foo"},
 					},
 				},
-				Action:        plans.Create,
-				PlanTimestamp: fakePlanTimestamp,
+				Action:                  plans.Create,
+				PlanTimestamp:           fakePlanTimestamp,
+				ApplyTimeInputVariables: collections.NewSetCmp("eph_input"),
 				PlannedOutputValues: map[string]cty.Value{
 					"hello":        cty.StringVal("world"),
 					"goal_of_life": cty.UnknownVal(cty.String),
@@ -127,9 +129,10 @@ func TestPlannedChangeAsProto(t *testing.T) {
 			Want: &stacks.PlannedChange{
 				Raw: []*anypb.Any{
 					mustMarshalAnyPb(&tfstackdata1.PlanComponentInstance{
-						ComponentInstanceAddr: "component.foo",
-						PlanTimestamp:         "2017-03-27T10:00:00-08:00",
-						PlannedAction:         planproto.Action_CREATE,
+						ComponentInstanceAddr:   "component.foo",
+						PlanTimestamp:           "2017-03-27T10:00:00-08:00",
+						PlannedAction:           planproto.Action_CREATE,
+						ApplyTimeInputVariables: []string{"eph_input"},
 						PlannedOutputValues: map[string]*tfstackdata1.DynamicValue{
 							"hello": &tfstackdata1.DynamicValue{
 								Value: &planproto.DynamicValue{
@@ -176,8 +179,9 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Key:       addrs.StringKey("bar"),
 					},
 				},
-				Action:        plans.NoOp,
-				PlanTimestamp: fakePlanTimestamp,
+				Action:                  plans.NoOp,
+				PlanTimestamp:           fakePlanTimestamp,
+				ApplyTimeInputVariables: collections.NewSetCmp[string](),
 				PlannedOutputValues: map[string]cty.Value{
 					"hello":        cty.StringVal("world"),
 					"goal_of_life": cty.UnknownVal(cty.String),
