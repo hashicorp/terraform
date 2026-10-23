@@ -5,7 +5,6 @@ package command
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateIdentitiesCommand is a Command implementation that lists the resource identities
@@ -49,25 +49,46 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
 		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(sDiags)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading the state",
+			`Please ensure that your Terraform state exists and that you've
+configured it properly. You can use the "-state" flag to point
+Terraform at another state file.`,
+		))
 		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
 		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		diags = diags.Append(errors.New(errStateNotFound))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No state file was found",
+			`State management commands require a state file. Run this command
+in a directory where Terraform has been run or use the -state flag
+to point the command to a specific state location.`,
+		))
 		view.Diagnostics(diags)
 		return 1
 	}
