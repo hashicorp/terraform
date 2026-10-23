@@ -164,9 +164,9 @@ func (c *EphemeralComponentInstance) PlanOpts(ctx context.Context, phase EvalPha
 		// during destroy.
 		AllowRootEphemeralOutputs: true,
 
-		// TODO:@austinvalle: Should policies be run on ephemeral components? Currently all policy
-		// is related to managed resources.
-		PolicyClient: c.main.PolicyClient(),
+		// Ephemeral components cannot manage resources (which evaluate policy), and any
+		// providers being used by an ephemeral component have policy evaluated in [ProviderInstance.CheckClient].
+		PolicyClient: nil,
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
