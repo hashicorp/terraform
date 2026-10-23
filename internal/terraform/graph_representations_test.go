@@ -177,7 +177,7 @@ digraph {
 		"[root] C" -> "[root] B"
 	}
 }
-					`,
+`,
 		},
 	}
 	for _, tc := range cases {
@@ -189,6 +189,125 @@ digraph {
 			expected := strings.TrimSpace(tc.Expect) + "\n"
 			if actual != expected {
 				t.Fatalf("%s:\n\nexpected:\n%s\n\ngot:\n%s", tn, expected, actual)
+			}
+		})
+	}
+}
+
+// Some graphs have cycles that can be represented in multiple valid ways in the DOT output.
+func TestGraphDot_flakeyCycles(t *testing.T) {
+	cases := []struct {
+		Name   string
+		Graph  func() *Graph
+		Opts   dag.DotOpts
+		Expect []string
+	}{
+		{
+			Name: "cycle with shared hub",
+			Opts: dag.DotOpts{
+				DrawCycles: true,
+			},
+			Graph: func() *Graph {
+				var g Graph
+				root := stringV("root")
+				g.Add(root)
+
+				vA := g.Add(stringV("A"))
+				vB := g.Add(stringV("B"))
+				vC := g.Add(stringV("C"))
+				vD := g.Add(stringV("D"))
+
+				g.Connect(vA, root)
+				g.Connect(vA, vB)
+				g.Connect(vB, vA)
+				g.Connect(vA, vC)
+				g.Connect(vC, vA)
+				g.Connect(vA, vD)
+				g.Connect(vD, vA)
+
+				return &g
+			},
+			Expect: []string{
+				`digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] A"
+		"[root] B"
+		"[root] C"
+		"[root] D"
+		"[root] root"
+		"[root] A" -> "[root] B" [color = "red", penwidth = "2.0"]
+		"[root] A" -> "[root] C"
+		"[root] A" -> "[root] D"
+		"[root] A" -> "[root] root"
+		"[root] B" -> "[root] A"
+		"[root] B" -> "[root] C" [color = "red", penwidth = "2.0"]
+		"[root] C" -> "[root] A"
+		"[root] C" -> "[root] D" [color = "red", penwidth = "2.0"]
+		"[root] D" -> "[root] A" [color = "red", penwidth = "2.0"]
+	}
+}`,
+				`digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] A"
+		"[root] B"
+		"[root] C"
+		"[root] D"
+		"[root] root"
+		"[root] A" -> "[root] B"
+		"[root] A" -> "[root] C"
+		"[root] A" -> "[root] D" [color = "red", penwidth = "2.0"]
+		"[root] A" -> "[root] root"
+		"[root] B" -> "[root] A"
+		"[root] B" -> "[root] C" [color = "red", penwidth = "2.0"]
+		"[root] C" -> "[root] A" [color = "red", penwidth = "2.0"]
+		"[root] D" -> "[root] A"
+		"[root] D" -> "[root] B" [color = "red", penwidth = "2.0"]
+	}
+}`,
+				`digraph {
+	compound = "true"
+	newrank = "true"
+	subgraph "root" {
+		"[root] A"
+		"[root] B"
+		"[root] C"
+		"[root] D"
+		"[root] root"
+		"[root] A" -> "[root] B"
+		"[root] A" -> "[root] C"
+		"[root] A" -> "[root] D" [color = "red", penwidth = "2.0"]
+		"[root] A" -> "[root] root"
+		"[root] B" -> "[root] A" [color = "red", penwidth = "2.0"]
+		"[root] C" -> "[root] A"
+		"[root] C" -> "[root] B" [color = "red", penwidth = "2.0"]
+		"[root] D" -> "[root] A"
+		"[root] D" -> "[root] C" [color = "red", penwidth = "2.0"]
+	}
+}`,
+			},
+		},
+	}
+	for _, tc := range cases {
+		tn := tc.Name
+		t.Run(tn, func(t *testing.T) {
+			g := tc.Graph()
+			actual := string(g.Dot(&tc.Opts))
+			actual = strings.TrimSpace(actual)
+
+			found := false
+			for _, e := range tc.Expect {
+				expected := strings.TrimSpace(e)
+				if actual == expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Fatalf("%s:\n\nexpected one of:\n%s\n\ngot:\n%s", tn, strings.Join(tc.Expect, "\n---\n"), actual)
 			}
 		})
 	}
