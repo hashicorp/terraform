@@ -237,46 +237,6 @@ func TestGraphDot_flakeyCycles(t *testing.T) {
 		"[root] C"
 		"[root] D"
 		"[root] root"
-		"[root] A" -> "[root] B" [color = "red", penwidth = "2.0"]
-		"[root] A" -> "[root] C"
-		"[root] A" -> "[root] D"
-		"[root] A" -> "[root] root"
-		"[root] B" -> "[root] A"
-		"[root] B" -> "[root] C" [color = "red", penwidth = "2.0"]
-		"[root] C" -> "[root] A"
-		"[root] C" -> "[root] D" [color = "red", penwidth = "2.0"]
-		"[root] D" -> "[root] A" [color = "red", penwidth = "2.0"]
-	}
-}`,
-				`digraph {
-	compound = "true"
-	newrank = "true"
-	subgraph "root" {
-		"[root] A"
-		"[root] B"
-		"[root] C"
-		"[root] D"
-		"[root] root"
-		"[root] A" -> "[root] B"
-		"[root] A" -> "[root] C"
-		"[root] A" -> "[root] D" [color = "red", penwidth = "2.0"]
-		"[root] A" -> "[root] root"
-		"[root] B" -> "[root] A"
-		"[root] B" -> "[root] C" [color = "red", penwidth = "2.0"]
-		"[root] C" -> "[root] A" [color = "red", penwidth = "2.0"]
-		"[root] D" -> "[root] A"
-		"[root] D" -> "[root] B" [color = "red", penwidth = "2.0"]
-	}
-}`,
-				`digraph {
-	compound = "true"
-	newrank = "true"
-	subgraph "root" {
-		"[root] A"
-		"[root] B"
-		"[root] C"
-		"[root] D"
-		"[root] root"
 		"[root] A" -> "[root] B"
 		"[root] A" -> "[root] C"
 		"[root] A" -> "[root] D" [color = "red", penwidth = "2.0"]

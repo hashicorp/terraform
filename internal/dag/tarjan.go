@@ -5,7 +5,12 @@ package dag
 
 import (
 	"slices"
+	"strings"
 )
+
+func compareVertexNames(a, b Vertex) int {
+	return strings.Compare(a.Name(), b.Name())
+}
 
 // StronglyConnected returns the list of strongly connected components
 // within the Graph g. This information is primarily used by this package
@@ -16,7 +21,10 @@ func StronglyConnected(g *Graph) [][]Vertex {
 		NextIndex:   1,
 		VertexIndex: make(map[Vertex]int, g.VertexCount()),
 	}
-	for v := range g.VerticesSeq() {
+
+	vertices := g.VerticesSeq().Collect()
+	slices.SortFunc(vertices, compareVertexNames)
+	for _, v := range vertices {
 		// Recurse on any non-visited nodes
 		if acct.VertexIndex[v] == 0 {
 			stronglyConnected(&acct, g, v)
@@ -30,7 +38,10 @@ func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
 	index := acct.visit(v)
 	minIdx := index
 
-	for target := range g.edgesFrom[v].All() {
+	for _, target := range slices.SortedFunc(
+		g.edgesFrom[v].All(),
+		compareVertexNames,
+	) {
 		targetIdx := acct.VertexIndex[target]
 
 		// Recurse on successor if not yet visited
