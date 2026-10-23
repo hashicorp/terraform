@@ -114,9 +114,8 @@ to point the command to a specific state location.`,
 		}
 	}
 
-	view.Identities(identities)
+	view.Identities(identities, diags)
 
-	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
