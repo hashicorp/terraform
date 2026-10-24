@@ -74,8 +74,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
