@@ -690,10 +690,9 @@ func TestTest_DestroyFail(t *testing.T) {
 
 	c := &TestCommand{
 		Meta: Meta{
-			testingOverrides:          metaOverridesForProvider(provider.Provider),
-			View:                      view,
-			ShutdownCh:                interrupt,
-			AllowExperimentalFeatures: true,
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
 		},
 	}
 
@@ -781,10 +780,9 @@ main.tftest.hcl/single, and they need to be cleaned up manually:
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				View:                      view,
-				ShutdownCh:                interrupt,
-				AllowExperimentalFeatures: true,
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
 			},
 		}
 
@@ -820,10 +818,9 @@ func TestTest_Cleanup(t *testing.T) {
 
 		view, done := testView(t)
 		meta := Meta{
-			testingOverrides:          metaOverridesForProvider(provider.Provider),
-			View:                      view,
-			ProviderSource:            providerSource,
-			AllowExperimentalFeatures: true,
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ProviderSource:   providerSource,
 		}
 
 		init := &InitCommand{Meta: meta}
@@ -837,10 +834,9 @@ func TestTest_Cleanup(t *testing.T) {
 
 		c := &TestCommand{
 			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				View:                      view,
-				ShutdownCh:                interrupt,
-				AllowExperimentalFeatures: true,
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
 			},
 		}
 
@@ -927,10 +923,9 @@ main.tftest.hcl/test_three, and they need to be cleaned up manually:
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				View:                      view,
-				ShutdownCh:                interrupt,
-				AllowExperimentalFeatures: true,
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
 			},
 		}
 
@@ -980,10 +975,9 @@ Success!
 
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				View:                      view,
-				ShutdownCh:                interrupt,
-				AllowExperimentalFeatures: true,
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				View:             view,
+				ShutdownCh:       interrupt,
 			},
 		}
 
@@ -1030,12 +1024,11 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	ui := testUiWrapped(t)
 
 	meta := Meta{
-		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
-		View:                      view,
-		Streams:                   streams,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{
@@ -1118,12 +1111,11 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	ui := testUiWrapped(t)
 
 	meta := Meta{
-		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
-		View:                      view,
-		Streams:                   streams,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{
@@ -3598,12 +3590,11 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	ui := testUiWrapped(t)
 
 	meta := Meta{
-		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
-		View:                      view,
-		Streams:                   streams,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{
@@ -3728,12 +3719,11 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	ui := testUiWrapped(t)
 
 	meta := Meta{
-		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
-		View:                      view,
-		Streams:                   streams,
-		ProviderSource:            providerSource,
-		AllowExperimentalFeatures: true,
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{
@@ -3796,7 +3786,7 @@ Success! 5 passed, 0 failed.
 	})
 
 	t.Run("state should be persisted with valid reason", func(t *testing.T) {
-		manifest, err := teststates.LoadManifest(td, true)
+		manifest, err := teststates.LoadManifest(td)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -5507,7 +5497,7 @@ The apply resource change function was invoked %d times but we trigger an error 
 
 			// State is NOT stored in .terraform/test as a state artifact because
 			// there haven't been any failures or errors in the tests
-			manifest, err := teststates.LoadManifest(td, true)
+			manifest, err := teststates.LoadManifest(td)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -6440,7 +6430,7 @@ func testModuleInline(t *testing.T, sources map[string]string) (*configs.Config,
 }
 
 func statesFromManifest(t *testing.T, td string) map[string][]string {
-	manifest, err := teststates.LoadManifest(td, true)
+	manifest, err := teststates.LoadManifest(td)
 	if err != nil {
 		t.Fatal(err)
 	}
