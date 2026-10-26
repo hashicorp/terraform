@@ -174,7 +174,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"No such resource instance",
-				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be tainted.", addr),
+				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be untainted.", addr),
 			))
 		}
 		view.Diagnostics(diags)
