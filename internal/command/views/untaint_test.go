@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestUntaintHuman_Untaint(t *testing.T) {
+func TestUntaintHuman_LogResourceUntainted(t *testing.T) {
 	r := addrs.RootModuleInstance.ResourceInstance(
 		addrs.ManagedResourceMode,
 		"boop",
@@ -52,7 +52,7 @@ func TestUntaintHuman_Untaint(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewUntaint(arguments.ViewHuman, view)
 
-			v.Untaint(tc.resource, tc.diags)
+			v.LogResourceUntainted(tc.resource, tc.diags)
 
 			output := done(t)
 			expectedStdout := tc.expectedStdout

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestTaintHuman_Taint(t *testing.T) {
+func TestTaintHuman_LogResourceTainted(t *testing.T) {
 	r := addrs.RootModuleInstance.ResourceInstance(
 		addrs.ManagedResourceMode,
 		"boop",
@@ -52,7 +52,7 @@ func TestTaintHuman_Taint(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewTaint(arguments.ViewHuman, view)
 
-			v.Taint(tc.resource, tc.diags)
+			v.LogResourceTainted(tc.resource, tc.diags)
 
 			output := done(t)
 			expectedStdout := tc.expectedStdout

@@ -244,7 +244,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Taint(addr, diags)
+	view.LogResourceTainted(addr, diags)
 	return 0
 }
 

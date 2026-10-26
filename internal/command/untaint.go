@@ -221,7 +221,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	view.Untaint(addr, diags)
+	view.LogResourceUntainted(addr, diags)
 	return 0
 }
 

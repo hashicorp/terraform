@@ -13,7 +13,7 @@ import (
 
 // The Taint is used for the taint command.
 type Taint interface {
-	Taint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics)
+	LogResourceTainted(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 }
@@ -39,7 +39,7 @@ func (v *TaintHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *TaintHuman) Taint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics) {
+func (v *TaintHuman) LogResourceTainted(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics) {
 	v.Diagnostics(diags)
 
 	v.view.streams.Println(
