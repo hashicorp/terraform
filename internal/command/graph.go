@@ -423,35 +423,41 @@ Usage: terraform [global options] graph [options]
 
 Options:
 
-  -plan=tfplan        Render graph using the specified plan file instead of the
-                      configuration in the current directory. Implies -type=apply.
+  -compact-warnings    If Terraform produces any warnings that are not
+                       accompanied by errors, show them in a more compact
+                       form that includes only the summary messages
 
-  -draw-cycles        Highlight any cycles in the graph with colored edges.
-                      This helps when diagnosing cycle errors. This option is
-                      supported only when illustrating a real evaluation graph,
-                      selected using the -type=TYPE option.
+  -draw-cycles         Highlight any cycles in the graph with colored edges.
+                       This helps when diagnosing cycle errors. This option is
+                       supported only when illustrating a real evaluation graph,
+                       selected using the -type=TYPE option.
 
-  -type=TYPE          Type of operation graph to output. Can be: plan,
-                      plan-refresh-only, plan-destroy, or apply. By default
-                      Terraform just summarizes the relationships between the
-                      resources in your configuration, without any particular
-                      operation in mind. Full operation graphs are more detailed
-                      but therefore often harder to read.
+  -format=FORMAT       Output format for the graph. Supported values are
+                       dot (default) and mermaid.
 
-  -module-depth=n     (deprecated) In prior versions of Terraform, specified the
-                      depth of modules to show in the output.
+  -module-depth=n      (deprecated) In prior versions of Terraform, specified the
+                       depth of modules to show in the output.
 
-  -var 'foo=bar'      Set a value for one of the input variables in the root
-                      module of the configuration. Use this option more than
-                      once to set more than one variable.
+  -no-color            If specified, non-graph output won't contain any color.
 
-  -var-file=filename  Load variable values from the given file, in addition
-                      to the default files terraform.tfvars and *.auto.tfvars.
-                      Use this option more than once to include more than one
-                      variables file.
+  -plan=tfplan         Render graph using the specified plan file instead of the
+                       configuration in the current directory. Implies -type=apply.
 
-  -format=FORMAT      Output format for the graph. Supported values are
-                      dot (default) and mermaid.
+  -type=TYPE           Type of operation graph to output. Can be: plan,
+                       plan-refresh-only, plan-destroy, or apply. By default
+                       Terraform just summarizes the relationships between the
+                       resources in your configuration, without any particular
+                       operation in mind. Full operation graphs are more detailed
+                       but therefore often harder to read.
+
+  -var 'foo=bar'       Set a value for one of the input variables in the root
+                       module of the configuration. Use this option more than
+                       once to set more than one variable.
+
+  -var-file=filename   Load variable values from the given file, in addition
+                       to the default files terraform.tfvars and *.auto.tfvars.
+                       Use this option more than once to include more than one
+                       variables file.
 `
 	return strings.TrimSpace(helpText)
 }
