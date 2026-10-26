@@ -13,7 +13,7 @@ import (
 
 // The Taint is used for the taint command.
 type Taint interface {
-	Taint(name addrs.AbsResourceInstance)
+	Taint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 }
@@ -39,7 +39,9 @@ func (v *TaintHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *TaintHuman) Taint(name addrs.AbsResourceInstance) {
+func (v *TaintHuman) Taint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics) {
+	v.Diagnostics(diags)
+
 	v.view.streams.Println(
 		fmt.Sprintf("Resource instance %s has been marked as tainted.", name),
 	)

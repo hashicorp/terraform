@@ -13,7 +13,7 @@ import (
 
 // The Untaint is used for the untaint command.
 type Untaint interface {
-	Untaint(name addrs.AbsResourceInstance)
+	Untaint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 }
@@ -39,7 +39,9 @@ func (v *UntaintHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *UntaintHuman) Untaint(name addrs.AbsResourceInstance) {
+func (v *UntaintHuman) Untaint(name addrs.AbsResourceInstance, diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+
 	v.view.streams.Println(
 		fmt.Sprintf("Resource instance %s has been successfully untainted.", name),
 	)
