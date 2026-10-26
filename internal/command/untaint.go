@@ -23,9 +23,22 @@ type UntaintCommand struct {
 }
 
 func (c *UntaintCommand) Run(rawArgs []string) int {
-	parsedArgs, parseDiags := arguments.ParseUntaint(c.Meta.process(rawArgs))
-	if parseDiags.HasErrors() {
-		c.showDiagnostics(parseDiags)
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseUntaint(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewUntaint(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -37,12 +50,10 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	c.Meta.stateOutPath = parsedArgs.StateOutPath
 	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
-	var diags tfdiags.Diagnostics
-
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	diags = diags.Append(addrDiags)
 	if addrDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -50,47 +61,64 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Determine the workspace name
 	workspace, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error determining the current workspace",
+			err.Error(),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
-	c.showDiagnostics(diags)
 	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// Get the state
+	// Get a state manager for the current workspace
 	stateMgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", sDiags.Err()))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error accessing state",
+			fmt.Sprintf("Failed to access state: %s", sDiags.Err()),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
-		if diags := stateLocker.Lock(stateMgr, "untaint"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+		if lockDiags := stateLocker.Lock(stateMgr, "untaint"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
-			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading state",
+			fmt.Sprintf("Failed to load state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -98,7 +126,9 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	state := stateMgr.State()
 	if state.Empty() {
 		if parsedArgs.AllowMissing {
-			return c.allowMissingExit(addr)
+			diags = diags.Append(c.allowMissingWarning(addr))
+			view.Diagnostics(diags)
+			return 0
 		}
 
 		diags = diags.Append(tfdiags.Sourceless(
@@ -106,7 +136,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 			"No such resource instance",
 			"The state currently contains no resource instances whatsoever. This may occur if the configuration has never been applied or if it has recently been destroyed.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -117,7 +147,9 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	is := ss.ResourceInstance(addr)
 	if is == nil {
 		if parsedArgs.AllowMissing {
-			return c.allowMissingExit(addr)
+			diags = diags.Append(c.allowMissingWarning(addr))
+			view.Diagnostics(diags)
+			return 0
 		}
 
 		diags = diags.Append(tfdiags.Sourceless(
@@ -125,7 +157,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 			"No such resource instance",
 			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"terraform apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -145,7 +177,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 				fmt.Sprintf("Resource instance %s does not currently have a remote object associated with it, so it cannot be tainted.", addr),
 			))
 		}
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -155,7 +187,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 			"Resource instance is not tainted",
 			fmt.Sprintf("Resource instance %s is not currently tainted, and so it cannot be untainted.", addr),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -171,16 +203,25 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error writing state file",
+			err.Error(),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error writing state file",
+			err.Error(),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.showDiagnostics(diags)
-	c.Ui.Output(fmt.Sprintf("Resource instance %s has been successfully untainted.", addr))
+	view.Untaint(addr, diags)
 	return 0
 }
 
@@ -225,11 +266,10 @@ func (c *UntaintCommand) Synopsis() string {
 	return "Remove the 'tainted' state from a resource instance"
 }
 
-func (c *UntaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
-	c.showDiagnostics(tfdiags.Sourceless(
+func (c *UntaintCommand) allowMissingWarning(name addrs.AbsResourceInstance) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
 		tfdiags.Warning,
 		"No such resource instance",
 		fmt.Sprintf("Resource instance %s was not found, but this is not an error because -allow-missing was set.", name),
-	))
-	return 0
+	)
 }
