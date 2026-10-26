@@ -36,11 +36,9 @@ func TestTaint(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -50,7 +48,7 @@ func TestTaint(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, statePath, testTaintStr)
@@ -81,11 +79,9 @@ func TestTaint_lockedState(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer unlock()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -98,7 +94,7 @@ func TestTaint_lockedState(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	output := ui.ErrorWriter.String()
+	output := done(t).All()
 	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
@@ -129,11 +125,9 @@ func TestTaint_backup(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -142,7 +136,7 @@ func TestTaint_backup(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, DefaultStateFilename+".backup", testTaintDefaultStr)
@@ -174,11 +168,9 @@ func TestTaint_backupDisable(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -188,7 +180,7 @@ func TestTaint_backupDisable(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	if _, err := os.Stat(DefaultStateFilename + ".backup"); err == nil {
@@ -199,11 +191,9 @@ func TestTaint_backupDisable(t *testing.T) {
 }
 
 func TestTaint_badState(t *testing.T) {
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -213,7 +203,7 @@ func TestTaint_badState(t *testing.T) {
 		"foo",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 }
 
@@ -242,11 +232,9 @@ func TestTaint_defaultState(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -255,7 +243,7 @@ func TestTaint_defaultState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, DefaultStateFilename, testTaintStr)
@@ -266,12 +254,10 @@ func TestTaint_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -282,7 +268,7 @@ func TestTaint_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).All()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -292,12 +278,10 @@ func TestTaint_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -305,7 +289,7 @@ func TestTaint_constVariable(t *testing.T) {
 
 		args := []string{"-var", "module_name=child", "module.child.test_instance.test"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -329,12 +313,10 @@ module.child:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &TaintCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -342,7 +324,7 @@ module.child:
 
 		args := []string{"module.child.test_instance.test"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -382,9 +364,8 @@ func TestTaint_defaultWorkspaceState(t *testing.T) {
 	testWorkspace := "development"
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	meta := Meta{Ui: ui, View: view}
+	view, done := testView(t)
+	meta := Meta{View: view}
 	meta.SetWorkspace(testWorkspace)
 	c := &TaintCommand{
 		Meta: meta,
@@ -394,7 +375,7 @@ func TestTaint_defaultWorkspaceState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, path, testTaintStr)
@@ -420,11 +401,9 @@ func TestTaint_missing(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -434,7 +413,7 @@ func TestTaint_missing(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.OutputWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 }
 
@@ -458,26 +437,25 @@ func TestTaint_missingAllow(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
 
 	args := []string{
+		"-no-color",
 		"-allow-missing",
 		"-state", statePath,
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Check for the warning
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	actual := strings.TrimSpace(done(t).All())
 	expected := strings.TrimSpace(`
 Warning: No such resource instance
 
@@ -515,11 +493,9 @@ func TestTaint_stateOut(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -529,7 +505,7 @@ func TestTaint_stateOut(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, DefaultStateFilename, testTaintDefaultStr)
@@ -571,11 +547,9 @@ func TestTaint_module(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -585,7 +559,7 @@ func TestTaint_module(t *testing.T) {
 		"module.child.test_instance.blah",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, statePath, testTaintModuleStr)
@@ -617,26 +591,25 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	})
 	path := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"test_instance.foo"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		output := done(t)
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
 	// State is unchanged
 	testStateOutput(t, path, testTaintDefaultStr)
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}
