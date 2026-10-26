@@ -246,14 +246,20 @@ Options:
   -allow-missing          If specified, the command will succeed (exit code 0)
                           even if the resource is missing.
 
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
+
   -lock=false             Don't hold a state lock during the operation. This is
                           dangerous if others might concurrently run commands
                           against the same workspace.
 
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -ignore-remote-version  A rare option used for the remote backend only. See
-                          the remote backend documentation for more information.
+  -no-color               Disable text coloring in the output.
 
   -state, state-out, and -backup are legacy options supported for the local
   backend only. For more information, see the local backend's documentation.
