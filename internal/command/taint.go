@@ -78,8 +78,8 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Cannot taint resource instance",
-			fmt.Sprintf("Resource instance %s cannot be tainted because it is not a managed resource.", addr),
+			"Cannot taint resource",
+			fmt.Sprintf("Resource %s cannot be tainted because it is not a managed resource.", addr),
 		))
 		view.Diagnostics(diags)
 		return 1
