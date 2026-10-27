@@ -284,6 +284,9 @@ func (c *EphemeralComponent) References(context.Context) []stackaddrs.AbsReferen
 }
 
 // RequiredComponents returns the set of components that this ephemeral component depends on.
+//
+// TODO:@austinvalle: This is named as if ephemeral components implement [stackplan.PlanProducer], which we definitely don't want
+// We still need the method, so maybe just call it something else or remove it.
 func (c *EphemeralComponent) RequiredComponents(ctx context.Context, phase EvalPhase) collections.Set[stackaddrs.AbsComponent] {
 	return c.main.requiredComponentsForReferrer(ctx, c, phase)
 }
