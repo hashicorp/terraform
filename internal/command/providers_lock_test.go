@@ -27,10 +27,10 @@ func TestProvidersLock(t *testing.T) {
 		os.MkdirAll(td, 0755)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
+		view, _ := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 		code := c.Run([]string{})
@@ -120,10 +120,10 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string, in
 	}
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, _ := testView(t)
 	c := &ProvidersLockCommand{
 		Meta: Meta{
-			Ui:               ui,
+			View:             view,
 			testingOverrides: metaOverridesForProvider(p),
 		},
 	}
@@ -149,11 +149,11 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, _ := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -168,23 +168,27 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
-		args := []string{"-var", "module_name=example", "-fs-mirror=fs-mirror"}
+		args := []string{
+			"-no-color",
+			"-var", "module_name=example",
+			"-fs-mirror=fs-mirror",
+		}
 		if code := c.Run(args); code == 0 {
 			t.Fatalf("expected command to proceed past const variable resolution")
 		}
 
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "Error: Module not installed") {
-			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output.All())
 		}
 	})
 
@@ -200,39 +204,43 @@ func TestProvidersLock_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/get-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 				Services:         d,
 			},
 		}
 
-		args := []string{"-fs-mirror=fs-mirror"}
+		args := []string{
+			"-no-color",
+			"-fs-mirror=fs-mirror",
+		}
 		if code := c.Run(args); code == 0 {
 			t.Fatalf("expected command to proceed past const variable resolution")
 		}
 
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "Error: Module not installed") {
-			t.Fatalf("expected module installation diagnostic, got: %s", output)
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "Error: Module not installed") {
+			t.Fatalf("expected module installation diagnostic, got: %s", output.All())
 		}
 	})
 }
 
 func TestProvidersLock_args(t *testing.T) {
 	t.Run("mirror collision", func(t *testing.T) {
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 
 		// only one of these arguments can be used at a time
 		args := []string{
+			"-no-color",
 			"-fs-mirror=/foo/",
 			"-net-mirror=www.foo.com",
 		}
@@ -241,51 +249,57 @@ func TestProvidersLock_args(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "The -fs-mirror and -net-mirror command line options are mutually-exclusive.") {
-			t.Fatalf("missing expected error message: %s", output)
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "The -fs-mirror and -net-mirror command line options are mutually-exclusive.") {
+			t.Fatalf("missing expected error message: %s", output.All())
 		}
 	})
 
 	t.Run("invalid platform", func(t *testing.T) {
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 
 		// not a valid platform
-		args := []string{"-platform=arbitrary_nonsense_that_isnt_valid"}
+		args := []string{
+			"-no-color",
+			"-platform=arbitrary_nonsense_that_isnt_valid",
+		}
 		code := c.Run(args)
 
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "must be two words separated by an underscore.") {
-			t.Fatalf("missing expected error message: %s", output)
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "must be two words separated by an underscore.") {
+			t.Fatalf("missing expected error message: %s", output.All())
 		}
 	})
 
 	t.Run("invalid provider argument", func(t *testing.T) {
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersLockCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 			},
 		}
 
 		// There is no configuration, so it's not valid to use any provider argument
-		args := []string{"hashicorp/random"}
+		args := []string{
+			"-no-color",
+			"hashicorp/random",
+		}
 		code := c.Run(args)
 
 		if code != 1 {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
-		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
-			t.Fatalf("missing expected error message: %s", output)
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
+			t.Fatalf("missing expected error message: %s", output.All())
 		}
 	})
 }
