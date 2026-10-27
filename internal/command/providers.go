@@ -174,7 +174,13 @@ Usage: terraform [global options] providers [options] [DIR]
 
 Options:
 
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
+
   -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -no-color             If specified, output won't contain any color.
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than
