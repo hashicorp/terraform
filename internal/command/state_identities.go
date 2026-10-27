@@ -22,8 +22,13 @@ type StateIdentitiesCommand struct {
 }
 
 func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
-	rawArgs = c.Meta.process(rawArgs)
+	var diags tfdiags.Diagnostics
 
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments
 	args, diags := arguments.ParseStateIdentities(rawArgs)
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
