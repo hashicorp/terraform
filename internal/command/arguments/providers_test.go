@@ -19,6 +19,7 @@ func TestParseProviders_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Providers{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Vars:           &Vars{},
 			},
@@ -26,6 +27,7 @@ func TestParseProviders_valid(t *testing.T) {
 		"test directory": {
 			[]string{"-test-directory=integration-tests"},
 			&Providers{
+				ViewType:       ViewHuman,
 				TestsDirectory: "integration-tests",
 				Vars:           &Vars{},
 			},
@@ -56,6 +58,7 @@ func TestParseProviders_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-wat"},
 			&Providers{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Vars:           &Vars{},
 			},
@@ -70,6 +73,7 @@ func TestParseProviders_invalid(t *testing.T) {
 		"too many positional arguments": {
 			[]string{"foo"},
 			&Providers{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Vars:           &Vars{},
 			},
