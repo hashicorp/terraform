@@ -6,7 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -30,7 +29,7 @@ func (t *ModulePolicyTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	moduleNodes := make([]*nodeModulePolicy, 0)
+	moduleNodes := make(map[string]*nodeModulePolicy, 0)
 	for config := range t.Config.AllModules() {
 		// root modules need no policy evaluation
 		if config.Path.IsRoot() {
@@ -39,27 +38,23 @@ func (t *ModulePolicyTransformer) Transform(g *Graph) error {
 		n := &nodeModulePolicy{Config: config}
 		log.Printf("[TRACE] ModulePolicyTransformer: adding %s", n.Name())
 		g.Add(n)
-		moduleNodes = append(moduleNodes, n)
+		moduleNodes[config.Path.String()] = n
 	}
 
 	if len(moduleNodes) == 0 {
 		return nil
 	}
 
-	// Everything within a module, including the module expansion node,
-	// destroyers, and nested module policies, waits for the module policy to
+	// make every object in the module object wait for the for the module policy to
 	// be evaluated.
 	for node := range dag.SelectSeq[GraphNodeModulePath](g.VerticesSeq()) {
-		var path addrs.Module
-		path = node.ModulePath()
+		path := node.ModulePath()
 
-		for _, moduleNode := range moduleNodes {
-			// if this node is within the policy node's module,
-			// then make this node wait.
-			if path.Contains(moduleNode.Config.Path) {
-				g.Connect(node, moduleNode)
-			}
+		moduleNode, ok := moduleNodes[path.String()]
+		if !ok {
+			continue
 		}
+		g.Connect(node, moduleNode)
 	}
 
 	return nil
