@@ -46,7 +46,13 @@ Usage: terraform [global options] version [options]
 
 Options:
 
-  -json       Output the version information as a JSON object.
+  -compact-warnings    If Terraform produces any warnings that are not
+                       accompanied by errors, show them in a more compact
+                       form that includes only the summary messages
+
+  -json                Output the version information as a JSON object.
+
+  -no-color            If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -19,30 +18,27 @@ import (
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestGraph_planPhase_mermaid(t *testing.T) {
 	td := tempWorkingDirFixture(t, "graph")
 	t.Chdir(td.RootModuleDir())
 
-	ui := new(cli.MockUi)
-	streams, closeStreams := terminal.StreamsForTesting(t)
+	view, done := testView(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
-			Ui:               ui,
-			Streams:          streams,
+			View:             view,
 			WorkingDir:       td,
 		},
 	}
 
 	args := []string{"-type=plan", "-format=mermaid"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
-	output := closeStreams(t)
+	output := done(t)
 	if !strings.Contains(output.Stdout(), "flowchart") && !strings.Contains(output.Stdout(), "-->") {
 		t.Fatalf("doesn't look like mermaid graph:\n%s\n\nstderr:\n%s", output.Stdout(), output.Stderr())
 	}
@@ -84,8 +80,7 @@ func TestGraph_resourcesOnly_mermaid(t *testing.T) {
 		},
 	}
 
-	ui := cli.NewMockUi()
-	streams, closeStreams := terminal.StreamsForTesting(t)
+	view, done := testView(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
@@ -93,19 +88,18 @@ func TestGraph_resourcesOnly_mermaid(t *testing.T) {
 					addrs.NewDefaultProvider("foo"): providers.FactoryFixed(p),
 				},
 			},
-			Ui:         ui,
-			Streams:    streams,
+			View:       view,
 			WorkingDir: wd,
 		},
 	}
 
 	args := []string{"-format=mermaid"}
 	if code := c.Run(args); code != 0 {
-		output := closeStreams(t)
+		output := done(t)
 		t.Fatalf("unexpected error: \n%s", output.Stderr())
 	}
 
-	output := closeStreams(t)
+	output := done(t)
 	gotGraph := strings.TrimSpace(output.Stdout())
 	// Golden fixture: the resources-only Mermaid graph for the graph-interesting
 	// configuration.  Node IDs are the full config addresses; labels are the

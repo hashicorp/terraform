@@ -219,14 +219,19 @@ Usage: terraform [global options] workspace new [OPTIONS] NAME
 
 Options:
 
-    -lock=false         Don't hold a state lock during the operation. This is
-                        dangerous if others might concurrently run commands
-                        against the same workspace.
+    -compact-warnings    If Terraform produces any warnings that are not
+                         accompanied by errors, show them in a more compact
+                         form that includes only the summary messages
 
-    -lock-timeout=0s    Duration to retry a state lock.
+    -lock=false          Don't hold a state lock during the operation. This is
+                         dangerous if others might concurrently run commands
+                         against the same workspace.
 
-    -state=path         Copy an existing state file into the new workspace.
+    -lock-timeout=0s     Duration to retry a state lock.
 
+    -no-color            If specified, output won't contain any color.
+
+    -state=path          Copy an existing state file into the new workspace.
 `
 	return strings.TrimSpace(helpText)
 }

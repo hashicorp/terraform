@@ -62,6 +62,12 @@ func (c *WorkspaceShowCommand) Help() string {
 Usage: terraform [global options] workspace show
 
   Show the name of the current workspace.
+
+  -compact-warnings    If Terraform produces any warnings that are not
+                       accompanied by errors, show them in a more compact
+                       form that includes only the summary messages
+
+  -no-color            If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }
