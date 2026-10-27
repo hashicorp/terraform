@@ -208,6 +208,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Evaluate module policies before the objects within each module.
+		&ModulePolicyTransformer{Config: b.Config, PolicyClient: b.PolicyClient},
+
 		// Plug in any external references.
 		&ExternalReferenceTransformer{
 			ExternalReferences: b.ExternalReferences,
