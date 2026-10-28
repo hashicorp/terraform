@@ -174,7 +174,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			if lockDiags.HasErrors() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Failed to load -state-provider-lock-file lock file",
+					"Failed to load the -state-provider-lock-file lock file",
 					fmt.Sprintf("Terraform experienced an error loading the file at %q: %s", initArgs.StateStoreProviderLockFile, lockDiags.Err()),
 				))
 				view.Diagnostics(diags)

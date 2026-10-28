@@ -70,7 +70,7 @@ func (c *ProvidersCommand) Run(rawArgs []string) int {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Validation of configuration directory failed",
+			"Validation of the configuration directory failed",
 			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
 		))
 		view.Diagnostics(diags)
