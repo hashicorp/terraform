@@ -620,7 +620,11 @@ func TestComponentInstancePolicyEvaluationProto(t *testing.T) {
 				ComponentInstanceAddr: componentAddr.String(),
 			}
 
-			got := componentInstancePolicyEvaluationProto(componentAddr, tc.policyResults())
+			policyResults := make(map[string][]policy.EvaluationResponse)
+			for addr, result := range tc.policyResults() {
+				policyResults[addr] = []policy.EvaluationResponse{result}
+			}
+			got := componentInstancePolicyEvaluationProto(componentAddr, policyResults)
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
