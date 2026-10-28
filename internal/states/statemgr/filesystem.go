@@ -143,7 +143,7 @@ func (s *Filesystem) WriteState(state *states.State) error {
 func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
-			return nil
+			return err
 		}
 	}
 	defer s.stateFileOut.Sync()

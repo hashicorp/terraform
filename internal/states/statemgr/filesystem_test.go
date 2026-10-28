@@ -148,6 +148,22 @@ func TestFilesystem_pathOut(t *testing.T) {
 	TestFull(t, ls)
 }
 
+// TestFilesystem_writeStateCreateError checks that a state file which can't be
+// created is reported when writing without a lock, which would otherwise have
+// created it first and returned the error.
+func TestFilesystem_writeStateCreateError(t *testing.T) {
+	// A regular file in place of the parent directory makes creating the state file fail.
+	notADir := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(notADir, nil, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	ls := NewFilesystemBetweenPaths(filepath.Join(t.TempDir(), "in.tfstate"), filepath.Join(notADir, "out.tfstate"))
+	if err := ls.WriteState(TestFullInitialState()); err == nil {
+		t.Fatal("expected an error writing state to a path that can't be created")
+	}
+}
+
 func TestFilesystem_backup(t *testing.T) {
 	defer testOverrideVersion(t, "1.2.3")()
 	f, err := ioutil.TempFile("", "tf")
