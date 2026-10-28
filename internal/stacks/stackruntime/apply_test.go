@@ -5011,9 +5011,8 @@ func TestApply_WithPolicyResultsOnDestroy(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
-		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
-		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -5089,9 +5088,8 @@ func TestApply_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 	})
 
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
-		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
-		// Module policies are not evaluated during the destroy apply (only during pre-destroy refresh)
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
