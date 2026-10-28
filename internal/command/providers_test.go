@@ -23,17 +23,17 @@ func TestProviders(t *testing.T) {
 	testCopyDir(t, testFixturePath("providers/basic"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:         ui,
+			View:       view,
 			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -42,7 +42,7 @@ func TestProviders(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -55,10 +55,10 @@ func TestProviders_noConfigs(t *testing.T) {
 	testCopyDir(t, testFixturePath(""), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:         ui,
+			View:       view,
 			WorkingDir: workdir.NewDir(td),
 		},
 	}
@@ -69,7 +69,7 @@ func TestProviders_noConfigs(t *testing.T) {
 			" when no configs are available")
 	}
 
-	output := ui.ErrorWriter.String()
+	output := done(t).Stderr()
 	expectedErrMsg := "No configuration files"
 	if !strings.Contains(output, expectedErrMsg) {
 		t.Errorf("Expected error message: %s\nGiven output: %s", expectedErrMsg, output)
@@ -104,17 +104,17 @@ func TestProviders_modules(t *testing.T) {
 	}
 
 	// Providers command
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:         ui,
+			View:       view,
 			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -124,7 +124,7 @@ func TestProviders_modules(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]", // implied by a resource in the child module
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -137,17 +137,17 @@ func TestProviders_state(t *testing.T) {
 	testCopyDir(t, testFixturePath("providers/state"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:         ui,
+			View:       view,
 			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -157,7 +157,7 @@ func TestProviders_state(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -170,17 +170,17 @@ func TestProviders_tests(t *testing.T) {
 	testCopyDir(t, testFixturePath("providers/tests"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:         ui,
+			View:       view,
 			WorkingDir: workdir.NewDir(td),
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -188,7 +188,7 @@ func TestProviders_tests(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/bar]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -236,10 +236,10 @@ func TestProviders_state_withStateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
-			Ui:                        ui,
+			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{
@@ -252,7 +252,7 @@ func TestProviders_state_withStateStore(t *testing.T) {
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	wantOutput := []string{
@@ -262,7 +262,7 @@ func TestProviders_state_withStateStore(t *testing.T) {
 		"provider[registry.terraform.io/hashicorp/baz]",
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -275,11 +275,11 @@ func TestProviders_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -289,7 +289,7 @@ func TestProviders_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -299,21 +299,21 @@ func TestProviders_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{"-var", "module_name=child"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		wantOutput := []string{
 			"Providers required by configuration:",
 			"module.child",
@@ -337,21 +337,21 @@ func TestProviders_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		wantOutput := []string{
 			"Providers required by configuration:",
 			"module.child",
