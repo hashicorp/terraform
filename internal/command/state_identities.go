@@ -22,24 +22,23 @@ type StateIdentitiesCommand struct {
 }
 
 func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
-	var diags tfdiags.Diagnostics
-
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
 	// Parse command-specific arguments
-	args, diags := arguments.ParseStateIdentities(rawArgs)
-	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
-		return 1
-	}
+	args, argDiags := arguments.ParseStateIdentities(rawArgs)
 
 	if args.StatePath != "" {
 		c.Meta.statePath = args.StatePath
 	}
 
 	view := views.NewStateIdentities(args.ViewType, c.View)
+
+	if argDiags.HasErrors() {
+		view.Diagnostics(argDiags)
+		return 1
+	}
 
 	// Load the backend
 	b, diags := c.backend(".", args.ViewType)
