@@ -78,7 +78,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		return 1
 	}
 
-	diags = diags.Append(c.resolveConstVariables(".", arguments.ViewHuman))
+	diags = diags.Append(c.resolveConstVariables(".", parsedArgs.ViewType))
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
