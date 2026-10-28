@@ -62,6 +62,10 @@ type PlanGraphBuilder struct {
 	// action instead. Create and Delete actions are not affected.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// ForceUntaint are resource instances whose tainted current object should
+	// be planned as if it were not tainted.
+	ForceUntaint []addrs.AbsResourceInstance
+
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
@@ -344,6 +348,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			skipPlanChanges:      b.skipPlanChanges,
 			preDestroyRefresh:    b.preDestroyRefresh,
 			forceReplace:         b.ForceReplace,
+			forceUntaint:         b.ForceUntaint,
 			minimalRefresh:       b.minimalRefresh,
 		}
 	}

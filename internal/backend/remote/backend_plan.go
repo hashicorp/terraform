@@ -203,6 +203,10 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Opera
 }
 
 func (b *Remote) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+	if len(op.ForceUntaint) != 0 {
+		return nil, generalError("Untainting is not yet supported", errors.New(`the "remote" backend does not support the -untaint option`))
+	}
+
 	if b.CLI != nil {
 		header := planDefaultHeader
 		if op.Type == backendrun.OperationTypeApply {

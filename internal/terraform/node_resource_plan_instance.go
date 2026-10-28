@@ -45,6 +45,10 @@ type NodePlannableResourceInstance struct {
 	// reasons, like a -replace flag or via replace_triggered_by.
 	forceReplace bool
 
+	// forceUntaint indicates that a tainted current object for this instance
+	// should be planned as if it were not tainted, via the -untaint flag.
+	forceUntaint bool
+
 	// minimalRefresh indicates that we should run an initial plan for the resource instance prior to refreshing:
 	//   - If the plan indicates a no-op, then the no-op plan will be returned without refreshing the resource.
 	//   - If the plan indicates a change (anything but no-op), then the resource will be refreshed and another plan will be run.
@@ -275,6 +279,18 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}))
 			return diags
 		}
+	}
+
+	// Only untaint objects that are actually tainted, so that the plan only
+	// reports an untaint when one happens.
+	n.forceUntaint = n.forceUntaint && deferred == nil && instanceRefreshState != nil && instanceRefreshState.Status == states.ObjectTainted
+
+	// If the user asked to untaint this tainted instance, we flip the
+	// status in the refresh state so that planning treats the object as
+	// existing and the plan's prior state carries the untaint into apply.
+	if n.forceUntaint {
+		log.Printf("[DEBUG] Untainting %s as requested", addr)
+		instanceRefreshState.Status = states.ObjectReady
 	}
 
 	if deferred == nil {
@@ -622,6 +638,13 @@ func (n *NodePlannableResourceInstance) finalizePlan(ctx EvalContext, deferred, 
 	// change planned.
 	if len(n.replaceTriggeredBy) > 0 {
 		change.ActionReason = plans.ResourceInstanceReplaceByTriggers
+	}
+
+	// Record the untaint on the change unless something else explains the
+	// planned action (i.e not no-op), so that the UI can show it and
+	// the plan is applyable even when the action is otherwise a no-op.
+	if n.forceUntaint && change.ActionReason == plans.ResourceInstanceChangeNoReason {
+		change.ActionReason = plans.ResourceInstanceUntaintByRequest
 	}
 
 	// If this resource was deferred by the provider during import, refresh or

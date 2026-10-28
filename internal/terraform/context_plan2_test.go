@@ -3187,6 +3187,165 @@ func TestContext2Plan_forceReplace(t *testing.T) {
 	})
 }
 
+func TestContext2Plan_untaint(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+	addrC := mustResourceInstanceAddr("test_object.c")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "a" {
+			}
+			resource "test_object" "b" {
+			}
+			resource "test_object" "c" {
+			}
+		`,
+	})
+
+	for _, skipRefresh := range []bool{true} {
+		t.Run(fmt.Sprintf("skipRefresh=%t", skipRefresh), func(t *testing.T) {
+			state := states.BuildState(func(s *states.SyncState) {
+				for addr, status := range map[string]states.ObjectStatus{
+					"test_object.a": states.ObjectTainted,
+					"test_object.b": states.ObjectTainted,
+					"test_object.c": states.ObjectReady,
+				} {
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(addr), &states.ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    status,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				}
+			})
+
+			p := simpleMockProvider()
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, &PlanOpts{
+				Mode:         plans.NormalMode,
+				SkipRefresh:  skipRefresh,
+				ForceUntaint: []addrs.AbsResourceInstance{addrA, addrC},
+			})
+			tfdiags.AssertNoErrors(t, diags)
+
+			for _, tc := range []struct {
+				addr   addrs.AbsResourceInstance
+				action plans.Action
+				reason plans.ResourceInstanceChangeActionReason
+			}{
+				{addrA, plans.NoOp, plans.ResourceInstanceUntaintByRequest},
+				{addrB, plans.DeleteThenCreate, plans.ResourceInstanceReplaceBecauseTainted},
+				{addrC, plans.NoOp, plans.ResourceInstanceChangeNoReason},
+			} {
+				instPlan := plan.Changes.ResourceInstance(tc.addr)
+				if instPlan == nil {
+					t.Fatalf("no plan for %s at all", tc.addr)
+				}
+				if got, want := instPlan.Action, tc.action; got != want {
+					t.Errorf("%s: wrong planned action\ngot:  %s\nwant: %s", tc.addr, got, want)
+				}
+				if got, want := instPlan.ActionReason, tc.reason; got != want {
+					t.Errorf("%s: wrong action reason\ngot:  %s\nwant: %s", tc.addr, got, want)
+				}
+			}
+
+			if !plan.Applyable {
+				t.Fatal("plan should be applyable")
+			}
+
+			newState, diags := ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+			if got, want := newState.ResourceInstance(addrA).Current.Status, states.ObjectReady; got != want {
+				t.Errorf("wrong status for %s after apply\ngot:  %s\nwant: %s", addrA, got, want)
+			}
+		})
+	}
+}
+
+func TestContext2Plan_untaintOnly(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+		resource "test_object" "a" {
+		}`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectTainted,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		ForceUntaint: []addrs.AbsResourceInstance{addr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+	// A plan whose only effect is to untaint an object must still be
+	// applyable, otherwise the untaint would never be saved.
+	if !plan.Applyable {
+		t.Fatal("plan should be applyable")
+	}
+
+	newState, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	if got, want := newState.ResourceInstance(addr).Current.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong status after apply\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
+func TestContext2Plan_untaintRequiresReplace(t *testing.T) {
+	// An untainted object can still be replaced for other reasons, in which
+	// case the replacement reason takes precedence over the untaint.
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "test_object" "a" { test_string = "new" }`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"old"}`),
+			Status:    states.ObjectTainted,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState:    req.ProposedNewState,
+			RequiresReplace: []cty.Path{cty.GetAttrPath("test_string")},
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		ForceUntaint: []addrs.AbsResourceInstance{addr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if got, want := instPlan.Action, plans.DeleteThenCreate; got != want {
+		t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := instPlan.ActionReason, plans.ResourceInstanceReplaceBecauseCannotUpdate; got != want {
+		t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
 func TestContext2Plan_forceReplaceIncompleteAddr(t *testing.T) {
 	addr0 := mustResourceInstanceAddr("test_object.a[0]")
 	addr1 := mustResourceInstanceAddr("test_object.a[1]")

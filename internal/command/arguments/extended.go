@@ -91,6 +91,11 @@ type Operation struct {
 	// learn a use-case for broader matching.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// ForceUntaint addresses cause Terraform to treat the tainted objects of a
+	// particular set of resource instances as if they were not tainted, so
+	// that they are planned for their original action instead of "replace".
+	ForceUntaint []addrs.AbsResourceInstance
+
 	// DeferralAllowed enables experimental support for automatically performing
 	// a partial plan if some objects are not yet plannable (due to unknown
 	// values in count/for_each, or due to other missing dependencies that can't
@@ -109,6 +114,7 @@ type Operation struct {
 	targetsRaw       []string
 	actionTargetsRaw []string
 	forceReplaceRaw  []string
+	forceUntaintRaw  []string
 	destroyRaw       bool
 	refreshOnlyRaw   bool
 }
@@ -176,37 +182,21 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 			"Only one action can be invoked at a time."))
 	}
 
-	for _, raw := range o.forceReplaceRaw {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.Pos{Line: 1, Column: 1})
-		if syntaxDiags.HasErrors() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid force-replace address %q", raw),
-				syntaxDiags[0].Detail,
-			))
-			continue
+	var addrDiags tfdiags.Diagnostics
+	o.ForceReplace, addrDiags = parseForceAddrs(o.forceReplaceRaw, "force-replace", "-replace")
+	diags = diags.Append(addrDiags)
+	o.ForceUntaint, addrDiags = parseForceAddrs(o.forceUntaintRaw, "untaint", "-untaint")
+	diags = diags.Append(addrDiags)
+	for _, untaintAddr := range o.ForceUntaint {
+		for _, replaceAddr := range o.ForceReplace {
+			if untaintAddr.Equal(replaceAddr) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Conflicting resource instance options",
+					fmt.Sprintf("Resource instance %s cannot be both replaced (with -replace=...) and untainted (with -untaint=...) in the same plan.", untaintAddr),
+				))
+			}
 		}
-
-		addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
-		if addrDiags.HasErrors() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid force-replace address %q", raw),
-				addrDiags[0].Description().Detail,
-			))
-			continue
-		}
-
-		if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid force-replace address %q", raw),
-				"Only managed resources can be used with the -replace=... option.",
-			))
-			continue
-		}
-
-		o.ForceReplace = append(o.ForceReplace, addr)
 	}
 
 	// If you add a new possible value for o.PlanMode here, consider also
@@ -256,6 +246,48 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	return diags
 }
 
+// parseForceAddrs parses the raw values of an option like -replace=... into
+// managed resource instance addresses.
+func parseForceAddrs(raws []string, label, flagName string) ([]addrs.AbsResourceInstance, tfdiags.Diagnostics) {
+	var ret []addrs.AbsResourceInstance
+	var diags tfdiags.Diagnostics
+
+	for _, raw := range raws {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid %s address %q", label, raw),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
+		if addrDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid %s address %q", label, raw),
+				addrDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid %s address %q", label, raw),
+				fmt.Sprintf("Only managed resources can be used with the %s=... option.", flagName),
+			))
+			continue
+		}
+
+		ret = append(ret, addr)
+	}
+
+	return ret, diags
+}
+
 // extendedFlagSet creates a FlagSet with common backend, operation, and vars
 // flags used in many commands. Target structs for each subset of flags must be
 // provided in order to support those flags.
@@ -284,6 +316,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.Var((*FlagStringSlice)(&operation.targetsRaw), "target", "target")
 		f.Var((*FlagStringSlice)(&operation.actionTargetsRaw), "invoke", "invoke")
 		f.Var((*FlagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
+		f.Var((*FlagStringSlice)(&operation.forceUntaintRaw), "untaint", "untaint")
 	}
 
 	// Gather all -var and -var-file arguments into one heterogenous structure

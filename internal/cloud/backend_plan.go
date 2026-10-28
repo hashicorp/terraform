@@ -124,6 +124,10 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backendrun.Operat
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backendrun.Operation, w *tfe.Workspace) (*tfe.Run, error) {
+	if len(op.ForceUntaint) != 0 {
+		return nil, b.generalError("Untainting is not supported", fmt.Errorf("%s does not support the -untaint option", b.appName))
+	}
+
 	if b.CLI != nil {
 		header := fmt.Sprintf(planDefaultHeader, b.appName)
 		if op.Type == backendrun.OperationTypeApply || op.Type == backendrun.OperationTypeRefresh {

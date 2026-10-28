@@ -355,6 +355,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange, parse
 		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
 		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	case planproto.ResourceInstanceActionReason_UNTAINT_BY_REQUEST:
+		ret.ActionReason = plans.ResourceInstanceUntaintByRequest
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS:
 		ret.ActionReason = plans.ResourceInstanceReplaceByTriggers
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG:
@@ -884,6 +886,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
 	case plans.ResourceInstanceReplaceByRequest:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	case plans.ResourceInstanceUntaintByRequest:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_UNTAINT_BY_REQUEST
 	case plans.ResourceInstanceReplaceByTriggers:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:

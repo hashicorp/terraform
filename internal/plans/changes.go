@@ -556,6 +556,12 @@ const (
 	// planning option.)
 	ResourceInstanceReplaceByRequest ResourceInstanceChangeActionReason = 'R'
 
+	// ResourceInstanceUntaintByRequest indicates that the resource instance's
+	// tainted object is planned to be kept, rather than replaced, because a
+	// caller specifically asked for it using UntaintAddrs. (On the command
+	// line, the -untaint=... planning option.)
+	ResourceInstanceUntaintByRequest ResourceInstanceChangeActionReason = 'U'
+
 	// ResourceInstanceReplaceByTriggers indicates that the resource instance
 	// is planned to be replaced because of a corresponding change in a
 	// replace_triggered_by reference.

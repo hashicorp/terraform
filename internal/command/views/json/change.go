@@ -158,6 +158,7 @@ const (
 	ReasonTainted            ChangeReason = "tainted"
 	ReasonRequested          ChangeReason = "requested"
 	ReasonReplaceTriggeredBy ChangeReason = "replace_triggered_by"
+	ReasonUntaintRequested   ChangeReason = "untaint_requested"
 	ReasonCannotUpdate       ChangeReason = "cannot_update"
 	ReasonUnknown            ChangeReason = "unknown"
 
@@ -184,6 +185,8 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonCannotUpdate
 	case plans.ResourceInstanceReplaceByTriggers:
 		return ReasonReplaceTriggeredBy
+	case plans.ResourceInstanceUntaintByRequest:
+		return ReasonUntaintRequested
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 		return ReasonDeleteBecauseNoResourceConfig
 	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
