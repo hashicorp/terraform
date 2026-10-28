@@ -6819,6 +6819,17 @@ func TestResourceChange_actionReason(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
 +/- resource "test_instance" "example" {}`,
 		},
+		"untaint by request": {
+			Action:          plans.NoOp,
+			ActionReason:    plans.ResourceInstanceUntaintByRequest,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           emptyVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be untainted
+    resource "test_instance" "example" {}`,
+		},
 		"replace because cannot update (delete first)": {
 			Action:          plans.DeleteThenCreate,
 			ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,

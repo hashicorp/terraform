@@ -126,6 +126,7 @@ type Operation struct {
 	Targets              []addrs.TargetPattern
 	ActionTargets        []addrs.TargetPattern
 	ForceReplace         []addrs.AbsResourceInstance
+	ForceUntaint         []addrs.AbsResourceInstance
 	Variables            map[string]arguments.UnparsedVariableValue
 	StatePersistInterval int
 

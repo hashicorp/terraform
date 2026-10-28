@@ -304,6 +304,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.PlanRefresh = args.Refresh
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
+	opReq.ForceUntaint = args.ForceUntaint
 	opReq.Type = backendrun.OperationTypeApply
 	opReq.View = view.Operation()
 	opReq.StatePersistInterval = c.Meta.StatePersistInterval()
@@ -388,6 +389,9 @@ Options:
 
   -replace=resource      Terraform will plan to replace this resource instance
                          instead of doing an update or no-op action.
+
+  -untaint=resource      Terraform will untaint this resource instance
+  						 before planning it.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".

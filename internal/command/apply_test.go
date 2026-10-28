@@ -3354,6 +3354,186 @@ func TestApply_replace(t *testing.T) {
 	}
 }
 
+func TestApply_untaintSavedPlan(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-replace"), td)
+	t.Chdir(td)
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "a",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	testStateFileDefault(t, states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"hello"}`),
+			Status:    states.ObjectTainted,
+		}, addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		})
+	}))
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+
+	// Plan with -untaint and save the plan to disk.
+	view, done := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+	if code := planCmd.Run([]string{"-no-color", "-untaint=test_instance.a", "-out=tfplan"}); code != 0 {
+		t.Fatalf("plan failed with exit code %d\n\n%s", code, done(t).All())
+	}
+	if got, want := done(t).Stdout(), "# test_instance.a will be untainted"; !strings.Contains(got, want) {
+		t.Errorf("plan output missing untaint\ngot:\n%s\n\nwant substring: %s", got, want)
+	}
+
+	// The untaint must survive the round trip through the plan file.
+	plan := testReadPlan(t, "tfplan")
+	if !plan.Applyable {
+		t.Fatal("saved plan should be applyable")
+	}
+	change := plan.Changes.ResourceInstance(addr)
+	if change == nil {
+		t.Fatalf("saved plan has no change for %s", addr)
+	}
+	if got, want := change.Action, plans.NoOp; got != want {
+		t.Errorf("wrong action in saved plan\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := change.ActionReason, plans.ResourceInstanceUntaintByRequest; got != want {
+		t.Errorf("wrong action reason in saved plan\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := plan.PriorState.ResourceInstance(addr).Current.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong prior state status in saved plan\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// Planning must not touch the real state: the state file should still have
+	// the resource tainted
+	if got, want := testStateRead(t, DefaultStateFilename).ResourceInstance(addr).Current.Status, states.ObjectTainted; got != want {
+		t.Errorf("wrong status in state file after plan\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// The previous run state recorded in the plan must have untainted the object,
+	// because the untaint action is already used to calculate the change to be planned.
+	if got, want := plan.PrevRunState.ResourceInstance(addr).Current.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong previous run state status in saved plan\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// Apply the saved plan, with a fresh command so nothing carries over
+	// from the plan run except the plan file itself.
+	view, done = testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+	if code := applyCmd.Run([]string{"tfplan"}); code != 0 {
+		t.Fatalf("apply failed with exit code %d\n\n%s", code, done(t).All())
+	}
+	if got, want := done(t).Stdout(), "0 added, 0 changed, 0 destroyed"; !strings.Contains(got, want) {
+		t.Errorf("wrong apply summary\ngot:\n%s\n\nwant substring: %s", got, want)
+	}
+	if p.ApplyResourceChangeCalled {
+		t.Error("provider should not be asked to apply anything for an untaint")
+	}
+
+	state := testStateRead(t, DefaultStateFilename)
+	if got, want := state.ResourceInstance(addr).Current.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong status after apply\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
+func TestApply_untaint(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("apply-replace"), td)
+	t.Chdir(td)
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "a",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	testStateFileDefault(t, states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"hello"}`),
+			Status:    states.ObjectTainted,
+		}, addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		})
+	}))
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{PlannedState: req.ProposedNewState}
+	}
+
+	view, done := testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+	if code := applyCmd.Run([]string{"-no-color", "-untaint=test_instance.a"}); code != 0 {
+		t.Fatalf("apply failed with exit code %d\n\n%s", code, done(t).All())
+	}
+	out := done(t).Stdout()
+	want := `test_instance.a: Refreshing state... [id=hello]
+
+Terraform will perform the following actions:
+
+  # test_instance.a will be untainted
+    resource "test_instance" "a" {
+        id = "hello"
+    }
+
+Plan: 0 to add, 0 to change, 0 to destroy.
+
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+`
+	if diff := cmp.Diff(want, out); diff != "" {
+		t.Errorf("Expected %s, got %s: diff: %s", want, out, diff)
+	}
+	if p.ApplyResourceChangeCalled {
+		t.Error("provider should not be asked to apply anything for an untaint")
+	}
+
+	state := testStateRead(t, DefaultStateFilename)
+	if got, want := state.ResourceInstance(addr).Current.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong status after apply\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
 func TestApply_pluginPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()

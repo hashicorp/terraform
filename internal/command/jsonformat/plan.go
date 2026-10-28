@@ -69,7 +69,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 	var changes []diff
 	for _, diff := range diffs.changes {
 		action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-		if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
+		if action == plans.NoOp && !diff.Moved() && !diff.Importing() && !diff.Untainting() {
 			// Don't show anything for NoOp changes.
 			continue
 		}
@@ -397,7 +397,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	// the computed actions of these.
 
 	action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-	if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
+	if action == plans.NoOp && !diff.Moved() && !diff.Importing() && !diff.Untainting() {
 		// Skip resource changes that have nothing interesting to say.
 		return "", false
 	}
@@ -558,6 +558,9 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		default:
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] update (unknown reason %s)", dispAddr, changeCause))
 		}
+		if resource.ActionReason == jsonplan.ResourceInstanceUntaintByRequest {
+			buf.WriteString("\n  # (untainted by request)")
+		}
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		switch resource.ActionReason {
 		case jsonplan.ResourceInstanceReplaceBecauseTainted:
@@ -644,6 +647,11 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 				buf.WriteString("\n  #[reset] (config will be generated)")
 			}
 			printedImported = true
+			break
+		}
+		// TODO: confirm informational comment
+		if resource.ActionReason == jsonplan.ResourceInstanceUntaintByRequest {
+			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be untainted as requested", dispAddr))
 			break
 		}
 		fallthrough

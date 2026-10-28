@@ -184,6 +184,10 @@ func (d diff) Importing() bool {
 	return d.change.Change.Importing != nil
 }
 
+func (d diff) Untainting() bool {
+	return d.change.ActionReason == jsonplan.ResourceInstanceUntaintByRequest
+}
+
 type deferredDiff struct {
 	diff   diff
 	reason string

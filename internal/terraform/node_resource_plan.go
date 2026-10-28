@@ -48,6 +48,10 @@ type nodeExpandPlannableResource struct {
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
 
+	// forceUntaint are resource instance addresses where the user wants to
+	// keep a tainted object. Like forceReplace, it isn't pre-filtered.
+	forceUntaint []addrs.AbsResourceInstance
+
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
 	// FIXME: These would be better off converted to a generic Set data
@@ -364,6 +368,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 			skipPlanChanges:          skipPlanChanges,
 			minimalRefresh:           n.minimalRefresh,
 			forceReplace:             slices.ContainsFunc(n.forceReplace, a.Addr.Equal),
+			forceUntaint:             slices.ContainsFunc(n.forceUntaint, a.Addr.Equal),
 		}
 
 		if importID, ok := knownImports.GetOk(a.Addr); ok {

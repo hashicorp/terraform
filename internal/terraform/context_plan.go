@@ -97,6 +97,12 @@ type PlanOpts struct {
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// ForceUntaint is a set of resource instance addresses whose current
+	// objects, if tainted, should be treated as not tainted. The object is
+	// then planned like any other existing object (update or no-op) rather
+	// than being replaced, and the untainted status is saved on apply.
+	ForceUntaint []addrs.AbsResourceInstance
+
 	// DeferralAllowed specifies that the plan is allowed to defer some actions,
 	// so that a subset of the plan can be applied even if parts of it can't yet
 	// be planned at all. Plans that contain deferred actions can't converge in
@@ -277,13 +283,13 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		))
 		return nil, nil, diags
 	}
-	if len(opts.ForceReplace) > 0 && opts.Mode != plans.NormalMode {
+	if (len(opts.ForceReplace) > 0 || len(opts.ForceUntaint) > 0) && opts.Mode != plans.NormalMode {
 		// The other modes don't generate no-op or update actions that we might
 		// upgrade to be "replace", so doesn't make sense to combine those.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unsupported plan mode",
-			"Forcing resource instance replacement (with -replace=...) is allowed only in normal planning mode.",
+			"Forcing resource instance replacement (with -replace=...) or untainting (with -untaint=...) is allowed only in normal planning mode.",
 		))
 		return nil, nil, diags
 	}
@@ -1073,6 +1079,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:                    c.plugins,
 			Targets:                    opts.Targets,
 			ForceReplace:               opts.ForceReplace,
+			ForceUntaint:               opts.ForceUntaint,
 			skipRefresh:                opts.SkipRefresh,
 			preDestroyRefresh:          opts.PreDestroyRefresh,
 			minimalRefresh:             opts.MinimalRefresh,

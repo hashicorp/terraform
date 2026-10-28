@@ -108,6 +108,12 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 				if t.PolicyClient != nil && rc.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 					update = true
 				}
+
+				// Untainted resources also need to be updated in the state so that
+				// the object status is persisted
+				if rc.ActionReason == plans.ResourceInstanceUntaintByRequest {
+					update = true
+				}
 			}
 
 		case plans.Delete:

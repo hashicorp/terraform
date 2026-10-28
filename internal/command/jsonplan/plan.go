@@ -37,6 +37,7 @@ const (
 	ResourceInstanceReplaceBecauseTainted         = "replace_because_tainted"
 	ResourceInstanceReplaceByRequest              = "replace_by_request"
 	ResourceInstanceReplaceByTriggers             = "replace_by_triggers"
+	ResourceInstanceUntaintByRequest              = "untaint_by_request"
 	ResourceInstanceDeleteBecauseNoResourceConfig = "delete_because_no_resource_config"
 	ResourceInstanceDeleteBecauseWrongRepetition  = "delete_because_wrong_repetition"
 	ResourceInstanceDeleteBecauseCountIndex       = "delete_because_count_index"
@@ -630,6 +631,8 @@ func marshalResourceChange(rc *plans.ResourceInstanceChangeSrc, schemas *terrafo
 		r.ActionReason = ResourceInstanceReplaceByRequest
 	case plans.ResourceInstanceReplaceByTriggers:
 		r.ActionReason = ResourceInstanceReplaceByTriggers
+	case plans.ResourceInstanceUntaintByRequest:
+		r.ActionReason = ResourceInstanceUntaintByRequest
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 		r.ActionReason = ResourceInstanceDeleteBecauseNoResourceConfig
 	case plans.ResourceInstanceDeleteBecauseWrongRepetition:

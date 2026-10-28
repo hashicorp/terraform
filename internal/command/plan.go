@@ -190,6 +190,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.GenerateConfigOut = generateConfigOut
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
+	opReq.ForceUntaint = args.ForceUntaint
 	opReq.Type = backendrun.OperationTypePlan
 	opReq.View = view.Operation()
 	opReq.ActionTargets = args.ActionTargets
@@ -255,6 +256,11 @@ Plan Customization Options:
                       produced an update or no-op action for this instance,
                       Terraform will plan to replace it instead. You can use
                       this option multiple times to replace more than one object.
+
+  -untaint=resource   Treat a tainted resource instance as if it were not
+                      tainted, so that Terraform plans it with the original
+                      derived action. You can use this
+                      option multiple times to untaint more than one object.
 
   -target=resource    Limit the planning operation to only the given module,
                       resource, or resource instance and all of its

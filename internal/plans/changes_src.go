@@ -55,6 +55,12 @@ func (c *ChangesSrc) Empty() bool {
 		if res.Importing != nil {
 			return false
 		}
+
+		// if the resource was just untainted, we need to persist that
+		// in the state.
+		if res.ActionReason == ResourceInstanceUntaintByRequest {
+			return false
+		}
 	}
 
 	for _, out := range c.Outputs {

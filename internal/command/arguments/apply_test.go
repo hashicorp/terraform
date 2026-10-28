@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestParseApply_basicValid(t *testing.T) {
@@ -270,6 +271,27 @@ func TestParseApply_replace(t *testing.T) {
 				t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.Targets, tc.want))
 			}
 		})
+	}
+}
+
+func TestParseApply_untaint(t *testing.T) {
+	foobarbaz, _ := addrs.ParseAbsResourceInstanceStr("foo_bar.baz")
+	foobarbeep, _ := addrs.ParseAbsResourceInstanceStr("foo_bar.beep")
+
+	got, diags := ParseApply([]string{"-untaint=foo_bar.baz", "-untaint", "foo_bar.beep"})
+	tfdiags.AssertNoErrors(t, diags)
+	if want := []addrs.AbsResourceInstance{foobarbaz, foobarbeep}; !cmp.Equal(got.Operation.ForceUntaint, want) {
+		t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.ForceUntaint, want))
+	}
+
+	_, diags = ParseApply([]string{"-untaint=data.foo.bar"})
+	if want := "Only managed resources can be used with the -untaint=... option."; !strings.Contains(diags.Err().Error(), want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", diags.Err(), want)
+	}
+
+	_, diags = ParseApply([]string{"-untaint=foo_bar.baz", "-replace=foo_bar.baz", "-replace=foo_bar.beep"})
+	if want := "Resource instance foo_bar.baz cannot be both replaced (with -replace=...) and untainted (with -untaint=...) in the same plan."; len(diags) != 1 || !strings.Contains(diags.Err().Error(), want) {
+		t.Fatalf("wrong diags\n got: %s\nwant: %s", diags.ErrWithWarnings(), want)
 	}
 }
 

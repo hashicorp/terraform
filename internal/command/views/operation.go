@@ -261,7 +261,12 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			cs.Add++
 		}
 
-		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
+		viewPlannedChange := change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil
+		if change.ActionReason == plans.ResourceInstanceUntaintByRequest {
+			viewPlannedChange = true
+		}
+
+		if viewPlannedChange {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}

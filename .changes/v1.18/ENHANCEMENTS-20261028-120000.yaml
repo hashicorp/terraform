@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'terraform plan and terraform apply: New `-untaint=ADDRESS` option clears the tainted status of a resource instance as part of a normal plan, instead of replacing it'
+time: 2026-10-28T12:00:00-04:00
+custom:
+    Issue: "39059"

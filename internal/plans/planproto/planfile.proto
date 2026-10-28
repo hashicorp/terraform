@@ -249,6 +249,7 @@ enum ResourceInstanceActionReason {
     READ_BECAUSE_DEPENDENCY_PENDING = 11;
     READ_BECAUSE_CHECK_NESTED = 13;
     DELETE_BECAUSE_NO_MOVE_TARGET = 12;
+    UNTAINT_BY_REQUEST = 14;
 }
 
 message ResourceInstanceChange {
