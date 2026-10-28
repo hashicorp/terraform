@@ -103,7 +103,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error determining the current workspace",
+			"Failed to determine the current workspace",
 			err.Error(),
 		))
 		view.Diagnostics(diags)
@@ -123,7 +123,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if sDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error accessing state",
+			"Failed to access state",
 			fmt.Sprintf("Failed to access state: %s", sDiags.Err()),
 		))
 		view.Diagnostics(diags)
@@ -148,7 +148,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if err := stateMgr.RefreshState(); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error loading state",
+			"Failed to load state",
 			fmt.Sprintf("Failed to load state: %s", err),
 		))
 		view.Diagnostics(diags)
@@ -228,7 +228,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if err := stateMgr.WriteState(state); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error writing state file",
+			"Failed to write to state file",
 			err.Error(),
 		))
 		view.Diagnostics(diags)
@@ -237,7 +237,7 @@ func (c *TaintCommand) Run(rawArgs []string) int {
 	if err := stateMgr.PersistState(schemas); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error writing state file",
+			"Failed to write to state file",
 			err.Error(),
 		))
 		view.Diagnostics(diags)

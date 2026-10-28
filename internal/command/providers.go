@@ -70,7 +70,7 @@ func (c *ProvidersCommand) Run(rawArgs []string) int {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error validating configuration directory",
+			"Validation of configuration directory failed",
 			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
 		))
 		view.Diagnostics(diags)
@@ -119,7 +119,7 @@ func (c *ProvidersCommand) Run(rawArgs []string) int {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error determining the current workspace",
+			"Failed to determine the current workspace",
 			err.Error(),
 		))
 		view.Diagnostics(diags)
@@ -129,7 +129,7 @@ func (c *ProvidersCommand) Run(rawArgs []string) int {
 	if sDiags.HasErrors() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error accessing state",
+			"Failed to access state",
 			fmt.Sprintf("Failed to access state: %s", sDiags.Err()),
 		))
 		view.Diagnostics(diags)
@@ -138,7 +138,7 @@ func (c *ProvidersCommand) Run(rawArgs []string) int {
 	if err := s.RefreshState(); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Error loading state",
+			"Failed to load state",
 			fmt.Sprintf("Failed to load state: %s", err),
 		))
 		view.Diagnostics(diags)
