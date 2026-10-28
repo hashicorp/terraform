@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: 'stacks: report every policy result for a replaced resource instead of only one of them'
-time: 2026-10-27T20:24:09+05:30
-custom:
-    Issue: "39453"
