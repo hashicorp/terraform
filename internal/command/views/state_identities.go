@@ -23,6 +23,10 @@ func NewStateIdentities(viewType arguments.ViewType, view *View) StateIdentities
 			view:       NewJSONStaticView[StateIdentitiesOutput](view),
 			legacyView: view,
 		}
+	case arguments.ViewHuman:
+		return &StateIdentitiesHuman{
+			view: view,
+		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
 	}
@@ -44,4 +48,16 @@ func (v *StateIdentitiesJSON) Identities(identities map[string]json.RawMessage) 
 
 func (v *StateIdentitiesJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.legacyView.Diagnostics(diags)
+}
+
+type StateIdentitiesHuman struct {
+	view *View
+}
+
+func (v *StateIdentitiesHuman) Identities(identities map[string]json.RawMessage) {
+	panic("not implemented")
+}
+
+func (v *StateIdentitiesHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
