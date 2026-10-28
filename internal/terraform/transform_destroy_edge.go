@@ -354,6 +354,14 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// Module policies only depend on static configuration, so they can always be evaluated,
+		// even when the module expansion itself is pruned.
+		if _, ok := n.(*nodeModulePolicy); ok {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping module policy %s", n.Name())
+			keep.Add(n)
+			continue
+		}
+
 		// from here we only search for managed resource destroy nodes
 		n, ok := n.(GraphNodeDestroyer)
 		if !ok {
