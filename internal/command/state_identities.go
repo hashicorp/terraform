@@ -150,9 +150,15 @@ Usage: terraform [global options] state identities [options] -json [address...]
 
 Options:
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
+
+  -no-color           If specified, output won't contain any color.
 
   -json               Outputs the identities in JSON format. This flag is required.
 
