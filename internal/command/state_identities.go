@@ -150,16 +150,16 @@ Usage: terraform [global options] state identities [options] -json [address...]
 
 Options:
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default, Terraform
-                      will consult the state of the currently-selected
-                      workspace.
-
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
 
   -json               Outputs the identities in JSON format. This flag is required.
+
+  -state=statefile    Path to a Terraform state file to use to look
+                      up Terraform-managed resources. By default, Terraform
+                      will consult the state of the currently-selected
+                      workspace.
 
 `
 	return strings.TrimSpace(helpText)
