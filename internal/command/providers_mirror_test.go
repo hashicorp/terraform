@@ -16,7 +16,12 @@ import (
 func TestProvidersMirror(t *testing.T) {
 	// noop example
 	t.Run("noop", func(t *testing.T) {
-		c := &ProvidersMirrorCommand{}
+		view, _ := testView(t)
+		c := &ProvidersMirrorCommand{
+			Meta: Meta{
+				View: view,
+			},
+		}
 		code := c.Run([]string{"."})
 		if code != 0 {
 			t.Fatalf("wrong exit code. expected 0, got %d", code)
@@ -24,16 +29,19 @@ func TestProvidersMirror(t *testing.T) {
 	})
 
 	t.Run("missing arg error", func(t *testing.T) {
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersMirrorCommand{
-			Meta: Meta{Ui: ui},
+			Meta: Meta{
+				View: view,
+			},
 		}
-		code := c.Run([]string{})
+		args := []string{"-no-color"}
+		code := c.Run(args)
 		if code != 1 {
 			t.Fatalf("wrong exit code. expected 1, got %d", code)
 		}
 
-		got := ui.ErrorWriter.String()
+		got := done(t).Stderr()
 		if !strings.Contains(got, "Error: No output directory specified") {
 			t.Fatalf("missing directory error from output, got:\n%s\n", got)
 		}
@@ -45,11 +53,11 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -59,7 +67,7 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -74,22 +82,26 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
-				Ui:         ui,
+				View:       view,
 				WorkingDir: wd,
 				Services:   d,
 			},
 		}
 
-		args := []string{"-var", "module_name=child", t.TempDir()}
+		args := []string{
+			"-no-color",
+			"-var", "module_name=child",
+			t.TempDir(),
+		}
 		if code := c.Run(args); code == 0 {
 			t.Fatalf("expected error, got 0")
 		}
 
 		// We expect an error, since the test provider can't be found on the registry
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "Error: Provider not available") {
 			t.Fatalf("expected provider not found error, got: %s", errStr)
 		}
@@ -107,22 +119,25 @@ func TestProvidersMirror_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersMirrorCommand{
 			Meta: Meta{
-				Ui:         ui,
+				View:       view,
 				WorkingDir: wd,
 				Services:   d,
 			},
 		}
 
-		args := []string{t.TempDir()}
+		args := []string{
+			"-no-color",
+			t.TempDir(),
+		}
 		if code := c.Run(args); code == 0 {
 			t.Fatalf("expected error, got 0")
 		}
 
 		// We expect an error, since the test provider can't be found on the registry
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "Error: Provider not available") {
 			t.Fatalf("expected provider not found error, got: %s", errStr)
 		}
