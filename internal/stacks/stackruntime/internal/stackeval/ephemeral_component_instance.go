@@ -247,6 +247,9 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 					return cty.DynamicVal, diags
 				}
 
+				// TODO:@austinvalle: This will be adjusted in a separate PR for existing stacks features
+				// like components, but I need to apply that fix here as well.
+				//
 				// These factories are used by Terraform core to perform operations that require an
 				// unconfigured provider (like executing a provider-defined function). The configured provider
 				// clients have already been populated in the PlanOpts argument.
