@@ -46,7 +46,7 @@ func TestProvidersLockHuman_LogLockFileValidated(t *testing.T) {
 	view.Configure(&arguments.View{NoColor: true})
 	v := NewProvidersLock(arguments.ViewHuman, view)
 
-	v.LogLockFileValidated()
+	v.LockFileValidated()
 
 	output := done(t)
 
@@ -175,7 +175,7 @@ func TestProvidersLockHuman_LogProviderAddedToLockFile(t *testing.T) {
 		t.Fatalf("failed to parse platform: %s", err)
 	}
 
-	v.LogProviderAddedToLockFile(providerAddr, platform)
+	v.ProviderAddedToLockFile(providerAddr, platform)
 
 	output := done(t)
 
@@ -206,7 +206,7 @@ func TestProvidersLockHuman_LogProviderChecksumsUpdatedInLockFile(t *testing.T) 
 		t.Fatalf("failed to parse platform: %s", err)
 	}
 
-	v.LogProviderChecksumsUpdatedInLockFile(providerAddr, platform)
+	v.ProviderChecksumsUpdatedInLockFile(providerAddr, platform)
 
 	output := done(t)
 
@@ -237,7 +237,7 @@ func TestProvidersLockHuman_LogProviderUnchangedInLockFile(t *testing.T) {
 		t.Fatalf("failed to parse platform: %s", err)
 	}
 
-	v.LogProviderUnchangedInLockFile(providerAddr, platform)
+	v.ProviderUnchangedInLockFile(providerAddr, platform)
 
 	output := done(t)
 

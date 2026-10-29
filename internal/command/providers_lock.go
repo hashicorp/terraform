@@ -333,12 +333,12 @@ func (c *ProvidersLockCommand) Run(rawArgs []string) int {
 			switch providersLockCalculateChangeType(oldLock, platformLock) {
 			case providersLockChangeTypeNewProvider:
 				madeAnyChange = true
-				view.LogProviderAddedToLockFile(provider, platform)
+				view.ProviderAddedToLockFile(provider, platform)
 			case providersLockChangeTypeNewHashes:
 				madeAnyChange = true
-				view.LogProviderChecksumsUpdatedInLockFile(provider, platform)
+				view.ProviderChecksumsUpdatedInLockFile(provider, platform)
 			case providersLockChangeTypeNoChange:
-				view.LogProviderUnchangedInLockFile(provider, platform)
+				view.ProviderUnchangedInLockFile(provider, platform)
 			}
 		}
 		newLocks.SetProvider(provider, version, constraints, hashes)
@@ -355,7 +355,7 @@ func (c *ProvidersLockCommand) Run(rawArgs []string) int {
 	if madeAnyChange {
 		view.LogProviderLockfileUpdated()
 	} else {
-		view.LogLockFileValidated()
+		view.LockFileValidated()
 	}
 	return 0
 }

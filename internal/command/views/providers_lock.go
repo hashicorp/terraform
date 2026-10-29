@@ -19,16 +19,16 @@ type ProvidersLock interface {
 	LogProviderLockfileUpdated()
 
 	// Log that the lock file was validated and no changes were necessary.
-	LogLockFileValidated()
+	LockFileValidated()
 
 	// Log that a provider was added to the lock file.
-	LogProviderAddedToLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
+	ProviderAddedToLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
 
 	// Log that checksums for a provider were added to the lock file.
-	LogProviderChecksumsUpdatedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
+	ProviderChecksumsUpdatedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
 
 	// Log that a lock file entry for a provider was validated, i.e nothing changed.
-	LogProviderUnchangedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
+	ProviderUnchangedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 
@@ -65,7 +65,7 @@ type ProvidersLockHuman struct {
 
 var _ ProvidersLock = (*ProvidersLockHuman)(nil)
 
-func (v *ProvidersLockHuman) LogProviderAddedToLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
+func (v *ProvidersLockHuman) ProviderAddedToLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
 	v.view.streams.Println(
 		fmt.Sprintf(
 			"- Obtained %s checksums for %s; This was a new provider and the checksums for this platform are now tracked in the lock file",
@@ -75,7 +75,7 @@ func (v *ProvidersLockHuman) LogProviderAddedToLockFile(providerAddr addrs.Provi
 	)
 }
 
-func (v *ProvidersLockHuman) LogProviderChecksumsUpdatedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
+func (v *ProvidersLockHuman) ProviderChecksumsUpdatedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
 	v.view.streams.Println(
 		fmt.Sprintf(
 			"- Obtained %s checksums for %s; Additional checksums for this platform are now tracked in the lock file",
@@ -85,7 +85,7 @@ func (v *ProvidersLockHuman) LogProviderChecksumsUpdatedInLockFile(providerAddr 
 	)
 }
 
-func (v *ProvidersLockHuman) LogProviderUnchangedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
+func (v *ProvidersLockHuman) ProviderUnchangedInLockFile(providerAddr addrs.Provider, platform getproviders.Platform) {
 	v.view.streams.Println(
 		fmt.Sprintf(
 			"- Obtained %s checksums for %s; All checksums for this platform were already tracked in the lock file",
@@ -99,7 +99,7 @@ func (v *ProvidersLockHuman) LogProviderLockfileUpdated() {
 	v.view.streams.Print("\nReview the changes in .terraform.lock.hcl and then commit to your\nversion control system to retain the new checksums.\n")
 }
 
-func (v *ProvidersLockHuman) LogLockFileValidated() {
+func (v *ProvidersLockHuman) LockFileValidated() {
 	v.view.streams.Print(v.view.colorize.Color("\n[bold][green]Success![reset] [bold]Terraform has validated the lock file and found no need for changes.[reset]\n"))
 }
 
