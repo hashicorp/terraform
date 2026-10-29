@@ -33,9 +33,8 @@ func (c *UnlockCommand) Run(rawArgs []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
 	configPath := c.WorkingDir.RootModuleDir()
-	b, backendDiags := c.backend(configPath, view)
+	b, backendDiags := c.backend(configPath, args.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
