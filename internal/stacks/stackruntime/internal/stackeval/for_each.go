@@ -71,7 +71,7 @@ func evaluateForEachExpr(ctx context.Context, expr hcl.Expression, phase EvalPha
 			EvalContext: result.EvalContext,
 			Extra:       diagnosticCausedByEphemeral(true),
 		})
-
+		return result, diags
 	case result.Value.IsNull():
 		// we don't alllow null values
 		diags = diags.Append(&hcl.Diagnostic{
