@@ -19,6 +19,7 @@ func TestParseProvidersLock_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&ProvidersLock{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Vars:           &Vars{},
 			},
@@ -33,6 +34,7 @@ func TestParseProvidersLock_valid(t *testing.T) {
 				"hashicorp/test",
 			},
 			&ProvidersLock{
+				ViewType:          ViewHuman,
 				Platforms:         FlagStringSlice{"linux_amd64", "darwin_arm64"},
 				FSMirrorDir:       "mirror",
 				TestsDirectory:    "integration-tests",
@@ -70,6 +72,7 @@ func TestParseProvidersLock_invalid(t *testing.T) {
 				"-net-mirror=https://example.com",
 			},
 			&ProvidersLock{
+				ViewType:       ViewHuman,
 				FSMirrorDir:    "foo",
 				NetMirrorURL:   "https://example.com",
 				TestsDirectory: "tests",
@@ -87,6 +90,7 @@ func TestParseProvidersLock_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-wat"},
 			&ProvidersLock{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Providers:      []string{},
 				Vars:           &Vars{},
@@ -106,6 +110,7 @@ func TestParseProvidersLock_invalid(t *testing.T) {
 				"-net-mirror=https://example.com",
 			},
 			&ProvidersLock{
+				ViewType:       ViewHuman,
 				TestsDirectory: "tests",
 				Providers:      []string{"-fs-mirror=foo", "-net-mirror=https://example.com"},
 				Vars:           &Vars{},
