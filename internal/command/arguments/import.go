@@ -48,6 +48,8 @@ type Import struct {
 
 	// ID is the provider-specific ID of the resource to import.
 	ID string
+
+	ViewType ViewType
 }
 
 // ParseImport processes CLI arguments, returning an Import value and errors.
@@ -59,7 +61,8 @@ func ParseImport(args []string) (*Import, tfdiags.Diagnostics) {
 		State: &State{
 			Lock: true,
 		},
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 	// Get the pwd since its our default -config flag value
 	pwd, err := getwd()

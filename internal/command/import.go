@@ -88,7 +88,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -109,7 +109,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Build the operation
 	var err error
-	opReq := c.Operation(b, arguments.ViewHuman)
+	opReq := c.Operation(b, parsedArgs.ViewType)
 	opReq.ConfigDir = parsedArgs.ConfigPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
@@ -134,7 +134,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 		c.VariableValues = opReq.Variables
 	}
-	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
+	opReq.View = views.NewOperation(parsedArgs.ViewType, c.RunningInAutomation, c.View)
 
 	// Load the full config, so we can verify that the target resource is
 	// already configured.
