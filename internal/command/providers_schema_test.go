@@ -6,7 +6,6 @@ package command
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -30,17 +29,16 @@ import (
 )
 
 func TestProvidersSchema_error(t *testing.T) {
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	if code := c.Run(nil); code != 1 {
-		fmt.Println(ui.OutputWriter.String())
-		t.Fatalf("expected error: \n%s", ui.OutputWriter.String())
+		t.Fatalf("expected error: \n%s", done(t).All())
 	}
 }
 
@@ -66,11 +64,9 @@ func TestProvidersSchema_output(t *testing.T) {
 			})
 
 			p := providersSchemaFixtureProvider()
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
-				Ui:               ui,
 				View:             view,
 				ProviderSource:   providerSource,
 			}
@@ -84,13 +80,15 @@ func TestProvidersSchema_output(t *testing.T) {
 			}
 
 			// `terraform provider schemas` command
+			view, done = testView(t)
+			m.View = view
 			pc := &ProvidersSchemaCommand{Meta: m}
 			if code := pc.Run([]string{"-json"}); code != 0 {
-				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, done(t).All())
 			}
 			var got, want providerSchemas
 
-			gotString := ui.OutputWriter.String()
+			gotString := done(t).Stdout()
 			json.Unmarshal([]byte(gotString), &got)
 
 			wantFile, err := os.Open("output.json")
@@ -122,10 +120,10 @@ func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
 	// We don't call t.Chdir, intentionally.
 
 	p := providersSchemaFixtureProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
-			Ui:               ui,
+			View:             view,
 			testingOverrides: metaOverridesForProvider(p),
 
 			// Setting WorkingDir mimics what calling code would do
@@ -138,13 +136,13 @@ func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
 		"-json",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Assert we got the expected output, despite no changing into that directory.
 	var got, want providerSchemas
 
-	gotString := ui.OutputWriter.String()
+	gotString := done(t).Stdout()
 	json.Unmarshal([]byte(gotString), &got)
 
 	wantFile, err := os.Open(filepath.Join(td, "output.json"))
@@ -207,10 +205,10 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 	// Mock for the provider in the state
 	mockProviderAddressBaz := addrs.NewDefaultProvider("baz")
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &ProvidersSchemaCommand{
 		Meta: Meta{
-			Ui:                        ui,
+			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{
@@ -223,7 +221,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 
 	args := []string{"-json"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Does the output mention the 2 providers, and the name of the state store?
@@ -233,7 +231,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 		"test_store",                     // the name of the state store implemented in the provider
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	for _, want := range wantOutput {
 		if !strings.Contains(output, want) {
 			t.Errorf("output missing %s:\n%s", want, output)
@@ -242,9 +240,7 @@ func TestProvidersSchema_output_withStateStore(t *testing.T) {
 
 	// Does the output match the full expected schema?
 	var got, want providerSchemas
-
-	gotString := ui.OutputWriter.String()
-	err := json.Unmarshal([]byte(gotString), &got)
+	err := json.Unmarshal([]byte(output), &got)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -273,11 +269,11 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -287,7 +283,7 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).All()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -297,21 +293,21 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{"-json", "-var", "module_name=child"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		wantOutput := []string{
 			`"registry.terraform.io/hashicorp/test"`,
 		}
@@ -335,11 +331,11 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &ProvidersSchemaCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 				Services:         d,
 			},
@@ -347,10 +343,10 @@ func TestProvidersSchema_constVariable(t *testing.T) {
 
 		args := []string{"-json"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 		}
 
-		output := ui.OutputWriter.String()
+		output := done(t).Stdout()
 		wantOutput := []string{
 			`"registry.terraform.io/hashicorp/test"`,
 		}
