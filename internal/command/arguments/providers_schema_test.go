@@ -19,8 +19,8 @@ func TestParseProvidersSchema_valid(t *testing.T) {
 		"json": {
 			[]string{"-json"},
 			&ProvidersSchema{
-				JSON: true,
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewJSON,
 			},
 		},
 	}
@@ -49,7 +49,8 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		"missing json": {
 			nil,
 			&ProvidersSchema{
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -62,8 +63,8 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		"too many positional arguments": {
 			[]string{"-json", "extra"},
 			&ProvidersSchema{
-				JSON: true,
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewJSON,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -76,7 +77,8 @@ func TestParseProvidersSchema_invalid(t *testing.T) {
 		"unknown flag and missing json": {
 			[]string{"-wat"},
 			&ProvidersSchema{
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
