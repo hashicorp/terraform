@@ -5,6 +5,8 @@ package command
 
 import (
 	"runtime"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // DefaultDataDir is the default directory for storing local data.
@@ -36,12 +38,25 @@ const DefaultBackupExtension = ".backup"
 // operations as it walks the dependency graph.
 const DefaultParallelism = 10
 
-// ErrUnsupportedLocalOp is the common error message shown for operations
+// errUnsupportedLocalOp is the common error message shown for operations
 // that require a backendrun.Local.
-const ErrUnsupportedLocalOp = `The configured backend doesn't support this operation.
+const errUnsupportedLocalOp = `The configured backend doesn't support this operation.
 
 The "backend" in Terraform defines how Terraform operates. The default
 backend performs all operations locally on your machine. Your configuration
 is configured to use a non-local backend. This backend doesn't support this
 operation.
 `
+
+// UnsupportedLocalOpErrDiag is the error diagnostic shown for operations
+// that require a backendrun.Local.
+//
+// An alternative to using the ErrUnsupportedLocalOp string.
+var unsupportedLocalOpErrDiag = tfdiags.Sourceless(
+	tfdiags.Error,
+	"The configured backend doesn't support this operation.",
+	`The "backend" in Terraform defines how Terraform operates. The default
+backend performs all operations locally on your machine. Your configuration
+is configured to use a non-local backend. This backend doesn't support this
+operation.`,
+)

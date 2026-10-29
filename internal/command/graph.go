@@ -5,7 +5,6 @@ package command
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -80,7 +79,7 @@ func (c *GraphCommand) Run(rawArgs []string) int {
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		diags = diags.Append(errors.New(ErrUnsupportedLocalOp))
+		diags = diags.Append(unsupportedLocalOpErrDiag)
 		view.Diagnostics(diags)
 		return 1
 	}
