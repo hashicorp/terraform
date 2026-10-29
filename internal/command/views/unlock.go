@@ -13,9 +13,10 @@ import (
 // Unlock is the view used for the `unlock` command.
 type Unlock interface {
 	// The user didn't force the unlock and didn't respond with "yes" to the confirmation prompt.
-	ForceUnlockCancelled(diags tfdiags.Diagnostics)
+	UnlockCancelled(diags tfdiags.Diagnostics)
 
 	// The unlock was attempted and succeeded.
+	// This may be after user confirmation, or when using the -force flag.
 	UnlockSuccessful(diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -40,7 +41,7 @@ func (v *UnlockHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
 
-func (v *UnlockHuman) ForceUnlockCancelled(diags tfdiags.Diagnostics) {
+func (v *UnlockHuman) UnlockCancelled(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 
 	v.view.streams.Println("Cancelled force-unlock.")

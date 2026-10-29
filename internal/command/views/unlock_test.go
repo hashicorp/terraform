@@ -90,7 +90,7 @@ func TestUnlockHuman_ForceUnlockCancelled(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewUnlock(arguments.ViewHuman, view)
 
-			v.ForceUnlockCancelled(tc.diags)
+			v.UnlockCancelled(tc.diags)
 
 			output := done(t)
 			expectedStdout := tc.expectedStdout

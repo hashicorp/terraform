@@ -114,7 +114,7 @@ func (c *UnlockCommand) Run(rawArgs []string) int {
 			return 1
 		}
 		if v != "yes" {
-			view.ForceUnlockCancelled(diags)
+			view.UnlockCancelled(diags)
 			return 1
 		}
 	}
