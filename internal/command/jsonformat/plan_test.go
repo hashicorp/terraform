@@ -6827,7 +6827,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			After:           emptyVal,
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
-			ExpectedOutput: `  # test_instance.example will be untainted
+			ExpectedOutput: `  # test_instance.example will be untainted as requested
     resource "test_instance" "example" {}`,
 		},
 		"replace because cannot update (delete first)": {

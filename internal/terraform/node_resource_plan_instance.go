@@ -283,12 +283,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Only untaint objects that are actually tainted, so that the plan only
 	// reports an untaint when one happens.
-	n.forceUntaint = n.forceUntaint && deferred == nil && instanceRefreshState != nil && instanceRefreshState.Status == states.ObjectTainted
+	forceUntaint := n.forceUntaint && deferred == nil && instanceRefreshState != nil && instanceRefreshState.Status == states.ObjectTainted
 
 	// If the user asked to untaint this tainted instance, we flip the
 	// status in the refresh state so that planning treats the object as
 	// existing and the plan's prior state carries the untaint into apply.
-	if n.forceUntaint {
+	if forceUntaint {
 		log.Printf("[DEBUG] Untainting %s as requested", addr)
 		instanceRefreshState.Status = states.ObjectReady
 	}
@@ -424,7 +424,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 			// Since the plan was a no-op and the practitioner indicated they don't want to refresh,
 			// we can go through the process of reporting the relevant changes, deferrals, state, etc.
-			initialPlanDiags = initialPlanDiags.Append(n.finalizePlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
+			initialPlanDiags = initialPlanDiags.Append(n.finalizePlan(ctx, deferred, planDeferred, importing, forceUntaint, change, instanceRefreshState, instancePlanState, repData))
 
 			return diags.Append(initialPlanDiags)
 		} else {
@@ -605,11 +605,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// The plan was successful so now we can go through the process of reporting the relevant changes, deferrals, state, etc.
-	return diags.Append(n.finalizePlan(ctx, deferred, planDeferred, importing, change, instanceRefreshState, instancePlanState, repData))
+	return diags.Append(n.finalizePlan(ctx, deferred, planDeferred, importing, forceUntaint, change, instanceRefreshState, instancePlanState, repData))
 }
 
 // finalizePlan handles the common last minute details of planning a managed resource instance.
-func (n *NodePlannableResourceInstance) finalizePlan(ctx EvalContext, deferred, planDeferred *providers.Deferred, importing bool, change *plans.ResourceInstanceChange, instanceRefreshState, instancePlanState *states.ResourceInstanceObject, repData instances.RepetitionData) tfdiags.Diagnostics {
+func (n *NodePlannableResourceInstance) finalizePlan(ctx EvalContext, deferred, planDeferred *providers.Deferred, importing, forceUntaint bool, change *plans.ResourceInstanceChange, instanceRefreshState, instancePlanState *states.ResourceInstanceObject, repData instances.RepetitionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	checkRuleSeverity := tfdiags.Error
@@ -643,7 +643,7 @@ func (n *NodePlannableResourceInstance) finalizePlan(ctx EvalContext, deferred, 
 	// Record the untaint on the change unless something else explains the
 	// planned action (i.e not no-op), so that the UI can show it and
 	// the plan is applyable even when the action is otherwise a no-op.
-	if n.forceUntaint && change.ActionReason == plans.ResourceInstanceChangeNoReason {
+	if forceUntaint && change.ActionReason == plans.ResourceInstanceChangeNoReason {
 		change.ActionReason = plans.ResourceInstanceUntaintByRequest
 	}
 
