@@ -3202,7 +3202,7 @@ func TestContext2Plan_untaint(t *testing.T) {
 		`,
 	})
 
-	for _, skipRefresh := range []bool{true} {
+	for _, skipRefresh := range []bool{false, true} {
 		t.Run(fmt.Sprintf("skipRefresh=%t", skipRefresh), func(t *testing.T) {
 			state := states.BuildState(func(s *states.SyncState) {
 				for addr, status := range map[string]states.ObjectStatus{
@@ -3343,6 +3343,102 @@ func TestContext2Plan_untaintRequiresReplace(t *testing.T) {
 	}
 	if got, want := instPlan.ActionReason, plans.ResourceInstanceReplaceBecauseCannotUpdate; got != want {
 		t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
+func TestContext2Plan_untaintUpdate(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "test_object" "a" { test_string = "new" }`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"old"}`),
+			Status:    states.ObjectTainted,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		ForceUntaint: []addrs.AbsResourceInstance{addr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if got, want := instPlan.Action, plans.Update; got != want {
+		t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := instPlan.ActionReason, plans.ResourceInstanceUntaintByRequest; got != want {
+		t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+	}
+
+	newState, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	obj := newState.ResourceInstance(addr).Current
+	if got, want := obj.Status, states.ObjectReady; got != want {
+		t.Errorf("wrong status after apply\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// An untainted object whose config differs only in updatable attributes,
+	// such as one left incomplete by a failed create, is updated in place.
+	if got, want := string(obj.AttrsJSON), `"test_string":"new"`; !strings.Contains(got, want) {
+		t.Errorf("object was not updated\ngot:  %s\nwant substring: %s", got, want)
+	}
+}
+
+func TestContext2Plan_untaintUpdateFails(t *testing.T) {
+
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "test_object" "a" { test_string = "new" }`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"old"}`),
+			Status:    states.ObjectTainted,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PriorState
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("update failed"))
+		return resp
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		ForceUntaint: []addrs.AbsResourceInstance{addr},
+	})
+	tfdiags.AssertNoErrors(t, diags)
+	if got, want := plan.Changes.ResourceInstance(addr).Action, plans.Update; got != want {
+		t.Fatalf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+	}
+
+	newState, diags := ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected apply to fail")
+	}
+	obj := newState.ResourceInstance(addr).Current
+	// If the update of an untainted object fails, the untaint is reverted so
+	// the object goes back to being tainted.
+	if got, want := obj.Status, states.ObjectTainted; got != want {
+		t.Errorf("wrong status after failed update\ngot:  %s\nwant: %s", got, want)
+	}
+	if got, want := string(obj.AttrsJSON), `"test_string":"old"`; !strings.Contains(got, want) {
+		t.Errorf("object should keep its prior value\ngot:  %s\nwant substring: %s", got, want)
 	}
 }
 

@@ -292,6 +292,16 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if state, err = n.taintInstanceState(ctx, state, diffApply.Action); err != nil {
 			return diags.Append(err)
 		}
+
+		// If we had started from a forceful untaint, that would have forced
+		// the state so far to update the resource to a Ready state,
+		// but since we were not able to apply the subsequent operation,
+		// we should revert to Tainted. The user can untaint again if they want
+		// TODO: Is this what we would rather happen or do we want the untaint
+		// retained?
+		if diff.ActionReason == plans.ResourceInstanceUntaintByRequest {
+			state = state.AsTainted()
+		}
 	} else {
 		// We only add a policy node if the apply was successful.
 		n.addPolicyNode(ctx, diffApply, state)

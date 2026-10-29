@@ -3401,7 +3401,7 @@ func TestApply_untaintSavedPlan(t *testing.T) {
 	if code := planCmd.Run([]string{"-no-color", "-untaint=test_instance.a", "-out=tfplan"}); code != 0 {
 		t.Fatalf("plan failed with exit code %d\n\n%s", code, done(t).All())
 	}
-	if got, want := done(t).Stdout(), "# test_instance.a will be untainted"; !strings.Contains(got, want) {
+	if got, want := done(t).Stdout(), "# test_instance.a will be untainted as requested"; !strings.Contains(got, want) {
 		t.Errorf("plan output missing untaint\ngot:\n%s\n\nwant substring: %s", got, want)
 	}
 
@@ -3512,7 +3512,7 @@ func TestApply_untaint(t *testing.T) {
 
 Terraform will perform the following actions:
 
-  # test_instance.a will be untainted
+  # test_instance.a will be untainted as requested
     resource "test_instance" "a" {
         id = "hello"
     }
