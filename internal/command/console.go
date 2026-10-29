@@ -64,7 +64,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	local, ok := b.(backendrun.Local)
 	if !ok {
 		c.showDiagnostics(diags) // in case of any warnings in here
-		c.Ui.Error(ErrUnsupportedLocalOp)
+		c.Ui.Error(errUnsupportedLocalOp)
 		return 1
 	}
 
