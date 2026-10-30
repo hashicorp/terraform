@@ -27,6 +27,8 @@
 # Cloud backend
 /internal/backend/remote    @hashicorp/terraform-core @hashicorp/tf-core-cloud
 /internal/cloud             @hashicorp/terraform-core @hashicorp/tf-core-cloud
+/internal/cloud/backend_query.go      @hashicorp/terraform-core @hashicorp/tf-core-cloud @hashicorp/team-tf-search
+/internal/cloud/backend_query_test.go @hashicorp/terraform-core @hashicorp/tf-core-cloud @hashicorp/team-tf-search
 
 # Provisioners
 builtin/provisioners/file               @hashicorp/terraform-core

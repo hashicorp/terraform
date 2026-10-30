@@ -4,6 +4,7 @@
 package cloud
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -815,8 +816,8 @@ func TestCloud_localDelegationPolicyClientRequirements(t *testing.T) {
 	}
 }
 
-// These tests pin the generated-config behaviour of renderQueryRunLogs
-// (TF-42218): per-address grouping, file contents, and edge cases in the
+// These tests pin the generated-config behaviour of renderQueryRunLogs:
+// per-address grouping, file contents, and edge cases in the
 // log stream must be unchanged by how generated HCL is accumulated.
 
 const (
@@ -850,38 +851,48 @@ func (f *failingReader) Read(p []byte) (int, error) {
 
 type genRow struct {
 	addr string
+	name string
 	i    int
 }
 
 func (r genRow) config() string {
-	return fmt.Sprintf("resource \"concept_pet\" \"%s_%d\" {\n  name = \"%s-%d\"\n}", blockName(r.addr), r.i, blockName(r.addr), r.i)
+	return fmt.Sprintf("resource \"concept_pet\" \"%s_%d\" {\n  name = \"%s-%d\"\n}", r.blockName(), r.i, r.blockName(), r.i)
 }
 
 func (r genRow) importConfig() string {
-	return fmt.Sprintf("import {\n  to = concept_pet.%s_%d\n  identity = {\n    id = \"%s-%d\"\n  }\n}", blockName(r.addr), r.i, blockName(r.addr), r.i)
+	return fmt.Sprintf("import {\n  to = concept_pet.%s_%d\n  identity = {\n    id = \"%s-%d\"\n  }\n}", r.blockName(), r.i, r.blockName(), r.i)
 }
 
-func blockName(addr string) string {
-	return addr[strings.LastIndex(addr, ".")+1:]
+func (r genRow) blockName() string {
+	if r.name != "" {
+		return r.name
+	}
+	return r.addr[strings.LastIndex(r.addr, ".")+1:]
 }
 
 func listStartLine(addr string) string {
-	return fmt.Sprintf(`{"@level":"info","@message":"%s: Starting query...","type":"list_start","list_start":{"address":"%s","resource_type":"concept_pet"}}`, addr, addr)
+	message, _ := json.Marshal(addr + ": Starting query...")
+	address, _ := json.Marshal(addr)
+	return fmt.Sprintf(`{"@level":"info","@message":%s,"type":"list_start","list_start":{"address":%s,"resource_type":"concept_pet"}}`, message, address)
 }
 
 func listCompleteLine(addr string, total int) string {
-	return fmt.Sprintf(`{"@level":"info","@message":"%s: List complete","type":"list_complete","list_complete":{"address":"%s","resource_type":"concept_pet","total":%d}}`, addr, addr, total)
+	message, _ := json.Marshal(addr + ": List complete")
+	address, _ := json.Marshal(addr)
+	return fmt.Sprintf(`{"@level":"info","@message":%s,"type":"list_complete","list_complete":{"address":%s,"resource_type":"concept_pet","total":%d}}`, message, address, total)
 }
 
 func resourceFoundLine(r genRow) string {
 	cfg, _ := json.Marshal(r.config())
 	imp, _ := json.Marshal(r.importConfig())
-	id := fmt.Sprintf("%s-%d", blockName(r.addr), r.i)
-	return fmt.Sprintf(`{"@level":"info","@message":"%s: Result found","type":"list_resource_found","list_resource_found":{"address":"%s","display_name":"%s","identity":{"id":"%s"},"resource_type":"concept_pet","config":%s,"import_config":%s}}`,
-		r.addr, r.addr, id, id, cfg, imp)
+	message, _ := json.Marshal(r.addr + ": Result found")
+	address, _ := json.Marshal(r.addr)
+	id, _ := json.Marshal(fmt.Sprintf("%s-%d", r.blockName(), r.i))
+	return fmt.Sprintf(`{"@level":"info","@message":%s,"type":"list_resource_found","list_resource_found":{"address":%s,"display_name":%s,"identity":{"id":%s},"resource_type":"concept_pet","config":%s,"import_config":%s}}`,
+		message, address, id, id, cfg, imp)
 }
 
-// legacyBlockConfig reproduces the pre-TF-42218 accumulation (string +=) as
+// legacyBlockConfig reproduces the original accumulation (string +=) as
 // an independent reference for the expected per-block config.
 func legacyBlockConfig(rows []genRow) string {
 	var s string
@@ -919,6 +930,8 @@ func renderGenConfig(t *testing.T, logs io.Reader, out string) genConfigResult {
 	if out != "" {
 		if data, readErr := os.ReadFile(out); readErr == nil {
 			res.file, res.hasFile = string(data), true
+		} else if !errors.Is(readErr, os.ErrNotExist) {
+			t.Fatalf("failed to read generated file %q: %s", out, readErr)
 		}
 	}
 	return res
@@ -978,8 +991,15 @@ func TestCloud_renderQueryRunLogsGenConfigSingleBlockExact(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsGenConfigInterleavedBlocks(t *testing.T) {
-	const a, b = "list.concept_pet.cats", "list.concept_pet.dogs"
+	// These addresses share the same suffix, so grouping must use the full address.
+	const a, b = `list.concept_pet.pets["east"]`, `list.other_pet.pets["east"]`
 	rowsA, rowsB := rowsFor(a, 4), rowsFor(b, 3)
+	for i := range rowsA {
+		rowsA[i].name = "cats"
+	}
+	for i := range rowsB {
+		rowsB[i].name = "dogs"
+	}
 
 	lines := []string{listStartLine(a), listStartLine(b)}
 	for i := 0; i < 4; i++ {
@@ -1035,6 +1055,52 @@ func TestCloud_renderQueryRunLogsGenConfigNoFile(t *testing.T) {
 	})
 }
 
+func TestCloud_renderQueryRunLogsGenConfigMissingFields(t *testing.T) {
+	const addr = "list.concept_pet.pets"
+	row := genRow{addr: addr, i: 0}
+	config, _ := json.Marshal(row.config())
+	importConfig, _ := json.Marshal(row.importConfig())
+
+	tests := map[string]struct {
+		fields string
+		want   string
+	}{
+		"config only": {
+			fields: `,"config":` + string(config),
+			want:   row.config() + "\n\n\n",
+		},
+		"import only": {
+			fields: `,"import_config":` + string(importConfig),
+			want:   "\n" + row.importConfig() + "\n\n",
+		},
+		"both fields missing": {
+			// Preserve the existing behavior: a result with neither field
+			// still writes a generated file containing the separator newlines.
+			want: "\n\n\n",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			line := fmt.Sprintf(`{"@level":"info","type":"list_resource_found","list_resource_found":{"address":"%s","display_name":"pets-0","identity":{"id":"pets-0"},"resource_type":"concept_pet"%s}}`, addr, test.fields)
+			logs := listStartLine(addr) + "\n" + line + "\n" + listCompleteLine(addr, 1) + "\n"
+			out := filepath.Join(t.TempDir(), "generated.tf")
+			res := renderGenConfig(t, strings.NewReader(logs), out)
+			if res.err != nil {
+				t.Fatal(res.err)
+			}
+			if !res.hasFile {
+				t.Fatal("expected generated file to be written")
+			}
+
+			want := genFileHeader + genBlockHeader + test.want + "\n"
+			if diff := cmp.Diff(want, res.file); diff != "" {
+				t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestCloud_renderQueryRunLogsGenConfigLineHandling(t *testing.T) {
 	const addr = "list.concept_pet.pets"
 	rows := rowsFor(addr, 3)
@@ -1075,6 +1141,79 @@ func TestCloud_renderQueryRunLogsGenConfigLineHandling(t *testing.T) {
 	}
 }
 
+// This streams logs from a file rather than retaining the entire input in memory,
+// which would affect GC behavior. Only rendering and real generated-config writes
+// are timed; log preparation, rewinding, and output-file cleanup are excluded.
+// Terminal output is discarded.
+func BenchmarkCloud_renderQueryRunLogsGenConfig(b *testing.B) {
+	for _, count := range []int{1000, 10000, 50000} {
+		b.Run(fmt.Sprintf("rows=%d", count), func(b *testing.B) {
+			b.StopTimer()
+			b.ReportAllocs()
+
+			dir := b.TempDir()
+			logFile, err := os.Create(filepath.Join(dir, "query.log"))
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer logFile.Close()
+
+			const addr = "list.concept_pet.pets"
+			writer := bufio.NewWriter(logFile)
+			writeLine := func(line string) {
+				if _, err := fmt.Fprintln(writer, line); err != nil {
+					b.Fatal(err)
+				}
+			}
+			writeLine(listStartLine(addr))
+			for i := 0; i < count; i++ {
+				writeLine(resourceFoundLine(genRow{addr: addr, i: i}))
+			}
+			writeLine(listCompleteLine(addr, count))
+			if err := writer.Flush(); err != nil {
+				b.Fatal(err)
+			}
+
+			devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+			if err != nil {
+				b.Fatal(err)
+			}
+			defer devNull.Close()
+
+			backend := &Cloud{
+				client: &tfe.Client{QueryRuns: &staticLogsQueryRuns{logs: logFile}},
+				CLI:    &cli.BasicUi{Writer: io.Discard, ErrorWriter: io.Discard},
+				renderer: &jsonformat.Renderer{
+					Streams: &terminal.Streams{
+						Stdout: &terminal.OutputStream{File: devNull},
+						Stderr: &terminal.OutputStream{File: devNull},
+					},
+					Colorize: mockColorize(),
+				},
+			}
+			op := &backendrun.Operation{GenerateConfigOut: filepath.Join(dir, "generated.tf")}
+			run := &tfe.QueryRun{ID: "qry-genconfig-benchmark"}
+			ctx := context.Background()
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				if _, err := logFile.Seek(0, io.SeekStart); err != nil {
+					b.Fatal(err)
+				}
+				b.StartTimer()
+				err := backend.renderQueryRunLogs(ctx, op, run)
+				b.StopTimer()
+				if err != nil {
+					b.Fatal(err)
+				}
+				if err := os.Remove(op.GenerateConfigOut); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
 func TestCloud_renderQueryRunLogsGenConfigErrors(t *testing.T) {
 	const addr = "list.concept_pet.pets"
 	rows := rowsFor(addr, 2)
@@ -1086,6 +1225,9 @@ func TestCloud_renderQueryRunLogsGenConfigErrors(t *testing.T) {
 		res := renderGenConfig(t, &failingReader{r: strings.NewReader(log), err: boom}, out)
 		if res.err == nil || !strings.Contains(res.err.Error(), "Failed to read logs") {
 			t.Fatalf("expected read error, got %v", res.err)
+		}
+		if !strings.Contains(res.err.Error(), boom.Error()) {
+			t.Fatalf("expected read error to include original error %q, got %v", boom.Error(), res.err)
 		}
 		if res.hasFile {
 			t.Fatal("no file should be written after a read error")
