@@ -156,13 +156,6 @@ func (c *EphemeralComponent) CheckInstances(ctx context.Context, phase EvalPhase
 				addrs = append(addrs, ci.Addr())
 			}
 
-			// TODO:@austinvalle: Add hooks + RPC messages?
-			// h := hooksFromContext(ctx)
-			// hookSingle(ctx, h.EphemeralComponentExpanded, &hooks.EphemeralComponentInstances{
-			// 	EphemeralComponentAddr: c.addr,
-			// 	InstanceAddrs:          addrs,
-			// })
-
 			return result, diags
 		},
 	)
@@ -283,11 +276,10 @@ func (c *EphemeralComponent) References(context.Context) []stackaddrs.AbsReferen
 	return makeReferencesAbsolute(ret, c.addr.Stack)
 }
 
-// RequiredComponents returns the set of components that this ephemeral component depends on.
-//
-// TODO:@austinvalle: This is named as if ephemeral components implement [stackplan.PlanProducer], which we definitely don't want
-// We still need the method, so maybe just call it something else or remove it.
-func (c *EphemeralComponent) RequiredComponents(ctx context.Context, phase EvalPhase) collections.Set[stackaddrs.AbsComponent] {
+// requiredComponents returns the set of components that this ephemeral component depends on.
+// This information is not stored in the plan or state, and is only meant to be used to control
+// when ephemeral components can defer all provider operations internally.
+func (c *EphemeralComponent) requiredComponents(ctx context.Context, phase EvalPhase) collections.Set[stackaddrs.AbsComponent] {
 	return c.main.requiredComponentsForReferrer(ctx, c, phase)
 }
 
@@ -301,7 +293,7 @@ func (c *EphemeralComponent) RequiredComponents(ctx context.Context, phase EvalP
 // component depending on it must not be evaluated.
 func (c *EphemeralComponent) requiredComponentsPlanIncompleteInApply(ctx context.Context) bool {
 	plan := c.main.PlanBeingApplied()
-	for depAddr := range c.RequiredComponents(ctx, ApplyPhase).All() {
+	for depAddr := range c.requiredComponents(ctx, ApplyPhase).All() {
 		for _, depInst := range plan.ComponentInstances(depAddr) {
 			if depInst.PlannedAction == plans.Delete || depInst.PlannedAction == plans.Forget {
 				// A component that is being destroyed is ignored, as the output values it
@@ -321,7 +313,7 @@ func (c *EphemeralComponent) requiredComponentsPlanIncompleteInApply(ctx context
 // components of this ephemeral component has an incomplete plan, or can't be
 // resolved. It can be called only during the planning phase.
 func (c *EphemeralComponent) requiredComponentsPlanIncompleteInPlan(ctx context.Context) bool {
-	for depAddr := range c.RequiredComponents(ctx, PlanPhase).All() {
+	for depAddr := range c.requiredComponents(ctx, PlanPhase).All() {
 		depStack := c.main.Stack(ctx, depAddr.Stack, PlanPhase)
 		if depStack == nil {
 			return true // to be conservative

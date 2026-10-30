@@ -349,8 +349,6 @@ func (c *EphemeralComponentConfig) checkValid(ctx context.Context, phase EvalPha
 			return diags, nil
 		}
 
-		// TODO:@austinvalle: This will be adjusted in a separate PR for existing stacks features
-		// like components, but I need to apply that fix here as well.
 		providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
 		for addr := range providerSchemas {
 			providerFactories[addr] = func() (providers.Interface, error) {

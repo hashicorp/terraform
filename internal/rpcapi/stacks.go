@@ -212,8 +212,6 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode, stackAddr stackadd
 		ret.Components[name] = cProto
 	}
 
-	// TODO:@austinvalle: Is this the configuration analysis that JJ was mentioning? Add ephemeral components here.
-
 	for name, sn := range cfgNode.Children {
 		sc := cfgNode.Stack.EmbeddedStacks[name]
 		sProto := &stacks.FindStackConfigurationComponents_EmbeddedStack{

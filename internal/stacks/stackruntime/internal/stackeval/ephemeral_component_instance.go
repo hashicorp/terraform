@@ -16,10 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/promising"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/stacks/stackstate"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -203,8 +201,6 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 			// Ephemeral components produce result values the same way, by using the plan operation to produce output values
 			case PlanPhase, ApplyPhase:
 				var diags tfdiags.Diagnostics
-				// TODO:@austinvalle: Add hooks for terraform modules runtime? There are ephemeral resource ones, but not sure if they are useful?
-				// h := hooksFromContext(ctx)
 
 				opts, moreDiags := c.PlanOpts(ctx, phase)
 				diags = diags.Append(moreDiags)
@@ -247,25 +243,10 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 					return cty.DynamicVal, diags
 				}
 
-				// TODO:@austinvalle: This will be adjusted in a separate PR for existing stacks features
-				// like components, but I need to apply that fix here as well.
-				//
 				// These factories are used by Terraform core to perform operations that require an
 				// unconfigured provider (like executing a provider-defined function). The configured provider
 				// clients have already been populated in the PlanOpts argument.
-				providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
-				for addr := range providerSchemas {
-					providerFactories[addr] = func() (providers.Interface, error) {
-						// Lazily fetch the unconfigured client for the provider
-						// as and when we need it.
-						provider, err := c.main.ProviderType(addr).UnconfiguredClient()
-						if err != nil {
-							return nil, err
-						}
-						// this provider should only be used for selected operations
-						return stubs.OfflineProvider(provider), nil
-					}
-				}
+				providerFactories := unconfiguredProviderFactories(c.main, providerSchemas, opts.ExternalProviders)
 
 				tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 					Providers:                providerFactories,
