@@ -2232,6 +2232,154 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
+		// The component's configuration has no reference to the testing provider, but the previous
+		// state still has a resource managed by it. The provider must still be available to Terraform Core
+		// (both the configured client and the unconfigured factory) so the resource can be deleted.
+		"provider-required-only-by-state": {
+			path: "provider-required-only-by-state",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "data",
+							"value": "data",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("data", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("data"),
+					"value": cty.StringVal("data"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.NormalMode,
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+							OutputValues: map[addrs.OutputValue]cty.Value{
+								{Name: "empty"}: cty.StringVal("empty"),
+							},
+							InputVariables: make(map[addrs.InputVariable]cty.Value),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil, // deleted
+						},
+					},
+				},
+			},
+		},
+		"provider-required-only-by-state-destroy": {
+			path: "provider-required-only-by-state",
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "data",
+							"value": "data",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("data", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("data"),
+					"value": cty.StringVal("data"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					planMode: plans.DestroyMode,
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil, // deleted
+						},
+					},
+				},
+			},
+		},
+		"provider-required-only-by-state-removed": {
+			path: path.Join("provider-required-only-by-state", "removed"),
+			state: stackstate.NewStateBuilder().
+				AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.self"))).
+				AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+					SetAddr(mustAbsResourceInstanceObject("component.self.testing_resource.data")).
+					SetProviderAddr(mustDefaultRootProvider("testing")).
+					SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+							"id":    "data",
+							"value": "data",
+						}),
+					})).
+				Build(),
+			store: stacks_testing_provider.NewResourceStoreBuilder().
+				AddResource("data", cty.ObjectVal(map[string]cty.Value{
+					"id":    cty.StringVal("data"),
+					"value": cty.StringVal("data"),
+				})).
+				Build(),
+			cycles: []TestCycle{
+				{
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstanceRemoved{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+						},
+						&stackstate.AppliedChangeResourceInstanceObject{
+							ResourceInstanceObjectAddr: mustAbsResourceInstanceObject("component.self.testing_resource.data"),
+							ProviderConfigAddr:         mustDefaultRootProvider("testing"),
+							NewStateSrc:                nil, // deleted
+						},
+					},
+				},
+			},
+		},
+		// The testing provider is needed for the schema and an unconfigured client to evaluate the function call,
+		// but there are no resources or other objects that need a configured provider.
+		"provider-only-used-for-functions": {
+			path: "provider-only-used-for-functions",
+			cycles: []TestCycle{
+				{
+					planInputs: map[string]cty.Value{
+						"input": cty.StringVal("hello"),
+					},
+					wantAppliedChanges: []stackstate.AppliedChange{
+						&stackstate.AppliedChangeComponentInstance{
+							ComponentAddr:         mustAbsComponent("component.self"),
+							ComponentInstanceAddr: mustAbsComponentInstance("component.self"),
+							OutputValues: map[addrs.OutputValue]cty.Value{
+								{Name: "value"}: cty.StringVal("hello"),
+							},
+							InputVariables: map[addrs.InputVariable]cty.Value{
+								mustInputVariable("input"): cty.StringVal("hello"),
+							},
+						},
+						&stackstate.AppliedChangeInputVariable{
+							Addr:  mustStackInputVariable("input"),
+							Value: cty.StringVal("hello"),
+						},
+					},
+				},
+			},
+		},
 		"ephemeral-module-outputs": {
 			path: "ephemeral-module-output",
 			skip: true, // TODO(issues/37822): Enable this.

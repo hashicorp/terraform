@@ -8,15 +8,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
-	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval/stubs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -163,19 +160,7 @@ func PlanComponentInstance(ctx context.Context, main *Main, state *states.State,
 	// configurations from the stack that exist outside of Terraform's
 	// concerns. There are provided directly in the PlanOpts argument.
 
-	providerFactories := make(map[addrs.Provider]providers.Factory, len(providerSchemas))
-	for addr := range providerSchemas {
-		providerFactories[addr] = func() (providers.Interface, error) {
-			// Lazily fetch the unconfigured client for the provider
-			// as and when we need it.
-			provider, err := main.ProviderType(addr).UnconfiguredClient()
-			if err != nil {
-				return nil, err
-			}
-			// this provider should only be used for selected operations
-			return stubs.OfflineProvider(provider), nil
-		}
-	}
+	providerFactories := unconfiguredProviderFactories(main, providerSchemas, opts.ExternalProviders)
 
 	tfCtx, err := terraform.NewContext(&terraform.ContextOpts{
 		Hooks:                    tfHooks,
