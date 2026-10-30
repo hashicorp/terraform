@@ -207,7 +207,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			token = svcauth.HostCredentialsToken(oauthToken.AccessToken)
 		}
 	} else if tfeservice != nil {
-		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, tfeservice)
+		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, tfeservice, view)
 	}
 
 	diags = diags.Append(tokenDiags)
@@ -639,7 +639,7 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	return token, diags
 }
 
-func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL, view views.WebUiTokenGetter) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx)
@@ -649,7 +649,7 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		return "", diags
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	view.HorizontalRule()
 
 	tokensURL := url.URL{
 		Scheme:   "https",
@@ -662,8 +662,7 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	if c.BrowserLauncher != nil {
 		err := c.BrowserLauncher.OpenURL(tokensURL.String())
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
-			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", tokensURL.String()))
+			view.OpeningTokensPage(hostname, tokensURL.String())
 		} else {
 			log.Printf("[DEBUG] error opening web browser: %s", err)
 			// Assume we're on a platform where opening a browser isn't possible.
@@ -674,11 +673,11 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	}
 
 	if launchBrowserManually {
-		c.Ui.Output(fmt.Sprintf("Open the following URL to access the tokens page for %s:\n    %s\n", hostname.ForDisplay(), tokensURL.String()))
+		view.PromptToOpenTokensPage(hostname, tokensURL.String())
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output("Generate a token using your browser, and copy-paste it into this prompt.\n")
+	view.HorizontalRule()
+	view.PromptForToken()
 
 	// credsCtx might not be set if we're using a mock credentials source
 	// in a test, but it should always be set in normal use.
@@ -721,7 +720,7 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		diags = diags.Append(fmt.Errorf("Failed to retrieve user account details: %s", err))
 		return "", diags
 	}
-	c.Ui.Output(fmt.Sprintf(c.Colorize().Color("\nRetrieved token for user [bold]%s[reset]\n"), user.Username))
+	view.TokenRetrieved(user)
 
 	return svcauth.HostCredentialsToken(token), nil
 }
