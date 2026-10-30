@@ -296,6 +296,14 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		))
 		return nil, nil, diags
 	}
+	if opts.EphemeralHold != nil && opts.Mode != plans.NormalMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan options",
+			fmt.Sprintf("EphemeralHold is only allowed in normal planning mode, got %s. This is a bug in Terraform.", opts.Mode),
+		))
+		return nil, nil, diags
+	}
 	if len(opts.ForceReplace) > 0 && opts.Mode != plans.NormalMode {
 		// The other modes don't generate no-op or update actions that we might
 		// upgrade to be "replace", so doesn't make sense to combine those.
@@ -833,9 +841,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	if opts.PreDestroyRefresh {
 		// Policy results should come only from the actual destroy plan walk.
 		opts.PolicyClient = nil
-
-		// EphemeralHold is only executed once, so ignore during the pre-destroy refresh walk.
-		opts.EphemeralHold = nil
 	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
@@ -1132,7 +1137,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
 			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 			PolicyClient:               opts.PolicyClient,
-			EphemeralHold:              opts.EphemeralHold,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
@@ -1152,7 +1156,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
 			AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
 			PolicyClient:               opts.PolicyClient,
-			EphemeralHold:              opts.EphemeralHold,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
