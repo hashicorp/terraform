@@ -114,7 +114,7 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 	if err != nil {
 		return err
 	}
-	configs := map[string]string{}
+	configs := map[string]*strings.Builder{}
 	wantConfig := len(op.GenerateConfigOut) > 0
 
 	if b.CLI != nil {
@@ -168,8 +168,13 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 					case jsonformat.LogListResourceFound:
 						results[jsonLog.ListQueryResult.Address] = append(results[jsonLog.ListQueryResult.Address], jsonLog.ListQueryResult)
 						if wantConfig {
-							configs[jsonLog.ListQueryResult.Address] +=
-								fmt.Sprintf("%s\n%s\n\n", jsonLog.ListQueryResult.Config, jsonLog.ListQueryResult.ImportConfig)
+							addr := jsonLog.ListQueryResult.Address
+							sb, ok := configs[addr]
+							if !ok {
+								sb = &strings.Builder{}
+								configs[addr] = sb
+							}
+							fmt.Fprintf(sb, "%s\n%s\n\n", jsonLog.ListQueryResult.Config, jsonLog.ListQueryResult.ImportConfig)
 						}
 					case jsonformat.LogListComplete:
 						addr := jsonLog.ListQueryComplete.Address
@@ -218,10 +223,10 @@ func (b *Cloud) renderQueryRunLogs(ctx context.Context, op *backendrun.Operation
 		}
 
 		var writer io.Writer
-		for addr, config := range configs {
+		for addr, sb := range configs {
 			change := genconfig.Change{
 				Addr:            addr,
-				GeneratedConfig: config,
+				GeneratedConfig: sb.String(),
 			}
 
 			writer, _, diags = change.MaybeWriteConfig(writer, op.GenerateConfigOut)
