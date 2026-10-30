@@ -195,7 +195,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			// The password grant type is allowed only for HCP Terraform SaaS.
 			// Note this case is purely theoretical at this point, as HCP Terraform currently uses
 			// its own bespoke login protocol (tfe)
-			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
+			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig, view)
 		default:
 			tokenDiags = tokenDiags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -587,7 +587,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	return token, diags
 }
 
-func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.PasswordTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx)
@@ -597,8 +597,8 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 		return nil, diags
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
+	view.HorizontalRule()
+	view.PromptForPassword()
 
 	username, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:    "username",

@@ -92,6 +92,57 @@ func TestLoginHuman_ViaOAuthTokenGetterInterface(t *testing.T) {
 	})
 }
 
+func TestLoginHuman_ViaPasswordTokenGetter_allMethods(t *testing.T) {
+	t.Run("HorizontalRule", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.HorizontalRule()
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("---------------------------------------------------------------------------------")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("PromptForPassword", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.PromptForPassword()
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+}
+
 func TestLoginHuman_Diagnostics(t *testing.T) {
 	testCases := map[string]struct {
 		diags      tfdiags.Diagnostics

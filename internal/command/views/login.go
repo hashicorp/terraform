@@ -23,11 +23,21 @@ type OAuthTokenGetter interface {
 	WaitingForLoginSuccess()
 }
 
+// PasswordTokenGetter is used to log user-facing messages while obtaining a token via login with username and password
+type PasswordTokenGetter interface {
+	// Divide UI output with a horizontal line
+	HorizontalRule()
+
+	// Contextualize the prompt for the user to enter their username and password.
+	PromptForPassword()
+}
+
 // Methods used to log user-facing messages during the `login` command
 type Login interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	OAuthTokenGetter
+	PasswordTokenGetter
 }
 
 func NewLogin(viewType arguments.ViewType, view *View) Login {
@@ -46,9 +56,15 @@ type LoginHuman struct {
 }
 
 var (
-	_ Login            = (*LoginHuman)(nil)
-	_ OAuthTokenGetter = (*LoginHuman)(nil)
+	_ Login               = (*LoginHuman)(nil)
+	_ OAuthTokenGetter    = (*LoginHuman)(nil)
+	_ PasswordTokenGetter = (*LoginHuman)(nil)
 )
+
+// Implements Login, PasswordTokenGetter
+func (v *LoginHuman) HorizontalRule() {
+	v.view.streams.Print("\n---------------------------------------------------------------------------------\n\n")
+}
 
 func (v *LoginHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
@@ -74,4 +90,9 @@ func (v *LoginHuman) PromptToOpenLoginPage(hostname svchost.Hostname, url string
 // Implements OAuthTokenGetter
 func (v *LoginHuman) WaitingForLoginSuccess() {
 	v.view.streams.Print("Terraform will now wait for the host to signal that login was successful.\n\n")
+}
+
+// Implements PasswordTokenGetter
+func (v *LoginHuman) PromptForPassword() {
+	v.view.streams.Print("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n\n")
 }
