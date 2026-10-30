@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'policy (experimental): loaded policies are now validated against the run''s provider schemas before plan/apply, so a policy referencing an attribute a provider does not have fails early instead of partway through a run'
+time: 2026-07-15T11:48:55.000000-04:00
+custom:
+    Issue: "38877"
