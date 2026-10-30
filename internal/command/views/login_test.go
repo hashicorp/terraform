@@ -119,7 +119,107 @@ func TestLoginHuman_HorizontalRule(t *testing.T) {
 	}
 }
 
-func TestLoginHuman_ViaPasswordTokenGetter_allMethods(t *testing.T) {
+func TestLoginHuman_LoginInterface(t *testing.T) {
+	// HorizontalRule tested elsewhere
+	t.Run("MessageOfTheDay", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.MessageOfTheDay("thursday is the new friday")
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("thursday is the new friday")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("DefaultHCPTFLoginSuccess", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.DefaultHCPTFLoginSuccess()
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("Success! Logged in to HCP Terraform")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("TFELoginSuccess", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.TFELoginSuccess("example.com")
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("Success! Logged in to Terraform Enterprise (example.com)")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("LoginSuccess", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.LoginSuccess("example.com")
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("Success! Terraform has obtained and saved an API token.\n\nThe new API token will be used for any future Terraform command that must make\nauthenticated requests to example.com.")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+}
+
+func TestLoginHuman_ViaPasswordTokenGetterInterface(t *testing.T) {
 	// HorizontalRule tested elsewhere
 	t.Run("PromptForPassword", func(t *testing.T) {
 		streams, done := terminal.StreamsForTesting(t)

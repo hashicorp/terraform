@@ -238,7 +238,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	view.HorizontalRule()
 	if hostname == "app.terraform.io" { // HCP Terraform
 		var motd struct {
 			Message string        `json:"msg"`
@@ -253,14 +253,14 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		motdServiceURL, err := host.ServiceURL("motd.v1")
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 
 		req, err := http.NewRequest("GET", motdServiceURL.String(), nil)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 
@@ -269,7 +269,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		resp, err := httpclient.New().Do(req)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 		defer resp.Body.Close()
@@ -277,37 +277,25 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 		json.Unmarshal(body, &motd)
 
 		if motd.Errors == nil && motd.Message != "" {
-			c.Ui.Output(
-				c.Colorize().Color(motd.Message),
-			)
+			view.MessageOfTheDay(motd.Message)
 			return 0
 		} else {
 			c.logMOTDError(fmt.Errorf("platform responded with errors or an empty message"))
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 	}
 
 	if tfeservice != nil { // Terraform Enterprise
-		c.outputDefaultTFELoginSuccess(dispHostname)
+		view.TFELoginSuccess(dispHostname)
 	} else {
-		c.Ui.Output(
-			fmt.Sprintf(
-				c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
-
-The new API token will be used for any future Terraform command that must make
-authenticated requests to %s.
-`)),
-				dispHostname,
-			) + "\n",
-		)
+		view.LoginSuccess(dispHostname)
 	}
 
 	return 0
@@ -357,23 +345,6 @@ func (c *LoginCommand) isMemberOfOrgWithMaxTTLEnabled(host *disco.Host, tfeservi
 	}
 
 	return "", false
-}
-
-func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]
-`)),
-			dispHostname,
-		) + "\n",
-	)
-}
-
-func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
-	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to HCP Terraform[reset]
-` + "\n")))
 }
 
 func (c *LoginCommand) logMOTDError(err error) {
