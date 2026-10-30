@@ -306,3 +306,24 @@ func (h *componentInstanceTerraformHook) actionInvocationFromHookActionIdentity(
 	}
 	return ai
 }
+
+type ephemeralComponentInstanceTerraformHook struct {
+	terraform.NilHook
+
+	ctx   context.Context
+	hooks *Hooks
+	addr  stackaddrs.AbsEphemeralComponentInstance
+}
+
+var _ terraform.Hook = (*ephemeralComponentInstanceTerraformHook)(nil)
+
+func (h *ephemeralComponentInstanceTerraformHook) PolicyResult(addr string, resp policy.EvaluationResponse) (terraform.HookAction, error) {
+	if !resp.Empty() {
+		hookSingle(h.ctx, h.hooks.ReportEphemeralComponentInstancePolicyResult, &hooks.EphemeralComponentInstancePolicyResult{
+			EphemeralComponentAddr: h.addr,
+			ModuleAddr:             addr,
+			Result:                 resp,
+		})
+	}
+	return terraform.HookActionContinue, nil
+}

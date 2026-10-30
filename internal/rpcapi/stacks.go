@@ -420,14 +420,22 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 	planHooks := stackPlanHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, planHooks)
 
-	// We collect policy evaluation results from individual resource events
+	// We collect policy evaluation results from individual resource and module events
 	// during the planning process and then send them at once to the stacks client.
 	policyResults := stackPolicyEvaluationHooks(policyClient, planHooks)
+	ephemeralPolicyResults := stackEphemeralPolicyEvaluationHooks(policyClient, planHooks)
 	sendPolicyResults := sync.OnceFunc(func() {
 		for addr, results := range policyResults.All() {
 			syncEvts.Send(&stacks.PlanStackChanges_Event{
 				Event: &stacks.PlanStackChanges_Event_ComponentInstancePolicyEvaluation{
 					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+		for addr, results := range ephemeralPolicyResults.All() {
+			syncEvts.Send(&stacks.PlanStackChanges_Event{
+				Event: &stacks.PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation{
+					EphemeralComponentInstancePolicyEvaluation: ephemeralComponentInstancePolicyEvaluationProto(addr, results),
 				},
 			})
 		}
@@ -748,14 +756,22 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 	applyHooks := stackApplyHooks(syncEvts, cfg.Root.Stack.SourceAddr)
 	ctx = stackruntime.ContextWithHooks(ctx, applyHooks)
 
-	// We collect policy evaluation results from individual resource events
+	// We collect policy evaluation results from individual resource and module events
 	// during the apply process and then send them at once to the stacks client.
 	policyResults := stackPolicyEvaluationHooks(policyClient, applyHooks)
+	ephemeralPolicyResults := stackEphemeralPolicyEvaluationHooks(policyClient, applyHooks)
 	sendPolicyResults := sync.OnceFunc(func() {
 		for addr, results := range policyResults.All() {
 			syncEvts.Send(&stacks.ApplyStackChanges_Event{
 				Event: &stacks.ApplyStackChanges_Event_ComponentInstancePolicyEvaluation{
 					ComponentInstancePolicyEvaluation: componentInstancePolicyEvaluationProto(addr, results),
+				},
+			})
+		}
+		for addr, results := range ephemeralPolicyResults.All() {
+			syncEvts.Send(&stacks.ApplyStackChanges_Event{
+				Event: &stacks.ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation{
+					EphemeralComponentInstancePolicyEvaluation: ephemeralComponentInstancePolicyEvaluationProto(addr, results),
 				},
 			})
 		}
@@ -1540,6 +1556,24 @@ func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackr
 		}
 	}
 
+	return resultMap
+}
+
+func stackEphemeralPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsEphemeralComponentInstance, map[string][]policy.EvaluationResponse] {
+	resultMap := collections.NewMap[stackaddrs.AbsEphemeralComponentInstance, map[string][]policy.EvaluationResponse]()
+	if policyClient != nil {
+		mu := sync.Mutex{}
+		runtimeHooks.ReportEphemeralComponentInstancePolicyResult = func(ctx context.Context, h *hooks.EphemeralComponentInstancePolicyResult) {
+			mu.Lock()
+			defer mu.Unlock()
+			mp, ok := resultMap.GetOk(h.EphemeralComponentAddr)
+			if !ok {
+				mp = make(map[string][]policy.EvaluationResponse)
+				resultMap.Put(h.EphemeralComponentAddr, mp)
+			}
+			mp[h.ModuleAddr] = append(mp[h.ModuleAddr], h.Result)
+		}
+	}
 	return resultMap
 }
 

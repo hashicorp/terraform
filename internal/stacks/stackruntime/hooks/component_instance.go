@@ -95,11 +95,19 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 }
 
 // ComponentInstancePolicyResult is the argument type for the hook callback which
-// sends policy results back to the client for a resource instance.
+// sends policy results back to the client for a component instance.
 type ComponentInstancePolicyResult struct {
 	ComponentAddr stackaddrs.AbsComponentInstance
 	ResourceAddr  string
 	Result        policy.EvaluationResponse
+}
+
+// EphemeralComponentInstancePolicyResult is the argument type for the hook callback which
+// sends policy results back to the client for an ephemeral component instance.
+type EphemeralComponentInstancePolicyResult struct {
+	EphemeralComponentAddr stackaddrs.AbsEphemeralComponentInstance
+	ModuleAddr             string
+	Result                 policy.EvaluationResponse
 }
 
 // ProviderInstancePolicyResults is the argument type for the hook callback which

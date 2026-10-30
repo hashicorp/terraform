@@ -30,3 +30,12 @@ component "simple_component" {
     testing = provider.testing.default[each.key]
   }
 }
+
+ephemeral_component "simple_ephemeral_component" {
+  source   = "./ephemeral"
+  for_each = var.component_names
+
+  providers = {
+    testing = provider.testing.default[each.key]
+  }
+}

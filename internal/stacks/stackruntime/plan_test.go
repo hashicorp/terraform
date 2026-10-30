@@ -6970,6 +6970,8 @@ func TestPlan_WithPolicyResults(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7006,6 +7008,8 @@ func TestPlan_WithPolicyResults_EmbeddedStack(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 	}
@@ -7043,6 +7047,8 @@ func TestPlan_WithPolicyResultsOnRefresh(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7082,6 +7088,8 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 		// Only the destroy plan will emit module and resource policy evaluations
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7497,6 +7505,31 @@ func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string
 	}
 }
 
+func createExpectedEphemeralComponentInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
+	moduleCallRange := hcl.Range{
+		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/ephemeral/main.tf", bundlePath),
+		Start:    hcl.Pos{Line: 10, Column: 1, Byte: 124},
+		End:      hcl.Pos{Line: 10, Column: 15, Byte: 138},
+	}
+
+	return map[string]policy.EvaluationResponse{
+		"module.child": {
+			Overall:  policy.DenyResult,
+			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
+			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
+				{
+					Severity: policyproto.Severity_ERROR,
+					Summary:  "Child module policy violation",
+					Detail:   "module.child violates policy",
+					Result: &policyproto.DiagnosticResult{
+						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+			}, nil), moduleCallRange),
+		},
+	}
+}
+
 func createExpectedComponentInstancePolicyEvaluation(bundlePath string) map[string]policy.EvaluationResponse {
 	rootModuleRange := hcl.Range{
 		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
@@ -7605,6 +7638,15 @@ func planAndCollectPolicyResults(t *testing.T, ctx context.Context, req PlanRequ
 	var mu sync.Mutex
 	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
 	planHooks := &Hooks{
+		ReportEphemeralComponentInstancePolicyResult: func(ctx context.Context, data *hooks.EphemeralComponentInstancePolicyResult) {
+			mu.Lock()
+			defer mu.Unlock()
+			addr := data.EphemeralComponentAddr.String()
+			if gotPolicyResults[addr] == nil {
+				gotPolicyResults[addr] = make(map[string]policy.EvaluationResponse)
+			}
+			gotPolicyResults[addr][data.ModuleAddr] = data.Result
+		},
 		ReportComponentInstancePolicyResult: func(ctx context.Context, a any, data *hooks.ComponentInstancePolicyResult) any {
 			mu.Lock()
 			defer mu.Unlock()

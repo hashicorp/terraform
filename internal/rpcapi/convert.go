@@ -161,6 +161,32 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 }
 
 func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string][]policy.EvaluationResponse) *stacks.ComponentInstancePolicyEvaluation {
+	results, infos, policyDiags := policyEvaluationsToProto(policyResults)
+	return &stacks.ComponentInstancePolicyEvaluation{
+		Addr: &stacks.ComponentInstanceInStackAddr{
+			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(componentInstanceAddr).String(),
+			ComponentInstanceAddr: componentInstanceAddr.String(),
+		},
+		Results:     results,
+		Infos:       infos,
+		Diagnostics: policyDiags,
+	}
+}
+
+func ephemeralComponentInstancePolicyEvaluationProto(ephComponentInstanceAddr stackaddrs.AbsEphemeralComponentInstance, policyResults map[string][]policy.EvaluationResponse) *stacks.EphemeralComponentInstancePolicyEvaluation {
+	results, infos, policyDiags := policyEvaluationsToProto(policyResults)
+	return &stacks.EphemeralComponentInstancePolicyEvaluation{
+		Addr: &stacks.EphemeralComponentInstanceInStackAddr{
+			EphemeralComponentAddr:         stackaddrs.ConfigEphemeralComponentForAbsInstance(ephComponentInstanceAddr).String(),
+			EphemeralComponentInstanceAddr: ephComponentInstanceAddr.String(),
+		},
+		Results:     results,
+		Infos:       infos,
+		Diagnostics: policyDiags,
+	}
+}
+
+func policyEvaluationsToProto(policyResults map[string][]policy.EvaluationResponse) ([]*stacks.PolicyResult, []*stacks.PolicyInfo, []*stacks.PolicyDiagnostic) {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
@@ -173,15 +199,7 @@ func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.Abs
 		}
 	}
 
-	return &stacks.ComponentInstancePolicyEvaluation{
-		Addr: &stacks.ComponentInstanceInStackAddr{
-			ComponentAddr:         stackaddrs.ConfigComponentForAbsInstance(componentInstanceAddr).String(),
-			ComponentInstanceAddr: componentInstanceAddr.String(),
-		},
-		Results:     results,
-		Infos:       infos,
-		Diagnostics: policyDiags,
-	}
+	return results, infos, policyDiags
 }
 
 func providerInstancePolicyEvaluationProto(result *hooks.ProviderInstancePolicyResults) *stacks.ProviderInstancePolicyEvaluation {

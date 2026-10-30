@@ -909,3 +909,442 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 		})
 	}
 }
+
+func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
+	policyObj := &policy.Policy{
+		Result:           policy.AllowResult,
+		Address:          "policy_name",
+		PolicySetName:    "some_policy_set",
+		Filename:         "policy_file.tfpolicy.hcl",
+		EnforcementLevel: "mandatory",
+	}
+
+	snippetContext := `module_policy "example"`
+
+	exprValueBytes, err := msgpack.Marshal(cty.StringVal("bar"), cty.String)
+	if err != nil {
+		t.Fatalf("failed to marshal expression value: %s", err)
+	}
+
+	moduleAddr := addrs.RootModule.Child("example")
+
+	testCases := map[string]struct {
+		componentAddr string
+		policyResults func() map[string]policy.EvaluationResponse
+		want          *stacks.EphemeralComponentInstancePolicyEvaluation
+	}{
+		"no results": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{},
+		},
+		"policy result with diagnostic": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
+						Overall: policy.DenyResult,
+						Diagnostics: policy.Diagnostics{
+							policy.NewErrorDiagnostic(
+								"module policy denied",
+								"module policy blocked usage",
+								policy.DenyResult,
+							),
+						},
+						Policies: []*policy.Policy{{
+							Address:          "module_policy.example",
+							Filename:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+							Result:           policy.DenyResult,
+						}},
+					},
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{
+					{
+						TargetAddress: "module.example",
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "module_policy.example",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "module policy denied",
+							Detail:   "module policy blocked usage",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{},
+					},
+				},
+			},
+		},
+		"policy info with snippet and range": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
+						Overall:  policy.AllowResult,
+						Policies: []*policy.Policy{policyObj},
+						Enforcements: []policy.EnforcementResult{
+							{
+								Result:     policy.AllowResult,
+								Message:    "module policy allowed usage",
+								BlockIndex: 1,
+								Policy:     policyObj,
+								Range: &hcl.Range{
+									Filename: "policy_file.tfpolicy.hcl",
+									Start:    hcl.Pos{Line: 3, Column: 5, Byte: 10},
+									End:      hcl.Pos{Line: 4, Column: 10, Byte: 30},
+								},
+								Snippet: &proto.Snippet{
+									Code:                 `key = attr.value == "foo"`,
+									Context:              &snippetContext,
+									StartLine:            3,
+									HighlightStartOffset: 0,
+									HighlightEndOffset:   5,
+								},
+							},
+							{
+								// Enforcements without a message are skipped.
+								Result: policy.AllowResult,
+								Policy: policyObj,
+							},
+						},
+					},
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{
+					{
+						TargetAddress: "module.example",
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						Result: stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					},
+				},
+				Infos: []*stacks.PolicyInfo{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Message:       "module policy allowed usage",
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+							EnforceIndex:     1,
+						},
+						PolicySnippet: &stacks.PolicySnippet{
+							Code:                 `key = attr.value == "foo"`,
+							Context:              snippetContext,
+							StartLine:            3,
+							HighlightStartOffset: 0,
+							HighlightEndOffset:   5,
+						},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 3, Column: 5},
+							End:      &terraform1.SourcePos{Byte: 30, Line: 4, Column: 10},
+						},
+					},
+				},
+			},
+		},
+		"policy diagnostic with extra data": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): {
+						Overall: policy.DenyResult,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
+							{
+								Severity: proto.Severity_ERROR,
+								Summary:  "policy error",
+								Detail:   "the module is not allowed",
+								Result: &proto.DiagnosticResult{
+									Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								},
+								Subject: &proto.Range{
+									Filename: "policy_file.tfpolicy.hcl",
+									Start:    &proto.Position{Byte: 10, Line: 2, Column: 3},
+									End:      &proto.Position{Byte: 20, Line: 2, Column: 13},
+								},
+								Snippet: &proto.Snippet{
+									Context:              &snippetContext,
+									Code:                 `key = attr.value == "foo"`,
+									StartLine:            2,
+									HighlightStartOffset: 6,
+									HighlightEndOffset:   11,
+								},
+								ExpressionValues: []*proto.ExpressionValue{
+									{
+										Traversal: &proto.AttributePath{
+											Steps: []*proto.AttributePath_Step{{
+												Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"},
+											}},
+										},
+										Value: exprValueBytes,
+									},
+								},
+							},
+						}, policyObj),
+					},
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "policy error",
+							Detail:   "the module is not allowed",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						PolicySnippet: &stacks.PolicySnippet{
+							Context:              snippetContext,
+							Code:                 `key = attr.value == "foo"`,
+							StartLine:            2,
+							HighlightStartOffset: 6,
+							HighlightEndOffset:   11,
+						},
+						PolicyRange: &stacks.PolicyRange{
+							Filename: "policy_file.tfpolicy.hcl",
+							Start:    &terraform1.SourcePos{Byte: 10, Line: 2, Column: 3},
+							End:      &terraform1.SourcePos{Byte: 20, Line: 2, Column: 13},
+						},
+						ExpressionValues: []*stacks.ExpressionValue{
+							{
+								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Value:     exprValueBytes,
+							},
+						},
+					},
+				},
+			},
+		},
+		"policy diagnostic with enforce block index": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					addrs.RootModule.Child("example").String(): policy.EvaluationFromProtoResponse(
+						proto.EvaluateResult_DENY_EVALUATE_RESULT,
+						[]*proto.PolicyEvaluationDetail{{
+							Address:              "module_policy.example",
+							Result:               proto.EvaluateResult_DENY_EVALUATE_RESULT,
+							File:                 "policy_file.tfpolicy.hcl",
+							PolicySetName:        "some_policy_set",
+							PolicySetEnforcement: "mandatory",
+							DefRange: &proto.Range{
+								Filename: "policy_file.tfpolicy.hcl",
+								Start:    &proto.Position{Byte: 0, Line: 1, Column: 1},
+								End:      &proto.Position{Byte: 40, Line: 5, Column: 2},
+							},
+							EnforceResults: []*proto.EnforceBlockResult{{
+								Result:     proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								BlockIndex: 2,
+								Diagnostics: []*proto.Diagnostic{{
+									Severity: proto.Severity_ERROR,
+									Summary:  "enforce block denied module",
+									Detail:   "the enforce block condition failed",
+									Result: &proto.DiagnosticResult{
+										Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+									},
+								}},
+							}},
+						}},
+					),
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Results: []*stacks.PolicyResult{
+					{
+						TargetAddress: "module.example",
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "module_policy.example",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						Result: stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+					},
+				},
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "enforce block denied module",
+							Detail:   "the enforce block condition failed",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "module_policy.example",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+							EnforceIndex:     2,
+						},
+					},
+				},
+			},
+		},
+		"policy diagnostic with warning severity and local range": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				diags := policy.DiagsFromProto([]*proto.Diagnostic{{
+					Severity: proto.Severity_WARNING,
+					Summary:  "module policy warning",
+					Detail:   "the module is discouraged",
+					Result: &proto.DiagnosticResult{
+						Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT,
+					},
+				}}, policyObj)
+
+				// WithLocalRange attaches the Terraform source location, which
+				// becomes the diagnostic's Subject and Context.
+				diags[0] = diags[0].WithLocalRange(&hcl.Range{
+					Filename: "main.tf",
+					Start:    hcl.Pos{Line: 5, Column: 1, Byte: 50},
+					End:      hcl.Pos{Line: 5, Column: 20, Byte: 70},
+				})
+
+				return map[string]policy.EvaluationResponse{
+					moduleAddr.String(): {
+						Overall:     policy.AllowResult,
+						Diagnostics: diags,
+					},
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_ALLOW_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_WARNING,
+							Summary:  "module policy warning",
+							Detail:   "the module is discouraged",
+							Subject: &terraform1.SourceRange{
+								SourceAddr: "main.tf",
+								Start:      &terraform1.SourcePos{Line: 5, Column: 1, Byte: 50},
+								End:        &terraform1.SourcePos{Line: 5, Column: 20, Byte: 70},
+							},
+							Context: &terraform1.SourceRange{
+								SourceAddr: "main.tf",
+								Start:      &terraform1.SourcePos{Line: 5, Column: 1, Byte: 50},
+								End:        &terraform1.SourcePos{Line: 5, Column: 20, Byte: 70},
+							},
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+					},
+				},
+			},
+		},
+		"policy diagnostic with duplicate and invalid expression values": {
+			componentAddr: "ephemeral_component.test",
+			policyResults: func() map[string]policy.EvaluationResponse {
+				return map[string]policy.EvaluationResponse{
+					moduleAddr.String(): {
+						Overall: policy.DenyResult,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{{
+							Severity: proto.Severity_ERROR,
+							Summary:  "policy error",
+							Detail:   "the module is not allowed",
+							Result: &proto.DiagnosticResult{
+								Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+							},
+							ExpressionValues: []*proto.ExpressionValue{
+								{
+									// first occurrence of "value" is kept
+									Traversal: &proto.AttributePath{Steps: []*proto.AttributePath_Step{{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
+									Value:     exprValueBytes,
+								},
+								{
+									// duplicate "value" path is skipped
+									Traversal: &proto.AttributePath{Steps: []*proto.AttributePath_Step{{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
+									Value:     exprValueBytes,
+								},
+							},
+						}}, policyObj),
+					},
+				}
+			},
+			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+				Diagnostics: []*stacks.PolicyDiagnostic{
+					{
+						TargetAddress: "module.example",
+						Result:        stacks.EvaluateResult_DENY_EVALUATE_RESULT,
+						Diagnostic: &terraform1.Diagnostic{
+							Severity: terraform1.Diagnostic_ERROR,
+							Summary:  "policy error",
+							Detail:   "the module is not allowed",
+						},
+						PolicyMetadata: &stacks.PolicyMetaData{
+							PolicyName:       "policy_name",
+							PolicySetName:    "some_policy_set",
+							FileName:         "policy_file.tfpolicy.hcl",
+							EnforcementLevel: "mandatory",
+						},
+						ExpressionValues: []*stacks.ExpressionValue{
+							{
+								Traversal: stacks.NewAttributePath(cty.GetAttrPath("value")),
+								Value:     exprValueBytes,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ephComponentAddr, diags := stackaddrs.ParseAbsEphemeralComponentInstanceStr(tc.componentAddr)
+			if diags.HasErrors() {
+				t.Fatalf("failed to parse ephemeral component address: %s", diags.Err())
+			}
+
+			want := tc.want
+			want.Addr = &stacks.EphemeralComponentInstanceInStackAddr{
+				EphemeralComponentAddr:         stackaddrs.ConfigEphemeralComponentForAbsInstance(ephComponentAddr).String(),
+				EphemeralComponentInstanceAddr: ephComponentAddr.String(),
+			}
+
+			policyResults := make(map[string][]policy.EvaluationResponse)
+			for addr, result := range tc.policyResults() {
+				policyResults[addr] = []policy.EvaluationResponse{result}
+			}
+			got := ephemeralComponentInstancePolicyEvaluationProto(ephComponentAddr, policyResults)
+
+			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}

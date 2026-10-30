@@ -162,9 +162,10 @@ func (c *EphemeralComponentInstance) PlanOpts(ctx context.Context, phase EvalPha
 		// during destroy.
 		AllowRootEphemeralOutputs: true,
 
-		// Ephemeral components cannot manage resources (which evaluate policy), and any
-		// providers being used by an ephemeral component have policy evaluated in [ProviderInstance.CheckClient].
-		PolicyClient: nil,
+		// Ephemeral components cannot manage resources (which evaluate policy), but they
+		// can contain modules that evaluate policy. Providers being used by an ephemeral
+		// component have policy evaluated in [ProviderInstance.CheckClient].
+		PolicyClient: c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language
 		ForcePlanTimestamp: &plantimestamp,
@@ -252,6 +253,11 @@ func (c *EphemeralComponentInstance) checkResultValue(ctx context.Context, phase
 					Providers:                providerFactories,
 					PreloadedProviderSchemas: providerSchemas,
 					Provisioners:             c.main.availableProvisioners(),
+					Hooks: []terraform.Hook{&ephemeralComponentInstanceTerraformHook{
+						ctx:   ctx,
+						hooks: hooksFromContext(ctx),
+						addr:  c.addr,
+					}},
 				})
 				if err != nil {
 					// Should not get here because we should always pass a valid ContextOpts above.
