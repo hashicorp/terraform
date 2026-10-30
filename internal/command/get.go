@@ -96,12 +96,16 @@ Usage: terraform [global options] get [options]
 
 Options:
 
-  -update               Check already-downloaded modules for available updates
-                        and install the newest versions available.
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
 
   -no-color             Disable text coloring in the output.
 
   -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -update               Check already-downloaded modules for available updates
+                        and install the newest versions available.
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than

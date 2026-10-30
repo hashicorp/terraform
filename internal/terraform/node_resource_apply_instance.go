@@ -49,9 +49,8 @@ var (
 )
 
 // GraphNodeCreator
-func (n *NodeApplyableResourceInstance) CreateAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+func (n *NodeApplyableResourceInstance) CreateAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 // GraphNodeReferencer, overriding NodeAbstractResourceInstance

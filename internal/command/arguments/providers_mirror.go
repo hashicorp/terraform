@@ -14,6 +14,8 @@ type ProvidersMirror struct {
 
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
+
+	ViewType ViewType
 }
 
 // ParseProvidersMirror processes CLI arguments, returning a ProvidersMirror
@@ -22,7 +24,8 @@ type ProvidersMirror struct {
 func ParseProvidersMirror(args []string) (*ProvidersMirror, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	providersMirror := &ProvidersMirror{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("providers mirror", nil, nil, providersMirror.Vars)

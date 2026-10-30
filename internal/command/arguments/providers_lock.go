@@ -17,6 +17,8 @@ type ProvidersLock struct {
 
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
+
+	ViewType ViewType
 }
 
 // ParseProvidersLock processes CLI arguments, returning a ProvidersLock value
@@ -25,7 +27,8 @@ type ProvidersLock struct {
 func ParseProvidersLock(args []string) (*ProvidersLock, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	providersLock := &ProvidersLock{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("providers lock", nil, nil, providersLock.Vars)

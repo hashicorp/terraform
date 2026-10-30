@@ -283,6 +283,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Concrete: b.ConcreteModule, Config: b.Config},
 
+		// Evaluate module policies before the objects within each module.
+		&ModulePolicyTransformer{Config: b.Config, PolicyClient: b.PolicyClient},
+
 		// Plug in any external references.
 		&ExternalReferenceTransformer{
 			ExternalReferences: b.ExternalReferences,

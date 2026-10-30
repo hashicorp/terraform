@@ -458,6 +458,39 @@ func neededProviderSchemas[Addr fmt.Stringer](ctx context.Context, main *Main, p
 	return providerSchemas, diags, skipFutherValidation
 }
 
+// unconfiguredProviderFactories returns the provider factories that Terraform
+// Core should use for operations that need an unconfigured provider, such as
+// provider functions and cross-provider moves.
+//
+// The result covers the union of two sets of providers:
+//   - the providers whose schemas were loaded for the configuration
+//   - the providers configured for the component
+func unconfiguredProviderFactories(main *Main, schemas map[addrs.Provider]providers.ProviderSchema, configured map[addrs.RootProviderConfig]providers.Interface) map[addrs.Provider]providers.Factory {
+	providerFactories := make(map[addrs.Provider]providers.Factory)
+
+	// Providers likely will appear in both sets, in which case the factory is simply rewritten
+	addProvider := func(addr addrs.Provider) {
+		providerFactories[addr] = func() (providers.Interface, error) {
+			// Lazily fetch the unconfigured client for the provider
+			// as and when we need it.
+			provider, err := main.ProviderType(addr).UnconfiguredClient()
+			if err != nil {
+				return nil, err
+			}
+			// this provider should only be used for selected operations
+			return stubs.OfflineProvider(provider), nil
+		}
+	}
+
+	for addr := range schemas {
+		addProvider(addr)
+	}
+	for addr := range configured {
+		addProvider(addr.Provider)
+	}
+	return providerFactories
+}
+
 // unconfiguredProviderClients returns the provider clients for the providers
 // required by the configuration of the given component, along with any
 // diagnostics that were encountered while fetching those clients.

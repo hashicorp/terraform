@@ -18,6 +18,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"defaults with address": {
 			[]string{"test_instance.foo"},
 			&Untaint{
+				ViewType:  ViewHuman,
 				Address:   "test_instance.foo",
 				StateLock: true,
 			},
@@ -25,6 +26,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"allow-missing": {
 			[]string{"-allow-missing", "test_instance.foo"},
 			&Untaint{
+				ViewType:     ViewHuman,
 				Address:      "test_instance.foo",
 				AllowMissing: true,
 				StateLock:    true,
@@ -33,6 +35,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"backup": {
 			[]string{"-backup", "backup.tfstate", "test_instance.foo"},
 			&Untaint{
+				ViewType:   ViewHuman,
 				Address:    "test_instance.foo",
 				BackupPath: "backup.tfstate",
 				StateLock:  true,
@@ -41,12 +44,14 @@ func TestParseUntaint_valid(t *testing.T) {
 		"lock disabled": {
 			[]string{"-lock=false", "test_instance.foo"},
 			&Untaint{
-				Address: "test_instance.foo",
+				ViewType: ViewHuman,
+				Address:  "test_instance.foo",
 			},
 		},
 		"lock-timeout": {
 			[]string{"-lock-timeout=10s", "test_instance.foo"},
 			&Untaint{
+				ViewType:         ViewHuman,
 				Address:          "test_instance.foo",
 				StateLock:        true,
 				StateLockTimeout: 10 * time.Second,
@@ -55,6 +60,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"state": {
 			[]string{"-state=foo.tfstate", "test_instance.foo"},
 			&Untaint{
+				ViewType:  ViewHuman,
 				Address:   "test_instance.foo",
 				StateLock: true,
 				StatePath: "foo.tfstate",
@@ -63,6 +69,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"state-out": {
 			[]string{"-state-out=foo.tfstate", "test_instance.foo"},
 			&Untaint{
+				ViewType:     ViewHuman,
 				Address:      "test_instance.foo",
 				StateLock:    true,
 				StateOutPath: "foo.tfstate",
@@ -71,6 +78,7 @@ func TestParseUntaint_valid(t *testing.T) {
 		"ignore-remote-version": {
 			[]string{"-ignore-remote-version", "test_instance.foo"},
 			&Untaint{
+				ViewType:            ViewHuman,
 				Address:             "test_instance.foo",
 				StateLock:           true,
 				IgnoreRemoteVersion: true,
@@ -88,6 +96,7 @@ func TestParseUntaint_valid(t *testing.T) {
 				"module.child.test_instance.foo",
 			},
 			&Untaint{
+				ViewType:            ViewHuman,
 				Address:             "module.child.test_instance.foo",
 				AllowMissing:        true,
 				BackupPath:          "backup.tfstate",
@@ -121,6 +130,7 @@ func TestParseUntaint_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-unknown"},
 			&Untaint{
+				ViewType:  ViewHuman,
 				StateLock: true,
 			},
 			tfdiags.Diagnostics{
@@ -139,6 +149,7 @@ func TestParseUntaint_invalid(t *testing.T) {
 		"missing address": {
 			nil,
 			&Untaint{
+				ViewType:  ViewHuman,
 				StateLock: true,
 			},
 			tfdiags.Diagnostics{
@@ -152,6 +163,7 @@ func TestParseUntaint_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"test_instance.foo", "test_instance.bar"},
 			&Untaint{
+				ViewType:  ViewHuman,
 				Address:   "test_instance.foo",
 				StateLock: true,
 			},

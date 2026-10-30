@@ -6,11 +6,9 @@ package command
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
-
-	"github.com/xlab/treeprint"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -30,10 +28,22 @@ func (c *ProvidersCommand) Synopsis() string {
 	return "Show the providers required for this configuration"
 }
 
-func (c *ProvidersCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseProviders(c.Meta.process(args))
+func (c *ProvidersCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, diags := arguments.ParseProviders(rawArgs)
+
+	// Prepare the view
+	view := views.NewProviders(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -42,7 +52,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -52,7 +62,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -63,7 +73,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 			"Error validating configuration directory",
 			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if empty {
@@ -76,28 +86,28 @@ func (c *ProvidersCommand) Run(args []string) int {
 			"No configuration files",
 			fmt.Sprintf("The directory %s contains no Terraform configuration files.", absPath),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	diags = diags.Append(c.resolveConstVariables(configPath, arguments.ViewHuman))
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	config, configDiags := c.loadConfigWithTests(configPath, parsedArgs.TestsDirectory)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", arguments.ViewHuman)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -107,23 +117,38 @@ func (c *ProvidersCommand) Run(args []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error determining the current workspace",
+			err.Error(),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	s, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", sDiags.Err()))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error accessing state",
+			fmt.Sprintf("Failed to access state: %s", sDiags.Err()),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := s.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading state",
+			fmt.Sprintf("Failed to load state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	reqs, reqDiags := config.ProviderRequirementsByModule()
 	diags = diags.Append(reqDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -133,56 +158,8 @@ func (c *ProvidersCommand) Run(args []string) int {
 		stateReqs = state.ProviderRequirements()
 	}
 
-	printRoot := treeprint.New()
-	c.populateTreeNode(printRoot, reqs)
-
-	c.Ui.Output("\nProviders required by configuration:")
-	c.Ui.Output(printRoot.String())
-
-	if len(stateReqs) > 0 {
-		c.Ui.Output("Providers required by state:\n")
-		for fqn := range stateReqs {
-			c.Ui.Output(fmt.Sprintf("    provider[%s]\n", fqn.String()))
-		}
-	}
-
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
-		return 1
-	}
+	view.LogProviderRequirements(reqs, stateReqs, diags)
 	return 0
-}
-
-func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.ModuleRequirements) {
-	for fqn, dep := range node.Requirements {
-		versionsStr := getproviders.VersionConstraintsString(dep)
-		if versionsStr != "" {
-			versionsStr = " " + versionsStr
-		}
-		tree.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
-	}
-	for name, testNode := range node.Tests {
-		name = strings.TrimSuffix(name, ".tftest.hcl")
-		name = strings.ReplaceAll(name, "/", ".")
-		branch := tree.AddBranch(fmt.Sprintf("test.%s", name))
-
-		for fqn, dep := range testNode.Requirements {
-			versionsStr := getproviders.VersionConstraintsString(dep)
-			if versionsStr != "" {
-				versionsStr = " " + versionsStr
-			}
-			branch.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
-		}
-
-		for _, run := range testNode.Runs {
-			branch := branch.AddBranch(fmt.Sprintf("run.%s", run.Name))
-			c.populateTreeNode(branch, run)
-		}
-	}
-	for name, childNode := range node.Children {
-		branch := tree.AddBranch(fmt.Sprintf("module.%s", name))
-		c.populateTreeNode(branch, childNode)
-	}
 }
 
 const providersCommandHelp = `
@@ -197,7 +174,13 @@ Usage: terraform [global options] providers [options] [DIR]
 
 Options:
 
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
+
   -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -no-color             If specified, output won't contain any color.
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than

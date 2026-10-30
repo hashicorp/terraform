@@ -894,6 +894,10 @@ Options:
                           times. The backend type must be in the configuration
                           itself.
 
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
   -force-copy             Suppress prompts about copying state data when
                           initializing a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
@@ -904,20 +908,33 @@ Options:
 
   -get=false              Disable downloading modules for this configuration.
 
+  -ignore-remote-version  A rare option used for HCP Terraform and the remote backend
+                          only. Set this to ignore checking that the local and remote
+                          Terraform versions use compatible state representations, making
+                          an operation proceed even when there is a potential mismatch.
+                          See the documentation on configuring Terraform with
+                          HCP Terraform or Terraform Enterprise for more information.
+
   -input=false            Disable interactive prompts. Note that some actions may
                           require interactive prompts and will error if input is
                           disabled.
+
+  -json                   If specified, machine readable output will be
+                          printed in JSON format.
 
   -lock=false             Don't hold a state lock during backend migration.
                           This is dangerous if others might concurrently run
                           commands against the same workspace.
 
+  -lockfile=MODE          Set a dependency lockfile mode.
+                          Currently only "readonly" is valid.
+
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -no-color               If specified, output won't contain any color.
+  -migrate-state          Reconfigure a backend, and attempt to migrate any
+                          existing state.
 
-  -json                   If specified, machine readable output will be
-                          printed in JSON format.
+  -no-color               If specified, output won't contain any color.
 
   -plugin-dir             Directory containing plugin binaries. This overrides all
                           default search paths for plugins, and prevents the
@@ -927,25 +944,12 @@ Options:
   -reconfigure            Reconfigure a backend, ignoring any saved
                           configuration.
 
-  -migrate-state          Reconfigure a backend, and attempt to migrate any
-                          existing state.
+  -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
   -upgrade                Install the latest module and provider versions
                           allowed within configured constraints, overriding the
                           default behavior of selecting exactly the version
                           recorded in the dependency lockfile.
-
-  -lockfile=MODE          Set a dependency lockfile mode.
-                          Currently only "readonly" is valid.
-
-  -ignore-remote-version  A rare option used for HCP Terraform and the remote backend
-                          only. Set this to ignore checking that the local and remote
-                          Terraform versions use compatible state representations, making
-                          an operation proceed even when there is a potential mismatch.
-                          See the documentation on configuring Terraform with
-                          HCP Terraform or Terraform Enterprise for more information.
-
-  -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'          Set a value for one of the input variables in the root
                           module of the configuration. Use this option more than

@@ -22,6 +22,7 @@ func TestParseProvidersMirror_valid(t *testing.T) {
 				LockFile:  true,
 				OutputDir: "./mirror",
 				Vars:      &Vars{},
+				ViewType:  ViewHuman,
 			},
 		},
 		"all options": {
@@ -35,6 +36,7 @@ func TestParseProvidersMirror_valid(t *testing.T) {
 				Platforms: FlagStringSlice{"linux_amd64", "darwin_arm64"},
 				OutputDir: "./mirror",
 				Vars:      &Vars{},
+				ViewType:  ViewHuman,
 			},
 		},
 	}
@@ -65,6 +67,7 @@ func TestParseProvidersMirror_invalid(t *testing.T) {
 			&ProvidersMirror{
 				LockFile: true,
 				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -79,6 +82,7 @@ func TestParseProvidersMirror_invalid(t *testing.T) {
 			&ProvidersMirror{
 				LockFile: true,
 				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -93,6 +97,7 @@ func TestParseProvidersMirror_invalid(t *testing.T) {
 			&ProvidersMirror{
 				LockFile: true,
 				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

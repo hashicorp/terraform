@@ -60,7 +60,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		diags = diags.Append(ErrUnsupportedLocalOp)
+		diags = diags.Append(unsupportedLocalOpErrDiag)
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 

@@ -1520,8 +1520,13 @@ func stackChangeHooks(send func(*stacks.StackChangeProgress) error, mainStackSou
 	}
 }
 
-func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsComponentInstance, map[string]policy.EvaluationResponse] {
-	resultMap := collections.NewMap[stackaddrs.AbsComponentInstance, map[string]policy.EvaluationResponse]()
+// stackPolicyEvaluationHooks collects every policy result reported for a
+// component instance, grouped by resource address. A resource address can
+// report more than once: a replaced resource instance is evaluated separately
+// for its create and its delete, so results are accumulated rather than
+// overwritten.
+func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsComponentInstance, map[string][]policy.EvaluationResponse] {
+	resultMap := collections.NewMap[stackaddrs.AbsComponentInstance, map[string][]policy.EvaluationResponse]()
 	if policyClient != nil {
 		mu := sync.Mutex{}
 		runtimeHooks.ReportComponentInstancePolicyResult = func(ctx context.Context, a any, h *hooks.ComponentInstancePolicyResult) any {
@@ -1529,10 +1534,10 @@ func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackr
 			defer mu.Unlock()
 			mp, ok := resultMap.GetOk(h.ComponentAddr)
 			if !ok {
-				mp = make(map[string]policy.EvaluationResponse)
+				mp = make(map[string][]policy.EvaluationResponse)
 				resultMap.Put(h.ComponentAddr, mp)
 			}
-			mp[h.ResourceAddr] = h.Result
+			mp[h.ResourceAddr] = append(mp[h.ResourceAddr], h.Result)
 			return nil
 		}
 	}
