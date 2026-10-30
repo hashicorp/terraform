@@ -424,7 +424,7 @@ func (c *LoginCommand) defaultOutputFile() string {
 func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.OAuthTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
@@ -590,7 +590,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.PasswordTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
@@ -642,7 +642,7 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL, view views.WebUiTokenGetter) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
@@ -684,9 +684,9 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in the configured %q credentials helper\nfor use by subsequent commands.\n", credsCtx.HelperType))
+			view.NotifyTokenStoredInCredentialsHelper(credsCtx.HelperType)
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in plain text in the following file\nfor use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			view.NotifyTokenStoredInFile(credsCtx.LocalFilename)
 		}
 	}
 
@@ -725,19 +725,17 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	return svcauth.HostCredentialsToken(token), nil
 }
 
-func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext, view views.TokenRequester) (bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	mechanism := "OAuth"
 	if grantType == "" {
 		mechanism = "your browser"
 	}
 
-	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using %s.\n", hostname.ForDisplay(), mechanism))
+	view.RequestingToken(hostname, mechanism)
 
 	if grantType.UsesAuthorizationEndpoint() {
-		c.Ui.Output(
-			"This will work only if you are able to use a web browser on this computer to\ncomplete a login process. If not, you must obtain an API token by another\nmeans and configure it in the CLI configuration manually.\n",
-		)
+		view.NotifyNeedWebBrowser()
 	}
 
 	// credsCtx might not be set if we're using a mock credentials source
@@ -745,9 +743,9 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in the configured\n%q credentials helper for use by subsequent commands.\n", credsCtx.HelperType))
+			view.NotifyTokenStoredInCredentialsHelper(credsCtx.HelperType)
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			view.NotifyTokenStoredInFile(credsCtx.LocalFilename)
 		}
 	}
 
