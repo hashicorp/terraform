@@ -22,6 +22,8 @@ type OAuthTokenGetter interface {
 
 	// Log that the program is waiting for a signal that the user has successfully logged in.
 	WaitingForLoginSuccess()
+
+	TokenRequester
 }
 
 // PasswordTokenGetter is used to log user-facing messages while obtaining a token via login with username and password
@@ -31,6 +33,8 @@ type PasswordTokenGetter interface {
 
 	// Contextualize the prompt for the user to enter their username and password.
 	PromptForPassword()
+
+	TokenRequester
 }
 
 // WebUiTokenGetter is used to log user-facing messages while obtaining a token via using the web UI
@@ -49,6 +53,24 @@ type WebUiTokenGetter interface {
 
 	// Log that the token has been successfully retrieved.
 	TokenRetrieved(*tfe.User)
+
+	TokenRequester
+}
+
+// TokenRequester is used to log user-facing messages about obtaining
+// an API token that are common to all means of obtaining it.
+type TokenRequester interface {
+	// Contextualize next steps for Terraform obtaining an API token.
+	RequestingToken(hostname svchost.Hostname, mechanism string)
+
+	// Advise the user that access to a web browser is required.
+	NotifyNeedWebBrowser()
+
+	// Advise the user that credentials will be stored using the named credentials helper.
+	NotifyTokenStoredInCredentialsHelper(credsHelperType string)
+
+	// Advise the user that credentials will be stored in a file.
+	NotifyTokenStoredInFile(file string)
 }
 
 // Methods used to log user-facing messages during the `login` command
@@ -80,6 +102,7 @@ var (
 	_ OAuthTokenGetter    = (*LoginHuman)(nil)
 	_ PasswordTokenGetter = (*LoginHuman)(nil)
 	_ WebUiTokenGetter    = (*LoginHuman)(nil)
+	_ TokenRequester      = (*LoginHuman)(nil)
 )
 
 // Implements Login, PasswordTokenGetter, WebUiTokenGetter
@@ -141,4 +164,32 @@ func (v *LoginHuman) PromptForToken() {
 // Implements WebUiTokenGetter
 func (v *LoginHuman) TokenRetrieved(user *tfe.User) {
 	v.view.streams.Print(fmt.Sprintf("Retrieved token for user %s\n\n", user.Username))
+}
+
+// Implements TokenRequester
+func (v *LoginHuman) RequestingToken(hostname svchost.Hostname, mechanism string) {
+	v.view.streams.Print(fmt.Sprintf("Terraform will request an API token for %s using %s.\n\n", hostname.ForDisplay(), mechanism))
+}
+
+// Implements TokenRequester
+func (v *LoginHuman) NotifyNeedWebBrowser() {
+	v.view.streams.Print(`This will work only if you are able to use a web browser on this computer to
+complete a login process. If not, you must obtain an API token by another
+means and configure it in the CLI configuration manually.
+
+`)
+}
+
+// Implements TokenRequester
+func (v *LoginHuman) NotifyTokenStoredInCredentialsHelper(credsHelperType string) {
+	v.view.streams.Print(
+		fmt.Sprintf("If login is successful, Terraform will store the token in the configured\n%q credentials helper for use by subsequent commands.\n\n", credsHelperType),
+	)
+}
+
+// Implements TokenRequester
+func (v *LoginHuman) NotifyTokenStoredInFile(file string) {
+	v.view.streams.Print(
+		fmt.Sprintf("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n\n", file),
+	)
 }

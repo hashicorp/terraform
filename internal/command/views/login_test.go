@@ -251,6 +251,108 @@ func TestLoginHuman_WebUiTokenGetterInterface(t *testing.T) {
 	})
 }
 
+func TestLoginHuman_TokenRequesterInterface(t *testing.T) {
+	t.Run("RequestingToken", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		hostname := svchost.Hostname("example.com")
+		v.RequestingToken(hostname, "your browser")
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("Terraform will request an API token for example.com using your browser.")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("NotifyNeedWebBrowser", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		v.NotifyNeedWebBrowser()
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdoutSnippet := "This will work only if you are able to use a web browser on this computer"
+		if !strings.Contains(gotStdout, wantStdoutSnippet) {
+			t.Fatalf("expected snippet not found in human output:\n%s", gotStdout)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("NotifyTokenStoredInCredentialsHelper", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		helperType := "foo"
+		v.NotifyTokenStoredInCredentialsHelper(helperType)
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("If login is successful, Terraform will store the token in the configured\n\"foo\" credentials helper for use by subsequent commands.")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+	t.Run("NotifyTokenStoredInFile", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		view.Configure(&arguments.View{NoColor: true})
+		v := NewLogin(arguments.ViewHuman, view)
+
+		file := "my-plain-text-secrets.txt"
+		v.NotifyTokenStoredInFile(file)
+
+		output := done(t)
+
+		// Assert contents
+		// This must be done separately for stdout and stderr due to
+		// the interleaving of output caused in tests by (TestOutput).All()
+		gotStdout := strings.TrimSpace(output.Stdout())
+		wantStdout := strings.TrimSpace("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    my-plain-text-secrets.txt")
+		if diff := cmp.Diff(wantStdout, gotStdout); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+		gotStderr := strings.TrimSpace(output.Stderr())
+		wantStderr := strings.TrimSpace("")
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Fatalf("unexpected diff in human output:\n%s", diff)
+		}
+	})
+}
+
 func TestLoginHuman_Diagnostics(t *testing.T) {
 	testCases := map[string]struct {
 		diags      tfdiags.Diagnostics
