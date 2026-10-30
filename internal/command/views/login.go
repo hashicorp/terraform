@@ -75,7 +75,21 @@ type TokenRequester interface {
 
 // Methods used to log user-facing messages during the `login` command
 type Login interface {
+	HorizontalRule()
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	// Log the message of the day, colorized.
+	MessageOfTheDay(motd string)
+
+	// Default success message for HCP Terraform login. This is displayed in response to any error when trying
+	// to access the message of the day from app.terraform.io, i.e. HCP Terraform is definitely what's in use.
+	DefaultHCPTFLoginSuccess()
+
+	// Successful login message for Terraform Enterprise.
+	TFELoginSuccess(host string)
+
+	// Successful login message: HCP Terraform or other.
+	LoginSuccess(host string)
 
 	OAuthTokenGetter
 	PasswordTokenGetter
@@ -108,6 +122,48 @@ var (
 // Implements Login, PasswordTokenGetter, WebUiTokenGetter
 func (v *LoginHuman) HorizontalRule() {
 	v.view.streams.Print("\n---------------------------------------------------------------------------------\n\n")
+}
+
+func (v *LoginHuman) MessageOfTheDay(motd string) {
+	v.view.streams.Println(v.view.colorize.Color(motd))
+}
+
+func (v *LoginHuman) TFELoginSuccess(dispHostname string) {
+	v.view.streams.Print(
+		v.view.colorize.Color(
+			fmt.Sprintf(
+				"[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]\n\n",
+				dispHostname,
+			),
+		),
+	)
+}
+
+func (v *LoginHuman) DefaultHCPTFLoginSuccess() {
+	v.view.streams.Print(
+		v.view.colorize.Color(
+			"[green][bold]Success![reset] [bold]Logged in to HCP Terraform[reset]\n\n",
+		),
+	)
+}
+
+func (v *LoginHuman) LoginSuccess(dispHostname string) {
+	// Note, newlines are load-bearing in the message string below
+	message := `[green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
+
+The new API token will be used for any future Terraform command that must make
+authenticated requests to %s.
+
+`
+
+	v.view.streams.Print(
+		v.view.colorize.Color(
+			fmt.Sprintf(
+				message,
+				dispHostname,
+			),
+		),
+	)
 }
 
 func (v *LoginHuman) Diagnostics(diags tfdiags.Diagnostics) {
