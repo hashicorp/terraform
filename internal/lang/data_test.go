@@ -64,6 +64,10 @@ func (d *dataForTests) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange)
 	return d.PathAttrs[addr.Name], nil
 }
 
+func (d *dataForTests) GetSourceAttr(addr addrs.SourceAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return cty.DynamicVal, nil
+}
+
 func (d *dataForTests) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.TerraformAttrs[addr.Name], nil
 }

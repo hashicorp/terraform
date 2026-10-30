@@ -138,6 +138,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 
 	terraformAttrs := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
+	sourceAttrs := map[string]cty.Value{}
 
 	// We could always load the static values for Path and Terraform values,
 	// but we want to parse the references so that we can get source ranges for
@@ -153,6 +154,11 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 			val, valDiags := normalizeRefValue(s.Data.GetPathAttr(subj, ref.SourceRange))
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
+
+		case addrs.SourceAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetSourceAttr(subj, ref.SourceRange))
+			diags = diags.Append(valDiags)
+			sourceAttrs[subj.Name] = val
 
 		case addrs.TerraformAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, ref.SourceRange))
@@ -175,6 +181,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	vals["path"] = cty.ObjectVal(pathAttrs)
+	vals["source"] = cty.ObjectVal(sourceAttrs)
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 
 	ctx := &hcl.EvalContext{
@@ -326,6 +333,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	localValues := map[string]cty.Value{}
 	outputValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
+	sourceAttrs := map[string]cty.Value{}
 	terraformAttrs := map[string]cty.Value{}
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
@@ -440,6 +448,11 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
 
+		case addrs.SourceAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetSourceAttr(subj, rng))
+			diags = diags.Append(valDiags)
+			sourceAttrs[subj.Name] = val
+
 		case addrs.TerraformAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, rng))
 			diags = diags.Append(valDiags)
@@ -500,6 +513,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["var"] = cty.ObjectVal(inputVariables)
 	vals["local"] = cty.ObjectVal(localValues)
 	vals["path"] = cty.ObjectVal(pathAttrs)
+	vals["source"] = cty.ObjectVal(sourceAttrs)
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
