@@ -190,7 +190,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		switch {
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
 			// We prefer an OAuth code grant if the server supports it.
-			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
+			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig, view)
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
 			// The password grant type is allowed only for HCP Terraform SaaS.
 			// Note this case is purely theoretical at this point, as HCP Terraform currently uses
@@ -421,7 +421,7 @@ func (c *LoginCommand) defaultOutputFile() string {
 	return filepath.Join(c.CLIConfigDir, "credentials.tfrc.json")
 }
 
-func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.OAuthTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx)
@@ -542,8 +542,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	if c.BrowserLauncher != nil {
 		err = c.BrowserLauncher.OpenURL(authCodeURL)
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
-			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", authCodeURL))
+			view.OpeningLoginPage(hostname, authCodeURL)
 		} else {
 			// Assume we're on a platform where opening a browser isn't possible.
 			launchBrowserManually = true
@@ -553,10 +552,10 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	}
 
 	if launchBrowserManually {
-		c.Ui.Output(fmt.Sprintf("Open the following URL to access the login page for %s:\n    %s\n", hostname.ForDisplay(), authCodeURL))
+		view.PromptToOpenLoginPage(hostname, authCodeURL)
 	}
 
-	c.Ui.Output("Terraform will now wait for the host to signal that login was successful.\n")
+	view.WaitingForLoginSuccess()
 
 	code, ok := <-codeCh
 	if !ok {
