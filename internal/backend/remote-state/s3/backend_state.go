@@ -193,18 +193,10 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
 	// If we need to force-unlock, but for some reason the state no longer
 	// exists, the user will have to use aws tools to manually fix the
 	// situation.
-	existing, wDiags := b.Workspaces()
-	diags = diags.Append(wDiags)
-	if wDiags.HasErrors() {
-		return nil, diags
-	}
-
-	exists := false
-	for _, s := range existing {
-		if s == name {
-			exists = true
-			break
-		}
+	ctx := context.TODO()
+	exists, err := client.Exists(ctx)
+	if err != nil {
+		return nil, diags.Append(err)
 	}
 
 	// We need to create the object so it's listed by States.
