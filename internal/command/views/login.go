@@ -6,6 +6,7 @@ package views
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -32,12 +33,31 @@ type PasswordTokenGetter interface {
 	PromptForPassword()
 }
 
+// WebUiTokenGetter is used to log user-facing messages while obtaining a token via using the web UI
+type WebUiTokenGetter interface {
+	// Divide UI output with a horizontal line
+	HorizontalRule()
+
+	// Log that the page will be opened in the web browser automatically.
+	OpeningTokensPage(hostname svchost.Hostname, url string)
+
+	// Log that the user needs to open the page in their web browser manually.
+	PromptToOpenTokensPage(hostname svchost.Hostname, url string)
+
+	// Prompt the user to enter the token obtained from the web UI.
+	PromptForToken()
+
+	// Log that the token has been successfully retrieved.
+	TokenRetrieved(*tfe.User)
+}
+
 // Methods used to log user-facing messages during the `login` command
 type Login interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 
 	OAuthTokenGetter
 	PasswordTokenGetter
+	WebUiTokenGetter
 }
 
 func NewLogin(viewType arguments.ViewType, view *View) Login {
@@ -59,9 +79,10 @@ var (
 	_ Login               = (*LoginHuman)(nil)
 	_ OAuthTokenGetter    = (*LoginHuman)(nil)
 	_ PasswordTokenGetter = (*LoginHuman)(nil)
+	_ WebUiTokenGetter    = (*LoginHuman)(nil)
 )
 
-// Implements Login, PasswordTokenGetter
+// Implements Login, PasswordTokenGetter, WebUiTokenGetter
 func (v *LoginHuman) HorizontalRule() {
 	v.view.streams.Print("\n---------------------------------------------------------------------------------\n\n")
 }
@@ -95,4 +116,29 @@ func (v *LoginHuman) WaitingForLoginSuccess() {
 // Implements PasswordTokenGetter
 func (v *LoginHuman) PromptForPassword() {
 	v.view.streams.Print("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n\n")
+}
+
+// Implements WebUiTokenGetter
+func (v *LoginHuman) OpeningTokensPage(hostname svchost.Hostname, url string) {
+	message := `Terraform must now open a web browser to the tokens page for %s.
+If a browser does not open this automatically, open the following URL to proceed:
+    %s
+
+`
+	v.view.streams.Print(fmt.Sprintf(message, hostname.ForDisplay(), url))
+}
+
+// Implements WebUiTokenGetter
+func (v *LoginHuman) PromptToOpenTokensPage(hostname svchost.Hostname, url string) {
+	v.view.streams.Print(fmt.Sprintf("Open the following URL to access the tokens page for %s:\n    %s\n\n", hostname.ForDisplay(), url))
+}
+
+// Implements WebUiTokenGetter
+func (v *LoginHuman) PromptForToken() {
+	v.view.streams.Print("Generate a token using your browser, and copy-paste it into this prompt.\n\n")
+}
+
+// Implements WebUiTokenGetter
+func (v *LoginHuman) TokenRetrieved(user *tfe.User) {
+	v.view.streams.Print(fmt.Sprintf("Retrieved token for user %s\n\n", user.Username))
 }
