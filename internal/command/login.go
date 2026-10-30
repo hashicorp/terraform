@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -45,16 +46,24 @@ type LoginCommand struct {
 func (c *LoginCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	rawArgs = c.Meta.process(rawArgs)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
+	// Process command-specific arguments.
 	args, argDiags := arguments.ParseLogin(rawArgs)
 	diags = diags.Append(argDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 	c.input = args.InputEnabled
 	c.compactWarnings = args.CompactWarnings
+
+	// Prepare the view
+	view := views.NewLogin(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	if !c.input {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -62,7 +71,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			"Login is an interactive command",
 			"The \"terraform login\" command uses interactive prompts to obtain and record credentials, so it can't be run with input disabled.\n\nTo configure credentials in a non-interactive context, write existing credentials directly to a CLI configuration file.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -75,7 +84,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			"Invalid hostname",
 			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -98,7 +107,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			// with our usual error reporting standards.
 			err.Error()+".",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -167,7 +176,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 	}
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -203,7 +212,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 
 	diags = diags.Append(tokenDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -224,7 +233,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		))
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
