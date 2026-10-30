@@ -10,16 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
 	tfeserver "github.com/hashicorp/terraform/internal/command/testdata/login-tfe-server"
-	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -58,7 +56,7 @@ func TestLogin(t *testing.T) {
 	ts := httptest.NewServer(tfeserver.Handler)
 	defer ts.Close()
 
-	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi)) func(t *testing.T) {
+	loginTestCase := func(test func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput)) func(t *testing.T) {
 		return func(t *testing.T) {
 			t.Helper()
 			workDir := t.TempDir()
@@ -67,10 +65,6 @@ func TestLogin(t *testing.T) {
 			// a single test run.
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
-
-			// Do not use the NewMockUi initializer here, as we want to delay
-			// the call to init until after setting up the input mocks
-			ui := testUiWrapped(t, new(cli.MockUi))
 
 			browserLauncher := webbrowser.NewMockLauncher(ctx)
 			creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
@@ -116,19 +110,20 @@ func TestLogin(t *testing.T) {
 				// This host intentionally left blank.
 			})
 
+			view, done := testView(t)
 			c := &LoginCommand{
 				Meta: Meta{
-					Ui:              ui,
+					View:            view,
 					BrowserLauncher: browserLauncher,
 					Services:        svcs,
 				},
 			}
 
-			test(t, c, ui)
+			test(t, c, done)
 		}
 	}
 
-	t.Run("app.terraform.io (no login support), org has max TTL enabled", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("app.terraform.io (no login support), org has max TTL enabled", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		setOrgsMaxTTLEnabled(t, true)
 
 		// Enter "yes" at the consent prompt, then paste a token with some
@@ -141,9 +136,12 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run([]string{"app.terraform.io"})
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"app.terraform.io",
+		})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
@@ -154,18 +152,19 @@ func TestLogin(t *testing.T) {
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
-		if got, want := ui.OutputWriter.String(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
-		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+		if got, want := output.Stdout(), ttlWarning; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
 		}
-		if got, want := ui.OutputWriter.String(), ttlWarningOrg; !strings.Contains(got, want) {
+		if got, want := output.Stdout(), ttlWarningOrg; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning to name the affected organization\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
-	t.Run("app.terraform.io (no login support), org has max TTL disabled", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("app.terraform.io (no login support), org has max TTL disabled", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		setOrgsMaxTTLEnabled(t, false)
 
 		// Enter "yes" at the consent prompt, then paste a token with some
@@ -178,21 +177,25 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run([]string{"app.terraform.io"})
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"app.terraform.io",
+		})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
-		if got, want := ui.OutputWriter.String(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Welcome to HCP Terraform!"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 		// Warning must not appear when no organization enforces max TTL.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning when no org enforces max TTL\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("example.com with authorization code flow", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		// example.com only advertises login.v1, not tfe.v2, so there is no
 		// way to look up organizations for this host. The warning must not
 		// appear regardless of the mock server's max TTL setting.
@@ -208,7 +211,7 @@ func TestLogin(t *testing.T) {
 
 		status := c.Run([]string{"example.com"})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
@@ -220,15 +223,16 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning for host without tfe.v2 service\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("example.com results in no scopes", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		host, _ := c.Services.Discover("example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 		if len(client.Scopes) != 0 {
@@ -236,7 +240,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("with-scopes.example.com with authorization code flow and scopes", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		// Enter "yes" at the consent prompt.
 		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
@@ -244,10 +248,12 @@ func TestLogin(t *testing.T) {
 		c.Meta.testingOverrides = &testingOverrides{
 			UIInput: uiInput,
 		}
-
-		status := c.Run([]string{"with-scopes.example.com"})
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"with-scopes.example.com",
+		})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
@@ -260,15 +266,16 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning for host without tfe.v2 service\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("with-scopes.example.com results in expected scopes", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		host, _ := c.Services.Discover("with-scopes.example.com")
 		client, _ := host.ServiceOAuthClient("login.v1")
 
@@ -282,7 +289,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support, org has max TTL enabled", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("TFE host without login support, org has max TTL enabled", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		setOrgsMaxTTLEnabled(t, true)
 
 		// Enter "yes" at the consent prompt, then paste a token with some
@@ -295,9 +302,12 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run([]string{"tfe.acme.com"})
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"tfe.acme.com",
+		})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
@@ -309,18 +319,19 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
-		if got, want := ui.OutputWriter.String(), ttlWarning; !strings.Contains(got, want) {
+		if got, want := output.Stdout(), ttlWarning; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning in output\nwant substring: %s\ngot:\n%s", want, got)
 		}
-		if got, want := ui.OutputWriter.String(), ttlWarningOrg; !strings.Contains(got, want) {
+		if got, want := output.Stdout(), ttlWarningOrg; !strings.Contains(got, want) {
 			t.Errorf("expected TTL warning to name the affected organization\nwant substring: %s\ngot:\n%s", want, got)
 		}
 	}))
 
-	t.Run("TFE host without login support, org has max TTL disabled", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("TFE host without login support, org has max TTL disabled", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		setOrgsMaxTTLEnabled(t, false)
 
 		// Enter "yes" at the consent prompt, then paste a token with some
@@ -333,21 +344,25 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run([]string{"tfe.acme.com"})
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"tfe.acme.com",
+		})
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
-		if got, want := ui.OutputWriter.String(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stdout(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 		// Warning must not appear when no organization enforces max TTL.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning when no org enforces max TTL\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
 		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "yes",
@@ -359,7 +374,7 @@ func TestLogin(t *testing.T) {
 
 		status := c.Run([]string{"tfe.acme.com"})
 		if status != 1 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
@@ -371,27 +386,32 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; should have no token", creds.Token())
 		}
 		// Warning must not appear on failed login.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		output := done(t)
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning on failed login\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
-		status := c.Run([]string{"unsupported.example.net"})
+	t.Run("host without login or TFE API support", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+			"unsupported.example.net",
+		})
 		if status == 0 {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stderr(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 		// Warning must not appear when the host doesn't support login at all.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning on failed login\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("answering no cancels", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		// Enter "no" at the consent prompt
 		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "no",
@@ -400,21 +420,24 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run(nil)
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+		})
 		if status != 1 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stderr(), "Login cancelled"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 		// Warning must not appear when login is cancelled before a token is obtained.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning on cancelled login\ngot:\n%s", got)
 		}
 	}))
 
-	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, ui *ui.WrappedMockUi) {
+	t.Run("answering y cancels", loginTestCase(func(t *testing.T, c *LoginCommand, done func(*testing.T) *terminal.TestOutput) {
 		// Enter "y" at the consent prompt
 		uiInput, _ := testInputMap(t, map[string]string{
 			"approve": "y",
@@ -423,16 +446,19 @@ func TestLogin(t *testing.T) {
 			UIInput: uiInput,
 		}
 
-		status := c.Run(nil)
+		status := c.Run([]string{
+			"-no-color", // stop formatting diags, so assertions are clearer in test
+		})
 		if status != 1 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Login cancelled"; !strings.Contains(got, want) {
+		output := done(t)
+		if got, want := output.Stderr(), "Login cancelled"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 		// Warning must not appear when login is cancelled before a token is obtained.
-		if got := ui.OutputWriter.String(); strings.Contains(got, ttlWarning) {
+		if got := output.Stdout(); strings.Contains(got, ttlWarning) {
 			t.Errorf("unexpected TTL warning on cancelled login\ngot:\n%s", got)
 		}
 	}))
