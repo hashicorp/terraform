@@ -365,7 +365,7 @@ func (c *LoginCommand) Help() string {
 	}
 
 	helpText := fmt.Sprintf(`
-Usage: terraform [global options] login [hostname]
+Usage: terraform [global options] login [options] [hostname]
 
   Retrieves an authentication token for the given hostname, if it supports
   automatic login, and saves it in a credentials file in your home directory.
@@ -376,6 +376,14 @@ Usage: terraform [global options] login [hostname]
   If not overridden by credentials helper settings in the CLI configuration,
   the credentials will be written to the following local file:
       %s
+
+  The following impact how output is displayed from this command:
+
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, shows them in a more compact
+                        form that includes only the summary messages.
+
+  -no-color             If specified, output won't contain any color.
 `, defaultFile)
 	return strings.TrimSpace(helpText)
 }
