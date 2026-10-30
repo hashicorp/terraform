@@ -50,6 +50,10 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
+	// Allow interactive prompts via `terraform.UIInput` to users to be formatted still.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
 	// Process command-specific arguments.
 	args, argDiags := arguments.ParseLogin(rawArgs)
 	diags = diags.Append(argDiags)
