@@ -101,9 +101,9 @@ type ProviderClient interface {
 	// UpgradeResourceIdentityData should return the upgraded resource identity
 	// data for a managed resource type.
 	UpgradeResourceIdentity(ctx context.Context, in *UpgradeResourceIdentity_Request, opts ...grpc.CallOption) (*UpgradeResourceIdentity_Response, error)
-	// ////// One-time initialization, called before other functions below
+	//////// One-time initialization, called before other functions below
 	ConfigureProvider(ctx context.Context, in *ConfigureProvider_Request, opts ...grpc.CallOption) (*ConfigureProvider_Response, error)
-	// ////// Managed Resource Lifecycle
+	//////// Managed Resource Lifecycle
 	ReadResource(ctx context.Context, in *ReadResource_Request, opts ...grpc.CallOption) (*ReadResource_Response, error)
 	PlanResourceChange(ctx context.Context, in *PlanResourceChange_Request, opts ...grpc.CallOption) (*PlanResourceChange_Response, error)
 	ApplyResourceChange(ctx context.Context, in *ApplyResourceChange_Request, opts ...grpc.CallOption) (*ApplyResourceChange_Response, error)
@@ -111,17 +111,17 @@ type ProviderClient interface {
 	MoveResourceState(ctx context.Context, in *MoveResourceState_Request, opts ...grpc.CallOption) (*MoveResourceState_Response, error)
 	ReadDataSource(ctx context.Context, in *ReadDataSource_Request, opts ...grpc.CallOption) (*ReadDataSource_Response, error)
 	GenerateResourceConfig(ctx context.Context, in *GenerateResourceConfig_Request, opts ...grpc.CallOption) (*GenerateResourceConfig_Response, error)
-	// ////// Ephemeral Resource Lifecycle
+	//////// Ephemeral Resource Lifecycle
 	ValidateEphemeralResourceConfig(ctx context.Context, in *ValidateEphemeralResourceConfig_Request, opts ...grpc.CallOption) (*ValidateEphemeralResourceConfig_Response, error)
 	OpenEphemeralResource(ctx context.Context, in *OpenEphemeralResource_Request, opts ...grpc.CallOption) (*OpenEphemeralResource_Response, error)
 	RenewEphemeralResource(ctx context.Context, in *RenewEphemeralResource_Request, opts ...grpc.CallOption) (*RenewEphemeralResource_Response, error)
 	CloseEphemeralResource(ctx context.Context, in *CloseEphemeralResource_Request, opts ...grpc.CallOption) (*CloseEphemeralResource_Response, error)
-	// ///// List
+	/////// List
 	ListResource(ctx context.Context, in *ListResource_Request, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ListResource_Event], error)
 	ValidateListResourceConfig(ctx context.Context, in *ValidateListResourceConfig_Request, opts ...grpc.CallOption) (*ValidateListResourceConfig_Response, error)
 	// GetFunctions returns the definitions of all functions.
 	GetFunctions(ctx context.Context, in *GetFunctions_Request, opts ...grpc.CallOption) (*GetFunctions_Response, error)
-	// ////// Provider-contributed Functions
+	//////// Provider-contributed Functions
 	CallFunction(ctx context.Context, in *CallFunction_Request, opts ...grpc.CallOption) (*CallFunction_Response, error)
 	// ValidateStateStoreConfig performs configuration validation
 	ValidateStateStoreConfig(ctx context.Context, in *ValidateStateStore_Request, opts ...grpc.CallOption) (*ValidateStateStore_Response, error)
@@ -139,11 +139,11 @@ type ProviderClient interface {
 	GetStates(ctx context.Context, in *GetStates_Request, opts ...grpc.CallOption) (*GetStates_Response, error)
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
 	DeleteState(ctx context.Context, in *DeleteState_Request, opts ...grpc.CallOption) (*DeleteState_Response, error)
-	// ////// Actions
+	//////// Actions
 	PlanAction(ctx context.Context, in *PlanAction_Request, opts ...grpc.CallOption) (*PlanAction_Response, error)
 	InvokeAction(ctx context.Context, in *InvokeAction_Request, opts ...grpc.CallOption) (grpc.ServerStreamingClient[InvokeAction_Event], error)
 	ValidateActionConfig(ctx context.Context, in *ValidateActionConfig_Request, opts ...grpc.CallOption) (*ValidateActionConfig_Response, error)
-	// ////// Graceful Shutdown
+	//////// Graceful Shutdown
 	StopProvider(ctx context.Context, in *StopProvider_Request, opts ...grpc.CallOption) (*StopProvider_Response, error)
 }
 
@@ -568,9 +568,9 @@ type ProviderServer interface {
 	// UpgradeResourceIdentityData should return the upgraded resource identity
 	// data for a managed resource type.
 	UpgradeResourceIdentity(context.Context, *UpgradeResourceIdentity_Request) (*UpgradeResourceIdentity_Response, error)
-	// ////// One-time initialization, called before other functions below
+	//////// One-time initialization, called before other functions below
 	ConfigureProvider(context.Context, *ConfigureProvider_Request) (*ConfigureProvider_Response, error)
-	// ////// Managed Resource Lifecycle
+	//////// Managed Resource Lifecycle
 	ReadResource(context.Context, *ReadResource_Request) (*ReadResource_Response, error)
 	PlanResourceChange(context.Context, *PlanResourceChange_Request) (*PlanResourceChange_Response, error)
 	ApplyResourceChange(context.Context, *ApplyResourceChange_Request) (*ApplyResourceChange_Response, error)
@@ -578,17 +578,17 @@ type ProviderServer interface {
 	MoveResourceState(context.Context, *MoveResourceState_Request) (*MoveResourceState_Response, error)
 	ReadDataSource(context.Context, *ReadDataSource_Request) (*ReadDataSource_Response, error)
 	GenerateResourceConfig(context.Context, *GenerateResourceConfig_Request) (*GenerateResourceConfig_Response, error)
-	// ////// Ephemeral Resource Lifecycle
+	//////// Ephemeral Resource Lifecycle
 	ValidateEphemeralResourceConfig(context.Context, *ValidateEphemeralResourceConfig_Request) (*ValidateEphemeralResourceConfig_Response, error)
 	OpenEphemeralResource(context.Context, *OpenEphemeralResource_Request) (*OpenEphemeralResource_Response, error)
 	RenewEphemeralResource(context.Context, *RenewEphemeralResource_Request) (*RenewEphemeralResource_Response, error)
 	CloseEphemeralResource(context.Context, *CloseEphemeralResource_Request) (*CloseEphemeralResource_Response, error)
-	// ///// List
+	/////// List
 	ListResource(*ListResource_Request, grpc.ServerStreamingServer[ListResource_Event]) error
 	ValidateListResourceConfig(context.Context, *ValidateListResourceConfig_Request) (*ValidateListResourceConfig_Response, error)
 	// GetFunctions returns the definitions of all functions.
 	GetFunctions(context.Context, *GetFunctions_Request) (*GetFunctions_Response, error)
-	// ////// Provider-contributed Functions
+	//////// Provider-contributed Functions
 	CallFunction(context.Context, *CallFunction_Request) (*CallFunction_Response, error)
 	// ValidateStateStoreConfig performs configuration validation
 	ValidateStateStoreConfig(context.Context, *ValidateStateStore_Request) (*ValidateStateStore_Response, error)
@@ -606,11 +606,11 @@ type ProviderServer interface {
 	GetStates(context.Context, *GetStates_Request) (*GetStates_Response, error)
 	// DeleteState instructs a given state store to delete a specific state (i.e. a CE workspace)
 	DeleteState(context.Context, *DeleteState_Request) (*DeleteState_Response, error)
-	// ////// Actions
+	//////// Actions
 	PlanAction(context.Context, *PlanAction_Request) (*PlanAction_Response, error)
 	InvokeAction(*InvokeAction_Request, grpc.ServerStreamingServer[InvokeAction_Event]) error
 	ValidateActionConfig(context.Context, *ValidateActionConfig_Request) (*ValidateActionConfig_Response, error)
-	// ////// Graceful Shutdown
+	//////// Graceful Shutdown
 	StopProvider(context.Context, *StopProvider_Request) (*StopProvider_Response, error)
 	mustEmbedUnimplementedProviderServer()
 }
