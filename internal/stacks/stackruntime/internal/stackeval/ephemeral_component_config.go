@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -301,7 +302,7 @@ func (c *EphemeralComponentConfig) ExprReferenceValue(ctx context.Context, phase
 	// up within this function while executing c.checkValid initially. This just makes sure that there
 	// are no cycles between ephemeral components.
 	c.checkValid(ctx, phase)
-	return cty.DynamicVal
+	return cty.DynamicVal.Mark(marks.Ephemeral)
 }
 
 func (c *EphemeralComponentConfig) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {

@@ -376,6 +376,22 @@ var (
 				return diags
 			},
 		},
+		"ephemeral-component-static-misuse": {
+			diags: func() tfdiags.Diagnostics {
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Ephemeral value not allowed",
+					Detail:   `The input variable "value" does not accept ephemeral values.`,
+					Subject: &hcl.Range{
+						Filename: mainBundleSourceAddrStr("ephemeral-component-static-misuse/main.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 111},
+						End:      hcl.Pos{Line: 10, Column: 4, Byte: 238},
+					},
+				})
+				return diags
+			},
+		},
 		filepath.Join("with-single-input", "depends-on-invalid"): {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
