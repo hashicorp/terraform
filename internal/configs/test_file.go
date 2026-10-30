@@ -1048,6 +1048,27 @@ func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnos
 	return &module, diags
 }
 
+// decodeTargetPatterns decodes a list of target addresses, each of which may
+// be a traversal pattern using [*] to select every instance of a module call
+// or resource.
+func decodeTargetPatterns(attr *hcl.Attribute) ([]hcl.Traversal, hcl.Diagnostics) {
+	var ret []hcl.Traversal
+	exprs, diags := hcl.ExprList(attr.Expr)
+
+	for _, expr := range exprs {
+		expr, shimDiags := shimTraversalInString(expr, false)
+		diags = append(diags, shimDiags...)
+
+		traversal, travDiags := hcl.AbsTraversalPatternForExpr(expr)
+		diags = append(diags, travDiags...)
+		if len(traversal) != 0 {
+			ret = append(ret, traversal)
+		}
+	}
+
+	return ret, diags
+}
+
 func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -1090,7 +1111,7 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 	}
 
 	if attr, exists := content.Attributes["target"]; exists {
-		tars, tarsDiags := DecodeDependsOn(attr)
+		tars, tarsDiags := decodeTargetPatterns(attr)
 		diags = append(diags, tarsDiags...)
 		opts.Target = tars
 	}
