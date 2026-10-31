@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'graph: keep cycle edges when the resource graph is invalid, so -draw-cycles actually shows the cycle'
+time: 2026-10-31T23:15:00.000000+08:00
+custom:
+    Issue: "39441"
