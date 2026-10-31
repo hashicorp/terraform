@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -45,16 +46,28 @@ type LoginCommand struct {
 func (c *LoginCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	rawArgs = c.Meta.process(rawArgs)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
+	// Allow interactive prompts via `terraform.UIInput` to users to be formatted still.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
+	// Process command-specific arguments.
 	args, argDiags := arguments.ParseLogin(rawArgs)
 	diags = diags.Append(argDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
 	c.input = args.InputEnabled
 	c.compactWarnings = args.CompactWarnings
+
+	// Prepare the view
+	view := views.NewLogin(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	if !c.input {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -62,7 +75,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			"Login is an interactive command",
 			"The \"terraform login\" command uses interactive prompts to obtain and record credentials, so it can't be run with input disabled.\n\nTo configure credentials in a non-interactive context, write existing credentials directly to a CLI configuration file.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -75,7 +88,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			"Invalid hostname",
 			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -98,7 +111,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			// with our usual error reporting standards.
 			err.Error()+".",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -167,7 +180,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 	}
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -181,12 +194,12 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		switch {
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
 			// We prefer an OAuth code grant if the server supports it.
-			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
+			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig, view)
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
 			// The password grant type is allowed only for HCP Terraform SaaS.
 			// Note this case is purely theoretical at this point, as HCP Terraform currently uses
 			// its own bespoke login protocol (tfe)
-			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
+			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig, view)
 		default:
 			tokenDiags = tokenDiags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -198,12 +211,12 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 			token = svcauth.HostCredentialsToken(oauthToken.AccessToken)
 		}
 	} else if tfeservice != nil {
-		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, tfeservice)
+		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, tfeservice, view)
 	}
 
 	diags = diags.Append(tokenDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -224,12 +237,12 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		))
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	view.HorizontalRule()
 	if hostname == "app.terraform.io" { // HCP Terraform
 		var motd struct {
 			Message string        `json:"msg"`
@@ -244,14 +257,14 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		motdServiceURL, err := host.ServiceURL("motd.v1")
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 
 		req, err := http.NewRequest("GET", motdServiceURL.String(), nil)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 
@@ -260,7 +273,7 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		resp, err := httpclient.New().Do(req)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 		defer resp.Body.Close()
@@ -268,37 +281,25 @@ func (c *LoginCommand) Run(rawArgs []string) int {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			c.logMOTDError(err)
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 		json.Unmarshal(body, &motd)
 
 		if motd.Errors == nil && motd.Message != "" {
-			c.Ui.Output(
-				c.Colorize().Color(motd.Message),
-			)
+			view.MessageOfTheDay(motd.Message)
 			return 0
 		} else {
 			c.logMOTDError(fmt.Errorf("platform responded with errors or an empty message"))
-			c.outputDefaultTFCLoginSuccess()
+			view.DefaultHCPTFLoginSuccess()
 			return 0
 		}
 	}
 
 	if tfeservice != nil { // Terraform Enterprise
-		c.outputDefaultTFELoginSuccess(dispHostname)
+		view.TFELoginSuccess(dispHostname)
 	} else {
-		c.Ui.Output(
-			fmt.Sprintf(
-				c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
-
-The new API token will be used for any future Terraform command that must make
-authenticated requests to %s.
-`)),
-				dispHostname,
-			) + "\n",
-		)
+		view.LoginSuccess(dispHostname)
 	}
 
 	return 0
@@ -350,23 +351,6 @@ func (c *LoginCommand) isMemberOfOrgWithMaxTTLEnabled(host *disco.Host, tfeservi
 	return "", false
 }
 
-func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]
-`)),
-			dispHostname,
-		) + "\n",
-	)
-}
-
-func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
-	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to HCP Terraform[reset]
-` + "\n")))
-}
-
 func (c *LoginCommand) logMOTDError(err error) {
 	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for HCP Terraform: %s", err)
 }
@@ -385,7 +369,7 @@ func (c *LoginCommand) Help() string {
 	}
 
 	helpText := fmt.Sprintf(`
-Usage: terraform [global options] login [hostname]
+Usage: terraform [global options] login [options] [hostname]
 
   Retrieves an authentication token for the given hostname, if it supports
   automatic login, and saves it in a credentials file in your home directory.
@@ -396,6 +380,14 @@ Usage: terraform [global options] login [hostname]
   If not overridden by credentials helper settings in the CLI configuration,
   the credentials will be written to the following local file:
       %s
+
+  The following impact how output is displayed from this command:
+
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, shows them in a more compact
+                        form that includes only the summary messages.
+
+  -no-color             If specified, output won't contain any color.
 `, defaultFile)
 	return strings.TrimSpace(helpText)
 }
@@ -412,10 +404,10 @@ func (c *LoginCommand) defaultOutputFile() string {
 	return filepath.Join(c.CLIConfigDir, "credentials.tfrc.json")
 }
 
-func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.OAuthTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthAuthzCodeGrant, credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
@@ -533,8 +525,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	if c.BrowserLauncher != nil {
 		err = c.BrowserLauncher.OpenURL(authCodeURL)
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
-			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", authCodeURL))
+			view.OpeningLoginPage(hostname, authCodeURL)
 		} else {
 			// Assume we're on a platform where opening a browser isn't possible.
 			launchBrowserManually = true
@@ -544,10 +535,10 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	}
 
 	if launchBrowserManually {
-		c.Ui.Output(fmt.Sprintf("Open the following URL to access the login page for %s:\n    %s\n", hostname.ForDisplay(), authCodeURL))
+		view.PromptToOpenLoginPage(hostname, authCodeURL)
 	}
 
-	c.Ui.Output("Terraform will now wait for the host to signal that login was successful.\n")
+	view.WaitingForLoginSuccess()
 
 	code, ok := <-codeCh
 	if !ok {
@@ -579,18 +570,18 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	return token, diags
 }
 
-func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient) (*oauth2.Token, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, credsCtx *loginCredentialsContext, clientConfig *disco.OAuthClient, view views.PasswordTokenGetter) (*oauth2.Token, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthOwnerPasswordGrant, credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
 		return nil, diags
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
+	view.HorizontalRule()
+	view.PromptForPassword()
 
 	username, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:    "username",
@@ -631,17 +622,17 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	return token, diags
 }
 
-func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsCtx *loginCredentialsContext, service *url.URL, view views.WebUiTokenGetter) (svcauth.HostCredentialsToken, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx)
+	confirm, confirmDiags := c.interactiveContextConsent(hostname, disco.OAuthGrantType(""), credsCtx, view)
 	diags = diags.Append(confirmDiags)
 	if !confirm {
 		diags = diags.Append(errors.New("Login cancelled"))
 		return "", diags
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
+	view.HorizontalRule()
 
 	tokensURL := url.URL{
 		Scheme:   "https",
@@ -654,8 +645,7 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	if c.BrowserLauncher != nil {
 		err := c.BrowserLauncher.OpenURL(tokensURL.String())
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
-			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", tokensURL.String()))
+			view.OpeningTokensPage(hostname, tokensURL.String())
 		} else {
 			log.Printf("[DEBUG] error opening web browser: %s", err)
 			// Assume we're on a platform where opening a browser isn't possible.
@@ -666,20 +656,20 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	}
 
 	if launchBrowserManually {
-		c.Ui.Output(fmt.Sprintf("Open the following URL to access the tokens page for %s:\n    %s\n", hostname.ForDisplay(), tokensURL.String()))
+		view.PromptToOpenTokensPage(hostname, tokensURL.String())
 	}
 
-	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output("Generate a token using your browser, and copy-paste it into this prompt.\n")
+	view.HorizontalRule()
+	view.PromptForToken()
 
 	// credsCtx might not be set if we're using a mock credentials source
 	// in a test, but it should always be set in normal use.
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in the configured %q credentials helper\nfor use by subsequent commands.\n", credsCtx.HelperType))
+			view.NotifyTokenStoredInCredentialsHelper(credsCtx.HelperType)
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in plain text in the following file\nfor use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			view.NotifyTokenStoredInFile(credsCtx.LocalFilename)
 		}
 	}
 
@@ -713,24 +703,22 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		diags = diags.Append(fmt.Errorf("Failed to retrieve user account details: %s", err))
 		return "", diags
 	}
-	c.Ui.Output(fmt.Sprintf(c.Colorize().Color("\nRetrieved token for user [bold]%s[reset]\n"), user.Username))
+	view.TokenRetrieved(user)
 
 	return svcauth.HostCredentialsToken(token), nil
 }
 
-func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext) (bool, tfdiags.Diagnostics) {
+func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, grantType disco.OAuthGrantType, credsCtx *loginCredentialsContext, view views.TokenRequester) (bool, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	mechanism := "OAuth"
 	if grantType == "" {
 		mechanism = "your browser"
 	}
 
-	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using %s.\n", hostname.ForDisplay(), mechanism))
+	view.RequestingToken(hostname, mechanism)
 
 	if grantType.UsesAuthorizationEndpoint() {
-		c.Ui.Output(
-			"This will work only if you are able to use a web browser on this computer to\ncomplete a login process. If not, you must obtain an API token by another\nmeans and configure it in the CLI configuration manually.\n",
-		)
+		view.NotifyNeedWebBrowser()
 	}
 
 	// credsCtx might not be set if we're using a mock credentials source
@@ -738,9 +726,9 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in the configured\n%q credentials helper for use by subsequent commands.\n", credsCtx.HelperType))
+			view.NotifyTokenStoredInCredentialsHelper(credsCtx.HelperType)
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			view.NotifyTokenStoredInFile(credsCtx.LocalFilename)
 		}
 	}
 
