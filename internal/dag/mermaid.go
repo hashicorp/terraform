@@ -43,6 +43,10 @@ func (g *marshalGraph) Mermaid(opts *DotOpts) []byte {
 	// detect cycle edges
 	cycleEdges := map[string]bool{}
 	if opts.DrawCycles {
+		actualEdges := make(map[[2]string]bool, len(g.Edges))
+		for _, e := range g.Edges {
+			actualEdges[[2]string{e.Source, e.Target}] = true
+		}
 		for _, c := range g.Cycles {
 			if len(c) < 2 {
 				continue
@@ -53,6 +57,12 @@ func (g *marshalGraph) Mermaid(opts *DotOpts) []byte {
 				}
 				src := c[i]
 				tgt := c[j]
+				// g.Cycles walks the cycle in the direction opposite to the
+				// stored edges, so mark the direction that actually exists
+				// (#39441).
+				if !actualEdges[[2]string{src.ID, tgt.ID}] && actualEdges[[2]string{tgt.ID, src.ID}] {
+					src, tgt = tgt, src
+				}
 				key := src.ID + "->" + tgt.ID
 				cycleEdges[key] = true
 			}

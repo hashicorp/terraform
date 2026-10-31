@@ -177,6 +177,10 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 	dotEdges := make(map[string]string)
 
 	if opts.DrawCycles {
+		actualEdges := make(map[[2]string]bool, len(g.Edges))
+		for _, e := range g.Edges {
+			actualEdges[[2]string{e.Source, e.Target}] = true
+		}
 		for _, c := range g.Cycles {
 			if len(c) < 2 {
 				continue
@@ -193,6 +197,13 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 					continue
 				}
 
+				// g.Cycles walks the cycle in the direction opposite to the
+				// stored edges, so check which direction actually exists
+				// before marking an edge as part of the cycle (#39441).
+				if !actualEdges[[2]string{src.ID, tgt.ID}] && actualEdges[[2]string{tgt.ID, src.ID}] {
+					src, tgt = tgt, src
+				}
+
 				e := &marshalEdge{
 					Name:   fmt.Sprintf("%s|%s", src.Name, tgt.Name),
 					Source: src.ID,
@@ -201,7 +212,6 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 				}
 
 				dotEdges[e.Name] = cycleDot(e, g)
-				src = tgt
 			}
 		}
 	}

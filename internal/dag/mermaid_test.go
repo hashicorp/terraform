@@ -124,10 +124,10 @@ A["A"]
 B["B"]
 C["C"]
 root["root"]
-A --> C
+A --> C:::cycle
 A --> root
-B --> A
-C --> B
+B --> A:::cycle
+C --> B:::cycle
 classDef cycle stroke:#ff0000,stroke-width:2px;
 `,
 		},
