@@ -209,13 +209,19 @@ func (g *Graph) ResourceGraph() addrs.DirectedGraph[addrs.ConfigResource] {
 		_, ret := n.(GraphNodeConfigResource)
 		return ret
 	})
-	log.Printf("[TRACE] ResourceGraph: TransitiveReduction\n")
-
 	// The resulting graph could have many more edges now, but alternate paths
 	// are not a problem for the deferral system, so we may choose not to run
 	// this as it may be very time consuming. The reducePreservingRelationships
 	// method also doesn't add many (if any) redundant new edges to most graphs.
-	tmpG.TransitiveReduction()
+	//
+	// TransitiveReduction assumes a DAG. `terraform graph -draw-cycles` skips
+	// validation and hands us an invalid graph, where the reduction can drop
+	// the very edges that form a cycle; keep those edges so the cycle remains
+	// visible in the output (#39441).
+	if len(tmpG.Cycles()) == 0 {
+		log.Printf("[TRACE] ResourceGraph: TransitiveReduction\n")
+		tmpG.TransitiveReduction()
+	}
 
 	log.Printf("[TRACE] ResourceGraph: creating address graph\n")
 	ret := addrs.NewDirectedGraph[addrs.ConfigResource]()
