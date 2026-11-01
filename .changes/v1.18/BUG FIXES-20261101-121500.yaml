@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'dag: draw cycle edges in their real direction in the graph command'
+time: 2026-11-01T12:15:00.000000+08:00
+custom:
+    Issue: "39441"
