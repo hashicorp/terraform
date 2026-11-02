@@ -20,7 +20,11 @@ func TestStateIdentitiesJSON_Identities(t *testing.T) {
 	}{
 		"empty": {
 			identities: map[string]json.RawMessage{},
-			wantStdout: "{}\n",
+			wantStdout: `{
+  "format_version": "1.0",
+  "identities": {}
+}
+`,
 		},
 		"multiple identities": {
 			identities: map[string]json.RawMessage{
@@ -28,11 +32,14 @@ func TestStateIdentitiesJSON_Identities(t *testing.T) {
 				"test_instance.foo": json.RawMessage(`{"id":"my-foo-id"}`),
 			},
 			wantStdout: `{
-  "test_instance.bar": {
-    "id": "my-bar-id"
-  },
-  "test_instance.foo": {
-    "id": "my-foo-id"
+  "format_version": "1.0",
+  "identities": {
+    "test_instance.bar": {
+      "id": "my-bar-id"
+    },
+    "test_instance.foo": {
+      "id": "my-foo-id"
+    }
   }
 }
 `,
@@ -46,7 +53,7 @@ func TestStateIdentitiesJSON_Identities(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewStateIdentities(arguments.ViewJSON, view)
 
-			v.Identities(tc.identities)
+			v.Identities(tc.identities, tfdiags.Diagnostics{})
 
 			output := done(t)
 			if gotErr := output.Stderr(); gotErr != "" {
@@ -78,7 +85,18 @@ func TestStateIdentitiesJSON_Diagnostics(t *testing.T) {
 					"This is an example warning message.",
 				),
 			},
-			wantStdout: "\nWarning: Example warning\n\nThis is an example warning message.\n",
+			wantStdout: `{
+  "format_version": "1.0",
+  "identities": {},
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "summary": "Example warning",
+      "detail": "This is an example warning message."
+    }
+  ]
+}
+`,
 			wantStderr: "",
 		},
 		"error": {
@@ -90,7 +108,18 @@ func TestStateIdentitiesJSON_Diagnostics(t *testing.T) {
 				),
 			},
 			wantStdout: "",
-			wantStderr: "\nError: Example error\n\nThis is an example error message.\n",
+			wantStderr: `{
+  "format_version": "1.0",
+  "identities": {},
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Example error",
+      "detail": "This is an example error message."
+    }
+  ]
+}
+`,
 		},
 	}
 
