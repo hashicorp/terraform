@@ -57,14 +57,29 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 	// to building one ourselves.
 	if planJSON != nil {
 		if !planJSON.Redacted {
-			v.view.streams.Eprintf("Didn't get renderable JSON plan format for human display")
+			diags := tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to display JSON plan",
+					"Didn't get renderable JSON plan format for human display",
+				),
+			}
+			v.Diagnostics(diags)
 			return 1
 		}
 		// The redacted json plan format can be decoded into a jsonformat.Plan
 		p := jsonformat.Plan{}
 		r := bytes.NewReader(planJSON.JSONBytes)
 		if err := json.NewDecoder(r).Decode(&p); err != nil {
-			v.view.streams.Eprintf("Couldn't decode renderable JSON plan format: %s", err)
+			diags := tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to display JSON plan",
+					fmt.Sprintf("Couldn't decode renderable JSON plan format: %s", err),
+				),
+			}
+			v.Diagnostics(diags)
+			return 1
 		}
 
 		v.view.streams.Print(v.view.colorize.Color(planJSON.RunHeader + "\n"))
@@ -73,7 +88,14 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 	} else if plan != nil {
 		jsonPlan, err := jsonplan.MarshalForRenderer(plan, schemas)
 		if err != nil {
-			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+			diags := tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to prepare plan for display",
+					fmt.Sprintf("Failed to marshal plan to json when preparing for human display: %s", err),
+				),
+			}
+			v.Diagnostics(diags)
 			return 1
 		}
 
@@ -105,7 +127,14 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *
 
 		root, outputs, err := jsonstate.MarshalForRenderer(stateFile, schemas)
 		if err != nil {
-			v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
+			diags := tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to prepare state for display",
+					fmt.Sprintf("Failed to marshal state to json when preparing for human display: %s", err),
+				),
+			}
+			v.Diagnostics(diags)
 			return 1
 		}
 
@@ -133,19 +162,30 @@ type ShowJSON struct {
 var _ Show = (*ShowJSON)(nil)
 
 func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
+	var diags tfdiags.Diagnostics
+
 	// Prefer to display a pre-built JSON plan, if we got one; then, fall back
 	// to building one ourselves.
 	if planJSON != nil {
 		if planJSON.Redacted {
-			v.view.streams.Eprintf("Didn't get external JSON plan format")
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to display JSON plan",
+				"Didn't get external JSON plan format",
+			))
+			v.Diagnostics(diags)
 			return 1
 		}
 		v.view.streams.Println(string(planJSON.JSONBytes))
 	} else if plan != nil {
 		planJSON, err := jsonplan.Marshal(config, plan, stateFile, schemas)
-
 		if err != nil {
-			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to display plan",
+				fmt.Sprintf("Failed to marshal plan to json: %s", err),
+			))
+			v.Diagnostics(diags)
 			return 1
 		}
 		v.view.streams.Println(string(planJSON))
@@ -154,7 +194,12 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 		// That's ok, we'll just return an empty object.
 		jsonState, err := jsonstate.Marshal(stateFile, schemas)
 		if err != nil {
-			v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to display state",
+				fmt.Sprintf("Failed to marshal state to json: %s", err),
+			))
+			v.Diagnostics(diags)
 			return 1
 		}
 		v.view.streams.Println(string(jsonState))
