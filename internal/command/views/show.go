@@ -168,17 +168,3 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *c
 func (v *ShowJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
-
-func findResourceInChildModules(mod jsonstate.Module) jsonstate.Resource {
-	for _, cm := range mod.ChildModules {
-		if len(cm.Resources) == 1 {
-			return cm.Resources[0]
-		}
-	}
-	for _, child := range mod.ChildModules {
-		return findResourceInChildModules(child)
-	}
-	// this shouldn't be possible; we would have returned an error earlier if
-	// the resource wasn't found.
-	panic("resource not found in state")
-}
