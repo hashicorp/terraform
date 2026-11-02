@@ -1690,9 +1690,13 @@ func TestContext2Apply_destroyData(t *testing.T) {
 		t.Fatalf("state has %d resources after destroy; want 0", got)
 	}
 
+	// Nothing needs the data source during the destroy, so it is not read and
+	// is only removed from the state.
+	if p.ReadDataSourceCalled {
+		t.Error("data source was read during destroy")
+	}
+
 	wantHookCalls := []*testHookCall{
-		{"PreApply", "data.null_data_source.testing"},
-		{"PostApply", "data.null_data_source.testing"},
 		{"PostStateUpdate", ""},
 	}
 	if !reflect.DeepEqual(hook.Calls, wantHookCalls) {

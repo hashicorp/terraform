@@ -654,39 +654,39 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// of instance keys into the separate instance expander model, and so it
 	// does a bunch of instance-related work itself below.
 	//
-	// Currently, unknown instance keys are only possible when planning with
-	// DeferralAllowed set to true in the PlanOpts, which should only be the
-	// case in the stacks runtime (not the "normal terraform" modules runtime).
-	// Thus, we have some amount of duplicated code remaining, to be more
-	// certain that stacks-specific behaviors won't leak out into the standard
-	// runtime.
+	// When this operation has recorded the resource's expansion, the expander
+	// decides which instances to expect. Unknown instance keys are possible
+	// when deferrals are allowed, and during a destroy, where only the
+	// resources needed for destroy-time evaluation are expanded.
 	//
-	// TODO: When deferred actions are more stable and robust in stacks, it
-	// would be nice to rework this function to rely on the ResourceInstanceKeys
-	// result for _all_ of its work, rather than continuing to duplicate a bunch
-	// of the logic we've tried to encapsulate over there already.
-	if d.Operation == walkPlan || d.Operation == walkApply {
-		if !d.Evaluator.Instances.ResourceInstanceExpanded(addr.Absolute(moduleAddr)) {
-			// Then we've asked for a resource that hasn't been evaluated yet.
-			// This means that either something has gone wrong in the graph or
-			// the console or test command has an errored plan and is attempting
-			// to load an invalid resource from it.
+	// TODO: It would be nice to rework this function to rely on the
+	// ResourceInstanceKeys result for _all_ of its work, rather than continuing
+	// to duplicate a bunch of the logic we've tried to encapsulate over there
+	// already.
+	absAddr := addr.Absolute(moduleAddr)
+	expanded := d.Evaluator.Instances.ResourceInstanceExpanded(absAddr)
+	if !expanded && (d.Operation == walkPlan || d.Operation == walkApply) {
+		// Then we've asked for a resource that hasn't been evaluated yet.
+		// This means that either something has gone wrong in the graph or
+		// the console or test command has an errored plan and is attempting
+		// to load an invalid resource from it.
 
-			unknownVal := cty.DynamicVal
+		unknownVal := cty.DynamicVal
 
-			// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
-			if addr.Mode == addrs.EphemeralResourceMode {
-				unknownVal = unknownVal.Mark(marks.Ephemeral)
-			}
-			return unknownVal, diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Reference to uninitialized resource",
-				Detail:   fmt.Sprintf("The resource %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
-				Subject:  rng.ToHCL().Ptr(),
-			})
+		// If an ephemeral resource is deferred we need to mark the returned unknown value as ephemeral
+		if addr.Mode == addrs.EphemeralResourceMode {
+			unknownVal = unknownVal.Mark(marks.Ephemeral)
 		}
+		return unknownVal, diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reference to uninitialized resource",
+			Detail:   fmt.Sprintf("The resource %s was not processed by the most recent operation, this likely means the previous operation either failed or was incomplete due to targeting.", addr),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
 
-		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(moduleAddr)); hasUnknownKeys {
+	if expanded {
+		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(absAddr); hasUnknownKeys {
 			// There really isn't anything interesting we can do in this situation,
 			// because it means we have an unknown for_each/count, in which case
 			// we can't even predict what the result type will be because it
@@ -766,7 +766,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 	// Decode all instances in the current state
-	pendingDestroy := d.Operation == walkDestroy
+	pendingDestroy := d.Operation == walkDestroy || d.Operation == walkPlanDestroy
 	if rs != nil {
 		for key, is := range rs.Instances {
 			if _, ok := instances[key]; ok {
@@ -799,7 +799,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// Planned resources are temporarily stored in state with empty values,
 			// and need to be replaced by the planned value here.
 			if is.Current.Status == states.ObjectPlanned {
-				if change == nil {
+				if change == nil || change.Action == plans.Delete {
 					// FIXME: This is usually an unfortunate case where we need to
 					// lookup an individual instance referenced via "self" for
 					// postconditions which we know exists, but because evaluation
@@ -837,35 +837,35 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// the working state nor the planned changes were not processed by this
 	// operation. In practice this happens when using -target: a resource in a
 	// module instance that wasn't targeted still has its expansion evaluated,
-	// but its instances are pruned from the graph and so never planned. Any
-	// expression that references such a resource (for example a module input
-	// in the non-targeted module instance) would otherwise see an empty
-	// collection and fail with a spurious "Invalid index" error.
+	// but its instances are pruned from the graph and so never planned. It
+	// also happens when continuing a partially completed destroy, where state
+	// is the only record of which instances still exist. Any expression that
+	// references such a resource (for example a module input in the
+	// non-targeted module instance) would otherwise see an empty collection
+	// and fail with a spurious "Invalid index" error.
 	//
 	// To avoid that, we represent these missing-but-expected instances as
 	// unknown values, matching how a single-instance resource is already
 	// handled below. We deliberately skip instances that have a pending change
 	// or are still recorded in state, so we don't interfere with the removal
 	// of instances during destroy.
-	if d.Operation == walkPlan || d.Operation == walkApply {
-		keyType, knownKeys, unknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(d.ModulePath))
-		if !unknownKeys && keyType != addrs.UnknownKeyType {
-			for _, key := range knownKeys {
-				if _, ok := instances[key]; ok {
-					continue
-				}
-				if instChanges.Has(addr.Instance(key).Absolute(d.ModulePath)) {
-					// A change is recorded for this instance (such as a
-					// pending deletion), so it was intentionally omitted above.
-					continue
-				}
-				if rs != nil && rs.Instances[key] != nil {
-					// Still tracked in state, so it was omitted above for a
-					// specific reason rather than being excluded by targeting.
-					continue
-				}
-				instances[key] = cty.UnknownVal(ty)
+	if expanded {
+		_, knownKeys, _ := d.Evaluator.Instances.ResourceInstanceKeys(absAddr)
+		for _, key := range knownKeys {
+			if _, ok := instances[key]; ok {
+				continue
 			}
+			if instChanges.Has(addr.Instance(key).Absolute(d.ModulePath)) {
+				// A change is recorded for this instance (such as a
+				// pending deletion), so it was intentionally omitted above.
+				continue
+			}
+			if rs != nil && rs.Instances[key] != nil {
+				// Still tracked in state, so it was omitted above for a
+				// specific reason rather than being excluded by targeting.
+				continue
+			}
+			instances[key] = cty.UnknownVal(ty)
 		}
 	}
 

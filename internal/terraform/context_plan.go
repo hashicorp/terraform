@@ -587,76 +587,16 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		opts.SkipRefresh = true
 	}
 
-	priorState := prevRunState
-
-	// A destroy plan starts by running Refresh to read any pending data
-	// sources, and remove missing managed resources. This is required because
-	// a "destroy plan" is only creating delete changes, and is essentially a
-	// local operation.
-	//
-	// NOTE: if skipRefresh _is_ set then we'll rely on the destroy-plan walk
-	// below to upgrade the prevRunState and priorState both to the latest
-	// resource type schemas, so NodePlanDestroyableResourceInstance.Execute
-	// must coordinate with this by taking that action only when c.skipRefresh
-	// _is_ set. This coupling between the two is unfortunate but necessary
-	// to work within our current structure.
-	if !opts.SkipRefresh && !prevRunState.Empty() {
-		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
-		refreshOpts := *opts
-		refreshOpts.Mode = plans.NormalMode
-		refreshOpts.PreDestroyRefresh = true
-		refreshOpts.OverridePreventDestroy = false
-
-		// FIXME: A normal plan is required here to refresh the state, because
-		// the state and configuration may not match during a destroy, and a
-		// normal refresh plan can fail with evaluation errors. In the future
-		// the destroy plan should take care of refreshing instances itself,
-		// where the special cases of evaluation and skipping condition checks
-		// can be done.
-		refreshPlan, _, refreshDiags := c.plan(config, prevRunState, &refreshOpts, moduleAddr)
-		if refreshDiags.HasErrors() {
-			// NOTE: Normally we'd append diagnostics regardless of whether
-			// there are errors, just in case there are warnings we'd want to
-			// preserve, but we're intentionally _not_ doing that here because
-			// if the first plan succeeded then we'll be running another plan
-			// in DestroyMode below, and we don't want to double-up any
-			// warnings that both plan walks would generate.
-			// (This does mean we won't show any warnings that would've been
-			// unique to only this walk, but we're assuming here that if the
-			// warnings aren't also applicable to a destroy plan then we'd
-			// rather not show them here, because this non-destroy plan for
-			// refreshing is largely an implementation detail.)
-			diags = diags.Append(refreshDiags)
-			return nil, nil, diags
-		}
-
-		// We'll use the refreshed state -- which is the  "prior state" from
-		// the perspective of this "destroy plan" -- as the starting state
-		// for our destroy-plan walk, so it can take into account if we
-		// detected during refreshing that anything was already deleted outside
-		// of Terraform.
-		priorState = refreshPlan.PriorState.DeepCopy()
-
-		// The refresh plan may have upgraded state for some resources, make
-		// sure we store the new version.
-		prevRunState = refreshPlan.PrevRunState.DeepCopy()
-		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
-	}
-
-	destroyPlan, evalScope, walkDiags := c.planWalk(config, priorState, opts, moduleAddr)
+	// The destroy plan walk refreshes managed resource instances and reads any
+	// data sources needed for destroy-time evaluation itself, so there is no
+	// separate pre-destroy refresh plan.
+	destroyPlan, evalScope, walkDiags := c.planWalk(config, prevRunState, opts, moduleAddr)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		// Non-nil plan along with errors indicates a non-applyable partial
 		// plan that's only suitable to be shown to the user as extra context
 		// to help understand the errors.
 		return destroyPlan, evalScope, diags
-	}
-
-	if !opts.SkipRefresh {
-		// If we didn't skip refreshing then we want the previous run state to
-		// be the one we originally fed into the c.refreshOnlyPlan call above,
-		// not the refreshed version we used for the destroy planWalk.
-		destroyPlan.PrevRunState = prevRunState
 	}
 
 	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)

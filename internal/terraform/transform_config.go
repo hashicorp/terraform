@@ -93,6 +93,14 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 	destroy := t.Operation == walkDestroy || t.Operation == walkPlanDestroy
 
 	var allResources []*configs.Resource
+	if t.Operation == walkPlanDestroy {
+		for _, r := range module.ManagedResources {
+			allResources = append(allResources, r)
+		}
+		for _, r := range module.DataResources {
+			allResources = append(allResources, r)
+		}
+	}
 	if !destroy {
 		for _, r := range module.ManagedResources {
 			allResources = append(allResources, r)

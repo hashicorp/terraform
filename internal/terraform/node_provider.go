@@ -20,6 +20,9 @@ import (
 // NodeApplyableProvider represents a provider during an apply.
 type NodeApplyableProvider struct {
 	*NodeAbstractProvider
+
+	// planningDestroy is set when configuring the provider for a destroy plan.
+	planningDestroy bool
 }
 
 var (
@@ -45,6 +48,9 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 		return diags.Append(n.ValidateProvider(ctx, provider))
 	case walkPlan, walkPlanDestroy, walkApply, walkDestroy:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s", n.Addr)
+		// When deferrals are allowed, an unknown provider configuration
+		// defers the changes instead.
+		n.planningDestroy = op == walkPlanDestroy && !ctx.Deferrals().DeferralAllowed()
 		return diags.Append(n.ConfigureProvider(ctx, provider, false))
 	case walkImport:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s (requiring that configuration is wholly known)", n.Addr)
@@ -143,6 +149,21 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			))
 		}
 		return diags
+	}
+
+	if n.planningDestroy && !configVal.IsWhollyKnown() {
+		// Nothing more can become known when applying a destroy, so the
+		// provider will be configured with these unknown values.
+		var subject *hcl.Range
+		if config != nil {
+			subject = &config.DeclRange
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Provider configuration is not fully known",
+			Detail:   fmt.Sprintf("The configuration for %s depends on objects which no longer exist or could not be read, so it will be configured with unknown values when destroying. If destroying fails, try planning the destroy with -refresh=false, or target the affected resources.", n.Addr),
+			Subject:  subject,
+		})
 	}
 
 	if verifyConfigIsKnown && !configVal.IsWhollyKnown() {

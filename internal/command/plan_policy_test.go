@@ -891,15 +891,13 @@ Warning: Deprecated flag: -state
 
 Use the "path" attribute within the "local" backend to specify a file for
 state storage
-data.test_data_source.a: Reading...
-data.test_data_source.a: Read complete after 0s [id=zzzzz]
-test_instance.foo: Refreshing state... [id=bar]
 
 Policy Info:
 in policy provider_policy.example
 "Destroy provider enforcement message"
 
 
+test_instance.foo: Refreshing state... [id=bar]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:

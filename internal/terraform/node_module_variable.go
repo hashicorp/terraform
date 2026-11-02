@@ -367,12 +367,23 @@ type nodeModuleVariableInPartialModule struct {
 	DestroyApply bool
 }
 
+var _ graphNodeEvalContextScope = (*nodeModuleVariableInPartialModule)(nil)
+
 func (n *nodeModuleVariableInPartialModule) Name() string {
 	return n.Addr.String()
 }
 
-func (n *nodeModuleVariableInPartialModule) Path() addrs.PartialExpandedModule {
-	return n.Addr.Module
+// Path implements graphNodeEvalContextScope. Like nodeModuleVariable, we
+// execute in the parent scope (above our own module) because the value
+// expression is defined in the calling module block. That parent may itself
+// be fully-expanded even though our own module is not.
+func (n *nodeModuleVariableInPartialModule) Path() evalContextScope {
+	parent := n.Addr.Module.UnknownModuleInstance().Parent()
+	partial := parent.PartialModule()
+	if partial.LevelsKnown() == len(parent) {
+		return evalContextModuleInstance{Addr: parent}
+	}
+	return evalContextPartialExpandedModule{Addr: partial}
 }
 
 func (n *nodeModuleVariableInPartialModule) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {

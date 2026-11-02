@@ -33,6 +33,16 @@ type nodeExpandPlannableResource struct {
 
 	preDestroyRefresh bool
 
+	// destroyRefresh indicates this resource is only being evaluated to support
+	// destroy-time evaluation during a destroy plan. Only current instances are
+	// read, and no changes are planned.
+	//
+	// TODO: destroying managed instances should not require refreshing, but
+	// that behavior was maintained for legacy provider compatibility, because
+	// many resources did not check for existence before blindly sending a
+	// delete request.
+	destroyRefresh bool
+
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
@@ -96,8 +106,52 @@ func (n *nodeExpandPlannableResource) ForceCreateBeforeDestroy() {
 	n.forceCreateBeforeDestroy = true
 }
 
+// destroyExpandOnly reports whether this node only records the resource
+// expansion for destroy-time evaluation, without planning or reading any
+// instances.
+func (n *nodeExpandPlannableResource) destroyExpandOnly() bool {
+	if !n.destroyRefresh {
+		return false
+	}
+	switch n.Addr.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return true
+	case addrs.DataResourceMode:
+		return n.skipRefresh
+	default:
+		return false
+	}
+}
+
+// References is overridden so that a node which only records the expansion
+// depends only on what's needed to evaluate count and for_each, and does not
+// cause the rest of the configuration to be evaluated during a destroy.
+func (n *nodeExpandPlannableResource) References() []*addrs.Reference {
+	if n.destroyExpandOnly() {
+		return n.expansionReferences()
+	}
+	return n.NodeAbstractResource.References()
+}
+
+// allowUnknownExpansion reports whether count and for_each may be unknown.
+// Allowing unknown values is a top-level plan option, but during a destroy plan
+// the configuration is only evaluated in support of destroying what is in
+// state, and any expansion that cannot be determined is treated as unknown.
+func (n *nodeExpandPlannableResource) allowUnknownExpansion(ctx EvalContext) bool {
+	return ctx.Deferrals().DeferralAllowed() || n.destroyRefresh
+}
+
 func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	if n.destroyExpandOnly() {
+		expander := ctx.InstanceExpander()
+		for _, module := range expander.ExpandModule(n.Addr.Module, false) {
+			moduleCtx := evalContextForModuleInstance(ctx, module)
+			diags = diags.Append(n.recordResourceData(moduleCtx, n.Addr.Resource.Absolute(module), n.allowUnknownExpansion(moduleCtx)))
+		}
+		return nil, diags
+	}
 
 	// First, make sure the count and the foreach don't refer to the same
 	// resource. The config maybe nil if we are generating configuration, or
@@ -350,6 +404,7 @@ func (n *nodeExpandPlannableResource) concreteResource(ctx EvalContext, knownImp
 		a.dependsOn = n.dependsOn
 		a.Dependencies = n.dependencies
 		a.preDestroyRefresh = n.preDestroyRefresh
+		a.destroyRefresh = n.destroyRefresh
 		a.generateConfigPath = n.generateConfigPath
 		a.actionTriggers = n.actionTriggers
 
@@ -502,6 +557,10 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, knownModule
 	}
 
 	func() {
+		if n.destroyRefresh {
+			// The destroy nodes handle everything in state.
+			return
+		}
 		ss := ctx.PrevRunState()
 		if ss == nil {
 			return // No previous state, so nothing to do here.
@@ -677,7 +736,7 @@ func (n *nodeExpandPlannableResource) expandKnownModule(globalCtx EvalContext, r
 
 	moduleCtx := evalContextForModuleInstance(globalCtx, resAddr.Module)
 
-	moreDiags := n.recordResourceData(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr, n.allowUnknownExpansion(moduleCtx))
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, nil, diags
@@ -766,6 +825,11 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 			// Ephemeral resources don't need to be accounted for in this transform,
 			// since they are not in the state.
 			if addr.Resource.Mode == addrs.EphemeralResourceMode {
+				return nil
+			}
+
+			// The destroy nodes handle everything in state.
+			if n.destroyRefresh {
 				return nil
 			}
 

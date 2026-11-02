@@ -174,6 +174,8 @@ type nodeLocalInPartialModule struct {
 	Config *configs.Local
 }
 
+var _ GraphNodePartialExpandedModule = (*nodeLocalInPartialModule)(nil)
+
 func (n *nodeLocalInPartialModule) Name() string {
 	return n.Addr.String()
 }

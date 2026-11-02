@@ -125,7 +125,11 @@ func (n *nodeExpandModule) Execute(globalCtx EvalContext, op walkOperation) (dia
 	// If this is false then the codepaths that handle unknown values below
 	// become unreachable, because the evaluate functions will reject unknown
 	// values as an error.
-	allowUnknown := globalCtx.Deferrals().DeferralAllowed()
+	//
+	// A destroy plan only evaluates module expansion in support of destroying
+	// what is already in state, so an unknown expansion just results in
+	// unknown values.
+	allowUnknown := globalCtx.Deferrals().DeferralAllowed() || op == walkPlanDestroy
 
 	// nodeExpandModule itself does not have visibility into how its ancestors
 	// were expanded, so we use the expander here to provide all possible paths

@@ -285,6 +285,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 	}
 
 	evaluator := &Evaluator{
+		Instances: instances.NewExpander(nil),
 		Meta: &ContextMeta{
 			Env: "foo",
 		},
@@ -515,6 +516,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	changesSync.AppendResourceInstanceChange(change)
 
 	evaluator := &Evaluator{
+		Instances: instances.NewExpander(nil),
 		Meta: &ContextMeta{
 			Env: "foo",
 		},

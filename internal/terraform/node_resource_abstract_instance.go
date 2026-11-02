@@ -49,6 +49,10 @@ type NodeAbstractResourceInstance struct {
 
 	preDestroyRefresh bool
 
+	// destroyRefresh indicates the instance is only being read to support
+	// destroy-time evaluation during a destroy plan.
+	destroyRefresh bool
+
 	// During import (or query) we may generate configuration for a resource, which needs
 	// to be stored in the final change.
 	generatedConfigHCL string
@@ -1900,15 +1904,19 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
-	checkDiags := evalCheckRules(
-		addrs.ResourcePrecondition,
-		n.Config.Preconditions,
-		ctx, n.Addr, keyData,
-		checkRuleSeverity,
-	)
-	diags = diags.Append(checkDiags)
-	if diags.HasErrors() {
-		return nil, nil, deferred, keyData, diags // failed preconditions prevent further evaluation
+	// Custom conditions are not evaluated during a destroy, where the
+	// data source is only read to support destroy-time evaluation.
+	if !n.destroyRefresh {
+		checkDiags := evalCheckRules(
+			addrs.ResourcePrecondition,
+			n.Config.Preconditions,
+			ctx, n.Addr, keyData,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
+		if diags.HasErrors() {
+			return nil, nil, deferred, keyData, diags // failed preconditions prevent further evaluation
+		}
 	}
 
 	var configDiags tfdiags.Diagnostics
@@ -2158,6 +2166,12 @@ func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalCo
 	// changes, since they won't show up as changes in the
 	// configuration.
 	changes := ctx.Changes()
+
+	// Every managed resource has a pending delete during a destroy plan, but
+	// nothing will change before the read happens.
+	if n.destroyRefresh {
+		return false
+	}
 
 	depsToUse := n.dependsOn
 

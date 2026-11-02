@@ -127,7 +127,7 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	// logic here is a bit overloaded.
 	//
 	// We also don't refresh when forgetting instances, as it is unnecessary.
-	if !n.skipRefresh && op != walkPlanDestroy && !forget {
+	if !n.skipRefresh && !forget {
 		// Refresh this object even though it may be destroyed, in
 		// case it's already been deleted outside of Terraform. If this is a
 		// normal plan, providers expect a Read request to remove missing

@@ -112,7 +112,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	checkRuleSeverity := tfdiags.Error
-	if n.skipPlanChanges || n.preDestroyRefresh {
+	if n.skipPlanChanges || n.preDestroyRefresh || n.destroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
 
@@ -147,19 +147,26 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 			return diags
 		}
 
-		diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
+		// The destroy plan records the data source deletion separately, this
+		// read only supports destroy-time evaluation.
+		if !n.destroyRefresh {
+			diags = diags.Append(n.writeChange(ctx, change, states.NotDeposed))
+		}
 
 		// Post-conditions might block further progress. We intentionally do this
 		// _after_ writing the state/diff because we want to check against
 		// the result of the operation, and to fail on future operations
-		// until the user makes the condition succeed.
-		checkDiags := evalCheckRules(
-			addrs.ResourcePostcondition,
-			n.Config.Postconditions,
-			ctx, addr, repeatData,
-			checkRuleSeverity,
-		)
-		diags = diags.Append(checkDiags)
+		// until the user makes the condition succeed. Custom conditions are
+		// not evaluated during a destroy.
+		if !n.destroyRefresh {
+			checkDiags := evalCheckRules(
+				addrs.ResourcePostcondition,
+				n.Config.Postconditions,
+				ctx, addr, repeatData,
+				checkRuleSeverity,
+			)
+			diags = diags.Append(checkDiags)
+		}
 	}
 
 	return diags

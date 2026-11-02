@@ -237,6 +237,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		// During a destroy plan, add the nodes which refresh each current
+		// managed resource instance before it is planned for destroy.
+		&destroyPlanRefreshTransformer{
+			State:       b.State,
+			skipRefresh: b.skipRefresh || b.minimalRefresh,
+			skip:        b.Operation != walkPlanDestroy,
+		},
+
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
@@ -378,6 +386,17 @@ func (b *PlanGraphBuilder) initPlan() {
 
 func (b *PlanGraphBuilder) initDestroy() {
 	b.initPlan()
+
+	// Resources from the configuration are only evaluated during a destroy
+	// plan if they are needed by something which must be evaluated during
+	// destroy.
+	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		return &nodeExpandPlannableResource{
+			NodeAbstractResource: a,
+			skipRefresh:          b.skipRefresh,
+			destroyRefresh:       true,
+		}
+	}
 
 	b.ConcreteDestroyResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
 		a.overridePreventDestroy = b.overridePreventDestroy

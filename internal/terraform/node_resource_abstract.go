@@ -491,20 +491,17 @@ func (n *NodeAbstractResource) DotNode(name string, opts *dag.DotOpts) *dag.DotN
 // recordResourceData records some metadata for the resource as a whole in
 // various locations. This currently includes adding resource expansion info to
 // the instance expander, and recording the provider used in the state.
-func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource) (diags tfdiags.Diagnostics) {
+//
+// If allowUnknown is false then the codepaths that handle unknown count and
+// for_each values below become unreachable, because the evaluate functions
+// will reject unknown values as an error.
+func (n *NodeAbstractResource) recordResourceData(ctx EvalContext, addr addrs.AbsResource, allowUnknown bool) (diags tfdiags.Diagnostics) {
 
 	// We'll record our expansion decision in the shared "expander" object
 	// so that later operations (i.e. DynamicExpand and expression evaluation)
 	// can refer to it. Since this node represents the abstract module, we need
 	// to expand the module here to create all resources.
 	expander := ctx.InstanceExpander()
-
-	// Allowing unknown values in count and for_each is a top-level plan option.
-	//
-	// If this is false then the codepaths that handle unknown values below
-	// become unreachable, because the evaluate functions will reject unknown
-	// values as an error.
-	allowUnknown := ctx.Deferrals().DeferralAllowed()
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:
@@ -679,6 +676,20 @@ func (n *NodeAbstractResource) addPolicyNode(
 		After:        after,
 		Action:       change.Action,
 	})
+}
+
+// expansionReferences returns only the references needed to evaluate the
+// expansion of a resource.
+func (n *NodeAbstractResource) expansionReferences() []*addrs.Reference {
+	if n.Config == nil {
+		return nil
+	}
+	var refs []*addrs.Reference
+	more, _ := langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.Count)
+	refs = append(refs, more...)
+	more, _ = langrefs.ReferencesInExpr(addrs.ParseRef, n.Config.ForEach)
+	refs = append(refs, more...)
+	return filterSelfRefs(n.Addr.Resource, refs)
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an

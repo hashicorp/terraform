@@ -760,8 +760,9 @@ resource "test_object" "b" {
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectTainted,
-			AttrsJSON: []byte(`{"test_string":"ok"}`),
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"ok"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.a")},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)

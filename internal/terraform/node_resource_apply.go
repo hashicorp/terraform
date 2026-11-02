@@ -15,6 +15,9 @@ import (
 // NodeApplyableResource nodes into their respective modules.
 type nodeExpandApplyableResource struct {
 	*NodeAbstractResource
+
+	// destroy is set when applying a destroy plan.
+	destroy bool
 }
 
 var (
@@ -27,6 +30,14 @@ var (
 )
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
+	// During a destroy, this node only records the expansion of managed and
+	// data resources for destroy-time evaluation. Depending on the rest of the
+	// configuration would cause it to be evaluated, which may not be possible
+	// when objects have already been destroyed.
+	if n.destroy && n.Addr.Resource.Mode != addrs.EphemeralResourceMode {
+		return n.expansionReferences()
+	}
+
 	refs := n.NodeAbstractResource.References()
 
 	// The expand node needs to connect to the individual resource instances it
@@ -60,7 +71,7 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 		}
 
 		moduleCtx := evalContextForModuleInstance(ctx, module)
-		diags = diags.Append(n.recordResourceData(moduleCtx, absAddr))
+		diags = diags.Append(n.recordResourceData(moduleCtx, absAddr, moduleCtx.Deferrals().DeferralAllowed()))
 	}
 
 	return nil, diags
@@ -122,7 +133,7 @@ func (n *nodeExpandApplyableResource) expandEphemeralResourceInstances(globalCtx
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	moreDiags := n.recordResourceData(moduleCtx, resAddr)
+	moreDiags := n.recordResourceData(moduleCtx, resAddr, moduleCtx.Deferrals().DeferralAllowed())
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return diags

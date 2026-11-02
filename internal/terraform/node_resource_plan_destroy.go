@@ -21,6 +21,10 @@ type NodePlanDestroyableResourceInstance struct {
 
 	// skipRefresh indicates that we should skip refreshing
 	skipRefresh bool
+
+	// refresh is the node which upgrades and refreshes the object before this
+	// node plans to destroy it.
+	refresh *nodePlanDestroyRefreshResourceInstance
 }
 
 var (
@@ -36,6 +40,7 @@ var (
 	_ GraphNodeProviderConsumer     = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeActionCaller         = (*NodePlanDestroyableResourceInstance)(nil)
 	_ GraphNodeAttachActionTriggers = (*NodePlanDestroyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies   = (*NodePlanDestroyableResourceInstance)(nil)
 )
 
 func (n *NodePlanDestroyableResourceInstance) Name() string {
@@ -55,6 +60,18 @@ func (n *NodePlanDestroyableResourceInstance) ReferenceableAddrs() []addrs.Refer
 
 func (n *NodePlanDestroyableResourceInstance) References() (refs []*addrs.Reference) {
 	return n.destroyActionPlanReferences()
+}
+
+// AttachDependencies implements GraphNodeAttachDependencies. These are
+// attached before any destroy edges are added, so they are the resources that
+// destroy-time evaluation for this instance depends on in the current
+// configuration, such as those referenced by its provider configuration or
+// destroy actions. The stored dependencies are still the source of truth for
+// the dependencies between objects.
+func (n *NodePlanDestroyableResourceInstance) AttachDependencies(deps []addrs.ConfigResource) {
+	if n.refresh != nil {
+		n.refresh.destroyDependencies = deps
+	}
 }
 
 func (n *NodePlanDestroyableResourceInstance) AttachActionTriggers(triggers []*resourceActionTrigger) {
@@ -84,30 +101,22 @@ func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalCon
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	state, _, err := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
+	if n.refresh != nil {
+		state = n.refresh.result
+	} else {
+		var err tfdiags.Diagnostics
+		state, _, err = n.readResourceInstanceState(ctx, addr)
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
-	// If we are in the "skip refresh" mode then we will have skipped over our
-	// usual opportunity to update the previous run state and refresh state
-	// with the result of any provider schema upgrades, so we'll compensate
-	// by doing that here.
-	//
-	// NOTE: this is coupled with logic in Context.destroyPlan which skips
-	// running a normal plan walk when refresh is enabled. These two
-	// conditionals must agree (be exactly opposite) in order to get the
-	// correct behavior in both cases.
-	if n.skipRefresh {
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
-		if diags.HasErrors() {
-			return diags
-		}
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
-		if diags.HasErrors() {
-			return diags
-		}
+	// The object was refreshed by the corresponding
+	// nodePlanDestroyRefreshResourceInstance, and if it no longer exists there
+	// is nothing to destroy.
+	if state == nil || state.Value.IsNull() {
+		return diags
 	}
 
 	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, "")

@@ -2326,16 +2326,8 @@ output "a" {
 				buildOpts: func(opts *PlanOpts) {
 					opts.Mode = plans.DestroyMode
 				},
-				inputs: map[string]cty.Value{},
-				wantPlanned: map[string]cty.Value{
-					// This is here because of the additional full plan run if
-					// the previous state is not empty (and refresh is not skipped).
-					"deferred_resource_change": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("deferred_resource_change"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.UnknownVal(cty.String),
-					}),
-				},
+				inputs:      map[string]cty.Value{},
+				wantPlanned: map[string]cty.Value{},
 
 				wantActions: map[string]plans.Action{},
 				wantApplied: map[string]cty.Value{
@@ -3351,13 +3343,7 @@ resource "test" "a" {
 				},
 				complete:    false,
 				wantActions: map[string]plans.Action{},
-				wantPlanned: map[string]cty.Value{
-					"foo": cty.ObjectVal(map[string]cty.Value{
-						"name":           cty.StringVal("foo"),
-						"upstream_names": cty.NullVal(cty.Set(cty.String)),
-						"output":         cty.StringVal("computed_output"),
-					}),
-				},
+				wantPlanned: map[string]cty.Value{},
 				wantDeferred: map[string]ExpectedDeferred{
 					"test.a": {Reason: providers.DeferredReasonDeferredPrereq, Action: plans.Delete},
 				},

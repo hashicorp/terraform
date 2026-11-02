@@ -641,6 +641,8 @@ type nodeOutputInPartialModule struct {
 	RefreshOnly bool
 }
 
+var _ GraphNodePartialExpandedModule = (*nodeOutputInPartialModule)(nil)
+
 func (n *nodeOutputInPartialModule) Name() string {
 	return n.Addr.String()
 }
