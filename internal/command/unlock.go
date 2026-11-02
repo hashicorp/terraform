@@ -114,7 +114,12 @@ func (c *UnlockCommand) Run(rawArgs []string) int {
 			return 1
 		}
 		if v != "yes" {
-			view.UnlockCancelled(diags)
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unlock cancelled",
+				"User did not confirm to proceed with the forced unlock",
+			))
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
