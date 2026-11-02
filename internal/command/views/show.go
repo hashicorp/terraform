@@ -156,6 +156,10 @@ func (v *ShowHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ShowJSON struct {
+	// Wrap a human view for access to streams when creating static JSON output.
+	//
+	// We cannot use the JSONStaticView approach here because the Display method
+	// outputs different JSON objects depending on whether a plan or state is available
 	view *View
 }
 
