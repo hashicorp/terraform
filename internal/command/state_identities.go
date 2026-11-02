@@ -98,11 +98,13 @@ to point the command to a specific state location.`,
 	}
 
 	var addrs []addrs.AbsResourceInstance
+	var rDiags tfdiags.Diagnostics
 	if len(args.Addrs) == 0 {
-		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
+		addrs, rDiags = c.lookupAllResourceInstanceAddrs(state)
 	} else {
-		addrs, diags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
+		addrs, rDiags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
 	}
+	diags = append(diags, rDiags...)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
