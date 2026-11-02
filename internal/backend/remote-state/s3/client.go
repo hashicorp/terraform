@@ -232,7 +232,7 @@ func (c *RemoteClient) put(data []byte, optFns ...func(*s3.Options)) error {
 	if c.acl != "" {
 		input.ACL = s3types.ObjectCannedACL(c.acl)
 	}
-	c.configurePutObjectTags(input, c.lockTags)
+	c.configurePutObjectTags(input, c.stateTags)
 
 	log.Info("Uploading remote state")
 
