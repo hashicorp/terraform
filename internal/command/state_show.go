@@ -54,14 +54,16 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Load the backend
 	b, diags := c.backend(".", c.viewType)
 	if diags.HasErrors() {
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
 		diags = diags.Append(unsupportedLocalOpErrDiag)
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// This is a read-only command
@@ -71,7 +73,8 @@ func (c *StateShowCommand) Run(args []string) int {
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)
 	if addrDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf(errParsingAddress, parsedArgs.Address))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// We expect the config dir to always be the cwd
@@ -85,21 +88,24 @@ func (c *StateShowCommand) Run(args []string) int {
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Error initializing config loader: %s\n", err))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Get the context (required to get the schemas)
 	lr, _, ctxDiags := local.LocalRun(context.Background(), opReq)
-
+	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		diags = diags.Append(ctxDiags)
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Get the schemas from the context
-	schemas, diags := lr.Core.Schemas(lr.Config, lr.InputState)
+	schemas, schemaDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(schemaDiags)
 	if diags.HasErrors() {
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// Get the state
@@ -112,23 +118,27 @@ func (c *StateShowCommand) Run(args []string) int {
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to refresh state: %s\n", err))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
 		diags = diags.Append(errors.New(errStateNotFound))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	is := state.ResourceInstance(addr)
 	if !is.HasCurrent() {
 		diags = diags.Append(errors.New(errNoInstanceFound))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	// check if the resource has a configured provider, otherwise this will use the default provider
@@ -149,7 +159,8 @@ func (c *StateShowCommand) Run(args []string) int {
 	root, outputs, err := jsonstate.MarshalForRenderer(mockFile, schemas)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to marshal state to json: %s", err))
-		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	jstate := jsonformat.State{
