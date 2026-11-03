@@ -140,11 +140,13 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -229,3 +231,14 @@ const errStateRmPersist = `Error saving the state: %s
 The state was not saved. No items were removed from the persisted
 state. No backup was created since no modification occurred. Please
 resolve the issue above and try again.`
+
+func stateRmPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The state was not saved. No items were removed from the persisted
+state. Please resolve the issue above and try again.`, err),
+	)
+}
