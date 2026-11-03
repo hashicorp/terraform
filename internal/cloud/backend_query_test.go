@@ -849,9 +849,9 @@ func (f *failingReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// genRow generates synthetic input for the large-query benchmark.
 type genRow struct {
 	addr string
-	name string
 	i    int
 }
 
@@ -864,9 +864,6 @@ func (r genRow) importConfig() string {
 }
 
 func (r genRow) blockName() string {
-	if r.name != "" {
-		return r.name
-	}
 	return r.addr[strings.LastIndex(r.addr, ".")+1:]
 }
 
@@ -890,16 +887,6 @@ func resourceFoundLine(r genRow) string {
 	id, _ := json.Marshal(fmt.Sprintf("%s-%d", r.blockName(), r.i))
 	return fmt.Sprintf(`{"@level":"info","@message":%s,"type":"list_resource_found","list_resource_found":{"address":%s,"display_name":%s,"identity":{"id":%s},"resource_type":"concept_pet","config":%s,"import_config":%s}}`,
 		message, address, id, id, cfg, imp)
-}
-
-// legacyBlockConfig reproduces the original accumulation (string +=) as
-// an independent reference for the expected per-block config.
-func legacyBlockConfig(rows []genRow) string {
-	var s string
-	for _, r := range rows {
-		s += fmt.Sprintf("%s\n%s\n\n", r.config(), r.importConfig())
-	}
-	return s
 }
 
 type genConfigResult struct {
@@ -957,26 +944,18 @@ func splitGenBlocks(t *testing.T, file string) []string {
 	return blocks
 }
 
-func rowsFor(addr string, n int) []genRow {
-	rows := make([]genRow, n)
-	for i := range rows {
-		rows[i] = genRow{addr: addr, i: i}
+func readGenConfigFixture(t *testing.T, name, filename string) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "query-json-genconfig", name, filename))
+	if err != nil {
+		t.Fatal(err)
 	}
-	return rows
+	return string(data)
 }
 
 func TestCloud_renderQueryRunLogsGenConfigSingleBlockExact(t *testing.T) {
-	const addr = "list.concept_pet.pets"
-	rows := rowsFor(addr, 3)
-
-	lines := []string{listStartLine(addr)}
-	for _, r := range rows {
-		lines = append(lines, resourceFoundLine(r))
-	}
-	lines = append(lines, listCompleteLine(addr, len(rows)))
-
 	out := filepath.Join(t.TempDir(), "generated.tf")
-	res := renderGenConfig(t, strings.NewReader(strings.Join(lines, "\n")+"\n"), out)
+	res := renderGenConfig(t, strings.NewReader(readGenConfigFixture(t, "single", "query.log")), out)
 	if res.err != nil {
 		t.Fatal(res.err)
 	}
@@ -984,39 +963,26 @@ func TestCloud_renderQueryRunLogsGenConfigSingleBlockExact(t *testing.T) {
 		t.Fatal("expected generated file to be written")
 	}
 
-	want := genFileHeader + genBlockHeader + legacyBlockConfig(rows) + "\n"
+	want := readGenConfigFixture(t, "single", "expected.tf")
 	if diff := cmp.Diff(want, res.file); diff != "" {
 		t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
 	}
 }
 
 func TestCloud_renderQueryRunLogsGenConfigInterleavedBlocks(t *testing.T) {
-	// These addresses share the same suffix, so grouping must use the full address.
-	const a, b = `list.concept_pet.pets["east"]`, `list.other_pet.pets["east"]`
-	rowsA, rowsB := rowsFor(a, 4), rowsFor(b, 3)
-	for i := range rowsA {
-		rowsA[i].name = "cats"
-	}
-	for i := range rowsB {
-		rowsB[i].name = "dogs"
-	}
-
-	lines := []string{listStartLine(a), listStartLine(b)}
-	for i := 0; i < 4; i++ {
-		lines = append(lines, resourceFoundLine(rowsA[i]))
-		if i < len(rowsB) {
-			lines = append(lines, resourceFoundLine(rowsB[i]))
-		}
-	}
-	lines = append(lines, listCompleteLine(b, len(rowsB)), listCompleteLine(a, len(rowsA)))
-
+	// The fixture's addresses share the same suffix, so grouping must use the full address.
 	out := filepath.Join(t.TempDir(), "generated.tf")
-	res := renderGenConfig(t, strings.NewReader(strings.Join(lines, "\n")+"\n"), out)
+	res := renderGenConfig(t, strings.NewReader(readGenConfigFixture(t, "interleaved", "query.log")), out)
 	if res.err != nil {
 		t.Fatal(res.err)
 	}
 
-	want := []string{legacyBlockConfig(rowsA), legacyBlockConfig(rowsB)}
+	// These fixtures contain per-address contents, excluding file/block headers
+	// and the writer's extra newline, matching splitGenBlocks below.
+	want := []string{
+		readGenConfigFixture(t, "interleaved", "expected-cats.tf"),
+		readGenConfigFixture(t, "interleaved", "expected-dogs.tf"),
+	}
 	sort.Strings(want)
 	if diff := cmp.Diff(want, splitGenBlocks(t, res.file)); diff != "" {
 		t.Fatalf("per-block config mismatch (-want +got):\n%s", diff)
@@ -1024,10 +990,8 @@ func TestCloud_renderQueryRunLogsGenConfigInterleavedBlocks(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsGenConfigNoFile(t *testing.T) {
-	const addr = "list.concept_pet.pets"
-	rows := rowsFor(addr, 2)
-	withRows := listStartLine(addr) + "\n" + resourceFoundLine(rows[0]) + "\n" + resourceFoundLine(rows[1]) + "\n" + listCompleteLine(addr, 2) + "\n"
-	zeroRows := listStartLine(addr) + "\n" + listCompleteLine(addr, 0) + "\n"
+	withRows := readGenConfigFixture(t, "two-rows", "query.log")
+	zeroRows := readGenConfigFixture(t, "empty", "query.log")
 
 	t.Run("zero rows", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "generated.tf")
@@ -1056,34 +1020,29 @@ func TestCloud_renderQueryRunLogsGenConfigNoFile(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsGenConfigMissingFields(t *testing.T) {
-	const addr = "list.concept_pet.pets"
-	row := genRow{addr: addr, i: 0}
-	config, _ := json.Marshal(row.config())
-	importConfig, _ := json.Marshal(row.importConfig())
-
 	tests := map[string]struct {
-		fields string
-		want   string
+		fixture string
+		want    string
 	}{
 		"config only": {
-			fields: `,"config":` + string(config),
-			want:   row.config() + "\n\n\n",
+			fixture: "config-only",
+			want:    "resource \"concept_pet\" \"pets_0\" {\n  name = \"pets-0\"\n}\n\n\n",
 		},
 		"import only": {
-			fields: `,"import_config":` + string(importConfig),
-			want:   "\n" + row.importConfig() + "\n\n",
+			fixture: "import-only",
+			want:    "\nimport {\n  to = concept_pet.pets_0\n  identity = {\n    id = \"pets-0\"\n  }\n}\n\n",
 		},
 		"both fields missing": {
 			// Preserve the existing behavior: a result with neither field
 			// still writes a generated file containing the separator newlines.
-			want: "\n\n\n",
+			fixture: "missing-fields",
+			want:    "\n\n\n",
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			line := fmt.Sprintf(`{"@level":"info","type":"list_resource_found","list_resource_found":{"address":"%s","display_name":"pets-0","identity":{"id":"pets-0"},"resource_type":"concept_pet"%s}}`, addr, test.fields)
-			logs := listStartLine(addr) + "\n" + line + "\n" + listCompleteLine(addr, 1) + "\n"
+			logs := readGenConfigFixture(t, test.fixture, "query.log")
 			out := filepath.Join(t.TempDir(), "generated.tf")
 			res := renderGenConfig(t, strings.NewReader(logs), out)
 			if res.err != nil {
@@ -1102,23 +1061,17 @@ func TestCloud_renderQueryRunLogsGenConfigMissingFields(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsGenConfigLineHandling(t *testing.T) {
-	const addr = "list.concept_pet.pets"
-	rows := rowsFor(addr, 3)
 	// A row whose JSON line exceeds the 64 KiB reader buffer, so it is read
 	// in several ReadLine fragments.
-	long := genRow{addr: addr, i: 99}
-	longLine := resourceFoundLine(long)
-	longLine = strings.Replace(longLine, `"display_name":"pets-99"`, `"display_name":"`+strings.Repeat("x", 100*1024)+`"`, 1)
-
-	log := listStartLine(addr) + "\r\n" + // CRLF
-		"plain text, not JSON\n" + // non-JSON is printed via the CLI
-		resourceFoundLine(rows[0]) + "\r\n" +
-		`{"@level":"info","type":"policy_query_summary","list_block_address":42}` + "\n" + // malformed summary is skipped
-		policySummaryPassLog + "\n" +
-		longLine + "\n" +
-		resourceFoundLine(rows[1]) + "\n" +
-		resourceFoundLine(rows[2]) + "\n" +
-		listCompleteLine(addr, 4) // unterminated final line
+	log := readGenConfigFixture(t, "line-handling", "query.log")
+	// Expand only the oversized field rather than checking in a 100 KiB line.
+	log = strings.Replace(log, "LONG_DISPLAY_NAME", strings.Repeat("x", 100*1024), 1)
+	// Exercise mixed CRLF/LF records and an unterminated final line explicitly.
+	lines := strings.Split(log, "\n")
+	lines[0] += "\r" // list_start
+	lines[2] += "\r" // first list_resource_found
+	log = strings.Join(lines, "\n")
+	log = strings.TrimSuffix(log, "\n")
 
 	out := filepath.Join(t.TempDir(), "generated.tf")
 	res := renderGenConfig(t, strings.NewReader(log), out)
@@ -1129,7 +1082,7 @@ func TestCloud_renderQueryRunLogsGenConfigLineHandling(t *testing.T) {
 		t.Fatalf("expected non-JSON line in CLI output, got: %q", res.cliOut)
 	}
 
-	want := genFileHeader + genBlockHeader + legacyBlockConfig([]genRow{rows[0], long, rows[1], rows[2]}) + "\n"
+	want := readGenConfigFixture(t, "line-handling", "expected.tf")
 	if diff := cmp.Diff(want, res.file); diff != "" {
 		t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
 	}
@@ -1215,9 +1168,7 @@ func BenchmarkCloud_renderQueryRunLogsGenConfig(b *testing.B) {
 }
 
 func TestCloud_renderQueryRunLogsGenConfigErrors(t *testing.T) {
-	const addr = "list.concept_pet.pets"
-	rows := rowsFor(addr, 2)
-	log := listStartLine(addr) + "\n" + resourceFoundLine(rows[0]) + "\n" + resourceFoundLine(rows[1]) + "\n" + listCompleteLine(addr, 2) + "\n"
+	log := readGenConfigFixture(t, "two-rows", "query.log")
 
 	t.Run("read error", func(t *testing.T) {
 		out := filepath.Join(t.TempDir(), "generated.tf")
