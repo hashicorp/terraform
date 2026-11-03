@@ -226,12 +226,6 @@ func (c *StateRmCommand) Synopsis() string {
 	return "Remove instances from the state"
 }
 
-const errStateRmPersist = `Error saving the state: %s
-
-The state was not saved. No items were removed from the persisted
-state. No backup was created since no modification occurred. Please
-resolve the issue above and try again.`
-
 func stateRmPersistErrDiag(err error) tfdiags.Diagnostic {
 	return tfdiags.Sourceless(
 		tfdiags.Error,
