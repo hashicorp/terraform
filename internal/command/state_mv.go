@@ -218,7 +218,12 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 
 			if stateTo.Module(addrTo) != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, "destination module already exists"))
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: the destination module already exists at that address in the current state.", addrTo),
+				))
+				c.showDiagnostics(diags)
 				return 1
 			}
 
@@ -427,22 +432,26 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateMvPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateToMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateMvPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Write the old state if it is different
 	if stateTo != stateFrom {
 		if err := stateFromMgr.WriteState(stateFrom); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
+			c.showDiagnostics(diags)
 			return 1
 		}
 		if err := stateFromMgr.PersistState(schemas); err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
+			c.showDiagnostics(diags)
 			return 1
 		}
 	}
@@ -591,7 +600,26 @@ func (c *StateMvCommand) Synopsis() string {
 	return "Move an item in the state"
 }
 
-const errStateMv = `Error moving state: %s
+func stateMvPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
 
-Please ensure your addresses and state paths are valid. No
-state was persisted. Your existing states are untouched.`
+The state was not saved. No items were moved within the persisted state.
+Please resolve the issue above and try again.`, err),
+	)
+}
+
+// This is only relevant if the -state-out and -state options are both used.
+func stateMvPersistSourceStateErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The destination state provided using -state-out was updated, but an error occurred when performing the
+paired update of the source state provided using -state. The source state may still contain any items
+that were intended to be moved. Please resolve the issue above and try again.`, err),
+	)
+}

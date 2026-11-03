@@ -192,11 +192,13 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Write the updated state
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateReplaceProviderPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateReplaceProviderPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -242,4 +244,15 @@ Options:
 
 func (c *StateReplaceProviderCommand) Synopsis() string {
 	return "Replace provider in the state"
+}
+
+func stateReplaceProviderPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The state was not saved. No items were changed in the persisted
+state. Please resolve the issue above and try again.`, err),
+	)
 }
