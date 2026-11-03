@@ -23,12 +23,12 @@ import (
 // CLI configuration and some default search locations. This will be the
 // provider source used for provider installation in the "terraform init"
 // command, unless overridden by the special -plugin-dir option.
-func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
+func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco, overrideWd string) (getproviders.Source, tfdiags.Diagnostics) {
 	if len(configs) == 0 {
 		// If there's no explicit installation configuration then we'll build
 		// up an implicit one with direct registry installation along with
 		// some automatically-selected local filesystem mirrors.
-		return implicitProviderSource(services), nil
+		return implicitProviderSource(services, overrideWd), nil
 	}
 
 	// There should only be zero or one configurations, which is checked by
@@ -89,7 +89,7 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 // one version available in a local directory are implicitly excluded from
 // direct installation, as if the user had listed them explicitly in the
 // "exclude" argument in the direct provider source in the CLI config.
-func implicitProviderSource(services *disco.Disco) getproviders.Source {
+func implicitProviderSource(services *disco.Disco, overrideWd string) getproviders.Source {
 	// The local search directories we use for implicit configuration are:
 	// - The "terraform.d/plugins" directory in the current working directory,
 	//   which we've historically documented as a place to put plugins as a
@@ -143,7 +143,12 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 		}
 	}
 
-	addLocalDir("terraform.d/plugins") // our "vendor" directory
+	localMirror := "terraform.d/plugins"
+	// if user has applied -chdir re-home where to look for local mirror
+	if overrideWd != "" {
+		localMirror = filepath.Join(overrideWd, localMirror)
+	}
+	addLocalDir(localMirror) // our "vendor" directory
 	cliConfigDir, err := cliconfig.ConfigDir()
 	if err == nil {
 		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
