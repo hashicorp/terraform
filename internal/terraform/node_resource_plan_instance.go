@@ -185,6 +185,7 @@ func (n *NodePlannableResourceInstance) ephemeralResourceExecute(ctx EvalContext
 		config:         n.Config,
 		providerConfig: n.ResolvedProvider,
 		override:       n.override,
+		skipConditions: n.destroyRefresh,
 	})
 
 	if deferred != nil {

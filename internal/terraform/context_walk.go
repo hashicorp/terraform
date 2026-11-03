@@ -153,6 +153,15 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		state.DiscardCheckResults()
 		refreshState.DiscardCheckResults()
 
+		if operation == walkPlanDestroy {
+			// Stored data source objects are never used for evaluation, so a
+			// destroy plan starts without them, and only has those which it
+			// reads for the provider configurations and destroy-triggered
+			// actions which require them.
+			removeDataResources(state)
+			removeDataResources(refreshState)
+		}
+
 	default:
 		state = inputState.DeepCopy().SyncWrapper()
 		// Only plan-like walks use refreshState and prevRunState
@@ -228,4 +237,17 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	}
 
 	return walker
+}
+
+// removeDataResources removes all data resource objects from the given state.
+func removeDataResources(s *states.SyncState) {
+	state := s.Lock()
+	defer s.Unlock()
+	for _, ms := range state.Modules {
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode == addrs.DataResourceMode {
+				ms.RemoveResource(rs.Addr.Resource)
+			}
+		}
+	}
 }

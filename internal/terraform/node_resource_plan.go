@@ -107,20 +107,11 @@ func (n *nodeExpandPlannableResource) ForceCreateBeforeDestroy() {
 }
 
 // destroyExpandOnly reports whether this node only records the resource
-// expansion for destroy-time evaluation, without planning or reading any
-// instances.
+// expansion for destroy-time evaluation, without planning any instances. This
+// is the case for managed resources during a destroy plan, while data sources
+// are still read, as they are in any plan.
 func (n *nodeExpandPlannableResource) destroyExpandOnly() bool {
-	if !n.destroyRefresh {
-		return false
-	}
-	switch n.Addr.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		return true
-	case addrs.DataResourceMode:
-		return n.skipRefresh
-	default:
-		return false
-	}
+	return n.destroyRefresh && n.Addr.Resource.Mode == addrs.ManagedResourceMode
 }
 
 // References is overridden so that a node which only records the expansion

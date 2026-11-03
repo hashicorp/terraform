@@ -237,6 +237,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// state.
 		&CBDEdgeTransformer{},
 
+		// Data and ephemeral resources are only evaluated during a destroy when
+		// required by provider configurations or destroy-triggered actions.
+		&destroyReadResourcesTransformer{
+			skip: b.Operation != walkDestroy,
+		},
+
 		// In a destroy, we need to remove configuration nodes that are not used
 		// at all, as they may not be able to evaluate. These include variables,
 		// locals, and instance expanders.

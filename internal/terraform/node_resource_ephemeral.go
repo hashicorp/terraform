@@ -26,6 +26,10 @@ type ephemeralResourceInput struct {
 	config         *configs.Resource
 	providerConfig addrs.AbsProviderConfig
 	override       *configs.Override
+
+	// skipConditions is set during a destroy, where custom conditions are not
+	// evaluated.
+	skipConditions bool
 }
 
 // ephemeralResourceOpen implements the "open" step of the ephemeral resource
@@ -62,15 +66,17 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	allInsts := ctx.InstanceExpander()
 	keyData := allInsts.GetResourceInstanceRepetitionData(inp.addr)
 
-	checkDiags := evalCheckRules(
-		addrs.ResourcePrecondition,
-		config.Preconditions,
-		ctx, inp.addr, keyData,
-		tfdiags.Error,
-	)
-	diags = diags.Append(checkDiags)
-	if diags.HasErrors() {
-		return nil, diags // failed preconditions prevent further evaluation
+	if !inp.skipConditions {
+		checkDiags := evalCheckRules(
+			addrs.ResourcePrecondition,
+			config.Preconditions,
+			ctx, inp.addr, keyData,
+			tfdiags.Error,
+		)
+		diags = diags.Append(checkDiags)
+		if diags.HasErrors() {
+			return nil, diags // failed preconditions prevent further evaluation
+		}
 	}
 
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema.Body, nil, keyData)
@@ -208,13 +214,15 @@ func ephemeralResourceOpen(ctx EvalContext, inp ephemeralResourceInput) (*provid
 	// OpenEphemeralResource. These will block downstream dependency operations
 	// if an error is returned, but don't prevent renewal or closing of the
 	// resource.
-	checkDiags = evalCheckRules(
-		addrs.ResourcePostcondition,
-		config.Postconditions,
-		ctx, inp.addr, keyData,
-		tfdiags.Error,
-	)
-	diags = diags.Append(checkDiags)
+	if !inp.skipConditions {
+		checkDiags := evalCheckRules(
+			addrs.ResourcePostcondition,
+			config.Postconditions,
+			ctx, inp.addr, keyData,
+			tfdiags.Error,
+		)
+		diags = diags.Append(checkDiags)
+	}
 
 	return nil, diags
 }

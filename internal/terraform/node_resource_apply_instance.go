@@ -96,18 +96,19 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	case addrs.DataResourceMode:
 		return n.dataResourceExecute(ctx)
 	case addrs.EphemeralResourceMode:
-		return n.ephemeralResourceExecute(ctx)
+		return n.ephemeralResourceExecute(ctx, op)
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
 }
 
-func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
+func (n *NodeApplyableResourceInstance) ephemeralResourceExecute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	_, diags := ephemeralResourceOpen(ctx, ephemeralResourceInput{
 		addr:           n.Addr,
 		config:         n.Config,
 		providerConfig: n.ResolvedProvider,
 		override:       n.override,
+		skipConditions: op == walkDestroy,
 	})
 
 	return diags

@@ -306,6 +306,12 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Operation: b.Operation,
 		},
 
+		// Data and ephemeral resources are only evaluated during a destroy when
+		// required by provider configurations or destroy-triggered actions.
+		&destroyReadResourcesTransformer{
+			skip: b.Operation != walkPlanDestroy,
+		},
+
 		&pruneUnusedNodesTransformer{
 			skip: b.Operation != walkPlanDestroy,
 		},
@@ -389,11 +395,11 @@ func (b *PlanGraphBuilder) initDestroy() {
 
 	// Resources from the configuration are only evaluated during a destroy
 	// plan if they are needed by something which must be evaluated during
-	// destroy.
+	// destroy, and data and ephemeral resources only when required by
+	// provider configurations or destroy-triggered actions.
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
-			skipRefresh:          b.skipRefresh,
 			destroyRefresh:       true,
 		}
 	}

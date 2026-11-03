@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -8184,4 +8185,265 @@ resource "test_object" "b" {
 			t.Fatal(diags.Err())
 		}
 	})
+}
+
+// During a destroy, data sources are only read when they are required, here by
+// a provider configuration, regardless of whether managed resources are
+// refreshed, and stored data source objects are never used for evaluation.
+func TestContext2Plan_destroyDataSourcesForProviders(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "provider" {
+  test_string = "fresh"
+}
+
+data "test_object" "unused" {
+  test_string = "unused"
+}
+
+data "test_object" "count" {
+  count       = 1
+  test_string = "count"
+}
+
+provider "test" {
+  alias       = "dep"
+  test_string = "${data.test_object.provider.test_string}-${length(data.test_object.count)}"
+}
+
+resource "test_object" "a" {
+  provider    = test.dep
+  test_string = data.test_object.unused.test_string
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		stored := func(v string) *states.ResourceInstanceObjectSrc {
+			return &states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: fmt.Appendf(nil, `{"test_string":%q}`, v),
+			}
+		}
+		defaultProvider := mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`)
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("data.test_object.provider"), stored("stale"), defaultProvider)
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("data.test_object.unused"), stored("stale"), defaultProvider)
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("data.test_object.count[0]"), stored("stale"), defaultProvider)
+		// An orphaned instance, which must not be counted.
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("data.test_object.count[1]"), stored("stale"), defaultProvider)
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), stored("a"), mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].dep`))
+	})
+
+	for name, opts := range map[string]*PlanOpts{
+		"refresh":         {Mode: plans.DestroyMode},
+		"skip refresh":    {Mode: plans.DestroyMode, SkipRefresh: true},
+		"minimal refresh": {Mode: plans.DestroyMode, MinimalRefresh: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var mu sync.Mutex
+			var reads []string
+			var configs []cty.Value
+
+			newProvider := func() providers.Interface {
+				p := simpleMockProvider()
+				p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					mu.Lock()
+					defer mu.Unlock()
+					reads = append(reads, req.Config.GetAttr("test_string").AsString())
+					return providers.ReadDataSourceResponse{State: req.Config}
+				}
+				p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+					mu.Lock()
+					defer mu.Unlock()
+					if v := req.Config.GetAttr("test_string"); !v.IsNull() {
+						configs = append(configs, v)
+					}
+					return providers.ConfigureProviderResponse{}
+				}
+				return p
+			}
+
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(newProvider()),
+				},
+			})
+			plan, diags := ctx.Plan(m, state, opts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			slices.Sort(reads)
+			if want := []string{"count", "fresh"}; !slices.Equal(reads, want) {
+				t.Errorf("wrong data sources read\ngot:  %q\nwant: %q", reads, want)
+			}
+
+			// Only the data sources read during the plan are in the prior state.
+			var priorData []string
+			for _, rs := range plan.PriorState.RootModule().Resources {
+				if rs.Addr.Resource.Mode != addrs.DataResourceMode {
+					continue
+				}
+				for key := range rs.Instances {
+					priorData = append(priorData, rs.Addr.Instance(key).String())
+				}
+			}
+			slices.Sort(priorData)
+			if want := []string{"data.test_object.count[0]", "data.test_object.provider"}; !slices.Equal(priorData, want) {
+				t.Errorf("wrong data sources in prior state\ngot:  %q\nwant: %q", priorData, want)
+			}
+
+			ctx = testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(newProvider()),
+				},
+			})
+			_, diags = ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+
+			// The provider is configured from the data that was read, both
+			// when planning and applying.
+			want := cty.StringVal("fresh-1")
+			if len(configs) != 2 || !configs[0].RawEquals(want) || !configs[1].RawEquals(want) {
+				t.Errorf("wrong provider configurations\ngot:  %#v\nwant: [%#v %#v]", configs, want, want)
+			}
+		})
+	}
+}
+
+// Destroy-triggered actions must have a known configuration, so any data
+// sources they require are read during a destroy.
+func TestContext2Plan_destroyActionDataSource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "d" {
+  test_string = "fresh"
+}
+
+action "test_action" "act" {
+  config {
+    test_string = data.test_object.d.test_string
+  }
+}
+
+resource "test_object" "a" {
+  lifecycle {
+    action_trigger {
+      events  = [before_destroy]
+      actions = [action.test_action.act]
+    }
+  }
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"a"}`),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{State: req.Config}
+	}
+	var planned cty.Value
+	p.PlanActionFn = func(req providers.PlanActionRequest) providers.PlanActionResponse {
+		planned = req.ProposedActionData.GetAttr("test_string")
+		return providers.PlanActionResponse{}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	tfdiags.AssertNoErrors(t, diags)
+
+	if want := cty.StringVal("fresh"); !planned.RawEquals(want) {
+		t.Errorf("wrong action configuration\ngot:  %#v\nwant: %#v", planned, want)
+	}
+	if got := len(plan.Changes.ActionInvocations); got != 1 {
+		t.Errorf("expected 1 planned action invocation, got %d", got)
+	}
+}
+
+// During a destroy, ephemeral resources are only opened when required, and
+// their custom conditions are not evaluated.
+func TestContext2Plan_destroyEphemeralForProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  ok = false
+}
+
+ephemeral "test_object" "creds" {
+  test_string = "secret"
+  lifecycle {
+    precondition {
+      condition     = local.ok
+      error_message = "not evaluated during destroy"
+    }
+  }
+}
+
+ephemeral "test_object" "unused" {
+  test_string = "unused"
+}
+
+provider "test" {
+  alias       = "dep"
+  test_string = ephemeral.test_object.creds.test_string
+}
+
+resource "test_object" "a" {
+  provider = test.dep
+}
+`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_object.a"), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"a"}`),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].dep`))
+	})
+
+	var mu sync.Mutex
+	var opened []string
+	newProvider := func() providers.Interface {
+		p := simpleMockProvider()
+		p.GetProviderSchemaResponse.EphemeralResourceTypes = map[string]providers.Schema{
+			"test_object": {Body: simpleTestSchema()},
+		}
+		p.OpenEphemeralResourceFn = func(req providers.OpenEphemeralResourceRequest) providers.OpenEphemeralResourceResponse {
+			mu.Lock()
+			defer mu.Unlock()
+			opened = append(opened, req.Config.GetAttr("test_string").AsString())
+			return providers.OpenEphemeralResourceResponse{Result: req.Config}
+		}
+		return p
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(newProvider()),
+		},
+	})
+	plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode})
+	tfdiags.AssertNoErrors(t, diags)
+
+	ctx = testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(newProvider()),
+		},
+	})
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	// The provider's ephemeral resource is opened once during plan and once
+	// during apply, and the unused one is never opened.
+	if want := []string{"secret", "secret"}; !slices.Equal(opened, want) {
+		t.Errorf("wrong ephemeral resources opened\ngot:  %q\nwant: %q", opened, want)
+	}
 }

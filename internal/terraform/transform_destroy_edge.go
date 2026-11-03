@@ -386,3 +386,63 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 
 	return nil
 }
+
+// destroyReadResourcesTransformer removes data and ephemeral resources which are
+// not required during a full destroy. Only provider configurations and the
+// configurations of destroy-triggered actions are evaluated during a destroy,
+// so those are the only things which can require these resources to be read
+// or opened, and any other references to them are evaluated as unknown values.
+// This must run before pruneUnusedNodesTransformer, so that anything only
+// needed by the removed resources is also removed.
+type destroyReadResourcesTransformer struct {
+	skip bool
+}
+
+func (t *destroyReadResourcesTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
+	var destroyers []dag.Vertex
+	for v := range g.VerticesSeq() {
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			destroyers = append(destroyers, v)
+		}
+	}
+	destroyerDeps := g.Ancestors(destroyers...)
+
+	var roots []dag.Vertex
+	for v := range g.VerticesSeq() {
+		switch v.(type) {
+		case GraphNodeProvider:
+			roots = append(roots, v)
+		case *NodeActionConfig:
+			// Destroy nodes only depend on the actions they trigger.
+			if destroyerDeps.Contains(v) {
+				roots = append(roots, v)
+			}
+		}
+	}
+	required := g.Ancestors(roots...)
+
+	for v := range g.VerticesSeq() {
+		if _, ok := v.(GraphNodeDestroyer); ok {
+			continue
+		}
+		rn, ok := v.(GraphNodeConfigResource)
+		if !ok {
+			continue
+		}
+		switch rn.ResourceAddr().Resource.Mode {
+		case addrs.DataResourceMode, addrs.EphemeralResourceMode:
+		default:
+			continue
+		}
+		if !required.Contains(v) {
+			log.Printf("[TRACE] destroyReadResourcesTransformer: removing %s, which is not required during destroy", v.Name())
+			g.Remove(v)
+		}
+	}
+
+	return nil
+}

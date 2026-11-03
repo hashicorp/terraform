@@ -29,8 +29,9 @@ type nodePlanDestroyRefreshResourceInstance struct {
 	// destroyDependencies are the resources which destroy-time evaluation
 	// for this instance depends on in the current configuration, such as
 	// through its provider configuration. These are attached via the
-	// corresponding destroy node, and merged into the refreshed object so
-	// that the apply-time destroy order allows that evaluation.
+	// corresponding destroy node, and merged into the object in the refresh
+	// state, whether or not it is refreshed, so that the apply-time destroy
+	// order allows that evaluation.
 	destroyDependencies []addrs.ConfigResource
 
 	// result is the upgraded and refreshed object, which the dependent destroy
@@ -68,43 +69,42 @@ func (n *nodePlanDestroyRefreshResourceInstance) Execute(ctx EvalContext, op wal
 		return diags
 	}
 
-	// Record any schema upgrades in all states, so that both the plan and any
-	// evaluation during this walk see objects conforming to the current
-	// schema.
-	for _, target := range []phaseState{prevRunState, refreshState, workingState} {
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, target))
+	// Record any schema upgrades in the previous run state, so that it
+	// conforms to the current schema.
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	obj := state
+	if !n.skipRefresh {
+		refreshed, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, state, ctx.Deferrals().DeferralAllowed())
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
+		if deferred != nil {
+			// Leave the prior object in place, the destroy node will report
+			// the deferral.
+			log.Printf("[TRACE] nodePlanDestroyRefreshResourceInstance: refresh of %s deferred", addr)
+		} else {
+			obj = refreshed
+		}
 	}
 
-	n.result = state
-	if n.skipRefresh {
-		return diags
+	// The apply-time destroy order must allow destroy-time evaluation, so the
+	// dependencies through the current configuration are recorded whether or
+	// not the object was refreshed.
+	if obj != nil {
+		obj.Dependencies = mergeDeps(n.destroyDependencies, obj.Dependencies)
 	}
+	n.result = obj
 
-	refreshed, deferred, refreshDiags := n.refresh(ctx, states.NotDeposed, state, ctx.Deferrals().DeferralAllowed())
-	diags = diags.Append(refreshDiags)
+	diags = diags.Append(n.writeResourceInstanceState(ctx, obj, refreshState))
 	if diags.HasErrors() {
 		return diags
 	}
-	if deferred != nil {
-		// Leave the prior object in place, the destroy node will report the
-		// deferral.
-		log.Printf("[TRACE] nodePlanDestroyRefreshResourceInstance: refresh of %s deferred", addr)
-		return diags
-	}
-
-	if refreshed != nil {
-		refreshed.Dependencies = mergeDeps(n.destroyDependencies, refreshed.Dependencies)
-	}
-	n.result = refreshed
-
-	diags = diags.Append(n.writeResourceInstanceState(ctx, refreshed, refreshState))
-	if diags.HasErrors() {
-		return diags
-	}
-	return diags.Append(n.writeResourceInstanceState(ctx, refreshed, workingState))
+	return diags.Append(n.writeResourceInstanceState(ctx, obj, workingState))
 }
 
 // destroyPlanRefreshTransformer adds a nodePlanDestroyRefreshResourceInstance
