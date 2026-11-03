@@ -162,7 +162,7 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 
 	downloader := manager.NewDownloader(c.s3Client)
 
-	_, err = downloader.Download(ctx, w, downloadInput)
+	n, err := downloader.Download(ctx, w, downloadInput)
 	if err != nil {
 		switch {
 		case IsA[*s3types.NoSuchBucket](err):
@@ -173,9 +173,9 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 		return nil, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
 	}
 
-	sum := md5.Sum(w.Bytes())
+	sum := md5.Sum(w.Bytes()[:n])
 	payload := &remote.Payload{
-		Data: w.Bytes(),
+		Data: w.Bytes()[:n],
 		MD5:  sum[:],
 	}
 

@@ -11,9 +11,13 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -30,6 +34,49 @@ import (
 func TestRemoteClient_impl(t *testing.T) {
 	var _ remote.Client = new(RemoteClient)
 	var _ remote.ClientLocker = new(RemoteClient)
+}
+
+func TestRemoteClientGetSmallerObject(t *testing.T) {
+	data := []byte(`"test"`)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			w.Header().Set("Content-Length", "10")
+		case http.MethodGet:
+			w.Header().Set("Content-Length", "6")
+			w.Write(data)
+		default:
+			t.Errorf("unexpected request method: %s", r.Method)
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	}))
+	defer server.Close()
+
+	client := &RemoteClient{
+		s3Client: s3.New(s3.Options{
+			BaseEndpoint: aws.String(server.URL),
+			UsePathStyle: true,
+			Credentials:  credentials.NewStaticCredentialsProvider("test", "test", ""),
+			Region:       "us-east-1",
+		}),
+		bucketName: "test-bucket",
+		path:       "test-state",
+	}
+
+	payload, err := client.get(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if payload == nil {
+		t.Fatal("expected a payload")
+	}
+	if !bytes.Equal(payload.Data, data) {
+		t.Errorf("unexpected payload data: got %q, want %q", payload.Data, data)
+	}
+	sum := md5.Sum(data)
+	if !bytes.Equal(payload.MD5, sum[:]) {
+		t.Errorf("unexpected payload MD5: got %x, want %x", payload.MD5, sum)
+	}
 }
 
 func TestRemoteClientBasic(t *testing.T) {
