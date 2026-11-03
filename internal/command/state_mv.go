@@ -102,8 +102,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Read the from state
-	view := arguments.ViewHuman
-	stateFromMgr, err := c.State(view)
+	stateFromMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
 		c.showDiagnostics(diags)
@@ -111,7 +110,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 		if lockDiags := stateLocker.Lock(stateFromMgr, "state-mv"); lockDiags.HasErrors() {
 			diags = diags.Append(lockDiags)
 			c.showDiagnostics(diags)
@@ -150,7 +149,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		c.statePath = parsedArgs.StateOutPath
 		c.backupPath = parsedArgs.BackupOutPath
 
-		stateToMgr, err = c.State(view)
+		stateToMgr, err = c.State(parsedArgs.ViewType)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
 			c.showDiagnostics(diags)
@@ -158,7 +157,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 
 		if c.stateLock {
-			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 			if lockDiags := stateLocker.Lock(stateToMgr, "state-mv"); lockDiags.HasErrors() {
 				diags = diags.Append(lockDiags)
 				c.showDiagnostics(diags)
@@ -452,7 +451,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
