@@ -4,15 +4,80 @@
 package json
 
 import (
+	"encoding/json"
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func TestNewQueryResult(t *testing.T) {
+	addr := addrs.Resource{Mode: addrs.ListResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	resourceAddr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example_0"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	row := cty.ObjectVal(map[string]cty.Value{
+		"display_name": cty.StringVal("Example café"),
+		"identity":     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
+		"state":        cty.NullVal(cty.DynamicPseudoType),
+	})
+	group, diags := genconfig.GenerateListResourceContents(addr,
+		&configschema.Block{Attributes: map[string]*configschema.Attribute{
+			"value": {Type: cty.String, Optional: true},
+		}},
+		&configschema.Object{Nesting: configschema.NestingSingle, Attributes: map[string]*configschema.Attribute{
+			"id": {Type: cty.String, Required: true},
+		}},
+		addrs.LocalProviderConfig{LocalName: "test"}, []genconfig.ResourceListElement{{
+			Config:   cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("café\r\nline")}),
+			Identity: row.GetAttr("identity"),
+		}})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	tests := map[string]struct {
+		generated *genconfig.ResourceImport
+		config    string
+		importCfg string
+	}{
+		"without generated config": {},
+		"untracked resource": {
+			generated: &genconfig.ResourceImport{
+				Resource:   genconfig.Resource{Addr: resourceAddr, Body: []byte("value = \"café\"\n")},
+				ImportBody: []byte("# preserved verbatim\r\nimport {\r\n  to = test_resource.example_0\r\n  id = \"one\"\r\n}\r\n"),
+			},
+			config:    "resource \"test_resource\" \"example_0\" {\n  value = \"café\"\n}",
+			importCfg: "# preserved verbatim\r\nimport {\r\n  to = test_resource.example_0\r\n  id = \"one\"\r\n}\r\n",
+		},
+		"list-generated resource": {
+			generated: &group.Imports[0],
+			config:    "resource \"test_resource\" \"example_0\" {\n  provider = test\n  value    = \"café\\r\\nline\"\n}",
+			importCfg: "import {\n  to       = test_resource.example_0\n  provider = test\n  identity = {\n    id = \"one\"\n  }\n}",
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			want := QueryResult{
+				Address:         "list.test_resource.example",
+				DisplayName:     "Example café",
+				Identity:        map[string]json.RawMessage{"id": json.RawMessage(`"one"`)},
+				IdentityVersion: 1,
+				ResourceType:    "test_resource",
+				Config:          tc.config,
+				ImportConfig:    tc.importCfg,
+			}
+			if diff := cmp.Diff(want, NewQueryResult(addr, row, 1, tc.generated)); diff != "" {
+				t.Errorf("unexpected query result (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestNewQueryStart(t *testing.T) {
 	makeAddr := func(resType, resName string) addrs.AbsResourceInstance {

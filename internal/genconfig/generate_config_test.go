@@ -6,11 +6,13 @@ package genconfig
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -1123,14 +1125,252 @@ import {
 
 	normalizedExpected := normalizeString(expectedContent)
 
-	var merged string
-
 	for _, imp := range content.Imports {
-		merged += imp.Resource.String()
+		if !imp.Resource.bodyFormatted || string(imp.Resource.Body) != imp.Resource.formattedBody {
+			t.Errorf("resource %s lost formatting provenance during list generation", imp.Resource.Addr)
+		}
 	}
 	normalizedActual := normalizeString(content.String())
 
 	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
 		t.Errorf("Generated content doesn't match expected. want:\n%s\ngot:\n%s\ndiff:\n%s", normalizedExpected, normalizedActual, diff)
+	}
+}
+
+var resourceStringFormattingTests = map[string]struct {
+	body     string
+	wantFast bool
+	want     string
+}{
+	"empty": {
+		wantFast: true,
+		want:     "resource \"test_resource\" \"example\" {\n}",
+	},
+	"alignment": {
+		body:     "a=1\nlong_name=2\n",
+		wantFast: true,
+		want:     "resource \"test_resource\" \"example\" {\n  a         = 1\n  long_name = 2\n}",
+	},
+	"blank lines and comments": {
+		body:     "# leading\na=1 # comment\n\nb=2\n\n",
+		wantFast: true,
+	},
+	"unicode": {
+		body:     "日本語 = \"👩🏽‍💻\"\na = \"café\"\n",
+		wantFast: true,
+	},
+	"escaping": {
+		body:     "value = \"line1\\nline2\\r\\n\\\"\\\\$${literal}\"\n",
+		wantFast: true,
+	},
+	"nested": {
+		body:     "tags = {\n a = [1, 2]\n}\nblock \"label\" {\n x=1\n}\n",
+		wantFast: true,
+	},
+	"sensitive": {
+		body:     "secret = null # sensitive\na = 1\n",
+		wantFast: true,
+	},
+	"heredoc": {
+		body: "value = <<EOF\nline1\n  line2\nEOF\n",
+		want: "resource \"test_resource\" \"example\" {\n  value = <<EOF\nline1\n  line2\nEOF\n}",
+	},
+	"indented heredoc": {
+		body: "value = <<-EOF\n  line1\n    line2\nEOF\n",
+	},
+	"multiline comment": {
+		body: "/* first\ninterior\n*/\na=1\n",
+	},
+	"CRLF": {
+		body: "a = 1\r\nb = 2\r\n",
+		want: "resource \"test_resource\" \"example\" {\n  a = 1\r\n  b = 2\r\n}",
+	},
+}
+
+func TestResourceStringFormatting(t *testing.T) {
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	for name, tc := range resourceStringFormattingTests {
+		t.Run(name, func(t *testing.T) {
+			body := hclwrite.Format([]byte(tc.body))
+			r := Resource{Addr: addr, Body: body, formattedBody: string(body), bodyFormatted: true}
+			if got := canIndentFormattedBody(body); got != tc.wantFast {
+				t.Fatalf("fast-path eligibility = %t, want %t; body %q", got, tc.wantFast, body)
+			}
+
+			// An untracked body uses the full formatter, without duplicating it here.
+			want := (Resource{Addr: addr, Body: body}).String()
+			got := r.String()
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("fast-path output differs from formatter (-want +got):\n%s", diff)
+			}
+			if tc.want != "" {
+				if diff := cmp.Diff(tc.want, got); diff != "" {
+					t.Errorf("unexpected formatting (-want +got):\n%s", diff)
+				}
+			}
+			if _, diags := hclsyntax.ParseConfig([]byte(got), "resource.tf", hcl.InitialPos); diags.HasErrors() {
+				t.Fatalf("formatted resource is invalid: %s", diags.Error())
+			}
+		})
+	}
+}
+
+func FuzzResourceStringFastPath(f *testing.F) {
+	for _, tc := range resourceStringFormattingTests {
+		f.Add([]byte(tc.body))
+	}
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	f.Fuzz(func(t *testing.T, input []byte) {
+		body := hclwrite.Format(input)
+		// Restrict provenance to valid UTF-8 HCL bodies, as produced by the
+		// generator. The parser can miss invalid UTF-8 in malformed input.
+		if !utf8.Valid(body) || !canIndentFormattedBody(body) {
+			t.Skip()
+		}
+		if _, diags := hclsyntax.ParseConfig(body, "body.tf", hcl.InitialPos); diags.HasErrors() {
+			t.Skip()
+		}
+		r := Resource{Addr: addr, Body: body, formattedBody: string(body), bodyFormatted: true}
+		want := (Resource{Addr: addr, Body: body}).String()
+		if diff := cmp.Diff(want, r.String()); diff != "" {
+			t.Fatalf("fast-path output differs from formatter for body %q (-want +got):\n%s", body, diff)
+		}
+	})
+}
+
+func TestResourceStringBodyMutation(t *testing.T) {
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	schema := &configschema.Block{Attributes: map[string]*configschema.Attribute{
+		"a":         {Type: cty.Number, Optional: true},
+		"long_name": {Type: cty.Number, Optional: true},
+	}}
+	tests := map[string]func(*Resource){
+		"replace":  func(r *Resource) { r.Body = []byte("a=1\nlong_name=2\n") },
+		"in-place": func(r *Resource) { r.Body[1] = 'b' },
+		"truncate": func(r *Resource) { r.Body = r.Body[:len(r.Body)-1] },
+		"append":   func(r *Resource) { r.Body = append(r.Body, []byte("b=3\n")...) },
+	}
+	for name, mutate := range tests {
+		t.Run(name, func(t *testing.T) {
+			r, diags := GenerateResourceContents(addr, schema, addrs.LocalProviderConfig{LocalName: "test"},
+				cty.ObjectVal(map[string]cty.Value{"a": cty.NumberIntVal(1), "long_name": cty.NumberIntVal(2)}), false)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			if !r.bodyFormatted || string(r.Body) != r.formattedBody {
+				t.Fatal("generation did not record formatting provenance")
+			}
+			mutate(&r)
+			want := (Resource{Addr: addr, Body: r.Body}).String()
+			if diff := cmp.Diff(want, r.String()); diff != "" {
+				t.Errorf("mutated body differs from formatter (-want +got):\n%s", diff)
+			}
+		})
+	}
+	t.Run("untracked body", func(t *testing.T) {
+		r := Resource{Addr: addr, Body: []byte("a=1\nlong_name=2\n")}
+		want := "resource \"test_resource\" \"example\" {\n  a         = 1\n  long_name = 2\n}"
+		if diff := cmp.Diff(want, r.String()); diff != "" {
+			t.Errorf("unexpected formatting (-want +got):\n%s", diff)
+		}
+	})
+}
+
+func TestGenerateResourceContentsFormatting(t *testing.T) {
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	tests := map[string]cty.Value{
+		"unicode":   cty.StringVal("café 日本語 👩🏽‍💻 e\u0301"),
+		"escaping":  cty.StringVal("\"quoted\" \\path\\ ${literal} %{literal} <>&"),
+		"multiline": cty.StringVal("line1\n\nline2\r\nline3\tend"),
+		"nested":    cty.ObjectVal(map[string]cty.Value{"日本語": cty.ListVal([]cty.Value{cty.StringVal("a\nb"), cty.StringVal("café")})}),
+		"empty":     cty.StringVal(""),
+		"null":      cty.NullVal(cty.String),
+	}
+	for name, value := range tests {
+		t.Run(name, func(t *testing.T) {
+			schema := &configschema.Block{Attributes: map[string]*configschema.Attribute{
+				"value": {Type: value.Type(), Optional: true},
+			}}
+			r, diags := GenerateResourceContents(addr, schema, addrs.LocalProviderConfig{LocalName: "test"},
+				cty.ObjectVal(map[string]cty.Value{"value": value}), false)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			if !r.bodyFormatted || string(r.Body) != r.formattedBody || !canIndentFormattedBody(r.Body) {
+				t.Fatal("generated resource is not eligible for the fast path")
+			}
+			want := (Resource{Addr: addr, Body: r.Body}).String()
+			if diff := cmp.Diff(want, r.String()); diff != "" {
+				t.Errorf("generated resource differs from formatter (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func resourceForStringBenchmark(b *testing.B) Resource {
+	b.Helper()
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"name":        {Type: cty.String, Optional: true},
+			"description": {Type: cty.String, Optional: true},
+			"enabled":     {Type: cty.Bool, Optional: true},
+			"tags":        {Type: cty.Map(cty.String), Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"network": {
+				Nesting: configschema.NestingSingle,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"address": {Type: cty.String, Optional: true},
+						"subnet":  {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	value := cty.ObjectVal(map[string]cty.Value{
+		"name":        cty.StringVal("example"),
+		"description": cty.StringVal("Example café 日本語 👩🏽‍💻"),
+		"enabled":     cty.True,
+		"tags": cty.MapVal(map[string]cty.Value{
+			"Environment": cty.StringVal("development"),
+			"Owner":       cty.StringVal("example-team"),
+		}),
+		"network": cty.ObjectVal(map[string]cty.Value{
+			"address": cty.StringVal("10.0.0.1"),
+			"subnet":  cty.StringVal("example-subnet"),
+		}),
+	})
+	r, diags := GenerateResourceContents(addr, schema, addrs.LocalProviderConfig{LocalName: "test"}, value, false)
+	if diags.HasErrors() {
+		b.Fatal(diags.Err())
+	}
+	if !r.bodyFormatted || string(r.Body) != r.formattedBody || !canIndentFormattedBody(r.Body) {
+		b.Fatal("generated resource is not eligible for the fast path")
+	}
+	return r
+}
+
+func BenchmarkResourceStringFormatted(b *testing.B) {
+	r := resourceForStringBenchmark(b)
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = r.String()
+	}
+}
+
+func BenchmarkResourceStringUnformatted(b *testing.B) {
+	generated := resourceForStringBenchmark(b)
+	// Drop formatting provenance to measure the full formatter on the same body.
+	r := Resource{Addr: generated.Addr, Body: generated.Body}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		_ = r.String()
 	}
 }
