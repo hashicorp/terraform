@@ -218,7 +218,12 @@ func (c *StateMvCommand) Run(args []string) int {
 			}
 
 			if stateTo.Module(addrTo) != nil {
-				c.Ui.Error(fmt.Sprintf(errStateMv, "destination module already exists"))
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: the destination module already exists at that address in the current state.", addrTo),
+				))
+				c.showDiagnostics(diags)
 				return 1
 			}
 
@@ -590,8 +595,3 @@ Options:
 func (c *StateMvCommand) Synopsis() string {
 	return "Move an item in the state"
 }
-
-const errStateMv = `Error moving state: %s
-
-Please ensure your addresses and state paths are valid. No
-state was persisted. Your existing states are untouched.`
