@@ -11,11 +11,15 @@ import (
 type Unlock struct {
 	Force  bool
 	LockID string
+
+	ViewType ViewType
 }
 
 func ParseUnlock(args []string) (*Unlock, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := &Unlock{}
+	ret := &Unlock{
+		ViewType: ViewHuman,
+	}
 
 	cmdFlags := defaultFlagSet("force-unlock")
 	cmdFlags.BoolVar(&ret.Force, "force", false, "force")

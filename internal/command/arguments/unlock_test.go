@@ -18,14 +18,16 @@ func TestParseUnlock_valid(t *testing.T) {
 		"defaults with lock ID": {
 			[]string{"foobar12345"},
 			&Unlock{
-				LockID: "foobar12345",
+				LockID:   "foobar12345",
+				ViewType: ViewHuman,
 			},
 		},
 		"force unlock": {
 			[]string{"-force", "foobar12345"},
 			&Unlock{
-				LockID: "foobar12345",
-				Force:  true,
+				LockID:   "foobar12345",
+				Force:    true,
+				ViewType: ViewHuman,
 			},
 		},
 	}
@@ -51,7 +53,9 @@ func TestParseUnlock_invalid(t *testing.T) {
 	}{
 		"missing lock id": {
 			[]string{},
-			&Unlock{},
+			&Unlock{
+				ViewType: ViewHuman,
+			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -63,7 +67,8 @@ func TestParseUnlock_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-unknown", "foobar12345"},
 			&Unlock{
-				LockID: "foobar12345",
+				LockID:   "foobar12345",
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -76,7 +81,8 @@ func TestParseUnlock_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"foobar12345", "fizzbuzz12345"},
 			&Unlock{
-				LockID: "",
+				LockID:   "",
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
