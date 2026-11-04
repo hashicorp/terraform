@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -175,15 +176,15 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 1
 	}
 
-	prefix := "Move"
-	if parsedArgs.DryRun {
-		prefix = "Would move"
-	}
-
 	const msgInvalidSource = "Invalid source address"
 	const msgInvalidTarget = "Invalid target address"
 
-	var moved int
+	type move struct {
+		to   fmt.Stringer
+		from fmt.Stringer
+	}
+	moves := []move{}
+
 	ssFrom := stateFrom.SyncWrapper()
 	sourceAddrs := c.sourceObjectAddrs(stateFrom, sourceAddr)
 	if len(sourceAddrs) == 0 {
@@ -238,8 +239,10 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moved++
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
+			moves = append(moves, move{
+				to:   addrTo,
+				from: addrFrom,
+			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveModule(addrFrom)
 
@@ -283,8 +286,10 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moved++
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), addrTo.String()))
+			moves = append(moves, move{
+				to:   addrTo,
+				from: addrFrom,
+			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveResource(addrFrom)
 
@@ -337,8 +342,10 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moved++
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, addrFrom.String(), parsedArgs.DestAddr))
+			moves = append(moves, move{
+				to:   addrTo,
+				from: addrFrom,
+			})
 			if !parsedArgs.DryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
 				fromResource := ssFrom.Resource(fromResourceAddr)
@@ -407,11 +414,20 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
+	prefix := "Move"
 	if parsedArgs.DryRun {
-		if moved == 0 {
+		prefix = "Would move"
+	}
+
+	if parsedArgs.DryRun {
+		if len(moves) == 0 {
 			c.Ui.Output("Would have moved nothing.")
+		} else {
+			for _, mv := range moves {
+				c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, mv.from.String(), mv.to.String()))
+			}
+			return 0 // This is as far as we go in dry-run mode
 		}
-		return 0 // This is as far as we go in dry-run mode
 	}
 
 	// Load the backend
@@ -458,10 +474,13 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	c.showDiagnostics(diags)
 
-	if moved == 0 {
+	if len(moves) == 0 {
 		c.Ui.Output("No matching objects found.")
 	} else {
-		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", moved))
+		for _, mv := range moves {
+			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, mv.from.String(), mv.to.String()))
+		}
+		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", len(moves)))
 	}
 	return 0
 }
@@ -505,6 +524,11 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 	default:
 		ret = append(ret, matched)
 	}
+
+	// Sort, to counter-act iterating over the state.Modules map above.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
 
 	return ret
 }

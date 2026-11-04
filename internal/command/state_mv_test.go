@@ -156,7 +156,123 @@ func TestStateMv(t *testing.T) {
 			t.Fatalf("expected no each mode, found key %q", key)
 		}
 	}
+}
 
+// Test the output produced by the state mv command
+func TestStateMv_output(t *testing.T) {
+	// Root module contains a module called "foo" which itself contains a child module called "child"
+	// Each module contains a managed resource instance of type "test_instance"
+
+	moduleAddr := addrs.RootModuleInstance.Child("foo", addrs.NoKey)
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(moduleAddr),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "child",
+			}.Instance(addrs.NoKey).Absolute(moduleAddr.Child("child", addrs.NoKey)),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("module.foo.test_instance.foo")},
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	t.Run("move module and child module", func(t *testing.T) {
+		td := t.TempDir()
+		t.Chdir(td)
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"module.foo",
+			"module.bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Assert output
+		expected := `Move "module.foo" to "module.bar"
+Move "module.foo.module.child" to "module.bar.module.child"
+Successfully moved 2 object(s).
+`
+		got := ui.OutputWriter.String()
+		if diff := cmp.Diff(expected, got); diff != "" {
+			t.Fatalf("unexpected terminal output (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("dry run of moving module and child module", func(t *testing.T) {
+		td := t.TempDir()
+		t.Chdir(td)
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"--dry-run",
+			"-state", statePath,
+			"module.foo",
+			"module.bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Assert output
+		expected := `Would move "module.foo" to "module.bar"
+Would move "module.foo.module.child" to "module.bar.module.child"
+`
+		got := ui.OutputWriter.String()
+		if diff := cmp.Diff(expected, got); diff != "" {
+			t.Fatalf("unexpected terminal output (-want +got):\n%s", diff)
+		}
+	})
 }
 
 func TestStateMv_stateStore(t *testing.T) {
