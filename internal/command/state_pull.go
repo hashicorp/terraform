@@ -65,7 +65,12 @@ func (c *StatePullCommand) Run(args []string) int {
 	// Get the state manager for the current workspace
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
