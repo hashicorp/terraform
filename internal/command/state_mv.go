@@ -25,6 +25,8 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(args))
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
@@ -39,7 +41,6 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
 		return 1
@@ -100,7 +101,8 @@ func (c *StateMvCommand) Run(args []string) int {
 	view := arguments.ViewHuman
 	stateFromMgr, err := c.State(view)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -118,13 +120,19 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	if err := stateFromMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	stateFrom := stateFromMgr.State()
 	if stateFrom == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -138,7 +146,8 @@ func (c *StateMvCommand) Run(args []string) int {
 
 		stateToMgr, err = c.State(view)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+			diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+			c.showDiagnostics(diags)
 			return 1
 		}
 
@@ -156,7 +165,12 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 
 		if err := stateToMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to refresh the state",
+				fmt.Sprintf("Error refreshing the destination state: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 
@@ -166,7 +180,6 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	var diags tfdiags.Diagnostics
 	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.SourceAddr)
 	diags = diags.Append(moreDiags)
 	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)

@@ -22,9 +22,11 @@ type StatePullCommand struct {
 }
 
 func (c *StatePullCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStatePull(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	var diags tfdiags.Diagnostics
+
+	parsedArgs, parseDiags := arguments.ParseStatePull(c.Meta.process(args))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
 		return 1
 	}
 
@@ -63,16 +65,27 @@ func (c *StatePullCommand) Run(args []string) int {
 	// Get the state manager for the current workspace
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 

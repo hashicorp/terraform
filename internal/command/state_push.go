@@ -26,9 +26,11 @@ type StatePushCommand struct {
 }
 
 func (c *StatePushCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStatePush(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	var diags tfdiags.Diagnostics
+
+	parsedArgs, parseDiags := arguments.ParseStatePush(c.Meta.process(args))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
 		return 1
 	}
 
@@ -95,7 +97,12 @@ func (c *StatePushCommand) Run(args []string) int {
 	// Determine the workspace name
 	workspace, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -127,7 +134,12 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the destination state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -149,11 +161,21 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 

@@ -26,6 +26,8 @@ type StateReplaceProviderCommand struct {
 }
 
 func (c *StateReplaceProviderCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	parsedArgs, parseDiags := arguments.ParseStateReplaceProvider(c.Meta.process(args))
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
@@ -60,8 +62,6 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
 	// Parse from/to arguments into providers
 	from, fromDiags := addrs.ParseProviderSourceString(parsedArgs.FromProviderAddr)
 	if fromDiags.HasErrors() {
@@ -88,7 +88,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	view := arguments.ViewHuman
 	stateMgr, err := c.State(view)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -108,13 +109,19 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Refresh and load state
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -160,7 +167,12 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		))
 		v, err := c.Ui.Ask("Enter a value:")
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for approval: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to confirm provider replacement",
+				fmt.Sprintf("Error asking for approval: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 		if v != "yes" {

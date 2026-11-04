@@ -38,11 +38,14 @@ type StateMigrateCommand struct {
 }
 
 func (c *StateMigrateCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.Meta.View.Configure(common)
 
-	args, diags := arguments.ParseStateMigrate(rawArgs)
+	args, argsDiags := arguments.ParseStateMigrate(rawArgs)
+	diags = diags.Append(argsDiags)
 
 	view := views.NewStateMigrate(args.ViewType, c.View)
 
@@ -490,7 +493,11 @@ func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile
 	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load the backend state file when preparing to update it: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Failed to load the backend state file when preparing to update it: %s", err),
+		))
 		return diags
 	}
 
