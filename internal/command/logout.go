@@ -11,6 +11,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -24,9 +25,23 @@ type LogoutCommand struct {
 func (c *LogoutCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	rawArgs = c.Meta.process(rawArgs)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
+	// Process command-specific arguments.
 	args, argDiags := arguments.ParseLogout(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewLogout(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	diags = diags.Append(argDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -75,12 +90,12 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 
 	switch credsCtx.Location {
 	case cliconfig.CredentialsNotAvailable:
-		c.Ui.Output(fmt.Sprintf("No credentials for %s are stored.\n", dispHostname))
+		view.NoCredentialsStored(dispHostname)
 		return 0
 	case cliconfig.CredentialsViaHelper:
-		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the configured\n%q credentials helper.\n", dispHostname, credsCtx.HelperType))
+		view.NotifyTokenRemovedFromCredentialsHelper(dispHostname, credsCtx.HelperType)
 	case cliconfig.CredentialsInPrimaryFile:
-		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the following file:\n    %s\n", dispHostname, credsCtx.LocalFilename))
+		view.NotifyTokenRemovedFromFile(dispHostname, credsCtx.LocalFilename)
 	}
 
 	err = creds.ForgetForHost(hostname)
@@ -97,14 +112,7 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has removed the stored API token for %s.[reset]
-`)),
-			dispHostname,
-		) + "\n",
-	)
+	view.LogoutSuccess(dispHostname)
 
 	return 0
 }

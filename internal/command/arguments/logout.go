@@ -8,13 +8,17 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // Logout represents the command-line arguments for the logout command.
 type Logout struct {
 	Host string
+
+	ViewType ViewType
 }
 
 const defaultHost = "app.terraform.io"
 
 func ParseLogout(rawArgs []string) (*Logout, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := &Logout{}
+	ret := &Logout{
+		ViewType: ViewHuman,
+	}
 
 	cmdFlags := defaultFlagSet("logout")
 	// No command-specific flags for logout.
