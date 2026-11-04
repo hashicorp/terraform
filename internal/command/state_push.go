@@ -161,11 +161,21 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
