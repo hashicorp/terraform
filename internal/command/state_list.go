@@ -4,6 +4,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -62,7 +63,8 @@ func (c *StateListCommand) Run(args []string) int {
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -135,8 +137,8 @@ Please ensure that your Terraform state exists and that you've
 configured it properly. You can use the "-state" flag to point
 Terraform at another state file.`
 
-const errStateNotFound = `No state file was found!
+var errStateNotFound = errors.New(`No state file was found!
 
 State management commands require a state file. Run this command
 in a directory where Terraform has been run or use the -state flag
-to point the command to a specific state location.`
+to point the command to a specific state location.`)

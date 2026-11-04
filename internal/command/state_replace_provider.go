@@ -115,7 +115,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 

@@ -126,7 +126,8 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	stateFrom := stateFromMgr.State()
 	if stateFrom == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
