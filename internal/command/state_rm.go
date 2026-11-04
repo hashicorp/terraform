@@ -22,7 +22,10 @@ type StateRmCommand struct {
 }
 
 func (c *StateRmCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStateRm(c.Meta.process(args))
+	var diags tfdiags.Diagnostics
+
+	parsedArgs, parseDiags := arguments.ParseStateRm(c.Meta.process(args))
+	diags = diags.Append(parseDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

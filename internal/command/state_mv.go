@@ -25,6 +25,8 @@ type StateMvCommand struct {
 }
 
 func (c *StateMvCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(args))
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
@@ -39,7 +41,6 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
-		var diags tfdiags.Diagnostics
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
 		return 1
@@ -166,7 +167,6 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	var diags tfdiags.Diagnostics
 	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.SourceAddr)
 	diags = diags.Append(moreDiags)
 	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)

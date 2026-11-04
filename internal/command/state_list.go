@@ -20,7 +20,10 @@ type StateListCommand struct {
 }
 
 func (c *StateListCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStateList(c.Meta.process(args))
+	var diags tfdiags.Diagnostics
+
+	parsedArgs, parseDiags := arguments.ParseStateList(c.Meta.process(args))
+	diags = diags.Append(parseDiags)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1

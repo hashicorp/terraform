@@ -38,11 +38,14 @@ type StateMigrateCommand struct {
 }
 
 func (c *StateMigrateCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.Meta.View.Configure(common)
 
-	args, diags := arguments.ParseStateMigrate(rawArgs)
+	args, argsDiags := arguments.ParseStateMigrate(rawArgs)
+	diags = diags.Append(argsDiags)
 
 	view := views.NewStateMigrate(args.ViewType, c.View)
 

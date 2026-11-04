@@ -26,9 +26,11 @@ type StatePushCommand struct {
 }
 
 func (c *StatePushCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStatePush(c.Meta.process(args))
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	var diags tfdiags.Diagnostics
+
+	parsedArgs, parseDiags := arguments.ParseStatePush(c.Meta.process(args))
+	if parseDiags.HasErrors() {
+		c.showDiagnostics(parseDiags)
 		return 1
 	}
 

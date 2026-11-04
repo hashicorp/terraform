@@ -26,6 +26,8 @@ type StateReplaceProviderCommand struct {
 }
 
 func (c *StateReplaceProviderCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	parsedArgs, parseDiags := arguments.ParseStateReplaceProvider(c.Meta.process(args))
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
@@ -59,8 +61,6 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Parse from/to arguments into providers
 	from, fromDiags := addrs.ParseProviderSourceString(parsedArgs.FromProviderAddr)

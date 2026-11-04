@@ -22,12 +22,15 @@ type StateIdentitiesCommand struct {
 }
 
 func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
 	// Parse command-specific arguments
 	args, argDiags := arguments.ParseStateIdentities(rawArgs)
+	diags = diags.Append(argDiags)
 
 	if args.StatePath != "" {
 		c.Meta.statePath = args.StatePath
@@ -35,8 +38,8 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 
 	view := views.NewStateIdentities(args.ViewType, c.View)
 
-	if argDiags.HasErrors() {
-		view.Diagnostics(argDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -104,7 +107,7 @@ to point the command to a specific state location.`,
 	} else {
 		addrs, rDiags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
 	}
-	diags = append(diags, rDiags...)
+	diags = diags.Append(rDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
