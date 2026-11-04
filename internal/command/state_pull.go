@@ -70,7 +70,8 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {

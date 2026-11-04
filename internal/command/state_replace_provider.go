@@ -88,7 +88,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	view := arguments.ViewHuman
 	stateMgr, err := c.State(view)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
