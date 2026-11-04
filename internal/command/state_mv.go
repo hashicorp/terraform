@@ -53,7 +53,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -63,14 +63,14 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	vDiags := c.Meta.checkRequiredVersion()
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -92,7 +92,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 		currentBackend, beDiags := c.backendFromConfig(&BackendOpts{})
 		diags = diags.Append(beDiags)
 		if beDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -107,7 +107,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 					"Command line options -backup and -backup-out are legacy options that operate on a local state file only. You must specify a local state file with the -state option or switch to the local backend.",
 				),
 			)
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
@@ -116,7 +116,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	stateFromMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -124,13 +124,13 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 		if lockDiags := stateLocker.Lock(stateFromMgr, "state-mv"); lockDiags.HasErrors() {
 			diags = diags.Append(lockDiags)
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
 				diags = diags.Append(unlockDiags)
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -141,14 +141,14 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			"Failed to refresh the state",
 			fmt.Sprintf("Error refreshing the source state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	stateFrom := stateFromMgr.State()
 	if stateFrom == nil {
 		diags = diags.Append(errStateNotFound)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -163,7 +163,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 		stateToMgr, err = c.State(parsedArgs.ViewType)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -171,13 +171,13 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 			if lockDiags := stateLocker.Lock(stateToMgr, "state-mv"); lockDiags.HasErrors() {
 				diags = diags.Append(lockDiags)
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 			defer func() {
 				if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
 					diags = diags.Append(unlockDiags)
-					c.showDiagnostics(diags)
+					view.Diagnostics(diags)
 				}
 			}()
 		}
@@ -188,7 +188,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 				"Failed to refresh the state",
 				fmt.Sprintf("Error refreshing the destination state: %s", err),
 			))
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -203,7 +203,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -221,7 +221,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			msgInvalidSource,
 			fmt.Sprintf("Cannot move %s: does not match anything in the current state.", sourceAddr),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	for _, rawAddrFrom := range sourceAddrs {
@@ -235,7 +235,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 					msgInvalidTarget,
 					fmt.Sprintf("Cannot move %s to %s: the target must also be a module.", addrFrom, destAddr),
 				))
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 
@@ -252,7 +252,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 					msgInvalidTarget,
 					fmt.Sprintf("Cannot move to %s: the destination module already exists at that address in the current state.", addrTo),
 				))
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 
@@ -263,7 +263,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 					msgInvalidSource,
 					fmt.Sprintf("The current state does not contain %s.", addrFrom),
 				))
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 
@@ -287,7 +287,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 					msgInvalidTarget,
 					fmt.Sprintf("Cannot move %s to %s: the source is a whole resource (not a resource instance) so the target must also be a whole resource.", addrFrom, destAddr),
 				))
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
@@ -310,7 +310,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			}
 
 			if diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 
@@ -336,7 +336,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 						msgInvalidTarget,
 						fmt.Sprintf("Cannot move %s to %s: the target must also be a resource instance.", addrFrom, destAddr),
 					))
-					c.showDiagnostics(diags)
+					view.Diagnostics(diags)
 					return 1
 				}
 				addrTo = ra.Instance(addrs.NoKey)
@@ -366,7 +366,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			}
 
 			if diags.HasErrors() {
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 				return 1
 			}
 
@@ -451,7 +451,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -466,12 +466,12 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
 		diags = diags.Append(stateMvPersistErrDiag(err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateToMgr.PersistState(schemas); err != nil {
 		diags = diags.Append(stateMvPersistErrDiag(err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -479,12 +479,12 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	if stateTo != stateFrom {
 		if err := stateFromMgr.WriteState(stateFrom); err != nil {
 			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		if err := stateFromMgr.PersistState(schemas); err != nil {
 			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
