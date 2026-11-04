@@ -167,7 +167,12 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		))
 		v, err := c.Ui.Ask("Enter a value:")
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for approval: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to confirm provider replacement",
+				fmt.Sprintf("Error asking for approval: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 		if v != "yes" {
