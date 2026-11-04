@@ -24,12 +24,23 @@ type StateMvCommand struct {
 	StateMeta
 }
 
-func (c *StateMvCommand) Run(args []string) int {
+func (c *StateMvCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(args))
-	if parseDiags.HasErrors() {
-		c.showDiagnostics(parseDiags)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(rawArgs))
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateMv(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -199,11 +210,8 @@ func (c *StateMvCommand) Run(args []string) int {
 	const msgInvalidSource = "Invalid source address"
 	const msgInvalidTarget = "Invalid target address"
 
-	type move struct {
-		to   fmt.Stringer
-		from fmt.Stringer
-	}
-	moves := []move{}
+	// Collect data about state moves for rendering later
+	moves := []views.StateMvPair{}
 
 	ssFrom := stateFrom.SyncWrapper()
 	sourceAddrs := c.sourceObjectAddrs(stateFrom, sourceAddr)
@@ -259,9 +267,9 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moves = append(moves, move{
-				to:   addrTo,
-				from: addrFrom,
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo,
+				From: addrFrom,
 			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveModule(addrFrom)
@@ -306,9 +314,9 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moves = append(moves, move{
-				to:   addrTo,
-				from: addrFrom,
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo,
+				From: addrFrom,
 			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveResource(addrFrom)
@@ -362,9 +370,9 @@ func (c *StateMvCommand) Run(args []string) int {
 				return 1
 			}
 
-			moves = append(moves, move{
-				to:   addrTo,
-				from: addrFrom,
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo,
+				From: addrFrom,
 			})
 			if !parsedArgs.DryRun {
 				fromResourceAddr := addrFrom.ContainingResource()
@@ -434,20 +442,9 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	prefix := "Move"
 	if parsedArgs.DryRun {
-		prefix = "Would move"
-	}
-
-	if parsedArgs.DryRun {
-		if len(moves) == 0 {
-			c.Ui.Output("Would have moved nothing.")
-		} else {
-			for _, mv := range moves {
-				c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, mv.from.String(), mv.to.String()))
-			}
-			return 0 // This is as far as we go in dry-run mode
-		}
+		view.Move(moves, parsedArgs.DryRun, diags)
+		return 0 // This is as far as we go in dry-run mode
 	}
 
 	// Load the backend
@@ -492,16 +489,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 	}
 
-	c.showDiagnostics(diags)
-
-	if len(moves) == 0 {
-		c.Ui.Output("No matching objects found.")
-	} else {
-		for _, mv := range moves {
-			c.Ui.Output(fmt.Sprintf("%s %q to %q", prefix, mv.from.String(), mv.to.String()))
-		}
-		c.Ui.Output(fmt.Sprintf("Successfully moved %d object(s).", len(moves)))
-	}
+	view.Move(moves, parsedArgs.DryRun, diags)
 	return 0
 }
 
