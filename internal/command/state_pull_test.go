@@ -25,17 +25,17 @@ func TestStatePull(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	expectedResource := `
@@ -57,7 +57,7 @@ func TestStatePull(t *testing.T) {
       ]
     }
 `
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if !strings.Contains(actual, expectedResource) {
 		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
@@ -111,7 +111,7 @@ func TestStatePull_stateStore(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	streams, _ := terminal.StreamsForTesting(t)
 	c := &StatePullCommand{
 		Meta: Meta{
@@ -122,7 +122,7 @@ func TestStatePull_stateStore(t *testing.T) {
 				},
 			},
 			ProviderSource: providerSource,
-			Ui:             ui,
+			View:           view,
 			Streams:        streams,
 		},
 	}
@@ -132,7 +132,7 @@ func TestStatePull_stateStore(t *testing.T) {
 	args := []string{expectedResourceAddr}
 	code := c.Run(args)
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that the state in the output matches the original state
@@ -154,7 +154,7 @@ func TestStatePull_stateStore(t *testing.T) {
       ]
     }
 `
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if !strings.Contains(actual, expectedResource) {
 		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 	}
@@ -165,20 +165,20 @@ func TestStatePull_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != "" {
 		t.Fatalf("bad: %s", actual)
 	}
@@ -189,11 +189,11 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
@@ -203,7 +203,7 @@ func TestStatePull_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -213,18 +213,18 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{"-var", "module_name=child"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		expectedResource := `
@@ -244,7 +244,7 @@ func TestStatePull_constVariable(t *testing.T) {
       ]
     }
 `
-		actual := ui.OutputWriter.String()
+		actual := done(t).Stdout()
 		if !strings.Contains(actual, expectedResource) {
 			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 		}
@@ -260,18 +260,18 @@ func TestStatePull_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &StatePullCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
+				View:             view,
 				WorkingDir:       wd,
 			},
 		}
 
 		args := []string{}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		expectedResource := `
@@ -291,7 +291,7 @@ func TestStatePull_constVariable(t *testing.T) {
       ]
     }
 `
-		actual := ui.OutputWriter.String()
+		actual := done(t).Stdout()
 		if !strings.Contains(actual, expectedResource) {
 			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
 		}
@@ -305,21 +305,21 @@ func TestStatePull_checkRequiredVersion(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), done(t).Stdout())
 	}
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}
