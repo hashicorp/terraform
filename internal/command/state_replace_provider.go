@@ -109,7 +109,12 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Refresh and load state
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 

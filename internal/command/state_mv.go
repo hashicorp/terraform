@@ -120,7 +120,12 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	if err := stateFromMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -160,7 +165,12 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 
 		if err := stateToMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to refresh the state",
+				fmt.Sprintf("Error refreshing the destination state: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 

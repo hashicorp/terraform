@@ -75,7 +75,12 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 

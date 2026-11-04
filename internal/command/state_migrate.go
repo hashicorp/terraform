@@ -493,7 +493,11 @@ func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile
 	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load the backend state file when preparing to update it: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Failed to load the backend state file when preparing to update it: %s", err),
+		))
 		return diags
 	}
 
