@@ -25,6 +25,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	parsedArgs, parseDiags := arguments.ParseStatePull(c.Meta.process(args))
+	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
 		return 1
@@ -42,19 +43,23 @@ func (c *StatePullCommand) Run(args []string) int {
 		loader.Parser().ForceFileSource(filename, src)
 	})
 	if varDiags.HasErrors() {
-		c.showDiagnostics(varDiags)
+		diags = diags.Append(varDiags)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
 	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
+	b, beDiags := c.backend(".", view)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
