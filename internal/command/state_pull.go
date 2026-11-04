@@ -101,7 +101,12 @@ func (c *StatePullCommand) Run(args []string) int {
 		var buf bytes.Buffer
 		err = statefile.Write(stateFile, &buf)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to save the state",
+				fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 
