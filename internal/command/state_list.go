@@ -36,7 +36,7 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, diags := c.backend(".", arguments.ViewHuman)
+	b, diags := c.backend(".", parsedArgs.ViewType)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
