@@ -22,6 +22,7 @@ func TestParseLogin_valid(t *testing.T) {
 				Host:            "app.terraform.io",
 				InputEnabled:    true,
 				CompactWarnings: false,
+				ViewType:        ViewHuman,
 			},
 			nil,
 		},
@@ -31,6 +32,7 @@ func TestParseLogin_valid(t *testing.T) {
 				Host:            "other.host.io",
 				InputEnabled:    true,
 				CompactWarnings: false,
+				ViewType:        ViewHuman,
 			},
 			nil,
 		},
@@ -40,6 +42,7 @@ func TestParseLogin_valid(t *testing.T) {
 				Host:            "app.terraform.io",
 				InputEnabled:    true,
 				CompactWarnings: true,
+				ViewType:        ViewHuman,
 			},
 			nil,
 		},
@@ -49,6 +52,7 @@ func TestParseLogin_valid(t *testing.T) {
 				Host:            "app.terraform.io",
 				InputEnabled:    true,
 				CompactWarnings: false,
+				ViewType:        ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -88,6 +92,7 @@ func TestParseLogin_invalid(t *testing.T) {
 				Host:            "app.terraform.io",
 				InputEnabled:    true,
 				CompactWarnings: false,
+				ViewType:        ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -103,6 +108,7 @@ func TestParseLogin_invalid(t *testing.T) {
 				Host:            "other.host.io",
 				InputEnabled:    true,
 				CompactWarnings: false,
+				ViewType:        ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
