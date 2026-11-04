@@ -5,6 +5,7 @@ package command
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -523,6 +524,11 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 	default:
 		ret = append(ret, matched)
 	}
+
+	// Sort, to counter-act iterating over the state.Modules map above.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
 
 	return ret
 }
