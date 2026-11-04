@@ -56,8 +56,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, beDiags := c.backend(".", view)
+	b, beDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
 		c.showDiagnostics(diags)
