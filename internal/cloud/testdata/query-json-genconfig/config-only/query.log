@@ -1,0 +1,3 @@
+{"@level":"info","type":"list_start","list_start":{"address":"list.concept_pet.pets","resource_type":"concept_pet"}}
+{"@level":"info","type":"list_resource_found","list_resource_found":{"address":"list.concept_pet.pets","display_name":"pets-0","identity":{"id":"pets-0"},"resource_type":"concept_pet","config":"resource \"concept_pet\" \"pets_0\" {\n  name = \"pets-0\"\n}"}}
+{"@level":"info","type":"list_complete","list_complete":{"address":"list.concept_pet.pets","resource_type":"concept_pet","total":1}}
