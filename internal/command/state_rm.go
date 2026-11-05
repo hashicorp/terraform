@@ -136,6 +136,16 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	if len(removals) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
 	b, backendDiags := c.backend(".", view)
 	diags = diags.Append(backendDiags)
@@ -169,16 +179,6 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	if len(diags) > 0 && len(removals) != 0 {
 		c.showDiagnostics(diags)
-	}
-
-	if len(removals) == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid target address",
-			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
-		))
-		c.showDiagnostics(diags)
-		return 1
 	}
 
 	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", len(removals)))
