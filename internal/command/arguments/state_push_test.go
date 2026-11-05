@@ -24,6 +24,7 @@ func TestParseStatePush_valid(t *testing.T) {
 				Vars:      &Vars{},
 				StateLock: true,
 				Path:      "replace.tfstate",
+				ViewType:  ViewHuman,
 			},
 		},
 		"stdin": {
@@ -32,6 +33,7 @@ func TestParseStatePush_valid(t *testing.T) {
 				Vars:      &Vars{},
 				StateLock: true,
 				Path:      "-",
+				ViewType:  ViewHuman,
 			},
 		},
 		"force": {
@@ -41,13 +43,15 @@ func TestParseStatePush_valid(t *testing.T) {
 				Force:     true,
 				StateLock: true,
 				Path:      "replace.tfstate",
+				ViewType:  ViewHuman,
 			},
 		},
 		"lock disabled": {
 			[]string{"-lock=false", "replace.tfstate"},
 			&StatePush{
-				Vars: &Vars{},
-				Path: "replace.tfstate",
+				Vars:     &Vars{},
+				Path:     "replace.tfstate",
+				ViewType: ViewHuman,
 			},
 		},
 		"lock timeout": {
@@ -57,6 +61,7 @@ func TestParseStatePush_valid(t *testing.T) {
 				StateLock:        true,
 				StateLockTimeout: 5 * time.Second,
 				Path:             "replace.tfstate",
+				ViewType:         ViewHuman,
 			},
 		},
 		"ignore remote version": {
@@ -66,6 +71,7 @@ func TestParseStatePush_valid(t *testing.T) {
 				StateLock:           true,
 				IgnoreRemoteVersion: true,
 				Path:                "replace.tfstate",
+				ViewType:            ViewHuman,
 			},
 		},
 	}
@@ -141,6 +147,7 @@ func TestParseStatePush_invalid(t *testing.T) {
 			&StatePush{
 				Vars:      &Vars{},
 				StateLock: true,
+				ViewType:  ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -155,6 +162,7 @@ func TestParseStatePush_invalid(t *testing.T) {
 			&StatePush{
 				Vars:      &Vars{},
 				StateLock: true,
+				ViewType:  ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -169,6 +177,7 @@ func TestParseStatePush_invalid(t *testing.T) {
 			&StatePush{
 				Vars:      &Vars{},
 				StateLock: true,
+				ViewType:  ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

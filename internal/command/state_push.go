@@ -87,8 +87,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
+	b, diags := c.backend(".", parsedArgs.ViewType)
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -121,7 +120,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-push"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
