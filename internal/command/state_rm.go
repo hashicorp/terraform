@@ -21,13 +21,23 @@ type StateRmCommand struct {
 	StateMeta
 }
 
-func (c *StateRmCommand) Run(args []string) int {
+func (c *StateRmCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	parsedArgs, parseDiags := arguments.ParseStateRm(c.Meta.process(args))
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateRm(rawArgs)
 	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateRm(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -40,7 +50,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -50,14 +60,14 @@ func (c *StateRmCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	vDiags := c.Meta.checkRequiredVersion()
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -65,7 +75,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	stateMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -73,13 +83,13 @@ func (c *StateRmCommand) Run(args []string) int {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if lockDiags := stateLocker.Lock(stateMgr, "state-rm"); lockDiags.HasErrors() {
 			diags = diags.Append(lockDiags)
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
 				diags = diags.Append(unlockDiags)
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -90,14 +100,14 @@ func (c *StateRmCommand) Run(args []string) int {
 			"Failed to refresh the state",
 			fmt.Sprintf("Error refreshing the state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
 		diags = diags.Append(errStateNotFound)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -110,7 +120,7 @@ func (c *StateRmCommand) Run(args []string) int {
 		diags = diags.Append(moreDiags)
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -125,13 +135,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if parsedArgs.DryRun {
-		if len(removals) == 0 {
-			c.Ui.Output("Would have removed nothing.")
-		} else {
-			for _, removal := range removals {
-				c.Ui.Output("Would remove " + removal)
-			}
-		}
+		view.Remove(removals, parsedArgs.DryRun, diags)
 		return 0 // This is as far as we go in dry-run mode
 	}
 
@@ -141,7 +145,7 @@ func (c *StateRmCommand) Run(args []string) int {
 			"Invalid target address",
 			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -149,7 +153,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -163,22 +167,16 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	if err := stateMgr.WriteState(state); err != nil {
 		diags = diags.Append(stateRmPersistErrDiag(err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
 		diags = diags.Append(stateRmPersistErrDiag(err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	for _, removal := range removals {
-		c.Ui.Output("Removed " + removal)
-	}
-
-	c.showDiagnostics(diags)
-
-	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", len(removals)))
+	view.Remove(removals, parsedArgs.DryRun, diags)
 	return 0
 }
 
