@@ -550,6 +550,37 @@ func TestStateRmNonExist(t *testing.T) {
 			t.Fatalf("expected exit status %d, got: %d", 1, code)
 		}
 	})
+
+	t.Run("zero removals reported when dryrun", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-dry-run",
+			"test_instance.baz", // doesn't exist in the state constructed above
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("expected exit status %d, got: %d", 0, code)
+		}
+
+		expectedOutput := "Would have removed nothing.\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
+	})
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
