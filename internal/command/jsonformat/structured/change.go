@@ -128,15 +128,18 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 // FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
 // into generic interface{} types that can be reasoned about.
 func FromJsonResource(resource jsonstate.Resource) Change {
+	// Resource formatting is a no-op, so both sides can share the decoded values.
+	values := unwrapAttributeValues(resource.AttributeValues)
+	sensitive := unmarshalGeneric(resource.SensitiveValues)
+
 	return Change{
-		// We model resource formatting as NoOps.
-		Before: unwrapAttributeValues(resource.AttributeValues),
-		After:  unwrapAttributeValues(resource.AttributeValues),
+		Before: values,
+		After:  values,
 
 		// We have some sensitive values, but we don't have any unknown values.
 		Unknown:         false,
-		BeforeSensitive: unmarshalGeneric(resource.SensitiveValues),
-		AfterSensitive:  unmarshalGeneric(resource.SensitiveValues),
+		BeforeSensitive: sensitive,
+		AfterSensitive:  sensitive,
 
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.
