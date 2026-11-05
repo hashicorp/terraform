@@ -177,9 +177,7 @@ func (c *StateRmCommand) Run(args []string) int {
 		c.Ui.Output(prefix + removal)
 	}
 
-	if len(diags) > 0 && len(removals) != 0 {
-		c.showDiagnostics(diags)
-	}
+	c.showDiagnostics(diags)
 
 	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", len(removals)))
 	return 0
