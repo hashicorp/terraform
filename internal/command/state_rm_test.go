@@ -159,6 +159,12 @@ func TestStateRm(t *testing.T) {
 
 		// Test state has been unchanged in dry-run mode
 		testStateOutput(t, statePath, testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Would remove test_instance.foo\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
 	})
 }
 
