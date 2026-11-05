@@ -268,8 +268,8 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			}
 
 			moves = append(moves, views.StateMvPair{
-				To:   addrTo,
-				From: addrFrom,
+				To:   addrTo.String(),
+				From: addrFrom.String(),
 			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveModule(addrFrom)
@@ -315,8 +315,8 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			}
 
 			moves = append(moves, views.StateMvPair{
-				To:   addrTo,
-				From: addrFrom,
+				To:   addrTo.String(),
+				From: addrFrom.String(),
 			})
 			if !parsedArgs.DryRun {
 				ssFrom.RemoveResource(addrFrom)
@@ -371,8 +371,8 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 			}
 
 			moves = append(moves, views.StateMvPair{
-				To:   addrTo,
-				From: addrFrom,
+				To:   addrTo.String(),
+				From: addrFrom.String(),
 			})
 			if !parsedArgs.DryRun {
 				fromResourceAddr := addrFrom.ContainingResource()

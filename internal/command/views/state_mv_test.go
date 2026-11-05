@@ -13,14 +13,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-type stringer struct {
-	s string
-}
-
-func (s stringer) String() string {
-	return s.s
-}
-
 func TestStateMvHuman_Move(t *testing.T) {
 	testCases := map[string]struct {
 		moves   []StateMvPair
@@ -40,15 +32,15 @@ func TestStateMvHuman_Move(t *testing.T) {
 		},
 		"2 moves": {
 			moves: []StateMvPair{
-				{From: stringer{s: "foo1"}, To: stringer{s: "fez1"}},
-				{From: stringer{s: "foo2"}, To: stringer{s: "fez2"}},
+				{From: "foo1", To: "fez1"},
+				{From: "foo2", To: "fez2"},
 			},
 			wantOut: "Move \"foo1\" to \"fez1\"\nMove \"foo2\" to \"fez2\"\nSuccessfully moved 2 object(s).",
 		},
 		"2 moves, dryrun": {
 			moves: []StateMvPair{
-				{From: stringer{s: "foo1"}, To: stringer{s: "fez1"}},
-				{From: stringer{s: "foo2"}, To: stringer{s: "fez2"}},
+				{From: "foo1", To: "fez1"},
+				{From: "foo2", To: "fez2"},
 			},
 			dryrun:  true,
 			wantOut: "Would move \"foo1\" to \"fez1\"\nWould move \"foo2\" to \"fez2\"",

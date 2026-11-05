@@ -17,8 +17,8 @@ type StateMv interface {
 }
 
 type StateMvPair struct {
-	To   fmt.Stringer
-	From fmt.Stringer
+	To   string
+	From string
 }
 
 func NewStateMv(viewType arguments.ViewType, view *View) StateMv {
