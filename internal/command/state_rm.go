@@ -59,8 +59,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	// Get the state
-	view := arguments.ViewHuman
-	stateMgr, err := c.State(view)
+	stateMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
 		c.showDiagnostics(diags)
@@ -142,7 +141,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
