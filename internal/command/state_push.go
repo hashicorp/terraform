@@ -68,7 +68,14 @@ func (c *StatePushCommand) Run(args []string) int {
 	if parsedArgs.Path != "-" {
 		f, err := os.Open(parsedArgs.Path)
 		if err != nil {
-			c.Ui.Error(err.Error())
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to open state",
+					fmt.Sprintf("Error opening state %q: %s", parsedArgs.Path, err),
+				),
+			)
+			c.showDiagnostics(diags)
 			return 1
 		}
 
@@ -85,7 +92,14 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Close()
 	}
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err))
+		diags = diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to read source state",
+				fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err),
+			),
+		)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -119,7 +133,12 @@ func (c *StatePushCommand) Run(args []string) int {
 	// Get the state manager for the currently-selected workspace
 	stateMgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", sDiags.Err()))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to access state",
+			fmt.Sprintf("Failed to access destination state: %s", sDiags.Err()),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -155,7 +174,12 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Import it, forcing through the lineage/serial if requested and possible.
 	if err := statemgr.Import(srcStateFile, stateMgr, parsedArgs.Force); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
