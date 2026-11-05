@@ -141,15 +141,20 @@ Usage: terraform [global options] state list [options] [address...]
 
 Options:
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default, Terraform
-                      will consult the state of the currently-selected
-                      workspace.
-
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
+  -no-color           Disable text coloring in the output.
+
+  -state=statefile    Path to a Terraform state file to use to look
+                      up Terraform-managed resources. By default, Terraform
+                      will consult the state of the currently-selected
+                      workspace.
 `
 	return strings.TrimSpace(helpText)
 }
