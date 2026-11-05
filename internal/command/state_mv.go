@@ -600,8 +600,15 @@ Usage: terraform [global options] state mv [options] SOURCE DESTINATION
 
 Options:
 
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
   -dry-run                If set, prints out what would've been moved but doesn't
                           actually move anything.
+
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
 
   -lock=false             Don't hold a state lock during the operation. This is
                           dangerous if others might concurrently run commands
@@ -609,8 +616,8 @@ Options:
 
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -ignore-remote-version  A rare option used for the remote backend only. See
-                          the remote backend documentation for more information.
+  -no-color               Disable text coloring in the output.
+
 
   -var 'foo=bar'          Set a value for one of the input variables in the root
                           module of the configuration. Use this option more than
