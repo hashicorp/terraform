@@ -25,12 +25,23 @@ type StatePushCommand struct {
 	StateMeta
 }
 
-func (c *StatePushCommand) Run(args []string) int {
+func (c *StatePushCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	parsedArgs, parseDiags := arguments.ParseStatePush(c.Meta.process(args))
-	if parseDiags.HasErrors() {
-		c.showDiagnostics(parseDiags)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStatePush(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStatePush(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -41,7 +52,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -51,14 +62,14 @@ func (c *StatePushCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	vDiags := c.Meta.checkRequiredVersion()
 	diags = diags.Append(vDiags)
 	if vDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -75,7 +86,7 @@ func (c *StatePushCommand) Run(args []string) int {
 					fmt.Sprintf("Error opening state %q: %s", parsedArgs.Path, err),
 				),
 			)
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -99,14 +110,14 @@ func (c *StatePushCommand) Run(args []string) int {
 				fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err),
 			),
 		)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
 	b, diags := c.backend(".", parsedArgs.ViewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -118,7 +129,7 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to select workspace",
 			fmt.Sprintf("Error selecting workspace: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -126,7 +137,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
 	if remoteVersionDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -138,7 +149,7 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to access state",
 			fmt.Sprintf("Failed to access destination state: %s", sDiags.Err()),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -146,13 +157,13 @@ func (c *StatePushCommand) Run(args []string) int {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 		if lockDiags := stateLocker.Lock(stateMgr, "state-push"); lockDiags.HasErrors() {
 			diags = diags.Append(lockDiags)
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
 			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
 				diags = diags.Append(unlockDiags)
-				c.showDiagnostics(diags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
@@ -163,7 +174,7 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to refresh the state",
 			fmt.Sprintf("Error refreshing the destination state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -179,7 +190,7 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to save the state",
 			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -195,7 +206,7 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to save the state",
 			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
@@ -204,11 +215,11 @@ func (c *StatePushCommand) Run(args []string) int {
 			"Failed to save the state",
 			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	return 0
 }
 
