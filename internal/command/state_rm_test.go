@@ -89,6 +89,12 @@ func TestStateRm(t *testing.T) {
 			t.Fatalf("bad: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Removed test_instance.foo\nSuccessfully removed 1 resource instance(s).\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
 	})
 
 	t.Run("dryrun remove one resource", func(t *testing.T) {
@@ -118,6 +124,12 @@ func TestStateRm(t *testing.T) {
 
 		// Test state has been unchanged in dry-run mode
 		testStateOutput(t, statePath, testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Would remove test_instance.foo\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
 	})
 }
 
