@@ -80,7 +80,7 @@ func TestStateRm(t *testing.T) {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 		}
 
-		// Test it is correct
+		// Test state has resource removed
 		testStateOutput(t, statePath, testStateRmOutput)
 
 		// Test we have backups
@@ -89,6 +89,35 @@ func TestStateRm(t *testing.T) {
 			t.Fatalf("bad: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateRmOutputOriginal)
+	})
+
+	t.Run("dryrun remove one resource", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-dry-run",
+			"test_instance.foo",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Test state has been unchanged in dry-run mode
+		testStateOutput(t, statePath, testStateRmOutputOriginal)
 	})
 }
 
