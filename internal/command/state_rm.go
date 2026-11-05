@@ -115,11 +115,10 @@ func (c *StateRmCommand) Run(args []string) int {
 		prefix = "Would remove "
 	}
 
-	var isCount int
+	removals := []string{}
 	ss := state.SyncWrapper()
 	for _, addr := range addrs {
-		isCount++
-		c.Ui.Output(prefix + addr.String())
+		removals = append(removals, addr.String())
 		if !parsedArgs.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
@@ -127,8 +126,12 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if parsedArgs.DryRun {
-		if isCount == 0 {
+		if len(removals) == 0 {
 			c.Ui.Output("Would have removed nothing.")
+		} else {
+			for _, removal := range removals {
+				c.Ui.Output(prefix + removal)
+			}
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
@@ -160,11 +163,15 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(diags) > 0 && isCount != 0 {
+	for _, removal := range removals {
+		c.Ui.Output(prefix + removal)
+	}
+
+	if len(diags) > 0 && len(removals) != 0 {
 		c.showDiagnostics(diags)
 	}
 
-	if isCount == 0 {
+	if len(removals) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid target address",
@@ -174,7 +181,7 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", len(removals)))
 	return 0
 }
 
