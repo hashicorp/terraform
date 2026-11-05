@@ -49,12 +49,15 @@ func (c *StatePushCommand) Run(args []string) int {
 	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
 		loader.Parser().ForceFileSource(filename, src)
 	})
+	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(varDiags)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -107,8 +110,9 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
-	c.showDiagnostics(remoteVersionDiags)
+	diags = diags.Append(remoteVersionDiags)
 	if remoteVersionDiags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -121,12 +125,14 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
-		if diags := stateLocker.Lock(stateMgr, "state-push"); diags.HasErrors() {
+		if lockDiags := stateLocker.Lock(stateMgr, "state-push"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
 			c.showDiagnostics(diags)
 			return 1
 		}
 		defer func() {
-			if diags := stateLocker.Unlock(); diags.HasErrors() {
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
 				c.showDiagnostics(diags)
 			}
 		}()
