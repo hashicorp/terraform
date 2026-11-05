@@ -55,38 +55,82 @@ func TestStateRm(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &StateRmCommand{
-		StateMeta{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				Ui:               ui,
-				View:             view,
+	t.Run("remove one resource", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"test_instance.foo",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
+		args := []string{
+			"-state", statePath,
+			"test_instance.foo",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
 
-	// Test it is correct
-	testStateOutput(t, statePath, testStateRmOutput)
+		// Test state has resource removed
+		testStateOutput(t, statePath, testStateRmOutput)
 
-	// Test we have backups
-	backups := testStateBackups(t, filepath.Dir(statePath))
-	if len(backups) != 1 {
-		t.Fatalf("bad: %#v", backups)
-	}
-	testStateOutput(t, backups[0], testStateRmOutputOriginal)
+		// Test we have backups
+		backups := testStateBackups(t, filepath.Dir(statePath))
+		if len(backups) != 1 {
+			t.Fatalf("bad: %#v", backups)
+		}
+		testStateOutput(t, backups[0], testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Removed test_instance.foo\nSuccessfully removed 1 resource instance(s).\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
+	})
+
+	t.Run("dryrun remove one resource", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-dry-run",
+			"test_instance.foo",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Test state has been unchanged in dry-run mode
+		testStateOutput(t, statePath, testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Would remove test_instance.foo\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
+	})
 }
 
 func TestStateRm_stateStore(t *testing.T) {
@@ -446,7 +490,6 @@ func TestStateRmNoArgs(t *testing.T) {
 	if msg := ui.ErrorWriter.String(); !strings.Contains(msg, "At least one address") {
 		t.Errorf("not the error we were looking for:\n%s", msg)
 	}
-
 }
 
 func TestStateRmNonExist(t *testing.T) {
@@ -482,28 +525,62 @@ func TestStateRmNonExist(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &StateRmCommand{
-		StateMeta{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				Ui:               ui,
-				View:             view,
+	t.Run("error on non-existent resource when -dryrun=false", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"test_instance.baz", // doesn't exist in the state constructed above
-	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("expected exit status %d, got: %d", 1, code)
-	}
+		args := []string{
+			"-state", statePath,
+			"test_instance.baz", // doesn't exist in the state constructed above
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected exit status %d, got: %d", 1, code)
+		}
+	})
+
+	t.Run("zero removals reported when dryrun", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-dry-run",
+			"test_instance.baz", // doesn't exist in the state constructed above
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("expected exit status %d, got: %d", 0, code)
+		}
+
+		expectedOutput := "Would have removed nothing.\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
+	})
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
