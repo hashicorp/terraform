@@ -37,6 +37,8 @@ type StateRm struct {
 
 	// Addrs are the resource instance addresses to remove.
 	Addrs []string
+
+	ViewType ViewType
 }
 
 // ParseStateRm processes CLI arguments, returning a StateRm value and
@@ -45,7 +47,8 @@ type StateRm struct {
 func ParseStateRm(args []string) (*StateRm, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rm := &StateRm{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("state rm", nil, nil, rm.Vars)
