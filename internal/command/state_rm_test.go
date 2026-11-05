@@ -525,28 +525,31 @@ func TestStateRmNonExist(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &StateRmCommand{
-		StateMeta{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				Ui:               ui,
-				View:             view,
+	t.Run("error on non-existent resource when -dryrun=false", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"test_instance.baz", // doesn't exist in the state constructed above
-	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("expected exit status %d, got: %d", 1, code)
-	}
+		args := []string{
+			"-state", statePath,
+			"test_instance.baz", // doesn't exist in the state constructed above
+		}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("expected exit status %d, got: %d", 1, code)
+		}
+	})
 }
 
 func TestStateRm_backupExplicit(t *testing.T) {
