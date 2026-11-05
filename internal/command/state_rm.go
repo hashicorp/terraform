@@ -110,11 +110,6 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	prefix := "Removed "
-	if parsedArgs.DryRun {
-		prefix = "Would remove "
-	}
-
 	removals := []string{}
 	ss := state.SyncWrapper()
 	for _, addr := range addrs {
@@ -130,7 +125,7 @@ func (c *StateRmCommand) Run(args []string) int {
 			c.Ui.Output("Would have removed nothing.")
 		} else {
 			for _, removal := range removals {
-				c.Ui.Output(prefix + removal)
+				c.Ui.Output("Would remove " + removal)
 			}
 		}
 		return 0 // This is as far as we go in dry-run mode
@@ -174,7 +169,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	for _, removal := range removals {
-		c.Ui.Output(prefix + removal)
+		c.Ui.Output("Removed " + removal)
 	}
 
 	c.showDiagnostics(diags)
