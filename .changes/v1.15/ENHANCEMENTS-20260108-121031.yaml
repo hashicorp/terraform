@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: "added optional support for XDG Base Directory Specification on Unix systems"
+time: 2026-01-08T12:10:32.721437+03:00
+custom:
+  Issue: "15389"
