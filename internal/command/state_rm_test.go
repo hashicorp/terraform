@@ -55,38 +55,41 @@ func TestStateRm(t *testing.T) {
 			},
 		)
 	})
-	statePath := testStateFile(t, state)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &StateRmCommand{
-		StateMeta{
-			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(p),
-				Ui:               ui,
-				View:             view,
+	t.Run("remove one resource", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
 			},
-		},
-	}
+		}
 
-	args := []string{
-		"-state", statePath,
-		"test_instance.foo",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
+		args := []string{
+			"-state", statePath,
+			"test_instance.foo",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
 
-	// Test it is correct
-	testStateOutput(t, statePath, testStateRmOutput)
+		// Test it is correct
+		testStateOutput(t, statePath, testStateRmOutput)
 
-	// Test we have backups
-	backups := testStateBackups(t, filepath.Dir(statePath))
-	if len(backups) != 1 {
-		t.Fatalf("bad: %#v", backups)
-	}
-	testStateOutput(t, backups[0], testStateRmOutputOriginal)
+		// Test we have backups
+		backups := testStateBackups(t, filepath.Dir(statePath))
+		if len(backups) != 1 {
+			t.Fatalf("bad: %#v", backups)
+		}
+		testStateOutput(t, backups[0], testStateRmOutputOriginal)
+	})
 }
 
 func TestStateRm_stateStore(t *testing.T) {
@@ -446,7 +449,6 @@ func TestStateRmNoArgs(t *testing.T) {
 	if msg := ui.ErrorWriter.String(); !strings.Contains(msg, "At least one address") {
 		t.Errorf("not the error we were looking for:\n%s", msg)
 	}
-
 }
 
 func TestStateRmNonExist(t *testing.T) {
