@@ -187,6 +187,31 @@ func (c *RemoteClient) get(ctx context.Context) (*remote.Payload, error) {
 	return payload, nil
 }
 
+func (c *RemoteClient) Exists(ctx context.Context) (bool, error) {
+	headInput := &s3.HeadObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(c.path),
+	}
+	if c.serverSideEncryption && c.customerEncryptionKey != nil {
+		headInput.SSECustomerKey = aws.String(base64.StdEncoding.EncodeToString(c.customerEncryptionKey))
+		headInput.SSECustomerAlgorithm = aws.String(s3EncryptionAlgorithm)
+		headInput.SSECustomerKeyMD5 = aws.String(c.getSSECustomerKeyMD5())
+	}
+
+	_, err := c.s3Client.HeadObject(ctx, headInput)
+	if err != nil {
+		switch {
+		case IsA[*s3types.NoSuchBucket](err):
+			return false, fmt.Errorf(errS3NoSuchBucket, c.bucketName, err)
+		case IsA[*s3types.NotFound](err):
+			return false, nil
+		}
+		return false, fmt.Errorf("Unable to access object %q in S3 bucket %q: %w", c.path, c.bucketName, err)
+	}
+
+	return true, nil
+}
+
 func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	return diags.Append(c.put(data))
