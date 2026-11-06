@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -30,9 +31,12 @@ type StateListHuman struct {
 }
 
 func (v *StateListHuman) List(addresses []string, diags tfdiags.Diagnostics) {
+	sb := &strings.Builder{}
 	for _, addr := range addresses {
-		v.view.streams.Println(addr)
+		sb.WriteString(addr)
+		sb.WriteString("\n")
 	}
+	v.view.streams.Print(sb.String())
 
 	// The `state list` command outputs the list of resource addresses
 	// before any diagnostics, and this is preserved here for now.

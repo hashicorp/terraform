@@ -94,8 +94,9 @@ func TestStateListWithNonExistentID(t *testing.T) {
 	}
 
 	// Test that output is empty
-	if done(t).Stdout() != "" {
-		t.Fatalf("Expected an empty output but got: %q", done(t).Stdout())
+	output := done(t).Stdout()
+	if output != "" {
+		t.Fatalf("Expected an empty output but got: %q", output)
 	}
 }
 
