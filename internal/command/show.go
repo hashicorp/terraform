@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
@@ -377,25 +375,8 @@ func readConfig(r *planfile.Reader, allowLanguageExperiments bool, plan *plans.P
 	// create the plan, regardless of any current variable values or defaults.
 	// Ephemeral values aren't needed here because const variables cannot be
 	// ephemeral.
-	variables := terraform.InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		if pvm, ok := plan.VariableMarks[name]; ok {
-			val = val.MarkWithPaths(pvm)
-		}
-		variables[name] = &terraform.InputValue{
-			Value:      val,
-			SourceType: terraform.ValueFromPlan,
-		}
-	}
+	variables, varDiags := terraform.InputValuesFromPlan(plan)
+	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}
