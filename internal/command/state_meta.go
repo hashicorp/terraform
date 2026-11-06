@@ -261,5 +261,8 @@ func (c *StateMeta) lookupAllResources(state *states.State) ([]*states.Resource,
 			ret = append(ret, resource)
 		}
 	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Addr.Less(ret[j].Addr)
+	})
 	return ret, diags
 }
