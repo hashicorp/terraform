@@ -10,13 +10,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -29,8 +29,25 @@ type ConsoleCommand struct {
 	Meta
 }
 
-func (c *ConsoleCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseConsole(c.Meta.process(args))
+func (c *ConsoleCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parsedArgsDiags := arguments.ParseConsole(rawArgs)
+	diags = diags.Append(parsedArgsDiags)
+
+	// Prepare the view
+	view := views.NewConsole(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Copy parsed flags back to Meta
 	c.Meta.statePath = parsedArgs.StatePath
@@ -39,7 +56,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	c.Meta.targetFlags = parsedArgs.TargetFlags
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -49,7 +66,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		diags = diags.Append(fmt.Errorf("Error loading plugin path: %w", err))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -57,7 +74,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	b, backendDiags := c.backend(configPath, parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -65,7 +82,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	local, ok := b.(backendrun.Local)
 	if !ok {
 		diags = diags.Append(errUnsupportedLocalOpDiag)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -79,7 +96,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -91,7 +108,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		})
 		diags = diags.Append(varDiags)
 		if varDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
@@ -101,7 +118,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -109,15 +126,9 @@ func (c *ConsoleCommand) Run(args []string) int {
 	defer func() {
 		diags := opReq.StateLocker.Unlock()
 		if diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 		}
 	}()
-
-	// Set up the UI so we can output directly to stdout
-	ui := &cli.BasicUi{
-		Writer:      os.Stdout,
-		ErrorWriter: os.Stderr,
-	}
 
 	var scope *lang.Scope
 
@@ -131,7 +142,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		diags = diags.Append(travDiags)
 		if diags.HasErrors() {
 			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -139,7 +150,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		diags = diags.Append(addrDiags)
 		if diags.HasErrors() {
 			c.registerSynthConfigSource("<module scope address>", traversalSrc) // so we can include a source snippet
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -169,7 +180,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	if scope == nil {
 		// scope is nil if there are errors so bad that we can't even build a scope.
 		// Otherwise, we'll try to eval anyway.
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -185,11 +196,11 @@ func (c *ConsoleCommand) Run(args []string) int {
 		// appear after everything else, to increase the chances that the
 		// user will notice it before they become confused by an incomplete
 		// expression result.
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		diags = nil
 		diags = diags.Append(tfdiags.SimpleWarning("Due to the problems above, some expressions may produce unexpected results."))
 	}
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	diags = nil
 
 	// IO Loop
@@ -199,20 +210,20 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Determine if stdin is a pipe. If so, we evaluate directly.
 	if c.StdinPiped() {
-		return c.modePiped(session, ui)
+		return c.modePiped(session, view)
 	}
 
-	return c.modeInteractive(session, ui)
+	return c.modeInteractive(session, view)
 }
 
-func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
+func (c *ConsoleCommand) modePiped(session *repl.Session, view views.Console) int {
 	var lastResult string
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		result, exit, diags := session.Handle(strings.TrimSpace(scanner.Text()))
 		if diags.HasErrors() {
 			// In piped mode we'll exit immediately on error.
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		if exit {
@@ -224,7 +235,7 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 	}
 
 	// Output the final result
-	ui.Output(lastResult)
+	view.Output(lastResult)
 
 	return 0
 }
