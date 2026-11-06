@@ -199,11 +199,19 @@ Usage: terraform [global options] state rm [options] ADDRESS...
 
 Options:
 
+  -backup=PATH            Path where Terraform should write the backup
+                          state.
+
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
   -dry-run                If set, prints out what would've been removed but
                           doesn't actually remove anything.
 
-  -backup=PATH            Path where Terraform should write the backup
-                          state.
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
   -lock=false             Don't hold a state lock during the operation. This is
                           dangerous if others might concurrently run commands
@@ -211,15 +219,13 @@ Options:
 
   -lock-timeout=0s        Duration to retry a state lock.
 
+  -no-color               Disable text coloring in the output.
+
   -state=PATH             Path to the state file to update. Defaults to the
                           current workspace state.
                           Legacy option for the local backend only. See
                           the local backend's documentation for more
                           information.
-
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          are incompatible. This may result in an unusable
-                          workspace, and should be used with extreme caution.
 
   -var 'foo=bar'          Set a value for one of the input variables in the root
                           module of the configuration. Use this option more than
