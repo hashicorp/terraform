@@ -243,6 +243,10 @@ Usage: terraform [global options] state push [options] PATH
 
 Options:
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
   -force              Write the state even if lineages don't match or the
                       remote serial is higher.
 
@@ -251,6 +255,8 @@ Options:
                       against the same workspace.
 
   -lock-timeout=0s    Duration to retry a state lock.
+
+  -no-color           Disable text coloring in the output.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
