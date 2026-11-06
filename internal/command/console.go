@@ -48,7 +48,8 @@ func (c *ConsoleCommand) Run(args []string) int {
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(fmt.Errorf("Error loading plugin path: %w", err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -63,8 +64,8 @@ func (c *ConsoleCommand) Run(args []string) int {
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		c.showDiagnostics(diags) // in case of any warnings in here
-		c.Ui.Error(errUnsupportedLocalOp)
+		diags = diags.Append(errUnsupportedLocalOpDiag)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
