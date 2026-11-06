@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	tfui "github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
@@ -79,13 +80,16 @@ func TestStateReplaceProvider(t *testing.T) {
 				Meta: Meta{
 					Ui:   ui,
 					View: view,
+					testingOverrides: &testingOverrides{
+						// Respond to the interactive approval prompt
+						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
+							Reader: bytes.NewBufferString("yes\n"),
+							Writer: ui.OutputWriter,
+						}, nil, nil),
+					},
 				},
 			},
 		}
-
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-		inputBuf.WriteString("yes\n")
 
 		args := []string{
 			"-state", statePath,
@@ -120,7 +124,8 @@ Changing 2 resources:
 Do you want to make these changes?
 Only 'yes' will be accepted to continue.
 
-Enter a value:
+  Enter a value: 
+
 Successfully replaced provider for 2 resources.
 `
 		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
@@ -141,9 +146,6 @@ Successfully replaced provider for 2 resources.
 				},
 			},
 		}
-
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
 
 		args := []string{
 			"-state", statePath,
@@ -193,13 +195,16 @@ Successfully replaced provider for 2 resources.
 				Meta: Meta{
 					Ui:   ui,
 					View: view,
+					testingOverrides: &testingOverrides{
+						// Respond to the interactive approval prompt
+						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
+							Reader: bytes.NewBufferString("no\n"),
+							Writer: ui.OutputWriter,
+						}, nil, nil),
+					},
 				},
 			},
 		}
-
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-		inputBuf.WriteString("no\n")
 
 		args := []string{
 			"-state", statePath,
@@ -233,7 +238,8 @@ Changing 2 resources:
 Do you want to make these changes?
 Only 'yes' will be accepted to continue.
 
-Enter a value:Cancelled replacing providers.
+  Enter a value: 
+Cancelled replacing providers.
 `
 		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
 			t.Fatalf("unexpected diff in output:\n%s", diff)
@@ -423,15 +429,17 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
+
+					// Respond to the interactive approval prompt
+					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
+						Reader: bytes.NewBufferString("yes\n"),
+						Writer: ui.OutputWriter,
+					}, nil, nil),
 				},
 				Ui: ui,
 			},
 		},
 	}
-
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes\n")
 
 	args := []string{
 		"hashicorp/test",
@@ -648,13 +656,16 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 			Meta: Meta{
 				Ui:   ui,
 				View: view,
+				testingOverrides: &testingOverrides{
+					// Respond to the interactive approval prompt
+					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
+						Reader: bytes.NewBufferString("yes\n"),
+						Writer: ui.OutputWriter,
+					}, nil, nil),
+				},
 			},
 		},
 	}
-
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes\n")
 
 	args := []string{
 		"-state", statePath,

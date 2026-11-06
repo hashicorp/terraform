@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -161,11 +162,11 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Confirm
 	if !parsedArgs.AutoApprove {
-		c.Ui.Output(colorize.Color(
-			"\n[bold]Do you want to make these changes?[reset]\n" +
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id: "replace-provider",
+			Query: "\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
-		))
-		v, err := c.Ui.Ask("Enter a value:")
+		})
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
