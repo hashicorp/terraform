@@ -618,7 +618,7 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			return "", nil
 		}
 	case "sts_token":
-		if mode != "StsToken" {
+		if mode != "StsToken" && mode != "CloudSSO" {
 			return "", nil
 		}
 	case "ram_role_arn", "ram_session_name":
