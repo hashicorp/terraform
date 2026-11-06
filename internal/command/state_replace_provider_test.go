@@ -96,6 +96,7 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 		}
 
+		// Assert that the state file has been updated correctly, and backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutput)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
@@ -103,6 +104,28 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateReplaceProviderOutputOriginal)
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Do you want to make these changes?
+Only 'yes' will be accepted to continue.
+
+Enter a value:
+Successfully replaced provider for 2 resources.
+`
+		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("auto approve", func(t *testing.T) {
@@ -132,6 +155,7 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 		}
 
+		// Assert that the state file has been updated correctly, and backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutput)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
@@ -139,6 +163,24 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateReplaceProviderOutputOriginal)
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Successfully replaced provider for 2 resources.
+`
+		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("cancel at approval step", func(t *testing.T) {
@@ -168,11 +210,33 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 		}
 
+		// Assert that the state file hasn't been changed, and no backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
 		if len(backups) != 0 {
 			t.Fatalf("unexpected backups: %#v", backups)
+		}
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Do you want to make these changes?
+Only 'yes' will be accepted to continue.
+
+Enter a value:Cancelled replacing providers.
+`
+		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
 		}
 	})
 
@@ -199,11 +263,18 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
 		}
 
+		// Assert that the state file hasn't been changed, and no backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
 		if len(backups) != 0 {
 			t.Fatalf("unexpected backups: %#v", backups)
+		}
+
+		// Assert terminal output
+		expectedOutput := "No matching resources found.\n"
+		if diff := cmp.Diff(expectedOutput, ui.OutputWriter.String()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
 		}
 	})
 
