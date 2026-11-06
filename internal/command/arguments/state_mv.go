@@ -47,6 +47,8 @@ type StateMv struct {
 
 	// DestAddr is the destination resource address.
 	DestAddr string
+
+	ViewType ViewType
 }
 
 // ParseStateMv processes CLI arguments, returning a StateMv value and
@@ -55,7 +57,8 @@ type StateMv struct {
 func ParseStateMv(args []string) (*StateMv, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	mv := &StateMv{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("state mv", nil, nil, mv.Vars)
