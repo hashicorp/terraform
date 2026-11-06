@@ -86,8 +86,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Initialize the state manager as configured
-	view := arguments.ViewHuman
-	stateMgr, err := c.State(view)
+	stateMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
 		c.showDiagnostics(diags)
@@ -96,7 +95,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Acquire lock if requested
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
 		if diags := stateLocker.Lock(stateMgr, "state-replace-provider"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
@@ -188,7 +187,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
