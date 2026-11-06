@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -21,19 +22,30 @@ type StatePullCommand struct {
 	StateMeta
 }
 
-func (c *StatePullCommand) Run(args []string) int {
+func (c *StatePullCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	parsedArgs, parseDiags := arguments.ParseStatePull(c.Meta.process(args))
-	if parseDiags.HasErrors() {
-		c.showDiagnostics(parseDiags)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, argDiags := arguments.ParseStatePull(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewStatePull(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -42,20 +54,23 @@ func (c *StatePullCommand) Run(args []string) int {
 		loader.Parser().ForceFileSource(filename, src)
 	})
 	if varDiags.HasErrors() {
-		c.showDiagnostics(varDiags)
+		diags = diags.Append(varDiags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+	b, beDiags := c.backend(".", parsedArgs.ViewType)
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -70,13 +85,13 @@ func (c *StatePullCommand) Run(args []string) int {
 			"Failed to select workspace",
 			fmt.Sprintf("Error selecting workspace: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
 		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
@@ -85,7 +100,7 @@ func (c *StatePullCommand) Run(args []string) int {
 			"Failed to refresh the state",
 			fmt.Sprintf("Error refreshing the state: %s", err),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -96,11 +111,16 @@ func (c *StatePullCommand) Run(args []string) int {
 		var buf bytes.Buffer
 		err = statefile.Write(stateFile, &buf)
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to save the state",
+				fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+			))
+			view.Diagnostics(diags)
 			return 1
 		}
 
-		c.Ui.Output(buf.String())
+		view.State(buf.String())
 	}
 
 	return 0
@@ -121,6 +141,12 @@ Usage: terraform [global options] state pull [options]
   will still work with local state but is less useful for this.
 
 Options:
+
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
+  -no-color           Disable text coloring in the output.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
