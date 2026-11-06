@@ -33,6 +33,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"state flag": {
@@ -44,6 +45,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"state-out and backup flags": {
@@ -55,6 +57,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"lock disabled": {
@@ -66,6 +69,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"config path": {
@@ -78,6 +82,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"parallelism": {
@@ -89,6 +94,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 		"ignore remote version": {
@@ -101,6 +107,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled:        true,
 				Addr:                "test_instance.foo",
 				ID:                  "bar",
+				ViewType:            ViewHuman,
 			},
 		},
 		"input disabled": {
@@ -112,6 +119,7 @@ func TestParseImport_valid(t *testing.T) {
 				InputEnabled: false,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 		},
 	}
@@ -146,6 +154,7 @@ func TestParseImport_invalid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -162,6 +171,7 @@ func TestParseImport_invalid(t *testing.T) {
 				Vars:         &Vars{},
 				Parallelism:  DefaultParallelism,
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -179,6 +189,7 @@ func TestParseImport_invalid(t *testing.T) {
 				Parallelism:  DefaultParallelism,
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -197,6 +208,7 @@ func TestParseImport_invalid(t *testing.T) {
 				InputEnabled: true,
 				Addr:         "test_instance.foo",
 				ID:           "bar",
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
