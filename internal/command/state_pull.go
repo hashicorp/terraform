@@ -142,6 +142,12 @@ Usage: terraform [global options] state pull [options]
 
 Options:
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
+  -no-color           Disable text coloring in the output.
+
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
                       once to set more than one variable.
