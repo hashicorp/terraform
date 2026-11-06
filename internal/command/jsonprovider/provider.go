@@ -62,15 +62,28 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 }
 
 func marshalProvider(tps providers.ProviderSchema) *Provider {
-	p := &Provider{
-		Provider:                 marshalSchema(tps.Provider),
-		ResourceSchemas:          marshalSchemas(tps.ResourceTypes),
-		DataSourceSchemas:        marshalSchemas(tps.DataSources),
-		EphemeralResourceSchemas: marshalSchemas(tps.EphemeralResourceTypes),
-		Functions:                jsonfunction.MarshalProviderFunctions(tps.Functions),
-		ResourceIdentitySchemas:  marshalIdentitySchemas(tps.ResourceTypes),
-		ActionSchemas:            marshalActionSchemas(tps.Actions),
-		StateStoreSchemas:        marshalSchemas(tps.StateStores),
+	p := &Provider{}
+	if tps.Provider.Body != nil { // provider config not included in schema
+		p.Provider = marshalSchema(tps.Provider)
+	}
+	if tps.ResourceTypes != nil {
+		p.ResourceSchemas = marshalSchemas(tps.ResourceTypes)
+		p.ResourceIdentitySchemas = marshalIdentitySchemas(tps.ResourceTypes)
+	}
+	if tps.DataSources != nil {
+		p.DataSourceSchemas = marshalSchemas(tps.DataSources)
+	}
+	if tps.EphemeralResourceTypes != nil {
+		p.EphemeralResourceSchemas = marshalSchemas(tps.EphemeralResourceTypes)
+	}
+	if tps.Functions != nil {
+		p.Functions = jsonfunction.MarshalProviderFunctions(tps.Functions)
+	}
+	if tps.Actions != nil {
+		p.ActionSchemas = marshalActionSchemas(tps.Actions)
+	}
+	if tps.StateStores != nil {
+		p.StateStoreSchemas = marshalSchemas(tps.StateStores)
 	}
 
 	// List resource schemas are nested under a "config" block, so we need to
