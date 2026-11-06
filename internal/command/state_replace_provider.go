@@ -64,12 +64,15 @@ func (c *StateReplaceProviderCommand) Run(rawArgs []string) int {
 	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
 		loader.Parser().ForceFileSource(filename, src)
 	})
+	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		view.Diagnostics(varDiags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
@@ -152,6 +155,7 @@ func (c *StateReplaceProviderCommand) Run(rawArgs []string) int {
 		}
 	}
 	view.Diagnostics(diags)
+	diags = tfdiags.Diagnostics{} // Avoid repeating old diagnostics later
 
 	view.DescribeChanges(from, to, willReplace)
 
