@@ -5669,6 +5669,66 @@ resource "test_object" "forget" {
 	}
 }
 
+func TestContext2Apply_forget_providerDependency(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+  test_string = "ok"
+  lifecycle {
+    destroy = false
+  }
+}
+
+provider "other" {
+  test_string = test_object.forget.test_string
+}
+
+resource "other_object" "a" {
+}
+`})
+
+	testProvider := simpleMockProvider()
+	otherProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"other_object": {Body: simpleTestSchema()},
+			},
+		},
+	}
+	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		if got := req.Config.GetAttr("test_string"); !got.IsKnown() || got.IsNull() || got.AsString() != "ok" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong provider config value: %#v", got))
+		}
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("other"): testProviderFuncFixed(otherProvider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	if change := plan.Changes.ResourceInstance(forget); change == nil || change.Action != plans.Forget {
+		t.Fatalf("expected Forget change for %s, got %#v", forget, change)
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+}
+
 // A create that fails with a partial state must never be visible in the
 // working state with an invalid status, because concurrent nodes may be
 // persisting state snapshots at any time.

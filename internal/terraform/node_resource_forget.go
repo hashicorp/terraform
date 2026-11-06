@@ -23,6 +23,7 @@ var (
 	_ GraphNodeModuleInstance      = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeConfigResource      = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeResourceInstance    = (*NodeForgetResourceInstance)(nil)
+	_ GraphNodeReferenceable       = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeReferencer          = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeExecutable          = (*NodeForgetResourceInstance)(nil)
 	_ GraphNodeProviderConsumer    = (*NodeForgetResourceInstance)(nil)
@@ -32,6 +33,15 @@ var (
 
 func (n *NodeForgetResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	return &n.Addr
+}
+
+// GraphNodeReferenceable, overriding NodeAbstractResourceInstance
+func (n *NodeForgetResourceInstance) ReferenceableAddrs() []addrs.Referenceable {
+	// Like a destroy node, a forget node is not referenceable. Anything
+	// referring to this resource during a destroy must be evaluated before the
+	// object is removed from state, which is already ordered by the
+	// DestroyEdgeTransformer.
+	return nil
 }
 
 func (n *NodeForgetResourceInstance) References() []*addrs.Reference {
