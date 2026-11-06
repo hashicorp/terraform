@@ -195,7 +195,8 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(fmt.Errorf("Error loading plugin path: %w", err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -257,11 +258,21 @@ func (c *ImportCommand) Run(args []string) int {
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := state.WriteState(newState); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := state.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
