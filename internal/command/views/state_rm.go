@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -49,9 +50,13 @@ func (v *StateRmHuman) Remove(removals []string, dryRun bool, diags tfdiags.Diag
 		prefix = "Would remove "
 	}
 
+	sb := &strings.Builder{}
 	for _, removal := range removals {
-		v.view.streams.Println(prefix + removal)
+		sb.WriteString(prefix)
+		sb.WriteString(removal)
+		sb.WriteString("\n")
 	}
+	v.view.streams.Print(sb.String())
 
 	if !dryRun {
 		v.view.streams.Println(
