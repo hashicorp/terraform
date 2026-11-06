@@ -54,7 +54,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, backendDiags := c.backend(configPath, arguments.ViewHuman)
+	b, backendDiags := c.backend(configPath, parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -73,7 +73,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
-	opReq := c.Operation(b, arguments.ViewHuman)
+	opReq := c.Operation(b, parsedArgs.ViewType)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown
