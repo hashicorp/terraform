@@ -4,13 +4,11 @@
 package command
 
 import (
-	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/cli"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -29,28 +27,23 @@ func TestConsole_basic(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	var output bytes.Buffer
 	defer testStdinPipe(t, strings.NewReader("1+5\n"))()
-	outCloser := testStdoutCapture(t, &output)
 
 	args := []string{}
 	code := c.Run(args)
-	outCloser()
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	actual := output.String()
+	actual := done(t).Stdout()
 	if actual != "6\n" {
 		t.Fatalf("bad: %q", actual)
 	}
@@ -79,28 +72,24 @@ func TestConsole_tfvars(t *testing.T) {
 			},
 		},
 	}
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+
+	view, done := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	var output bytes.Buffer
 	defer testStdinPipe(t, strings.NewReader("var.foo\n"))()
-	outCloser := testStdoutCapture(t, &output)
 
 	args := []string{}
 	code := c.Run(args)
-	outCloser()
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	actual := output.String()
+	actual := done(t).Stdout()
 	if actual != "\"bar\"\n" {
 		t.Fatalf("bad: %q", actual)
 	}
@@ -131,29 +120,25 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 			},
 		},
 	}
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+
+	view, done := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	var output bytes.Buffer
 	defer testStdinPipe(t, strings.NewReader("var.foo\n"))()
-	outCloser := testStdoutCapture(t, &output)
 
 	args := []string{}
 	code := c.Run(args)
-	outCloser()
 
 	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
-	if got, want := output.String(), "(known after apply)\n"; got != want {
+	if got, want := done(t).Stdout(), "(known after apply)\n"; got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
 	}
 }
@@ -164,12 +149,10 @@ func TestConsole_variables(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -184,17 +167,18 @@ func TestConsole_variables(t *testing.T) {
 	args := []string{}
 
 	for cmd, val := range commands {
-		var output bytes.Buffer
 		defer testStdinPipe(t, strings.NewReader(cmd))()
-		outCloser := testStdoutCapture(t, &output)
+
+		view, done := testView(t)
+		c.View = view
 		code := c.Run(args)
-		outCloser()
+
 		if code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
-		actual := output.String()
-		if output.String() != val {
+		actual := done(t).Stdout()
+		if actual != val {
 			t.Fatalf("bad: %q, expected %q", actual, val)
 		}
 	}
@@ -206,13 +190,10 @@ func TestConsole_modules(t *testing.T) {
 	t.Chdir(td)
 
 	p := applyFixtureProvider()
-	ui := testUiWrapped(t)
 	view, _ := testView(t)
-
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -226,17 +207,17 @@ func TestConsole_modules(t *testing.T) {
 	args := []string{}
 
 	for cmd, val := range commands {
-		var output bytes.Buffer
 		defer testStdinPipe(t, strings.NewReader(cmd))()
-		outCloser := testStdoutCapture(t, &output)
+
+		view, done := testView(t)
+		c.View = view
 		code := c.Run(args)
-		outCloser()
 		if code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
-		actual := output.String()
-		if output.String() != val {
+		actual := done(t).Stdout()
+		if actual != val {
 			t.Fatalf("bad: %q, expected %q", actual, val)
 		}
 	}
@@ -248,13 +229,10 @@ func TestConsole_modulesPlan(t *testing.T) {
 	t.Chdir(td)
 
 	p := applyFixtureProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-
+	view, done := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -269,17 +247,14 @@ func TestConsole_modulesPlan(t *testing.T) {
 	args := []string{"-plan"}
 
 	for cmd, val := range commands {
-		var output bytes.Buffer
 		defer testStdinPipe(t, strings.NewReader(cmd))()
-		outCloser := testStdoutCapture(t, &output)
 		code := c.Run(args)
-		outCloser()
 		if code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
-		actual := output.String()
-		if output.String() != val {
+		actual := done(t).Stdout()
+		if actual != val {
 			t.Fatalf("bad: %q, expected %q", actual, val)
 		}
 	}
@@ -397,14 +372,11 @@ func TestConsole_scope(t *testing.T) {
 			testCopyDir(t, testFixturePath("console-nested-module-scopes"), td)
 			t.Chdir(td)
 
-			ui := cli.NewMockUi()
 			view, _ := testView(t)
 			p := testing_command.NewProvider(&testing_command.ResourceStore{}).Provider
-
 			c := &ConsoleCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
 					View:             view,
 				},
 			}
@@ -412,17 +384,17 @@ func TestConsole_scope(t *testing.T) {
 			tc.args = append(tc.args, []string{"-var", "root=variable data"}...)
 
 			for cmd, val := range tc.expectedConsoleEvals {
-				var output bytes.Buffer
 				defer testStdinPipe(t, strings.NewReader(cmd))()
-				outCloser := testStdoutCapture(t, &output)
+
+				view, done := testView(t)
+				c.Meta.View = view
 				code := c.Run(tc.args)
-				outCloser()
 				if code != 0 {
-					t.Errorf("bad exit code: %d\n\n%s", code, ui.ErrorWriter.String())
+					t.Errorf("bad exit code: %d\n\n%s", code, done(t).Stderr())
 				}
 
-				actual := output.String()
-				if output.String() != val {
+				actual := done(t).Stdout()
+				if actual != val {
 					t.Errorf("bad result for %q: %q, expected %q", cmd, actual, val)
 				}
 			}
@@ -466,18 +438,16 @@ func TestConsole_scope_errors(t *testing.T) {
 			testCopyDir(t, testFixturePath("console-nested-module-scopes"), td)
 			t.Chdir(td)
 
-			ui := cli.NewMockUi()
-			view, _ := testView(t)
+			view, done := testView(t)
 			p := testing_command.NewProvider(&testing_command.ResourceStore{}).Provider
-
 			c := &ConsoleCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
 					View:             view,
-					Ui:               ui,
 				},
 			}
 
+			tc.args = append(tc.args, "-no-color") // Makes asserting error messages easier
 			tc.args = append(tc.args, []string{"-var", "root=variable data"}...)
 
 			defer testStdinPipe(t, strings.NewReader(""))()
@@ -486,7 +456,7 @@ func TestConsole_scope_errors(t *testing.T) {
 				t.Fatal("expected a non-zero exit code with error")
 			}
 
-			actual := ui.ErrorWriter.String()
+			actual := done(t).Stderr()
 			if !strings.Contains(actual, tc.expectedError) {
 				t.Fatalf("expected error to include %q, but got:\n%s", tc.expectedError, actual)
 			}
