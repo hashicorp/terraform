@@ -488,7 +488,7 @@ func decodeOverrideBlock(block *hcl.Block, attributeName string, blockName strin
 
 	if target, exists := content.Attributes["target"]; exists {
 		override.TargetRange = target.Range
-		traversal, traversalDiags := hcl.AbsTraversalForExpr(target.Expr)
+		traversal, traversalDiags := hcl.AbsTraversalPatternForExpr(target.Expr)
 		diags = append(diags, traversalDiags...)
 		if traversal != nil {
 			target, targetDiags := addrs.ParseTarget(traversal)
