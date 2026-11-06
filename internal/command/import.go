@@ -28,8 +28,25 @@ type ImportCommand struct {
 	Meta
 }
 
-func (c *ImportCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseImport(c.Meta.process(args))
+func (c *ImportCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, argDiags := arguments.ParseImport(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewImport(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Copy parsed flags back to Meta
 	c.Meta.statePath = parsedArgs.State.StatePath
@@ -43,34 +60,28 @@ func (c *ImportCommand) Run(args []string) int {
 	c.Meta.compactWarnings = parsedArgs.CompactWarnings
 	c.Meta.targetFlags = parsedArgs.TargetFlags
 
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		c.Ui.Error(c.Help())
-		return 1
-	}
-
 	// Parse the provided resource address.
 	traversalSrc := []byte(parsedArgs.Addr)
 	traversal, travDiags := hclsyntax.ParseTraversalAbs(traversalSrc, "<import-address>", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(travDiags)
 	if travDiags.HasErrors() {
 		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
+		view.Diagnostics(diags)
+		view.InvalidAddressHelp()
 		return 1
 	}
 	addr, addrDiags := addrs.ParseAbsResourceInstance(traversal)
 	diags = diags.Append(addrDiags)
 	if addrDiags.HasErrors() {
 		c.registerSynthConfigSource("<import-address>", traversalSrc) // so we can include a source snippet
-		c.showDiagnostics(diags)
-		c.Ui.Info(importCommandInvalidAddressReference)
+		view.Diagnostics(diags)
+		view.InvalidAddressHelp()
 		return 1
 	}
 
 	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
 		diags = diags.Append(errors.New("A managed resource address is required. Importing into a data resource is not allowed."))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -83,7 +94,7 @@ func (c *ImportCommand) Run(args []string) int {
 				parsedArgs.ConfigPath,
 			),
 		})
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -91,7 +102,7 @@ func (c *ImportCommand) Run(args []string) int {
 	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -103,7 +114,7 @@ func (c *ImportCommand) Run(args []string) int {
 	local, ok := b.(backendrun.Local)
 	if !ok {
 		diags = diags.Append(errUnsupportedLocalOpDiag)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -114,10 +125,10 @@ func (c *ImportCommand) Run(args []string) int {
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
+	opReq.Hooks = []terraform.Hook{c.uiHook()} // Human-readable UI hook
 
 	{
 		// Collect variable value and add them to the operation request
@@ -128,7 +139,7 @@ func (c *ImportCommand) Run(args []string) int {
 		diags = diags.Append(varDiags)
 
 		if varDiags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -141,7 +152,7 @@ func (c *ImportCommand) Run(args []string) int {
 	config, configDiags := c.loadConfig(parsedArgs.ConfigPath)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -160,7 +171,7 @@ func (c *ImportCommand) Run(args []string) int {
 				modulePath,
 			),
 		})
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	targetMod := targetConfig.Module
@@ -179,17 +190,14 @@ func (c *ImportCommand) Run(args []string) int {
 			modulePath = "the root module"
 		}
 
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 
 		// This is not a diagnostic because currently our diagnostics printer
 		// doesn't support having a code example in the detail, and there's
 		// a code example in this message.
 		// TODO: Improve the diagnostics printer so we can use it for this
 		// message.
-		c.Ui.Error(fmt.Sprintf(
-			importCommandMissingResourceFmt,
-			addr, modulePath, resourceRelAddr.Type, resourceRelAddr.Name,
-		))
+		view.MissingResourceBlockError(addr, modulePath, resourceRelAddr)
 		return 1
 	}
 
@@ -203,7 +211,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -213,7 +221,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -221,7 +229,7 @@ func (c *ImportCommand) Run(args []string) int {
 	defer func() {
 		diags := opReq.StateLocker.Unlock()
 		if diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 		}
 	}()
 
@@ -243,7 +251,7 @@ func (c *ImportCommand) Run(args []string) int {
 	})
 	diags = diags.Append(importDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -276,9 +284,9 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
+	view.Success()
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
@@ -345,21 +353,3 @@ Options:
 func (c *ImportCommand) Synopsis() string {
 	return "Associate existing infrastructure with a Terraform resource"
 }
-
-const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://developer.hashicorp.com/terraform/cli/state/resource-addressing`
-
-const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
-
-Before importing this resource, please create its configuration in %s. For example:
-
-resource %q %q {
-  # (resource arguments)
-}
-`
-
-const importCommandSuccessMsg = `Import successful!
-
-The resources that were imported are shown above. These resources are now in
-your Terraform state and will henceforth be managed by Terraform.
-`
