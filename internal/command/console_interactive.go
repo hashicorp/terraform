@@ -16,12 +16,12 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/hashicorp/cli"
 
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/repl"
 )
 
-func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
+func (c *ConsoleCommand) modeInteractive(session *repl.Session, view views.Console) int {
 	// Configure input
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:            "> ",
@@ -68,7 +68,7 @@ func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
 			} else {
 				// Reset the entry buffer to start a new expression
 				lines = lines[:0]
-				ui.Output("(multi-line entry canceled)")
+				view.Output("(multi-line entry canceled)")
 				continue
 			}
 		} else if err == io.EOF {
@@ -90,13 +90,13 @@ func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
 		lines = lines[:0] // reset for next iteration
 		out, exit, diags := session.Handle(input)
 		if diags.HasErrors() {
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 		}
 		if exit {
 			break
 		}
 
-		ui.Output(out)
+		view.Output(out)
 	}
 
 	return 0
