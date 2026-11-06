@@ -344,26 +344,8 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		opts = new(ApplyOpts)
 	}
 
-	variables := InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		if pvm, ok := plan.VariableMarks[name]; ok {
-			val = val.MarkWithPaths(pvm)
-		}
-
-		variables[name] = &InputValue{
-			Value:      val,
-			SourceType: ValueFromPlan,
-		}
-	}
+	variables, varDiags := InputValuesFromPlan(plan)
+	diags = diags.Append(varDiags)
 	// Apply-time variables need to be merged in too.
 	// FIXME: We should check that all of these match declared variables and
 	// that all of them are declared as ephemeral, because all non-ephemeral

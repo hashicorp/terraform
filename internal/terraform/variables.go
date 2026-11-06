@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -185,6 +186,37 @@ func InputValuesFromCaller(vals map[string]cty.Value) InputValues {
 		}
 	}
 	return ret
+}
+
+// InputValuesFromPlan decodes the root module variable values recorded in
+// the given plan, re-applying any marks that were recorded alongside them.
+// Each resulting value has the source type ValueFromPlan.
+func InputValuesFromPlan(plan *plans.Plan) (InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(InputValues, len(plan.VariableValues))
+
+	for name, dyVal := range plan.VariableValues {
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid variable value in plan",
+				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
+			))
+			continue
+		}
+
+		if pvm, ok := plan.VariableMarks[name]; ok {
+			val = val.MarkWithPaths(pvm)
+		}
+
+		ret[name] = &InputValue{
+			Value:      val,
+			SourceType: ValueFromPlan,
+		}
+	}
+
+	return ret, diags
 }
 
 // Override merges the given value maps with the receiver, overriding any
