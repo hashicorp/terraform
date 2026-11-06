@@ -26,6 +26,7 @@ func TestParseStateReplaceProvider_valid(t *testing.T) {
 				StateLock:        true,
 				FromProviderAddr: "hashicorp/aws",
 				ToProviderAddr:   "acmecorp/aws",
+				ViewType:         ViewHuman,
 			},
 		},
 		"auto approve": {
@@ -37,6 +38,7 @@ func TestParseStateReplaceProvider_valid(t *testing.T) {
 				StateLock:        true,
 				FromProviderAddr: "hashicorp/aws",
 				ToProviderAddr:   "acmecorp/aws",
+				ViewType:         ViewHuman,
 			},
 		},
 		"all options": {
@@ -60,6 +62,7 @@ func TestParseStateReplaceProvider_valid(t *testing.T) {
 				IgnoreRemoteVersion: true,
 				FromProviderAddr:    "hashicorp/aws",
 				ToProviderAddr:      "acmecorp/aws",
+				ViewType:            ViewHuman,
 			},
 		},
 	}
@@ -136,6 +139,7 @@ func TestParseStateReplaceProvider_invalid(t *testing.T) {
 				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
+				ViewType:   ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -151,6 +155,7 @@ func TestParseStateReplaceProvider_invalid(t *testing.T) {
 				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
+				ViewType:   ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -168,6 +173,7 @@ func TestParseStateReplaceProvider_invalid(t *testing.T) {
 				StateLock:        true,
 				FromProviderAddr: "hashicorp/google",
 				ToProviderAddr:   "acmecorp/google",
+				ViewType:         ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
