@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -51,9 +52,13 @@ func (v *StateMvHuman) Move(moves []StateMvPair, dryRun bool, diags tfdiags.Diag
 	if dryRun {
 		prefix = "Would move"
 	}
+	sb := &strings.Builder{}
 	for _, m := range moves {
-		v.view.streams.Println(fmt.Sprintf("%s %q to %q", prefix, m.From, m.To))
+		sb.WriteString(fmt.Sprintf("%s %q to %q", prefix, m.From, m.To))
+		sb.WriteString("\n")
+
 	}
+	v.view.streams.Print(sb.String())
 
 	if !dryRun {
 		v.view.streams.Println(fmt.Sprintf("Successfully moved %d object(s).", len(moves)))
