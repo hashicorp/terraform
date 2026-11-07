@@ -17,7 +17,12 @@ import (
 // a source range so that a helpful diagnostic can be printed in the event
 // that a particular constraint does not match.
 type VersionConstraint struct {
-	Required  version.Constraints
+	Required version.Constraints
+
+	// Raw is the constraint string exactly as written in configuration, or
+	// empty if no constraint was given.
+	Raw string
+
 	DeclRange hcl.Range
 }
 
@@ -70,5 +75,6 @@ func decodeVersionConstraint(attr *hcl.Attribute) (VersionConstraint, hcl.Diagno
 	}
 
 	ret.Required = constraints
+	ret.Raw = constraintStr
 	return ret, diags
 }
