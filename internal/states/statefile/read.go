@@ -58,9 +58,7 @@ func Read(r io.Reader) (*File, error) {
 
 	var diags tfdiags.Diagnostics
 
-	// We actually just buffer the whole thing in memory, because states are
-	// generally not huge and we need to do be able to sniff for a version
-	// number before full parsing.
+	// Buffer the input so legacy decoding and version diagnostics can reuse it.
 	src, err := io.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -100,7 +98,7 @@ func readState(src []byte) (*File, error) {
 		return nil, errUnusable(diags.Err())
 	}
 
-	version, versionDiags := sniffJSONStateVersion(src)
+	version, current, versionDiags := decodeJSONState(src)
 	diags = diags.Append(versionDiags)
 	if versionDiags.HasErrors() {
 		// This is the last point where there's a really good chance it's not a
@@ -125,7 +123,15 @@ func readState(src []byte) (*File, error) {
 	case 3:
 		result, diags = readStateV3(src)
 	case 4:
-		result, diags = readStateV4(src)
+		if current == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				invalidFormat,
+				"The state file does not conform to the expected JSON data structure.",
+			))
+		} else {
+			result, diags = prepareStateV4(current)
+		}
 	default:
 		thisVersion := tfversion.SemVer.String()
 		creatingVersion := sniffJSONStateTerraformVersion(src)
@@ -152,14 +158,44 @@ func readState(src []byte) (*File, error) {
 	return result, err
 }
 
-func sniffJSONStateVersion(src []byte) (uint64, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
+// decodeJSONState identifies the format and decodes v4 state in the same pass,
+// regardless of JSON member order. The diagnostics describe syntax or version
+// errors. For version 4, a nil state means the v4 structure could not be decoded.
+func decodeJSONState(src []byte) (uint64, *stateV4, tfdiags.Diagnostics) {
+	var current struct {
+		// Capture the input version instead of using stateV4's fixed-v4 marker.
+		Version *uint64 `json:"version"`
+		stateV4
+	}
+	err := json.Unmarshal(src, &current)
+	if err == nil {
+		diags := jsonStateVersionDiags(current.Version, nil)
+		if current.Version == nil {
+			return 0, nil, diags
+		}
+		return *current.Version, &current.stateV4, diags
+	}
+	if _, ok := err.(*json.SyntaxError); ok {
+		return 0, nil, jsonStateVersionDiags(current.Version, err)
+	}
 
+	// A failed v4 decode can mask an invalid version, so validate it separately.
 	type VersionSniff struct {
 		Version *uint64 `json:"version"`
 	}
 	var sniff VersionSniff
-	err := json.Unmarshal(src, &sniff)
+	err = json.Unmarshal(src, &sniff)
+	diags := jsonStateVersionDiags(sniff.Version, err)
+	if sniff.Version == nil {
+		return 0, nil, diags
+	}
+	return *sniff.Version, nil, diags
+}
+
+// jsonStateVersionDiags preserves the version-sniff diagnostics when a full
+// decode has already detected invalid JSON, without parsing it a second time.
+func jsonStateVersionDiags(version *uint64, err error) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if err != nil {
 		switch tErr := err.(type) {
 		case *json.SyntaxError:
@@ -183,16 +219,15 @@ func sniffJSONStateVersion(src []byte) (uint64, tfdiags.Diagnostics) {
 		}
 	}
 
-	if sniff.Version == nil {
+	if version == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			unsupportedFormat,
 			"The state file does not have a \"version\" attribute, which is required to identify the format version.",
 		))
-		return 0, diags
 	}
 
-	return *sniff.Version, diags
+	return diags
 }
 
 // sniffJSONStateTerraformVersion attempts to sniff the Terraform version
