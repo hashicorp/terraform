@@ -585,32 +585,40 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 }
 
 func TestFmt_check(t *testing.T) {
-	t.Parallel()
-	tempDir := fmtFixtureWriteDir(t)
+	t.Run("check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
-	c := &FmtCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
 
-	args := []string{
-		"-check",
-		tempDir,
-	}
-	if code := c.Run(args); code != 3 {
-		t.Fatalf("wrong exit code. expected 3")
-	}
+		args := []string{
+			"-check",
+			"-list=true", // -list defaults to true, but set explicitly here
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
 
-	// Given that we give relative paths back to the user, normalize this temp
-	// dir so that we're comparing against a relative-ized (normalized) path
-	tempDir = c.normalizePath(tempDir)
+		// Given that we give relative paths back to the user, normalize this temp
+		// dir so that we're comparing against a relative-ized (normalized) path
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
 
-	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)
-	}
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\nto be:\n%s", actual, expectedOutput)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
 }
 
 // When `fmt` encounters a symlink:
