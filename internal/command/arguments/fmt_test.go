@@ -16,9 +16,10 @@ func TestParseFmt_valid(t *testing.T) {
 	}{
 		"defaults": {
 			want: &Fmt{
-				List:  true,
-				Write: true,
-				Paths: []string{"."},
+				List:     true,
+				Write:    true,
+				Paths:    []string{"."},
+				ViewType: ViewHuman,
 			},
 		},
 		"all options and paths": {
@@ -28,18 +29,21 @@ func TestParseFmt_valid(t *testing.T) {
 				Check:     true,
 				Recursive: true,
 				Paths:     []string{"one.tf", "two.tf"},
+				ViewType:  ViewHuman,
 			},
 		},
 		"stdin": {
 			args: []string{"-"},
 			want: &Fmt{
-				Paths: nil,
+				Paths:    nil,
+				ViewType: ViewHuman,
 			},
 		},
 		"stdin with another target": {
 			args: []string{"-", "other.tf"},
 			want: &Fmt{
-				Paths: nil,
+				Paths:    nil,
+				ViewType: ViewHuman,
 			},
 		},
 	}
@@ -64,7 +68,7 @@ func TestParseFmt_invalid(t *testing.T) {
 	}{
 		"unexpected flag": {
 			args: []string{"-unknown"},
-			want: &Fmt{List: true, Write: true, Paths: []string{"."}},
+			want: &Fmt{List: true, Write: true, Paths: []string{"."}, ViewType: ViewHuman},
 		},
 	}
 

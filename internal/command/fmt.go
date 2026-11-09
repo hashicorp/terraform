@@ -64,7 +64,7 @@ func (c *FmtCommand) Run(args []string) int {
 	diags = diags.Append(parseDiags)
 
 	// Prepare the view
-	view := views.NewFmt(arguments.ViewHuman, c.View)
+	view := views.NewFmt(parsedArgs.ViewType, c.View)
 
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
