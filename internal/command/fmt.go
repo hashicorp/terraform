@@ -205,7 +205,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer) tfdiags.
 		}
 	}
 
-	if !c.list && !c.write && !c.diff {
+	if !c.list && !c.write && !c.diff && !c.check {
 		_, err = w.Write(result)
 		if err != nil {
 			diags = diags.Append(fmt.Errorf("Failed to write result"))
