@@ -4,9 +4,7 @@
 package funcs
 
 import (
-	"crypto/md5"
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/asn1"
@@ -141,15 +139,6 @@ var BcryptFunc = function.New(&function.Spec{
 	},
 })
 
-// Md5Func constructs a function that computes the MD5 hash of a given string and encodes it with hexadecimal digits.
-var Md5Func = makeStringHashFunction(md5.New, hex.EncodeToString)
-
-// MakeFileMd5Func constructs a function that is like Md5Func but reads the
-// contents of a file rather than hashing a given literal string.
-func MakeFileMd5Func(baseDir string, wrap ImplWrapper) function.Function {
-	return makeFileHashFunction(baseDir, md5.New, hex.EncodeToString, wrap)
-}
-
 // RsaDecryptFunc constructs a function that decrypts an RSA-encrypted ciphertext.
 var RsaDecryptFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
@@ -200,16 +189,6 @@ var RsaDecryptFunc = function.New(&function.Spec{
 	},
 })
 
-// Sha1Func contructs a function that computes the SHA1 hash of a given string
-// and encodes it with hexadecimal digits.
-var Sha1Func = makeStringHashFunction(sha1.New, hex.EncodeToString)
-
-// MakeFileSha1Func constructs a function that is like Sha1Func but reads the
-// contents of a file rather than hashing a given literal string.
-func MakeFileSha1Func(baseDir string, wrap ImplWrapper) function.Function {
-	return makeFileHashFunction(baseDir, sha1.New, hex.EncodeToString, wrap)
-}
-
 // Sha256Func contructs a function that computes the SHA256 hash of a given string
 // and encodes it with hexadecimal digits.
 var Sha256Func = makeStringHashFunction(sha256.New, hex.EncodeToString)
@@ -230,14 +209,16 @@ func MakeFileSha512Func(baseDir string, wrap ImplWrapper) function.Function {
 	return makeFileHashFunction(baseDir, sha512.New, hex.EncodeToString, wrap)
 }
 
+var stringHashFunctionParams = []function.Parameter{
+	{
+		Name: "str",
+		Type: cty.String,
+	},
+}
+
 func makeStringHashFunction(hf func() hash.Hash, enc func([]byte) string) function.Function {
 	return function.New(&function.Spec{
-		Params: []function.Parameter{
-			{
-				Name: "str",
-				Type: cty.String,
-			},
-		},
+		Params:       stringHashFunctionParams,
 		Type:         function.StaticReturnType(cty.String),
 		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
@@ -250,14 +231,16 @@ func makeStringHashFunction(hf func() hash.Hash, enc func([]byte) string) functi
 	})
 }
 
+var fileHashFunctionParams = []function.Parameter{
+	{
+		Name: "path",
+		Type: cty.String,
+	},
+}
+
 func makeFileHashFunction(baseDir string, hf func() hash.Hash, enc func([]byte) string, wrap ImplWrapper) function.Function {
 	return function.New(&function.Spec{
-		Params: []function.Parameter{
-			{
-				Name: "path",
-				Type: cty.String,
-			},
-		},
+		Params:       fileHashFunctionParams,
 		Type:         function.StaticReturnType(cty.String),
 		RefineResult: refineNotNull,
 		Impl: wrap(func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
