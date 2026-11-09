@@ -192,6 +192,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, view views.Fmt) tfdia
 			view.FileFormatted(path)
 		}
 		if c.write {
+			log.Printf("[TRACE] terraform fmt: Writing changes to %s", path)
 			err = replacefile.NonAtomicWriteFileWithBackup(path, src, result)
 			if err != nil {
 				diags = diags.Append(err)
