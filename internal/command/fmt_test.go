@@ -723,6 +723,41 @@ func TestFmt_check(t *testing.T) {
 		}
 	})
 
+	t.Run("combining -diff and -list=false options result in no output", func(t *testing.T) {
+		// Output is conditional on the -list flag, which is disabled here. However -diff also
+		// produces output and is currently only able to be displayed when -list is also enabled.
+
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-diff",
+			"-list=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		expectedOutput := ""
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
 	t.Run("explicit -write=true option is silently ignored when using the check option", func(t *testing.T) {
 		t.Parallel()
 		tempDir := fmtFixtureWriteDir(t)
