@@ -585,32 +585,138 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 }
 
 func TestFmt_check(t *testing.T) {
-	t.Parallel()
-	tempDir := fmtFixtureWriteDir(t)
+	t.Run("check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
-	c := &FmtCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
 
-	args := []string{
-		"-check",
-		tempDir,
-	}
-	if code := c.Run(args); code != 3 {
-		t.Fatalf("wrong exit code. expected 3")
-	}
+		args := []string{
+			"-check",
+			"-list=true", // -list defaults to true, but set explicitly here
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
 
-	// Given that we give relative paths back to the user, normalize this temp
-	// dir so that we're comparing against a relative-ized (normalized) path
-	tempDir = c.normalizePath(tempDir)
+		// Given that we give relative paths back to the user, normalize this temp
+		// dir so that we're comparing against a relative-ized (normalized) path
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
 
-	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)
-	}
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\nto be:\n%s", actual, expectedOutput)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("with list disabled", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-list=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		if actual := ui.OutputWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("with diff option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-diff",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf(`%s/main.tf
+--- old/%s/main.tf
++++ new/%s/main.tf
+@@ -1 +1 @@
+-  foo  =  "bar"
++foo = "bar"
+`, tempDir, tempDir, tempDir)
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("explicit -write=true option is silently ignored when using the check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-write=true", // Setting the default value, which is overridden when -check is used
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
 }
 
 // When `fmt` encounters a symlink:
