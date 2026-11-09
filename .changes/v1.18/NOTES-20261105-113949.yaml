@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'state: We refactored how output is produced in `state mv` and `state rm` commands, which may affect the user experience when manipulating large state files. If you experience this, and using a declarative `moved` or `removed` blocks in your configuration is not an option, please open a GitHub issue.'
+time: 2026-11-05T11:39:49.114631Z
+custom:
+    Issue: "39495"

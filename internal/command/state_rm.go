@@ -110,16 +110,10 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	prefix := "Removed "
-	if parsedArgs.DryRun {
-		prefix = "Would remove "
-	}
-
-	var isCount int
+	removals := []string{}
 	ss := state.SyncWrapper()
 	for _, addr := range addrs {
-		isCount++
-		c.Ui.Output(prefix + addr.String())
+		removals = append(removals, addr.String())
 		if !parsedArgs.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
@@ -127,10 +121,24 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if parsedArgs.DryRun {
-		if isCount == 0 {
+		if len(removals) == 0 {
 			c.Ui.Output("Would have removed nothing.")
+		} else {
+			for _, removal := range removals {
+				c.Ui.Output("Would remove " + removal)
+			}
 		}
 		return 0 // This is as far as we go in dry-run mode
+	}
+
+	if len(removals) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// Load the backend
@@ -160,21 +168,13 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(diags) > 0 && isCount != 0 {
-		c.showDiagnostics(diags)
+	for _, removal := range removals {
+		c.Ui.Output("Removed " + removal)
 	}
 
-	if isCount == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid target address",
-			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
-		))
-		c.showDiagnostics(diags)
-		return 1
-	}
+	c.showDiagnostics(diags)
 
-	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", len(removals)))
 	return 0
 }
 

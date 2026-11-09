@@ -131,6 +131,41 @@ func TestStateRm(t *testing.T) {
 			t.Fatalf("bad output: %q", ui.OutputWriter.String())
 		}
 	})
+
+	t.Run("dryrun remove one resource", func(t *testing.T) {
+		statePath := testStateFile(t, state)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &StateRmCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-dry-run",
+			"test_instance.foo",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Test state has been unchanged in dry-run mode
+		testStateOutput(t, statePath, testStateRmOutputOriginal)
+
+		// Test output
+		expectedOutput := "Would remove test_instance.foo\n"
+		if ui.OutputWriter.String() != expectedOutput {
+			t.Fatalf("bad output: %q", ui.OutputWriter.String())
+		}
+	})
 }
 
 func TestStateRm_stateStore(t *testing.T) {
