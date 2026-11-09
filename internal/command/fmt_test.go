@@ -584,6 +584,43 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	}
 }
 
+// If a user has set options to prevent the command from producing output, either by:
+// - list=false : Won't list files that need formatting
+// - diff=false : Won't show diffs for files that changed
+// - write=false : Won't write changes to files
+// In these cases, the command falls back to printing the formatted content to stdout.
+func TestFmt_formattedResultFallbackOutput(t *testing.T) {
+	t.Parallel()
+	tempDir := fmtFixtureWriteDir(t)
+
+	ui := testUiWrapped(t)
+	c := &FmtCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-list=false",
+		"-diff=false",
+		"-write=false",
+		tempDir,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. expected 0")
+	}
+
+	expectedOutput := "foo = \"bar\"\n"
+
+	if actual := ui.OutputWriter.String(); actual != expectedOutput {
+		t.Fatalf("expected:\n%s\n\nto be:\n%s", actual, expectedOutput)
+	}
+	if actual := ui.ErrorWriter.String(); actual != "" {
+		t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+	}
+}
+
 func TestFmt_check(t *testing.T) {
 	t.Run("check option", func(t *testing.T) {
 		t.Parallel()
