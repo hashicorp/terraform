@@ -789,6 +789,39 @@ func TestFmt_check(t *testing.T) {
 			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
 		}
 	})
+
+	t.Run("all outputs disabled, alongside -check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-write=false",
+			"-list=false",
+			"-diff=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		expectedOutput := ""
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
 }
 
 // When `fmt` encounters a symlink:
