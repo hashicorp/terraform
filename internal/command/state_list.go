@@ -42,12 +42,6 @@ func (c *StateListCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	diags = diags.Append(parseDiags)
-	if diags.HasErrors() {
-		view.Diagnostics(diags)
-		return 1
-	}
-
 	if parsedArgs.StatePath != "" {
 		c.Meta.statePath = parsedArgs.StatePath
 	}
