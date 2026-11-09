@@ -108,7 +108,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			diags = diags.Append(fmt.Errorf("Option -write cannot be used when reading from stdin"))
 			return diags
 		}
-		fileDiags := c.processFile("<stdin>", stdin, stdout, true)
+		fileDiags := c.processFile("<stdin>", stdin, stdout)
 		diags = diags.Append(fileDiags)
 		return diags
 	}
@@ -135,7 +135,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 						continue
 					}
 
-					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+					fileDiags := c.processFile(c.normalizePath(path), f, stdout)
 					diags = diags.Append(fileDiags)
 					f.Close()
 
@@ -157,7 +157,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 	return diags
 }
 
-func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout bool) tfdiags.Diagnostics {
+func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
@@ -261,7 +261,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 					continue
 				}
 
-				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
+				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout)
 				diags = diags.Append(fileDiags)
 				f.Close()
 
