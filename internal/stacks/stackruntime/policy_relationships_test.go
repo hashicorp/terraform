@@ -152,7 +152,8 @@ func relationshipsTestProviders(t *testing.T) map[addrs.Provider]providers.Facto
 }
 
 // The block and the bucket are in different components; the deployment
-// relates them, with component-qualified addresses.
+// relates them, with component-qualified addresses. Every value is known, so
+// the plan has every member.
 func TestPlan_PolicyRelationshipsAcrossComponents(t *testing.T) {
 	ctx := context.Background()
 	client := newRelationshipsTestClient(t)
@@ -167,11 +168,11 @@ func TestPlan_PolicyRelationshipsAcrossComponents(t *testing.T) {
 
 	want := map[string][]string{
 		"component.block.testing_deferred_resource.block CREATE": {
-			"block_bucket PLAN",
+			"block_bucket COMPLETE",
 			"  component.bucket.testing_resource.bucket CREATE",
 		},
 		"component.bucket.testing_resource.bucket CREATE": {
-			"block_bucket PLAN",
+			"block_bucket COMPLETE",
 			"  component.block.testing_deferred_resource.block CREATE",
 		},
 	}
@@ -384,22 +385,22 @@ func TestPlan_PolicyRelationshipsProviderInstances(t *testing.T) {
 
 	want := map[string][]string{
 		"component.a1.testing_resource.bucket CREATE": {
-			"same_bucket PLAN",
+			"same_bucket COMPLETE",
 			"  component.a2.testing_resource.bucket CREATE",
 			"  component.same_as_a.testing_resource.bucket CREATE",
 		},
 		"component.a2.testing_resource.bucket CREATE": {
-			"same_bucket PLAN",
+			"same_bucket COMPLETE",
 			"  component.a1.testing_resource.bucket CREATE",
 			"  component.same_as_a.testing_resource.bucket CREATE",
 		},
 		"component.same_as_a.testing_resource.bucket CREATE": {
-			"same_bucket PLAN",
+			"same_bucket COMPLETE",
 			"  component.a1.testing_resource.bucket CREATE",
 			"  component.a2.testing_resource.bucket CREATE",
 		},
 		"component.keyed.testing_resource.bucket CREATE": {
-			"same_bucket PLAN",
+			"same_bucket COMPLETE",
 		},
 	}
 	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {

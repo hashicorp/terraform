@@ -194,6 +194,16 @@ func (b policyBag) holds(o policyBag) bool {
 	return false
 }
 
+// fails returns true if a key that doesn't hold certainly fails: one side is
+// empty, or both sides are wholly known (contract §3.5).
+func (b policyBag) fails(o policyBag) bool {
+	return b.empty() || o.empty() || (!b.unknown && !o.unknown)
+}
+
+func (b policyBag) empty() bool {
+	return len(b.known) == 0 && !b.unknown
+}
+
 // PolicyInstances are the instances of a walk that relationships can relate.
 type PolicyInstances struct {
 	objects []*policyObject
@@ -380,44 +390,70 @@ func (r *PolicyRelations) related(from *policyObject, hops []*proto.Relationship
 		}
 
 		key := policyTypeKey{source: from.typ.source, typ: memberType}
+		undecided := false
 		for _, obj := range r.objects[key] {
-			if obj.addr == from.addr || !from.provider.same(obj.provider) || !policyMatches(def, fromIsKey, from, obj) {
+			if obj.addr == from.addr || from.provider.differs(obj.provider) {
 				continue
 			}
-			member := obj.member()
-			member.Related = r.related(obj, hop.Hops)
-			members.Members = append(members.Members, member)
+			match := policyMatches(def, fromIsKey, from, obj)
+			if match == policyRelated && from.provider.same(obj.provider) {
+				member := obj.member()
+				member.Related = r.related(obj, hop.Hops)
+				members.Members = append(members.Members, member)
+			} else if match != policyUnrelated {
+				undecided = true
+			}
 		}
-		members.Completeness, members.Deferred = r.completeness(key, from)
+		members.Completeness, members.Deferred = r.completeness(key, from, undecided)
 	}
 	return ret
 }
 
-// policyMatches returns true if every key of some alternative of a
-// definition holds between from and m.
-func policyMatches(def *proto.RelationshipDefinition, fromIsKey bool, from, m *policyObject) bool {
+// policyMatch is how a candidate relates to the instance a hop is walked
+// from.
+type policyMatch int
+
+const (
+	policyUnrelated policyMatch = iota
+	// policyUndecided: not related, but could be after apply.
+	policyUndecided
+	policyRelated
+)
+
+// policyMatches returns policyRelated if every key of some alternative of a
+// definition holds between from and m, and policyUndecided if no key of some
+// alternative certainly fails.
+func policyMatches(def *proto.RelationshipDefinition, fromIsKey bool, from, m *policyObject) policyMatch {
+	ret := policyUnrelated
 	for _, alt := range def.Match {
-		holds := true
+		match := policyRelated
 		for _, key := range alt.Keys {
 			fromPath, mPath := key.KeyPath, key.ValuePath
 			if !fromIsKey {
 				fromPath, mPath = mPath, fromPath
 			}
-			if !from.bag(policyKeyPathNames(fromPath)).holds(m.bag(policyKeyPathNames(mPath))) {
-				holds = false
+			fromBag, mBag := from.bag(policyKeyPathNames(fromPath)), m.bag(policyKeyPathNames(mPath))
+			if fromBag.holds(mBag) {
+				continue
+			}
+			if fromBag.fails(mBag) {
+				match = policyUnrelated
 				break
 			}
+			match = policyUndecided
 		}
-		if holds {
-			return true
+		ret = max(ret, match)
+		if ret == policyRelated {
+			break
 		}
 	}
-	return false
+	return ret
 }
 
 // completeness returns the completeness of a hop to the given type walked
-// from an instance, and the deferred addresses with DEFERRED.
-func (r *PolicyRelations) completeness(key policyTypeKey, from *policyObject) (proto.Completeness, []string) {
+// from an instance, and the deferred addresses with DEFERRED. undecided is
+// set if a candidate is undecided.
+func (r *PolicyRelations) completeness(key policyTypeKey, from *policyObject, undecided bool) (proto.Completeness, []string) {
 	if r.errored || r.erroredT[key] {
 		return proto.Completeness_ERROR_COMPLETENESS, nil
 	}
@@ -431,7 +467,7 @@ func (r *PolicyRelations) completeness(key policyTypeKey, from *policyObject) (p
 		sort.Strings(deferred)
 		return proto.Completeness_DEFERRED_COMPLETENESS, deferred
 	}
-	if r.plan {
+	if r.plan && undecided {
 		return proto.Completeness_PLAN_COMPLETENESS, nil
 	}
 	return proto.Completeness_COMPLETE_COMPLETENESS, nil

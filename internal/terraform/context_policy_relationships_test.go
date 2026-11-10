@@ -366,6 +366,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 		wantErrors bool
 		want       map[string][]string
 	}{
+		// A plan with every candidate decided has every member.
 		"known values": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -387,14 +388,38 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 			},
 			rels: relVMNet(),
 			want: map[string][]string{
-				"test_net.a NO_OP":    {"vm_net PLAN", "  test_vm.v CREATE attrs"},
-				"test_net.b NO_OP":    {"vm_net PLAN"},
-				"test_vm.v CREATE":    {"vm_net PLAN", "  test_net.a NO_OP attrs prior"},
-				"test_vm.none CREATE": {"vm_net PLAN"},
+				"test_net.a NO_OP":    {"vm_net COMPLETE", "  test_vm.v CREATE attrs"},
+				"test_net.b NO_OP":    {"vm_net COMPLETE"},
+				"test_vm.v CREATE":    {"vm_net COMPLETE", "  test_net.a NO_OP attrs prior"},
+				"test_vm.none CREATE": {"vm_net COMPLETE"},
+			},
+		},
+		// A candidate is undecided if no key of some alternative certainly
+		// fails. A key with an empty side certainly fails.
+		"undecided": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "new" {
+					name = "new"
+				}
+				resource "test_vm" "v" {
+					net_id = "a-id"
+				}
+				resource "test_vm" "none" {
+					name = "none"
+				}
+			`},
+			rels: policy.Relationships{
+				Definitions: relVMNet().Definitions,
+				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
+			},
+			want: map[string][]string{
+				"test_vm.v CREATE":    {"vm_net PLAN"},
+				"test_vm.none CREATE": {"vm_net COMPLETE"},
 			},
 		},
 		// Unknown values relate nothing, but a reference relates the
-		// instance to the value it refers to.
+		// instance to the value it refers to. Unknown values that don't
+		// share an origin are undecided.
 		"origins": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -447,11 +472,12 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 				Usages:      []*proto.RelationshipUsage{relUsage("test_net", relHop("vm_net"))},
 			},
 			want: map[string][]string{
-				"test_net.a NO_OP": {"vm_net PLAN", "  test_vm.both CREATE attrs"},
+				"test_net.a NO_OP": {"vm_net COMPLETE", "  test_vm.both CREATE attrs"},
 			},
 		},
 		// Instances are related only with the same provider configuration:
-		// the same address, or known and equal values.
+		// the same address, or known and equal values. An unknown provider
+		// configuration leaves a candidate undecided.
 		"provider rule": {
 			files: map[string]string{"main.tf": `
 				provider "test" {
@@ -523,16 +549,16 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 			},
 			want: map[string][]string{
 				"test_vm.v CREATE": {
-					"vm_net PLAN",
+					"vm_net COMPLETE",
 					"  test_net.a CREATE attrs",
-					"    vm_net PLAN",
+					"    vm_net COMPLETE",
 					"      test_vm.v CREATE attrs",
 					"      test_vm.w CREATE attrs",
 				},
 				"test_vm.w CREATE": {
-					"vm_net PLAN",
+					"vm_net COMPLETE",
 					"  test_net.a CREATE attrs",
-					"    vm_net PLAN",
+					"    vm_net COMPLETE",
 					"      test_vm.v CREATE attrs",
 					"      test_vm.w CREATE attrs",
 				},
@@ -554,12 +580,13 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("zone"))},
 			},
 			want: map[string][]string{
-				"test_vm.a CREATE": {"zone PLAN", "  test_vm.b CREATE attrs"},
-				"test_vm.b CREATE": {"zone PLAN", "  test_vm.a CREATE attrs"},
+				"test_vm.a CREATE": {"zone COMPLETE", "  test_vm.b CREATE attrs"},
+				"test_vm.b CREATE": {"zone COMPLETE", "  test_vm.a CREATE attrs"},
 			},
 		},
 		// Deletes, the old objects of replaces and deposed objects are
-		// members with their prior values.
+		// members with their prior values. The replacement of test_net.r is
+		// undecided.
 		"deletes, replaces and deposed objects": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "r" {
@@ -623,7 +650,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 			},
 			rels: relVMNet(),
 			want: map[string][]string{
-				"test_vm.v CREATE": {"vm_net PLAN", "  test_net.a NO_OP attrs"},
+				"test_vm.v CREATE": {"vm_net COMPLETE", "  test_net.a NO_OP attrs"},
 			},
 		},
 		"deferred": {
