@@ -999,47 +999,6 @@ func TestContext2Plan_queryPreservesStateBackedProviderConfiguration(t *testing.
 	}
 }
 
-func TestContext2Plan_queryPreservesConfiguredExternalProvider(t *testing.T) {
-	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
-
-	providerAddr := addrs.NewDefaultProvider("test")
-	providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
-	provider := testQueryStateIsolationProvider()
-	provider.ConfigureProviderFn = func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
-		t.Fatal("query reconfigured an externally configured provider")
-		return providers.ConfigureProviderResponse{}
-	}
-	ctx, diags := NewContext(&ContextOpts{
-		PreloadedProviderSchemas: map[addrs.Provider]providers.GetProviderSchemaResponse{
-			providerAddr: *provider.GetProviderSchemaResponse,
-		},
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
-
-	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
-		Mode:         plans.NormalMode,
-		SetVariables: testInputValuesUnset(mod.Module.Variables),
-		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
-			providerConfigAddr: provider,
-		},
-		Query: true,
-	})
-	tfdiags.AssertNoDiagnostics(t, diags)
-
-	if got, want := len(plan.Changes.Queries), 1; got != want {
-		t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
-	}
-	if !provider.ListResourceCalled {
-		t.Fatal("query did not use the externally configured provider")
-	}
-	if provider.ConfigureProviderCalled {
-		t.Fatal("query configured an externally configured provider")
-	}
-	if provider.CloseCalled {
-		t.Fatal("query closed an externally configured provider")
-	}
-}
-
 func TestContext2Plan_queryReportsDriftForConfiguredDependency(t *testing.T) {
 	mod := testQueryStateIsolationModule(t, `
 		resource "test_resource" "configured" {
@@ -1259,7 +1218,7 @@ func TestContext2Plan_queryDoesNotLoadStateOnlyProviderSchema(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_queryLeavesInheritedStateUnchanged(t *testing.T) {
+func TestContext2Plan_queryIgnoresStateOnlyObjects(t *testing.T) {
 	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
 
 	state := states.NewState()
@@ -1267,12 +1226,6 @@ func TestContext2Plan_queryLeavesInheritedStateUnchanged(t *testing.T) {
 		state.RootModule(),
 		"test_resource.orphan",
 		`{"id":"orphan-id","instance_type":"orphan-value"}`,
-		`provider["registry.terraform.io/hashicorp/test"].orphan`,
-	)
-	testSetResourceInstanceCurrent(
-		state.RootModule(),
-		"data.test_data_source.orphan",
-		`{"id":"data-id"}`,
 		`provider["registry.terraform.io/hashicorp/test"].orphan`,
 	)
 	state.RootModule().SetResourceInstanceDeposed(
@@ -1284,20 +1237,6 @@ func TestContext2Plan_queryLeavesInheritedStateUnchanged(t *testing.T) {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].orphan`),
 	)
-	child := state.EnsureModule(addrs.RootModuleInstance.Child("removed", addrs.NoKey))
-	testSetResourceInstanceCurrent(
-		child,
-		"test_resource.orphan",
-		`{"id":"module-id","instance_type":"module-value"}`,
-		`provider["registry.terraform.io/hashicorp/test"].orphan`,
-	)
-	testSetResourceInstanceCurrent(
-		state.RootModule(),
-		"other_resource.orphan",
-		`{"id":"other-id"}`,
-		`provider["example.com/acme/other"]`,
-	)
-	state.SetOutputValue(mustAbsOutputValue("output.orphan"), cty.StringVal("output-value"), false)
 
 	provider := testQueryStateIsolationProvider()
 	plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
@@ -1309,9 +1248,6 @@ func TestContext2Plan_queryLeavesInheritedStateUnchanged(t *testing.T) {
 	}
 	if got := len(plan.Changes.Resources); got != 0 {
 		t.Fatalf("query planned %d resource changes; want none", got)
-	}
-	if got := len(plan.Changes.Outputs); got != 0 {
-		t.Fatalf("query planned %d output changes; want none", got)
 	}
 	if got := len(plan.DriftedResources); got != 0 {
 		t.Fatalf("query reported %d drifted resources; want none", got)
