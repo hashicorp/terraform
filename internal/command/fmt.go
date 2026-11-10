@@ -42,6 +42,10 @@ type FmtCommand struct {
 	check     bool
 	recursive bool
 	input     io.Reader // STDIN if nil
+
+	// Boolean indicates if any files need formatting changes.
+	// This is used to determine the exit code when the -check option is used.
+	formattingChangesFound bool
 }
 
 func (c *FmtCommand) Run(args []string) int {
@@ -65,18 +69,12 @@ func (c *FmtCommand) Run(args []string) int {
 	c.check = parsedArgs.Check
 	c.recursive = parsedArgs.Recursive
 
-	var output io.Writer
-	list := c.list // preserve the original value of -list
 	if c.check {
-		// set to true so we can use the list output to check
-		// if the input needs formatting
-		c.list = true
+		// check is a read-only operation
 		c.write = false
-		output = &bytes.Buffer{}
-	} else {
-		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
+	var output io.Writer = &cli.UiWriter{Ui: c.Ui}
 	fileDiags := c.fmt(parsedArgs.Paths, c.input, output)
 	diags = diags.Append(fileDiags)
 	c.showDiagnostics(diags)
@@ -85,15 +83,10 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	if c.check {
-		buf := output.(*bytes.Buffer)
-		ok := buf.Len() == 0
-		if list {
-			io.Copy(&cli.UiWriter{Ui: c.Ui}, buf)
-		}
-		if ok {
-			return 0
-		} else {
+		if c.formattingChangesFound {
 			return 3
+		} else {
+			return 0
 		}
 	}
 
@@ -185,6 +178,8 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer) tfdiags.
 
 	if !bytes.Equal(src, result) {
 		// Something was changed
+		c.formattingChangesFound = true
+
 		if c.list {
 			fmt.Fprintln(w, path)
 		}
