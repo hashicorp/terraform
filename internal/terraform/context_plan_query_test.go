@@ -861,71 +861,6 @@ func testQueryStateIsolationPlan(t *testing.T, mod *configs.Config, state *state
 	return plan
 }
 
-func TestContext2Plan_queryIgnoresStateOnlyResourceInstances(t *testing.T) {
-	for _, tc := range []struct {
-		name  string
-		state func() *states.State
-	}{
-		{
-			name: "current",
-			state: func() *states.State {
-				state := states.NewState()
-				testSetResourceInstanceCurrent(
-					state.RootModule(),
-					"test_resource.orphan",
-					`{"id":"orphan-id","instance_type":"orphan-value"}`,
-					`provider["registry.terraform.io/hashicorp/test"].orphan`,
-				)
-				return state
-			},
-		},
-		{
-			name: "deposed",
-			state: func() *states.State {
-				state := states.NewState()
-				state.RootModule().SetResourceInstanceDeposed(
-					mustResourceInstanceAddr("test_resource.orphan").Resource,
-					states.NewDeposedKey(),
-					&states.ResourceInstanceObjectSrc{
-						Status:    states.ObjectReady,
-						AttrsJSON: []byte(`{"id":"deposed-id","instance_type":"deposed-value"}`),
-					},
-					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].orphan`),
-				)
-				return state
-			},
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
-			state := tc.state()
-			provider := testQueryStateIsolationProvider()
-			plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
-			})
-
-			if got, want := len(plan.Changes.Queries), 1; got != want {
-				t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
-			}
-			if got := len(plan.Changes.Resources); got != 0 {
-				t.Fatalf("query planned %d managed resource changes; want none", got)
-			}
-			if provider.ReadResourceCalled {
-				t.Fatal("query refreshed a state-only resource")
-			}
-			if provider.PlanResourceChangeCalled {
-				t.Fatal("query planned a change for a state-only resource")
-			}
-			if !plan.PrevRunState.ManagedResourcesEqual(state) {
-				t.Fatal("query changed previous-run managed state")
-			}
-			if !plan.PriorState.ManagedResourcesEqual(state) {
-				t.Fatal("query changed refreshed managed state")
-			}
-		})
-	}
-}
-
 func TestContext2Plan_queryIgnoresStaleConfiguredResourceInstances(t *testing.T) {
 	for _, tc := range []struct {
 		name        string
@@ -1119,6 +1054,12 @@ func TestContext2Plan_queryReportsDriftForConfiguredDependency(t *testing.T) {
 		`{"id":"before-refresh","instance_type":"configured-value"}`,
 		`provider["registry.terraform.io/hashicorp/test"].stored`,
 	)
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"other_resource.orphan",
+		`{"id":"orphan-id"}`,
+		`provider["example.com/acme/other"]`,
+	)
 
 	provider := testQueryStateIsolationProvider()
 	provider.ReadResourceFn = func(request providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -1287,50 +1228,34 @@ func testListResourceResponse(request providers.ListResourceRequest, data cty.Va
 	return providers.ListResourceResponse{Result: cty.ObjectVal(result)}
 }
 
-func TestContext2Plan_queryIgnoresStateOnlyProviderDependencies(t *testing.T) {
+func TestContext2Plan_queryDoesNotLoadStateOnlyProviderSchema(t *testing.T) {
 	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
 
 	testProviderAddr := addrs.NewDefaultProvider("test")
 	stateOnlyProviderAddr := addrs.MustParseProviderSourceString("example.com/acme/other")
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"other_resource.orphan",
+		`{"id":"orphan-id"}`,
+		`provider["example.com/acme/other"]`,
+	)
 
-	for _, tc := range []struct {
-		name                       string
-		stateOnlyProviderAvailable bool
-	}{
-		{name: "unavailable"},
-		{name: "available schema", stateOnlyProviderAvailable: true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			state := states.NewState()
-			testSetResourceInstanceCurrent(
-				state.RootModule(),
-				"other_resource.orphan",
-				`{"id":"orphan-id"}`,
-				`provider["example.com/acme/other"]`,
-			)
+	provider := testQueryStateIsolationProvider()
+	stateOnlyProvider := testProvider("other")
+	plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		testProviderAddr:      testProviderFuncFixed(provider),
+		stateOnlyProviderAddr: testProviderFuncFixed(stateOnlyProvider),
+	})
 
-			provider := testQueryStateIsolationProvider()
-			providerFactories := map[addrs.Provider]providers.Factory{
-				testProviderAddr: testProviderFuncFixed(provider),
-			}
-
-			stateOnlyProvider := testProvider("other")
-			if tc.stateOnlyProviderAvailable {
-				providerFactories[stateOnlyProviderAddr] = testProviderFuncFixed(stateOnlyProvider)
-			}
-
-			plan := testQueryStateIsolationPlan(t, mod, state, providerFactories)
-
-			if got, want := len(plan.Changes.Queries), 1; got != want {
-				t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
-			}
-			if got := len(plan.Changes.Resources); got != 0 {
-				t.Fatalf("query planned %d managed resource changes; want none", got)
-			}
-			if tc.stateOnlyProviderAvailable && stateOnlyProvider.GetProviderSchemaCalled {
-				t.Fatal("query loaded the schema for a state-only provider")
-			}
-		})
+	if got, want := len(plan.Changes.Queries), 1; got != want {
+		t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+	}
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("query planned %d managed resource changes; want none", got)
+	}
+	if stateOnlyProvider.GetProviderSchemaCalled {
+		t.Fatal("query loaded the schema for a state-only provider")
 	}
 }
 

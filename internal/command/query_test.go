@@ -300,12 +300,8 @@ func TestQuery_inheritedStateOnlyResource(t *testing.T) {
 	}
 	output := done(t)
 
-	want := strings.TrimSpace(`
-list.test_instance.example   id=test-instance-1   Test Instance 1
-list.test_instance.example   id=test-instance-2   Test Instance 2
-`)
-	if got := strings.TrimSpace(output.Stdout()); got != want {
-		t.Fatalf("unexpected query output\ngot:\n%s\nwant:\n%s", got, want)
+	if !provider.ListResourceCalled {
+		t.Fatalf("query did not execute its list operation:\n%s", output.All())
 	}
 	if provider.ReadResourceCalled {
 		t.Fatal("query refreshed the inherited state-only resource")

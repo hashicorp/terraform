@@ -908,7 +908,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	walker.RefreshState.RemovePlannedResourceInstanceObjects()
 	priorState := walker.RefreshState.Close()
 
-	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
+	configOnlyDrift := opts.Query && opts.Mode == plans.NormalMode
+	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults, configOnlyDrift)
 	diags = diags.Append(driftDiags)
 
 	var forgottenResources []string
@@ -1162,7 +1163,10 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 // report. This is known to happen when targeting a subset of resources,
 // because the excluded instances will have been removed from the plan and
 // not upgraded.
-func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+//
+// If configOnly is set, objects without a corresponding resource
+// configuration are excluded along with their provider schemas.
+func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults, configOnly bool) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if newState.ManagedResourcesEqual(oldState) && moves.Changes.Len() == 0 {
@@ -1171,7 +1175,13 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 		return nil, diags
 	}
 
-	schemas, schemaDiags := c.Schemas(config, newState)
+	schemaState := newState
+	if configOnly {
+		// Loading schemas from the full state would impose providers needed only
+		// by unrelated objects.
+		schemaState = nil
+	}
+	schemas, schemaDiags := c.Schemas(config, schemaState)
 	diags = diags.Append(schemaDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -1184,6 +1194,14 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
 				// Drift reporting is only for managed resources
 				continue
+			}
+			if configOnly {
+				moduleConfig := config.DescendantForInstance(rs.Addr.Module)
+				if moduleConfig == nil || moduleConfig.Module.ResourceByAddr(rs.Addr.Resource) == nil {
+					// A config-only schema load is used by query plans, where
+					// objects represented only in state are not drift candidates.
+					continue
+				}
 			}
 
 			provider := rs.ProviderConfig.Provider
