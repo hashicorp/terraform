@@ -258,6 +258,77 @@ this variable.
 	}
 }
 
+func TestQuery_inheritedStateOnlyResource(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("query", "inherited-state")), td)
+	t.Chdir(td)
+
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	provider := queryFixtureProvider()
+	view, done := testView(t)
+	meta := Meta{
+		testingOverrides:          metaOverridesForProvider(provider),
+		View:                      view,
+		AllowExperimentalFeatures: true,
+		ProviderSource:            providerSource,
+	}
+
+	init := &InitCommand{Meta: meta}
+	if code := init.Run(nil); code != 0 {
+		output := done(t)
+		t.Fatalf("init failed with status %d:\n%s", code, output.All())
+	}
+	done(t)
+
+	stateBefore, err := os.ReadFile("terraform.tfstate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider.ReadResourceCalled = false
+	provider.PlanResourceChangeCalled = false
+	provider.UpgradeResourceStateCalled = false
+	provider.MoveResourceStateCalled = false
+
+	view, done = testView(t)
+	meta.View = view
+	query := &QueryCommand{Meta: meta}
+	if code := query.Run([]string{"-no-color"}); code != 0 {
+		output := done(t)
+		t.Fatalf("query failed with status %d:\n%s", code, output.All())
+	}
+	output := done(t)
+
+	want := strings.TrimSpace(`
+list.test_instance.example   id=test-instance-1   Test Instance 1
+list.test_instance.example   id=test-instance-2   Test Instance 2
+`)
+	if got := strings.TrimSpace(output.Stdout()); got != want {
+		t.Fatalf("unexpected query output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+	if provider.ReadResourceCalled {
+		t.Fatal("query refreshed the inherited state-only resource")
+	}
+	if provider.PlanResourceChangeCalled {
+		t.Fatal("query planned a change for the inherited state-only resource")
+	}
+	if provider.UpgradeResourceStateCalled {
+		t.Fatal("query upgraded the inherited state-only resource")
+	}
+	if provider.MoveResourceStateCalled {
+		t.Fatal("query moved the inherited state-only resource")
+	}
+
+	stateAfter, err := os.ReadFile("terraform.tfstate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(string(stateBefore), string(stateAfter)); diff != "" {
+		t.Fatalf("query changed inherited state (-before +after):\n%s", diff)
+	}
+}
+
 // TestQuery_varFileDuplicateAttr is a regression test for a bug where a
 // -var-file containing a duplicated attribute would print an error diagnostic
 // but still exit 0, silently discarding the file and falling back to other

@@ -26,9 +26,17 @@ type StateTransformer struct {
 	ConcreteDeposed ConcreteResourceInstanceDeposedNodeFunc
 
 	State *states.State
+
+	// skip suppresses state-only reconciliation nodes. Configured resource
+	// nodes can still receive prior state through AttachStateTransformer.
+	skip bool
 }
 
 func (t *StateTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	if t.State == nil {
 		log.Printf("[TRACE] StateTransformer: state is nil, so nothing to do")
 		return nil

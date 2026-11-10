@@ -233,10 +233,18 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 			Mode: plans.NormalMode,
 		}
 	}
+	queryPlan := opts.Query && opts.Mode == plans.NormalMode
 
 	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
-	moreDiags = c.checkStateDependencies(prevRunState)
+	providerState := prevRunState
+	if queryPlan {
+		// State-only objects cannot participate in query execution. Providers
+		// needed by configured query dependencies are covered by the config
+		// dependency check above.
+		providerState = nil
+	}
+	moreDiags = c.checkStateDependencies(providerState)
 	diags = diags.Append(moreDiags)
 
 	// If required dependencies are not available then we'll bail early since
@@ -246,7 +254,7 @@ func (c *Context) PlanAndEval(config *configs.Config, prevRunState *states.State
 		return nil, nil, diags
 	}
 
-	providerCfgDiags := checkExternalProviders(config, nil, prevRunState, opts.ExternalProviders)
+	providerCfgDiags := checkExternalProviders(config, nil, providerState, opts.ExternalProviders)
 	diags = diags.Append(providerCfgDiags)
 	if providerCfgDiags.HasErrors() {
 		return nil, nil, diags
@@ -459,7 +467,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 	}
 
 	if plan != nil {
-		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+		relevantState := plan.PriorState
+		if queryPlan {
+			// Query changes can refer only to configured objects, whose provider
+			// schemas are available through the configuration.
+			relevantState = nil
+		}
+		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan, relevantState)
 		diags = diags.Append(rDiags)
 		plan.RelevantAttributes = relevantAttrs
 	}
@@ -659,7 +673,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = prevRunState
 	}
 
-	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan, destroyPlan.PriorState)
 	diags = diags.Append(rDiags)
 
 	destroyPlan.RelevantAttributes = relevantAttrs
@@ -911,7 +925,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 			fmt.Sprintf("If you apply this plan, Terraform will discard its tracking information for the following objects, but it will not delete them:\n%s\n\nAfter applying this plan, Terraform will no longer manage these objects. You will need to import them into Terraform to manage them again.", strings.Join(forgottenResources, "\n")),
 		))
 	}
-	schemas, schemaDiags := c.Schemas(config, prevRunState)
+	schemaState := prevRunState
+	if opts.Query && opts.Mode == plans.NormalMode {
+		// Query changes are configuration-derived. Loading schemas from the
+		// full state would impose providers needed only by unrelated objects.
+		schemaState = nil
+	}
+	schemas, schemaDiags := c.Schemas(config, schemaState)
 	// We must finish building a plan object, and cannot return early here.
 	var changesSrc *plans.ChangesSrc
 	var err error
@@ -1335,8 +1355,8 @@ func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State)
 
 // relevantResourcesForPlan implements the heuristic we use to populate the
 // RelevantResources field of returned plans.
-func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
-	azr, diags := c.referenceAnalyzer(config, plan.PriorState)
+func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan, state *states.State) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
+	azr, diags := c.referenceAnalyzer(config, state)
 	if diags.HasErrors() {
 		return nil, diags
 	}

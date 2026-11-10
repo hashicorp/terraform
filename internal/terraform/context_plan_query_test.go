@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	provider_testing "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty-debug/ctydebug"
@@ -802,6 +803,611 @@ func TestContext2Plan_queryList(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+const queryStateIsolationRequiredProvider = `
+	terraform {
+		required_providers {
+			test = {
+				source  = "hashicorp/test"
+				version = "1.0.0"
+			}
+		}
+	}
+`
+
+func testQueryStateIsolationModule(t *testing.T, mainBody, providerRef, queryAttr string) *configs.Config {
+	t.Helper()
+	return testQueryStateIsolationModuleFiles(t, map[string]string{"main.tf": mainBody}, providerRef, queryAttr)
+}
+
+func testQueryStateIsolationModuleFiles(t *testing.T, configFiles map[string]string, providerRef, queryAttr string) *configs.Config {
+	t.Helper()
+	configFiles = maps.Clone(configFiles)
+	configFiles["main.tf"] = queryStateIsolationRequiredProvider + configFiles["main.tf"]
+	configFiles["main.tfquery.hcl"] = fmt.Sprintf(`
+			list "test_resource" "test" {
+				provider = %s
+
+				config {
+					filter = {
+						attr = %s
+					}
+				}
+			}
+		`, providerRef, queryAttr)
+	return testModuleInline(t, configFiles, configs.MatchQueryFiles())
+}
+
+func testQueryStateIsolationProvider() *provider_testing.MockProvider {
+	provider := testProvider("test")
+	provider.GetProviderSchemaResponse = getListProviderSchemaResp()
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		return testListResourceResponse(request, cty.EmptyTupleVal)
+	}
+	return provider
+}
+
+func testQueryStateIsolationPlan(t *testing.T, mod *configs.Config, state *states.State, providerFactories map[addrs.Provider]providers.Factory) *plans.Plan {
+	t.Helper()
+	ctx := testContext2(t, &ContextOpts{Providers: providerFactories})
+	plan, diags := ctx.Plan(mod, state, &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		Query:        true,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+	return plan
+}
+
+func TestContext2Plan_queryIgnoresStateOnlyResourceInstances(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		state func() *states.State
+	}{
+		{
+			name: "current",
+			state: func() *states.State {
+				state := states.NewState()
+				testSetResourceInstanceCurrent(
+					state.RootModule(),
+					"test_resource.orphan",
+					`{"id":"orphan-id","instance_type":"orphan-value"}`,
+					`provider["registry.terraform.io/hashicorp/test"].orphan`,
+				)
+				return state
+			},
+		},
+		{
+			name: "deposed",
+			state: func() *states.State {
+				state := states.NewState()
+				state.RootModule().SetResourceInstanceDeposed(
+					mustResourceInstanceAddr("test_resource.orphan").Resource,
+					states.NewDeposedKey(),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"deposed-id","instance_type":"deposed-value"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].orphan`),
+				)
+				return state
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
+			state := tc.state()
+			provider := testQueryStateIsolationProvider()
+			plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+			})
+
+			if got, want := len(plan.Changes.Queries), 1; got != want {
+				t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+			}
+			if got := len(plan.Changes.Resources); got != 0 {
+				t.Fatalf("query planned %d managed resource changes; want none", got)
+			}
+			if provider.ReadResourceCalled {
+				t.Fatal("query refreshed a state-only resource")
+			}
+			if provider.PlanResourceChangeCalled {
+				t.Fatal("query planned a change for a state-only resource")
+			}
+			if !plan.PrevRunState.ManagedResourcesEqual(state) {
+				t.Fatal("query changed previous-run managed state")
+			}
+			if !plan.PriorState.ManagedResourcesEqual(state) {
+				t.Fatal("query changed refreshed managed state")
+			}
+		})
+	}
+}
+
+func TestContext2Plan_queryIgnoresStaleConfiguredResourceInstances(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		configFiles map[string]string
+		queryAttr   string
+		state       func() *states.State
+	}{
+		{
+			name: "resource instance",
+			configFiles: map[string]string{
+				"main.tf": `
+					resource "test_resource" "configured" {
+						count         = 0
+						instance_type = "configured-value"
+					}
+				`,
+			},
+			queryAttr: `join(",", test_resource.configured[*].id)`,
+			state: func() *states.State {
+				state := states.NewState()
+				testSetResourceInstanceCurrent(
+					state.RootModule(),
+					"test_resource.configured[0]",
+					`{"id":"stale-resource-id","instance_type":"configured-value"}`,
+					`provider["registry.terraform.io/hashicorp/test"]`,
+				)
+				return state
+			},
+		},
+		{
+			name: "module instance",
+			configFiles: map[string]string{
+				"main.tf": `
+					module "child" {
+						source = "./child"
+						count  = 0
+					}
+				`,
+				"child/main.tf": `
+					resource "test_resource" "configured" {
+						instance_type = "configured-value"
+					}
+
+					output "id" {
+						value = test_resource.configured.id
+					}
+				`,
+			},
+			queryAttr: `join(",", module.child[*].id)`,
+			state: func() *states.State {
+				state := states.NewState()
+				child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.IntKey(0)))
+				testSetResourceInstanceCurrent(
+					child,
+					"test_resource.configured",
+					`{"id":"stale-module-id","instance_type":"configured-value"}`,
+					`provider["registry.terraform.io/hashicorp/test"]`,
+				)
+				return state
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mod := testQueryStateIsolationModuleFiles(t, tc.configFiles, "test", tc.queryAttr)
+			state := tc.state()
+			provider := testQueryStateIsolationProvider()
+			plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+			})
+
+			if got, want := len(plan.Changes.Queries), 1; got != want {
+				t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+			}
+			if !provider.ListResourceCalled {
+				t.Fatal("query did not execute its configured list operation")
+			}
+			if got := len(plan.Changes.Resources); got != 0 {
+				t.Fatalf("query planned %d stale resource changes; want none", got)
+			}
+			if got := len(plan.DriftedResources); got != 0 {
+				t.Fatalf("query reported %d stale resources as drifted; want none", got)
+			}
+			if provider.ReadResourceCalled {
+				t.Fatal("query refreshed a stale configured resource instance")
+			}
+			if provider.PlanResourceChangeCalled {
+				t.Fatal("query planned a change for a stale configured resource instance")
+			}
+			if !plan.PrevRunState.Equal(state) {
+				t.Fatal("query changed previous-run state")
+			}
+			if !plan.PriorState.Equal(state) {
+				t.Fatal("query changed refreshed state")
+			}
+		})
+	}
+}
+
+func TestContext2Plan_queryPreservesStateBackedProviderConfiguration(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, `
+		resource "test_resource" "configured" {
+			instance_type = "configured-value"
+		}
+
+		provider "test" {
+			alias  = "state_backed"
+			region = test_resource.configured.id
+		}
+	`, "test.state_backed", `"query-value"`)
+
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"test_resource.configured",
+		`{"id":"state-backed-provider-value","instance_type":"configured-value"}`,
+		`provider["registry.terraform.io/hashicorp/test"]`,
+	)
+
+	provider := testQueryStateIsolationProvider()
+	var configuredWithStateValue bool
+	provider.ConfigureProviderFn = func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+		region := request.Config.GetAttr("region")
+		if region.IsKnown() && !region.IsNull() {
+			if got, want := region.AsString(), "state-backed-provider-value"; got != want {
+				t.Fatalf("wrong state-backed provider argument: got %q, want %q", got, want)
+			}
+			configuredWithStateValue = true
+		}
+		return providers.ConfigureProviderResponse{}
+	}
+	testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+	})
+	if !configuredWithStateValue {
+		t.Fatal("provider was not configured with the computed prior-state value")
+	}
+}
+
+func TestContext2Plan_queryPreservesConfiguredExternalProvider(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
+
+	providerAddr := addrs.NewDefaultProvider("test")
+	providerConfigAddr := addrs.RootProviderConfig{Provider: providerAddr}
+	provider := testQueryStateIsolationProvider()
+	provider.ConfigureProviderFn = func(request providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+		t.Fatal("query reconfigured an externally configured provider")
+		return providers.ConfigureProviderResponse{}
+	}
+	ctx, diags := NewContext(&ContextOpts{
+		PreloadedProviderSchemas: map[addrs.Provider]providers.GetProviderSchemaResponse{
+			providerAddr: *provider.GetProviderSchemaResponse,
+		},
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+		Mode:         plans.NormalMode,
+		SetVariables: testInputValuesUnset(mod.Module.Variables),
+		ExternalProviders: map[addrs.RootProviderConfig]providers.Interface{
+			providerConfigAddr: provider,
+		},
+		Query: true,
+	})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if got, want := len(plan.Changes.Queries), 1; got != want {
+		t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+	}
+	if !provider.ListResourceCalled {
+		t.Fatal("query did not use the externally configured provider")
+	}
+	if provider.ConfigureProviderCalled {
+		t.Fatal("query configured an externally configured provider")
+	}
+	if provider.CloseCalled {
+		t.Fatal("query closed an externally configured provider")
+	}
+}
+
+func TestContext2Plan_queryReportsDriftForConfiguredDependency(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, `
+		resource "test_resource" "configured" {
+			instance_type = "configured-value"
+		}
+	`, "test", "test_resource.configured.id")
+
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"test_resource.configured",
+		`{"id":"before-refresh","instance_type":"configured-value"}`,
+		`provider["registry.terraform.io/hashicorp/test"].stored`,
+	)
+
+	provider := testQueryStateIsolationProvider()
+	provider.ReadResourceFn = func(request providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":            cty.StringVal("after-refresh"),
+				"instance_type": cty.StringVal("configured-value"),
+			}),
+		}
+	}
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		if got, want := request.Config.GetAttr("config").GetAttr("filter").GetAttr("attr").AsString(), "after-refresh"; got != want {
+			t.Fatalf("wrong refreshed list argument: got %q, want %q", got, want)
+		}
+		return testListResourceResponse(request, cty.EmptyTupleVal)
+	}
+	plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+	})
+	if got, want := len(plan.DriftedResources), 1; got != want {
+		t.Fatalf("wrong number of drifted configured dependencies: got %d, want %d", got, want)
+	}
+}
+
+func TestContext2Plan_queryUpgradesStateForConfiguredDependency(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, `
+		resource "test_resource" "configured" {
+			instance_type = "configured-value"
+		}
+	`, "test", "test_resource.configured.id")
+
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"test_resource.configured",
+		`{"id":"upgraded-state-id","instance_type":"configured-value"}`,
+		`provider["registry.terraform.io/hashicorp/test"]`,
+	)
+
+	provider := testQueryStateIsolationProvider()
+	resourceSchema := provider.GetProviderSchemaResponse.ResourceTypes["test_resource"]
+	resourceSchema.Version = 1
+	provider.GetProviderSchemaResponse.ResourceTypes["test_resource"] = resourceSchema
+	var upgraded bool
+	provider.UpgradeResourceStateFn = func(request providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+		if got, want := request.Version, int64(0); got != want {
+			t.Fatalf("wrong prior schema version: got %d, want %d", got, want)
+		}
+		upgraded = true
+		return providers.UpgradeResourceStateResponse{
+			UpgradedState: cty.ObjectVal(map[string]cty.Value{
+				"id":            cty.StringVal("upgraded-state-id"),
+				"instance_type": cty.StringVal("configured-value"),
+			}),
+		}
+	}
+	provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		if got, want := request.Config.GetAttr("config").GetAttr("filter").GetAttr("attr").AsString(), "upgraded-state-id"; got != want {
+			t.Fatalf("wrong upgraded state-backed list argument: got %q, want %q", got, want)
+		}
+		return testListResourceResponse(request, cty.EmptyTupleVal)
+	}
+	testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+	})
+	if !upgraded {
+		t.Fatal("configured dependency state was not upgraded")
+	}
+}
+
+func TestContext2Plan_queryPreservesCrossProviderMovedConfiguredResourceState(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+			terraform {
+				required_providers {
+					one = {
+						source = "hashicorp/one"
+						version = "1.0.0"
+					}
+					test = {
+						source = "hashicorp/test"
+						version = "1.0.0"
+					}
+				}
+			}
+
+			moved {
+				from = one_object.old
+				to   = test_resource.configured
+			}
+
+			resource "test_resource" "configured" {
+				instance_type = "configured-value"
+			}
+		`,
+		"main.tfquery.hcl": `
+			list "test_resource" "test" {
+				provider = test
+
+				config {
+					filter = {
+						attr = test_resource.configured.id
+					}
+				}
+			}
+		`,
+	}, configs.MatchQueryFiles())
+
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"one_object.old",
+		`{"value":"before-move"}`,
+		`provider["registry.terraform.io/hashicorp/one"]`,
+	)
+
+	oneAddr := addrs.NewDefaultProvider("one")
+	one := testProvider("one")
+	one.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"one_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testAddr := addrs.NewDefaultProvider("test")
+	test := testProvider("test")
+	test.GetProviderSchemaResponse = getListProviderSchemaResp()
+	test.GetProviderSchemaResponse.ServerCapabilities.MoveResourceState = true
+	var moved bool
+	test.MoveResourceStateFn = func(request providers.MoveResourceStateRequest) providers.MoveResourceStateResponse {
+		moved = true
+		return providers.MoveResourceStateResponse{
+			TargetState: cty.ObjectVal(map[string]cty.Value{
+				"id":            cty.StringVal("cross-provider-moved-id"),
+				"instance_type": cty.StringVal("configured-value"),
+			}),
+		}
+	}
+	test.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+		if got, want := request.Config.GetAttr("config").GetAttr("filter").GetAttr("attr").AsString(), "cross-provider-moved-id"; got != want {
+			t.Fatalf("wrong cross-provider moved list argument: got %q, want %q", got, want)
+		}
+		return testListResourceResponse(request, cty.EmptyTupleVal)
+	}
+	testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		oneAddr:  testProviderFuncFixed(one),
+		testAddr: testProviderFuncFixed(test),
+	})
+	if !moved {
+		t.Fatal("configured dependency state was not moved between providers")
+	}
+}
+
+func testListResourceResponse(request providers.ListResourceRequest, data cty.Value) providers.ListResourceResponse {
+	result := request.Config.AsValueMap()
+	result["data"] = data
+	return providers.ListResourceResponse{Result: cty.ObjectVal(result)}
+}
+
+func TestContext2Plan_queryIgnoresStateOnlyProviderDependencies(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
+
+	testProviderAddr := addrs.NewDefaultProvider("test")
+	stateOnlyProviderAddr := addrs.MustParseProviderSourceString("example.com/acme/other")
+
+	for _, tc := range []struct {
+		name                       string
+		stateOnlyProviderAvailable bool
+	}{
+		{name: "unavailable"},
+		{name: "available schema", stateOnlyProviderAvailable: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			state := states.NewState()
+			testSetResourceInstanceCurrent(
+				state.RootModule(),
+				"other_resource.orphan",
+				`{"id":"orphan-id"}`,
+				`provider["example.com/acme/other"]`,
+			)
+
+			provider := testQueryStateIsolationProvider()
+			providerFactories := map[addrs.Provider]providers.Factory{
+				testProviderAddr: testProviderFuncFixed(provider),
+			}
+
+			stateOnlyProvider := testProvider("other")
+			if tc.stateOnlyProviderAvailable {
+				providerFactories[stateOnlyProviderAddr] = testProviderFuncFixed(stateOnlyProvider)
+			}
+
+			plan := testQueryStateIsolationPlan(t, mod, state, providerFactories)
+
+			if got, want := len(plan.Changes.Queries), 1; got != want {
+				t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+			}
+			if got := len(plan.Changes.Resources); got != 0 {
+				t.Fatalf("query planned %d managed resource changes; want none", got)
+			}
+			if tc.stateOnlyProviderAvailable && stateOnlyProvider.GetProviderSchemaCalled {
+				t.Fatal("query loaded the schema for a state-only provider")
+			}
+		})
+	}
+}
+
+func TestContext2Plan_queryLeavesInheritedStateUnchanged(t *testing.T) {
+	mod := testQueryStateIsolationModule(t, "", "test", `"query-value"`)
+
+	state := states.NewState()
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"test_resource.orphan",
+		`{"id":"orphan-id","instance_type":"orphan-value"}`,
+		`provider["registry.terraform.io/hashicorp/test"].orphan`,
+	)
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"data.test_data_source.orphan",
+		`{"id":"data-id"}`,
+		`provider["registry.terraform.io/hashicorp/test"].orphan`,
+	)
+	state.RootModule().SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_resource.deposed").Resource,
+		states.NewDeposedKey(),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"deposed-id","instance_type":"deposed-value"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"].orphan`),
+	)
+	child := state.EnsureModule(addrs.RootModuleInstance.Child("removed", addrs.NoKey))
+	testSetResourceInstanceCurrent(
+		child,
+		"test_resource.orphan",
+		`{"id":"module-id","instance_type":"module-value"}`,
+		`provider["registry.terraform.io/hashicorp/test"].orphan`,
+	)
+	testSetResourceInstanceCurrent(
+		state.RootModule(),
+		"other_resource.orphan",
+		`{"id":"other-id"}`,
+		`provider["example.com/acme/other"]`,
+	)
+	state.SetOutputValue(mustAbsOutputValue("output.orphan"), cty.StringVal("output-value"), false)
+
+	provider := testQueryStateIsolationProvider()
+	plan := testQueryStateIsolationPlan(t, mod, state, map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+	})
+
+	if got, want := len(plan.Changes.Queries), 1; got != want {
+		t.Fatalf("wrong number of query changes: got %d, want %d", got, want)
+	}
+	if got := len(plan.Changes.Resources); got != 0 {
+		t.Fatalf("query planned %d resource changes; want none", got)
+	}
+	if got := len(plan.Changes.Outputs); got != 0 {
+		t.Fatalf("query planned %d output changes; want none", got)
+	}
+	if got := len(plan.DriftedResources); got != 0 {
+		t.Fatalf("query reported %d drifted resources; want none", got)
+	}
+	if provider.ReadResourceCalled {
+		t.Fatal("query refreshed inherited state")
+	}
+	if provider.PlanResourceChangeCalled {
+		t.Fatal("query planned a change for inherited state")
+	}
+	if provider.UpgradeResourceStateCalled {
+		t.Fatal("query upgraded inherited state")
+	}
+	if provider.MoveResourceStateCalled {
+		t.Fatal("query moved inherited state")
+	}
+	if !plan.PrevRunState.Equal(state) {
+		t.Fatal("query changed previous-run state")
+	}
+	if !plan.PriorState.Equal(state) {
+		t.Fatal("query changed refreshed state")
 	}
 }
 
