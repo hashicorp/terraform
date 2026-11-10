@@ -90,10 +90,13 @@ type Main struct {
 	providerFunctionResults *lang.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 
-	// policyRun is the deployment's relationship run, once policyRunInit is
-	// set; see Main.PolicyRun.
-	policyRun     *policyRun
-	policyRunInit bool
+	// policyRun relates instances across the deployment's component
+	// instances; nil if the deployment has no relationships. See
+	// Main.validatePolicyRelationships.
+	policyRun *policyRun
+	// policyInvalid is set if the policy client's relationship definitions
+	// are invalid, which fails the operation before it walks.
+	policyInvalid bool
 }
 
 type mainValidating struct {

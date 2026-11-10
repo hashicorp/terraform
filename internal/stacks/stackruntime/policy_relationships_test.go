@@ -5,12 +5,11 @@ package stackruntime
 
 import (
 	"context"
-	"fmt"
-	"slices"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -21,77 +20,78 @@ import (
 	policyproto "github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	stacks_testing_provider "github.com/hashicorp/terraform/internal/stacks/stackruntime/testing"
+	"github.com/hashicorp/terraform/internal/stacks/stackstate"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// relationshipsTestClient is a policy client with relationships whose fake
-// relationship policy requires every testing_deferred_resource (the "block")
-// to have a testing_resource (the "bucket") in the same run. Its
-// policy without relationships calls getresources for testing_resource.
+const relationshipsTestProvider = "registry.terraform.io/hashicorp/testing"
+
+// relationshipsTestClient is a policy client with relationships. Its
+// policies call getresources for testing_resource.
 type relationshipsTestClient struct {
 	*policy.MockClient
 
 	mu sync.Mutex
-	// events are the client's calls in order.
-	events []string
 	// getResources counts the testing_resource objects getresources returned
 	// to an evaluation, by its target type.
 	getResources map[string]int
-
-	// failStatuses makes the ReportInstances that carries the statuses
-	// fail with a transport error.
-	failStatuses bool
-	// rejected lists the runs whose statuses failed to report.
-	rejected map[string]bool
-	// byOrigin switches the relationship policy to
-	// blockRelatesToOKBucket.
-	byOrigin bool
 }
 
-const relationshipsTestProvider = "registry.terraform.io/hashicorp/testing"
+func relationshipsTestPath(name string) *policyproto.AttributePath {
+	return &policyproto.AttributePath{Steps: []*policyproto.AttributePath_Step{{Selector: &policyproto.AttributePath_Step_AttributeName{AttributeName: name}}}}
+}
 
+// relationshipsTestDefinition returns a relationship definition of the
+// testing provider whose only key reads keyPath of keyType and valuePath of
+// valueType.
+func relationshipsTestDefinition(name, keyType, keyPath, valueType, valuePath string) *policyproto.RelationshipDefinition {
+	return &policyproto.RelationshipDefinition{
+		ProviderSource: relationshipsTestProvider,
+		Name:           name,
+		KeyResource:    keyType,
+		ValueResource:  valueType,
+		Match: []*policyproto.MatchAlternative{{Keys: []*policyproto.MatchKey{{
+			KeyPath:   relationshipsTestPath(keyPath),
+			ValuePath: relationshipsTestPath(valuePath),
+		}}}},
+		DeclRange: &policyproto.Range{
+			Filename: "relationships.tfpolicy.hcl",
+			Start:    &policyproto.Position{Line: 1, Column: 1},
+			End:      &policyproto.Position{Line: 1, Column: 10, Byte: 9},
+		},
+	}
+}
+
+func relationshipsTestUsage(typ string, relationships ...string) *policyproto.RelationshipUsage {
+	u := &policyproto.RelationshipUsage{ProviderSource: relationshipsTestProvider, Type: typ}
+	for _, r := range relationships {
+		u.Hops = append(u.Hops, &policyproto.RelationshipHop{Relationship: r})
+	}
+	return u
+}
+
+// newRelationshipsTestClient returns a client with relationship
+// "block_bucket": a block (testing_deferred_resource) relates to the buckets
+// (testing_resource) whose id is its value. Policies of both types use it.
 func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 	t.Helper()
 	c := &relationshipsTestClient{
 		MockClient:   policy.NewTestMockClient(t),
 		getResources: make(map[string]int),
-		rejected:     make(map[string]bool),
 	}
-	c.RelationshipsSupportedResponse = true
-	c.BeginRunFn = func(_ context.Context, req *policyproto.BeginRunRequest) (*policyproto.BeginRunResponse, error) {
-		c.log("begin %s %s %s", req.RunId, req.Runtime, req.Stage)
-		return &policyproto.BeginRunResponse{Spec: &policyproto.CollectionSpec{Types: []*policyproto.TypeSpec{
-			{ProviderSource: relationshipsTestProvider, Type: "testing_resource"},
-			{ProviderSource: relationshipsTestProvider, Type: "testing_deferred_resource", KeyPaths: []*policyproto.AttributePath{
-				{Steps: []*policyproto.AttributePath_Step{{Selector: &policyproto.AttributePath_Step_AttributeName{AttributeName: "value"}}}},
-			}},
-		}}}, nil
-	}
-	c.ReportInstancesFn = func(_ context.Context, req *policyproto.ReportInstancesRequest) (*policyproto.ReportInstancesResponse, error) {
-		var addrs []string
-		for _, r := range req.Records {
-			addrs = append(addrs, r.Address)
-		}
-		var statuses []string
-		for _, s := range req.Statuses {
-			statuses = append(statuses, s.Type+"="+s.Completeness.String())
-		}
-		c.log("report %s records=%s statuses=%s", req.RunId, strings.Join(addrs, ","), strings.Join(statuses, ","))
-		if c.failStatuses && len(req.Statuses) > 0 {
-			c.mu.Lock()
-			c.rejected[req.RunId] = true
-			c.mu.Unlock()
-			return nil, fmt.Errorf("connection lost")
-		}
-		return &policyproto.ReportInstancesResponse{}, nil
-	}
-	c.FinishRunFn = func(_ context.Context, req *policyproto.FinishRunRequest) (*policyproto.FinishRunResponse, error) {
-		c.log("finish %s aborted=%t", req.RunId, req.Aborted)
-		return &policyproto.FinishRunResponse{}, nil
+	c.RelationshipsResponse = policy.Relationships{
+		Definitions: []*policyproto.RelationshipDefinition{
+			relationshipsTestDefinition("block_bucket", "testing_deferred_resource", "value", "testing_resource", "id"),
+		},
+		Usages: []*policyproto.RelationshipUsage{
+			relationshipsTestUsage("testing_deferred_resource", "block_bucket"),
+			relationshipsTestUsage("testing_resource", "block_bucket"),
+		},
 	}
 	c.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
-		c.log("evaluate %s %s %s", req.RunID, req.Target, req.Meta.GetAddress())
-		// A policy without relationships that calls getresources.
 		resources, _, err := req.Callbacks.GetResources(ctx, "testing_resource", cty.NullVal(cty.DynamicPseudoType))
 		if err != nil {
 			t.Errorf("getresources failed: %s", err)
@@ -99,87 +99,37 @@ func newRelationshipsTestClient(t *testing.T) *relationshipsTestClient {
 		c.mu.Lock()
 		c.getResources[req.Target] = len(resources)
 		c.mu.Unlock()
-		resp := relationshipsTestResponse(policy.AllowResult, "plain")
-		if req.Target == "testing_deferred_resource" {
-			// The relationship policy, in the same evaluation.
-			result := c.blockHasBucket(req.RunID)
-			if c.byOrigin {
-				result = c.blockRelatesToOKBucket(req.RunID, req.Meta.GetAddress())
-			}
-			resp.Overall = result
-			resp.Policies = append(resp.Policies, mockPolicyObj(result))
-			resp.Enforcements = append(resp.Enforcements, policy.EnforcementResult{Result: result, Message: "block has a bucket"})
+		return policy.EvaluationResponse{
+			Overall:      policy.AllowResult,
+			Policies:     []*policy.Policy{mockPolicyObj(policy.AllowResult)},
+			Enforcements: []policy.EnforcementResult{{Result: policy.AllowResult}},
 		}
-		return resp
 	}
 	return c
 }
 
-func (c *relationshipsTestClient) log(format string, args ...any) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.events = append(c.events, fmt.Sprintf(format, args...))
-}
-
-// blockHasBucket evaluates the relationship policy against the run's
-// reports. EvaluateFn holds the mock's lock, so it can read them.
-func (c *relationshipsTestClient) blockHasBucket(runID string) policy.EvaluateResult {
-	c.mu.Lock()
-	rejected := c.rejected[runID]
-	c.mu.Unlock()
-	if rejected {
-		// Like the engine, fail closed on a run whose data didn't arrive.
-		return policy.PolicyErrorResult
-	}
-	hasBucket := false
-	complete := false
-	for _, req := range c.ReportInstancesRequests {
-		if req.RunId != runID {
-			continue
+// relationshipsTestTrees returns the related trees of every evaluated
+// subject, by "ADDRESS OPERATION": a line per hop, "RELATIONSHIP
+// COMPLETENESS [DEFERRED...]", and per member, "  ADDRESS OPERATION".
+func relationshipsTestTrees(t *testing.T, c *relationshipsTestClient) map[string][]string {
+	t.Helper()
+	ret := make(map[string][]string)
+	for _, req := range c.EvaluateRequests {
+		key := req.Meta.Address + " " + req.Meta.Operation.String()
+		if _, ok := ret[key]; ok {
+			t.Fatalf("subject %s evaluated twice", key)
 		}
-		for _, r := range req.Records {
-			hasBucket = hasBucket || r.Type == "testing_resource"
-		}
-		for _, s := range req.Statuses {
-			if s.Type == "testing_resource" {
-				complete = s.Completeness == policyproto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS
+		lines := []string{}
+		for _, hop := range req.Related {
+			line := []string{hop.Relationship, strings.TrimSuffix(hop.Completeness.String(), "_COMPLETENESS")}
+			lines = append(lines, strings.Join(append(line, hop.Deferred...), " "))
+			for _, m := range hop.Members {
+				lines = append(lines, "  "+m.Address+" "+m.Operation.String())
 			}
 		}
-	}
-	switch {
-	case !complete:
-		return policy.UnknownResult
-	case hasBucket:
-		return policy.AllowResult
-	default:
-		return policy.DenyResult
-	}
-}
-
-func relationshipsTestResponse(result policy.EvaluateResult, message string) policy.EvaluationResponse {
-	return policy.EvaluationResponse{
-		Overall:      result,
-		Policies:     []*policy.Policy{mockPolicyObj(result)},
-		Enforcements: []policy.EnforcementResult{{Result: result, Message: message}},
-	}
-}
-
-func (c *relationshipsTestClient) eventsWithPrefix(prefix string) []string {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	var ret []string
-	for _, e := range c.events {
-		if strings.HasPrefix(e, prefix) {
-			ret = append(ret, e)
-		}
+		ret[key] = lines
 	}
 	return ret
-}
-
-func (c *relationshipsTestClient) indexOf(event string) int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return slices.Index(c.events, event)
 }
 
 func relationshipsTestLocks() depsfile.Locks {
@@ -201,94 +151,13 @@ func relationshipsTestProviders(t *testing.T) map[addrs.Provider]providers.Facto
 	}
 }
 
-// checkDeploymentRun checks that the client saw exactly one STACKS run for
-// the deployment: begun once, its statuses reported once after every
-// component's records, every resource evaluated once only after that,
-// and finished once. It returns the run's id.
-func checkDeploymentRun(t *testing.T, c *relationshipsTestClient, stage policyproto.EvaluationStage) string {
-	t.Helper()
-
-	begins := c.eventsWithPrefix("begin ")
-	if len(begins) != 1 {
-		t.Fatalf("want one run for the deployment, got %d:\n%s", len(begins), strings.Join(c.events, "\n"))
-	}
-	runID := strings.Fields(begins[0])[1]
-	if want := fmt.Sprintf("begin %s %s %s", runID, policyproto.RunRuntime_STACKS_RUN_RUNTIME, stage); begins[0] != want {
-		t.Errorf("wrong BeginRun\ngot:  %s\nwant: %s", begins[0], want)
-	}
-
-	reports := c.eventsWithPrefix("report ")
-	var withStatuses []string
-	var records []string
-	for _, r := range reports {
-		if !strings.HasSuffix(r, "statuses=") {
-			withStatuses = append(withStatuses, r)
-		}
-		if !strings.Contains(r, "records= ") {
-			records = append(records, r)
-		}
-	}
-	wantStatuses := fmt.Sprintf("report %s records= statuses=testing_resource=%s,testing_deferred_resource=%s", runID, policyproto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS, policyproto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS)
-	if len(withStatuses) != 1 || withStatuses[0] != wantStatuses || reports[len(reports)-1] != wantStatuses {
-		t.Fatalf("want the statuses once, in the last report:\n%s\ngot reports:\n%s", wantStatuses, strings.Join(reports, "\n"))
-	}
-	for _, addr := range []string{"component.bucket.testing_resource.bucket", "component.block.testing_deferred_resource.block"} {
-		if !slices.ContainsFunc(records, func(r string) bool { return strings.Contains(r, addr) }) {
-			t.Errorf("no record of %s; reports:\n%s", addr, strings.Join(reports, "\n"))
-		}
-	}
-
-	// Every resource instance is evaluated exactly once, with every policy,
-	// in the run and after its statuses.
-	statusesAt := c.indexOf(wantStatuses)
-	wantEvals := []string{
-		fmt.Sprintf("evaluate %s testing_deferred_resource component.block.testing_deferred_resource.block", runID),
-		fmt.Sprintf("evaluate %s testing_resource component.bucket.testing_resource.bucket", runID),
-	}
-	gotEvals := c.eventsWithPrefix("evaluate ")
-	slices.Sort(gotEvals)
-	if !slices.Equal(gotEvals, wantEvals) {
-		t.Errorf("want one evaluation per resource instance\ngot:  %q\nwant: %q", gotEvals, wantEvals)
-	}
-	for _, e := range wantEvals {
-		if at := c.indexOf(e); at < statusesAt {
-			t.Errorf("want the evaluation %q after the statuses, got:\n%s", e, strings.Join(c.events, "\n"))
-		}
-	}
-
-	finishes := c.eventsWithPrefix("finish ")
-	if want := fmt.Sprintf("finish %s aborted=false", runID); len(finishes) != 1 || finishes[0] != want {
-		t.Errorf("want FinishRun once: %s\ngot: %v", want, finishes)
-	}
-	return runID
-}
-
-func checkRelationshipResults(t *testing.T, got map[string]map[string]policy.EvaluationResponse) {
-	t.Helper()
-	block := got["component.block"]["testing_deferred_resource.block"]
-	if block.Overall != policy.AllowResult {
-		t.Errorf("block: want allow across components, got %s: %#v", block.Overall, block.Enforcements)
-	}
-	var messages []string
-	for _, e := range block.Enforcements {
-		messages = append(messages, e.Message)
-	}
-	if want := []string{"plain", "block has a bucket"}; !slices.Equal(messages, want) {
-		t.Errorf("block: wrong enforcements: got %q, want %q", messages, want)
-	}
-	if bucket := got["component.bucket"]["testing_resource.bucket"]; bucket.Overall != policy.AllowResult || len(bucket.Enforcements) != 1 {
-		t.Errorf("bucket: wrong result: %s %#v", bucket.Overall, bucket.Enforcements)
-	}
-}
-
-// The block and the bucket are in different components. A run per component
-// would report the bucket's type complete but absent to the block's
-// relationship policy, which would fail; the deployment's run sees both.
+// The block and the bucket are in different components; the deployment
+// relates them, with component-qualified addresses.
 func TestPlan_PolicyRelationshipsAcrossComponents(t *testing.T) {
 	ctx := context.Background()
 	client := newRelationshipsTestClient(t)
 
-	got := planAndCollectPolicyResults(t, ctx, PlanRequest{
+	planAndCollectPolicyResults(t, ctx, PlanRequest{
 		PlanMode:          plans.NormalMode,
 		Config:            loadMainBundleConfigForTest(t, "policy-relationships-cross-component"),
 		ProviderFactories: relationshipsTestProviders(t),
@@ -296,8 +165,28 @@ func TestPlan_PolicyRelationshipsAcrossComponents(t *testing.T) {
 		PolicyClient:      client,
 	})
 
-	checkDeploymentRun(t, client, policyproto.EvaluationStage_PLAN_EVALUATION_STAGE)
-	checkRelationshipResults(t, got)
+	want := map[string][]string{
+		"component.block.testing_deferred_resource.block CREATE": {
+			"block_bucket PLAN",
+			"  component.bucket.testing_resource.bucket CREATE",
+		},
+		"component.bucket.testing_resource.bucket CREATE": {
+			"block_bucket PLAN",
+			"  component.block.testing_deferred_resource.block CREATE",
+		},
+	}
+	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
+	}
+
+	// getresources stays scoped to the component of the subject.
+	wantGetResources := map[string]int{
+		"testing_resource":          1,
+		"testing_deferred_resource": 0,
+	}
+	if diff := cmp.Diff(wantGetResources, client.getResources); diff != "" {
+		t.Errorf("wrong getresources results (-want +got):\n%s", diff)
+	}
 }
 
 func TestApply_PolicyRelationshipsAcrossComponents(t *testing.T) {
@@ -312,7 +201,7 @@ func TestApply_PolicyRelationshipsAcrossComponents(t *testing.T) {
 	})
 
 	client := newRelationshipsTestClient(t)
-	got := applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+	applyAndCollectPolicyResults(t, ctx, ApplyRequest{
 		Config:            cfg,
 		Plan:              plan,
 		ProviderFactories: relationshipsTestProviders(t),
@@ -320,44 +209,23 @@ func TestApply_PolicyRelationshipsAcrossComponents(t *testing.T) {
 		PolicyClient:      client,
 	})
 
-	checkDeploymentRun(t, client, policyproto.EvaluationStage_APPLY_EVALUATION_STAGE)
-	checkRelationshipResults(t, got)
-}
-
-// getresources stays scoped to the component of the resource being
-// evaluated, even though the evaluation happens at the end of the
-// deployment, in its run.
-func TestPlan_PolicyGetResourcesScopedToComponent(t *testing.T) {
-	ctx := context.Background()
-	client := newRelationshipsTestClient(t)
-
-	planAndCollectPolicyResults(t, ctx, PlanRequest{
-		PlanMode:          plans.NormalMode,
-		Config:            loadMainBundleConfigForTest(t, "policy-relationships-cross-component"),
-		ProviderFactories: relationshipsTestProviders(t),
-		DependencyLocks:   relationshipsTestLocks(),
-		PolicyClient:      client,
-	})
-
-	// The evaluations happened at the end of the deployment.
-	checkDeploymentRun(t, client, policyproto.EvaluationStage_PLAN_EVALUATION_STAGE)
-
-	want := map[string]int{
-		"testing_resource":          1, // component.bucket sees its bucket
-		"testing_deferred_resource": 0, // component.block doesn't see the bucket
+	want := map[string][]string{
+		"component.block.testing_deferred_resource.block CREATE": {
+			"block_bucket COMPLETE",
+			"  component.bucket.testing_resource.bucket CREATE",
+		},
+		"component.bucket.testing_resource.bucket CREATE": {
+			"block_bucket COMPLETE",
+			"  component.block.testing_deferred_resource.block CREATE",
+		},
 	}
-	client.mu.Lock()
-	defer client.mu.Unlock()
-	for typ, n := range want {
-		if got, ok := client.getResources[typ]; !ok || got != n {
-			t.Errorf("getresources from %s: got %d (called: %t), want %d", typ, got, ok, n)
-		}
+	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
 	}
 }
 
-// A deferred instance in one component makes its type incomplete for the
-// whole deployment, and the statuses only go out once every component has
-// planned.
+// A deferred instance in one component is a deferred address of the hops
+// that could include it in another.
 func TestPlan_PolicyRelationshipsDeferredComponent(t *testing.T) {
 	ctx := context.Background()
 	client := newRelationshipsTestClient(t)
@@ -373,60 +241,206 @@ func TestPlan_PolicyRelationshipsDeferredComponent(t *testing.T) {
 		},
 	})
 
-	// The plan is done, so nothing calls the client anymore.
-	reqs := client.ReportInstancesRequests
-	var withStatuses []*policyproto.ReportInstancesRequest
-	for _, req := range reqs {
-		if len(req.Statuses) > 0 {
-			withStatuses = append(withStatuses, req)
-		}
+	want := map[string][]string{
+		"component.bucket.testing_resource.bucket CREATE": {
+			"block_bucket DEFERRED component.block.testing_deferred_resource.block",
+		},
 	}
-	if len(withStatuses) != 1 || withStatuses[0] != reqs[len(reqs)-1] {
-		t.Fatalf("want the statuses once, in the last report; got %d reports with statuses of %d", len(withStatuses), len(reqs))
-	}
-	got := map[string]string{}
-	for _, s := range withStatuses[0].Statuses {
-		var deferred []string
-		for _, d := range s.Deferred {
-			deferred = append(deferred, d.Address)
-		}
-		got[s.Type] = s.Completeness.String() + " " + strings.Join(deferred, ",")
-	}
-	want := map[string]string{
-		"testing_resource":          policyproto.TypeCompleteness_COMPLETE_TYPE_COMPLETENESS.String() + " ",
-		"testing_deferred_resource": policyproto.TypeCompleteness_INCOMPLETE_DEFERRED_TYPE_COMPLETENESS.String() + " component.block.testing_deferred_resource.block",
-	}
-	for typ, w := range want {
-		if got[typ] != w {
-			t.Errorf("%s: got status %q, want %q", typ, got[typ], w)
-		}
+	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
 	}
 }
 
-// When the statuses fail to report, the relationship policies are still
-// evaluated in the run, and fail closed, instead of giving no result.
-func TestPlan_PolicyRelationshipsStatusesReportFails(t *testing.T) {
+// The bucket already exists and doesn't change, so the apply skips its
+// component. Its state is still a member, NO_OP, of the block's hop, like an
+// unchanged instance of a Terraform CLI apply.
+func TestApply_PolicyRelationshipsSkippedComponent(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "policy-relationships-cross-component")
+
+	store := stacks_testing_provider.NewResourceStoreBuilder().
+		AddResource("bucket", cty.ObjectVal(map[string]cty.Value{
+			"id":    cty.StringVal("bucket"),
+			"value": cty.StringVal("bucket"),
+		})).
+		Build()
+	providerFactories := map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("testing"): func() (providers.Interface, error) {
+			return stacks_testing_provider.NewProviderWithData(t, store), nil
+		},
+	}
+	prevState := stackstate.NewStateBuilder().
+		AddComponentInstance(stackstate.NewComponentInstanceBuilder(mustAbsComponentInstance("component.bucket"))).
+		AddResourceInstance(stackstate.NewResourceInstanceBuilder().
+			SetAddr(mustAbsResourceInstanceObject("component.bucket.testing_resource.bucket")).
+			SetProviderAddr(mustDefaultRootProvider("testing")).
+			SetResourceInstanceObjectSrc(states.ResourceInstanceObjectSrc{
+				Status: states.ObjectReady,
+				AttrsJSON: mustMarshalJSONAttrs(map[string]any{
+					"id":    "bucket",
+					"value": "bucket",
+				}),
+			})).
+		Build()
+
+	plan := planForApplyTest(t, ctx, PlanRequest{
+		PlanMode:          plans.NormalMode,
+		Config:            cfg,
+		PrevState:         prevState,
+		ProviderFactories: providerFactories,
+		DependencyLocks:   relationshipsTestLocks(),
+	})
+	if c := plan.GetComponent(mustAbsComponentInstance("component.bucket")); c == nil || c.PlanApplyable {
+		t.Fatalf("want the bucket's component not applyable, got %#v", c)
+	}
+
+	client := newRelationshipsTestClient(t)
+	applyAndCollectPolicyResults(t, ctx, ApplyRequest{
+		Config:            cfg,
+		Plan:              plan,
+		ProviderFactories: providerFactories,
+		DependencyLocks:   relationshipsTestLocks(),
+		PolicyClient:      client,
+	})
+
+	want := map[string][]string{
+		"component.block.testing_deferred_resource.block CREATE": {
+			"block_bucket COMPLETE",
+			"  component.bucket.testing_resource.bucket NO_OP",
+		},
+		"component.bucket.testing_resource.bucket NO_OP": {
+			"block_bucket COMPLETE",
+			"  component.block.testing_deferred_resource.block CREATE",
+		},
+	}
+	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
+	}
+}
+
+// A component input that refers directly to another component's output
+// carries the origins of that output, through other components too. The
+// buckets' ids are unknown at plan, so only origins relate.
+func TestPlan_PolicyRelationshipsOriginsAcrossComponents(t *testing.T) {
 	ctx := context.Background()
 	client := newRelationshipsTestClient(t)
-	client.failStatuses = true
+	client.RelationshipsResponse.Usages = client.RelationshipsResponse.Usages[:1]
 
-	got := planAndCollectPolicyResults(t, ctx, PlanRequest{
+	planAndCollectPolicyResults(t, ctx, PlanRequest{
 		PlanMode:          plans.NormalMode,
-		Config:            loadMainBundleConfigForTest(t, "policy-relationships-cross-component"),
+		Config:            loadMainBundleConfigForTest(t, "policy-relationships-origins"),
 		ProviderFactories: relationshipsTestProviders(t),
 		DependencyLocks:   relationshipsTestLocks(),
 		PolicyClient:      client,
 	})
 
-	block, ok := got["component.block"]["testing_deferred_resource.block"]
-	if !ok || block.Overall != policy.PolicyErrorResult {
-		t.Errorf("block: want an error result, got %s (present: %t)", block.Overall, ok)
+	want := map[string][]string{
+		"component.direct.testing_deferred_resource.block CREATE": {
+			"block_bucket PLAN",
+			"  component.bucket.testing_resource.bad CREATE",
+		},
+		"component.computed.testing_deferred_resource.block CREATE": {
+			"block_bucket PLAN",
+		},
+		"component.chained.testing_deferred_resource.block CREATE": {
+			"block_bucket PLAN",
+			"  component.bucket.testing_resource.good CREATE",
+		},
+		`component.keyed["a"].testing_deferred_resource.block CREATE`: {
+			"block_bucket PLAN",
+			`  component.keyed_bucket["a"].testing_resource.good CREATE`,
+		},
 	}
-	if !slices.ContainsFunc(block.Enforcements, func(e policy.EnforcementResult) bool { return e.Message == "block has a bucket" }) {
-		t.Errorf("block: the relationship policy wasn't evaluated: %#v", block.Enforcements)
+	got := relationshipsTestTrees(t, client)
+	for key := range got {
+		if !strings.Contains(key, "testing_deferred_resource") {
+			delete(got, key)
+		}
 	}
-	finishes := client.eventsWithPrefix("finish ")
-	if len(finishes) != 1 || !strings.HasSuffix(finishes[0], "aborted=true") {
-		t.Errorf("want FinishRun once, aborted: %v", finishes)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
+	}
+}
+
+// Two instances of different components relate if they use the same stack
+// provider configuration instance, or ones with equal configurations.
+func TestPlan_PolicyRelationshipsProviderInstances(t *testing.T) {
+	ctx := context.Background()
+	client := newRelationshipsTestClient(t)
+	client.RelationshipsResponse = policy.Relationships{
+		Definitions: []*policyproto.RelationshipDefinition{
+			relationshipsTestDefinition("same_bucket", "testing_resource", "id", "testing_resource", "id"),
+		},
+		Usages: []*policyproto.RelationshipUsage{relationshipsTestUsage("testing_resource", "same_bucket")},
+	}
+
+	planAndCollectPolicyResults(t, ctx, PlanRequest{
+		PlanMode:          plans.NormalMode,
+		Config:            loadMainBundleConfigForTest(t, "policy-relationships-providers"),
+		ProviderFactories: relationshipsTestProviders(t),
+		DependencyLocks:   relationshipsTestLocks(),
+		PolicyClient:      client,
+	})
+
+	want := map[string][]string{
+		"component.a1.testing_resource.bucket CREATE": {
+			"same_bucket PLAN",
+			"  component.a2.testing_resource.bucket CREATE",
+			"  component.same_as_a.testing_resource.bucket CREATE",
+		},
+		"component.a2.testing_resource.bucket CREATE": {
+			"same_bucket PLAN",
+			"  component.a1.testing_resource.bucket CREATE",
+			"  component.same_as_a.testing_resource.bucket CREATE",
+		},
+		"component.same_as_a.testing_resource.bucket CREATE": {
+			"same_bucket PLAN",
+			"  component.a1.testing_resource.bucket CREATE",
+			"  component.a2.testing_resource.bucket CREATE",
+		},
+		"component.keyed.testing_resource.bucket CREATE": {
+			"same_bucket PLAN",
+		},
+	}
+	if diff := cmp.Diff(want, relationshipsTestTrees(t, client)); diff != "" {
+		t.Errorf("wrong related (-want +got):\n%s", diff)
+	}
+}
+
+// A relationship definition that doesn't fit the provider's schema fails the
+// plan before any component is planned.
+func TestPlan_PolicyRelationshipsInvalidDefinition(t *testing.T) {
+	ctx := context.Background()
+	client := newRelationshipsTestClient(t)
+	client.RelationshipsResponse.Definitions = []*policyproto.RelationshipDefinition{
+		relationshipsTestDefinition("block_bucket", "testing_deferred_resource", "nope", "testing_resource", "id"),
+	}
+
+	changesCh := make(chan stackplan.PlannedChange)
+	diagsCh := make(chan tfdiags.Diagnostic)
+	go Plan(ctx, &PlanRequest{
+		PlanMode:          plans.NormalMode,
+		Config:            loadMainBundleConfigForTest(t, "policy-relationships-cross-component"),
+		ProviderFactories: relationshipsTestProviders(t),
+		DependencyLocks:   relationshipsTestLocks(),
+		PolicyClient:      client,
+	}, &PlanResponse{PlannedChanges: changesCh, Diagnostics: diagsCh})
+	changes, diags := collectPlanOutput(changesCh, diagsCh)
+
+	if len(diags) != 1 {
+		t.Fatalf("want one diagnostic, got %s", diags.ErrWithWarnings())
+	}
+	desc := diags[0].Description()
+	wantDetail := "`nope` of testing_deferred_resource doesn't exist in the schema of " + relationshipsTestProvider + " v0.1.0."
+	if diags[0].Severity() != tfdiags.Error || desc.Summary != `Invalid relationship "block_bucket"` || desc.Detail != wantDetail {
+		t.Errorf("wrong diagnostic: %s: %s", desc.Summary, desc.Detail)
+	}
+	for _, change := range changes {
+		if _, ok := change.(*stackplan.PlannedChangeResourceInstancePlanned); ok {
+			t.Errorf("want no resource instance planned, got %#v", change)
+		}
+	}
+	if len(client.EvaluateRequests) > 0 {
+		t.Error("want no policy evaluated")
 	}
 }

@@ -11,8 +11,8 @@ provider "testing" "default" {
   }
 }
 
-# Both buckets of a component have the id "shared", so only an origin tells
-# which one a block refers to.
+# The ids of the buckets are unknown at plan, so only an origin tells which
+# one a block refers to.
 component "bucket" {
   source = "./buckets"
 
@@ -44,8 +44,8 @@ component "direct" {
   }
 }
 
-# Not a direct reference: the block's value has no origin (VARIABLE) and
-# relates by value.
+# Not a direct reference: the block's value has no origin, and it's unknown,
+# so the block relates to no bucket.
 component "computed" {
   source = "./block"
 

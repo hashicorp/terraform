@@ -11,8 +11,9 @@ variable "deferred" {
   type = bool
 }
 
+# The block's value is the bucket's id.
 resource "testing_deferred_resource" "block" {
   id       = "block"
-  value    = "block"
+  value    = "bucket"
   deferred = var.deferred
 }

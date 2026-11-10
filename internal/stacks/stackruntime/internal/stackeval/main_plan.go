@@ -119,6 +119,13 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 			return diags, nil
 		}
 
+		// Invalid relationship definitions fail the plan before any
+		// component instance plans.
+		reportDiags(m.validatePolicyRelationships(ctx, PlanPhase))
+		if seenAnyErrors.Load() {
+			return diags, nil
+		}
+
 		// If the static walk completed then we'll now perform a dynamic walk
 		// which is where we'll actually produce the plan and where we'll
 		// learn about any dynamic errors which affect only specific instances
@@ -142,8 +149,8 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		return complete(), nil
 	})
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
-	// Every component instance has planned, so the deployment's relationship
-	// run can evaluate its relationship policies.
+	// Every component instance has planned, so the deployment's policy run
+	// can relate their instances and evaluate the subjects.
 	diags = diags.Append(m.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)

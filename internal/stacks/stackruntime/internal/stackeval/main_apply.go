@@ -197,6 +197,11 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 							}, nil
 						}
 
+						if main.PolicyInvalid() {
+							span.SetStatus(codes.Error, "invalid relationship definitions")
+							return inst.PlaceholderApplyResultForSkippedApply(modulesRuntimePlan), nil
+						}
+
 						var waitForComponents collections.Set[stackaddrs.AbsComponent]
 						var waitForRemoveds collections.Set[stackaddrs.AbsComponent]
 						if action == plans.Delete || action == plans.Forget {
@@ -296,6 +301,15 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 
 		main := NewForApplying(config, plan, results, opts)
 		main.AllowLanguageExperiments(opts.ExperimentsAllowed)
+		// Invalid relationship definitions fail the apply before any
+		// component instance applies: the change tasks skip their applies.
+		policyDiags := main.validatePolicyRelationships(ctx, ApplyPhase)
+		if policyDiags.HasErrors() {
+			seenAnyErrors.Store(true)
+		}
+		if len(policyDiags) > 0 {
+			outp.AnnounceDiagnostics(ctx, policyDiags)
+		}
 		begin(ctx, main) // the change tasks registered above become runnable
 
 		// With the planned changes now in progress, we'll visit everything and
@@ -365,8 +379,8 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	main := withDiags.Result
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
 	if main != nil {
-		// Every component instance has applied, so the deployment's
-		// relationship run can evaluate its relationship policies.
+		// Every component instance has applied, so the deployment's policy
+		// run can relate their instances and evaluate the subjects.
 		diags = diags.Append(main.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
 	}
 	if len(diags) > 0 {

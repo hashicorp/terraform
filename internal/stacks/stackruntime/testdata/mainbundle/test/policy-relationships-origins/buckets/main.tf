@@ -7,13 +7,12 @@ terraform {
   }
 }
 
+# The ids are unknown at plan.
 resource "testing_resource" "good" {
-  id    = "shared"
   value = "ok"
 }
 
 resource "testing_resource" "bad" {
-  id    = "shared"
   value = "bad"
 }
 
