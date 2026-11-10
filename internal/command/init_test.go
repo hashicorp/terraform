@@ -2224,7 +2224,7 @@ func TestInit_cancelModules(t *testing.T) {
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
+		Ui:               ui, // Used by  (m *Meta) installModules
 		View:             view,
 		ShutdownCh:       shutdownCh,
 	}
