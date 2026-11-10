@@ -43,14 +43,16 @@ type Resource struct {
 	Body []byte
 }
 
+func resourceHeader(addr addrs.AbsResourceInstance) string {
+	return fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name)
+}
+
 func (r Resource) String() string {
 	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
+	buf.WriteString(resourceHeader(r.Addr))
 	buf.Write(r.Body)
 	buf.WriteString("}")
-
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted)
+	return buf.String()
 }
 
 func (i ImportGroup) String() string {
@@ -125,9 +127,9 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, configVal, schema.BlockTypes, 2))
 	}
 
-	// The output better be valid HCL which can be parsed and formatted.
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return Resource{Addr: addr, Body: formatted}, diags
+	header := resourceHeader(addr)
+	formatted := hclwrite.Format([]byte(header + buf.String() + "}"))
+	return Resource{Addr: addr, Body: formatted[len(header) : len(formatted)-1]}, diags
 }
 
 // ResourceListElement is a single Resource state and identity pair derived from
