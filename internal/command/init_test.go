@@ -78,12 +78,10 @@ func TestInit_empty(t *testing.T) {
 	os.MkdirAll(td, 0755)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -109,12 +107,10 @@ func TestInit_only_test_files(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -225,12 +221,10 @@ func TestInit_two_source_provider_download(t *testing.T) {
 				"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 				"hashicorp/null":   {"1.0.0", "1.2.3-beta", "9.9.9"},
 			})
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -289,12 +283,10 @@ func TestInit_stateStoreProviderDownload(t *testing.T) {
 
 			mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides:          metaOverridesForProvider(mockProvider),
-					Ui:                        ui,
 					View:                      view,
 					ProviderSource:            providerSource,
 					AllowExperimentalFeatures: true,
@@ -330,12 +322,10 @@ func TestInit_cannotUsePreReleaseWithoutConfigConstraint(t *testing.T) {
 		"hashicorp/random": {"1.0.0", "1.2.3-beta", "9.9.9"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -396,12 +386,10 @@ func TestInit_migrateStateAndJSON(t *testing.T) {
 	os.MkdirAll(td, 0755)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -426,12 +414,10 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 	os.MkdirAll(td, os.ModePerm)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -478,12 +464,10 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -531,12 +515,10 @@ func TestInit_get(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -559,12 +541,10 @@ func TestInit_json(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -585,12 +565,10 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-get"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -618,12 +596,10 @@ func TestInit_backend_initFromConfig(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -644,12 +620,10 @@ func TestInit_backend_initFromState(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-to-s3"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -686,11 +660,9 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		applyView, done := testView(t)
 		applyCmd := &ApplyCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: applyView,
 			},
 		}
@@ -725,11 +697,9 @@ func TestInit_backend_migration_stateMgr_error(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		initView, done := testView(t)
 		initCmd := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: initView,
 			},
 		}
@@ -759,12 +729,10 @@ func TestInit_backendUnset(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_backendUnset: beginning first init")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -793,12 +761,10 @@ func TestInit_backendUnset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -827,12 +793,10 @@ func TestInit_backendConfigFile(t *testing.T) {
 	t.Chdir(td)
 
 	t.Run("good-config-file", func(t *testing.T) {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -850,12 +814,10 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// the backend config file must not be a full terraform block
 	t.Run("full-backend-config-file", func(t *testing.T) {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -870,12 +832,10 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// the backend config file must match the schema for the backend
 	t.Run("invalid-config-file", func(t *testing.T) {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -890,12 +850,10 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// missing file is an error
 	t.Run("missing-config-file", func(t *testing.T) {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -910,12 +868,10 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	// blank filename clears the backend config
 	t.Run("blank-config-file", func(t *testing.T) {
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -962,12 +918,10 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1002,13 +956,11 @@ func TestInit_backendReconfigure(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			ProviderSource:   providerSource,
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1044,12 +996,10 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1076,13 +1026,11 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			ProviderSource:   providerSource,
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1124,13 +1072,11 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-migrate-existing"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, _ := testView(t)
 
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1161,12 +1107,10 @@ func TestInit_backendConfigKV(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1189,12 +1133,10 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1204,11 +1146,9 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1252,12 +1192,10 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1267,11 +1205,9 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
-	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1300,12 +1236,10 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	testCopyDir(t, testFixturePath("init"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1339,12 +1273,10 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1383,12 +1315,10 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1416,7 +1346,6 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1491,11 +1420,9 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 		// operations and state work in that case, and so the Cloud
 		// configuration is only about which workspaces we'll be working
 		// with.
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1529,11 +1456,9 @@ Cloud configuration block in the root module.
 		// steps to take care of more details automatically, and so
 		// -reconfigure doesn't really make sense in that context, particularly
 		// with its design bug with the handling of the implicit local backend.
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1567,11 +1492,9 @@ Cloud configuration settings.
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1597,11 +1520,9 @@ because activating HCP Terraform involves some additional steps.
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1635,11 +1556,9 @@ storage location is not configurable.
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1668,11 +1587,9 @@ prompts.
 		// In Cloud mode, migrating in or out always proposes migrating state
 		// and changing configuration while staying in cloud mode never migrates
 		// state, so this special option isn't relevant.
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1706,11 +1623,9 @@ storage location is not configurable.
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
 			},
 		}
@@ -1747,11 +1662,9 @@ func TestInit_cloudConfigColorTokensProcessed(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-cloud-no-workspaces"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -1806,12 +1719,10 @@ func TestInit_inputFalse(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1843,11 +1754,9 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1862,11 +1771,9 @@ func TestInit_inputFalse(t *testing.T) {
 		t.Fatal("expected input disabled error, got", errMsg)
 	}
 
-	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1885,7 +1792,6 @@ func TestInit_getProvider(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
@@ -1897,7 +1803,6 @@ func TestInit_getProvider(t *testing.T) {
 	})
 	m := Meta{
 		testingOverrides: overrides,
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -1963,9 +1868,7 @@ func TestInit_getProvider(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
-		m.Ui = ui
 		m.View = view
 		c := &InitCommand{
 			Meta: m,
@@ -1991,7 +1894,6 @@ func TestInit_getProviderSource(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
@@ -2002,7 +1904,6 @@ func TestInit_getProviderSource(t *testing.T) {
 	})
 	m := Meta{
 		testingOverrides: overrides,
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -2040,14 +1941,12 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"acme/alpha": {"1.2.3"},
 	})
 	m := Meta{
 		testingOverrides: overrides,
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -2081,7 +1980,6 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	t.Chdir(td)
 
 	overrides := metaOverridesForProvider(testProvider())
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	// create a provider source which allows installing an invalid package
@@ -2102,7 +2000,6 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 
 	m := Meta{
 		testingOverrides: overrides,
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -2159,10 +2056,8 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 		{Source: registrySource},
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
-		Ui:             ui,
 		View:           view,
 		ProviderSource: multiSource,
 	}
@@ -2218,11 +2113,9 @@ func TestInit_providerSource(t *testing.T) {
 		"source":    {"1.2.2", "1.2.3", "1.2.1"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -2370,11 +2263,9 @@ func TestInit_cancelProviders(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 		ShutdownCh:       shutdownCh,
@@ -2416,11 +2307,9 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			"between": {"3.4.5", "2.9.9", "2.3.4", "1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		}
@@ -2536,11 +2425,9 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 			"between": {"3.4.5", "2.3.4", "1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		}
@@ -2687,11 +2574,9 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -2843,11 +2728,9 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 		mockProviderAddress := addrs.NewDefaultProvider("test")
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -2968,11 +2851,9 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -3100,11 +2981,9 @@ terraform {
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		m := Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -3235,11 +3114,9 @@ func TestInit_getProviderMissing(t *testing.T) {
 		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3266,12 +3143,10 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-check-required-version"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -3297,12 +3172,10 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-check-required-version-first"), td)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -3321,12 +3194,10 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-check-required-version-first-module"), td)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 			},
 		}
@@ -3354,11 +3225,9 @@ func TestInit_providerLockFile(t *testing.T) {
 		"test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3538,11 +3407,9 @@ provider "registry.terraform.io/hashicorp/test" {
 
 			providerSource := newMockProviderSource(t, tc.providers)
 
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				ProviderSource:   providerSource,
 			}
@@ -3585,12 +3452,10 @@ func TestInit_pluginDirReset(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -3619,11 +3484,9 @@ func TestInit_pluginDirReset(t *testing.T) {
 		t.Fatalf(`expected plugin dir ["a"], got %q`, pluginDirs)
 	}
 
-	ui = testUiWrapped(t)
 	c = &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource, // still empty
 		},
@@ -3654,11 +3517,9 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3754,11 +3615,9 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 		"between": {"2.3.4"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3828,11 +3687,9 @@ func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3867,11 +3724,9 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	// An empty provider source
 	providerSource := newMockProviderSource(t, nil)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               ui,
 		View:             view,
 		ProviderSource:   providerSource,
 	}
@@ -3900,10 +3755,8 @@ func TestInit_invalidSyntaxNoBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-no-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
-		Ui:   ui,
 		View: view,
 	}
 
@@ -3931,10 +3784,8 @@ func TestInit_invalidSyntaxWithBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-with-backend"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
-		Ui:   ui,
 		View: view,
 	}
 
@@ -3962,10 +3813,8 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-invalid"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
-		Ui:   ui,
 		View: view,
 	}
 
@@ -3996,10 +3845,8 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-attribute-invalid"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	m := Meta{
-		Ui:   ui,
 		View: view,
 	}
 
@@ -4040,7 +3887,6 @@ func TestInit_testsWithExternalProviders(t *testing.T) {
 	testingConfigureProviderAddress := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "testing", "configure")
 	testingConfigureProvider := new(testing_provider.MockProvider)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
@@ -4050,7 +3896,6 @@ func TestInit_testsWithExternalProviders(t *testing.T) {
 					testingConfigureProviderAddress: providers.FactoryFixed(testingConfigureProvider),
 				},
 			},
-			Ui:             ui,
 			View:           view,
 			ProviderSource: providerSource,
 		},
@@ -4074,12 +3919,10 @@ func TestInit_tests(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -4103,12 +3946,10 @@ func TestInit_testsWithProvider(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -4149,12 +3990,10 @@ func TestInit_testsWithOverriddenInvalidRequiredProviders(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -4178,12 +4017,10 @@ func TestInit_testsWithInvalidRequiredProviders(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -4208,12 +4045,10 @@ func TestInit_testsWithModule(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(provider),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
@@ -4250,10 +4085,8 @@ func TestInit_stateStore_newWorkingDir_basic(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4347,10 +4180,8 @@ Initializing provider plugins...
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4426,10 +4257,8 @@ Initializing provider plugins...
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4500,10 +4329,8 @@ Initializing provider plugins...
 			"select-workspace": "1", // foobar1 in numbered list
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4584,10 +4411,8 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4641,10 +4466,8 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4706,10 +4529,8 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4754,10 +4575,8 @@ func TestInit_stateStore_newWorkingDir_partialConfiguration(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4822,10 +4641,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4889,10 +4706,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve-provider-test-1.2.3": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -4974,10 +4789,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5036,10 +4849,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve-provider-test-1.2.3": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5117,10 +4928,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 			"approve-provider-test-1.2.3": "no",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5193,10 +5002,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		// Set up providers for use in the second init attempt.
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5260,10 +5067,8 @@ func TestInit_stateStore_newWorkingDir_interactiveProviderApproval(t *testing.T)
 		args = []string{
 			"-enable-pluggable-state-storage-experiment=true",
 		}
-		ui = testUiWrapped(t)
 		view, done = testView(t)
 		c.Meta.testingOverrides.UIInput = uiInput
-		c.Ui = ui
 		c.View = view
 		code = c.Run(args)
 		testOutput = done(t)
@@ -5302,10 +5107,8 @@ func TestInit_stateStore_versionConstraintChildModule(t *testing.T) {
 	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	meta := Meta{
-		Ui:                        ui,
 		View:                      view,
 		AllowExperimentalFeatures: true,
 		testingOverrides: &testingOverrides{
@@ -5399,10 +5202,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 		mockProviderAddress := addrs.NewDefaultProvider("test")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5461,10 +5262,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5550,10 +5349,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5622,10 +5419,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5696,10 +5491,8 @@ func TestInit_stateStore_newWorkingDir_inAutomationProviderApproval(t *testing.T
 		})
 		mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5812,10 +5605,8 @@ func TestInit_stateStore_reconfigureLeadingToMigrationOfLocalState(t *testing.T)
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	meta := Meta{
-		Ui:                        ui,
 		View:                      view,
 		AllowExperimentalFeatures: true,
 		testingOverrides: &testingOverrides{
@@ -5887,10 +5678,8 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -5983,10 +5772,8 @@ func TestInit_stateStore_configUnchanged(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -6092,10 +5879,8 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -6185,10 +5970,8 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -6241,10 +6024,8 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -6282,9 +6063,7 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 		}
 
 		// 2) When flag is present
-		ui = testUiWrapped(t)
 		view, done = testView(t)
-		meta.Ui = ui
 		meta.View = view
 		c.Meta = meta
 
@@ -6320,10 +6099,8 @@ func TestInit_stateStore_configChanges(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -6387,7 +6164,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6397,7 +6173,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6431,7 +6206,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6441,7 +6215,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6496,7 +6269,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6506,7 +6278,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6539,7 +6310,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			"hashicorp/test2": {"1.2.3"}, // Matches provider version in backend state file fixture
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6550,7 +6320,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6589,7 +6358,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 			},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6599,7 +6367,6 @@ func TestInit_stateStore_changesDetected(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6648,7 +6415,6 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_backendConfigFlagNoMigrate: beginning first init")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6658,7 +6424,6 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6699,7 +6464,6 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6709,7 +6473,6 @@ func TestInit_stateStore_backendConfigFlagNoMigrate(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6758,7 +6521,6 @@ func TestInit_stateStore_unset(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset: beginning first init")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6768,7 +6530,6 @@ func TestInit_stateStore_unset(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6800,7 +6561,6 @@ func TestInit_stateStore_unset(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6810,7 +6570,6 @@ func TestInit_stateStore_unset(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6858,7 +6617,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_unset_withoutProviderRequirements: beginning first init")
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6868,7 +6626,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6901,7 +6658,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -6911,7 +6667,6 @@ func TestInit_stateStore_unset_withoutProviderRequirements(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6962,13 +6717,11 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 	{
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning first init")
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -6993,13 +6746,11 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 		// run apply to ensure state isn't empty
 		// to bypass edge case handling which causes empty state to stop migration
 		log.Printf("[TRACE] TestInit_stateStore_to_backend: beginning apply")
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7026,13 +6777,11 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7070,7 +6819,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
@@ -7080,7 +6828,6 @@ func TestInit_stateStore_to_backend(t *testing.T) {
 					},
 				},
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7138,11 +6885,9 @@ func TestInit_uninitialized_stateStore(t *testing.T) {
 		}
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7204,11 +6949,9 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7245,11 +6988,9 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7306,13 +7047,11 @@ func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7383,11 +7122,9 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7430,13 +7167,11 @@ func TestInit_backend_to_stateStore_noState(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7497,11 +7232,9 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with local backend", t.Name())
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7531,11 +7264,9 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7591,13 +7322,11 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7659,11 +7388,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7693,11 +7420,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7727,11 +7452,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		}
 	}
 	{
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cSelect := &WorkspaceSelectCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7744,11 +7467,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 		t.Logf("Select workspace output:\n%s", aTestOutput.All())
 	}
 	{
-		ui := testUiWrapped(t)
 		aView, aDone := testView(t)
 		cApply := &ApplyCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      aView,
 				AllowExperimentalFeatures: true,
 			},
@@ -7796,13 +7517,11 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7899,12 +7618,10 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 	{
 		log.Printf("[TRACE] %s: beginning first init with backend", t.Name())
 		// Init
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Services:                  testDisco(ts),
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7940,14 +7657,12 @@ func TestInit_cloud_to_stateStore(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				Services:                  testDisco(ts),
 				testingOverrides:          tOverrides,
 				ProviderSource:            providerSource,
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: true,
 			},
@@ -7999,11 +7714,9 @@ func TestInit_configErrorsImpactingStateStore(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -8043,11 +7756,9 @@ func TestInit_varValueWithoutConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -8073,11 +7784,9 @@ func TestInit_invalidConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -8771,13 +8480,11 @@ func TestInit_backendAliasesRegisteredBeforeProviderDiscovery(t *testing.T) {
 		aliasHost: aliasHost,
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Services:         services,
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
