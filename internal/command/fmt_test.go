@@ -901,7 +901,12 @@ c =   "y"
 
 		// The symlinked file has been formatted
 		ui = testUiWrapped(t)
-		c.Ui = ui
+		c = &FmtCommand{
+			Meta: Meta{
+				Ui:         ui,
+				WorkingDir: workingDir,
+			},
+		}
 		args := []string{
 			"-no-color",
 			"-check",
@@ -984,7 +989,12 @@ c =   "y"
 
 		// The symlinked file has been formatted
 		ui = testUiWrapped(t)
-		c.Ui = ui
+		c = &FmtCommand{
+			Meta: Meta{
+				Ui: ui,
+				// Not setting WorkingDir
+			},
+		}
 		args = []string{
 			"-no-color",
 			"-check",
