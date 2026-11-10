@@ -27,6 +27,7 @@ func TestParseStateMv_valid(t *testing.T) {
 				StateLock:     true,
 				SourceAddr:    "test_instance.foo",
 				DestAddr:      "test_instance.bar",
+				ViewType:      ViewHuman,
 			},
 		},
 		"dry run": {
@@ -39,6 +40,7 @@ func TestParseStateMv_valid(t *testing.T) {
 				StateLock:     true,
 				SourceAddr:    "test_instance.foo",
 				DestAddr:      "test_instance.bar",
+				ViewType:      ViewHuman,
 			},
 		},
 		"all options": {
@@ -66,6 +68,7 @@ func TestParseStateMv_valid(t *testing.T) {
 				IgnoreRemoteVersion: true,
 				SourceAddr:          "test_instance.foo",
 				DestAddr:            "test_instance.bar",
+				ViewType:            ViewHuman,
 			},
 		},
 	}
@@ -144,6 +147,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
+				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -161,6 +165,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 				BackupOutPath: "-",
 				StateLock:     true,
 				SourceAddr:    "test_instance.foo",
+				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -179,6 +184,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 				StateLock:     true,
 				SourceAddr:    "a",
 				DestAddr:      "b",
+				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -195,6 +201,7 @@ func TestParseStateMv_invalid(t *testing.T) {
 				BackupPath:    "-",
 				BackupOutPath: "-",
 				StateLock:     true,
+				ViewType:      ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
