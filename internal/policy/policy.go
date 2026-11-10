@@ -21,17 +21,19 @@ type Client interface {
 	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+
+	// Relationships returns the relationship definitions and usages of the
+	// policies, as received from Setup.
+	Relationships() Relationships
+
 	Stop()
 }
 
-// RelationshipsClient is implemented by clients that can carry relationship runs.
-type RelationshipsClient interface {
-	// RelationshipsSupported returns true when the policy plugin announced the
-	// relationships capability during Setup.
-	RelationshipsSupported() bool
-	BeginRun(context.Context, *proto.BeginRunRequest) (*proto.BeginRunResponse, error)
-	ReportInstances(context.Context, *proto.ReportInstancesRequest) (*proto.ReportInstancesResponse, error)
-	FinishRun(context.Context, *proto.FinishRunRequest) (*proto.FinishRunResponse, error)
+// Relationships are the relationship definitions the policies declare, and
+// the relationship hops they use per resource type.
+type Relationships struct {
+	Definitions []*proto.RelationshipDefinition
+	Usages      []*proto.RelationshipUsage
 }
 
 // CallbackService is an interface for registering a callback service with a policy engine.
@@ -43,6 +45,8 @@ type (
 	SetupResponse struct {
 		// serverCapabilities contains the map of a policy path to the capabilities of the server.
 		serverCapabilities *proto.PolicySetupResponse_ServerCapabilities
+
+		Relationships Relationships
 
 		Diagnostics Diagnostics
 	}
@@ -123,9 +127,9 @@ type (
 
 		Callbacks callback.Functions
 
-		// RunID is the relationship run the evaluation belongs to, or "" when
-		// there is no relationship run. Only used for resource evaluations.
-		RunID string
+		// Related holds the related members of the resource, one entry per
+		// relationship hop its type uses. Only used for resource evaluations.
+		Related []*proto.RelatedMembers
 	}
 
 	EnforcementResult struct {

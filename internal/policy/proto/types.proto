@@ -51,109 +51,33 @@ enum Operation {
   CREATE = 0;
   UPDATE = 1;
   DELETE = 2;
+  // NO_OP marks a resource that already exists in state and is unchanged by
+  // the current plan. Policies evaluate it unless their operations list
+  // excludes no-op (the default list includes it), and it exposes the same
+  // attributes as create/update via attrs.
   NO_OP = 3;
 }
 
 message ResourceAttributes {
   bytes raw = 1;
-  repeated AttributePath redacted_paths = 2; 
+  repeated AttributePath redacted_paths = 2;
 }
 
 // AttributePath represents a set of steps to traverse into a data structure. It is
 // used to refer to a sub-structure within a dynamic data structure presented
 // separately.
 message AttributePath {
-    message Step {
-        oneof selector {
-            // Set "attribute_name" to represent looking up an attribute
-            // in the current object value.
-            string attribute_name = 1;
+  message Step {
+    oneof selector {
+      // Set "attribute_name" to represent looking up an attribute
+      // in the current object value.
+      string attribute_name = 1;
 
-            // Set "element_key_*" to represent looking up an element in
-            // an indexable collection type.
-            string element_key_string = 2;
-            int64 element_key_int = 3;
-        }
+      // Set "element_key_*" to represent looking up an element in
+      // an indexable collection type.
+      string element_key_string = 2;
+      int64 element_key_int = 3;
     }
-    repeated Step steps = 1;
-}
-
-enum EvaluationStage {
-    INVALID_EVALUATION_STAGE = 0;
-    INIT_EVALUATION_STAGE = 1;
-    PLAN_EVALUATION_STAGE = 2;
-    APPLY_EVALUATION_STAGE = 3;
-    QUERY_EVALUATION_STAGE = 4;
-}
-
-// PlanMode is the mode of the plan that a relationship run belongs to.
-enum PlanMode {
-  INVALID_PLAN_MODE = 0;
-  NORMAL_PLAN_MODE = 1;
-  DESTROY_PLAN_MODE = 2;
-  REFRESH_ONLY_PLAN_MODE = 3;
-}
-
-// RunRuntime is the runtime that started a relationship run.
-enum RunRuntime {
-  INVALID_RUN_RUNTIME = 0;
-  CLI_RUN_RUNTIME = 1;
-  TEST_RUN_RUNTIME = 2;     // reserved; not sent yet
-  STACKS_RUN_RUNTIME = 3;   // one run per Stacks deployment and operation
-}
-
-// Terraform's plans.Action for a managed resource instance, verbatim.
-// (Read, Open, Renew, Close never occur for managed resources and have no value.)
-enum ResourceAction {
-  INVALID_RESOURCE_ACTION = 0;
-  NO_OP_RESOURCE_ACTION = 1;
-  CREATE_RESOURCE_ACTION = 2;
-  UPDATE_RESOURCE_ACTION = 3;
-  DELETE_RESOURCE_ACTION = 4;
-  DELETE_THEN_CREATE_RESOURCE_ACTION = 5;
-  CREATE_THEN_DELETE_RESOURCE_ACTION = 6;
-  FORGET_RESOURCE_ACTION = 7;
-  CREATE_THEN_FORGET_RESOURCE_ACTION = 8;
-  FORGET_THEN_CREATE_RESOURCE_ACTION = 9;
-}
-
-// RecordSource says where an instance record of a relationship run came from.
-enum RecordSource {
-  INVALID_RECORD_SOURCE = 0;
-  PLANNED_RECORD_SOURCE = 1;     // from a planned change (plan run) or an applied change (apply run)
-  STATE_RECORD_SOURCE = 2;       // from state, without a change in this run (-target outsiders, refresh-only)
-  DEFERRED_RECORD_SOURCE = 3;    // not sent: deferred instances get no record
-  DISCOVERED_RECORD_SOURCE = 4;  // P6 (Search), not sent in P1
-}
-
-// TypeCompleteness says whether every instance of a resource type has been
-// reported in a relationship run.
-enum TypeCompleteness {
-  INVALID_TYPE_COMPLETENESS = 0;
-  COMPLETE_TYPE_COMPLETENESS = 1;
-  INCOMPLETE_DEFERRED_TYPE_COMPLETENESS = 2;
-  INCOMPLETE_ERROR_TYPE_COMPLETENESS = 3;
-}
-
-message AttributePaths {
-  repeated AttributePath paths = 1;
-}
-
-// NoOriginReason says why some leaves of a key path have no origin.
-enum NoOriginReason {
-  INVALID_NO_ORIGIN_REASON = 0;
-  LITERAL_NO_ORIGIN_REASON = 1;          // a hard-coded value, count.index, each.key
-  DATA_SOURCE_NO_ORIGIN_REASON = 2;      // a data source or ephemeral resource attribute
-  VARIABLE_NO_ORIGIN_REASON = 3;         // a root module variable, or a module variable left at its default
-  EXPRESSION_NO_ORIGIN_REASON = 4;       // function call, conditional, for, operator, multi-part template,
-                                         // non-literal index or key, splat over for_each
-  NOT_CONFIGURED_NO_ORIGIN_REASON = 5;   // the attribute isn't set in the configuration (the provider computes it)
-  IGNORE_CHANGES_NO_ORIGIN_REASON = 6;   // an update or no-op keeps the prior value of an attribute in
-                                         // ignore_changes; not sent for creates and replaces
-  PROVIDER_CHANGED_NO_ORIGIN_REASON = 7; // the planned value differs from the configured one, or Core
-                                         // can't tell whether it does
-  UNSUPPORTED_NO_ORIGIN_REASON = 8;      // anything else: JSON syntax, override files, no configuration,
-                                         // whole-object references, map keys and set elements, type
-                                         // mismatch, null target, unknown expansion, path/terraform/self,
-                                         // depth limit
+  }
+  repeated Step steps = 1;
 }

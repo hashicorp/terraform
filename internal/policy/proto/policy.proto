@@ -27,16 +27,6 @@ service Policy {
   // EvaluateModule evaluates a module configuration against the store modules.
   // This method is specifically designed for module-level policy evaluation.
   rpc EvaluateModule(PolicyEvaluateModuleRequest) returns (PolicyEvaluateModuleResponse) {}
-  // BeginRun starts a relationship run. The server resolves the relationship
-  // definitions against the provider schemas and returns the spec of the
-  // instances that the client must report.
-  rpc BeginRun(BeginRunRequest) returns (BeginRunResponse) {}
-  // ReportInstances reports one chunk of the instance records of a run. The
-  // client calls it serially, at least once, and before the first
-  // EvaluateResource that carries the run_id.
-  rpc ReportInstances(ReportInstancesRequest) returns (ReportInstancesResponse) {}
-  // FinishRun ends a relationship run after every subject evaluation.
-  rpc FinishRun(FinishRunRequest) returns (FinishRunResponse) {}
 }
 
 // SetupRequest is the message body for the Setup RPC.
@@ -44,17 +34,21 @@ message PolicySetupRequest {
 
   // ClientCapabilities are the set of capabilities the client supports.
   message ClientCapabilities {
-    // The client sends BeginRun/ReportInstances/FinishRun and sets run_id on
-    // EvaluateResource when the server also announces relationships.
+    // The client fills `related` on EvaluateResource for every hop of the
+    // usage of the subject's type.
     bool relationships = 1;
   }
 
-  // Entitlement carries the host, token, and org the plugin uses to verify
-  // policy-enforcement entitlement at Setup.
+  // Entitlement carries the host, bearer token, and organization that the
+  // plugin uses to verify policy-enforcement entitlement at Setup time.
+  // The client resolves these from its own configuration (e.g. the cloud
+  // block and its credentials store) so the plugin does not duplicate that
+  // logic. This is not an optional/best-effort check: if unset or any
+  // field is empty, Setup fails closed and policy evaluation is blocked.
   message Entitlement {
-    string host = 1;
+    string host  = 1;
     string token = 2;
-    string org = 3;
+    string org   = 3;
   }
 
   // client_capabilities should be populated by the client to indicate which
@@ -64,12 +58,13 @@ message PolicySetupRequest {
   // source_locations is the list of locations that Policy should use to
   // source policies.
   repeated string source_locations = 2;
-  
+
   // callback_service allows Terraform Policy to use the Callback Service API.
   uint32 callback_service = 3;
 
-  // entitlement is used to call the entitlement-set endpoint
-  // and refuse Setup if the org is not entitled.
+  // entitlement must be set by the client. An absent or partially-empty value
+  // causes Setup to fail closed — the plugin will not evaluate policies until
+  // the org's entitlement is confirmed.
   Entitlement entitlement = 4;
 }
 
@@ -86,7 +81,8 @@ message PolicySetupResponse {
     // All loaded terraform_configuration blocks keyed by Policy file path.
     map<string, TerraformConfiguration> configurations = 1;
     // 2 is used by validate_policies on the policy-schema-validation branch.
-    bool relationships = 3;
+    reserved 3;
+    reserved "relationships";
   }
 
   // service_capabilities will be populated by the server to indicate which
@@ -96,8 +92,45 @@ message PolicySetupResponse {
   // The diagnostics will contain any errors or warnings as a result of loading
   // the Terraform Policy files.
   repeated Diagnostic diagnostics = 2;
+
+  // The relationship definitions that some usage reaches.
+  repeated RelationshipDefinition relationship_definitions = 3;
+
+  // The relationships that policies walk, per resource type.
+  repeated RelationshipUsage relationship_usages = 4;
 }
 
+// A relationship definition that some usage reaches.
+message RelationshipDefinition {
+  string provider_source = 1;                // e.g. registry.terraform.io/hashicorp/aws
+  string name = 2;
+  string key_resource = 3;
+  string value_resource = 4;
+  repeated MatchAlternative match = 5;       // ORed; at least one
+  Range decl_range = 6;                      // the relationship block, for Core's diagnostics
+}
+
+message MatchAlternative {
+  repeated MatchKey keys = 1;                // ANDed; none relates every pair
+}
+
+message MatchKey {
+  AttributePath key_path = 1;                // read on the key resource; attribute_name steps only
+  AttributePath value_path = 2;              // read on the value resource
+}
+
+// The relationships that policies walk from instances of one resource type.
+message RelationshipUsage {
+  string provider_source = 1;
+  string type = 2;
+  repeated RelationshipHop hops = 3;
+}
+
+// One relationship, walked from an instance. Its hops are walked from each member.
+message RelationshipHop {
+  string relationship = 1;                   // a definition's name, in the provider of the type walked from
+  repeated RelationshipHop hops = 2;
+}
 
 // EvaluateResourceRequest is the message body for the EvaluateResource RPC.
 message PolicyEvaluateResourceRequest {
@@ -120,23 +153,48 @@ message PolicyEvaluateResourceRequest {
   // prior_attrs contains the state of the resource prior to the current operation.
   ResourceAttributes prior_attrs = 5;
 
-  // run_id is the relationship run this evaluation belongs to, or "" when
-  // there is no relationship run.
-  string run_id = 6;
+  // One entry per hop of the usage of the subject's type, in the usage's order.
+  repeated RelatedMembers related = 6;
 
   message ResourceMetadata {
     string provider_type = 1;
     Operation operation = 2;
     string module_path = 3;
-    // address is the resource instance address, e.g. module.net.random_pet.a[0].
-    string address = 4;
-    // provider_source is the provider source address, e.g.
-    // registry.terraform.io/hashicorp/random.
-    string provider_source = 5;
-    // deposed_key is the deposed key of the planned change the evaluation
-    // belongs to; "" for current objects.
-    string deposed_key = 6;
+    string address = 4;              // always set by Core, e.g. module.net.random_pet.a[0]
+    string provider_source = 5;      // always set by Core, e.g. registry.terraform.io/hashicorp/random
+    string deposed_key = 6;          // the deposed key of the planned change; "" for current objects
   }
+}
+
+// The members of one hop, walked from one instance: the subject or a member.
+message RelatedMembers {
+  string relationship = 1;
+  Completeness completeness = 2;
+  repeated string deferred = 3;              // sorted; only with DEFERRED_COMPLETENESS
+  repeated RelatedMember members = 4;        // sorted by address, then deposed key
+}
+
+enum Completeness {
+  INVALID_COMPLETENESS = 0;
+  COMPLETE_COMPLETENESS = 1;                 // every member is here
+  PLAN_COMPLETENESS = 2;                     // a plan: candidates Core isn't certain of are left out
+  DEFERRED_COMPLETENESS = 3;                 // instances that could be members are deferred
+  ERROR_COMPLETENESS = 4;                    // Core couldn't report every instance of the type
+}
+
+message RelatedMember {
+  string address = 1;
+  string deposed_key = 2;                    // "" for current objects
+  bool old_object = 3;                       // the object that a replace deletes
+  string type = 4;
+  string provider_type = 5;
+  string provider_source = 6;
+  string module_path = 7;
+  Operation operation = 8;                   // CREATE, UPDATE, DELETE or NO_OP
+  ResourceAttributes attrs = 9;              // absent for DELETE
+  ResourceAttributes prior_attrs = 10;       // absent for CREATE
+  // One entry per child of the hop this member was found by, walked from this member.
+  repeated RelatedMembers related = 11;
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation
@@ -259,134 +317,4 @@ message PolicyEvaluateModuleResponse {
 
   // PolicyDetails contains detailed information about each policy evaluation
   repeated PolicyEvaluationDetail policy_details = 2;
-}
-
-// ---- relationship runs ----
-
-message BeginRunRequest {
-  string run_id = 1;
-  repeated ProviderSchema provider_schemas = 2;
-  EvaluationStage stage = 3;
-  PlanMode plan_mode = 4;
-  RunRuntime runtime = 5;
-  bool targeted = 6;
-}
-
-message BeginRunResponse {
-  CollectionSpec spec = 1;
-  repeated Diagnostic diagnostics = 2;
-}
-
-// Same shape as ProviderSchema on the policy-schema-validation branch (fields 1-12),
-// plus field 13. Fields 3, 6, 8-12 may be left empty by Core in P1.
-message ProviderSchema {
-  string type = 1;                                   // provider type, e.g. "random"
-  string source = 2;                                 // registry.terraform.io/hashicorp/random
-  bytes config = 3;
-  map<string, bytes> resources = 4;                  // managed type -> ctyjson.MarshalType(block.ImpliedType())
-  map<string, bytes> data_sources = 5;               // same encoding
-  bytes provider_meta = 6;
-  map<string, bytes> ephemeral_resources = 7;        // same encoding
-  map<string, bytes> list_resources = 8;
-  map<string, bytes> state_stores = 9;
-  map<string, bytes> actions = 10;
-  map<string, bytes> resource_identities = 11;
-  map<string, Function> functions = 12;
-  map<string, AttributePaths> write_only_paths = 13; // managed type -> write-only attribute paths
-  // 14 is reserved for relationships_json (P4). Don't use it.
-}
-
-message Function {
-  repeated FunctionParameter parameters = 1;
-  FunctionParameter variadic_parameter = 2;
-  bytes return_type = 3;
-}
-
-message FunctionParameter {
-  string name = 1;
-  bytes type = 2;
-  bool allow_null_value = 3;
-  bool allow_unknown_values = 4;
-}
-
-message CollectionSpec {
-  repeated TypeSpec types = 1;
-}
-
-message TypeSpec {
-  string provider_source = 1;
-  string type = 2;
-  repeated AttributePath key_paths = 3;  // attribute_name steps only
-  repeated string reads = 4;      // top-level attribute names policies read on members of this type
-  bool reads_complete = 5;        // true = Core may prune to reads ∪ key paths
-  bool include_prior = 6;         // Core sends prior_attrs for UPDATE records of this type
-}
-
-message ReportInstancesRequest {
-  string run_id = 1;
-  repeated ProviderInstance providers = 2;
-  repeated InstanceRecord records = 3;
-  repeated TypeStatus statuses = 4;
-}
-
-message ReportInstancesResponse {
-  repeated Diagnostic diagnostics = 1;
-}
-
-message ProviderInstance {
-  uint32 id = 1;                 // >= 1, unique per run; 0 means "no provider instance"
-  string config_address = 2;     // addrs.AbsProviderConfig.String()
-  string source = 3;             // addrs.Provider.String()
-  bytes config_class = 4;        // 32 bytes when known = true, empty otherwise
-  bool known = 5;
-}
-
-message InstanceRecord {
-  string address = 1;                    // addrs.AbsResourceInstance.String()
-  string type = 2;
-  string provider_source = 3;
-  string module_path = 4;                // same format as ResourceMetadata.module_path
-  ResourceAction action = 5;
-  RecordSource source = 6;
-  uint32 provider_instance_id = 7;
-  ResourceAttributes attrs = 8;          // existing encoding; absent for DELETE/FORGET
-  ResourceAttributes prior_attrs = 9;
-  repeated KeyOrigins origins = 10;
-  bool importing = 11;
-  string prev_address = 12;              // set when PrevRunAddr != Addr (moved)
-  string deposed_key = 13;               // states.DeposedKey.String(); "" for current objects
-}
-
-message KeyOrigins {
-  AttributePath key_path = 1;            // one of the TypeSpec.key_paths of the record's type
-  repeated Origin origins = 2;
-  repeated NoOriginReason no_origin = 3;  // a set: why some leaves of the key path have no origin
-}
-
-message Origin {
-  string address = 1;                    // addrs.AbsResourceInstance.String() of the referenced instance
-  AttributePath path = 2;                // attribute_name first; element_key_int may follow any step; no element_key_string
-}
-
-message TypeStatus {
-  string provider_source = 1;
-  string type = 2;
-  TypeCompleteness completeness = 3;
-  reserved 4;                            // was deferred_addresses
-  reserved "deferred_addresses";
-  repeated DeferredInstance deferred = 5; // sorted by address; only with INCOMPLETE_DEFERRED
-}
-
-message DeferredInstance {
-  string address = 1;                    // instance or partial-expansion address, as before
-  uint32 provider_instance_id = 2;       // a ProviderInstance.id of the same batch; 0 = not known
-}
-
-message FinishRunRequest {
-  string run_id = 1;
-  bool aborted = 2;
-}
-
-message FinishRunResponse {
-  repeated Diagnostic diagnostics = 1;
 }
