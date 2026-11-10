@@ -111,12 +111,10 @@ func TestInit2_dynamicSourceErrors(t *testing.T) {
 				"hashicorp/test": {"1.0.0"},
 			})
 
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -193,13 +191,10 @@ func TestInit2_dynamicSourceSuccess(t *testing.T) {
 			providerSource := newMockProviderSource(t, map[string][]string{
 				"hashicorp/test": {"1.0.0"},
 			})
-
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -290,12 +285,10 @@ func TestInit2_getFalseWithDynamicSource(t *testing.T) {
 	t.Chdir(td)
 
 	// First, run init normally to install the module
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -331,12 +324,10 @@ func TestInit2_getFalseWithDynamicSourceNotInstalled(t *testing.T) {
 	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "get-false-with-dynamic-source")), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -356,12 +347,10 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 	t.Chdir(td)
 
 	// First init with default variable (example)
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -399,12 +388,10 @@ func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -800,12 +787,10 @@ func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
 				"hashicorp/test": {"1.0.0"},
 			})
 
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -898,12 +883,10 @@ func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
 			}
 			providerSource := newMockProviderSource(t, providers)
 
-			ui := testUiWrapped(t)
 			view, done := testView(t)
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -973,12 +956,10 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	}
 
 	// INIT
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -996,12 +977,10 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	}
 
 	// PLAN
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -1014,12 +993,10 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	}
 
 	// APPLY
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -1032,12 +1009,10 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	}
 
 	// REFRESH
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	refreshCmd := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(mockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -1052,12 +1027,10 @@ func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.
 	// QUERY
 	queryMockProvider := queryFixtureProvider()
 	queryMockProvider = addPluggableStateStoreToMockProvider(queryMockProvider, mockSingleStateStoreSchema("test_store")) // Update the query-specific mock to also include a state store.
-	ui = testUiWrapped(t)
 	view, done = testView(t)
 	queryCmd := &QueryCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(queryMockProvider),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
