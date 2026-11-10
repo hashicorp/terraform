@@ -723,6 +723,45 @@ func TestFmt_check(t *testing.T) {
 		}
 	})
 
+	t.Run("combining -diff and -list=false options", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-diff",
+			"-list=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		// output doesn't have the file path printed before the diff, which is the -list contribution to output
+		expectedOutput := fmt.Sprintf(`--- old/%s/main.tf
++++ new/%s/main.tf
+@@ -1 +1 @@
+-  foo  =  "bar"
++foo = "bar"
+`, tempDir, tempDir)
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
 	t.Run("explicit -write=true option is silently ignored when using the check option", func(t *testing.T) {
 		t.Parallel()
 		tempDir := fmtFixtureWriteDir(t)
@@ -746,6 +785,39 @@ func TestFmt_check(t *testing.T) {
 
 		tempDir = c.normalizePath(tempDir)
 		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
+
+		if actual := ui.OutputWriter.String(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := ui.ErrorWriter.String(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("all outputs disabled, alongside -check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		ui := testUiWrapped(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-write=false",
+			"-list=false",
+			"-diff=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		expectedOutput := ""
 
 		if actual := ui.OutputWriter.String(); actual != expectedOutput {
 			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
@@ -829,7 +901,12 @@ c =   "y"
 
 		// The symlinked file has been formatted
 		ui = testUiWrapped(t)
-		c.Ui = ui
+		c = &FmtCommand{
+			Meta: Meta{
+				Ui:         ui,
+				WorkingDir: workingDir,
+			},
+		}
 		args := []string{
 			"-no-color",
 			"-check",
@@ -912,7 +989,12 @@ c =   "y"
 
 		// The symlinked file has been formatted
 		ui = testUiWrapped(t)
-		c.Ui = ui
+		c = &FmtCommand{
+			Meta: Meta{
+				Ui: ui,
+				// Not setting WorkingDir
+			},
+		}
 		args = []string{
 			"-no-color",
 			"-check",
