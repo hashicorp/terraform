@@ -24,15 +24,9 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
-	var scope policyEvaluationScope
-	if pg := ctx.PolicyGraph(); pg != nil {
-		scope = pg.walkEvaluationScope()
-	}
-	return evaluatePoliciesInScope(ctx, target, config, attrs, priorAttrs, meta, callbacks, scope)
-}
-
-func evaluatePoliciesInScope(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions, scope policyEvaluationScope) policy.EvaluationResponse {
+// evaluatePolicies evaluates the policies of a resource instance. related
+// are its related members, or nil without relationships.
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions, related []*proto.RelatedMembers) policy.EvaluationResponse {
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
@@ -48,7 +42,7 @@ func evaluatePoliciesInScope(ctx EvalContext, target addrs.AbsResourceInstance, 
 		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
 		Meta:       meta,
 		Callbacks:  callbacks,
-		RunID:      scope.runID,
+		Related:    related,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information

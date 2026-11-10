@@ -252,12 +252,8 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		return diags
 	}
 
-	if pg := ctx.PolicyGraphValue; pg != nil && pg.providers != nil {
-		cfgType := cty.NilType
-		if schema, err := ctx.ProviderSchema(addr); err == nil && schema.Provider.Body != nil {
-			cfgType = schema.Provider.Body.ImpliedType()
-		}
-		pg.providers.configured(addr, cfg, cfgType)
+	if pg := ctx.PolicyGraphValue; pg != nil {
+		pg.providerConfigured(addr, cfg)
 	}
 
 	req := providers.ConfigureProviderRequest{

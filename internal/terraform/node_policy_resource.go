@@ -41,7 +41,7 @@ func (n *nodeResourcePolicy) Name() string {
 func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
 	var scope policyEvaluationScope
 	if pg := ctx.PolicyGraph(); pg != nil {
-		scope = pg.walkEvaluationScope()
+		scope.relations = pg.walkRelations()
 	}
 	return n.evaluate(ctx, operation, scope)
 }
@@ -101,7 +101,12 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
-	result := evaluatePoliciesInScope(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks, scope)
+	var related []*proto.RelatedMembers
+	if scope.relations != nil {
+		related = scope.relations.Related(meta, n.ResourceAddr.Resource.Resource.Type, n.Before, n.After)
+	}
+
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks, related)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

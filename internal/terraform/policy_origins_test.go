@@ -21,8 +21,10 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -38,17 +40,14 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 		computedZone bool
 		// planFn replaces the provider's planning when set.
 		planFn func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
-		// want are the origins of every record that has any, by address,
+		// want are the origins of every object that has any, by address,
 		// then by key path.
 		want map[string]map[string][]string
-		// noOrigin are the no-origin reasons of every record that has any,
-		// by address, then by key path; not checked when nil.
-		noOrigin map[string]map[string][]string
-		// records are records that must exist, by relRecordKey.
-		records []string
-		// actions are the actions of records, by relRecordKey; not checked
-		// for records without an entry.
-		actions map[string]proto.ResourceAction
+		// objects are objects that must exist, by relObjectKey.
+		objects []string
+		// ops are the operations of objects, by relObjectKey; not checked
+		// for objects without an entry.
+		ops map[string]proto.Operation
 	}{
 		// Followed forms.
 		"direct reference": {
@@ -325,12 +324,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.other":   {"net_ids": {"EXPRESSION"}},
-				"test_vm.set":     {"net_ids": {"UNSUPPORTED"}},
-				"test_vm.unknown": {"net_ids": {"UNSUPPORTED"}},
-			},
 		},
 		// A reference to a whole list is followed like a splat over it, so
 		// test_vm.direct's net_ids refer to test_vm.other's net_ids element
@@ -415,12 +408,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.other":   {"net_ids": {"EXPRESSION"}},
-				"test_vm.set":     {"net_ids": {"UNSUPPORTED"}},
-				"test_vm.unknown": {"net_ids": {"UNSUPPORTED"}},
-			},
 		},
 		"index steps not followed": {
 			files: map[string]string{"main.tf": `
@@ -445,13 +432,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":               {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.other":            {"net_ids": {"LITERAL"}, "nic.net_id": {"LITERAL"}},
-				"test_vm.string_key":       {"net_id": {"UNSUPPORTED"}},
-				"test_vm.block_string_key": {"net_id": {"UNSUPPORTED"}},
-				"test_vm.map":              {"net_id": {"UNSUPPORTED"}},
-			},
 		},
 		"count.index": {
 			files: map[string]string{"main.tf": `
@@ -728,10 +708,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			`},
 			computedZone: true,
 			want:         map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a": {"id": {"NOT_CONFIGURED"}},
-				"test_vm.v":  {"zone": {"UNSUPPORTED"}},
-			},
 		},
 		"null leaves": {
 			files: map[string]string{"main.tf": `
@@ -757,10 +733,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			want: map[string]map[string][]string{
 				"test_vm.v": {"net_ids": {"test_net.a.id"}},
 				"test_vm.w": {"nic.net_id": {"test_net.a.id"}},
-			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_net.b": {"id": {"NOT_CONFIGURED"}},
 			},
 		},
 		"different number of leaves": {
@@ -795,13 +767,9 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				return providers.PlanResourceChangeResponse{PlannedState: planned, LegacyTypeSystem: true}
 			},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.v":  {"net_ids": {"PROVIDER_CHANGED"}},
-			},
 		},
 
-		// No-origin reasons.
+		// No origins.
 		"no_origin: literals": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -818,14 +786,10 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					net_id   = each.key
 				}
 			`},
-			// A partial key path has origins and reasons.
+			// A key path with some leaves without origins has the origins of
+			// the others.
 			want: map[string]map[string][]string{
 				"test_vm.c[0]": {"net_ids": {"test_net.a.id"}},
-			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":     {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.c[0]":   {"net_id": {"LITERAL"}, "zone": {"LITERAL"}, "net_ids": {"LITERAL"}},
-				`test_vm.e["k"]`: {"net_id": {"LITERAL"}},
 			},
 		},
 		"no_origin: data sources and variables": {
@@ -862,10 +826,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				`,
 			},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_vm.v":              {"net_id": {"DATA_SOURCE"}, "zone": {"VARIABLE"}},
-				"module.child.test_vm.v": {"net_id": {"VARIABLE"}, "zone": {"VARIABLE"}},
-			},
 		},
 		"no_origin: expressions": {
 			files: map[string]string{"main.tf": `
@@ -893,12 +853,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.c[0]":   {"id": {"NOT_CONFIGURED"}, "name": {"EXPRESSION"}},
-				`test_net.f["x"]`: {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.v":       {"net_id": {"EXPRESSION"}, "zone": {"EXPRESSION"}, "net_ids": {"EXPRESSION"}},
-				"test_vm.w":       {"net_id": {"EXPRESSION"}, "zone": {"EXPRESSION"}, "net_ids": {"EXPRESSION"}},
-			},
 		},
 		"ignore_changes on create": {
 			files: map[string]string{"main.tf": `
@@ -925,12 +879,7 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.v":   {"net_id": {"test_net.a.id"}},
 				"test_vm.all": {"net_id": {"test_net.a.id"}},
 			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":  {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.v":   {"zone": {"NOT_CONFIGURED"}},
-				"test_vm.all": {"zone": {"NOT_CONFIGURED"}},
-			},
-			actions: map[string]proto.ResourceAction{"test_vm.v": relCreate, "test_vm.all": relCreate},
+			ops: map[string]proto.Operation{"test_vm.v": proto.Operation_CREATE, "test_vm.all": proto.Operation_CREATE},
 		},
 		"ignore_changes on update": {
 			files: map[string]string{"main.tf": `
@@ -984,17 +933,12 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.v":        {"zone": {"test_net.a.name"}},
 				"test_vm.replaced": {"net_id": {"test_net.a.id"}},
 			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":      {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.v":       {"net_id": {"IGNORE_CHANGES"}},
-				"test_vm.all":     {"net_id": {"IGNORE_CHANGES"}, "zone": {"IGNORE_CHANGES"}},
-				"test_vm.literal": {"net_id": {"IGNORE_CHANGES"}},
-			},
-			actions: map[string]proto.ResourceAction{
-				"test_vm.v":        relUpdate,
-				"test_vm.all":      relNoOp,
-				"test_vm.literal":  relNoOp,
-				"test_vm.replaced": proto.ResourceAction_DELETE_THEN_CREATE_RESOURCE_ACTION,
+			ops: map[string]proto.Operation{
+				"test_vm.v":            proto.Operation_UPDATE,
+				"test_vm.all":          proto.Operation_NO_OP,
+				"test_vm.literal":      proto.Operation_NO_OP,
+				"test_vm.replaced":     proto.Operation_CREATE,
+				"test_vm.replaced old": proto.Operation_DELETE,
 			},
 		},
 		"provider changed the value": {
@@ -1045,13 +989,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.known": {"zone": {"test_net.b.name"}},
 				"test_vm.list":  {"net_ids": {"test_net.a.name", "test_net.b.name"}},
 			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a":           {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_net.b":           {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.known":        {"net_id": {"PROVIDER_CHANGED"}},
-				"test_vm.unknown":      {"net_id": {"PROVIDER_CHANGED"}, "zone": {"PROVIDER_CHANGED"}},
-				"test_vm.list_changed": {"net_ids": {"PROVIDER_CHANGED"}},
-			},
 		},
 		"no_origin: unsupported": {
 			files: map[string]string{"main.tf": `
@@ -1081,11 +1018,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				}
 			`},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-				"test_vm.v":  {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}, "net_ids": {"UNSUPPORTED"}},
-				"test_vm.w":  {"net_id": {"UNSUPPORTED"}, "nic.net_id": {"UNSUPPORTED"}},
-			},
 		},
 		"no_origin: JSON and override files": {
 			files: map[string]string{
@@ -1102,10 +1034,6 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"vm.tf.json": `{"resource": {"test_vm": {"j": {"net_id": "x"}}}}`,
 			},
 			want: map[string]map[string][]string{},
-			noOrigin: map[string]map[string][]string{
-				"test_vm.o": {"net_id": {"UNSUPPORTED"}, "zone": {"UNSUPPORTED"}},
-				"test_vm.j": {"net_id": {"UNSUPPORTED"}},
-			},
 		},
 		// Test overrides. The outputs of an overridden module come from the
 		// override, so they have no origins, but overridden resources still
@@ -1375,7 +1303,7 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				"test_vm.over": {"net_id": {"test_net.a.id"}},
 			},
 		},
-		"state records": {
+		"state objects": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
 					name = "a"
@@ -1402,16 +1330,12 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				Mode:    plans.NormalMode,
 				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_vm.targeted")},
 			},
-			// Neither the state record of test_vm.untargeted nor the record
-			// of the deposed object of test_vm.targeted have origins or
-			// reasons.
+			// Neither the state object of test_vm.untargeted nor the deposed
+			// object of test_vm.targeted have origins.
 			want: map[string]map[string][]string{
 				"test_vm.targeted": {"net_id": {"test_net.a.id"}},
 			},
-			noOrigin: map[string]map[string][]string{
-				"test_net.a": {"id": {"NOT_CONFIGURED"}, "name": {"LITERAL"}},
-			},
-			records: []string{"test_vm.untargeted", "test_vm.targeted deposed 00000001"},
+			objects: []string{"test_vm.untargeted", "test_vm.targeted deposed 00000001"},
 		},
 	}
 
@@ -1445,47 +1369,100 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					return providers.PlanResourceChangeResponse{PlannedState: planned}
 				}
 			}
-			_, run := planRelationships(t, mod, state, opts, provider,
-				relTypeSpec("test_net", "id", "name"),
-				relTypeSpec("test_vm", "net_id", "net_ids", "nic.net_id", "zone", "disks.size"))
-			run.assertRunSequence(t)
+			objects := planPolicyObjects(t, mod, state, opts, provider)
 
+			for _, key := range test.objects {
+				if _, ok := objects[key]; !ok {
+					t.Errorf("missing object %s", key)
+				}
+			}
+			for key, op := range test.ops {
+				if obj, ok := objects[key]; !ok {
+					t.Errorf("missing object %s", key)
+				} else if obj.op != op {
+					t.Errorf("%s: wrong operation %s, want %s", key, obj.op, op)
+				}
+			}
 			got := make(map[string]map[string][]string)
-			gotNoOrigin := make(map[string]map[string][]string)
-			records := run.records(t)
-			for _, key := range test.records {
-				if _, ok := records[key]; !ok {
-					t.Errorf("missing record %s", key)
+			for key, obj := range objects {
+				origins := relObjectOrigins(obj)
+				if origins == nil {
+					continue
 				}
-			}
-			for key, action := range test.actions {
-				if rec, ok := records[key]; !ok {
-					t.Errorf("missing record %s", key)
-				} else if rec.Action != action {
-					t.Errorf("%s: wrong action %s, want %s", key, rec.Action, action)
+				if obj.op == proto.Operation_DELETE || obj.deposed != "" {
+					t.Errorf("%s: unexpected origins on a %s object", key, obj.op)
 				}
-			}
-			for addr, rec := range records {
-				if len(rec.Origins) > 0 && (rec.Source != proto.RecordSource_PLANNED_RECORD_SOURCE || rec.Attrs == nil || rec.DeposedKey != "") {
-					t.Errorf("%s: unexpected origins on a %s record", addr, rec.Source)
-				}
-				if origins := relOrigins(t, rec); origins != nil {
-					got[addr] = origins
-				}
-				if reasons := relNoOrigins(rec); reasons != nil {
-					gotNoOrigin[addr] = reasons
-				}
+				got[key] = origins
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Fatalf("wrong origins (-want +got):\n%s", diff)
 			}
-			if test.noOrigin != nil {
-				if diff := cmp.Diff(test.noOrigin, gotNoOrigin); diff != "" {
-					t.Fatalf("wrong no-origin reasons (-want +got):\n%s", diff)
-				}
-			}
 		})
 	}
+}
+
+// relOriginDefinitions are relationships that read every key path the origin
+// tests check.
+func relOriginDefinitions() policy.Relationships {
+	return policy.Relationships{Definitions: []*proto.RelationshipDefinition{
+		relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id", "nic.net_id=id", "zone=name"),
+		relDefinition("vm_disks", "test_vm", "test_vm", "disks.size=disks.size"),
+	}}
+}
+
+// planPolicyObjects plans with relOriginDefinitions, and returns the objects
+// that the walk collected for them, by relObjectKey. The walk contributes
+// them to a shared run, which follows root module variables.
+func planPolicyObjects(t *testing.T, mod *configs.Config, state *states.State, opts *PlanOpts, provider *testing_provider.MockProvider) map[string]*policyObject {
+	t.Helper()
+	var got *PolicyInstances
+	opts.PolicyClient = policy.NewTestMockClient(t)
+	opts.PolicyRun = &SharedPolicyRun{
+		Relationships: relOriginDefinitions(),
+		Contribute:    func(c PolicyRunContribution) { got = c.Instances },
+	}
+	relPlan(t, mod, state, opts, provider)
+	if got == nil {
+		t.Fatal("the walk contributed no instances")
+	}
+	ret := make(map[string]*policyObject)
+	for _, obj := range got.objects {
+		key := relObjectKey(obj)
+		if _, ok := ret[key]; ok {
+			t.Fatalf("duplicate object %s", key)
+		}
+		ret[key] = obj
+	}
+	return ret
+}
+
+// relObjectKey identifies an object: its address, then " deposed KEY" for a
+// deposed object or " old" for the old object of a replace.
+func relObjectKey(obj *policyObject) string {
+	switch {
+	case obj.deposed != "":
+		return obj.addr + " deposed " + obj.deposed
+	case obj.old:
+		return obj.addr + " old"
+	default:
+		return obj.addr
+	}
+}
+
+// relObjectOrigins returns the origin ids of an object by key path, or nil
+// if it has none.
+func relObjectOrigins(obj *policyObject) map[string][]string {
+	var ret map[string][]string
+	for path, origins := range obj.origins {
+		for _, o := range origins {
+			if ret == nil {
+				ret = make(map[string][]string)
+			}
+			ret[path] = append(ret[path], o.id())
+		}
+		sort.Strings(ret[path])
+	}
+	return ret
 }
 
 // relLegacyPlanFn returns a PlanResourceChangeFn of a legacy provider that
@@ -1839,18 +1816,15 @@ func TestOriginsForOverriddenModules(t *testing.T) {
 				t.Fatalf("expected a predicate only with overrides")
 			}
 
-			// A record in the module.
+			// An instance in the module.
 			val := cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)})
-			got := originsFor(cfg, exp, overridden, childVM, plans.Create, val, val, [][]string{{"net_id"}}, lookup)
-			if len(got) != 1 {
-				t.Fatalf("expected one entry for the key path, got %v", got)
-			}
+			got := originsFor(cfg, exp, overridden, childVM, plans.Create, val, val, [][]string{{"net_id"}}, lookup, false)
 			if test.overridden {
-				if len(got[0].Origins) != 0 || len(got[0].NoOrigin) != 1 || got[0].NoOrigin[0] != proto.NoOriginReason_UNSUPPORTED_NO_ORIGIN_REASON {
-					t.Errorf("expected no origins and the reason UNSUPPORTED for a record in an overridden module, got %v", got)
+				if len(got) != 0 {
+					t.Errorf("expected no origins for an instance in an overridden module, got %v", got)
 				}
-			} else if len(got[0].Origins) != 1 || len(got[0].NoOrigin) != 0 {
-				t.Errorf("expected the origin of the record, got %v", got)
+			} else if len(got["net_id"].origins) != 1 {
+				t.Errorf("expected the origin of the instance, got %v", got)
 			}
 
 			e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
@@ -2006,14 +1980,14 @@ func TestOriginEvalIndex(t *testing.T) {
 			cty.NumberIntVal(3),
 			symRef{addr: addr, path: []originStep{{name: "m"}, {index: 2}, {index: 3}}},
 		},
-		"negative":       {ref, cty.NumberIntVal(-1), opaqueUnsupported},
-		"fractional":     {ref, cty.NumberFloatVal(1.5), opaqueUnsupported},
-		"too large":      {ref, cty.NumberVal(tooLarge), opaqueUnsupported},
-		"string":         {ref, cty.StringVal("1"), opaqueUnsupported},
-		"unknown":        {ref, cty.UnknownVal(cty.Number), opaqueExpression},
-		"null":           {ref, cty.NullVal(cty.Number), opaqueExpression},
-		"marked":         {ref, cty.NumberIntVal(1).Mark(marks.Sensitive), opaqueExpression},
-		"whole resource": {symRef{addr: addr}, cty.Zero, opaqueUnsupported},
+		"negative":       {ref, cty.NumberIntVal(-1), opaqueValue},
+		"fractional":     {ref, cty.NumberFloatVal(1.5), opaqueValue},
+		"too large":      {ref, cty.NumberVal(tooLarge), opaqueValue},
+		"string":         {ref, cty.StringVal("1"), opaqueValue},
+		"unknown":        {ref, cty.UnknownVal(cty.Number), opaqueValue},
+		"null":           {ref, cty.NullVal(cty.Number), opaqueValue},
+		"marked":         {ref, cty.NumberIntVal(1).Mark(marks.Sensitive), opaqueValue},
+		"whole resource": {symRef{addr: addr}, cty.Zero, opaqueValue},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -2123,31 +2097,31 @@ func TestOriginEvalSplat(t *testing.T) {
 		"set": {
 			expr:    "test_vm.v.net_set[*]",
 			planned: cty.ObjectVal(map[string]cty.Value{"net_set": cty.SetVal([]cty.Value{cty.StringVal("a")})}),
-			want:    opaqueUnsupported,
+			want:    opaqueValue,
 		},
 		"map": {
 			expr:    "test_vm.v.tags[*]",
 			planned: cty.ObjectVal(map[string]cty.Value{"tags": cty.MapVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
-			want:    opaqueUnsupported,
+			want:    opaqueValue,
 		},
 		"object": {
 			expr:    "test_vm.v.obj[*]",
 			planned: cty.ObjectVal(map[string]cty.Value{"obj": cty.ObjectVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
-			want:    opaqueUnsupported,
+			want:    opaqueValue,
 		},
 		"unknown list": {
 			expr:    "test_vm.v.net_ids[*]",
 			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.UnknownVal(cty.List(cty.String))}),
-			want:    opaqueUnsupported,
+			want:    opaqueValue,
 		},
 		"null list": {
 			expr:    "test_vm.v.net_ids[*]",
 			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.NullVal(cty.List(cty.String))}),
-			want:    opaqueUnsupported,
+			want:    opaqueValue,
 		},
 		"no planned value": {
 			expr: "test_vm.v.net_ids[*]",
-			want: opaqueUnsupported,
+			want: opaqueValue,
 		},
 		"whole resource": {
 			expr: "test_vm.v[*].net_id",
@@ -2185,9 +2159,6 @@ func TestOriginPath(t *testing.T) {
 		if got := originPathString(path); got != p {
 			t.Errorf("wrong id for %s: %s", p, got)
 		}
-		if got := relPathString(policyOriginPath(path)); got != p {
-			t.Errorf("wrong wire path for %s: %s", p, got)
-		}
 	}
 	sort.Slice(parsed, func(i, j int) bool { return originPathLess(parsed[i], parsed[j]) })
 	var gotOrder []string
@@ -2196,14 +2167,6 @@ func TestOriginPath(t *testing.T) {
 	}
 	if diff := cmp.Diff(wantOrder, gotOrder); diff != "" {
 		t.Errorf("wrong order (-want +got):\n%s", diff)
-	}
-
-	steps := policyOriginPath(testOriginPath(t, "nic[1].net_id")).GetSteps()
-	if len(steps) != 3 || steps[0].GetAttributeName() != "nic" || steps[2].GetAttributeName() != "net_id" {
-		t.Fatalf("wrong wire path: %v", steps)
-	}
-	if step, ok := steps[1].GetSelector().(*proto.AttributePath_Step_ElementKeyInt); !ok || step.ElementKeyInt != 1 {
-		t.Errorf("expected an element_key_int step 1, got %v", steps[1])
 	}
 }
 

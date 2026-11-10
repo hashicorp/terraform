@@ -823,7 +823,11 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, nil, diags
 	}
 
-	policyRun := c.planPolicyRunOpts(config, prevRunState, opts)
+	policyRun, moreDiags := c.planPolicyRunOpts(config, prevRunState, opts)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
 
 	timestamp := time.Now().UTC()
 	if opts.ForcePlanTimestamp != nil {

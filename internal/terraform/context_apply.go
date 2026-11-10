@@ -210,9 +210,11 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
-	// The apply walk removes changes from the working changes as it applies
-	// them, so the relationship run needs its own copy of the changes slice.
-	policyRun := c.applyPolicyRunOpts(plan, schemas, changes.Resources, opts.PolicyClient, opts.ExternalProviders, opts.PolicyRun)
+	policyRun, moreDiags := c.applyPolicyRunOpts(schemas, changes.Resources, opts)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
 
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{

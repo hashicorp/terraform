@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -37,49 +36,24 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.Changes().Close()
 	ctx.State().Close()
 
-	spanCtx, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
-	var runDiags policy.Diagnostics
-	runFailed := false
-	contributed := false
-	switch {
-	case policyGraph.run == nil:
-	case policyGraph.run.Shared != nil:
-		// The walk contributes to its caller's run (Terraform Stacks), which
-		// reports the statuses and evaluates every subject, once and with
-		// every policy, after every walk has contributed: an
-		// end-of-deployment batch that mirrors the end-of-walk batch of a
-		// walk's own run. Streaming is a later optimization for both. See
-		// SharedPolicyRun.
-		shared := policyGraph.run.Shared
-		runDiags = shared.Diagnostics
-		runFailed = shared.Failed
-		if !runFailed {
-			contributed = policyGraph.contributeToSharedRun(ctx)
-		}
-	default:
-		runDiags = policyGraph.startRelationshipRun(ctx, spanCtx)
-		runFailed = runDiags.HasErrors()
+	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
+	run := policyGraph.run
+	if run == nil {
+		return policyGraph.evalGraph(span), nil
 	}
-	var diags tfdiags.Diagnostics
-	if len(runDiags) > 0 {
-		// Like policy setup diagnostics, the diagnostics of beginning the
-		// relationship run go to the view and don't fail the walk.
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PolicyDiagnostics(runDiags)
-		}))
-	}
-	if runFailed {
-		// The relationship run didn't begin, so no policy is evaluated. There
-		// is no subgraph whose finish node ends the span, so end it here.
+	inst, lookup := collectPolicyInstances(ctx, policyGraph)
+	if run.Shared != nil {
+		// The caller relates the instances of every walk and evaluates the
+		// subjects once every walk has contributed. See SharedPolicyRun.
+		policyGraph.contributeToSharedRun(ctx, inst, lookup)
 		span.End()
-		return nil, diags
+		return nil, nil
 	}
-	if contributed {
-		// The caller evaluates the subjects; the walk evaluates nothing.
-		span.End()
-		return nil, diags
-	}
-	return policyGraph.evalGraph(span), diags
+	relations := NewPolicyRelations(run.Relationships, !run.Apply, false, inst)
+	policyGraph.lock.Lock()
+	policyGraph.relations = relations
+	policyGraph.lock.Unlock()
+	return policyGraph.evalGraph(span), nil
 }
 
 // AlwaysRun implements [dag.AlwaysRunVertex] so that the policy evaluation
@@ -102,9 +76,6 @@ func (n *nodePolicyEvalFinish) Name() string {
 }
 
 func (n *nodePolicyEvalFinish) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
-	if pg := ctx.PolicyGraph(); pg != nil {
-		pg.finishRelationshipRun(ctx, trace.ContextWithSpan(ctx.StopCtx(), n.span))
-	}
 	n.span.End()
 	return nil
 }

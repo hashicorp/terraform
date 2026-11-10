@@ -6,7 +6,6 @@ package command
 import (
 	"context"
 	"os"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
@@ -496,10 +495,9 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 	checkGoldenReferenceStr(t, output, expected)
 }
 
-// TestApply_WithPolicyRelationshipDefinitionErrors checks an apply whose
-// policy uses a wrong relationship definition: like a policy set that fails
-// to load, the diagnostics are shown, no policy is evaluated, and the apply
-// succeeds.
+// TestApply_WithPolicyRelationshipDefinitionErrors checks that a
+// relationship definition that doesn't fit the provider's schema fails the
+// apply before any resource is applied.
 func TestApply_WithPolicyRelationshipDefinitionErrors(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
@@ -508,8 +506,7 @@ func TestApply_WithPolicyRelationshipDefinitionErrors(t *testing.T) {
 	p := planFixtureProvider()
 	view, done := testView(t)
 	overrides := metaOverridesForProvider(p)
-	client := testPolicyRelationshipDefinitionClient(t)
-	overrides.PolicyClient = client
+	overrides.PolicyClient = testPolicyRelationshipDefinitionClient(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: overrides,
@@ -519,50 +516,13 @@ func TestApply_WithPolicyRelationshipDefinitionErrors(t *testing.T) {
 
 	code := c.Run([]string{"-policies", td, "-no-color", "-auto-approve"})
 	output := done(t)
-	if code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, output.All())
+	if code != 1 {
+		t.Fatalf("expected the apply to fail, got %d\n\n%s", code, output.All())
 	}
-	if !client.BeginRunCalled {
-		t.Fatal("expected a BeginRun call")
+	if p.ApplyResourceChangeCalled {
+		t.Fatal("expected the apply to fail before any resource is applied")
 	}
-	if !p.ApplyResourceChangeCalled {
-		t.Fatal("expected the resource to be applied")
-	}
-
-	// The plan before the apply doesn't evaluate policies, so only the apply
-	// walk begins a run, after the resources are applied, and shows the
-	// diagnostics once.
-	wantStdout := `test_instance.foo: Creation complete after 0s
-
-Warning: Unknown resource type
-
-  on policies/foo.policy.hcl line 1, in relationship "test_instanc" "test_instance" "foo_bar":
-   1: relationship "test_instanc" "test_instance" "foo_bar" {
-
-The provider has no resource type "test_instanc". No policy uses relationship
-"foo_bar", so this is a warning. Fix or remove the relationship before a
-policy uses it.
-
-Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
-`
-	if !strings.HasSuffix(output.Stdout(), wantStdout) {
-		t.Errorf("wrong end of stdout\ngot:\n%s\nwant suffix:\n%s", output.Stdout(), wantStdout)
-	}
-	if got := strings.Count(output.Stdout(), "Warning: Unknown resource type"); got != 1 {
-		t.Errorf("expected the warning once, got %d", got)
-	}
-	wantStderr := `
-Error: Unknown attribute
-
-  on policies/foo.policy.hcl line 6, in relationship "test_instance" "test_instance" "foo_net":
-   6:   key = net
-
-The resource type "test_instance" has no attribute "net".
-
-The policy resource_policy "test_instance" "isolated" uses relationship
-"foo_net", so no policy is evaluated in this run.
-`
-	if diff := cmp.Diff(wantStderr, output.Stderr()); diff != "" {
+	if diff := cmp.Diff(testPolicyRelationshipDefinitionError, output.Stderr()); diff != "" {
 		t.Errorf("unexpected stderr output:\n%s", diff)
 	}
 }

@@ -20,18 +20,18 @@ import (
 
 // ContributeSkippedApply contributes a plan that its caller doesn't apply
 // because it isn't applyable (it has no changes) to the caller's shared
-// relationship run, opts.PolicyRun, as if it were applied: like a Terraform
-// CLI apply of such a plan, the run gets a record of every instance from the
-// plan's prior state, which is the state after the skipped apply, and one
-// evaluation per no-op change, whose new value is the prior state's. Terraform
-// Stacks skips the apply of such a component instance.
+// policy run, opts.PolicyRun, as if it were applied: like a Terraform CLI
+// apply of such a plan, the run gets every instance of the plan's prior
+// state, which is the state after the skipped apply, and one evaluation per
+// no-op change, whose new value is the prior state's. Terraform Stacks skips
+// the apply of such a component instance.
 //
-// There is no walk: the records and the evaluations read the prior state and
-// the plan's deferrals, and the evaluations use opts.ExternalProviders and
-// report through the context's hooks.
+// There is no walk: the instances and the evaluations read the prior state
+// and the plan's deferrals, and the evaluations use opts.ExternalProviders
+// and report through the context's hooks.
 func (c *Context) ContributeSkippedApply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	if opts == nil || opts.PolicyRun == nil || opts.PolicyRun.ID == "" || opts.PolicyRun.Failed || plan == nil || plan.PriorState == nil {
+	if opts == nil || opts.PolicyRun == nil || plan == nil || plan.PriorState == nil {
 		return nil
 	}
 	schemas, moreDiags := c.Schemas(config, plan.PriorState)
@@ -48,7 +48,8 @@ func (c *Context) ContributeSkippedApply(plan *plans.Plan, config *configs.Confi
 	if moreDiags.HasErrors() {
 		return diags
 	}
-	run := c.applyPolicyRunOpts(plan, schemas, changes.Resources, opts.PolicyClient, opts.ExternalProviders, opts.PolicyRun)
+	run, moreDiags := c.applyPolicyRunOpts(schemas, changes.Resources, opts)
+	diags = diags.Append(moreDiags)
 	if run == nil {
 		return diags
 	}
@@ -97,13 +98,14 @@ func (c *Context) ContributeSkippedApply(plan *plans.Plan, config *configs.Confi
 		})
 	}
 
-	ps.contributeToSharedRun(ctx)
+	inst, _ := collectPolicyInstances(ctx, ps)
+	ps.contributeToSharedRun(ctx, inst, nil)
 	return diags
 }
 
 // skippedApplyEvalContext is the EvalContext of ContributeSkippedApply. It
-// implements only what collecting a relationship batch and evaluating a
-// resource's policies at apply use; the other methods panic.
+// implements only what collecting the instances of relationships and
+// evaluating a resource's policies at apply use; the other methods panic.
 type skippedApplyEvalContext struct {
 	EvalContext
 
