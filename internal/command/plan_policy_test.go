@@ -20,7 +20,6 @@ import (
 
 // Tests the output of a plan that includes a policy evaluation
 func TestPlan_WithPolicy(t *testing.T) {
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
 	t.Chdir(td)
@@ -138,7 +137,6 @@ Error: policy denied
 }
 
 func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
 	t.Chdir(td)
@@ -291,25 +289,26 @@ func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
 	// implicit allow, in a case where the evaluated provider matched no policy in the engine
 	policyClient.EvaluateProviderResponse = &policy.EvaluationResponse{
 		Overall: policy.AllowResult,
-		Policies: []*policy.Policy{{
-			Result:           policy.AllowResult,
-			PolicySetName:    "some_policy_set",
-			Address:          "policy_name",
-			Directory:        "some/path/to",
-			Filename:         "provider_policy_file.tfpolicy.hcl",
-			EnforcementLevel: "mandatory",
-			Range: &hcl.Range{
-				Filename: "provider_policy_file.tfpolicy.hcl",
-				Start: hcl.Pos{
-					Line:   1,
-					Column: 1,
-				},
-				End: hcl.Pos{
-					Line:   5,
-					Column: 12,
+		Policies: []*policy.Policy{
+			{
+				Result:           policy.AllowResult,
+				PolicySetName:    "some_policy_set",
+				Address:          "policy_name",
+				Directory:        "some/path/to",
+				Filename:         "provider_policy_file.tfpolicy.hcl",
+				EnforcementLevel: "mandatory",
+				Range: &hcl.Range{
+					Filename: "provider_policy_file.tfpolicy.hcl",
+					Start: hcl.Pos{
+						Line:   1,
+						Column: 1,
+					},
+					End: hcl.Pos{
+						Line:   5,
+						Column: 12,
+					},
 				},
 			},
-		},
 		},
 	}
 
@@ -337,7 +336,6 @@ func TestPlan_WithPolicyDiagnosticsJSON(t *testing.T) {
 }
 
 func TestPlan_WithPolicyUnknown(t *testing.T) {
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
 	t.Chdir(td)
@@ -925,7 +923,6 @@ guarantee to take exactly these actions if you run "terraform apply" now.
 	if diff := cmp.Diff(expectedStdout, output.Stdout()); diff != "" {
 		t.Fatalf("unexpected stdout output:\n%s", diff)
 	}
-
 }
 
 func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {

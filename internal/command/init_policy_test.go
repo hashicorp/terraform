@@ -21,7 +21,6 @@ import (
 )
 
 func TestInit_WithModulePolicy(t *testing.T) {
-
 	cases := []struct {
 		name     string
 		policy   *policy.EvaluationResponse
@@ -69,7 +68,6 @@ func TestInit_WithModulePolicy(t *testing.T) {
 		policyClient := policy.NewTestMockClient(t)
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			policyClient.EvaluateModuleResponse = tc.policy
 			overrides.PolicyClient = policyClient
 
