@@ -281,7 +281,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	}
 
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, done(t).All())
+		t.Fatalf("expected status code 0 but got %d: %s", code, done(t).Stderr())
 	}
 
 	c := &ValidateCommand{
@@ -602,6 +602,7 @@ The first step in the traversal for a list resource must be an attribute
 				"test": {"1.0.0"},
 			})
 
+			view, done := testView(t)
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider),
 				View:             view,
@@ -613,7 +614,7 @@ The first step in the traversal for a list resource must be an attribute
 			}
 
 			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, done(t).All())
+				t.Fatalf("expected status code 0 but got %d: %s", code, done(t).Stderr())
 			}
 
 			c := &ValidateCommand{

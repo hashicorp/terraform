@@ -519,10 +519,7 @@ func TestTest_Runs(t *testing.T) {
 				"test": {"1.0.0"},
 			})
 
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := testUiWrapped(t)
-
+			view, done := testView(t)
 			meta := Meta{
 				testingOverrides: &testingOverrides{
 					Providers: map[addrs.Provider]providers.Factory{
@@ -531,9 +528,7 @@ func TestTest_Runs(t *testing.T) {
 						},
 					},
 				},
-				Ui:                        ui,
 				View:                      view,
-				Streams:                   streams,
 				ProviderSource:            providerSource,
 				AllowExperimentalFeatures: true,
 			}
@@ -581,10 +576,8 @@ func TestTest_Runs(t *testing.T) {
 			done(t)
 
 			// Reset the streams for the next command.
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
-
+			view, done = testView(t)
+			meta.View = view
 			c := &TestCommand{
 				Meta: meta,
 			}
@@ -1025,15 +1018,10 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
+	view, done := testView(t)
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -1049,9 +1037,8 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -1067,9 +1054,8 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	// Run the cleanup command.
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	cleanup := &TestCleanupCommand{
 		Meta: meta,
@@ -1087,9 +1073,8 @@ func TestTest_CleanupActuallyCleansUp(t *testing.T) {
 	// up.
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c = &TestCommand{
 		Meta: meta,
@@ -1113,15 +1098,10 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
+	view, done := testView(t)
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -1137,9 +1117,8 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -1156,9 +1135,8 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	// Running the test again should fail because of the skip cleanup.
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c = &TestCommand{
 		Meta: meta,
@@ -1192,15 +1170,10 @@ func TestTest_SharedState_Order(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
+	view, done := testView(t)
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -1263,15 +1236,11 @@ func TestTest_Parallel_Divided_Order(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -1339,15 +1308,11 @@ func TestTest_Parallel(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -1772,7 +1737,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 			})
 
 			view := views.NewView(initStreams)
-			ui := testUiWrapped(t)
 
 			// create a new provider instance for each test run, so that we can
 			// ensure that the test provider locks do not interfere between runs.
@@ -1787,7 +1751,6 @@ func TestTest_ParallelTeardown(t *testing.T) {
 						},
 					},
 				},
-				Ui:             ui,
 				View:           view,
 				Streams:        initStreams,
 				ProviderSource: providerSource,
@@ -1954,9 +1917,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -1966,9 +1927,7 @@ func TestTest_ProviderAlias(t *testing.T) {
 				},
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -1983,9 +1942,8 @@ func TestTest_ProviderAlias(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	command := &TestCommand{
 		Meta: meta,
@@ -2019,15 +1977,11 @@ func TestTest_ComplexCondition(t *testing.T) {
 
 	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -2042,9 +1996,8 @@ func TestTest_ComplexCondition(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	command := &TestCommand{
 		Meta: meta,
@@ -2188,15 +2141,11 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 
 	providerSource := newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -2211,9 +2160,8 @@ func TestTest_ComplexConditionVerbose(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	command := &TestCommand{
 		Meta: meta,
@@ -2524,9 +2472,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		"setup": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2535,9 +2481,7 @@ func TestTest_ModuleDependencies(t *testing.T) {
 				addrs.NewDefaultProvider("setup"): providers.FactoryFixed(setup.Provider),
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -2551,9 +2495,8 @@ func TestTest_ModuleDependencies(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	command := &TestCommand{
 		Meta: meta,
@@ -2599,9 +2542,7 @@ func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2611,9 +2552,7 @@ func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
 				},
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -2624,9 +2563,8 @@ func TestTest_DynamicSourceWithVarFlag(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{Meta: meta}
 	code := c.Run([]string{"-var", "module_name=example", "-no-color"})
@@ -2657,9 +2595,7 @@ func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2669,9 +2605,7 @@ func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
 				},
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -2682,9 +2616,8 @@ func TestTest_DynamicSourceWithLocalValue(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{Meta: meta}
 	code := c.Run([]string{"-var", "module_name=example", "-no-color"})
@@ -2715,9 +2648,7 @@ func TestTest_DynamicSourceNested(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2727,9 +2658,7 @@ func TestTest_DynamicSourceNested(t *testing.T) {
 				},
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -2740,9 +2669,8 @@ func TestTest_DynamicSourceNested(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{Meta: meta}
 	code := c.Run([]string{"-var", "child_name=child", "-no-color"})
@@ -2788,9 +2716,7 @@ func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
 		"setup": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -2799,9 +2725,7 @@ func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
 				addrs.NewDefaultProvider("setup"): providers.FactoryFixed(setup.Provider),
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -2812,9 +2736,8 @@ func TestTest_DynamicSourceWithSetupModule(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{Meta: meta}
 	code := c.Run([]string{"-no-color"})
@@ -3103,13 +3026,10 @@ can remove the provider configuration again.
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider.Provider),
-				Ui:               ui,
 				View:             view,
-				Streams:          streams,
 				ProviderSource:   providerSource,
 			}
 
@@ -3167,15 +3087,11 @@ func TestTest_NestedSetupModules(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -3184,7 +3100,7 @@ func TestTest_NestedSetupModules(t *testing.T) {
 	}
 
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, done(t).All())
 	}
 
 	command := &TestCommand{
@@ -3221,15 +3137,11 @@ func TestTest_StatePropagation(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -3243,9 +3155,8 @@ func TestTest_StatePropagation(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3358,15 +3269,11 @@ func TestTest_SkipCleanup(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -3382,9 +3289,8 @@ func TestTest_SkipCleanup(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3461,15 +3367,11 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -3485,9 +3387,8 @@ func TestTest_SkipCleanupWithRunDependencies(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3549,10 +3450,8 @@ Success! 3 passed, 0 failed.
 		view, done := testView(t)
 		c := &TestCleanupCommand{
 			Meta: Meta{
-				testingOverrides: metaOverridesForProvider(provider.Provider),
-				View:             view,
-
-				Ui:                        ui,
+				testingOverrides:          metaOverridesForProvider(provider.Provider),
+				View:                      view,
 				ProviderSource:            providerSource,
 				AllowExperimentalFeatures: true,
 			},
@@ -3593,15 +3492,11 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -3617,9 +3512,8 @@ func TestTest_SkipCleanup_JSON(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3723,15 +3617,11 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -3747,9 +3637,8 @@ func TestTest_SkipCleanup_FileLevelFlag(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3853,15 +3742,11 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -3875,9 +3760,8 @@ func TestTest_OnlyExternalModules(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -3987,15 +3871,11 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -4009,9 +3889,8 @@ func TestTest_InvalidWarningsInCleanup(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -4579,7 +4458,6 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -4593,9 +4471,8 @@ func TestTest_SensitiveInputValues(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -4852,15 +4729,11 @@ func TestTest_InvalidOverrides(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -4874,9 +4747,8 @@ func TestTest_InvalidOverrides(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -4951,14 +4823,10 @@ func TestTest_InvalidConfig(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -4972,9 +4840,8 @@ func TestTest_InvalidConfig(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -5033,7 +4900,6 @@ func TestTest_DeprecatedValueInFailedAssertion(t *testing.T) {
 		testingOverrides: metaOverridesForProvider(provider.Provider),
 		Ui:               testUiWrapped(t),
 		View:             views.NewView(streams),
-		Streams:          streams,
 		ProviderSource:   newMockProviderSource(t, map[string][]string{"test": {"1.0.0"}}),
 	}
 
@@ -5046,9 +4912,8 @@ func TestTest_DeprecatedValueInFailedAssertion(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done := testView(t)
+	meta.View = view
 
 	command := &TestCommand{
 		Meta: meta,
@@ -5153,13 +5018,10 @@ There is no backend type named "foobar".
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				Ui:                        ui,
 				View:                      view,
-				Streams:                   streams,
 				ProviderSource:            providerSource,
 				AllowExperimentalFeatures: true,
 			}
@@ -5230,15 +5092,11 @@ test_resource_id = 12345`
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -5255,9 +5113,8 @@ test_resource_id = 12345`
 
 	// TEST
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -5340,15 +5197,11 @@ test_resource_id = %s`, resourceId, resourceId)
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -5365,9 +5218,8 @@ test_resource_id = %s`, resourceId, resourceId)
 
 	// TEST
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -5460,13 +5312,10 @@ func TestTest_UseOfBackends_whenStateArtifactsAreMade(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				Ui:                        ui,
 				View:                      view,
-				Streams:                   streams,
 				ProviderSource:            providerSource,
 				AllowExperimentalFeatures: true,
 			}
@@ -5559,13 +5408,10 @@ func TestTest_UseOfBackends_validatesUseOfSkipCleanup(t *testing.T) {
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewView(streams)
-			ui := testUiWrapped(t)
 
 			meta := Meta{
 				testingOverrides:          metaOverridesForProvider(provider.Provider),
-				Ui:                        ui,
 				View:                      view,
-				Streams:                   streams,
 				ProviderSource:            providerSource,
 				AllowExperimentalFeatures: true,
 			}
@@ -5616,15 +5462,11 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides:          metaOverridesForProvider(provider.Provider),
-		Ui:                        ui,
 		View:                      view,
-		Streams:                   streams,
 		ProviderSource:            providerSource,
 		AllowExperimentalFeatures: true,
 	}
@@ -5641,9 +5483,8 @@ func TestTest_UseOfBackends_failureDuringApply(t *testing.T) {
 
 	// TEST
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -5698,15 +5539,11 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -5720,9 +5557,8 @@ func TestTest_RunBlocksInProviders(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	test := &TestCommand{
 		Meta: meta,
@@ -5766,9 +5602,7 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: &testingOverrides{
@@ -5778,9 +5612,7 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 				},
 			},
 		},
-		Ui:             ui,
 		View:           view,
-		Streams:        streams,
 		ProviderSource: providerSource,
 	}
 
@@ -5794,9 +5626,8 @@ func TestTest_RunBlocksInProviders_BadReferences(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	test := &TestCommand{
 		Meta: meta,
@@ -5931,15 +5762,11 @@ func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -5953,9 +5780,8 @@ func TestTest_ReferencesIntoIncompletePlan(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -6000,15 +5826,11 @@ func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -6022,9 +5844,8 @@ func TestTest_ReferencesIntoTargetedPlan(t *testing.T) {
 	}
 
 	// Reset the streams for the next command.
-	streams, done = terminal.StreamsForTesting(t)
-	meta.Streams = streams
-	meta.View = views.NewView(streams)
+	view, done = testView(t)
+	meta.View = view
 
 	c := &TestCommand{
 		Meta: meta,
@@ -6054,15 +5875,11 @@ func TestTest_TeardownOrder(t *testing.T) {
 		"test": {"1.0.0"},
 	})
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -6135,13 +5952,10 @@ func TestTest_ParallelDeps(t *testing.T) {
 
 		streams, done := terminal.StreamsForTesting(t)
 		view := views.NewView(streams)
-		ui := testUiWrapped(t)
 
 		meta := Meta{
 			testingOverrides:          metaOverridesForProvider(provider.Provider),
-			Ui:                        ui,
 			View:                      view,
-			Streams:                   streams,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
 		}

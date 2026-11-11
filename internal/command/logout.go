@@ -44,7 +44,7 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 
 	diags = diags.Append(argDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -57,7 +57,7 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 			"Invalid hostname",
 			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -84,7 +84,7 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 	}
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -107,7 +107,7 @@ func (c *LogoutCommand) Run(rawArgs []string) int {
 		))
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
