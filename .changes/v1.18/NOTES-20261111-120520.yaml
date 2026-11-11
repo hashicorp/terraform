@@ -1,0 +1,5 @@
+kind: NOTES
+body: There will now be more whitespace separating diagnostics when they are multiple diagnostics present in human-readable output
+time: 2026-11-11T12:05:20.794962Z
+custom:
+    Issue: "39530"
