@@ -1487,8 +1487,10 @@ type PolicySetupResponse_ServerCapabilities struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// All loaded terraform_configuration blocks keyed by Policy file path.
 	Configurations map[string]*PolicySetupResponse_TerraformConfiguration `protobuf:"bytes,1,rep,name=configurations,proto3" json:"configurations,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The plugin resolves value IDs through CallbackService.GetResourceValues.
+	ResourceValueIds bool `protobuf:"varint,4,opt,name=resource_value_ids,json=resourceValueIds,proto3" json:"resource_value_ids,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *PolicySetupResponse_ServerCapabilities) Reset() {
@@ -1526,6 +1528,13 @@ func (x *PolicySetupResponse_ServerCapabilities) GetConfigurations() map[string]
 		return x.Configurations
 	}
 	return nil
+}
+
+func (x *PolicySetupResponse_ServerCapabilities) GetResourceValueIds() bool {
+	if x != nil {
+		return x.ResourceValueIds
+	}
+	return false
 }
 
 type PolicyEvaluateResourceRequest_ResourceMetadata struct {
@@ -1755,16 +1764,17 @@ const file_policy_proto_rawDesc = "" +
 	"\vEntitlement\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x14\n" +
 	"\x05token\x18\x02 \x01(\tR\x05token\x12\x10\n" +
-	"\x03org\x18\x03 \x01(\tR\x03org\"\xa1\x05\n" +
+	"\x03org\x18\x03 \x01(\tR\x03org\"\xcf\x05\n" +
 	"\x13PolicySetupResponse\x12^\n" +
 	"\x13server_capabilities\x18\x01 \x01(\v2-.proto.PolicySetupResponse.ServerCapabilitiesR\x12serverCapabilities\x123\n" +
 	"\vdiagnostics\x18\x02 \x03(\v2\x11.proto.DiagnosticR\vdiagnostics\x12X\n" +
 	"\x18relationship_definitions\x18\x03 \x03(\v2\x1d.proto.RelationshipDefinitionR\x17relationshipDefinitions\x12I\n" +
 	"\x13relationship_usages\x18\x04 \x03(\v2\x18.proto.RelationshipUsageR\x12relationshipUsages\x1aC\n" +
 	"\x16TerraformConfiguration\x12)\n" +
-	"\x10required_version\x18\x01 \x01(\tR\x0frequiredVersion\x1a\x8a\x02\n" +
+	"\x10required_version\x18\x01 \x01(\tR\x0frequiredVersion\x1a\xb8\x02\n" +
 	"\x12ServerCapabilities\x12i\n" +
-	"\x0econfigurations\x18\x01 \x03(\v2A.proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntryR\x0econfigurations\x1at\n" +
+	"\x0econfigurations\x18\x01 \x03(\v2A.proto.PolicySetupResponse.ServerCapabilities.ConfigurationsEntryR\x0econfigurations\x12,\n" +
+	"\x12resource_value_ids\x18\x04 \x01(\bR\x10resourceValueIds\x1at\n" +
 	"\x13ConfigurationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12G\n" +
 	"\x05value\x18\x02 \x01(\v21.proto.PolicySetupResponse.TerraformConfigurationR\x05value:\x028\x01J\x04\b\x03\x10\x04R\rrelationships\"\xfb\x01\n" +

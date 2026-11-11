@@ -61,6 +61,8 @@ enum Operation {
 message ResourceAttributes {
   bytes raw = 1;
   repeated AttributePath redacted_paths = 2;
+  // A value ID. With raw: inline, cacheable under id. Without raw: by reference. Empty: inline, uncached.
+  string id = 3;
 }
 
 // AttributePath represents a set of steps to traverse into a data structure. It is

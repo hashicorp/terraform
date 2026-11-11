@@ -168,6 +168,8 @@ type ResourceAttributes struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Raw           []byte                 `protobuf:"bytes,1,opt,name=raw,proto3" json:"raw,omitempty"`
 	RedactedPaths []*AttributePath       `protobuf:"bytes,2,rep,name=redacted_paths,json=redactedPaths,proto3" json:"redacted_paths,omitempty"`
+	// A value ID. With raw: inline, cacheable under id. Without raw: by reference. Empty: inline, uncached.
+	Id            string `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -214,6 +216,13 @@ func (x *ResourceAttributes) GetRedactedPaths() []*AttributePath {
 		return x.RedactedPaths
 	}
 	return nil
+}
+
+func (x *ResourceAttributes) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 // AttributePath represents a set of steps to traverse into a data structure. It is
@@ -369,10 +378,11 @@ var File_types_proto protoreflect.FileDescriptor
 
 const file_types_proto_rawDesc = "" +
 	"\n" +
-	"\vtypes.proto\x12\x05proto\"c\n" +
+	"\vtypes.proto\x12\x05proto\"s\n" +
 	"\x12ResourceAttributes\x12\x10\n" +
 	"\x03raw\x18\x01 \x01(\fR\x03raw\x12;\n" +
-	"\x0eredacted_paths\x18\x02 \x03(\v2\x14.proto.AttributePathR\rredactedPaths\"\xd8\x01\n" +
+	"\x0eredacted_paths\x18\x02 \x03(\v2\x14.proto.AttributePathR\rredactedPaths\x12\x0e\n" +
+	"\x02id\x18\x03 \x01(\tR\x02id\"\xd8\x01\n" +
 	"\rAttributePath\x12/\n" +
 	"\x05steps\x18\x01 \x03(\v2\x19.proto.AttributePath.StepR\x05steps\x1a\x95\x01\n" +
 	"\x04Step\x12'\n" +

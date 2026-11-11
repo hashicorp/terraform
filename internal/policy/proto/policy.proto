@@ -83,6 +83,8 @@ message PolicySetupResponse {
     // 2 is used by validate_policies on the policy-schema-validation branch.
     reserved 3;
     reserved "relationships";
+    // The plugin resolves value IDs through CallbackService.GetResourceValues.
+    bool resource_value_ids = 4;
   }
 
   // service_capabilities will be populated by the server to indicate which
