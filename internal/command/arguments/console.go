@@ -37,6 +37,8 @@ type Console struct {
 	//
 	// If Scope is not explicitly set, we default to using the root module as the scope for evaluation.
 	Scope string
+
+	ViewType ViewType
 }
 
 // ParseConsole processes CLI arguments, returning a Console value and
@@ -45,7 +47,8 @@ type Console struct {
 func ParseConsole(args []string) (*Console, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	con := &Console{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	pwd, err := getwd()

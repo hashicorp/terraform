@@ -697,42 +697,6 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	}
 }
 
-// Modify os.Stdout to write to the given buffer. Note that this is generally
-// not useful since the commands are configured to write to a cli.Ui, not
-// Stdout directly. Commands like `console` though use the raw stdout.
-func testStdoutCapture(t *testing.T, dst io.Writer) func() {
-	t.Helper()
-
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Modify stdout
-	old := os.Stdout
-	os.Stdout = w
-
-	// Copy
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		defer r.Close()
-		io.Copy(dst, r)
-	}()
-
-	return func() {
-		// Close the writer end of the pipe
-		w.Sync()
-		w.Close()
-
-		// Reset stdout
-		os.Stdout = old
-
-		// Wait for the data copy to complete to avoid a race reading data
-		<-doneCh
-	}
-}
-
 // testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent
 // in order to interactive prompts.
 // Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
