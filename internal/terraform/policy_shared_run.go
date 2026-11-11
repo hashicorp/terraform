@@ -37,6 +37,10 @@ type SharedPolicyRun struct {
 	// Relationships are the validated relationships of the run.
 	Relationships policy.Relationships
 
+	// Generation is the policy phase of the run's value sources; see
+	// policy.Client.NextGeneration.
+	Generation uint64
+
 	// Contribute receives the walk's contribution once its changes and state
 	// are final. It's called at most once per walk, from the walk.
 	Contribute func(PolicyRunContribution)

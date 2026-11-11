@@ -11,10 +11,21 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// policyResourceValues returns the values of getresources matches without
+// their marks.
+func policyResourceValues(resources []callback.Resource) []cty.Value {
+	ret := make([]cty.Value, len(resources))
+	for i, r := range resources {
+		ret[i], _ = r.Value.UnmarkDeep()
+	}
+	return ret
+}
 
 func TestGetResourcesForPolicyCallback(t *testing.T) {
 	providerSchema := *getProviderSchemaResponseFromProviderSchema(&providerSchema{
@@ -87,12 +98,13 @@ resource "test_resource" "b" {
 	state.Close()
 
 	ctx := &MockEvalContext{
-		StateState:     state,
-		ChangesChanges: plans.NewChanges().SyncWrapper(),
-		DeferralsState: deferring.NewDeferred(false),
+		StateState:       state,
+		ChangesChanges:   plans.NewChanges().SyncWrapper(),
+		DeferralsState:   deferring.NewDeferred(false),
+		PolicyGraphValue: &policySubgraph{generation: 7},
 	}
 
-	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
+	getResources := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
 
 	tests := []struct {
 		name        string
@@ -129,12 +141,12 @@ resource "test_resource" "b" {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var (
-				got        []cty.Value
+				got        []callback.Resource
 				gotUnknown bool
 				gotErr     error
 			)
 
-			got, gotUnknown, gotErr = callback(t.Context(), "test_resource", tt.filter)
+			got, gotUnknown, gotErr = getResources(t.Context(), "test_resource", tt.filter)
 			if gotErr != nil {
 				t.Fatalf("unexpected error: %v", gotErr)
 			}
@@ -144,7 +156,14 @@ resource "test_resource" "b" {
 
 			gotNames := make([]string, 0, len(got))
 			for _, resource := range got {
-				gotNames = append(gotNames, resource.GetAttr("name").AsString())
+				name := resource.Value.GetAttr("name").AsString()
+				gotNames = append(gotNames, name)
+				// The matches are named by their source, so that the policy
+				// client can send them by reference.
+				wantSource := callback.ValueSource{Generation: 7, Kind: callback.KindState, Address: "test_resource." + name[:1]}
+				if resource.Source != wantSource {
+					t.Errorf("wrong source of %s\ngot:  %#v\nwant: %#v", name, resource.Source, wantSource)
+				}
 			}
 			sort.Strings(gotNames)
 

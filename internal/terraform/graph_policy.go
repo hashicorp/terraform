@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -41,6 +42,10 @@ type policySubgraph struct {
 	// nodePolicyEval.DynamicExpand before the subject nodes run, when the
 	// walk has relationships and no shared run.
 	relations *PolicyRelations
+
+	// generation is the policy phase of the walk's value sources: the shared
+	// run's, or one that nodePolicyEval.DynamicExpand starts.
+	generation uint64
 }
 
 func newPolicySubgraph() *policySubgraph {
@@ -51,6 +56,9 @@ func newPolicySubgraph() *policySubgraph {
 // relationships, which may be nil.
 func newPolicySubgraphForRun(run *policyRunOpts) *policySubgraph {
 	ps := &policySubgraph{run: run}
+	if run != nil && run.Shared != nil {
+		ps.generation = run.Shared.Generation
+	}
 	if run != nil {
 		ps.providerConfigs = make(map[string]cty.Value)
 		if !run.Apply {
@@ -115,6 +123,16 @@ func (ps *policySubgraph) AddQuery(node *nodeQueryResourcePolicy) {
 	defer ps.lock.Unlock()
 
 	ps.graph.Add(node)
+}
+
+// valueSource returns the source of a value of the walk's resource instance
+// at addr, qualified like the subject addresses of a shared run.
+func (ps *policySubgraph) valueSource(kind string, deposed states.DeposedKey, addr addrs.AbsResourceInstance) callback.ValueSource {
+	src := callback.ValueSource{Generation: ps.generation, Kind: kind, DeposedKey: deposed.String(), Address: addr.String()}
+	if ps.run != nil && ps.run.Shared != nil {
+		src.Address = ps.run.Shared.AddressPrefix + src.Address
+	}
+	return src
 }
 
 // walkRelations returns the relations of the walk's instances, or nil if the

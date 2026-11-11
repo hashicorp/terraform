@@ -26,7 +26,7 @@ import (
 
 // evaluatePolicies evaluates the policies of a resource instance. related
 // are its related members, or nil without relationships.
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions, related []*proto.RelatedMembers) policy.EvaluationResponse {
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, attrsSource, priorAttrsSource *callback.ValueSource, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions, related []*proto.RelatedMembers) policy.EvaluationResponse {
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
@@ -43,6 +43,9 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 		Meta:       meta,
 		Callbacks:  callbacks,
 		Related:    related,
+
+		AttrsSource:      attrsSource,
+		PriorAttrsSource: priorAttrsSource,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
@@ -54,14 +57,21 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
-	return func(c context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+// getResourcesForPolicyCallback returns the getresources callback. Its
+// matches keep their marks, so that their encoding redacts what the
+// subject's encoding of the same source redacts.
+func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]callback.Resource, bool, error) {
+	return func(c context.Context, target string, attrs cty.Value) ([]callback.Resource, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
 			attribute.String("policy.callback.getResources.type", target),
 		))
 		defer span.End()
 
-		found := make([]cty.Value, 0)
+		pg := ctx.PolicyGraph()
+		if pg == nil {
+			pg = newPolicySubgraph()
+		}
+		found := make([]callback.Resource, 0)
 		var filterMap map[string]cty.Value
 		if !attrs.IsNull() {
 			filterMap = attrs.AsValueMap()
@@ -92,33 +102,32 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
-				var resourcesSeq iter.Seq[cty.Value]
+				var resourcesSeq iter.Seq[callback.Resource]
 				if walkOperation == walkApply {
 					// Read each config resource instance from the state, decoding it into a cty.Value
-					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
+					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(instAddr addrs.AbsResourceInstance, inst *states.ResourceInstance) (callback.Resource, bool) {
 						if inst.Current == nil {
-							return cty.NilVal, false
+							return callback.Resource{}, false
 						}
 						rsc, err := inst.Current.Decode(schema)
 						if err != nil {
 							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
-							return cty.NilVal, false
+							return callback.Resource{}, false
 						}
-						return rsc.Value, true
+						return callback.Resource{Value: rsc.Value, Source: pg.valueSource(callback.KindState, states.NotDeposed, instAddr)}, true
 					})
 				} else {
 					// Read each config resource change from the plan, returning the corresponding cty.Value
-					resourcesSeq = func(yield func(cty.Value) bool) {
+					resourcesSeq = func(yield func(callback.Resource) bool) {
 						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
-							yield(change.After)
+							yield(callback.Resource{Value: change.After, Source: pg.valueSource(callback.KindPlanned, change.DeposedKey, change.Addr)})
 						}
 					}
 				}
 
 				for resource := range resourcesSeq {
-					matched, unknown := resourceMatchesFilter(addr, schema.Body, filterMap, resource)
+					matched, unknown := resourceMatchesFilter(addr, schema.Body, filterMap, resource.Value)
 					if matched {
-						resource, _ = resource.UnmarkDeep()
 						found = append(found, resource)
 						continue
 					}

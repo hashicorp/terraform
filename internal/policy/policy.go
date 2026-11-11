@@ -26,6 +26,14 @@ type Client interface {
 	// policies, as received from Setup.
 	Relationships() Relationships
 
+	// NextGeneration starts a policy phase, and returns its generation for
+	// the value sources of the phase.
+	NextGeneration() uint64
+
+	// ResourceAttributes encodes the value of a related member, with its
+	// source: by reference if the plugin resolves value IDs.
+	ResourceAttributes(value cty.Value, src callback.ValueSource) (*proto.ResourceAttributes, error)
+
 	Stop()
 }
 
@@ -121,6 +129,10 @@ type (
 
 		// PriorAttrs contains the state of the object prior to the current operation.
 		PriorAttrs PolicyValue
+
+		// AttrsSource and PriorAttrsSource are the sources of a resource's
+		// Attrs and PriorAttrs, or nil for values that have none.
+		AttrsSource, PriorAttrsSource *callback.ValueSource
 
 		// Meta is additional metadata required for evaluation.
 		Meta T

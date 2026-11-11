@@ -146,7 +146,7 @@ func (s *SyncState) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceIn
 // ReadEachConfigResourceInstance returns an iterator over the resource instances
 // of the given config resource, applying the given selector function to each
 // instance and yielding the results.
-func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.ConfigResource, selector func(*ResourceInstance) (T, bool)) iter.Seq[T] {
+func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.ConfigResource, selector func(addrs.AbsResourceInstance, *ResourceInstance) (T, bool)) iter.Seq[T] {
 	if syncState == nil {
 		panic("ReadEachConfigResourceInstance on nil state")
 	}
@@ -162,7 +162,7 @@ func ReadEachConfigResourceInstance[T any](syncState *SyncState, addr addrs.Conf
 	return func(yield func(T) bool) {
 		for _, addr := range addrs {
 			val := syncState.state.ResourceInstance(addr.ResourceInstance)
-			selected, ok := selector(val)
+			selected, ok := selector(addr.ResourceInstance, val)
 			if !ok {
 				continue
 			}

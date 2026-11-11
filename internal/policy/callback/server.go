@@ -22,7 +22,17 @@ type Server struct {
 	ID       uint32
 	Registry Registry
 	Grpc     *grpc.Server
+	// Values encodes the resources that GetResources returns, and serves
+	// GetResourceValues. The policy client sets it.
+	Values Values
 	proto.UnimplementedCallbackServiceServer
+}
+
+// Values encodes resource values for the plugin, and resolves the value IDs
+// it hands out.
+type Values interface {
+	GetResourcesResponse(ctx context.Context, resources []Resource, partial bool) (*proto.GetResourcesResponse, error)
+	GetResourceValues(ctx context.Context, ids []string) ([]*proto.ResourceAttributes, error)
 }
 
 func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRequest) (*proto.GetResourcesResponse, error) {
@@ -40,21 +50,15 @@ func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRe
 	if err != nil {
 		return nil, err
 	}
+	return s.Values.GetResourcesResponse(ctx, resources, isPartialResult)
+}
 
-	results := make([][]byte, 0, len(resources))
-	for _, resource := range resources {
-		result, err := msgpack.Marshal(resource, cty.DynamicPseudoType)
-		if err != nil {
-			err = fmt.Errorf("failed to serialize resource: %w", err)
-			return nil, err
-		}
-		results = append(results, result)
+func (s *Server) GetResourceValues(ctx context.Context, request *proto.GetResourceValuesRequest) (*proto.GetResourceValuesResponse, error) {
+	values, err := s.Values.GetResourceValues(ctx, request.Ids)
+	if err != nil {
+		return nil, err
 	}
-
-	return &proto.GetResourcesResponse{
-		Results: results,
-		Partial: isPartialResult,
-	}, nil
+	return &proto.GetResourceValuesResponse{Values: values}, nil
 }
 
 func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {

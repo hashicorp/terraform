@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
 	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -1347,7 +1348,7 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Fail(t *testing.T) {
 
 		// Simulate a policy that checks for a forbidden instance type.
 		for _, r := range resources {
-			if r.GetAttr("instance_type").AsString() == "t2.xlarge" {
+			if r.Value.GetAttr("instance_type").AsString() == "t2.xlarge" {
 				return policy.EvaluationResponse{
 					Overall: policy.DenyResult,
 					Enforcements: []policy.EnforcementResult{
@@ -1499,12 +1500,12 @@ func TestNodeQueryResourcePolicy_Execute_CallbackError(t *testing.T) {
 }
 
 func TestNodeQueryResourcePolicy_GetResourcesCallback_PreservesPartialWithResources(t *testing.T) {
-	wantResources := []cty.Value{cty.StringVal("resource")}
-	callback := queryGetResourcesCallback(func(context.Context, string, cty.Value) ([]cty.Value, bool, error) {
+	wantResources := []callback.Resource{{Value: cty.StringVal("resource")}}
+	getResources := queryGetResourcesCallback(func(context.Context, string, cty.Value) ([]callback.Resource, bool, error) {
 		return wantResources, true, nil
 	})
 
-	resources, partial, err := callback(t.Context(), "test_resource", cty.NullVal(cty.DynamicPseudoType))
+	resources, partial, err := getResources(t.Context(), "test_resource", cty.NullVal(cty.DynamicPseudoType))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1515,7 +1516,7 @@ func TestNodeQueryResourcePolicy_GetResourcesCallback_PreservesPartialWithResour
 		t.Fatalf("resources = %d, want %d", len(resources), len(wantResources))
 	}
 	for idx := range resources {
-		if !resources[idx].RawEquals(wantResources[idx]) {
+		if !resources[idx].Value.RawEquals(wantResources[idx].Value) {
 			t.Fatalf("resource %d = %#v, want %#v", idx, resources[idx], wantResources[idx])
 		}
 	}

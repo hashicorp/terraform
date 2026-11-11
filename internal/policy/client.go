@@ -190,6 +190,8 @@ type client struct {
 	// relationships are the relationship definitions and usages of the
 	// Setup response.
 	relationships Relationships
+
+	valueTable
 }
 
 func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server, Diagnostics) {
@@ -201,6 +203,7 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 	c.cbServer = &callback.Server{
 		ID:       cbServiceID,
 		Registry: c.callbackRegistry,
+		Values:   &c.valueTable,
 	}
 
 	serverCh := make(chan *grpc.Server, 1)
@@ -273,6 +276,7 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 		}}
 	}
 
+	c.ids.Store(response.GetServerCapabilities().GetResourceValueIds())
 	c.relationships = Relationships{
 		Definitions: response.GetRelationshipDefinitions(),
 		Usages:      response.GetRelationshipUsages(),
@@ -296,7 +300,9 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 
 	req = normalizeRequest(req)
 
-	attrs, err := resourceAttributesToProto(req.Attrs)
+	attrs, attrsEncoded, err := c.attributes(req.AttrsSource, false, func() (*proto.ResourceAttributes, error) {
+		return resourceAttributesToProto(req.Attrs)
+	})
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -305,7 +311,9 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	priorAttrs, err := resourceAttributesToProto(req.PriorAttrs)
+	priorAttrs, priorEncoded, err := c.attributes(req.PriorAttrsSource, false, func() (*proto.ResourceAttributes, error) {
+		return resourceAttributesToProto(req.PriorAttrs)
+	})
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -313,6 +321,10 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 			Detail:   fmt.Sprintf("Failed to serialize prior attributes: %v.", err),
 		}))
 	}
+	span.SetAttributes(
+		attribute.Bool("policy.values.attrs_encoded", attrsEncoded),
+		attribute.Bool("policy.values.prior_attrs_encoded", priorEncoded),
+	)
 
 	evalID := c.callbackRegistry.NextID()
 	request := &proto.PolicyEvaluateResourceRequest{
@@ -434,20 +446,25 @@ func (c *client) Stop() {
 func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 	attrs := req.Attrs
 	priorAttrs := req.PriorAttrs
+	attrsSource, priorAttrsSource := req.AttrsSource, req.PriorAttrsSource
 	if attrs.Raw == cty.NilVal {
 		attrs.Raw = cty.EmptyObjectVal
+		attrsSource = nil
 	}
 	if priorAttrs.Raw == cty.NilVal {
 		priorAttrs.Raw = cty.EmptyObjectVal
+		priorAttrsSource = nil
 	}
 
 	return EvaluationRequest[T]{
-		Target:     req.Target,
-		Attrs:      attrs,
-		PriorAttrs: priorAttrs,
-		Meta:       req.Meta,
-		Callbacks:  req.Callbacks,
-		Related:    req.Related,
+		Target:           req.Target,
+		Attrs:            attrs,
+		PriorAttrs:       priorAttrs,
+		AttrsSource:      attrsSource,
+		PriorAttrsSource: priorAttrsSource,
+		Meta:             req.Meta,
+		Callbacks:        req.Callbacks,
+		Related:          req.Related,
 	}
 }
 

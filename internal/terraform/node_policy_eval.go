@@ -38,6 +38,9 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 
 	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
 	run := policyGraph.run
+	if client := ctx.PolicyClient(); client != nil && (run == nil || run.Shared == nil) {
+		policyGraph.generation = client.NextGeneration()
+	}
 	if run == nil {
 		return policyGraph.evalGraph(span), nil
 	}

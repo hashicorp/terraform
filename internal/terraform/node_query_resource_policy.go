@@ -143,12 +143,12 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	// Evaluate policies with the generated config as the "after" state
 	// and null as the "before" state (since these are discovered resources).
 	// evaluatePolicies already applies WithLocalRange internally; do not reapply.
-	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks, nil)
+	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), nil, nil, meta, callbacks, nil)
 	return emitResult(result)
 }
 
-func queryGetResourcesCallback(getResources func(context.Context, string, cty.Value) ([]cty.Value, bool, error)) func(context.Context, string, cty.Value) ([]cty.Value, bool, error) {
-	return func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+func queryGetResourcesCallback(getResources func(context.Context, string, cty.Value) ([]callback.Resource, bool, error)) func(context.Context, string, cty.Value) ([]callback.Resource, bool, error) {
+	return func(callbackCtx context.Context, target string, attrs cty.Value) ([]callback.Resource, bool, error) {
 		resources, partial, err := getResources(callbackCtx, target, attrs)
 		// The shared callback only inspects objects represented in Terraform's
 		// configuration and state or plan. During a query, an empty result cannot

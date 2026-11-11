@@ -1487,7 +1487,7 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 		if err != nil {
 			t.Errorf("GetResources(test_instance, null): %v", err)
 		} else {
-			cr.matchAllResults = all
+			cr.matchAllResults = policyResourceValues(all)
 		}
 
 		// 2. Match resources with ami="bar" filter.
@@ -1497,7 +1497,7 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 		if err != nil {
 			t.Errorf("GetResources(test_instance, ami=bar): %v", err)
 		} else {
-			cr.filteredResults = filtered
+			cr.filteredResults = policyResourceValues(filtered)
 		}
 
 		// 3. Match with an attribute filter that will never match.
@@ -1874,7 +1874,7 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error in callback GetResources(test_resource): %v", err)
 				} else {
-					cr.TestResourceMatches = matches
+					cr.TestResourceMatches = policyResourceValues(matches)
 					cr.TestResourcePartial = partial
 				}
 
@@ -1882,7 +1882,7 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 				if err != nil {
 					t.Errorf("Unexpected error in callback GetResources(test_instance): %v", err)
 				} else {
-					cr.TestInstanceMatches = matches
+					cr.TestInstanceMatches = policyResourceValues(matches)
 					cr.TestInstancePartial = partial
 				}
 

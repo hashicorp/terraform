@@ -5,14 +5,51 @@ package callback
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"sync"
 	"sync/atomic"
 
 	"github.com/zclconf/go-cty/cty"
 )
 
+// The kinds of a ValueSource.
+const (
+	// KindPlanned is a change's After.
+	KindPlanned = "planned"
+	// KindPrior is a change's Before.
+	KindPrior = "prior"
+	// KindState is a current object read from state.
+	KindState = "state"
+)
+
+// ValueSource names a resource value in one policy phase.
+type ValueSource struct {
+	// Generation is the policy phase; see policy.Client.NextGeneration.
+	Generation uint64
+	Kind       string
+	DeposedKey string
+	// Address is the resource instance address, qualified with the component
+	// instance in Stacks.
+	Address string
+}
+
+// ID returns the value ID of the source. The address goes last because it is
+// the only part that can contain ":".
+func (s ValueSource) ID() string {
+	sum := sha256.Sum256(fmt.Appendf(nil, "resource_value:%d:%s:%s:%s", s.Generation, s.Kind, s.DeposedKey, s.Address))
+	return base64.StdEncoding.EncodeToString(sum[:])
+}
+
+// Resource is a match of the getresources callback. Value keeps its marks.
+type Resource struct {
+	Value  cty.Value
+	Source ValueSource
+}
+
 type Functions struct {
-	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
+	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]Resource, bool, error)
 	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
 }
 

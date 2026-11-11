@@ -501,6 +501,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 				Before:       value,
 				After:        value,
 				Action:       plans.NoOp,
+				Refreshed:    true,
 			})
 		}
 

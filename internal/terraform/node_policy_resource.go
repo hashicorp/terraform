@@ -30,6 +30,10 @@ type nodeResourcePolicy struct {
 	// apply allocates for the delete half of a create-before-destroy
 	// replace; NotDeposed for current objects.
 	DeposedKey states.DeposedKey
+
+	// Refreshed is whether Before and After are the object's refreshed state,
+	// rather than a change's, as in a refresh-only plan.
+	Refreshed bool
 }
 
 var _ GraphNodeExecutable = (*nodeResourcePolicy)(nil)
@@ -106,7 +110,20 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 		related = scope.relations.Related(meta, n.ResourceAddr.Resource.Resource.Type, n.Before, n.After)
 	}
 
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks, related)
+	afterKind, beforeKind := callback.KindPlanned, callback.KindPrior
+	if operation == walkApply {
+		afterKind = callback.KindState
+	}
+	if n.Refreshed {
+		afterKind, beforeKind = callback.KindState, callback.KindState
+	}
+	var afterSource, beforeSource *callback.ValueSource
+	if pg := ctx.PolicyGraph(); pg != nil {
+		a, b := pg.valueSource(afterKind, n.DeposedKey, n.ResourceAddr), pg.valueSource(beforeKind, n.DeposedKey, n.ResourceAddr)
+		afterSource, beforeSource = &a, &b
+	}
+
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, afterSource, beforeSource, meta, callbacks, related)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

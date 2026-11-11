@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
@@ -489,8 +490,8 @@ func (c *policyCollector) newObject(key policyTypeKey, addr addrs.AbsResourceIns
 
 // encode encodes a value of an instance of the given type. If that fails,
 // the type is ERROR.
-func (c *policyCollector) encode(key policyTypeKey, addr addrs.AbsResourceInstance, val cty.Value) (*proto.ResourceAttributes, bool) {
-	attrs, err := policy.EncodeResourceAttributes(val)
+func (c *policyCollector) encode(key policyTypeKey, addr addrs.AbsResourceInstance, kind string, deposed states.DeposedKey, val cty.Value) (*proto.ResourceAttributes, bool) {
+	attrs, err := c.ctx.PolicyClient().ResourceAttributes(val, c.ps.valueSource(kind, deposed, addr))
 	if err != nil {
 		log.Printf("[WARN] policy: failed to encode %s for relationships: %s", addr, err)
 		c.inst.errored[key] = true
@@ -535,7 +536,7 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 		obj.old = change.Action != plans.Delete
 		obj.op = proto.Operation_DELETE
 		var ok bool
-		if obj.priorAttrs, ok = c.encode(key, addr, before); ok {
+		if obj.priorAttrs, ok = c.encode(key, addr, callback.KindPrior, change.DeposedKey, before); ok {
 			c.add(obj, before)
 		}
 		if change.Action == plans.Delete {
@@ -557,7 +558,9 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 	obj := c.newObject(key, addr, change.ProviderAddr)
 	obj.op = op
 	var after cty.Value
+	afterKind := callback.KindPlanned
 	if c.ps.run.Apply {
+		afterKind = callback.KindState
 		// An applied change has the value the apply produced.
 		var cur *states.ResourceInstanceObjectSrc
 		if inst := state.ResourceInstance(addr); inst != nil {
@@ -579,11 +582,11 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 		after = policyMarkSchemaSensitive(change.After, schema.Body)
 	}
 	var ok bool
-	if obj.attrs, ok = c.encode(key, addr, after); !ok {
+	if obj.attrs, ok = c.encode(key, addr, afterKind, states.NotDeposed, after); !ok {
 		return
 	}
 	if op != proto.Operation_CREATE {
-		if obj.priorAttrs, ok = c.encode(key, addr, before); !ok {
+		if obj.priorAttrs, ok = c.encode(key, addr, callback.KindPrior, states.NotDeposed, before); !ok {
 			return
 		}
 	}
@@ -611,7 +614,7 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 // with states.ReadEachConfigResourceInstance, including instances whose key
 // or module instance key no longer exists in the configuration, but one
 // object per instance: that helper returns the current object once per
-// object, and its selector doesn't get the instance address.
+// object of the instance.
 func (c *policyCollector) addState(state *states.State, changed, deferred map[string]struct{}) {
 	cfg := c.ctx.Config()
 	if cfg == nil {
@@ -651,7 +654,7 @@ func (c *policyCollector) addState(state *states.State, changed, deferred map[st
 				obj := c.newObject(key, addr, rs.ProviderConfig)
 				obj.op = proto.Operation_NO_OP
 				var ok bool
-				if obj.attrs, ok = c.encode(key, addr, val); ok {
+				if obj.attrs, ok = c.encode(key, addr, callback.KindState, states.NotDeposed, val); ok {
 					c.add(obj, val)
 				}
 			}
