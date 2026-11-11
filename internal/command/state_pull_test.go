@@ -15,7 +15,6 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestStatePull(t *testing.T) {
@@ -112,7 +111,6 @@ func TestStatePull_stateStore(t *testing.T) {
 	})
 
 	view, done := testView(t)
-	streams, _ := terminal.StreamsForTesting(t)
 	c := &StatePullCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -123,7 +121,6 @@ func TestStatePull_stateStore(t *testing.T) {
 			},
 			ProviderSource: providerSource,
 			View:           view,
-			Streams:        streams,
 		},
 	}
 
