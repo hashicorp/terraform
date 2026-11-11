@@ -39,6 +39,8 @@ type policyRun struct {
 	main     *Main
 	rels     policy.Relationships
 	planning bool
+	// generation is the policy phase of the run's value sources.
+	generation uint64
 
 	// mu guards the fields below.
 	mu sync.Mutex
@@ -107,10 +109,11 @@ func (m *Main) validatePolicyRelationships(ctx context.Context, phase EvalPhase)
 		return diags
 	}
 	m.policyRun = &policyRun{
-		main:     m,
-		rels:     rels,
-		planning: phase == PlanPhase,
-		walks:    make(map[string]*policyWalk),
+		main:       m,
+		rels:       rels,
+		planning:   phase == PlanPhase,
+		generation: client.NextGeneration(),
+		walks:      make(map[string]*policyWalk),
 	}
 	return diags
 }
@@ -148,6 +151,7 @@ func (r *policyRun) join(ctx context.Context, addr stackaddrs.AbsComponentInstan
 	return &terraform.SharedPolicyRun{
 		AddressPrefix: addr.String() + ".",
 		Relationships: r.rels,
+		Generation:    r.generation,
 		Contribute: func(c terraform.PolicyRunContribution) {
 			r.contribute(walk, c)
 		},
