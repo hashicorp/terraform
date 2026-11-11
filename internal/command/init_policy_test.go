@@ -21,7 +21,6 @@ import (
 )
 
 func TestInit_WithModulePolicy(t *testing.T) {
-
 	cases := []struct {
 		name     string
 		policy   *policy.EvaluationResponse
@@ -62,21 +61,18 @@ func TestInit_WithModulePolicy(t *testing.T) {
 		testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		overrides := metaOverridesForProvider(testProvider())
 		policyClient := policy.NewTestMockClient(t)
 
 		t.Run(tc.name, func(t *testing.T) {
-
 			policyClient.EvaluateModuleResponse = tc.policy
 			overrides.PolicyClient = policyClient
 
 			c := &InitCommand{
 				Meta: Meta{
 					testingOverrides:          overrides,
-					Ui:                        ui,
 					View:                      view,
 					AllowExperimentalFeatures: true,
 				},
@@ -124,7 +120,6 @@ func TestInit_WithPolicyClientStopAfterInit(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -146,7 +141,6 @@ func TestInit_WithPolicyClientStopAfterInit(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -188,7 +182,6 @@ func TestInit_WithModulePolicy_AlreadyInstalled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -214,7 +207,6 @@ func TestInit_WithModulePolicy_AlreadyInstalled(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overs,
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -260,12 +252,10 @@ func TestInit_WithPolicySetupFailureJSON(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	c := &InitCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -289,7 +279,6 @@ func TestInit_WithModulePolicyDiagnostics(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -326,7 +315,6 @@ func TestInit_WithModulePolicyDiagnostics(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -365,7 +353,6 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-nested-provider-requirements"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	// assert modules are evaluated correctly
@@ -408,7 +395,6 @@ func TestInit_WithNestedModulePolicyDiagnostics(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -450,7 +436,6 @@ func TestInit_WithModulePolicyJSON(t *testing.T) {
 	testCopyDir(t, testFixturePath("dynamic-module-sources/local-source-with-variable"), td)
 	t.Chdir(td)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -484,7 +469,6 @@ func TestInit_WithModulePolicyJSON(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 		},
@@ -521,7 +505,6 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -588,7 +571,6 @@ func TestInit_WithProviderPolicy(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -618,7 +600,6 @@ func TestInit_WithProviderPolicyDiagnostics(t *testing.T) {
 		"hashicorp/grandchild":                  {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -654,7 +635,6 @@ func TestInit_WithProviderPolicyDiagnostics(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overs,
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
@@ -703,7 +683,6 @@ func TestInit_WithProviderPolicyJSON(t *testing.T) {
 		"hashicorp/grandchild":   {"1.0.0"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -734,7 +713,6 @@ func TestInit_WithProviderPolicyJSON(t *testing.T) {
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          overrides,
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,

@@ -33,11 +33,9 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -117,11 +115,9 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 	testingOverrides := metaOverridesForProvider(p)
 	testingOverrides.UIInput = uiInput
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -254,11 +250,9 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 		testingOverrides := metaOverridesForProvider(p)
 		testingOverrides.UIInput = uiInput
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -346,11 +340,9 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 		testingOverrides := metaOverridesForProvider(p)
 		testingOverrides.UIInput = uiInput
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -488,11 +480,9 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -618,11 +608,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -731,11 +719,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -874,11 +860,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			// Test doesn't assert approval of any providers
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -997,11 +981,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1106,11 +1088,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1237,11 +1217,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"backend-migrate-copy-to-empty": "yes",
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1372,11 +1350,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1490,10 +1466,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1629,10 +1603,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1735,10 +1707,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1847,10 +1817,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1938,11 +1906,9 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 	testingOverrides := metaOverridesForProvider(p)
 	testingOverrides.UIInput = uiInput
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2016,11 +1982,9 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2052,11 +2016,9 @@ func TestStateMigrate_emptyModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2084,11 +2046,9 @@ func TestStateMigrate_missingMigrationFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-migrate-files")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2116,11 +2076,9 @@ func TestStateMigrate_nonExistentLockFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                workdir.NewDir(tmpDir),
 			AllowExperimentalFeatures: true,
@@ -2158,11 +2116,9 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 		wd := tempWorkingDirFixture(t, fixture)
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -2190,11 +2146,9 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
