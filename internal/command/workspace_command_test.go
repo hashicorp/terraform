@@ -1229,8 +1229,9 @@ func TestWorkspace_extraArgError(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError := "\nError: Expected a single argument: NAME.\n\n\n"
-	if done(t).Stderr() != expectedError {
-		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
+	output := done(t)
+	if output.Stderr() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, output.Stderr())
 	}
 
 	// List
@@ -1246,8 +1247,9 @@ func TestWorkspace_extraArgError(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError = "\nError: Too many command line arguments. Did you mean to use -chdir?\n\n\n"
-	if !strings.Contains(done(t).Stderr(), expectedError) {
-		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, done(t).Stderr())
+	output = done(t)
+	if !strings.Contains(output.Stderr(), expectedError) {
+		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, output.Stderr())
 	}
 
 	// Show
@@ -1274,8 +1276,9 @@ func TestWorkspace_extraArgError(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
-	if done(t).Stderr() != expectedError {
-		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
+	output = done(t)
+	if output.Stderr() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, output.Stderr())
 	}
 
 	// Delete
@@ -1292,8 +1295,9 @@ func TestWorkspace_extraArgError(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
-	if done(t).Stderr() != expectedError {
-		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
+	output = done(t)
+	if output.Stderr() != expectedError {
+		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, output.Stderr())
 	}
 }
 

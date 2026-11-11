@@ -2876,7 +2876,7 @@ func TestTest_CatchesErrorsBeforeDestroy(t *testing.T) {
 	output := done(t)
 
 	if code != 1 {
-		t.Errorf("expected status code 0 but got %d", code)
+		t.Errorf("expected status code 1 but got %d", code)
 	}
 
 	expectedOut := `main.tftest.hcl... in progress
