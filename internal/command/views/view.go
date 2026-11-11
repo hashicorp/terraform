@@ -124,9 +124,9 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 		msg := v.formatDiagnostic(diag)
 
 		if diag.Severity() == tfdiags.Error {
-			v.streams.Eprint(msg)
+			v.streams.Eprintln(msg)
 		} else {
-			v.streams.Print(msg)
+			v.streams.Println(msg)
 		}
 	}
 }
