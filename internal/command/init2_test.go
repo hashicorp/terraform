@@ -9,10 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestInit2_dynamicSourceErrors(t *testing.T) {
@@ -245,11 +243,9 @@ func TestInit2_dynamicSourceInTestModule(t *testing.T) {
 			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
 			t.Chdir(td)
 
-			streams, done := terminal.StreamsForTesting(t)
+			view, done := testView(t)
 			meta := Meta{
-				Ui:      testUiWrapped(t),
-				View:    views.NewView(streams),
-				Streams: streams,
+				View: view,
 			}
 
 			init := &InitCommand{Meta: meta}
@@ -267,9 +263,8 @@ func TestInit2_dynamicSourceInTestModule(t *testing.T) {
 				t.Errorf("module manifest does not contain %q", tc.manifestKey)
 			}
 
-			streams, done = terminal.StreamsForTesting(t)
-			meta.Streams = streams
-			meta.View = views.NewView(streams)
+			view, done = testView(t)
+			meta.View = view
 
 			test := &TestCommand{Meta: meta}
 			code := test.Run(append(tc.args, "-no-color"))
