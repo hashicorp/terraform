@@ -33,7 +33,7 @@ func TestWorkspaceDeleteHuman_LogWorkspaceDeletionSuccess(t *testing.T) {
 					"This is an example warning message.",
 				),
 			},
-			wantStdout: "Warning: Example warning\n\nThis is an example warning message.\nDeleted workspace \"foobar\"!",
+			wantStdout: "Warning: Example warning\n\nThis is an example warning message.\n\nDeleted workspace \"foobar\"!",
 		},
 	}
 	for name, tc := range testCases {

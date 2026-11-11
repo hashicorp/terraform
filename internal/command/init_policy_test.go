@@ -238,10 +238,12 @@ Error: module policy denied
 
 module policy blocked installation
 
+
 Error: Policy evaluation failed
 
 Module download blocked due to policy violations. Please review other
 diagnostics for details.
+
 `
 	if diff := cmp.Diff(expected, output.Stderr()); diff != "" {
 		t.Fatalf("unexpected stderr:\n%s", diff)
@@ -350,10 +352,12 @@ Error: module policy denied
    6: module "example" {
 
 
+
 Error: Policy evaluation failed
 
 Module download blocked due to policy violations. Please review other
 diagnostics for details.
+
 `
 	if diff := cmp.Diff(expected, stderr); diff != "" {
 		t.Fatalf("unexpected stderr:\n%s", diff)
@@ -435,10 +439,12 @@ Error: nested module policy denied
   12: module "nested" {
 
 
+
 Error: Policy evaluation failed
 
 Module download blocked due to policy violations. Please review other
 diagnostics for details.
+
 `
 	if diff := cmp.Diff(expectedStderr, stderr); diff != "" {
 		t.Fatalf("unexpected stderr:\n%s\nexpected:\n%s\n diff:\n%s", stderr, expectedStderr, diff)

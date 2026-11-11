@@ -39,7 +39,7 @@ func TestWorkspaceListHuman_List(t *testing.T) {
 					"This is an example warning message.",
 				),
 			},
-			"Warning: Example warning\n\nThis is an example warning message.\n* default\n  other",
+			"Warning: Example warning\n\nThis is an example warning message.\n\n* default\n  other",
 			"",
 		},
 	}

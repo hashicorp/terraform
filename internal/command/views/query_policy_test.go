@@ -241,7 +241,7 @@ func TestQueryOperationHuman_policySummary(t *testing.T) {
 				"Failed",
 				"policy.deny: denied summary (mandatory)",
 				"Policy evaluation skipped",
-				"resource state.\n\nEvaluated 2 policies.",
+				"resource state.\n\n\nEvaluated 2 policies.",
 				"Summary: 1 failed, 1 passed, 0 unknown, 0 errored",
 			},
 			countOnce: []string{"Policy evaluation skipped"},

@@ -459,6 +459,7 @@ configuration under test. This could indicate a typo in the target address or
 an unnecessary override.
 
 (and 5 more similar warnings elsewhere)
+
 Success! The configuration is valid, but there were some validation warnings
 as shown above.
 
@@ -591,6 +592,7 @@ Error: Invalid list resource traversal
 
 The first step in the traversal for a list resource must be an attribute
 "data".
+
 `,
 			args: []string{"-query"},
 			code: 1,

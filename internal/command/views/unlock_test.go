@@ -32,7 +32,7 @@ func TestUnlockHuman_UnlockSuccessful(t *testing.T) {
 					"This is an example warning detail.",
 				),
 			},
-			expectedStdout: "Warning: Example warning.\n\nThis is an example warning detail.\n" +
+			expectedStdout: "Warning: Example warning.\n\nThis is an example warning detail.\n\n" +
 				message,
 		},
 	}

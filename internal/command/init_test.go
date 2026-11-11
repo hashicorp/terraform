@@ -1513,6 +1513,7 @@ is not applicable to HCP Terraform-based configurations.
 
 To change the set of workspaces associated with this configuration, edit the
 Cloud configuration block in the root module.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1551,6 +1552,7 @@ only, and is not needed when changing HCP Terraform settings.
 
 When using HCP Terraform, initialization automatically activates any new
 Cloud configuration settings.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1586,6 +1588,7 @@ Error: Invalid command-line option
 
 The -reconfigure option is unsupported when migrating to HCP Terraform,
 because activating HCP Terraform involves some additional steps.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1619,6 +1622,7 @@ is not applicable when using HCP Terraform.
 
 State storage is handled automatically by HCP Terraform and so the state
 storage location is not configurable.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1657,6 +1661,7 @@ is not applicable when using HCP Terraform.
 
 HCP Terraform migrations have additional steps, configured by interactive
 prompts.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1690,6 +1695,7 @@ not applicable when using HCP Terraform.
 
 State storage is handled automatically by HCP Terraform and so the state
 storage location is not configurable.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1730,6 +1736,7 @@ not applicable when using HCP Terraform.
 
 HCP Terraform migrations have additional steps, configured by interactive
 prompts.
+
 `
 		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
 			t.Errorf("wrong error output\n%s", diff)
@@ -1768,6 +1775,7 @@ func TestInit_cloudConfigColorTokensProcessed(t *testing.T) {
 Error: failed to create backend alias to target "". The hostname is not in the correct format.
 
 
+
 Error: Invalid workspaces configuration
 
   on main.tf line 7, in terraform:
@@ -1793,6 +1801,7 @@ to be used with this configuration.
 When configured, only the specified workspace can be used. This option
 conflicts with "tags"
 and with the TF_WORKSPACE environment variable.
+
 `
 
 	if diff := cmp.Diff(gotStderr, expected); diff != "" {
@@ -4132,6 +4141,7 @@ hashicorp/test: no available releases match the given constraints 1.0.1,
 To see which modules are currently depending on hashicorp/test and what
 versions are specified, run the following command:
     terraform providers
+
 `
 	if diff := cmp.Diff(got, want); len(diff) > 0 {
 		t.Fatalf("wrong error message: \ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
@@ -5373,6 +5383,7 @@ selection of new versions
 To see which modules are currently depending on hashicorp/test and what
 versions are specified, run the following command:
     terraform providers
+
 `
 
 	if stderr != expectedError {

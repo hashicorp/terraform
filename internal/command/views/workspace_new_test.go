@@ -43,7 +43,7 @@ for this configuration.`, workspaceName)
 					"This is an example warning message.",
 				),
 			},
-			fmt.Sprintf("Warning: Example warning\n\nThis is an example warning message.\n%s", successMsg),
+			fmt.Sprintf("Warning: Example warning\n\nThis is an example warning message.\n\n%s", successMsg),
 			"",
 		},
 	}

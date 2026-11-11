@@ -718,9 +718,11 @@ Error: Failed to destroy resource
 
 destroy_fail is set to true
 
+
 Error: Failed to destroy resource
 
 destroy_fail is set to true
+
 
 Terraform left the following resources in state after executing
 main.tftest.hcl/double, and they need to be cleaned up manually:
@@ -733,9 +735,11 @@ Error: Failed to destroy resource
 
 destroy_fail is set to true
 
+
 Error: Failed to destroy resource
 
 destroy_fail is set to true
+
 
 Terraform left the following resources in state after executing
 main.tftest.hcl/single, and they need to be cleaned up manually:
@@ -868,6 +872,7 @@ main.tftest.hcl/test_three.
 Error: Failed to destroy resource
 
 destroy_fail is set to true
+
 
 Terraform left the following resources in state after executing
 main.tftest.hcl/test_three, and they need to be cleaned up manually:
@@ -1172,7 +1177,7 @@ func TestTest_SkipCleanup_ConsecutiveTestsFail(t *testing.T) {
 	}
 
 	expectedOut := "main.tftest.hcl... in progress\nmain.tftest.hcl... tearing down\nmain.tftest.hcl... fail\n\nFailure! 0 passed, 0 failed.\n"
-	expectedErr := "\nError: State manifest not empty\n\nThe state manifest for main.tftest.hcl should be empty before running tests.\nThis could be due to a previous test run not cleaning up after itself. Please\nensure that all state files are cleaned up before running tests.\n"
+	expectedErr := "\nError: State manifest not empty\n\nThe state manifest for main.tftest.hcl should be empty before running tests.\nThis could be due to a previous test run not cleaning up after itself. Please\nensure that all state files are cleaned up before running tests.\n\n"
 
 	if diff := cmp.Diff(expectedOut, output.Stdout()); len(diff) > 0 {
 		t.Error(diff)
@@ -2083,6 +2088,7 @@ Error: Test assertion failed
 
 expected to fail
 
+
 Error: Test assertion failed
 
   on main.tftest.hcl line 44, in run "validate_output":
@@ -2103,6 +2109,7 @@ Error: Test assertion failed
 
 
 expected to fail due to different values
+
 
 Error: Test assertion failed
 
@@ -2134,6 +2141,7 @@ Error: Test assertion failed
 
 expected to fail
 
+
 Error: Test assertion failed
 
   on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
@@ -2162,6 +2170,7 @@ Error: Test assertion failed
 
 
 expected to fail
+
 `
 	if diff := cmp.Diff(output.Stdout(), expectedOut); len(diff) > 0 {
 		t.Errorf("\nexpected: \n%s\ngot: %s\ndiff: %s", expectedOut, output.All(), diff)
@@ -2258,6 +2267,7 @@ Error: Test assertion failed
 
 expected to fail
 
+
 Error: Test assertion failed
 
   on main.tftest.hcl line 44, in run "validate_output":
@@ -2304,6 +2314,7 @@ Error: Test assertion failed
     │   }
 
 expected to fail due to different values
+
 
 Error: Test assertion failed
 
@@ -2401,6 +2412,7 @@ Error: Test assertion failed
 
 expected to fail
 
+
 Error: Test assertion failed
 
   on main.tftest.hcl line 60, in run "validate_complex_output_sensitive":
@@ -2465,6 +2477,7 @@ Error: Test assertion failed
     │ output.complex_sensitive is "(sensitive value)"
 
 expected to fail
+
 `
 	outputs := []string{
 		"main.tftest.hcl... in progress",
@@ -2883,6 +2896,7 @@ Error: No value for required variable
 The module under test for run block "test" has a required variable "input"
 with no set value. Use a -var or -var-file command line argument or add this
 variable into a "variables" block within the test file or run block.
+
 `
 
 	actualOut := output.Stdout()
@@ -2991,6 +3005,7 @@ Error: Invalid ` + "`expect_failures`" + ` reference
 You cannot expect failures from local.my_value. You can only expect failures
 from checkable objects such as input variables, output values, check blocks,
 managed resources and data sources.
+
 `,
 		},
 		"invalid-module": {
@@ -3010,6 +3025,7 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "not_real" has not been declared. This
 variable can be declared with a variable "not_real" {} block.
+
 `,
 		},
 		"missing-provider": {
@@ -3029,6 +3045,7 @@ it has been removed. This occurs when a provider configuration is removed
 while objects created by that provider still exist in the state. Re-add the
 provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
+
 `,
 		},
 		"missing-provider-in-run-block": {
@@ -3048,6 +3065,7 @@ it has been removed. This occurs when a provider configuration is removed
 while objects created by that provider still exist in the state. Re-add the
 provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
+
 `,
 		},
 		"missing-provider-definition-in-file": {
@@ -3065,6 +3083,7 @@ Error: Missing provider definition for test
   12:     test = test
 
 This provider block references a provider definition that does not exist.
+
 `,
 		},
 		"missing-provider-in-test-module": {
@@ -3085,6 +3104,7 @@ it has been removed. This occurs when a provider configuration is removed
 while objects created by that provider still exist in the state. Re-add the
 provider configuration to destroy test_resource.secondary, after which you
 can remove the provider configuration again.
+
 `,
 		},
 	}
@@ -3407,6 +3427,7 @@ Warning: Duplicate "skip_cleanup" block
 The run "test_three" has a skip_cleanup attribute set, but shares state with
 an earlier run "test_two" that also has skip_cleanup set. The later run takes
 precedence, and this attribute is ignored for the earlier run.
+
 main.tftest.hcl... in progress
   run "test"... pass
   run "test_two"... pass
@@ -3945,6 +3966,7 @@ The -target option is not for routine use, and is provided only for
 exceptional situations such as recovering from errors or mistakes, or when
 Terraform specifically suggests to use it as part of an error message.
 
+
 Warning: Applied changes may be incomplete
 
 The plan was created with the -target option in effect, so some changes
@@ -3957,6 +3979,7 @@ Note that the -target option is not suitable for routine use, and is provided
 only for exceptional situations such as recovering from errors or mistakes,
 or when Terraform specifically suggests to use it as part of an error
 message.
+
 
   run "second"... pass
 main.tftest.hcl... tearing down
@@ -4035,6 +4058,7 @@ Warning: Value for undeclared variable
 The module under test does not declare a variable named "validation", but it
 is declared in run block "test".
 
+
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
 
@@ -4100,6 +4124,7 @@ Error: Reference to unavailable variable
 
 The input variable "notreal" does not exist within this test file.
 
+
 Error: Reference to unknown run block
 
   on main.tftest.hcl line 16, in run "test":
@@ -4107,12 +4132,14 @@ Error: Reference to unknown run block
 
 The run block "madeup" does not exist within this test file.
 
+
 Error: Reference to unavailable variable
 
   on providers.tftest.hcl line 3, in provider "test":
    3:   resource_prefix = var.default
 
 The input variable "default" does not exist within this test file.
+
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -4166,6 +4193,7 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "input" has not been declared. This variable
 can be declared with a variable "input" {} block.
+
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -4253,6 +4281,7 @@ the apply operation could not be executed and so the overall test case will
 be marked as a failure and the original diagnostic included in the test
 report.
 
+
   run "no_run"... skip
 input.tftest.hcl... tearing down
 input.tftest.hcl... fail
@@ -4270,6 +4299,7 @@ the apply operation could not be executed and so the overall test case will
 be marked as a failure and the original diagnostic included in the test
 report.
 
+
 output.tftest.hcl... tearing down
 output.tftest.hcl... fail
 resource.tftest.hcl... in progress
@@ -4282,6 +4312,7 @@ stage and prevented the requested apply operation. While this was an expected
 failure, the apply operation could not be executed and so the overall test
 case will be marked as a failure and the original diagnostic included in the
 test report.
+
 
 resource.tftest.hcl... tearing down
 resource.tftest.hcl... fail
@@ -4305,6 +4336,7 @@ input must contain the character 'a'
 
 This was checked by the validation rule at main.tf:5,3-13.
 
+
 Error: Module output value precondition failed
 
   on main.tf line 33, in output "output":
@@ -4314,6 +4346,7 @@ Error: Module output value precondition failed
 
 input must contain the character 'd'
 
+
 Error: Resource postcondition failed
 
   on main.tf line 16, in resource "test_resource" "resource":
@@ -4322,6 +4355,7 @@ Error: Resource postcondition failed
     │ self.value is "acd"
 
 input must contain the character 'b'
+
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -4369,6 +4403,7 @@ Warning: Value for undeclared variable
 The module under test does not declare a variable named "input", but it is
 declared in run block "follow-up".
 
+
 main.tftest.hcl... tearing down
 main.tftest.hcl... fail
 
@@ -4387,6 +4422,7 @@ Error: Missing expected failure
 
 The checkable object, output.output, was expected to report an error but did
 not.
+
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
@@ -4427,6 +4463,7 @@ Error: Test assertion failed
 
 
 this is always going to fail
+
 `,
 		},
 		"null_value_in_vars": {
@@ -4452,6 +4489,7 @@ Error: Required variable not set
 
 The given value is not suitable for var.interesting_input defined at
 main.tf:7,1-29: required variable may not be set to null.
+
 `,
 		},
 		"unknown_value_in_assert": {
@@ -4479,6 +4517,7 @@ condition depended on is not known until after the plan has been applied.
 Either remove this value from your condition, or execute an %s command
 from this %s block. Alternatively, if there is an override for this value,
 you can make it available during the plan phase by setting %s in the %s block.
+
 `, "`run`", "`command = plan`", "`apply`", "`run`", "`override_during =\nplan`", "`override_`"),
 		},
 		"unknown_value_in_vars": {
@@ -4499,6 +4538,7 @@ Error: Reference to unknown value
 
 The value for run.one.destroy_fail is unknown. Run block "one" is executing a
 "plan" operation, and the specified output value is only known after apply.
+
 `,
 		},
 		"nested_unknown_values": {
@@ -4520,6 +4560,7 @@ Error: Reference to unknown value
 
 The value for run.second is unknown. Run block "second" is executing a "plan"
 operation, and the specified output value is only known after apply.
+
 `,
 		},
 	}
@@ -4688,6 +4729,7 @@ Error: Test assertion failed
     │   }
 
 expected to fail
+
 `
 
 	actual := output.Stdout()
@@ -4901,6 +4943,7 @@ The override target test_resource.absent_five does not exist within the
 configuration under test. This could indicate a typo in the target address or
 an unnecessary override.
 
+
   run "test"... pass
 
 Warning: Invalid override target
@@ -4911,6 +4954,7 @@ Warning: Invalid override target
 The override target module.setup.test_resource.absent_six does not exist
 within the configuration under test. This could indicate a typo in the target
 address or an unnecessary override.
+
 
 main.tftest.hcl... tearing down
 main.tftest.hcl... pass
@@ -4925,6 +4969,7 @@ configuration under test. This could indicate a typo in the target address or
 an unnecessary override.
 
 (and 3 more similar warnings elsewhere)
+
 
 Success! 2 passed, 0 failed.
 `
@@ -5003,6 +5048,7 @@ registry.terraform.io/hashicorp/test: failed to instantiate provider
 "registry.terraform.io/hashicorp/test" to obtain schema: fork/exec
 .terraform/providers/registry.terraform.io/hashicorp/test/1.0.0/%s/terraform-provider-test_1.0.0:
 permission denied..
+
 `
 	expectedErr = fmt.Sprintf(expectedErr, runtime.GOOS+"_"+runtime.GOARCH)
 	out := output.Stdout()
@@ -5100,6 +5146,7 @@ Error: Repeat use of the same backend block
 The run "test_2" contains a backend configuration that's already been used in
 run "test_1". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
+
 `,
 		},
 		"validation detects when backend config is reused by runs using different implicit state key (corresponding to root and a child module) ": {
@@ -5113,6 +5160,7 @@ Error: Repeat use of the same backend block
 The run "test_2" contains a backend configuration that's already been used in
 run "test_1". Sharing the same backend configuration between separate runs
 will result in conflicting state updates.
+
 `,
 		},
 		"validation detects when a deprecated backend type is used": {
@@ -5124,6 +5172,7 @@ Error: Unsupported backend type
    7:   backend "etcd" {
 
 The "etcd" backend is not supported in Terraform v1.3 or later.
+
 `,
 		},
 		"validation detects when a non-existent backend type": {
@@ -5135,6 +5184,7 @@ Error: Unsupported backend type
    7:   backend "foobar" {
 
 There is no backend type named "foobar".
+
 `,
 		},
 	}
@@ -5832,6 +5882,7 @@ Error: Reference to unknown run block
    2:   resource_prefix = run.missing.resource_directory
 
 The run block "missing" does not exist within this test file.
+
 `
 	actualErr := output.Stderr()
 	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {

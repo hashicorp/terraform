@@ -1228,7 +1228,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := newCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	expectedError := "\nError: Expected a single argument: NAME.\n\n"
+	expectedError := "\nError: Expected a single argument: NAME.\n\n\n"
 	if done(t).Stderr() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
 	}
@@ -1245,7 +1245,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := listCmd.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	expectedError = "Error: Too many command line arguments. Did you mean to use -chdir?\n"
+	expectedError = "\nError: Too many command line arguments. Did you mean to use -chdir?\n\n\n"
 	if !strings.Contains(done(t).Stderr(), expectedError) {
 		t.Fatalf("expected error to include \"%s\" but was missing, got: %s", expectedError, done(t).Stderr())
 	}
@@ -1273,7 +1273,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := selectCmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	expectedError = "\nError: Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if done(t).Stderr() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
 	}
@@ -1291,7 +1291,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 	if code := deleteCmd.Run(args); code == 0 {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
-	expectedError = "\nError: Expected a single argument: NAME.\n\n"
+	expectedError = "\nError: Expected a single argument: NAME.\n\n\n"
 	if done(t).Stderr() != expectedError {
 		t.Fatalf("expected error to include %s but was missing, got: %s", expectedError, done(t).Stderr())
 	}
@@ -1499,7 +1499,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 		t.Fatalf("expected error but got code %d:\n\n%s", code, done(t).All())
 	}
 	actual = done(t).Stderr()
-	expectedOutput = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mWorkspace \"foobar\" doesn't exist.\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0mYou can create this workspace with the \"new\" subcommand \n\x1b[31m│\x1b[0m \x1b[0mor include the \"-or-create\" flag with the \"select\" subcommand.\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0m\n\x1b[31m╵\x1b[0m\x1b[0m\n"
+	expectedOutput = "\x1b[31m╷\x1b[0m\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[1m\x1b[31mError: \x1b[0m\x1b[0m\x1b[1mWorkspace \"foobar\" doesn't exist.\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0mYou can create this workspace with the \"new\" subcommand \n\x1b[31m│\x1b[0m \x1b[0mor include the \"-or-create\" flag with the \"select\" subcommand.\x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\n\x1b[31m│\x1b[0m \x1b[0m\x1b[0m\n\x1b[31m╵\x1b[0m\x1b[0m\n\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
 	}
@@ -1518,7 +1518,7 @@ func TestWorkspace_humanOutput(t *testing.T) {
 		t.Fatalf("expected error but got code %d:\n\n%s", code, done(t).All())
 	}
 	actual = done(t).Stderr()
-	expectedOutput = "\nError: Workspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\n\n"
+	expectedOutput = "\nError: Workspace \"foobar\" doesn't exist.\n\nYou can create this workspace with the \"new\" subcommand \nor include the \"-or-create\" flag with the \"select\" subcommand.\n\n\n"
 	if actual != expectedOutput {
 		t.Fatalf("want: %s\ngot: %s", expectedOutput, actual)
 	}

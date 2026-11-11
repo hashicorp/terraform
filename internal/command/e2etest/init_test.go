@@ -400,6 +400,7 @@ func TestInitProviderNotFound(t *testing.T) {
 │ command:
 │     terraform providers
 ╵
+
 `
 		if stripAnsi(stderr) != expectedErr {
 			t.Errorf("wrong output:\n%s", cmp.Diff(stripAnsi(stderr), expectedErr))

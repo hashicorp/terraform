@@ -129,6 +129,7 @@ Error: policy denied
   while evaluating policy for main.tf line 1:
    1: resource "test_instance" "foo" {
 
+
 `
 
 	if diff := cmp.Diff(expected, output.Stderr()); diff != "" {
@@ -431,6 +432,7 @@ Warning: policy with unknowns
 
   while evaluating policy for main.tf line 1:
    1: resource "test_instance" "foo" {
+
 
 
 Terraform used the selected providers to generate the following execution
@@ -891,6 +893,7 @@ Warning: Deprecated flag: -state
 
 Use the "path" attribute within the "local" backend to specify a file for
 state storage
+
 data.test_data_source.a: Reading...
 data.test_data_source.a: Read complete after 0s [id=zzzzz]
 test_instance.foo: Refreshing state... [id=bar]
@@ -1054,6 +1057,7 @@ Error: Failed to connect to policy engine
 
 Failed to connect to policy engine: failed to connect to plugin: exec:
 "tfpolicy-plugin": executable file not found in $PATH.
+
 `
 
 	if diff := cmp.Diff(expectedStdErr, output.Stderr()); diff != "" {

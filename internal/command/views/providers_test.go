@@ -82,7 +82,7 @@ func TestNewProviders_LogProviderRequirements(t *testing.T) {
 			},
 			configReqs,
 			getproviders.Requirements{},
-			fmt.Sprintf("Warning: Example warning\n\nThis is an example warning message.\n\n%s", configOnlyOutput),
+			fmt.Sprintf("Warning: Example warning\n\nThis is an example warning message.\n\n\n%s", configOnlyOutput),
 			"",
 		},
 	}

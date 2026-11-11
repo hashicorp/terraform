@@ -40,7 +40,7 @@ func TestUntaintHuman_LogResourceUntainted(t *testing.T) {
 					"This is an example warning detail.",
 				),
 			},
-			expectedStdout: "Warning: Example warning.\n\nThis is an example warning detail.\n" +
+			expectedStdout: "Warning: Example warning.\n\nThis is an example warning detail.\n\n" +
 				"Resource instance boop.beep has been successfully untainted.",
 		},
 	}

@@ -32,7 +32,7 @@ func TestWorkspaceSelectHuman_SelectedWorkspace(t *testing.T) {
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Warning, "Example warning", "This is an example warning message."),
 			},
-			wantOut: "Warning: Example warning\n\nThis is an example warning message.\n" + successMsg + "\n",
+			wantOut: "Warning: Example warning\n\nThis is an example warning message.\n\n" + successMsg + "\n",
 		},
 	}
 
@@ -75,7 +75,7 @@ func TestWorkspaceSelectHuman_CreatedWorkspace(t *testing.T) {
 				tfdiags.Sourceless(tfdiags.Warning, "Example warning", "This is an example warning message."),
 			},
 			wantOut: []string{
-				"Warning: Example warning\n\nThis is an example warning message.\n",
+				"Warning: Example warning\n\nThis is an example warning message.\n\n",
 				successMsgSnippet,
 			},
 		},

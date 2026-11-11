@@ -73,7 +73,7 @@ func TestNewInit_humanViewDiagnostics(t *testing.T) {
 	newInit.Diagnostics(diags)
 
 	actual := done(t).All()
-	expected := "\nError: Error selecting workspace\n\nWorkspace random_pet does not exist\n\nError: Unsupported backend type\n\nThere is no explicit backend type named fake backend.\n"
+	expected := "\nError: Error selecting workspace\n\nWorkspace random_pet does not exist\n\n\nError: Unsupported backend type\n\nThere is no explicit backend type named fake backend.\n\n"
 	if !strings.Contains(actual, expected) {
 		t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
 	}

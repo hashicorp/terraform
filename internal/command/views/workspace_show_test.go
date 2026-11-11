@@ -29,7 +29,7 @@ func TestWorkspaceShowHuman_Show(t *testing.T) {
 			diags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(tfdiags.Warning, "Example warning", "This is an example warning message."),
 			},
-			wantOut: "Warning: Example warning\n\nThis is an example warning message.\ndefault\n",
+			wantOut: "Warning: Example warning\n\nThis is an example warning message.\n\ndefault\n",
 		},
 	}
 

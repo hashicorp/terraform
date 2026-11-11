@@ -87,6 +87,7 @@ is 1.16.0. You can update by downloading from https://developer.hashicorp.com/te
 Warning: Your shoelaces are untied
 
 Watch out, or you'll trip!
+
 Terraform v1.0.0
 on linux_amd64
 

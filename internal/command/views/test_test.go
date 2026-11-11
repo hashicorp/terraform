@@ -498,6 +498,7 @@ Warning: a warning occurred
 
 some warning happened during this test
 
+
 `,
 		},
 
@@ -535,9 +536,11 @@ Error: a comparison failed
 
 details details details
 
+
 Error: a second comparison failed
 
 other details
+
 `,
 		},
 
@@ -559,6 +562,7 @@ other details
 Error: an error occurred
 
 something bad happened during this test
+
 `,
 		},
 		"verbose_plan": {
@@ -788,9 +792,11 @@ Warning: first warning
 
 some thing not very bad happened
 
+
 Warning: second warning
 
 some thing not very bad happened again
+
 `,
 		},
 		"empty_state_with_errors": {
@@ -806,9 +812,11 @@ Warning: first warning
 
 some thing not very bad happened
 
+
 Warning: second warning
 
 some thing not very bad happened again
+
 `,
 			stderr: `Terraform encountered an error destroying resources created while executing
 main.tftest.hcl.
@@ -816,6 +824,7 @@ main.tftest.hcl.
 Error: first error
 
 this time it is very bad
+
 `,
 		},
 		"error_from_run": {
@@ -831,6 +840,7 @@ main.tftest.hcl/run_block.
 Error: first error
 
 this time it is very bad
+
 `,
 		},
 		"state_with_skip_cleanup": {
@@ -910,9 +920,11 @@ Warning: first warning
 
 some thing not very bad happened
 
+
 Warning: second warning
 
 some thing not very bad happened again
+
 `,
 			stderr: `
 Terraform left the following resources in state after executing
@@ -976,9 +988,11 @@ Warning: first warning
 
 some thing not very bad happened
 
+
 Warning: second warning
 
 some thing not very bad happened again
+
 `,
 			stderr: `Terraform encountered an error destroying resources created while executing
 main.tftest.hcl.
@@ -986,6 +1000,7 @@ main.tftest.hcl.
 Error: first error
 
 this time it is very bad
+
 
 Terraform left the following resources in state after executing
 main.tftest.hcl, and they need to be cleaned up manually:
