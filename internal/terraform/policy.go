@@ -114,13 +114,13 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
 							return callback.Resource{}, false
 						}
-						return callback.Resource{Value: rsc.Value, Source: pg.valueSource(callback.KindState, states.NotDeposed, instAddr)}, true
+						return callback.Resource{Value: rsc.Value, Source: pg.valueSource(callback.KindState, states.NotDeposed, instAddr, schema.Body)}, true
 					})
 				} else {
 					// Read each config resource change from the plan, returning the corresponding cty.Value
 					resourcesSeq = func(yield func(callback.Resource) bool) {
 						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
-							yield(callback.Resource{Value: change.After, Source: pg.valueSource(callback.KindPlanned, change.DeposedKey, change.Addr)})
+							yield(callback.Resource{Value: change.After, Source: pg.valueSource(callback.KindPlanned, change.DeposedKey, change.Addr, schema.Body)})
 						}
 					}
 				}

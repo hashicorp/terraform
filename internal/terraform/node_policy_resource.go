@@ -119,7 +119,8 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 	}
 	var afterSource, beforeSource *callback.ValueSource
 	if pg := ctx.PolicyGraph(); pg != nil {
-		a, b := pg.valueSource(afterKind, n.DeposedKey, n.ResourceAddr), pg.valueSource(beforeKind, n.DeposedKey, n.ResourceAddr)
+		body := schema.SchemaForResourceAddr(n.ResourceAddr.Resource.Resource).Body
+		a, b := pg.valueSource(afterKind, n.DeposedKey, n.ResourceAddr, body), pg.valueSource(beforeKind, n.DeposedKey, n.ResourceAddr, body)
 		afterSource, beforeSource = &a, &b
 	}
 

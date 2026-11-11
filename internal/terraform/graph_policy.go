@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -127,8 +128,8 @@ func (ps *policySubgraph) AddQuery(node *nodeQueryResourcePolicy) {
 
 // valueSource returns the source of a value of the walk's resource instance
 // at addr, qualified like the subject addresses of a shared run.
-func (ps *policySubgraph) valueSource(kind string, deposed states.DeposedKey, addr addrs.AbsResourceInstance) callback.ValueSource {
-	src := callback.ValueSource{Generation: ps.generation, Kind: kind, DeposedKey: deposed.String(), Address: addr.String()}
+func (ps *policySubgraph) valueSource(kind string, deposed states.DeposedKey, addr addrs.AbsResourceInstance, schema *configschema.Block) callback.ValueSource {
+	src := callback.ValueSource{Generation: ps.generation, Kind: kind, DeposedKey: deposed.String(), Address: addr.String(), Schema: schema}
 	if ps.run != nil && ps.run.Shared != nil {
 		src.Address = ps.run.Shared.AddressPrefix + src.Address
 	}

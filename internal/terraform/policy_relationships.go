@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
-	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -135,8 +134,8 @@ func (c *Context) applyPolicyRunOpts(schemas *schemarepo.Schemas, changes []*pla
 }
 
 // policyStateValue decodes a state object with the current schema of its
-// resource type and marks its sensitive values, both those recorded in state
-// and those the schema declares.
+// resource type, with the sensitive values recorded in state marked. The
+// policy client also redacts those the schema declares.
 func policyStateValue(obj *states.ResourceInstanceObjectSrc, schema providers.Schema) (cty.Value, error) {
 	if schema.Body == nil {
 		return cty.NilVal, fmt.Errorf("no schema")
@@ -148,20 +147,7 @@ func policyStateValue(obj *states.ResourceInstanceObjectSrc, schema providers.Sc
 	if err != nil {
 		return cty.NilVal, err
 	}
-	return policyMarkSchemaSensitive(decoded.Value, schema.Body), nil
-}
-
-// policyMarkSchemaSensitive marks the values of val that the schema declares
-// sensitive, keeping its existing marks.
-func policyMarkSchemaSensitive(val cty.Value, block *configschema.Block) cty.Value {
-	if val == cty.NilVal || block == nil {
-		return val
-	}
-	unmarked, pvms := val.UnmarkDeepWithPaths()
-	for _, path := range block.SensitivePaths(unmarked, nil) {
-		pvms = append(pvms, cty.PathValueMarks{Path: path, Marks: cty.NewValueMarks(marks.Sensitive)})
-	}
-	return unmarked.MarkWithPaths(pvms)
+	return decoded.Value, nil
 }
 
 // relationshipOriginLookup implements originLookup with the walk's schemas
@@ -490,8 +476,8 @@ func (c *policyCollector) newObject(key policyTypeKey, addr addrs.AbsResourceIns
 
 // encode encodes a value of an instance of the given type. If that fails,
 // the type is ERROR.
-func (c *policyCollector) encode(key policyTypeKey, addr addrs.AbsResourceInstance, kind string, deposed states.DeposedKey, val cty.Value) (*proto.ResourceAttributes, bool) {
-	attrs, err := c.ctx.PolicyClient().ResourceAttributes(val, c.ps.valueSource(kind, deposed, addr))
+func (c *policyCollector) encode(key policyTypeKey, addr addrs.AbsResourceInstance, schema *configschema.Block, kind string, deposed states.DeposedKey, val cty.Value) (*proto.ResourceAttributes, bool) {
+	attrs, err := c.ctx.PolicyClient().ResourceAttributes(val, c.ps.valueSource(kind, deposed, addr, schema))
 	if err != nil {
 		log.Printf("[WARN] policy: failed to encode %s for relationships: %s", addr, err)
 		c.inst.errored[key] = true
@@ -526,7 +512,7 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 		c.inst.errored[key] = true
 		return
 	}
-	before := policyMarkSchemaSensitive(change.Before, schema.Body)
+	before := change.Before
 
 	var op proto.Operation
 	switch change.Action {
@@ -536,7 +522,7 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 		obj.old = change.Action != plans.Delete
 		obj.op = proto.Operation_DELETE
 		var ok bool
-		if obj.priorAttrs, ok = c.encode(key, addr, callback.KindPrior, change.DeposedKey, before); ok {
+		if obj.priorAttrs, ok = c.encode(key, addr, schema.Body, callback.KindPrior, change.DeposedKey, before); ok {
 			c.add(obj, before)
 		}
 		if change.Action == plans.Delete {
@@ -579,14 +565,14 @@ func (c *policyCollector) addChange(change *plans.ResourceInstanceChange, state 
 		}
 		after = val
 	} else {
-		after = policyMarkSchemaSensitive(change.After, schema.Body)
+		after = change.After
 	}
 	var ok bool
-	if obj.attrs, ok = c.encode(key, addr, afterKind, states.NotDeposed, after); !ok {
+	if obj.attrs, ok = c.encode(key, addr, schema.Body, afterKind, states.NotDeposed, after); !ok {
 		return
 	}
 	if op != proto.Operation_CREATE {
-		if obj.priorAttrs, ok = c.encode(key, addr, callback.KindPrior, states.NotDeposed, before); !ok {
+		if obj.priorAttrs, ok = c.encode(key, addr, schema.Body, callback.KindPrior, states.NotDeposed, before); !ok {
 			return
 		}
 	}
@@ -654,7 +640,7 @@ func (c *policyCollector) addState(state *states.State, changed, deferred map[st
 				obj := c.newObject(key, addr, rs.ProviderConfig)
 				obj.op = proto.Operation_NO_OP
 				var ok bool
-				if obj.attrs, ok = c.encode(key, addr, callback.KindState, states.NotDeposed, val); ok {
+				if obj.attrs, ok = c.encode(key, addr, schema.Body, callback.KindState, states.NotDeposed, val); ok {
 					c.add(obj, val)
 				}
 			}

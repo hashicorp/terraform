@@ -300,9 +300,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 
 	req = normalizeRequest(req)
 
-	attrs, attrsEncoded, err := c.attributes(req.AttrsSource, false, func() (*proto.ResourceAttributes, error) {
-		return resourceAttributesToProto(req.Attrs)
-	})
+	attrs, attrsEncoded, err := c.attributes(req.AttrsSource, false, func() PolicyValue { return req.Attrs })
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -311,9 +309,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	priorAttrs, priorEncoded, err := c.attributes(req.PriorAttrsSource, false, func() (*proto.ResourceAttributes, error) {
-		return resourceAttributesToProto(req.PriorAttrs)
-	})
+	priorAttrs, priorEncoded, err := c.attributes(req.PriorAttrsSource, false, func() PolicyValue { return req.PriorAttrs })
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,

@@ -6,6 +6,7 @@ package policy
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -15,6 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
@@ -42,11 +45,16 @@ var _ callback.Values = (*valueTable)(nil)
 // is nil if the value has none. Every ResourceAttributes the client sends is
 // built here. Without the resource_value_ids capability, a value is inline
 // with no ID, as before value IDs; with it, a value with a source carries its
-// ID, and only the ID if byRef. encode encodes the value; it's called once
-// per source. encoded is false for a memo hit.
-func (t *valueTable) attributes(src *callback.ValueSource, byRef bool, encode func() (*proto.ResourceAttributes, error)) (attrs *proto.ResourceAttributes, encoded bool, err error) {
-	if src == nil {
-		attrs, err = encode()
+// ID, and only the ID if byRef. value returns the value; it's called once per
+// source, or for every inline send without the capability. encoded is false
+// for a memo hit.
+//
+// The encoding of a source redacts the paths its schema declares sensitive,
+// whichever send encodes it first. An inline send without the capability
+// isn't from the table, so that it's unchanged.
+func (t *valueTable) attributes(src *callback.ValueSource, byRef bool, value func() PolicyValue) (attrs *proto.ResourceAttributes, encoded bool, err error) {
+	if src == nil || (!byRef && !t.ids.Load()) {
+		attrs, err = resourceAttributesToProto(value())
 		return attrs, true, err
 	}
 	id := src.ID()
@@ -54,14 +62,9 @@ func (t *valueTable) attributes(src *callback.ValueSource, byRef bool, encode fu
 	e := v.(*valueEntry)
 	e.once.Do(func() {
 		encoded = true
-		e.attrs, e.err = encode()
-		if e.attrs == nil && e.err == nil {
-			e.err = fmt.Errorf("no value")
-		}
+		e.attrs, e.err = resourceAttributesToProto(markSchemaSensitive(value(), src.Schema))
 		if e.err == nil {
 			e.attrs.Id = id
-		} else {
-			e.attrs = nil
 		}
 	})
 	switch {
@@ -74,6 +77,20 @@ func (t *valueTable) attributes(src *callback.ValueSource, byRef bool, encode fu
 	default:
 		return e.attrs, encoded, nil
 	}
+}
+
+// markSchemaSensitive adds the paths that the schema declares sensitive to
+// the redacted paths of v, in the order CtyToPolicyValue gives them.
+func markSchemaSensitive(v PolicyValue, block *configschema.Block) PolicyValue {
+	paths := v.RedactedPaths
+	if block != nil {
+		paths = slices.Concat(paths, block.SensitivePaths(v.Raw, nil))
+	}
+	var pvms []cty.PathValueMarks
+	for _, path := range paths {
+		pvms = append(pvms, cty.PathValueMarks{Path: path, Marks: cty.NewValueMarks(marks.Sensitive)})
+	}
+	return CtyToPolicyValue(v.Raw.MarkWithPaths(pvms))
 }
 
 // NextGeneration starts a policy phase, and returns its generation for the
@@ -90,8 +107,11 @@ func (t *valueTable) ResourceAttributes(value cty.Value, src callback.ValueSourc
 
 // valueAttributes is attributes for a cty.Value, by reference.
 func (t *valueTable) valueAttributes(value cty.Value, src *callback.ValueSource) (*proto.ResourceAttributes, bool, error) {
-	return t.attributes(src, true, func() (*proto.ResourceAttributes, error) {
-		return EncodeResourceAttributes(value)
+	if value == cty.NilVal {
+		return nil, false, fmt.Errorf("no value")
+	}
+	return t.attributes(src, true, func() PolicyValue {
+		return CtyToPolicyValue(value)
 	})
 }
 

@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 	gproto "google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -655,9 +656,11 @@ func TestClientValueIDs(t *testing.T) {
 			}
 			c.Setup(ctx, SetupRequest{})
 
-			// The second send of the source carries the first encoding, even
-			// with another value. The missing prior value has no source.
-			for _, val := range []cty.Value{marked, cty.EmptyObjectVal} {
+			// With value IDs, the second send of the source carries the first
+			// encoding, even with another value; without, inline sends are
+			// encoded as before. The missing prior value has no source.
+			vals := []cty.Value{marked, cty.EmptyObjectVal}
+			for _, val := range vals {
 				c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
 					Target:           "test_resource",
 					Attrs:            CtyToPolicyValue(val),
@@ -670,22 +673,26 @@ func TestClientValueIDs(t *testing.T) {
 				wantInline.Id = src.ID()
 			}
 			for i, req := range reqs {
-				if got, want := bytes(t, req.Attrs), bytes(t, wantInline); !slices.Equal(got, want) {
-					t.Errorf("request %d: wrong attrs\ngot:  %v\nwant: %v", i, req.Attrs, wantInline)
+				want := wantInline
+				if !ids {
+					want, _ = resourceAttributesToProto(CtyToPolicyValue(vals[i]))
+				}
+				if got, want := bytes(t, req.Attrs), bytes(t, want); !slices.Equal(got, want) {
+					t.Errorf("request %d: wrong attrs\ngot:  %v\nwant: %v", i, req.Attrs, want)
 				}
 				if req.PriorAttrs.Id != "" {
 					t.Errorf("request %d: prior attrs without a value have ID %q", i, req.PriorAttrs.Id)
 				}
 			}
 
-			member, err := c.ResourceAttributes(cty.EmptyObjectVal, src)
+			member, err := c.ResourceAttributes(marked, src)
 			if err != nil {
 				t.Fatal(err)
 			}
 			id := registry.NextID()
 			registry.Register(id, callback.Functions{
 				GetResources: func(context.Context, string, cty.Value) ([]callback.Resource, bool, error) {
-					return []callback.Resource{{Value: cty.EmptyObjectVal, Source: src}}, false, nil
+					return []callback.Resource{{Value: marked, Source: src}}, false, nil
 				},
 			})
 			nullAttrs, _ := msgpack.Marshal(cty.NullVal(cty.DynamicPseudoType), cty.DynamicPseudoType)
@@ -719,6 +726,115 @@ func TestClientValueIDs(t *testing.T) {
 				t.Errorf("wrong resolved value\ngot:  %v\nwant: %v", values.Values[0], wantInline)
 			}
 		})
+	}
+}
+
+// An ID's encoding redacts the paths that the schema declares sensitive,
+// whichever send encodes it first; an inline send without value IDs redacts
+// only the value's.
+func TestClientValueSchemaSensitive(t *testing.T) {
+	ctx := t.Context()
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"name":   {Type: cty.String, Optional: true},
+			"secret": {Type: cty.String, Optional: true, Sensitive: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"nested": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"key": {Type: cty.String, Optional: true, Sensitive: true},
+					},
+				},
+			},
+		},
+	}
+	val := cty.ObjectVal(map[string]cty.Value{
+		"name":   cty.StringVal("a").Mark(marks.Sensitive),
+		"secret": cty.StringVal("s"),
+		"nested": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"key": cty.StringVal("k")})}).Mark(marks.Sensitive),
+	})
+	src := callback.ValueSource{Generation: 1, Kind: callback.KindPlanned, Address: "test_resource.a", Schema: schema}
+	pathString := func(path *proto.AttributePath) string {
+		var ret string
+		for _, step := range path.Steps {
+			switch s := step.Selector.(type) {
+			case *proto.AttributePath_Step_AttributeName:
+				ret += "." + s.AttributeName
+			case *proto.AttributePath_Step_ElementKeyInt:
+				ret += fmt.Sprintf("[%d]", s.ElementKeyInt)
+			}
+		}
+		return ret[1:]
+	}
+	redacted := func(attrs *proto.ResourceAttributes) []string {
+		var ret []string
+		for _, path := range attrs.RedactedPaths {
+			ret = append(ret, pathString(path))
+		}
+		return ret
+	}
+
+	sends := func(ids, subjectFirst bool) (subject, member *proto.ResourceAttributes) {
+		var req *proto.PolicyEvaluateResourceRequest
+		c := &client{
+			client: &stubPolicyClient{
+				setupFn: func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+					return &proto.PolicySetupResponse{
+						ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{ResourceValueIds: ids},
+					}, nil
+				},
+				evaluateResourceFn: func(r *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+					req = r
+					return &proto.PolicyEvaluateResourceResponse{Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT}, nil
+				},
+			},
+			callbackRegistry: callback.NewRegistry(),
+		}
+		c.Setup(ctx, SetupRequest{})
+		evaluate := func() {
+			c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+				Target:      "test_resource",
+				Attrs:       CtyToPolicyValue(val),
+				AttrsSource: &src,
+			})
+		}
+		if subjectFirst {
+			evaluate()
+		}
+		if _, err := c.ResourceAttributes(val, src); err != nil {
+			t.Fatal(err)
+		}
+		if !subjectFirst {
+			evaluate()
+		}
+		values, err := c.GetResourceValues(ctx, []string{src.ID()})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return req.Attrs, values[0]
+	}
+
+	subjectFirst, _ := sends(true, true)
+	memberFirst, _ := sends(true, false)
+	if got, want := redacted(memberFirst), redacted(subjectFirst); !slices.Equal(got, want) {
+		t.Fatalf("redacted paths depend on the first send\nsubject first: %v\nmember first:  %v", want, got)
+	}
+	for _, path := range []string{"name", "secret", "nested", "nested[0].key"} {
+		if !slices.Contains(redacted(subjectFirst), path) {
+			t.Errorf("redacted paths %v don't include %s", redacted(subjectFirst), path)
+		}
+	}
+
+	// Without value IDs, a subject's inline value is as before value IDs, and
+	// a related member's redacts the schema's paths, as before value IDs.
+	subject, member := sends(false, true)
+	if want, _ := resourceAttributesToProto(CtyToPolicyValue(val)); !gproto.Equal(subject, want) {
+		t.Errorf("wrong subject attrs\ngot:  %v\nwant: %v", subject, want)
+	}
+	if got, want := redacted(member), redacted(subjectFirst); !slices.Equal(got, want) {
+		t.Errorf("wrong member redacted paths\ngot:  %v\nwant: %v", got, want)
 	}
 }
 

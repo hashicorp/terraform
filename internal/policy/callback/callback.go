@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
 // The kinds of a ValueSource.
@@ -33,6 +35,9 @@ type ValueSource struct {
 	// Address is the resource instance address, qualified with the component
 	// instance in Stacks.
 	Address string
+	// Schema is the schema of the resource type, whose sensitive attributes
+	// the value's encoding redacts. It isn't part of the ID.
+	Schema *configschema.Block
 }
 
 // ID returns the value ID of the source. The address goes last because it is

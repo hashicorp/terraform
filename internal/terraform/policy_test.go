@@ -160,7 +160,7 @@ resource "test_resource" "b" {
 				gotNames = append(gotNames, name)
 				// The matches are named by their source, so that the policy
 				// client can send them by reference.
-				wantSource := callback.ValueSource{Generation: 7, Kind: callback.KindState, Address: "test_resource." + name[:1]}
+				wantSource := callback.ValueSource{Generation: 7, Kind: callback.KindState, Address: "test_resource." + name[:1], Schema: providerSchema.ResourceTypes["test_resource"].Body}
 				if resource.Source != wantSource {
 					t.Errorf("wrong source of %s\ngot:  %#v\nwant: %#v", name, resource.Source, wantSource)
 				}

@@ -4,9 +4,7 @@
 package terraform
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -14,10 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/format"
 	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/policy"
-	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
@@ -177,50 +172,16 @@ func TestPolicyStateValue(t *testing.T) {
 		Status:             states.ObjectReady,
 	}
 
+	// The policy client redacts the paths the schema declares sensitive.
 	val, err := policyStateValue(obj, schema)
 	if err != nil {
 		t.Fatal(err)
 	}
-	attrs, err := policy.EncodeResourceAttributes(val)
-	if err != nil {
-		t.Fatal(err)
+	_, pvms := val.UnmarkDeepWithPaths()
+	paths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
+	if len(paths) != 1 || !paths[0].Equals(cty.GetAttrPath("other")) {
+		t.Fatalf("wrong sensitive paths: %#v", paths)
 	}
-	var got []string
-	for _, path := range attrs.RedactedPaths {
-		var parts []string
-		for _, step := range path.Steps {
-			switch s := step.Selector.(type) {
-			case *proto.AttributePath_Step_AttributeName:
-				parts = append(parts, s.AttributeName)
-			case *proto.AttributePath_Step_ElementKeyInt:
-				parts = append(parts, fmt.Sprint(s.ElementKeyInt))
-			}
-		}
-		got = append(got, strings.Join(parts, "."))
-	}
-	sort.Strings(got)
-	if diff := cmp.Diff([]string{"nested.0.key", "other", "secret"}, got); diff != "" {
-		t.Fatalf("wrong redacted paths (-want +got):\n%s", diff)
-	}
-
-	t.Run("sensitive nested block in state", func(t *testing.T) {
-		marked := *obj
-		marked.AttrSensitivePaths = []cty.Path{cty.GetAttrPath("nested")}
-		val, err := policyStateValue(&marked, schema)
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, pvms := val.UnmarkDeepWithPaths()
-		paths, _ := marks.PathsWithMark(pvms, marks.Sensitive)
-		var got []string
-		for _, path := range paths {
-			got = append(got, format.CtyPath(path))
-		}
-		sort.Strings(got)
-		if diff := cmp.Diff([]string{".nested", ".nested[0].key", ".secret"}, got); diff != "" {
-			t.Fatalf("wrong sensitive paths (-want +got):\n%s", diff)
-		}
-	})
 
 	t.Run("schema version mismatch", func(t *testing.T) {
 		old := *obj
