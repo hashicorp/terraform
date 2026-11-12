@@ -19,6 +19,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -548,21 +549,24 @@ func TestRefresh_varsUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("refresh-unset-var"), td)
 	t.Chdir(td)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	defaultInputReader = bytes.NewBufferString("bar\n")
+	// Ask for input
+	reader := bytes.NewBufferString("bar\n")
+	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
+		Reader: reader,
+	}, []string{}, map[string]string{})
 
 	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
+			testingOverrides: testingOverrides,
 			Ui:               ui,
 			View:             view,
 		},
@@ -1012,6 +1016,7 @@ test_instance.foo:
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
 `
+
 const testRefreshCwdStr = `
 test_instance.foo:
   ID = yes

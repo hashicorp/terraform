@@ -290,10 +290,10 @@ go get github.com/hashicorp/hcl/v2@2.0.0
 
 This command will download the requested version (2.0.0 in the above example) and record that version selection in the `go.mod` file. It will also record checksums for the module in the `go.sum`.
 
-To complete the dependency change, clean up any redundancy in the module metadata files by running:
+To complete the dependency change, clean up any redundancy in the module metadata files and synchronise the change in nested Go modules (e.g. the remote state backends) by running:
 
 ```
-go mod tidy
+make syncdeps
 ```
 
 To ensure that the upgrade has worked correctly, be sure to run the unit test suite at least once:
@@ -337,3 +337,11 @@ The bar for contributing to Terraform Core is high due to the complexity of the 
 
 * **Assistance, not automation**: AI should be used to assist your process, not to automate final decisions. It is easy for AI to generate plausible-looking but incorrect or dangerous code.
 * **Adherence to guidelines**: We discourage low-effort submissions where AI output is pasted without refinement. We expect the same high quality, thoughtful architecture, and adherence to our existing style and testing guidelines as we do for manual code.
+
+### AI Assisted, Human Explained
+
+To underline the above principles (especially accountability), we require that the **PR description is human-crafted**. In the description, a **human** must explain the **reason** behind a chosen solution, and demonstrate **understanding of the end-user impact**.
+
+We do **not** welcome PRs with high-volume text in description purely re-telling the story of the codepath which is already clear from reading the attached code, stepping through it or reviewing the test results.
+
+In short, [don't be a meat proxy](https://dontbeameatproxy.com).

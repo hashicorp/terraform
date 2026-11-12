@@ -33,11 +33,9 @@ func TestUntaint(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -47,7 +45,7 @@ func TestUntaint(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	expected := strings.TrimSpace(`
@@ -83,11 +81,9 @@ func TestUntaint_lockedState(t *testing.T) {
 	}
 	defer unlock()
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -100,8 +96,8 @@ func TestUntaint_lockedState(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "lock") {
+	output := done(t)
+	if !strings.Contains(output.All(), "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
 }
@@ -131,11 +127,9 @@ func TestUntaint_backup(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -144,7 +138,7 @@ func TestUntaint_backup(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Backup is still tainted
@@ -187,11 +181,9 @@ func TestUntaint_backupDisable(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -201,7 +193,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	if _, err := os.Stat(DefaultStateFilename + ".backup"); err == nil {
@@ -216,11 +208,9 @@ test_instance.foo:
 }
 
 func TestUntaint_badState(t *testing.T) {
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -230,7 +220,7 @@ func TestUntaint_badState(t *testing.T) {
 		"foo",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 }
 
@@ -259,11 +249,9 @@ func TestUntaint_defaultState(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -272,7 +260,7 @@ func TestUntaint_defaultState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
@@ -308,9 +296,8 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	testWorkspace := "development"
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	meta := Meta{Ui: ui, View: view}
+	view, done := testView(t)
+	meta := Meta{View: view}
 	meta.SetWorkspace(testWorkspace)
 	c := &UntaintCommand{
 		Meta: meta,
@@ -320,7 +307,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, path, strings.TrimSpace(`
@@ -350,11 +337,9 @@ func TestUntaint_missing(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -364,7 +349,7 @@ func TestUntaint_missing(t *testing.T) {
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.OutputWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 }
 
@@ -388,26 +373,25 @@ func TestUntaint_missingAllow(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
 
 	args := []string{
+		"-no-color",
 		"-allow-missing",
 		"-state", statePath,
 		"test_instance.bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	// Check for the warning
-	actual := strings.TrimSpace(ui.OutputWriter.String())
+	actual := strings.TrimSpace(done(t).All())
 	expected := strings.TrimSpace(`
 Warning: No such resource instance
 
@@ -445,11 +429,9 @@ func TestUntaint_stateOut(t *testing.T) {
 	})
 	testStateFileDefault(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -459,7 +441,7 @@ func TestUntaint_stateOut(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
@@ -509,11 +491,9 @@ func TestUntaint_module(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -523,7 +503,7 @@ func TestUntaint_module(t *testing.T) {
 		"module.child.test_instance.blah",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("command exited with status code %d; want 0\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("command exited with status code %d; want 0\n\n%s", code, done(t).All())
 	}
 
 	testStateOutput(t, statePath, strings.TrimSpace(`

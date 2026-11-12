@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'stacks: Fix "missing required provider" error when component state requires a provider that the configuration does not'
+time: 2026-10-29T16:48:21.267429-04:00
+custom:
+    Issue: "39473"

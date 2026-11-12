@@ -6,7 +6,6 @@ package command
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -31,10 +31,22 @@ func (c *ProvidersMirrorCommand) Synopsis() string {
 	return "Save local copies of all required provider plugins"
 }
 
-func (c *ProvidersMirrorCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseProvidersMirror(c.Meta.process(args))
+func (c *ProvidersMirrorCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, diags := arguments.ParseProvidersMirror(rawArgs)
+
+	// Prepare the view
+	view := views.NewProvidersMirror(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -64,7 +76,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -74,20 +86,20 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	diags = diags.Append(c.resolveConstVariables(".", arguments.ViewHuman))
+	diags = diags.Append(c.resolveConstVariables(".", parsedArgs.ViewType))
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	reqs, moreDiags := config.ProviderRequirements()
@@ -110,7 +122,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -148,13 +160,15 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 
 	for provider, constraints := range reqs {
 		if provider.IsBuiltIn() {
-			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))
+			view.LogBuiltInProviderAvailable(provider)
 			continue
 		}
-		constraintsStr := getproviders.VersionConstraintsString(constraints)
-		c.Ui.Output(fmt.Sprintf("- Mirroring %s...", provider.ForDisplay()))
+
+		view.MirrorProviderStart(provider)
+
 		// First we'll look for the latest version that matches the given
 		// constraint, which we'll then try to mirror for each target platform.
+		constraintsStr := getproviders.VersionConstraintsString(constraints)
 		acceptable := versions.MeetingConstraints(constraints)
 		avail, _, err := source.AvailableVersions(ctx, provider)
 		candidates := avail.Filter(acceptable)
@@ -172,14 +186,14 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		selected := candidates.Newest()
 		if !lockedDeps.Empty() && parsedArgs.LockFile {
 			selected = lockedDeps.Provider(provider).Version()
-			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
+			view.LogReusingPreviousProviderVersion(selected)
 		} else if len(constraintsStr) > 0 {
-			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet constraints %s", selected.String(), constraintsStr))
+			view.LogFindingMatchingVersion(selected, constraints)
 		} else {
-			c.Ui.Output(fmt.Sprintf("  - Selected v%s with no constraints", selected.String()))
+			view.LogFindingLatestVersion(selected)
 		}
 		for _, platform := range platforms {
-			c.Ui.Output(fmt.Sprintf("  - Downloading package for %s...", platform.String()))
+			view.LogInstallProviderVersionStart(platform)
 			meta, err := source.PackageMeta(ctx, provider, selected, platform)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -239,7 +253,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 					))
 					continue
 				}
-				c.Ui.Output(fmt.Sprintf("  - Package authenticated: %s", result))
+				view.LogInstallProviderVersionComplete(result)
 			}
 			os.Remove(targetPath) // okay if it fails because we're going to try to rename over it next anyway
 			err = os.Rename(stagingPath, targetPath)
@@ -325,7 +339,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		// when running on Windows as of Go 1.13. We should revisit this once
 		// we're supporting network mirrors, to avoid having them briefly
 		// become corrupted during updates.
-		err = ioutil.WriteFile(filepath.Join(indexDir, "index.json"), mainIndexJSON, 0644)
+		err = os.WriteFile(filepath.Join(indexDir, "index.json"), mainIndexJSON, 0644)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -343,7 +357,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 				// our control.
 				panic(fmt.Sprintf("failed to encode version index: %s", err))
 			}
-			err = ioutil.WriteFile(filepath.Join(indexDir, version.String()+".json"), versionIndexJSON, 0644)
+			err = os.WriteFile(filepath.Join(indexDir, version.String()+".json"), versionIndexJSON, 0644)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
@@ -354,7 +368,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		}
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}

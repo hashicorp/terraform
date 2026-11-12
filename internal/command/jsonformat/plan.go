@@ -220,6 +220,12 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 		if counts[plans.CreateThenDelete] > 0 {
 			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.CreateThenDelete)))
 		}
+		if counts[plans.ForgetThenCreate] > 0 {
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.ForgetThenCreate)))
+		}
+		if counts[plans.CreateThenForget] > 0 {
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.CreateThenForget)))
+		}
 		if counts[plans.Read] > 0 {
 			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Read)))
 		}
@@ -246,7 +252,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			buf.WriteString(fmt.Sprintf("%d to import, ", importingCount))
 		}
 		buf.WriteString(fmt.Sprintf("%d to add, %d to change, %d to destroy.",
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]+counts[plans.CreateThenForget],
+			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]+counts[plans.ForgetThenCreate]+counts[plans.CreateThenForget],
 			counts[plans.Update],
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]),
 		)
@@ -563,7 +569,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		default:
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced[reset]", dispAddr))
 		}
-	case plans.CreateThenForget:
+	case plans.ForgetThenCreate, plans.CreateThenForget:
 		buf.WriteString(fmt.Sprintf("[bold] # %s[reset] must be replaced, but the existing object will not be destroyed", dispAddr))
 		buf.WriteString("\n # (destroy = false is set in the configuration)")
 	case plans.Forget:
@@ -692,6 +698,10 @@ func actionDescription(action plans.Action) string {
 		return "[green]+[reset]/[red]-[reset] create replacement and then destroy"
 	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset] destroy and then create replacement"
+	case plans.ForgetThenCreate:
+		return "[red].[reset]/[green]+[reset] forget and then create replacement"
+	case plans.CreateThenForget:
+		return "[green]+[reset]/[red].[reset] create replacement and then forget"
 	case plans.Read:
 		return " [cyan]<=[reset] read (data resources)"
 	default:

@@ -833,6 +833,42 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		}
 	}
 
+	// Instances that the expander knows about but which are present in neither
+	// the working state nor the planned changes were not processed by this
+	// operation. In practice this happens when using -target: a resource in a
+	// module instance that wasn't targeted still has its expansion evaluated,
+	// but its instances are pruned from the graph and so never planned. Any
+	// expression that references such a resource (for example a module input
+	// in the non-targeted module instance) would otherwise see an empty
+	// collection and fail with a spurious "Invalid index" error.
+	//
+	// To avoid that, we represent these missing-but-expected instances as
+	// unknown values, matching how a single-instance resource is already
+	// handled below. We deliberately skip instances that have a pending change
+	// or are still recorded in state, so we don't interfere with the removal
+	// of instances during destroy.
+	if d.Operation == walkPlan || d.Operation == walkApply {
+		keyType, knownKeys, unknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(addr.Absolute(d.ModulePath))
+		if !unknownKeys && keyType != addrs.UnknownKeyType {
+			for _, key := range knownKeys {
+				if _, ok := instances[key]; ok {
+					continue
+				}
+				if instChanges.Has(addr.Instance(key).Absolute(d.ModulePath)) {
+					// A change is recorded for this instance (such as a
+					// pending deletion), so it was intentionally omitted above.
+					continue
+				}
+				if rs != nil && rs.Instances[key] != nil {
+					// Still tracked in state, so it was omitted above for a
+					// specific reason rather than being excluded by targeting.
+					continue
+				}
+				instances[key] = cty.UnknownVal(ty)
+			}
+		}
+	}
+
 	if len(instances) == 0 {
 		switch d.Operation {
 		case walkPlan, walkApply:

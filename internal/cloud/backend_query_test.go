@@ -6,11 +6,13 @@ package cloud
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -24,8 +26,10 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -598,28 +602,62 @@ func TestCloud_queryV2RetriesTransportErrors(t *testing.T) {
 }
 
 func TestCloud_renderQueryRunLogsPolicySummaries(t *testing.T) {
-	passOutput := `Evaluated 1 policies.
+	passOutput := "\n" + `Evaluated 1 policies.
+policy.a
 
 Policy results for list.test.a - Passed
   id=a  Passed
+
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
 `
 	malformed := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"","overall_result":"pass","results":[],"passed_policies":[]}`
 	plainQuery := `{"@level":"info","@message":"Starting query","type":"list_start","list_start":{"address":"list.test.a"}}
 {"@level":"info","@message":"Result found","type":"list_resource_found","list_resource_found":{"address":"list.test.a","display_name":"Alpha","identity":{"id":"a"}}}
 {"@level":"info","@message":"List complete","type":"list_complete","list_complete":{"address":"list.test.a"}}`
 
-	allNAOutput := `Evaluated 0 policies.
+	allNAOutput := "\n" + `Evaluated 0 policies.
 
 Policy results for list.test.b - N/A
   id=x  N/A
   id=y  N/A
+
+Summary: 0 failed, 0 passed, 0 unknown, 0 errored
 `
-	mixedNAOutput := `Evaluated 1 policies.
+	mixedNAOutput := "\n" + `Evaluated 1 policies.
+policy.p
 
 Policy results for list.test.c - Passed
   id=p  Passed
   id=n  N/A
+
+Summary: 0 failed, 1 passed, 0 unknown, 0 errored
 `
+	mixedResultsLog := `{"@level":"info","@message":"Policy results","type":"policy_query_summary","list_block_address":"list.test.d","overall_result":"error","results":[{"identity":{"id":"f"},"target_address":"test.d_0","result":"fail","policies":[{"policy_metadata":{"policy_name":"policy.a"},"diagnostics":[],"result":"fail"},{"policy_metadata":{"policy_name":"policy.b"},"diagnostics":[],"result":"fail"}]},{"identity":{"id":"u"},"target_address":"test.d_1","result":"unknown","policies":[]},{"identity":{"id":"e"},"target_address":"test.d_2","result":"error","policies":[]}],"passed_policies":[]}`
+	combinedOutput := "\n" + `Evaluated 2 policies.
+policy.a
+policy.b
+
+Policy results for list.test.a - Passed
+  id=a  Passed
+
+Policy results for list.test.b - N/A
+  id=x  N/A
+  id=y  N/A
+
+Policy results for list.test.d - Error
+  id=f  ` + mockColorize().Color("[red]Failed[reset]") + `
+  id=u  Unknown
+  id=e  Error
+
+Summary: 1 failed, 1 passed, 1 unknown, 1 errored
+`
+	warningLog := `{"@level":"warn","@message":"Policy evaluation skipped","type":"diagnostic","diagnostic":{"severity":"warning","summary":"Policy evaluation skipped","detail":"Policy evaluation cannot be performed without resource state."}}`
+
+	warningOutput := format.DiagnosticFromJSON(&viewsjson.Diagnostic{
+		Severity: viewsjson.DiagnosticSeverityWarning,
+		Summary:  "Policy evaluation skipped",
+		Detail:   "Policy evaluation cannot be performed without resource state.",
+	}, mockColorize(), 78)
 
 	for _, tc := range []struct {
 		name    string
@@ -627,9 +665,19 @@ Policy results for list.test.c - Passed
 		want    string
 	}{
 		{name: "query and summary", records: plainQuery + "\n" + policySummaryPassLog, want: "list.test.a   id=a   Alpha\n\n" + passOutput},
+		{
+			name:    "query warning and summary",
+			records: plainQuery + "\n" + warningLog + "\n" + policySummaryPassLog,
+			want:    "list.test.a   id=a   Alpha\n\n" + warningOutput + passOutput,
+		},
 		{name: "malformed then valid", records: malformed + "\n" + policySummaryPassLog, want: passOutput},
 		{name: "all n/a summary", records: policySummaryAllNALog, want: allNAOutput},
 		{name: "mixed n/a summary", records: policySummaryMixedNALog, want: mixedNAOutput},
+		{
+			name:    "combined resource outcomes across list blocks",
+			records: mixedResultsLog + "\n" + policySummaryAllNALog + "\n" + policySummaryPassLog,
+			want:    combinedOutput,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := renderQueryRunLogsForTest(t, tc.records); got != tc.want {
@@ -764,5 +812,229 @@ func TestCloud_localDelegationPolicyClientRequirements(t *testing.T) {
 				t.Fatalf("local operations = %d, want 1", got)
 			}
 		})
+	}
+}
+
+// These tests pin the generated-config behaviour of renderQueryRunLogs:
+// per-address grouping, file contents, and edge cases in the
+// log stream must be unchanged by how generated HCL is accumulated.
+
+const (
+	genFileHeader  = "# __generated__ by Terraform\n# Please review these resources and move them into your main configuration files.\n"
+	genBlockHeader = "\n# __generated__ by Terraform\n"
+)
+
+// staticLogsQueryRuns serves a fixed reader from Logs.
+type staticLogsQueryRuns struct {
+	tfe.QueryRuns
+	logs io.Reader
+}
+
+func (s *staticLogsQueryRuns) Logs(context.Context, string) (io.Reader, error) {
+	return s.logs, nil
+}
+
+type genConfigResult struct {
+	stdout  string
+	cliOut  string
+	file    string
+	hasFile bool
+	err     error
+}
+
+func renderGenConfig(t *testing.T, logs io.Reader, out string) genConfigResult {
+	t.Helper()
+	b, _, cleanup := testBackendAndMocksWithName(t)
+	defer cleanup()
+
+	b.client.QueryRuns = &staticLogsQueryRuns{QueryRuns: b.client.QueryRuns, logs: logs}
+	stream, closeStream := terminal.StreamsForTesting(t)
+	b.renderer = &jsonformat.Renderer{Streams: stream, Colorize: mockColorize()}
+
+	op := &backendrun.Operation{GenerateConfigOut: out}
+	err := b.renderQueryRunLogs(context.Background(), op, &tfe.QueryRun{ID: "qry-genconfig"})
+
+	res := genConfigResult{
+		stdout: closeStream(t).Stdout(),
+		cliOut: b.CLI.(*cli.MockUi).OutputWriter.String(),
+		err:    err,
+	}
+	if out != "" {
+		if data, readErr := os.ReadFile(out); readErr == nil {
+			res.file, res.hasFile = string(data), true
+		} else if !errors.Is(readErr, os.ErrNotExist) {
+			t.Fatalf("failed to read generated file %q: %s", out, readErr)
+		}
+	}
+	return res
+}
+
+// splitGenBlocks returns the per-block configs of a generated file, sorted,
+// because block order follows Go map iteration and is nondeterministic.
+func splitGenBlocks(t *testing.T, file string) []string {
+	t.Helper()
+	if !strings.HasPrefix(file, genFileHeader) {
+		t.Fatalf("generated file missing header:\n%s", file)
+	}
+	parts := strings.Split(strings.TrimPrefix(file, genFileHeader), genBlockHeader)
+	if parts[0] != "" {
+		t.Fatalf("unexpected content before first block: %q", parts[0])
+	}
+	blocks := make([]string, 0, len(parts)-1)
+	for _, p := range parts[1:] {
+		// MaybeWriteConfig appends one newline after each block's config.
+		blocks = append(blocks, strings.TrimSuffix(p, "\n"))
+	}
+	sort.Strings(blocks)
+	return blocks
+}
+
+func readGenConfigFixture(t *testing.T, name, filename string) string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "query-json-genconfig", name, filename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
+}
+
+func TestCloud_renderQueryRunLogsGenConfigSingleBlockExact(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "generated.tf")
+	res := renderGenConfig(t, strings.NewReader(readGenConfigFixture(t, "single", "query.log")), out)
+	if res.err != nil {
+		t.Fatal(res.err)
+	}
+	if !res.hasFile {
+		t.Fatal("expected generated file to be written")
+	}
+
+	want := readGenConfigFixture(t, "single", "expected.tf")
+	if diff := cmp.Diff(want, res.file); diff != "" {
+		t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCloud_renderQueryRunLogsGenConfigInterleavedBlocks(t *testing.T) {
+	// The fixture's addresses share the same suffix, so grouping must use the full address.
+	out := filepath.Join(t.TempDir(), "generated.tf")
+	res := renderGenConfig(t, strings.NewReader(readGenConfigFixture(t, "interleaved", "query.log")), out)
+	if res.err != nil {
+		t.Fatal(res.err)
+	}
+
+	// These fixtures contain per-address contents, excluding file/block headers
+	// and the writer's extra newline, matching splitGenBlocks below.
+	want := []string{
+		readGenConfigFixture(t, "interleaved", "expected-cats.tf"),
+		readGenConfigFixture(t, "interleaved", "expected-dogs.tf"),
+	}
+	sort.Strings(want)
+	if diff := cmp.Diff(want, splitGenBlocks(t, res.file)); diff != "" {
+		t.Fatalf("per-block config mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestCloud_renderQueryRunLogsGenConfigNoFile(t *testing.T) {
+	withRows := readGenConfigFixture(t, "two-rows", "query.log")
+	zeroRows := readGenConfigFixture(t, "empty", "query.log")
+
+	t.Run("zero rows", func(t *testing.T) {
+		out := filepath.Join(t.TempDir(), "generated.tf")
+		res := renderGenConfig(t, strings.NewReader(zeroRows), out)
+		if res.err != nil {
+			t.Fatal(res.err)
+		}
+		if res.hasFile {
+			t.Fatalf("expected no generated file, got:\n%s", res.file)
+		}
+	})
+
+	t.Run("config off", func(t *testing.T) {
+		off := renderGenConfig(t, strings.NewReader(withRows), "")
+		if off.err != nil {
+			t.Fatal(off.err)
+		}
+		on := renderGenConfig(t, strings.NewReader(withRows), filepath.Join(t.TempDir(), "generated.tf"))
+		if on.err != nil {
+			t.Fatal(on.err)
+		}
+		if diff := cmp.Diff(on.stdout, off.stdout); diff != "" {
+			t.Fatalf("human output should not depend on config generation (-on +off):\n%s", diff)
+		}
+	})
+}
+
+func TestCloud_renderQueryRunLogsGenConfigMissingFields(t *testing.T) {
+	tests := map[string]struct {
+		fixture string
+		want    string
+	}{
+		"config only": {
+			fixture: "config-only",
+			want:    "resource \"concept_pet\" \"pets_0\" {\n  name = \"pets-0\"\n}\n\n\n",
+		},
+		"import only": {
+			fixture: "import-only",
+			want:    "\nimport {\n  to = concept_pet.pets_0\n  identity = {\n    id = \"pets-0\"\n  }\n}\n\n",
+		},
+		"both fields missing": {
+			// Preserve the existing behavior: a result with neither field
+			// still writes a generated file containing the separator newlines.
+			fixture: "missing-fields",
+			want:    "\n\n\n",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			logs := readGenConfigFixture(t, test.fixture, "query.log")
+			out := filepath.Join(t.TempDir(), "generated.tf")
+			res := renderGenConfig(t, strings.NewReader(logs), out)
+			if res.err != nil {
+				t.Fatal(res.err)
+			}
+			if !res.hasFile {
+				t.Fatal("expected generated file to be written")
+			}
+
+			want := genFileHeader + genBlockHeader + test.want + "\n"
+			if diff := cmp.Diff(want, res.file); diff != "" {
+				t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestCloud_renderQueryRunLogsGenConfigLineHandling(t *testing.T) {
+	// A row whose JSON line exceeds the 64 KiB reader buffer, so it is read
+	// in several ReadLine fragments.
+	log := readGenConfigFixture(t, "line-handling", "query.log")
+	// Expand only the oversized field rather than checking in a 100 KiB line.
+	log = strings.Replace(log, "LONG_DISPLAY_NAME", strings.Repeat("x", 100*1024), 1)
+	// Exercise mixed CRLF/LF records and an unterminated final line explicitly.
+	lines := strings.Split(log, "\n")
+	lines[0] += "\r" // list_start
+	lines[2] += "\r" // first list_resource_found
+	log = strings.Join(lines, "\n")
+	log = strings.TrimSuffix(log, "\n")
+
+	out := filepath.Join(t.TempDir(), "generated.tf")
+	res := renderGenConfig(t, strings.NewReader(log), out)
+	if res.err != nil {
+		t.Fatal(res.err)
+	}
+	if !strings.Contains(res.cliOut, "plain text, not JSON") {
+		t.Fatalf("expected non-JSON line in CLI output, got: %q", res.cliOut)
+	}
+
+	want := readGenConfigFixture(t, "line-handling", "expected.tf")
+	if diff := cmp.Diff(want, res.file); diff != "" {
+		t.Fatalf("generated file mismatch (-want +got):\n%s", diff)
+	}
+	if !strings.Contains(res.stdout, "pets-2") {
+		t.Fatalf("expected list results after unterminated final line, got:\n%s", res.stdout)
+	}
+	if !strings.Contains(res.stdout, "policy.a") {
+		t.Fatalf("expected valid policy summary after a malformed one, got:\n%s", res.stdout)
 	}
 }

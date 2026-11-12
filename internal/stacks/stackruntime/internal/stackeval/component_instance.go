@@ -174,6 +174,7 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		ExternalDependencyDeferred: c.deferred,
 		DeferralAllowed:            true,
 		AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+		AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 		PolicyClient:               c.main.PolicyClient(),
 
 		// We want the same plantimestamp between all components and the stacks language

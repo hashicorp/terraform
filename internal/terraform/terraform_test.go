@@ -128,8 +128,25 @@ func testModuleInline(t testing.TB, sources map[string]string, parserOpts ...con
 }
 
 // testModuleInlineWithVars is the same as testModuleInline but also allows passing in variable values to be used when loading the config.
-func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars InputValues, parserOpts ...configs.Option) *configs.Config {
+func testModuleInlineWithVars(
+	t testing.TB,
+	sources map[string]string,
+	vars InputValues,
+	parserOpts ...configs.Option,
+) *configs.Config {
+	config, diags := testModuleInlineWithVarsReturnDiags(t, sources, vars, parserOpts...)
+	if diags != nil && diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+	return config
+}
 
+func testModuleInlineWithVarsReturnDiags(
+	t testing.TB,
+	sources map[string]string,
+	vars InputValues,
+	parserOpts ...configs.Option,
+) (*configs.Config, tfdiags.Diagnostics) {
 	t.Helper()
 
 	cfgPath, err := filepath.EvalSymlinks(t.TempDir())
@@ -173,7 +190,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil), initializer)
 	_, instDiags := inst.InstallModules(context.Background(), cfgPath, "tests", true, false)
 	if instDiags.HasErrors() {
-		t.Fatal(instDiags.Err())
+		return nil, instDiags
 	}
 
 	// Since module installer has modified the module manifest on disk, we need
@@ -184,7 +201,7 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 
 	rootMod, hclDiags := loader.LoadRootModuleWithTests(cfgPath, "tests")
 	if hclDiags.HasErrors() {
-		t.Fatal(hclDiags.Error())
+		return nil, tfdiags.Diagnostics{}.Append(hclDiags)
 	}
 
 	config, buildDiags := BuildConfigWithGraph(
@@ -194,10 +211,10 @@ func testModuleInlineWithVars(t testing.TB, sources map[string]string, vars Inpu
 		configs.MockDataLoaderFunc(loader.LoadExternalMockData),
 	)
 	if buildDiags.HasErrors() {
-		t.Fatal(buildDiags.Err())
+		return nil, buildDiags
 	}
 
-	return config
+	return config, nil
 }
 
 func testRootModuleInline(t testing.TB, sources map[string]string, ignoreParsingErrors bool) *configs.Module {
@@ -365,12 +382,23 @@ func mustActionInstanceAddr(s string) addrs.AbsActionInstance {
 	return addr
 }
 
-func mustActionAddr(s string) addrs.AbsAction {
-	addr, diags := addrs.ParseAbsActionStr(s)
+// mustTargetPattern parses a target in the same way as the -target option.
+func mustTargetPattern(s string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
-	return addr
+	return target
+}
+
+// mustActionTargetPattern parses a target in the same way as the -invoke
+// option.
+func mustActionTargetPattern(s string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetActionStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return target
 }
 
 // HookRecordApplyOrder is a test hook that records the order of applies

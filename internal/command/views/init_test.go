@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
-	"github.com/google/go-cmp/cmp"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -32,16 +32,7 @@ func TestNewInit_jsonViewDiagnostics(t *testing.T) {
 	diags := getTestDiags(t)
 	newInit.Diagnostics(diags)
 
-	version := tfversion.String()
 	want := []map[string]interface{}{
-		{
-			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version),
-			"@module":   "terraform.ui",
-			"terraform": version,
-			"type":      "version",
-			"ui":        JSON_UI_VERSION,
-		},
 		{
 			"@level":   "error",
 			"@message": "Error: Error selecting workspace",
@@ -155,16 +146,7 @@ func TestNewInit_jsonViewPolicyResults(t *testing.T) {
 		},
 	)
 
-	version := tfversion.String()
 	want := []map[string]interface{}{
-		{
-			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version),
-			"@module":   "terraform.ui",
-			"terraform": version,
-			"type":      "version",
-			"ui":        JSON_UI_VERSION,
-		},
 		{
 			"@level":   "error",
 			"@message": "Error: module policy denied",
@@ -262,215 +244,6 @@ func TestNewInit_humanViewPolicyResults_infoWithoutSnippet(t *testing.T) {
 	if !strings.Contains(actual, "module_policy.example") {
 		t.Fatalf("expected output to contain policy address fallback, but got %s", actual)
 	}
-}
-
-func TestNewInit_jsonViewOutput(t *testing.T) {
-	t.Run("no param", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitJSON); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		newInit.Output(InitializingProviderPluginMessage)
-
-		version := tfversion.String()
-		want := []map[string]any{
-			{
-				"@level":    "info",
-				"@message":  fmt.Sprintf("Terraform %s", version),
-				"@module":   "terraform.ui",
-				"terraform": version,
-				"type":      "version",
-				"ui":        JSON_UI_VERSION,
-			},
-			{
-				"@level":       "info",
-				"@message":     "Initializing provider plugins...",
-				"message_code": "initializing_provider_plugin_message",
-				"@module":      "terraform.ui",
-				"type":         "init_output",
-			},
-		}
-
-		actual := done(t).Stdout()
-		testJSONViewOutputEqualsFull(t, actual, want)
-	})
-
-	t.Run("single param", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitJSON); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
-
-		version := tfversion.String()
-		want := []map[string]interface{}{
-			{
-				"@level":    "info",
-				"@message":  fmt.Sprintf("Terraform %s", version),
-				"@module":   "terraform.ui",
-				"terraform": version,
-				"type":      "version",
-				"ui":        JSON_UI_VERSION,
-			},
-			{
-				"@level":       "info",
-				"@message":     fmt.Sprintf("%s: Finding latest version...", packageName),
-				"@module":      "terraform.ui",
-				"message_code": "finding_latest_version_message",
-				"type":         "init_output",
-			},
-		}
-
-		actual := done(t).Stdout()
-		testJSONViewOutputEqualsFull(t, actual, want)
-	})
-
-	t.Run("variable length params", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitJSON); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		packageName, packageVersion := "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
-
-		version := tfversion.String()
-		want := []map[string]interface{}{
-			{
-				"@level":    "info",
-				"@message":  fmt.Sprintf("Terraform %s", version),
-				"@module":   "terraform.ui",
-				"terraform": version,
-				"type":      "version",
-				"ui":        JSON_UI_VERSION,
-			},
-			{
-				"@level":       "info",
-				"@message":     fmt.Sprintf("%s v%s: Using previously-installed provider version", packageName, packageVersion),
-				"@module":      "terraform.ui",
-				"message_code": "provider_already_installed_message",
-				"type":         "init_output",
-			},
-		}
-
-		actual := done(t).Stdout()
-		testJSONViewOutputEqualsFull(t, actual, want)
-	})
-}
-
-func TestNewInit_jsonViewLog(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-
-	newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-	if _, ok := newInit.(*InitJSON); !ok {
-		t.Fatalf("unexpected return type %t", newInit)
-	}
-
-	newInit.Output(InitializingProviderPluginMessage)
-
-	version := tfversion.String()
-	want := []map[string]interface{}{
-		{
-			"@level":    "info",
-			"@message":  fmt.Sprintf("Terraform %s", version),
-			"@module":   "terraform.ui",
-			"terraform": version,
-			"type":      "version",
-			"ui":        JSON_UI_VERSION,
-		},
-		{
-			"@level":       "info",
-			"@message":     "Initializing provider plugins...",
-			"@module":      "terraform.ui",
-			"message_code": "initializing_provider_plugin_message",
-			"type":         "init_output",
-		},
-	}
-
-	actual := done(t).Stdout()
-	testJSONViewOutputEqualsFull(t, actual, want)
-}
-
-func TestNewInit_jsonViewPrepareMessage(t *testing.T) {
-	t.Run("existing message code", func(t *testing.T) {
-		streams, _ := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewJSON, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitJSON); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		want := "Initializing modules..."
-
-		actual := newInit.prepareMessage(InitializingModulesMessage)
-		if !cmp.Equal(want, actual) {
-			t.Errorf("unexpected output: %s", cmp.Diff(want, actual))
-		}
-	})
-}
-
-func TestNewInit_humanViewOutput(t *testing.T) {
-	t.Run("no param", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitHuman); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		newInit.Output(InitializingProviderPluginMessage)
-
-		actual := done(t).All()
-		expected := "Initializing provider plugins..."
-		if !strings.Contains(actual, expected) {
-			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
-		}
-	})
-
-	t.Run("single param", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitHuman); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		packageName := "hashicorp/aws"
-		newInit.Output(FindingLatestVersionMessage, packageName)
-
-		actual := done(t).All()
-		expected := "Finding latest version of hashicorp/aws"
-		if !strings.Contains(actual, expected) {
-			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
-		}
-	})
-
-	t.Run("variable length params", func(t *testing.T) {
-		streams, done := terminal.StreamsForTesting(t)
-
-		newInit := NewInit(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
-		if _, ok := newInit.(*InitHuman); !ok {
-			t.Fatalf("unexpected return type %t", newInit)
-		}
-
-		packageName, packageVersion := "hashicorp/aws", "3.0.0"
-		newInit.Output(ProviderAlreadyInstalledMessage, packageName, packageVersion)
-
-		actual := done(t).All()
-		expected := "- Using previously-installed hashicorp/aws v3.0.0"
-		if !strings.Contains(actual, expected) {
-			t.Fatalf("expected output to contain: %s, but got %s", expected, actual)
-		}
-	})
 }
 
 // Assert message content
@@ -979,18 +752,71 @@ func TestNewInit_LogDependencyLockfileUpdated_json(t *testing.T) {
 }
 
 func TestNewInit_LogModuleDownload_json(t *testing.T) {
+	t.Run("no version", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		packageAddr := "registry.terraform.io/hashicorp/consul"
+		version := (*version.Version)(nil)
+		modulePath := "module.network"
+		initView.LogModuleDownload(packageAddr, version, modulePath)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`"@message":"Downloading registry.terraform.io/hashicorp/consul for module.network..."`,
+			`"@module":"terraform.ui"`,
+			//@timestamp is dynamic
+			`"type":"log"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+	t.Run("with version", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		view := NewView(streams)
+		initView := NewInit(arguments.ViewJSON, view)
+
+		packageAddr := "registry.terraform.io/hashicorp/consul"
+		version := version.Must(version.NewVersion("1.0.0"))
+		modulePath := "module.network"
+		initView.LogModuleDownload(packageAddr, version, modulePath)
+
+		// Assert output
+		output := done(t)
+		expectedOutputFields := []string{
+			`"@level":"info"`,
+			`"@message":"Downloading registry.terraform.io/hashicorp/consul 1.0.0 for module.network..."`,
+			`"@module":"terraform.ui"`,
+			//@timestamp is dynamic
+			`"type":"log"`,
+		}
+		for _, snippet := range expectedOutputFields {
+			if !strings.Contains(output.Stdout(), snippet) {
+				t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+			}
+		}
+	})
+}
+
+func TestNewInit_LogModuleInstallation_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
-	message := "foobar"
-	initView.LogModuleDownload(message)
+	modulePath := "module.network"
+	initView.LogModuleInstallation(modulePath)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		fmt.Sprintf(`"@message":"%s"`, message),
+		`"@message":"- module.network"`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
 		`"type":"log"`,
@@ -1002,19 +828,20 @@ func TestNewInit_LogModuleDownload_json(t *testing.T) {
 	}
 }
 
-func TestNewInit_LogModuleInstallation_json(t *testing.T) {
+func TestNewInit_LogModuleInstallationWithLocalPath_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	initView := NewInit(arguments.ViewJSON, view)
 
-	message := "foobar"
-	initView.LogModuleInstallation(message)
+	modulePath := "module.network"
+	localDir := "/local/dir"
+	initView.LogModuleInstallationWithLocalPath(modulePath, localDir)
 
 	// Assert output
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		fmt.Sprintf(`"@message":"%s"`, message),
+		`"@message":"- module.network in /local/dir"`,
 		`"@module":"terraform.ui"`,
 		//@timestamp is dynamic
 		`"type":"log"`,
@@ -1098,6 +925,213 @@ func TestNewInit_LogConfigurationCopyingStart_json(t *testing.T) {
 	}
 }
 
+func TestNewInit_LogInitializingStateStoreStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	storeType := "aws_s3"
+	initView.LogInitializingStateStoreStart(storeType)
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing the state store \"aws_s3\"..."`,
+		`"@module":"terraform.ui"`,
+		`"type":"state_store_initialization_start"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitializingBackendStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitializingBackendStart()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing the backend..."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"initializing_backend_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitializingHCPTerraformStart_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitializingHCPTerraformStart()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Initializing HCP Terraform..."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"initializing_terraform_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitSuccess_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitSuccess()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Terraform has been successfully initialized!"`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_success_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitSuccessCloud_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitSuccessCloud()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"HCP Terraform has been successfully initialized!"`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_success_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogInitSuccessEmpty_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogInitSuccessEmpty()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Terraform initialized in an empty directory!`, // @message : we don't assert the full contents due to size
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_empty_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogCallToActionCLI_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogCallToActionCLI()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"You may now begin working with Terraform. Try running \"terraform plan\"`, // @message : we don't assert the full contents due to size
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_success_cli_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogCallToActionCLICloud_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogCallToActionCLICloud()
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"You may now begin working with HCP Terraform. Try running \"terraform plan\"`, // @message : we don't assert the full contents due to size
+		`"@module":"terraform.ui"`,
+		`"message_code":"output_init_success_cli_cloud_message"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
+func TestNewInit_LogBackendConfiguredSuccess_json(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	initView := NewInit(arguments.ViewJSON, view)
+
+	initView.LogBackendConfiguredSuccess("s3")
+
+	// Assert output
+	output := done(t)
+	expectedOutputFields := []string{
+		`"@level":"info"`,
+		`"@message":"Successfully configured the backend \"s3\"! Terraform will automatically\nuse this backend unless the backend configuration changes."`,
+		`"@module":"terraform.ui"`,
+		`"message_code":"backend_configured_success"`,
+		`"type":"init_output"`,
+	}
+	for _, snippet := range expectedOutputFields {
+		if !strings.Contains(output.Stdout(), snippet) {
+			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
+		}
+	}
+}
+
 func TestNewInit_Spacer_json(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
@@ -1105,13 +1139,28 @@ func TestNewInit_Spacer_json(t *testing.T) {
 
 	initView.Spacer()
 
-	// Assert output
+	// Assert no output
 	output := done(t)
-
-	// We cannot simply assert no output as the JSON view logs the version message on initialization
-	// Splitting on \n when there's only the version log will get an array of the log and an empty string.
-	// If there are more logs there'll be >2 elements.
-	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
-		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
+	if output.Stdout() != "" {
+		t.Fatalf("expected only a spacer line, got: %s", output.Stdout())
 	}
+}
+
+func TestInitJSON_Version(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewInit(arguments.ViewJSON, NewView(streams))
+
+	v.Version()
+
+	want := []map[string]interface{}{
+		{
+			"@level":    "info",
+			"@message":  fmt.Sprintf("Terraform %s", tfversion.String()),
+			"@module":   "terraform.ui",
+			"type":      "version",
+			"terraform": tfversion.String(),
+			"ui":        JSON_UI_VERSION,
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateShowCommand is a Command implementation that shows a single resource.
@@ -41,7 +42,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 	c.Meta.statePath = parsedArgs.StatePath
 	c.viewType = parsedArgs.ViewType
-	view := views.NewShow(parsedArgs.ViewType, c.View)
+	view := views.NewStateShow(parsedArgs.ViewType, c.View)
 
 	// Check for user-supplied plugin path
 	var err error
@@ -60,7 +61,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		diags = diags.Append(ErrUnsupportedLocalOp)
+		diags = diags.Append(unsupportedLocalOpErrDiag)
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
@@ -115,13 +116,17 @@ func (c *StateShowCommand) Run(args []string) int {
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to refresh state: %s\n", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		diags = diags.Append(errors.New(errStateNotFound))
+		diags = diags.Append(errStateNotFound)
 		return view.DisplayResourceInstanceState(jsonformat.State{}, diags)
 	}
 

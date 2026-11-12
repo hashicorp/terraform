@@ -136,6 +136,7 @@ func (r *RemovedComponentInstance) ModuleTreePlan(ctx context.Context) (*plans.P
 			ExternalDependencyDeferred: deferred,
 			Forget:                     forget,
 			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+			AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 			PolicyClient:               r.main.PolicyClient(),
 
 			// We want the same plantimestamp between all components and the stacks language

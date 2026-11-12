@@ -180,7 +180,7 @@ func TestModules_uninstalledModules(t *testing.T) {
 		t.Fatalf("expected to see a `not installed` error message: %s\n", output)
 	}
 
-	if !strings.Contains(output, `Run "terraform init"`) {
+	if !strings.Contains(output, `Run \"terraform init\"`) {
 		t.Fatalf("expected error message to ask user to run terraform init: %s\n", output)
 	}
 }
@@ -335,4 +335,4 @@ func compareJSONOutput(t *testing.T, got string, want string) {
 	}
 }
 
-var expectedOutputJSON = `{"format_version":"1.0","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`
+var expectedOutputJSON = `{"format_version":"1.1","modules":[{"key":"test","source":"./mods/test","version":""},{"key":"test2","source":"./test2","version":""},{"key":"test3","source":"./test3","version":""},{"key":"other","source":"./mods/other","version":""}]}`

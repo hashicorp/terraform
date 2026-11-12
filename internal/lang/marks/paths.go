@@ -28,28 +28,31 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 		return nil, nil
 	}
 
+	wanted := func(mark any) bool {
+		switch wantMark.(type) {
+		case valueMark, string:
+			return mark == wantMark
+
+		// For data marks we check if a mark of the type exists
+		case DeprecationMark:
+			_, ok := mark.(DeprecationMark)
+			return ok
+
+		default:
+			panic(fmt.Sprintf("unexpected mark type %T", wantMark))
+		}
+	}
+
 	for _, pvm := range pvms {
 		pathHasMark := false
-		pathHasOtherMarks := false
+		otherMarks := []any{}
 		for mark := range pvm.Marks {
-			switch wantMark.(type) {
-			case valueMark, string:
-				if mark == wantMark {
-					pathHasMark = true
-				} else {
-					pathHasOtherMarks = true
-				}
+			if wanted(mark) {
+				// record the path outside the loop so we don't get multiples
+				pathHasMark = true
 
-			// For data marks we check if a mark of the type exists
-			case DeprecationMark:
-				if _, ok := mark.(DeprecationMark); ok {
-					pathHasMark = true
-				} else {
-					pathHasOtherMarks = true
-				}
-
-			default:
-				panic(fmt.Sprintf("unexpected mark type %T", wantMark))
+			} else {
+				otherMarks = append(otherMarks, mark)
 			}
 		}
 
@@ -57,8 +60,11 @@ func PathsWithMark(pvms []cty.PathValueMarks, wantMark any) (withWanted []cty.Pa
 			withWanted = append(withWanted, pvm.Path)
 		}
 
-		if pathHasOtherMarks {
-			withOthers = append(withOthers, pvm)
+		if len(otherMarks) > 0 {
+			withOthers = append(withOthers, cty.PathValueMarks{
+				Path:  pvm.Path,
+				Marks: cty.NewValueMarks(otherMarks...),
+			})
 		}
 	}
 

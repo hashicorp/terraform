@@ -88,7 +88,7 @@ func (cic *ComponentInstanceChange) CountNewAction(action plans.Action) {
 		cic.Remove++
 	case plans.Forget:
 		cic.Forget++
-	case plans.CreateThenForget:
+	case plans.ForgetThenCreate, plans.CreateThenForget:
 		cic.Add++
 		cic.Forget++
 	}

@@ -392,8 +392,9 @@ func (c *ComponentConfig) checkValid(ctx context.Context, phase EvalPhase) tfdia
 		}()
 
 		diags = diags.Append(tfCtx.Validate(moduleTree, &terraform.ValidateOpts{
-			ExternalProviders:         providerClients,
-			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
+			ExternalProviders:          providerClients,
+			AllowRootEphemeralOutputs:  false, // TODO(issues/37822): Enable this.
+			AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 		}))
 		return diags, nil
 	})

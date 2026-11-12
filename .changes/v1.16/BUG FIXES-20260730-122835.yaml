@@ -1,5 +1,0 @@
-kind: BUG FIXES
-body: Support referencing modules containing dynamic sources in Terraform Test
-time: 2026-07-30T12:28:35.476948+02:00
-custom:
-    Issue: "38950"

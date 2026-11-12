@@ -160,15 +160,17 @@ func externalInputValueFromProto(protoVal *stacks.DynamicValueWithSource) (stack
 	}, nil
 }
 
-func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string]policy.EvaluationResponse) *stacks.ComponentInstancePolicyEvaluation {
+func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.AbsComponentInstance, policyResults map[string][]policy.EvaluationResponse) *stacks.ComponentInstancePolicyEvaluation {
 	results := make([]*stacks.PolicyResult, 0)
 	infos := make([]*stacks.PolicyInfo, 0)
 	policyDiags := make([]*stacks.PolicyDiagnostic, 0)
 
-	for addr, result := range policyResults {
-		results = append(results, policyResultsToProto(addr, result.Policies)...)
-		infos = append(infos, policyInfosToProto(addr, result.Enforcements)...)
-		policyDiags = append(policyDiags, policyDiagsToProto(addr, result.Diagnostics)...)
+	for addr, addrResults := range policyResults {
+		for _, result := range addrResults {
+			results = append(results, policyResultsToProto(addr, result.Policies)...)
+			infos = append(infos, policyInfosToProto(addr, result.Enforcements)...)
+			policyDiags = append(policyDiags, policyDiagsToProto(addr, result.Diagnostics)...)
+		}
 	}
 
 	return &stacks.ComponentInstancePolicyEvaluation{

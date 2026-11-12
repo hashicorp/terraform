@@ -30,6 +30,18 @@ func TestParseQuery_policies(t *testing.T) {
 			args:         []string{"-policies=/path/one", "-policies=/path/two"},
 			wantPolicies: []string{"/path/one", "/path/two"},
 		},
+		"double dash equals syntax": {
+			args:         []string{"--policies=/some/path"},
+			wantPolicies: []string{"/some/path"},
+		},
+		"double dash space syntax": {
+			args:         []string{"--policies", "/some/path"},
+			wantPolicies: []string{"/some/path"},
+		},
+		"mixed spellings preserve path order": {
+			args:         []string{"--policies=/path/one", "-policies", "/path/two", "--policies", "/path/one"},
+			wantPolicies: []string{"/path/one", "/path/two", "/path/one"},
+		},
 	}
 
 	for name, tc := range testCases {

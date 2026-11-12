@@ -88,20 +88,22 @@ const (
 	Action_CREATE_THEN_DELETE Action = 7
 	Action_FORGET             Action = 8
 	Action_CREATE_THEN_FORGET Action = 9
+	Action_FORGET_THEN_CREATE Action = 10
 )
 
 // Enum value maps for Action.
 var (
 	Action_name = map[int32]string{
-		0: "NOOP",
-		1: "CREATE",
-		2: "READ",
-		3: "UPDATE",
-		5: "DELETE",
-		6: "DELETE_THEN_CREATE",
-		7: "CREATE_THEN_DELETE",
-		8: "FORGET",
-		9: "CREATE_THEN_FORGET",
+		0:  "NOOP",
+		1:  "CREATE",
+		2:  "READ",
+		3:  "UPDATE",
+		5:  "DELETE",
+		6:  "DELETE_THEN_CREATE",
+		7:  "CREATE_THEN_DELETE",
+		8:  "FORGET",
+		9:  "CREATE_THEN_FORGET",
+		10: "FORGET_THEN_CREATE",
 	}
 	Action_value = map[string]int32{
 		"NOOP":               0,
@@ -113,6 +115,7 @@ var (
 		"CREATE_THEN_DELETE": 7,
 		"FORGET":             8,
 		"CREATE_THEN_FORGET": 9,
+		"FORGET_THEN_CREATE": 10,
 	}
 )
 
@@ -2441,7 +2444,7 @@ const file_planfile_proto_rawDesc = "" +
 	"\n" +
 	"\x06NORMAL\x10\x00\x12\v\n" +
 	"\aDESTROY\x10\x01\x12\x10\n" +
-	"\fREFRESH_ONLY\x10\x02*\x94\x01\n" +
+	"\fREFRESH_ONLY\x10\x02*\xac\x01\n" +
 	"\x06Action\x12\b\n" +
 	"\x04NOOP\x10\x00\x12\n" +
 	"\n" +
@@ -2455,7 +2458,9 @@ const file_planfile_proto_rawDesc = "" +
 	"\x12CREATE_THEN_DELETE\x10\a\x12\n" +
 	"\n" +
 	"\x06FORGET\x10\b\x12\x16\n" +
-	"\x12CREATE_THEN_FORGET\x10\t*\xc8\x03\n" +
+	"\x12CREATE_THEN_FORGET\x10\t\x12\x16\n" +
+	"\x12FORGET_THEN_CREATE\x10\n" +
+	"*\xc8\x03\n" +
 	"\x1cResourceInstanceActionReason\x12\b\n" +
 	"\x04NONE\x10\x00\x12\x1b\n" +
 	"\x17REPLACE_BECAUSE_TAINTED\x10\x01\x12\x16\n" +

@@ -16,13 +16,14 @@ func _() {
 	_ = x[CreateThenDelete-177]
 	_ = x[Delete-45]
 	_ = x[Forget-46]
+	_ = x[ForgetThenCreate-8724]
 	_ = x[CreateThenForget-10789]
 	_ = x[Open-10179]
 	_ = x[Renew-10227]
 	_ = x[Close-10959]
 }
 
-const _Action_name = "NoOpCreateDeleteForgetUpdateCreateThenDeleteReadDeleteThenCreateOpenRenewCreateThenForgetClose"
+const _Action_name = "NoOpCreateDeleteForgetUpdateCreateThenDeleteReadDeleteThenCreateForgetThenCreateOpenRenewCreateThenForgetClose"
 
 var _Action_map = map[Action]string{
 	0:     _Action_name[0:4],
@@ -33,10 +34,11 @@ var _Action_map = map[Action]string{
 	177:   _Action_name[28:44],
 	8592:  _Action_name[44:48],
 	8723:  _Action_name[48:64],
-	10179: _Action_name[64:68],
-	10227: _Action_name[68:73],
-	10789: _Action_name[73:89],
-	10959: _Action_name[89:94],
+	8724:  _Action_name[64:80],
+	10179: _Action_name[80:84],
+	10227: _Action_name[84:89],
+	10789: _Action_name[89:105],
+	10959: _Action_name[105:110],
 }
 
 func (i Action) String() string {

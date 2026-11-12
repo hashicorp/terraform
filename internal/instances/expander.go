@@ -726,7 +726,9 @@ func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, paren
 			if step.Name != callName {
 				continue
 			}
-			instAddr := append(parentAddr, step)
+			// The results retain this address, so each instance needs its own
+			// copy rather than sharing parentAddr's backing array.
+			instAddr := parentAddr.Child(step.Name, step.InstanceKey)
 			inst.partialExpandedModuleInstances(addr[1:], instAddr, includeDirectOverrides, into)
 		}
 	}

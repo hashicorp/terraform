@@ -89,7 +89,7 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, v
 			Severity: hcl.DiagError,
 			Summary:  "Provider missing from lockfile",
 			Detail: fmt.Sprintf(
-				"Provider %q is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `terraform stacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+				"Provider %q is not in the lockfile. This provider must be in the lockfile to be used in the configuration. Please run `terraform stacks providers-lock` to update the lockfile and run this operation again with an updated configuration.",
 				providerType.Addr(),
 			),
 			Subject: declRange,
@@ -105,7 +105,7 @@ func CheckProviderInLockfile(locks depsfile.Locks, providerType *ProviderType, v
 				Severity: hcl.DiagError,
 				Summary:  "Provider version doesn't match the lockfile",
 				Detail: fmt.Sprintf(
-					"Provider %q is locked at version %s in the dependency lockfile, but the configuration's version constraints (%s) do not allow that version. This usually means the version constraints were changed after the lockfile was generated. Please run `terraform stacks providers lock` to update the lockfile and run this operation again with an updated configuration.",
+					"Provider %q is locked at version %s in the dependency lockfile, but the configuration's version constraints (%s) do not allow that version. This usually means the version constraints were changed after the lockfile was generated. Please run `terraform stacks providers-lock` to update the lockfile and run this operation again with an updated configuration.",
 					providerType.Addr(), selectedVersion.String(),
 					providerreqs.VersionConstraintsString(versionConstraints),
 				),

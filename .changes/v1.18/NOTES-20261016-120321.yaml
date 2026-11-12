@@ -1,0 +1,5 @@
+kind: NOTES
+body: "test: The -help output now lists the -run-parallelism option"
+time: 2026-10-16T12:03:21+02:00
+custom:
+    Issue: "39384"

@@ -5,13 +5,12 @@ package replacefile
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
 
 // AtomicWriteFile uses a temporary file along with this package's AtomicRename
-// function in order to provide a replacement for ioutil.WriteFile that
+// function in order to provide a replacement for os.WriteFile that
 // writes the given file into place as atomically as the underlying operating
 // system can support.
 //
@@ -36,7 +35,7 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 		// treats an empty dir as meaning "use the TMPDIR environment variable".
 		dir = "."
 	}
-	f, err := ioutil.TempFile(dir, file) // alongside target file and with a similar name
+	f, err := os.CreateTemp(dir, file) // alongside target file and with a similar name
 	if err != nil {
 		return fmt.Errorf("cannot create temporary file to update %s: %s", filename, err)
 	}
@@ -76,5 +75,126 @@ func AtomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	}
 
 	moved = true
+	return nil
+}
+
+// NonAtomicWriteFileWithBackup creates a backup file containing the original content of the target file and then updates
+// the target file with new content, in order to provides a replacement for os.WriteFile that ensures that there is no data
+// loss if the process is disrupted.
+//
+// This logic is based on implementation of the fmt command in the Go standard library.
+// See: https://cs.opensource.google/go/go/+/master:src/cmd/gofmt/gofmt.go;l=468;drc=d98516a9d2f88cc0d6e88849e1a8f4e4f1e6f465
+//
+// Whereas AtomicWriteFile promises that the file at the given filename will either contain the entirety of the previous contents
+// or the entirety of the given data array if opened and read at any point during its execution, NonAtomicWriteFileWithBackup
+// is not implemented to be atomic in that sense. However, data loss is still prevented.
+//
+// The possible outcomes are:
+// 1. The file is successfully updated with the new content.
+// 2. The update fails, but the original content is unchanged in or successfully restored to the target file.
+// 3. Both the update and the restoration fails somehow, but the backup file still exists for manual recovery
+//
+// The backup file will be cleaned up when the function can guarantee that original or updated data can be found in the target file,
+// but if an error prevents that the backup will be left for users to manually recover the original content.
+//
+// NonAtomicWriteFileWithBackup updates the original file with new data, whereas AtomicWriteFile replaces the original file.
+// This means that metadata on the original file can be preserved when using NonAtomicWriteFileWithBackup,
+// e.g. ownership, file creation timestamp.
+func NonAtomicWriteFileWithBackup(filename string, originalData, formattedData []byte) error {
+	// writeFailError produces an error stating the overall file change could not be fulfilled.
+	// The returned error will either wrap 1 or 2 errors:
+	// 1. The error that occurred while writing to the target file.
+	// 2. The error that occurred while attempting to restore the original content from the backup file, if applicable.
+	writeFailError := func(writeError, restoreError error) error {
+		if restoreError != nil {
+			return fmt.Errorf("Failed to write %s: %w; additionally, error restoring original content: %v", filename, writeError, restoreError)
+		}
+		return fmt.Errorf("Failed to write %s: %w", filename, writeError)
+	}
+
+	// Create a backup temporary file that contains the original content of the file.
+	dir := filepath.Dir(filename)
+	backup, err := os.CreateTemp(dir, filepath.Base(filename))
+	if err != nil {
+		errExtra := fmt.Errorf("error creating and opening temporary backup file for %s: %w", filename, err)
+		return writeFailError(errExtra, nil)
+	}
+
+	_, err = backup.Write(originalData)
+	if err != nil {
+		os.Remove(backup.Name())
+		errExtra := fmt.Errorf("error writing to backup temporary file %s: %w", backup.Name(), err)
+		return writeFailError(errExtra, nil)
+	}
+
+	err = backup.Close()
+	if err != nil {
+		os.Remove(backup.Name()) // Likely to be impacted by issue preventing file being closed
+		errExtra := fmt.Errorf("error closing backup temporary file %s: %w", backup.Name(), err)
+		return writeFailError(errExtra, nil)
+	}
+
+	// Open the target file, attempt to write the formatted data to it
+	// We'll never create a file here, so pass perm = 0
+	f, err := os.OpenFile(filename, os.O_WRONLY, 0)
+	if err != nil {
+		os.Remove(backup.Name())
+		errExtra := fmt.Errorf("error opening target file %s: %w", filename, err)
+		return writeFailError(errExtra, nil)
+	}
+
+	n, err := f.Write(formattedData)
+	if err == nil {
+		err = f.Truncate(int64(n))
+	}
+
+	// restoreFailError produces an error describing failure to restore original content to the target file.
+	// restoreFailError is intended to be used to create the second argument for writeFailError.
+	restoreFailError := func(e error) error {
+		return fmt.Errorf("error restoring file %s to original: %v; original content backed up in %s", filename, e, backup.Name())
+	}
+
+	if err != nil {
+		// In response to an error we'll attempt to restore the original content
+		// to the target file. If that fails, the original content is still
+		// available in the backup temporary file.
+
+		if n == 0 {
+			f.Close()
+			os.Remove(backup.Name()) // The original file was unchanged; backup not needed
+			return writeFailError(fmt.Errorf("file %s unchanged; error while writing to file %s: %s", filename, filename, err), nil)
+		}
+
+		// Try to restore the original content
+		no, erro := f.WriteAt(originalData, 0)
+		if erro != nil {
+			f.Close()
+			return writeFailError(err, restoreFailError(erro))
+		}
+
+		if no < n {
+			// The original file is shorter; truncate
+			if erro := f.Truncate(int64(no)); erro != nil {
+				f.Close()
+				return writeFailError(err, restoreFailError(erro))
+			}
+		}
+
+		if erro := f.Close(); erro != nil {
+			return writeFailError(err, restoreFailError(erro))
+		}
+
+		// We successfully restored the original content to the file,
+		// but still need to report the original write failure.
+		os.Remove(backup.Name())
+		return writeFailError(err, nil)
+	}
+
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("Failed to write %s: %w; original content backed up in %s", filename, err, backup.Name())
+	}
+
+	// The file was successfully updated; remove backup
+	os.Remove(backup.Name())
 	return nil
 }

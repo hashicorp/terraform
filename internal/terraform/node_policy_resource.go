@@ -126,7 +126,7 @@ func policyNodesFromChange(change *plans.ResourceInstanceChange) []*nodeResource
 				After:        cty.NilVal,
 			},
 		}
-	case plans.CreateThenForget:
+	case plans.ForgetThenCreate, plans.CreateThenForget:
 		return []*nodeResourcePolicy{
 			{
 				ResourceAddr: change.Addr,

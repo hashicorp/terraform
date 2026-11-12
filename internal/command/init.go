@@ -56,6 +56,9 @@ func (c *InitCommand) Run(args []string) int {
 
 	view := views.NewInit(initArgs.ViewType, c.View)
 
+	// Log version output
+	view.Version()
+
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
@@ -104,7 +107,6 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 	}
 
 	uiHook := uiModuleInstallHooks{
-		Ui:             c.Ui,
 		ShowLocalPaths: true,
 		View:           view,
 	}
@@ -146,7 +148,7 @@ func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extra
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenance hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	view.Output(views.InitializingTerraformCloudMessage)
+	view.LogInitializingHCPTerraformStart()
 
 	if len(extraConfig.AllItems()) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -176,9 +178,9 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 	defer span.End()
 
 	if root.StateStore != nil {
-		view.Output(views.InitializingStateStoreMessage, root.StateStore.Type)
+		view.LogInitializingStateStoreStart(root.StateStore.Type)
 	} else {
-		view.Output(views.InitializingBackendMessage)
+		view.LogInitializingBackendStart()
 	}
 
 	earlyBdiags := c.earlyValidateBackend(root, initArgs)
@@ -242,7 +244,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 
 			// Handle any overrides supplied via -backend-config CLI flags
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, stateStoreSchema.Body, StateStore)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -269,7 +271,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ini
 		var configOverride hcl.Body
 		if !initArgs.BackendConfig.Empty() {
 			var overrideDiags tfdiags.Diagnostics
-			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema)
+			configOverride, overrideDiags = c.backendConfigOverrideBody(initArgs.BackendConfig, backendSchema, Backend)
 			diags = diags.Append(overrideDiags)
 			if overrideDiags.HasErrors() {
 				return nil, true, diags
@@ -694,7 +696,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 //
 // If the returned diagnostics contains errors then the returned body may be
 // incomplete or invalid.
-func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block) (hcl.Body, tfdiags.Diagnostics) {
+func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSlice, schema *configschema.Block, stateStorageMode string) (hcl.Body, tfdiags.Diagnostics) {
 	items := flags.AllItems()
 	if len(items) == 0 {
 		return nil, nil
@@ -731,6 +733,8 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 
 		if eq == -1 {
 			// The value is interpreted as a filename.
+			//
+			// Overrides via file support overriding Attributes and Blocks.
 			newBody, fileDiags := c.loadHCLFile(item.Value)
 			diags = diags.Append(fileDiags)
 			if fileDiags.HasErrors() {
@@ -757,6 +761,16 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 					LabelNames: labelNames,
 				})
 			}
+
+			if stateStorageMode == StateStore {
+				// Raise an error if the user is attempting to override a provider block in a state_store block.
+				diags = diags.Append(checkIfConfigOverrideIncludesProviderBlock(newBody, item.Value))
+
+				// Allow to fall through to next check, which will also raise an "Unsupported block type" error
+				// related to the unexpected "provider" block, too. This is alongside any other errors the user
+				// should be notified about.
+			}
+
 			// Verify that the file body matches the expected backend schema.
 			_, schemaDiags := newBody.Content(&bodySchema)
 			diags = diags.Append(schemaDiags)
@@ -766,18 +780,21 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 			flushVals() // deal with any accumulated individual values first
 			mergeBody(newBody)
 		} else {
+			// The value is interpreted as a key-value pair.
+			//
+			// Overrides via key-value pair only support overriding Attributes.
 			name := item.Value[:eq]
 			rawValue := item.Value[eq+1:]
 			attrS := schema.Attributes[name]
 			if attrS == nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid backend configuration argument",
-					fmt.Sprintf("The backend configuration argument %q given on the command line is not expected for the selected backend type.", name),
+					fmt.Sprintf("Invalid %s configuration argument", stateStorageMode),
+					fmt.Sprintf("The %s configuration argument %q given on the command line is not expected for the selected %s type.", stateStorageMode, name, stateStorageMode),
 				))
 				continue
 			}
-			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type)
+			value, valueDiags := configValueFromCLI(item.String(), rawValue, attrS.Type, stateStorageMode)
 			diags = diags.Append(valueDiags)
 			if valueDiags.HasErrors() {
 				continue
@@ -789,6 +806,35 @@ func (c *InitCommand) backendConfigOverrideBody(flags arguments.FlagNameValueSli
 	flushVals()
 
 	return ret, diags
+}
+
+// checkIfConfigOverrideIncludesProviderBlock checks if the HCL body created from a file
+// used to supply override configuration for a state store is attempting to override the provider block.
+// We do this by seeing if the HCL body contains any "provider" blocks.
+func checkIfConfigOverrideIncludesProviderBlock(newBody hcl.Body, filename string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	var s hcl.BodySchema
+	s.Blocks = append(s.Blocks, hcl.BlockHeaderSchema{
+		Type:       "provider",
+		LabelNames: []string{"name"},
+	})
+	bc, _, _ := newBody.PartialContent(&s)
+	for _, b := range bc.Blocks {
+		if b.Type == "provider" {
+			diags = diags.Append(
+				&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cannot partially override provider configuration in a state store block.",
+					Detail:   "The configuration arguments supplied by the override file attempts to override provider configuration, which is not allowed when using a state store.",
+					Subject: &hcl.Range{
+						Filename: filename,
+					},
+				},
+			)
+			break
+		}
+	}
+	return diags
 }
 
 func (c *InitCommand) AutocompleteArgs() complete.Predictor {
@@ -848,6 +894,10 @@ Options:
                           times. The backend type must be in the configuration
                           itself.
 
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
   -force-copy             Suppress prompts about copying state data when
                           initializing a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
@@ -858,20 +908,33 @@ Options:
 
   -get=false              Disable downloading modules for this configuration.
 
+  -ignore-remote-version  A rare option used for HCP Terraform and the remote backend
+                          only. Set this to ignore checking that the local and remote
+                          Terraform versions use compatible state representations, making
+                          an operation proceed even when there is a potential mismatch.
+                          See the documentation on configuring Terraform with
+                          HCP Terraform or Terraform Enterprise for more information.
+
   -input=false            Disable interactive prompts. Note that some actions may
                           require interactive prompts and will error if input is
                           disabled.
+
+  -json                   If specified, machine readable output will be
+                          printed in JSON format.
 
   -lock=false             Don't hold a state lock during backend migration.
                           This is dangerous if others might concurrently run
                           commands against the same workspace.
 
+  -lockfile=MODE          Set a dependency lockfile mode.
+                          Currently only "readonly" is valid.
+
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -no-color               If specified, output won't contain any color.
+  -migrate-state          Reconfigure a backend, and attempt to migrate any
+                          existing state.
 
-  -json                   If specified, machine readable output will be
-                          printed in JSON format.
+  -no-color               If specified, output won't contain any color.
 
   -plugin-dir             Directory containing plugin binaries. This overrides all
                           default search paths for plugins, and prevents the
@@ -881,25 +944,12 @@ Options:
   -reconfigure            Reconfigure a backend, ignoring any saved
                           configuration.
 
-  -migrate-state          Reconfigure a backend, and attempt to migrate any
-                          existing state.
+  -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
   -upgrade                Install the latest module and provider versions
                           allowed within configured constraints, overriding the
                           default behavior of selecting exactly the version
                           recorded in the dependency lockfile.
-
-  -lockfile=MODE          Set a dependency lockfile mode.
-                          Currently only "readonly" is valid.
-
-  -ignore-remote-version  A rare option used for HCP Terraform and the remote backend
-                          only. Set this to ignore checking that the local and remote
-                          Terraform versions use compatible state representations, making
-                          an operation proceed even when there is a potential mismatch.
-                          See the documentation on configuring Terraform with
-                          HCP Terraform or Terraform Enterprise for more information.
-
-  -test-directory=path    Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'          Set a value for one of the input variables in the root
                           module of the configuration. Use this option more than

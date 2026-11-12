@@ -13,28 +13,24 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/replacefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-const (
-	stdinArg = "-"
-)
-
-var (
-	fmtSupportedExts = []string{
-		".tf",
-		".tfvars",
-		".tftest.hcl",
-		".tfmock.hcl",
-		".tfquery.hcl",
-	}
-)
+var fmtSupportedExts = []string{
+	".tf",
+	".tfvars",
+	".tftest.hcl",
+	".tfmock.hcl",
+	".tfquery.hcl",
+}
 
 // FmtCommand is a Command implementation that rewrites Terraform config
 // files to a canonical format and style.
@@ -46,73 +42,66 @@ type FmtCommand struct {
 	check     bool
 	recursive bool
 	input     io.Reader // STDIN if nil
+
+	// Boolean indicates if any files need formatting changes.
+	// This is used to determine the exit code when the -check option is used.
+	formattingChangesFound bool
 }
 
 func (c *FmtCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	if c.input == nil {
 		c.input = os.Stdin
 	}
 
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("fmt")
-	cmdFlags.BoolVar(&c.list, "list", true, "list")
-	cmdFlags.BoolVar(&c.write, "write", true, "write")
-	cmdFlags.BoolVar(&c.diff, "diff", false, "diff")
-	cmdFlags.BoolVar(&c.check, "check", false, "check")
-	cmdFlags.BoolVar(&c.recursive, "recursive", false, "recursive")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	// Parse and apply global view arguments
+	common, args := arguments.ParseView(args)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseFmt(args)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewFmt(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	args = cmdFlags.Args()
+	c.list = parsedArgs.List
+	c.write = parsedArgs.Write
+	c.diff = parsedArgs.Diff
+	c.check = parsedArgs.Check
+	c.recursive = parsedArgs.Recursive
 
-	var paths []string
-	if len(args) == 0 {
-		paths = []string{"."}
-	} else if args[0] == stdinArg {
-		c.list = false
-		c.write = false
-	} else {
-		paths = args
-	}
-
-	var output io.Writer
-	list := c.list // preserve the original value of -list
 	if c.check {
-		// set to true so we can use the list output to check
-		// if the input needs formatting
-		c.list = true
+		// check is a read-only operation
 		c.write = false
-		output = &bytes.Buffer{}
-	} else {
-		output = &cli.UiWriter{Ui: c.Ui}
 	}
 
-	diags := c.fmt(paths, c.input, output)
-	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	fileDiags := c.fmt(parsedArgs.Paths, c.input, view)
+	diags = diags.Append(fileDiags)
+	view.Diagnostics(diags)
+	if fileDiags.HasErrors() {
 		return 2
 	}
 
 	if c.check {
-		buf := output.(*bytes.Buffer)
-		ok := buf.Len() == 0
-		if list {
-			io.Copy(&cli.UiWriter{Ui: c.Ui}, buf)
-		}
-		if ok {
-			return 0
-		} else {
+		if c.formattingChangesFound {
 			return 3
+		} else {
+			return 0
 		}
 	}
 
 	return 0
 }
 
-func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdiags.Diagnostics {
+func (c *FmtCommand) fmt(paths []string, stdin io.Reader, view views.Fmt) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if len(paths) == 0 { // Assuming stdin, then.
@@ -120,7 +109,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			diags = diags.Append(fmt.Errorf("Option -write cannot be used when reading from stdin"))
 			return diags
 		}
-		fileDiags := c.processFile("<stdin>", stdin, stdout, true)
+		fileDiags := c.processFile("<stdin>", stdin, view)
 		diags = diags.Append(fileDiags)
 		return diags
 	}
@@ -133,7 +122,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 			return diags
 		}
 		if info.IsDir() {
-			dirDiags := c.processDir(path, stdout)
+			dirDiags := c.processDir(path, view)
 			diags = diags.Append(dirDiags)
 		} else {
 			fmtd := false
@@ -147,7 +136,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 						continue
 					}
 
-					fileDiags := c.processFile(c.normalizePath(path), f, stdout, false)
+					fileDiags := c.processFile(c.normalizePath(path), f, view)
 					diags = diags.Append(fileDiags)
 					f.Close()
 
@@ -169,7 +158,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, stdout io.Writer) tfdi
 	return diags
 }
 
-func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout bool) tfdiags.Diagnostics {
+func (c *FmtCommand) processFile(path string, r io.Reader, view views.Fmt) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
@@ -197,13 +186,16 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 
 	if !bytes.Equal(src, result) {
 		// Something was changed
+		c.formattingChangesFound = true
+
 		if c.list {
-			fmt.Fprintln(w, path)
+			view.FileFormatted(path)
 		}
 		if c.write {
-			err := os.WriteFile(path, result, 0644)
+			log.Printf("[TRACE] terraform fmt: Writing changes to %s", path)
+			err = replacefile.NonAtomicWriteFileWithBackup(path, src, result)
 			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
+				diags = diags.Append(err)
 				return diags
 			}
 		}
@@ -213,21 +205,18 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 				diags = diags.Append(fmt.Errorf("Failed to generate diff for %s: %s", path, err))
 				return diags
 			}
-			w.Write(diff)
+			view.Diff(diff)
 		}
 	}
 
-	if !c.list && !c.write && !c.diff {
-		_, err = w.Write(result)
-		if err != nil {
-			diags = diags.Append(fmt.Errorf("Failed to write result"))
-		}
+	if !c.list && !c.write && !c.diff && !c.check {
+		view.FormattedContent(string(result))
 	}
 
 	return diags
 }
 
-func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnostics {
+func (c *FmtCommand) processDir(path string, view views.Fmt) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	log.Printf("[TRACE] terraform fmt: looking for files in %s", path)
@@ -253,7 +242,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 		subPath := filepath.Join(path, name)
 		if info.IsDir() {
 			if c.recursive {
-				subDiags := c.processDir(subPath, stdout)
+				subDiags := c.processDir(subPath, view)
 				diags = diags.Append(subDiags)
 			}
 
@@ -273,7 +262,7 @@ func (c *FmtCommand) processDir(path string, stdout io.Writer) tfdiags.Diagnosti
 					continue
 				}
 
-				fileDiags := c.processFile(c.normalizePath(subPath), f, stdout, false)
+				fileDiags := c.processFile(c.normalizePath(subPath), f, view)
 				diags = diags.Append(fileDiags)
 				f.Close()
 

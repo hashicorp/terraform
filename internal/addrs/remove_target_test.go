@@ -78,11 +78,53 @@ func TestParseRemoveTarget(t *testing.T) {
 			nil,
 			`Resource instance keys not allowed: Resource address must be a resource (e.g. "test_instance.foo"), not a resource instance (e.g. "test_instance.foo[1]").`,
 		},
+		{
+			`resource.test_instance.bar`,
+			ConfigResource{
+				Module: RootModule,
+				Resource: Resource{
+					Mode: ManagedResourceMode,
+					Type: "test_instance",
+					Name: "bar",
+				},
+			},
+			``,
+		},
+		{
+			`module.foo[*].test_instance.bar`,
+			nil,
+			`Module instance keys not allowed: Module address must be a module (e.g. "module.foo"), not a module instance (e.g. "module.foo[1]").`,
+		},
+		{
+			`test_instance.bar[*]`,
+			nil,
+			`Resource instance keys not allowed: Resource address must be a resource (e.g. "test_instance.foo"), not a resource instance (e.g. "test_instance.foo[1]").`,
+		},
+		{
+			`test_instance.bar.baz`,
+			nil,
+			`Invalid address: Unexpected extra operators after address.`,
+		},
+		{
+			`ephemeral.test_eph.bar`,
+			nil,
+			`Ephemeral resource address not allowed: Ephemeral resources are never persisted, so they are not valid targets of removed blocks. To remove an ephemeral resource, remove its block from configuration.`,
+		},
+		{
+			`list.test_list.bar`,
+			nil,
+			`List resource address not allowed: List resources are never persisted, so they are not valid targets of removed blocks.`,
+		},
+		{
+			`each.key`,
+			nil,
+			`Invalid address: The keyword "each" is reserved and cannot be used to target a resource address. If you are targeting a resource type that uses a reserved keyword, please prefix your address with "resource.".`,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Input, func(t *testing.T) {
-			traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(test.Input), "", hcl.InitialPos)
+			traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(test.Input), "", hcl.InitialPos)
 			if hclDiags.HasErrors() {
 				// We're not trying to test the HCL parser here, so any
 				// failures at this point are likely to be bugs in the

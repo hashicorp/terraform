@@ -12,6 +12,8 @@ type Providers struct {
 
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
+
+	ViewType ViewType
 }
 
 // ParseProviders processes CLI arguments, returning a Providers value and
@@ -20,7 +22,8 @@ type Providers struct {
 func ParseProviders(args []string) (*Providers, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	providers := &Providers{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("providers", nil, nil, providers.Vars)

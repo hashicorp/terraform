@@ -53,11 +53,16 @@ Options:
 
   -cloud-run=source     If specified, Terraform will execute this test run 
                         remotely using HCP Terraform or Terraform Enterprise. 
-						You must specify the source of a module registered in 
-						a private module registry as the argument to this flag. 
-						This allows Terraform to associate the cloud run with 
-						the correct HCP Terraform or Terraform Enterprise module 
-						and organization.
+                        You must specify the source of a module registered in 
+                        a private module registry as the argument to this flag. 
+                        This allows Terraform to associate the cloud run with 
+                        the correct HCP Terraform or Terraform Enterprise module 
+                        and organization.
+
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
+
 
   -filter=testfile      If specified, Terraform will only execute the test files
                         specified by this flag. You can use this option multiple
@@ -74,9 +79,12 @@ Options:
   -no-color             If specified, output won't contain any color.
 
   -parallelism=n        Limit the number of concurrent operations within the 
-  						plan/apply operation of a test run. Defaults to 10.
+                        plan/apply operation of a test run. Defaults to 10.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -run-parallelism=n    Limit the number of test runs that can be executed in
+                        parallel within a single test file. Defaults to 10.
+
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than
@@ -298,6 +306,9 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	view := views.NewTest(preparation.Args.ViewType, m.View)
 	preparation.View = view
 
+	// Log version output
+	view.Version()
+
 	// EXPERIMENTAL: maybe enable deferred actions
 	if !m.AllowExperimentalFeatures && preparation.Args.DeferralAllowed {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -358,7 +369,7 @@ func (m *Meta) setupTestExecution(mode moduletest.CommandMode, command string, r
 	// We do an early load of just the root module to discover which
 	// variables are const. We discard non-error diagnostics from this
 	// early load since loadConfigWithTests will re-parse and report them.
-	earlyMod, earlyDiags := m.loadSingleModuleWithTests(".", preparation.Args.TestDirectory)
+	earlyMod, earlyDiags := m.loadRawModule(".")
 	if earlyDiags.HasErrors() {
 		diags = diags.Append(earlyDiags)
 		view.Diagnostics(nil, nil, diags)

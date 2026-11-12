@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -17,17 +18,30 @@ type GetCommand struct {
 	Meta
 }
 
-func (c *GetCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseGet(c.Meta.process(args))
+func (c *GetCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseGet(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewGet(arguments.ViewHuman, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -37,7 +51,7 @@ func (c *GetCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -45,23 +59,18 @@ func (c *GetCommand) Run(args []string) int {
 	ctx, done := c.InterruptibleContext(c.CommandContext())
 	defer done()
 
-	path, err := ModulePath(nil)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
+	path := c.Meta.WorkingDir.RootModuleDir()
 	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	path = c.normalizePath(path)
 
-	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update)
+	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update, view)
 	diags = diags.Append(moreDiags)
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
 	}
@@ -87,12 +96,16 @@ Usage: terraform [global options] get [options]
 
 Options:
 
-  -update               Check already-downloaded modules for available updates
-                        and install the newest versions available.
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
 
   -no-color             Disable text coloring in the output.
 
   -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -update               Check already-downloaded modules for available updates
+                        and install the newest versions available.
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than
@@ -111,10 +124,10 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
+func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool, view views.Get) (abort bool, diags tfdiags.Diagnostics) {
 	hooks := uiModuleInstallHooks{
-		Ui:             m.Ui,
 		ShowLocalPaths: true,
+		View:           view,
 	}
 	return m.installModules(ctx, path, testsDir, upgrade, true, hooks)
 }

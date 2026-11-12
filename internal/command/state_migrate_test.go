@@ -28,20 +28,22 @@ func TestStateMigrate_fromBackendToBackend(t *testing.T) {
 	wd := tempWorkingDirFixture(t, fixture)
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
+
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				UIInput: uiInput,
+			},
 		},
 	}
-
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
 
 	args := []string{"-no-color"}
 	code := c.Run(args)
@@ -105,22 +107,24 @@ func TestStateMigrate_fromBackendToStateStore(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
+
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
-			testingOverrides:          metaOverridesForProvider(p),
+			testingOverrides:          testingOverrides,
 			ProviderSource:            providerSource,
 		},
 	}
-
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
 
 	args := []string{"-no-color"}
 	code := c.Run(args)
@@ -238,22 +242,24 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
+		testingOverrides := metaOverridesForProvider(p)
+		testingOverrides.UIInput = uiInput
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
-				testingOverrides:          metaOverridesForProvider(p),
+				testingOverrides:          testingOverrides,
 				ProviderSource:            providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -326,22 +332,24 @@ func TestStateMigrate_fromStateStoreToStateStore_inSingleProvider(t *testing.T) 
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
+		testingOverrides := metaOverridesForProvider(p)
+		testingOverrides.UIInput = uiInput
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
-				testingOverrides:          metaOverridesForProvider(p),
+				testingOverrides:          testingOverrides,
 				ProviderSource:            providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -467,11 +475,14 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -480,14 +491,11 @@ func TestStateMigrate_fromStateStoreToStateStore_inDifferentProviders(t *testing
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -595,11 +603,14 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -608,14 +619,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -706,11 +714,14 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -719,14 +730,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -846,11 +854,15 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"backend-migrate-copy-to-empty": "yes",
+			// Test doesn't assert approval of any providers
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -859,15 +871,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"backend-migrate-copy-to-empty": "yes",
-			// Test doesn't assert approval of any providers
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -967,11 +975,15 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"approve-provider-test-1.2.3":   "yes",
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -980,15 +992,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3":   "yes",
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -1074,11 +1082,15 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"approve-provider-test2-3.2.1":  "yes",
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1087,15 +1099,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"approve-provider-test2-3.2.1":  "yes",
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -1202,11 +1210,16 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
+		// Ask for input
+		uiInput, _ := testInputMap(t, map[string]string{
+			"approve-provider-test-1.2.3":   "yes",
+			"approve-provider-test2-3.2.1":  "yes",
+			"backend-migrate-copy-to-empty": "yes",
+		})
+
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1215,16 +1228,11 @@ provider "registry.terraform.io/hashicorp/test2" {
 						addrs.NewDefaultProvider("test"):  providers.FactoryFixed(sourceProvider),
 						addrs.NewDefaultProvider("test2"): providers.FactoryFixed(destinationProvider),
 					},
+					UIInput: uiInput,
 				},
 				ProviderSource: providerSource,
 			},
 		}
-
-		_ = testInputMap(t, map[string]string{
-			"approve-provider-test-1.2.3":   "yes",
-			"approve-provider-test2-3.2.1":  "yes",
-			"backend-migrate-copy-to-empty": "yes",
-		})
 
 		args := []string{"-no-color"}
 		code := c.Run(args)
@@ -1342,11 +1350,9 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {"3.2.1"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -1460,10 +1466,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1599,10 +1603,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1705,10 +1707,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1817,10 +1817,8 @@ provider "registry.terraform.io/hashicorp/test2" {
 			"hashicorp/test2": {expectedVersion, "9.9.9"}, // Extra version - expected version is downloaded, not the latest
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1900,22 +1898,24 @@ func TestStateMigrate_fromStateStoreToBackend(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
+
+	testingOverrides := metaOverridesForProvider(p)
+	testingOverrides.UIInput = uiInput
+
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
-			testingOverrides:          metaOverridesForProvider(p),
+			testingOverrides:          testingOverrides,
 			ProviderSource:            providerSource,
 		},
 	}
-
-	_ = testInputMap(t, map[string]string{
-		"backend-migrate-copy-to-empty": "yes",
-	})
 
 	args := []string{"-no-color"}
 	code := c.Run(args)
@@ -1982,11 +1982,9 @@ func TestStateMigrate_missingModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2018,11 +2016,9 @@ func TestStateMigrate_emptyModuleFiles(t *testing.T) {
 		"hashicorp/test": {"1.2.3"},
 	})
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2050,11 +2046,9 @@ func TestStateMigrate_missingMigrationFiles(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "state-migrate-missing-migrate-files")
 	t.Chdir(wd.RootModuleDir())
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                wd,
 			AllowExperimentalFeatures: true,
@@ -2082,11 +2076,9 @@ func TestStateMigrate_nonExistentLockFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Chdir(tmpDir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateMigrateCommand{
 		Meta: Meta{
-			Ui:                        ui,
 			View:                      view,
 			WorkingDir:                workdir.NewDir(tmpDir),
 			AllowExperimentalFeatures: true,
@@ -2124,11 +2116,9 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 		wd := tempWorkingDirFixture(t, fixture)
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,
@@ -2156,11 +2146,9 @@ func TestStateMigrate_JSONOutput(t *testing.T) {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &StateMigrateCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				WorkingDir:                wd,
 				AllowExperimentalFeatures: true,

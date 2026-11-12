@@ -7048,9 +7048,9 @@ func TestPlan_WithPolicyResultsOnDestroy(t *testing.T) {
 
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		// Stacks runs multiple calls to the module runtime for planning a full destroy, one refresh and one destroy plan.
-		// Only the destroy plan will emit resource policy evaluations
-		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation"),
+		// Only the destroy plan will emit module and resource policy evaluations
+		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -7116,7 +7116,7 @@ func TestPlan_WithPolicyResultsOnRemovedComponent(t *testing.T) {
 		// Stacks runs a single call to the module runtime for planning a component destroy, a destroy plan.
 		// The plan emits modules and resources policy evaluations.
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
-		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluationForResources("policy-evaluation-removed"),
+		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-removed"),
 	}
@@ -7462,50 +7462,6 @@ func createExpectedComponentInstancePolicyEvaluationForModules(bundlePath string
 					},
 				},
 			}, nil), moduleCallRange),
-		},
-	}
-}
-
-// This helper is used for tests that only expect resource policies to be evaluated (destroy apply, removed component plans)
-func createExpectedComponentInstancePolicyEvaluationForResources(bundlePath string) map[string]policy.EvaluationResponse {
-	rootModuleRange := hcl.Range{
-		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/main.tf", bundlePath),
-		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
-		End:      hcl.Pos{Line: 14, Column: 46, Byte: 206},
-	}
-	childResourceRange := hcl.Range{
-		Filename: fmt.Sprintf("git::https://example.com/test.git//%s/child/main.tf", bundlePath),
-		Start:    hcl.Pos{Line: 14, Column: 1, Byte: 161},
-		End:      hcl.Pos{Line: 14, Column: 45, Byte: 205},
-	}
-
-	return map[string]policy.EvaluationResponse{
-		"testing_resource.parent_resource": {
-			Overall:  policy.AllowResult,
-			Policies: []*policy.Policy{mockPolicyObj(policy.AllowResult)},
-			Enforcements: []policy.EnforcementResult{
-				{
-					Result:     policy.AllowResult,
-					Message:    "just an advisory message",
-					BlockIndex: 1,
-					Policy:     mockPolicyObj(policy.AllowResult),
-					LocalRange: rootModuleRange.Ptr(),
-				},
-			},
-		},
-		"module.child.testing_resource.child_resource": {
-			Overall:  policy.DenyResult,
-			Policies: []*policy.Policy{mockPolicyObj(policy.DenyResult)},
-			Diagnostics: withLocalRange(policy.DiagsFromProto([]*policyproto.Diagnostic{
-				{
-					Severity: policyproto.Severity_ERROR,
-					Summary:  "Child module resource violation",
-					Detail:   "module.child.testing_resource.child_resource violates policy",
-					Result: &policyproto.DiagnosticResult{
-						Result: policyproto.EvaluateResult_DENY_EVALUATE_RESULT,
-					},
-				},
-			}, nil), childResourceRange),
 		},
 	}
 }

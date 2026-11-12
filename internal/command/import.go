@@ -102,7 +102,8 @@ func (c *ImportCommand) Run(args []string) int {
 	// that may be delegated to a "remotestate.Backend".
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		c.Ui.Error(ErrUnsupportedLocalOp)
+		diags = diags.Append(errUnsupportedLocalOpDiag)
+		c.showDiagnostics(diags)
 		return 1
 	}
 

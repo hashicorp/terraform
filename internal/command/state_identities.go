@@ -8,49 +8,45 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateIdentitiesCommand is a Command implementation that lists the resource identities
 // within a state file.
 type StateIdentitiesCommand struct {
-	Meta
 	StateMeta
 }
 
-func (c *StateIdentitiesCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var statePath string
-	var jsonOutput bool
-	cmdFlags := c.Meta.defaultFlagSet("state identities")
-	cmdFlags.StringVar(&statePath, "state", "", "path")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	lookupId := cmdFlags.String("id", "", "Restrict output to paths with a resource having the specified ID.")
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return cli.RunResultHelp
-	}
-	args = cmdFlags.Args()
+func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
 
-	if !jsonOutput {
-		c.Ui.Error(
-			"The `terraform state identities` command requires the `-json` flag.\n")
-		cmdFlags.Usage()
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments
+	args, argDiags := arguments.ParseStateIdentities(rawArgs)
+	diags = diags.Append(argDiags)
+
+	if args.StatePath != "" {
+		c.Meta.statePath = args.StatePath
+	}
+
+	view := views.NewStateIdentities(args.ViewType, c.View)
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
-	}
-	view := arguments.ViewJSON // See above
-
-	if statePath != "" {
-		c.Meta.statePath = statePath
 	}
 
 	// Load the backend
-	b, diags := c.backend(".", view)
+	b, diags := c.backend(".", args.ViewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -60,59 +56,78 @@ func (c *StateIdentitiesCommand) Run(args []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(sDiags)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading the state",
+			`Please ensure that your Terraform state exists and that you've
+configured it properly. You can use the "-state" flag to point
+Terraform at another state file.`,
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No state file was found",
+			`State management commands require a state file. Run this command
+in a directory where Terraform has been run or use the -state flag
+to point the command to a specific state location.`,
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	var addrs []addrs.AbsResourceInstance
-	if len(args) == 0 {
-		addrs, diags = c.lookupAllResourceInstanceAddrs(state)
+	var rDiags tfdiags.Diagnostics
+	if len(args.Addrs) == 0 {
+		addrs, rDiags = c.lookupAllResourceInstanceAddrs(state)
 	} else {
-		addrs, diags = c.lookupResourceInstanceAddrs(state, args...)
+		addrs, rDiags = c.lookupResourceInstanceAddrs(state, args.Addrs...)
 	}
+	diags = diags.Append(rDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	output := make(map[string]any)
+	identities := make(map[string]json.RawMessage)
 	for _, addr := range addrs {
 		// If the resource exists but identity is nil, skip it, as it is not required to be present
 		if is := state.ResourceInstance(addr); is != nil && is.Current.IdentityJSON != nil {
-			if *lookupId == "" || *lookupId == states.LegacyInstanceObjectID(is.Current) {
-				var rawIdentity map[string]any
-				if err := json.Unmarshal(is.Current.IdentityJSON, &rawIdentity); err != nil {
-					c.Ui.Error(fmt.Sprintf("Failed to unmarshal identity JSON: %s", err))
-					return 1
-				}
-				output[addr.String()] = rawIdentity
+			if args.ID == "" || args.ID == states.LegacyInstanceObjectID(is.Current) {
+				identities[addr.String()] = is.Current.IdentityJSON
 			}
 		}
 	}
 
-	outputJSON, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to marshal output JSON: %s", err))
+	view.Identities(identities, diags)
+
+	if diags.HasErrors() {
 		return 1
 	}
-
-	c.Ui.Output(string(outputJSON))
-	c.showDiagnostics(diags)
 
 	return 0
 }
@@ -139,14 +154,22 @@ Usage: terraform [global options] state identities [options] -json [address...]
 
 Options:
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default, Terraform
-                      will consult the state of the currently-selected
-                      workspace.
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
 
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
+
+  -no-color           If specified, output won't contain any color.
+
+  -json               Outputs the identities in JSON format. This flag is required.
+
+  -state=statefile    Path to a Terraform state file to use to look
+                      up Terraform-managed resources. By default, Terraform
+                      will consult the state of the currently-selected
+                      workspace.
 
 `
 	return strings.TrimSpace(helpText)

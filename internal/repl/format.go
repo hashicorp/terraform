@@ -31,10 +31,10 @@ func FormatValue(v cty.Value, indent int) string {
 	if marks.Has(v, marks.Ephemeral) {
 		return "(ephemeral value)"
 	}
-	if marks.Has(v, marks.Deprecation) {
-		// Mark doesn't impact formatting, so remove to unblock normal formatting below
-		v, _ = v.Unmark()
-	}
+	// Deprecation mark doesn't impact formatting, so remove
+	// to unblock normal formatting below
+	v, _ = marks.GetDeprecationMarks(v)
+
 	if v.IsNull() {
 		ty := v.Type()
 		switch {

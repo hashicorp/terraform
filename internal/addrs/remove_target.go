@@ -81,11 +81,26 @@ func ParseRemoveTarget(traversal hcl.Traversal) (*RemoveTarget, tfdiags.Diagnost
 		return nil, diags
 	}
 
-	if rAddr.Resource.Mode == DataResourceMode {
+	switch rAddr.Resource.Mode {
+	case DataResourceMode:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Data source address not allowed",
 			Detail:   "Data sources are never destroyed, so they are not valid targets of removed blocks. To remove the data source from state, remove the data source block from configuration.",
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	case EphemeralResourceMode:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Ephemeral resource address not allowed",
+			Detail:   "Ephemeral resources are never persisted, so they are not valid targets of removed blocks. To remove an ephemeral resource, remove its block from configuration.",
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	case ListResourceMode:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "List resource address not allowed",
+			Detail:   "List resources are never persisted, so they are not valid targets of removed blocks.",
 			Subject:  rng.ToHCL().Ptr(),
 		})
 	}

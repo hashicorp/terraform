@@ -141,7 +141,7 @@ func (d *Deprecations) IsModuleCallDeprecationSuppressed(addr addrs.Module) bool
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, mod := range d.suppressedModules {
-		if mod.TargetContains(addr) {
+		if mod.Contains(addr) {
 			return true
 		}
 	}

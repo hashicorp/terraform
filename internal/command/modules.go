@@ -65,15 +65,9 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	rootModPath, err := ModulePath([]string{})
-	if err != nil {
-		diags = diags.Append(err)
-		view.Diagnostics(diags)
-		return 1
-	}
-
 	// Read the root module path so we can then traverse the tree
-	rootModEarly, earlyConfDiags := c.loadSingleModule(rootModPath)
+	rootModPath := c.Meta.WorkingDir.RootModuleDir()
+	rootModEarly, earlyConfDiags := c.loadRawModule(rootModPath)
 	if rootModEarly == nil {
 		diags = diags.Append(errors.New("root module not found. Please run terraform init"), earlyConfDiags)
 		view.Diagnostics(diags)
@@ -120,7 +114,7 @@ func (c *ModulesCommand) Run(rawArgs []string) int {
 	manifestWithRef := resolver.Resolve(config)
 
 	// Render the new manifest with references
-	return view.Display(*manifestWithRef)
+	return view.Display(*manifestWithRef, diags)
 }
 
 // internalManifest will use the configuration loader to refresh and load the

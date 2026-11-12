@@ -145,11 +145,12 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 		actual = strings.TrimSpace(output.Stdout())
 		expected = strings.TrimSpace(`
 {
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "4.5.6-foo",
   "platform": "aros_riscv64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `)
 		if diff := cmp.Diff(expected, actual); diff != "" {
@@ -218,16 +219,26 @@ flag provided but not defined: -foobar`
 
 		output = done(t)
 		actual = strings.TrimSpace(output.Stdout())
-		expected = ""
+		expected = ``
 		if actual != expected {
 			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
 		}
 
-		// Human error output is rendered despite -json flag when an error occurs
 		actual = strings.TrimSpace(output.Stderr())
-		expected = `Error: Failed to parse command-line flags
-
-flag provided but not defined: -foobar`
+		expected = `{
+  "format_version": "1.1",
+  "terraform_version": "",
+  "platform": "",
+  "provider_selections": {},
+  "terraform_outdated": false,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Failed to parse command-line flags",
+      "detail": "flag provided but not defined: -foobar"
+    }
+  ]
+}`
 		if actual != expected {
 			t.Fatalf("wrong stderr output\ngot: %#v\nwant: %#v", actual, expected)
 		}
@@ -280,11 +291,12 @@ func TestVersion_json(t *testing.T) {
 	actual := strings.TrimSpace(done(t).All())
 	expected := strings.TrimSpace(`
 {
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "4.5.6",
   "platform": "aros_riscv64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `)
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -327,14 +339,15 @@ func TestVersion_json(t *testing.T) {
 	actual = strings.TrimSpace(done(t).All())
 	expected = strings.TrimSpace(`
 {
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "4.5.6-foo",
   "platform": "aros_riscv64",
   "provider_selections": {
     "registry.terraform.io/hashicorp/test1": "7.8.9-beta.2",
     "registry.terraform.io/hashicorp/test2": "1.2.3"
   },
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `)
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -360,7 +373,14 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(done(t).All())
-	expected := "{\n  \"format_version\": \"1.0\",\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
+	expected := `{
+  "format_version": "1.1",
+  "terraform_version": "4.5.6",
+  "platform": "aros_riscv64",
+  "provider_selections": {},
+  "terraform_outdated": true,
+  "diagnostics": []
+}`
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}

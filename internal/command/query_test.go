@@ -312,46 +312,128 @@ func TestQueryCommand_Validate(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	emptyDir := t.TempDir()
+	filePath := filepath.Join(td, "main.policy.hcl")
 	missingPath := filepath.Join(t.TempDir(), "does-not-exist")
 
+	// Symlink support is not guaranteed on every platform we test on, so the
+	// symlink cases are only registered when we can actually create them.
+	linkRoot := t.TempDir()
+	dirLink := filepath.Join(linkRoot, "dir-link")
+	fileLink := filepath.Join(linkRoot, "file-link")
+	danglingLink := filepath.Join(linkRoot, "dangling-link")
+	symlinksSupported := true
+	for target, link := range map[string]string{
+		td:          dirLink,
+		filePath:    fileLink,
+		missingPath: danglingLink,
+	} {
+		if err := os.Symlink(target, link); err != nil {
+			symlinksSupported = false
+			break
+		}
+	}
+
+	notADirDiags := func(path string) tfdiags.Diagnostics {
+		return tfdiags.Diagnostics{
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid policy path",
+				fmt.Sprintf("The policy path %s is not a directory. The -policies option requires the path of a policy set directory, not an individual policy file.", path),
+			),
+		}
+	}
+	missingDiags := func(path string) tfdiags.Diagnostics {
+		return tfdiags.Diagnostics{
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid policy path",
+				fmt.Sprintf("Terraform cannot find the policy path at %s. The -policies option requires the path of an existing policy set directory.", path),
+			),
+		}
+	}
+
 	tests := []struct {
-		name             string
-		policyPaths      []string
-		allowExperiments bool
-		wantDiags        tfdiags.Diagnostics
+		name        string
+		policyPaths []string
+		symlinks    bool
+		wantDiags   tfdiags.Diagnostics
 	}{
 		{
-			name:             "no policies, flag omitted",
-			policyPaths:      nil,
-			allowExperiments: true,
+			name: "no policies, flag omitted",
 		},
 		{
-			name:             "single valid path",
-			policyPaths:      []string{td},
-			allowExperiments: true,
+			name:        "single valid path",
+			policyPaths: []string{td},
 		},
 		{
-			name:             "multiple valid paths",
-			policyPaths:      []string{td, td2},
-			allowExperiments: true,
+			name:        "multiple valid paths",
+			policyPaths: []string{td, td2},
 		},
 		{
-			name:             "non-existent path",
-			policyPaths:      []string{missingPath},
-			allowExperiments: true,
+			// Whether a directory actually contains any policies is for the
+			// policy engine to decide, not for CLI path validation.
+			name:        "empty directory",
+			policyPaths: []string{emptyDir},
+		},
+		{
+			name:        "non-existent path",
+			policyPaths: []string{missingPath},
+			wantDiags:   missingDiags(missingPath),
+		},
+		{
+			name:        "empty path",
+			policyPaths: []string{""},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid policy path",
-					fmt.Sprintf("Terraform cannot find the policy path at %s. Please ensure the file or directory exists and the path is correct.", missingPath),
+					"The -policies option requires the path of a policy set directory, but was given an empty value.",
 				),
 			},
+		},
+		{
+			name:        "regular file",
+			policyPaths: []string{filePath},
+			wantDiags:   notADirDiags(filePath),
+		},
+		{
+			name:        "valid directories mixed with a regular file",
+			policyPaths: []string{td, filePath, td2},
+			wantDiags:   notADirDiags(filePath),
+		},
+		{
+			// Every supplied path is validated, so more than one of them can
+			// be reported at once.
+			name:        "multiple invalid paths",
+			policyPaths: []string{td, filePath, missingPath},
+			wantDiags:   append(notADirDiags(filePath), missingDiags(missingPath)...),
+		},
+		{
+			name:        "symlink to a directory",
+			policyPaths: []string{dirLink},
+			symlinks:    true,
+		},
+		{
+			name:        "symlink to a file",
+			policyPaths: []string{fileLink},
+			symlinks:    true,
+			wantDiags:   notADirDiags(fileLink),
+		},
+		{
+			name:        "dangling symlink",
+			policyPaths: []string{danglingLink},
+			symlinks:    true,
+			wantDiags:   missingDiags(danglingLink),
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd := &QueryCommand{Meta: Meta{AllowExperimentalFeatures: tc.allowExperiments}}
+			if tc.symlinks && !symlinksSupported {
+				t.Skip("symlinks are not supported on this platform")
+			}
+			cmd := &QueryCommand{}
 			got := cmd.Validate(&arguments.Query{PolicyPaths: tc.policyPaths})
 			if tc.wantDiags == nil {
 				tfdiags.AssertNoDiagnostics(t, got)
@@ -360,6 +442,14 @@ func TestQueryCommand_Validate(t *testing.T) {
 			tfdiags.AssertDiagnosticsMatch(t, got, tc.wantDiags)
 		})
 	}
+
+	// A relative path to an existing directory is valid too.
+	t.Run("relative directory path", func(t *testing.T) {
+		t.Chdir(filepath.Dir(td))
+		cmd := &QueryCommand{}
+		got := cmd.Validate(&arguments.Query{PolicyPaths: []string{filepath.Base(td)}})
+		tfdiags.AssertNoDiagnostics(t, got)
+	})
 }
 
 type queryPolicyRemoteCommandBackend struct {
@@ -398,8 +488,7 @@ func TestQueryCommand_policyClientRouting(t *testing.T) {
 
 			client := policy.NewTestMockClient(t)
 			cmd := &QueryCommand{Meta: Meta{
-				AllowExperimentalFeatures: true,
-				testingOverrides:          &testingOverrides{PolicyClient: client},
+				testingOverrides: &testingOverrides{PolicyClient: client},
 			}}
 			op := &backendrun.Operation{PolicyPaths: tc.policyPaths}
 			stop := cmd.configureQueryPolicyClient(be, op)
@@ -471,6 +560,12 @@ func queryFixtureProvider() *testing_provider.MockProvider {
 		},
 	}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{},
+				BlockTypes: map[string]*configschema.NestedBlock{},
+			},
+		},
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Body: &configschema.Block{
@@ -672,10 +767,9 @@ func TestQueryPolicyStatusReporting(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	view, done := testView(t)
 	meta := Meta{
-		testingOverrides:          overrides,
-		View:                      view,
-		AllowExperimentalFeatures: true,
-		ProviderSource:            providerSource,
+		testingOverrides: overrides,
+		View:             view,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{Meta: meta}
@@ -788,10 +882,9 @@ func TestQueryPolicyStatusReporting_NoPoliciesArgument(t *testing.T) {
 	overrides.PolicyClient = policyClient
 	view, done := testView(t)
 	meta := Meta{
-		testingOverrides:          overrides,
-		View:                      view,
-		AllowExperimentalFeatures: true,
-		ProviderSource:            providerSource,
+		testingOverrides: overrides,
+		View:             view,
+		ProviderSource:   providerSource,
 	}
 
 	init := &InitCommand{Meta: meta}
@@ -837,6 +930,129 @@ func TestQueryPolicyStatusReporting_NoPoliciesArgument(t *testing.T) {
 	}
 	if policyClientCalled.Load() {
 		t.Fatal("policy client was called without -policies")
+	}
+}
+
+// TestQueryCommand_policyPathNotADirectory checks that pointing -policies at an
+// existing regular file fails the command before it prepares a backend, starts
+// a policy client, or runs the query, in both the human and JSON views.
+func TestQueryCommand_policyPathNotADirectory(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		flag string
+		json bool
+	}{
+		{name: "human, single dash", flag: "-policies"},
+		{name: "json, double dash", flag: "--policies", json: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("query", "basic")), td)
+			t.Chdir(td)
+
+			policyFile := filepath.Join(td, "allow.tfpolicy.hcl")
+			if err := os.WriteFile(policyFile, []byte(""), 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+			p := queryFixtureProvider()
+
+			policyClient := policy.NewTestMockClient(t)
+			var policyClientUsed atomic.Bool
+			policyClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+				policyClientUsed.Store(true)
+				return policy.EvaluationResponse{Overall: policy.AllowResult}
+			}
+			policyClient.StopFn = func() {
+				policyClientUsed.Store(true)
+			}
+
+			overrides := metaOverridesForProvider(p)
+			overrides.PolicyClient = policyClient
+			view, done := testView(t)
+			meta := Meta{
+				testingOverrides: overrides,
+				View:             view,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("init failed with status %d:\n%s", code, done(t).All())
+			}
+
+			view, done = testView(t)
+			meta.View = view
+			command := &QueryCommand{Meta: meta}
+
+			args := []string{"-no-color", tc.flag + "=" + policyFile}
+			if tc.json {
+				args = append(args, "-json")
+			}
+			code := command.Run(args)
+			output := done(t)
+
+			if code != 1 {
+				t.Fatalf("query exited with status %d, want 1:\n%s", code, output.All())
+			}
+
+			wantDetail := fmt.Sprintf("The policy path %s is not a directory.", policyFile)
+			if tc.json {
+				var found bool
+				for _, line := range strings.Split(strings.TrimSpace(output.Stdout()), "\n") {
+					if line == "" {
+						continue
+					}
+					var record map[string]any
+					if err := json.Unmarshal([]byte(line), &record); err != nil {
+						t.Fatalf("failed to decode JSON line %q: %s", line, err)
+					}
+					if record["type"] == "list_resource_found" {
+						t.Fatalf("query produced results despite an invalid policy path:\n%s", output.Stdout())
+					}
+					if record["type"] != "diagnostic" {
+						continue
+					}
+					diagnostic, ok := record["diagnostic"].(map[string]any)
+					if !ok {
+						t.Fatalf("diagnostic record has no diagnostic object: %s", line)
+					}
+					if diagnostic["severity"] != "error" || diagnostic["summary"] != "Invalid policy path" {
+						continue
+					}
+					detail, _ := diagnostic["detail"].(string)
+					if !strings.Contains(detail, wantDetail) {
+						t.Fatalf("diagnostic detail = %q, want it to contain %q", detail, wantDetail)
+					}
+					found = true
+				}
+				if !found {
+					t.Fatalf("no \"Invalid policy path\" diagnostic in JSON output:\n%s", output.All())
+				}
+			} else {
+				// The human view wraps long lines, so we check the significant
+				// fragments rather than the whole sentence.
+				got := output.Stderr()
+				for _, want := range []string{"Invalid policy path", policyFile, "is not a directory"} {
+					if !strings.Contains(got, want) {
+						t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
+					}
+				}
+				if got := output.Stdout(); strings.Contains(got, "list.test_instance") {
+					t.Fatalf("query produced results despite an invalid policy path:\n%s", got)
+				}
+			}
+
+			if p.ListResourceCalled {
+				t.Fatal("query was executed despite an invalid policy path")
+			}
+			if policyClientUsed.Load() {
+				t.Fatal("policy client was started despite an invalid policy path")
+			}
+		})
 	}
 }
 

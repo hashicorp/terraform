@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -16,6 +15,8 @@ import (
 
 // The Apply view is used for the apply command.
 type Apply interface {
+	JSONOutputVersionLogger
+
 	ResourceCount(stateOutPath string)
 	Outputs(outputValues map[string]*states.OutputValue)
 
@@ -58,6 +59,8 @@ type ApplyHuman struct {
 	countHook *countHook
 }
 
+func (v *ApplyHuman) Version() {}
+
 var _ Apply = (*ApplyHuman)(nil)
 
 func (v *ApplyHuman) ResourceCount(stateOutPath string) {
@@ -87,7 +90,7 @@ func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 
 	v.view.streams.Print("\n")
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
-		v.view.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.view.outputColumns()))
+		v.view.streams.Printf("\n%s\n\n", v.view.wrapToStdout(stateOutPathPostApply))
 		v.view.streams.Printf("State path: %s\n", stateOutPath)
 	}
 }
@@ -135,6 +138,10 @@ type ApplyJSON struct {
 }
 
 var _ Apply = (*ApplyJSON)(nil)
+
+func (v *ApplyJSON) Version() {
+	v.view.Version()
+}
 
 func (v *ApplyJSON) ResourceCount(stateOutPath string) {
 	operation := json.OperationApplied

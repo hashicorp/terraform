@@ -49,7 +49,10 @@ func (m *Meta) normalizePath(path string) string {
 // If no const variables are unsatisfied, or if the backend does not support
 // supplying variables, this method is a no-op.
 func (m *Meta) resolveConstVariables(rootDir string, viewType arguments.ViewType) tfdiags.Diagnostics {
-	rootMod, diags := m.loadSingleModule(rootDir)
+	var diags tfdiags.Diagnostics
+
+	rootMod, hclDiags := m.loadRawModule(rootDir)
+	diags = diags.Append(hclDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -168,15 +171,10 @@ func (m *Meta) loadConfigWithTests(rootDir, testDir string) (*configs.Config, tf
 	return config, diags
 }
 
-// loadSingleModule reads configuration from the given directory and returns
-// a description of that module only, without attempting to assemble a module
-// tree for referenced child modules.
-//
-// Most callers should use loadConfig. This method exists to support early
-// initialization use-cases where the root module must be inspected in order
-// to determine what else needs to be installed before the full configuration
-// can be used.
-func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostics) {
+// loadRawModule only reads the configuration from the given directory and
+// does not resolve any dynamic provider requirements or module requirements.
+// Use this only very early when you need to inspect the raw module configuration.
+func (m *Meta) loadRawModule(dir string) (*configs.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	dir = m.normalizePath(dir)
 
@@ -188,6 +186,39 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	return module, diags
+}
+
+// loadSingleModule reads configuration from the given directory and returns
+// a description of that module only, without attempting to assemble a module
+// tree for referenced child modules.
+//
+// Most callers should use loadConfig. This method exists to support early
+// initialization use-cases where the root module must be inspected in order
+// to determine what else needs to be installed before the full configuration
+// can be used.
+func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	module, hclDiags := m.loadRawModule(dir)
+	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		return nil, diags
+	}
+
+	module, buildDiags := terraform.BuildModuleWithGraph(module, vars)
+	diags = diags.Append(buildDiags)
+
 	return module, diags
 }
 
@@ -205,6 +236,19 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 
 	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
 	diags = diags.Append(hclDiags)
+	if diags.HasErrors() {
+		return module, diags
+	}
+
+	vars, varDiags := backendrun.ParseConstVariableValues(m.VariableValues, module.Variables)
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		return nil, diags
+	}
+
+	module, buildDiags := terraform.BuildModuleWithGraph(module, vars)
+	diags = diags.Append(buildDiags)
+
 	return module, diags
 }
 
@@ -240,7 +284,7 @@ func (m *Meta) dirIsConfigPath(dir string) bool {
 // that a call to loadSingleModule or loadConfig could fail on the same
 // directory even if loadBackendConfig succeeded.)
 func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diagnostics) {
-	mod, diags := m.loadSingleModule(rootDir)
+	mod, diags := m.loadRawModule(rootDir)
 
 	// Only return error diagnostics at this point. Any warnings will be caught
 	// again later and duplicated in the output.
@@ -280,7 +324,9 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // The given hooks object will be notified of installation progress, which
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
-// via a provided cli.Ui.
+// via a provided View.
+//
+// This method uses the Meta's cli.Ui to log if the installation is interrupted.
 func (m *Meta) installModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ...initwd.ModuleInstallHook) (abort bool, diags tfdiags.Diagnostics) {
 	ctx, span := tracer.Start(ctx, "install modules")
 	defer span.End()
@@ -500,7 +546,7 @@ func (m *Meta) getProviderSupplyModeForStateStore(config *configs.Module) getpro
 // context in the CLI where only strings can be provided, such as on the
 // command line or in an environment variable, and returns the resulting
 // value.
-func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.Value, tfdiags.Diagnostics) {
+func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type, stateStorageMode string) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	switch {
@@ -512,8 +558,8 @@ func configValueFromCLI(synthFilename, rawValue string, wantType cty.Type) (cty.
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid backend configuration value",
-				fmt.Sprintf("Invalid backend configuration argument %s: %s", synthFilename, err),
+				fmt.Sprintf("Invalid %s configuration value", stateStorageMode),
+				fmt.Sprintf("Invalid %s configuration argument %s: %s", stateStorageMode, synthFilename, err),
 			))
 			val = cty.DynamicVal // just so we return something valid-ish
 		}

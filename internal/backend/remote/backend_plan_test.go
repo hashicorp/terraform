@@ -462,9 +462,9 @@ func TestRemote_planWithTarget(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
+	addr, _ := addrs.ParseTargetStr("null_resource.foo")
 
-	op.Targets = []addrs.Targetable{addr}
+	op.Targets = []addrs.TargetPattern{addr}
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -511,9 +511,9 @@ func TestRemote_planWithTargetIncompatibleAPIVersion(t *testing.T) {
 	// API versions prior to 2.3.
 	b.client.SetFakeRemoteAPIVersion("")
 
-	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
+	addr, _ := addrs.ParseTargetStr("null_resource.foo")
 
-	op.Targets = []addrs.Targetable{addr}
+	op.Targets = []addrs.TargetPattern{addr}
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)

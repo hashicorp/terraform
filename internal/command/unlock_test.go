@@ -7,8 +7,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 )
@@ -16,9 +14,8 @@ import (
 // Since we can't unlock a local state file, just test that calling unlock
 // doesn't fail.
 func TestUnlock(t *testing.T) {
-	td := t.TempDir()
-	os.MkdirAll(td, 0755)
-	t.Chdir(td)
+	td := tempWorkingDir(t)
+	t.Chdir(td.RootModuleDir())
 
 	// Write the legacy state
 	statePath := DefaultStateFilename
@@ -35,13 +32,12 @@ func TestUnlock(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
+			WorkingDir:       td,
 		},
 	}
 
@@ -51,7 +47,8 @@ func TestUnlock(t *testing.T) {
 	}
 
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
 	// make sure we don't crash with arguments in the wrong order
@@ -60,37 +57,37 @@ func TestUnlock(t *testing.T) {
 		"-force",
 	}
 
-	if code := c.Run(args); code != cli.RunResultHelp {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+	if code := c.Run(args); code == 0 {
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 }
 
 // Newly configured backend
 func TestUnlock_inmemBackend(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("backend-inmem-locked"), td)
-	t.Chdir(td)
+	td := tempWorkingDirFixture(t, "backend-inmem-locked")
+	t.Chdir(td.RootModuleDir())
+
 	defer inmem.Reset()
 
 	// init backend
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	ci := &InitCommand{
 		Meta: Meta{
-			Ui:   ui,
-			View: view,
+			View:       view,
+			WorkingDir: td,
 		},
 	}
 	if code := ci.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
-			Ui:   ui,
-			View: view,
+			View:       view,
+			WorkingDir: td,
 		},
 	}
 
@@ -101,21 +98,22 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	}
 
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	c = &UnlockCommand{
 		Meta: Meta{
-			Ui:   ui,
-			View: view,
+			View:       view,
+			WorkingDir: td,
 		},
 	}
 
 	// lockID set in the test fixture
 	args[1] = "2b6a6738-5dd5-50d6-c0ae-f6352977666b"
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
-
 }

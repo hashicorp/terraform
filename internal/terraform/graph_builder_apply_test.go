@@ -505,8 +505,8 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 		Config:  testModule(t, "graph-builder-apply-target-module"),
 		Changes: changes,
 		Plugins: simpleMockPluginLibrary(),
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
+		Targets: []addrs.TargetPattern{
+			mustTargetPattern("module.child2"),
 		},
 	}
 

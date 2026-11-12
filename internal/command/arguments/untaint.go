@@ -37,6 +37,8 @@ type Untaint struct {
 	// IgnoreRemoteVersion, if true, continues even if remote and local
 	// Terraform versions are incompatible.
 	IgnoreRemoteVersion bool
+
+	ViewType ViewType
 }
 
 // ParseUntaint processes CLI arguments, returning an Untaint value and errors.
@@ -44,7 +46,9 @@ type Untaint struct {
 // the best effort interpretation of the arguments.
 func ParseUntaint(args []string) (*Untaint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	untaint := &Untaint{}
+	untaint := &Untaint{
+		ViewType: ViewHuman,
+	}
 
 	cmdFlags := defaultFlagSet("untaint")
 	cmdFlags.BoolVar(&untaint.AllowMissing, "allow-missing", false, "allow missing")

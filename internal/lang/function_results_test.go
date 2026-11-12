@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 
 	// set the correct global logger for tests
@@ -16,6 +17,8 @@ import (
 
 func TestFunctionCache(t *testing.T) {
 	testAddr := addrs.NewDefaultProvider("test")
+
+	deprecated := marks.NewDeprecation("test deprecation", "test")
 
 	type testCall struct {
 		provider addrs.Provider
@@ -156,6 +159,37 @@ func TestFunctionCache(t *testing.T) {
 				result: cty.False,
 			},
 			// OK because args changed from unknown to known
+		},
+		{
+			first: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.NumberIntVal(2)},
+				result:   cty.True.Mark(deprecated).Mark(marks.Sensitive),
+			},
+			second: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.NumberIntVal(2)},
+				result:   cty.True.Mark(deprecated).Mark(marks.Sensitive),
+			},
+		},
+
+		{
+			first: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.NumberIntVal(2).Mark(marks.Ephemeral).Mark(marks.Sensitive)},
+				result:   cty.True,
+			},
+			second: testCall{
+				provider: testAddr,
+				name:     "fun",
+				args:     []cty.Value{cty.NumberIntVal(2).Mark(marks.Ephemeral).Mark(marks.Sensitive)},
+				result:   cty.False,
+			},
+			// make sure the arg marks always evaluate as equal
+			expectErr: true,
 		},
 	}
 

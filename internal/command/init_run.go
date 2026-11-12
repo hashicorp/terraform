@@ -79,7 +79,6 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		view.LogConfigurationCopyingStart(src)
 
 		hooks := uiModuleInstallHooks{
-			Ui:             c.Ui,
 			ShowLocalPaths: false, // since they are in a weird location for init
 			View:           view,
 		}
@@ -110,7 +109,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 		return 1
 	}
 	if empty {
-		view.Output(views.OutputInitEmptyMessage)
+		view.LogInitSuccessEmpty()
 		return 0
 	}
 
@@ -175,7 +174,7 @@ func (c *InitCommand) run(initArgs *arguments.Init, view views.Init) int {
 			if lockDiags.HasErrors() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Error loading -state-provider-lock-file lock file",
+					"Failed to load the -state-provider-lock-file lock file",
 					fmt.Sprintf("Terraform experienced an error loading the file at %q: %s", initArgs.StateStoreProviderLockFile, lockDiags.Err()),
 				))
 				view.Diagnostics(diags)
@@ -446,22 +445,21 @@ Please use \"terraform state migrate -upgrade\" to upgrade the state store provi
 	// still the final thing shown.
 	view.Diagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
-	output := views.OutputInitSuccessMessage
 	if cloud {
-		output = views.OutputInitSuccessCloudMessage
+		view.LogInitSuccessCloud()
+	} else {
+		view.LogInitSuccess()
 	}
-
-	view.Output(output)
 
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
-		output = views.OutputInitSuccessCLIMessage
 		if cloud {
-			output = views.OutputInitSuccessCLICloudMessage
+			view.LogCallToActionCLICloud()
+		} else {
+			view.LogCallToActionCLI()
 		}
-		view.Output(output)
 	}
 	return 0
 }

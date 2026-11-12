@@ -3,20 +3,18 @@ variable "name" {
   default = "world"
 }
 
-data "template_file" "test" {
-  template = "Hello, $${name}"
-
-  vars = {
-    name = "${var.name}"
-  }
+resource "local_file" "hello" {
+  content  = "Hello, ${var.name}"
+  filename = "${path.module}/hello.txt"
 }
+
 
 resource "null_resource" "test" {
   triggers = {
-    greeting = "${data.template_file.test.rendered}"
+    greeting = "${local_file.hello.content}"
   }
 }
 
 output "greeting" {
-  value = "${null_resource.test.triggers["greeting"]}"
+  value = null_resource.test.triggers["greeting"]
 }

@@ -162,7 +162,12 @@ type testOutputPart struct {
 }
 
 // All returns the output written to both the Stdout and Stderr streams,
-// interleaved together in the order of writing in a single string.
+// interleaved together in a single string.
+//
+// It's not possible to make non-flakey/reliable assertions about the order of writes
+// between the Stdout and Stderr with this method; the returned string reflects the order
+// that data was captured from the two streams but not necessarily the order in which it
+// was written. In contrast, ordering within a single stream is preserved.
 func (o TestOutput) All() string {
 	buf := &strings.Builder{}
 	for _, part := range o.parts {

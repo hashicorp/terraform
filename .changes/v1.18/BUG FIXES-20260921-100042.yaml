@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`textdecodebase64`: Accept valid UTF-8 strings containing the U+FFFD replacement character'
+time: 2026-09-21T10:00:42.4014-04:00
+custom:
+    Issue: "39256"

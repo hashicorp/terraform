@@ -49,6 +49,12 @@ type ApplyOpts struct {
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
 
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
+
 	// ProviderLocks is a read-only snapshot of provider locks (from the dependency lock
 	// file). This is required by policy evaluations against providers to access version information.
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -70,9 +76,10 @@ type ApplyOpts struct {
 // as in test cases.
 func (po *PlanOpts) ApplyOpts() *ApplyOpts {
 	return &ApplyOpts{
-		ExternalProviders:         po.ExternalProviders,
-		AllowRootEphemeralOutputs: po.AllowRootEphemeralOutputs,
-		ProviderLocks:             po.ProviderLocks,
+		ExternalProviders:          po.ExternalProviders,
+		AllowRootEphemeralOutputs:  po.AllowRootEphemeralOutputs,
+		AllowRootDeprecatedOutputs: po.AllowRootDeprecatedOutputs,
+		ProviderLocks:              po.ProviderLocks,
 	}
 }
 
@@ -200,6 +207,12 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		return nil, nil, diags
 	}
 
+	plannedDeferrals, moreDiags := decodeDeferredResources(schemas, plan.DeferredResources)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
+
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
 		Config:                  config,
@@ -208,7 +221,8 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		Overrides:               plan.Overrides,
 		ExternalProviderConfigs: opts.ExternalProviders,
 
-		DeferralAllowed: true,
+		DeferralAllowed:  true,
+		PlannedDeferrals: plannedDeferrals,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting
@@ -330,26 +344,8 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 		opts = new(ApplyOpts)
 	}
 
-	variables := InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		if pvm, ok := plan.VariableMarks[name]; ok {
-			val = val.MarkWithPaths(pvm)
-		}
-
-		variables[name] = &InputValue{
-			Value:      val,
-			SourceType: ValueFromPlan,
-		}
-	}
+	variables, varDiags := InputValuesFromPlan(plan)
+	diags = diags.Append(varDiags)
 	// Apply-time variables need to be merged in too.
 	// FIXME: We should check that all of these match declared variables and
 	// that all of them are declared as ephemeral, because all non-ephemeral
@@ -389,22 +385,22 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *App
 	}
 
 	graph, moreDiags := (&ApplyGraphBuilder{
-		Config:                    config,
-		Changes:                   plan.Changes,
-		DeferredChanges:           plan.DeferredResources,
-		State:                     plan.PriorState,
-		RootVariableValues:        variables,
-		ExternalProviderConfigs:   opts.ExternalProviders,
-		Plugins:                   c.plugins,
-		Targets:                   plan.TargetAddrs,
-		ActionTargets:             plan.ActionTargetAddrs,
-		ForceReplace:              plan.ForceReplaceAddrs,
-		Operation:                 operation,
-		ExternalReferences:        plan.ExternalReferences,
-		Overrides:                 plan.Overrides,
-		SkipGraphValidation:       c.graphOpts.SkipGraphValidation,
-		AllowRootEphemeralOutputs: opts.AllowRootEphemeralOutputs,
-		PolicyClient:              opts.PolicyClient,
+		Config:                     config,
+		Changes:                    plan.Changes,
+		State:                      plan.PriorState,
+		RootVariableValues:         variables,
+		ExternalProviderConfigs:    opts.ExternalProviders,
+		Plugins:                    c.plugins,
+		Targets:                    plan.TargetAddrs,
+		ActionTargets:              plan.ActionTargetAddrs,
+		ForceReplace:               plan.ForceReplaceAddrs,
+		Operation:                  operation,
+		ExternalReferences:         plan.ExternalReferences,
+		Overrides:                  plan.Overrides,
+		SkipGraphValidation:        c.graphOpts.SkipGraphValidation,
+		AllowRootEphemeralOutputs:  opts.AllowRootEphemeralOutputs,
+		AllowRootDeprecatedOutputs: opts.AllowRootDeprecatedOutputs,
+		PolicyClient:               opts.PolicyClient,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -432,4 +428,37 @@ func (c *Context) ApplyGraphForUI(plan *plans.Plan, config *configs.Config) (*Gr
 	graph, _, moreDiags := c.applyGraph(plan, config, nil, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
+}
+
+// decodeDeferredResources decodes the deferred resource changes stored in a
+// plan, so that they can be loaded into the deferrals tracker for the apply
+// walk. This is the inverse of [Context.deferredResources].
+func decodeDeferredResources(schemas *Schemas, srcs []*plans.DeferredResourceInstanceChangeSrc) ([]*plans.DeferredResourceInstanceChange, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var deferrals []*plans.DeferredResourceInstanceChange
+
+	for _, src := range srcs {
+		addr := src.ChangeSrc.Addr
+		schema := schemas.ResourceTypeConfig(src.ChangeSrc.ProviderAddr.Provider, addr.Resource.Resource.Mode, addr.Resource.Resource.Type)
+		if schema.Body == nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode deferred change",
+				fmt.Sprintf("Terraform failed to decode the deferred change for %s because its schema is not available. This is a bug in Terraform; please report it!", addr),
+			))
+			continue
+		}
+
+		deferral, err := src.Decode(schema)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to decode deferred change",
+				fmt.Sprintf("Terraform failed to decode the deferred change for %s: %s.\n\nThis is a bug in Terraform; please report it!", addr, err),
+			))
+			continue
+		}
+		deferrals = append(deferrals, deferral)
+	}
+	return deferrals, diags
 }

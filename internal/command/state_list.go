@@ -4,12 +4,15 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StateListCommand is a Command implementation that lists the resources
@@ -19,10 +22,23 @@ type StateListCommand struct {
 	StateMeta
 }
 
-func (c *StateListCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStateList(c.Meta.process(args))
+func (c *StateListCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateList(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateList(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -31,9 +47,9 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	// Load the backend
-	b, diags := c.backend(".", arguments.ViewHuman)
+	b, diags := c.backend(".", parsedArgs.ViewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -43,22 +59,34 @@ func (c *StateListCommand) Run(args []string) int {
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, sDiags.Err()))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, sDiags.Err()))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -69,20 +97,19 @@ func (c *StateListCommand) Run(args []string) int {
 		addrs, diags = c.lookupResourceInstanceAddrs(state, parsedArgs.Addrs...)
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
+	addresses := []string{}
 	for _, addr := range addrs {
 		if is := state.ResourceInstance(addr); is != nil {
 			if parsedArgs.ID == "" || parsedArgs.ID == states.LegacyInstanceObjectID(is.Current) {
-				c.Ui.Output(addr.String())
+				addresses = append(addresses, addr.String())
 			}
 		}
 	}
-
-	c.showDiagnostics(diags)
-
+	view.List(addresses, diags)
 	return 0
 }
 
@@ -108,15 +135,20 @@ Usage: terraform [global options] state list [options] [address...]
 
 Options:
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default, Terraform
-                      will consult the state of the currently-selected
-                      workspace.
-
   -id=ID              Filters the results to include only instances whose
                       resource types have an attribute named "id" whose value
                       equals the given id string.
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
+  -no-color           Disable text coloring in the output.
+
+  -state=statefile    Path to a Terraform state file to use to look
+                      up Terraform-managed resources. By default, Terraform
+                      will consult the state of the currently-selected
+                      workspace.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -131,8 +163,8 @@ Please ensure that your Terraform state exists and that you've
 configured it properly. You can use the "-state" flag to point
 Terraform at another state file.`
 
-const errStateNotFound = `No state file was found!
+var errStateNotFound = errors.New(`No state file was found!
 
 State management commands require a state file. Run this command
 in a directory where Terraform has been run or use the -state flag
-to point the command to a specific state location.`
+to point the command to a specific state location.`)

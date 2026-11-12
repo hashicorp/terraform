@@ -16,7 +16,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/cli"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
@@ -57,7 +57,7 @@ func TestMetaBackend_emptyDir(t *testing.T) {
 	t.Chdir(td)
 
 	// Get the backend
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	b, diags := m.Backend(&BackendOpts{Init: true})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -126,7 +126,7 @@ func TestMetaBackend_emptyWithDefaultState(t *testing.T) {
 	}
 
 	// Get the backend
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	b, diags := m.Backend(&BackendOpts{Init: true})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
@@ -197,7 +197,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 	}
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.statePath = statePath
 
 	// Get the backend
@@ -250,7 +250,7 @@ func TestMetaBackend_configureBackendInterpolation(t *testing.T) {
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// Get the backend
 	_, err := m.Backend(&BackendOpts{Init: true})
@@ -270,7 +270,7 @@ func TestMetaBackend_configureNewBackend(t *testing.T) {
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -333,11 +333,14 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// This combination should not require the extra -migrate-state flag, since
 	// there is no existing backend config
@@ -415,7 +418,7 @@ func TestMetaBackend_configureNewBackendWithoutCopy(t *testing.T) {
 	}
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.input = false
 
 	// init the backend
@@ -460,11 +463,14 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-new-migrate"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -505,7 +511,7 @@ func TestMetaBackend_configureNewBackendWithStateExisting(t *testing.T) {
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	// suppress input
 	m.forceInitCopy = true
 
@@ -575,11 +581,14 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 	testCopyDir(t, testFixturePath("backend-new-migrate-existing"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -646,7 +655,7 @@ func TestMetaBackend_configuredBackendUnchanged(t *testing.T) {
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -688,11 +697,14 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -772,7 +784,7 @@ func TestMetaBackend_reconfigureBackendChange(t *testing.T) {
 	defer backendInit.Set("local-single", nil)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// this should not ask for input
 	m.input = false
@@ -820,12 +832,16 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExist(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
 	t.Chdir(td)
 
-	// Setup the meta
-	m := testMetaBackend(t, nil)
-
-	terminalPrompts := testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, terminalPrompts := testInputMap(t, map[string]string{
 		"select-workspace": "2",
 	})
+
+	// Setup the meta
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	_, diags := m.Backend(&BackendOpts{Init: true})
@@ -859,7 +875,7 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExistAutoSelect(t *testi
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// this should not ask for input
 	m.input = false
@@ -900,7 +916,7 @@ func TestMetaBackend_initBackendSelectedWorkspaceDoesNotExistInputFalse(t *testi
 	t.Chdir(td)
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.input = false
 
 	// Get the backend
@@ -919,11 +935,14 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -970,13 +989,16 @@ func TestMetaBackend_configuredBackendChangeCopy_singleState(t *testing.T) {
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1024,13 +1046,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleDefault(t *testing
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-copy-to-empty": "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1077,14 +1102,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingle(t *testing.T) {
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1146,14 +1174,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToSingleCurrentEnv(t *test
 	backendInit.Set("local-single", backendLocal.TestNewLocalSingle)
 	defer backendInit.Set("local-single", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-single": "yes",
 		"backend-migrate-copy-to-empty":        "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Change env
 	if err := m.SetWorkspace("env2"); err != nil {
@@ -1207,13 +1238,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToMulti(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-change-multi-to-multi"), td)
 	t.Chdir(td)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1307,14 +1341,17 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithDefault(t *
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
 	defer backendInit.Set("local-no-default", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 		"new-state-name": "env1",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1385,13 +1422,16 @@ func TestMetaBackend_configuredBackendChangeCopy_multiToNoDefaultWithoutDefault(
 	backendInit.Set("local-no-default", backendLocal.TestNewLocalNoDefault)
 	defer backendInit.Set("local-no-default", nil)
 
-	// Ask input
-	_ = testInputMap(t, map[string]string{
+	// Ask for input
+	uiInput, _ := testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
 	})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1456,11 +1496,14 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-unset"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"no"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"no"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1518,11 +1561,14 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	testCopyDir(t, testFixturePath("backend-unset"), td)
 	t.Chdir(td)
 
-	// Ask input
-	defer testInteractiveInput(t, []string{"yes", "yes"})()
+	// Ask for input
+	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1592,7 +1638,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	}
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// Get the backend
 	b, diags := m.BackendForLocalPlan(plan)
@@ -1689,7 +1735,7 @@ func TestMetaBackend_planLocal_stateStore(t *testing.T) {
 	}
 
 	// Setup the meta, including a mock provider set up to mock PSS
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 1000)
 	m.testingOverrides = &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1759,7 +1805,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	}
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.stateOutPath = statePath
 
 	// Get the backend
@@ -1851,7 +1897,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	}
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 
 	// Get the backend
 	b, diags := m.BackendForLocalPlan(plan)
@@ -1940,7 +1986,7 @@ func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
 		}
 
 		// Setup the meta
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		otherWorkspace := "foobar"
 		err = m.SetWorkspace(otherWorkspace)
 		if err != nil {
@@ -1992,7 +2038,7 @@ func TestMetaBackend_planLocal_mismatchedWorkspace(t *testing.T) {
 		}
 
 		// Setup the meta
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		otherWorkspace := "foobar"
 		err = m.SetWorkspace(otherWorkspace)
 		if err != nil {
@@ -2029,7 +2075,7 @@ func TestMetaBackend_configureBackendWithExtra(t *testing.T) {
 	t.Chdir(td)
 
 	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	opts := &BackendOpts{
 		ConfigOverride: configs.SynthBody("synth", extras),
 		Init:           true,
@@ -2056,7 +2102,7 @@ func TestMetaBackend_configureBackendWithExtra(t *testing.T) {
 	}
 
 	// init the backend again with the same options
-	m = testMetaBackend(t, nil)
+	m = testMetaBackend(t)
 	_, err = m.Backend(&BackendOpts{
 		ConfigOverride: configs.SynthBody("synth", extras),
 		Init:           true,
@@ -2087,7 +2133,7 @@ func TestMetaBackend_localDoesNotDeleteLocal(t *testing.T) {
 	)
 	testStateFileDefault(t, orig)
 
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.forceInitCopy = true
 	// init the backend
 	_, diags := m.Backend(&BackendOpts{Init: true})
@@ -2110,7 +2156,7 @@ func TestMetaBackend_backendConfigToExtra(t *testing.T) {
 	t.Chdir(td)
 
 	// init the backend
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	_, err := m.Backend(&BackendOpts{
 		Init: true,
 	})
@@ -2130,7 +2176,7 @@ func TestMetaBackend_backendConfigToExtra(t *testing.T) {
 
 	// init the backend again with the  options
 	extras := map[string]cty.Value{"path": cty.StringVal("hello")}
-	m = testMetaBackend(t, nil)
+	m = testMetaBackend(t)
 	m.forceInitCopy = true
 	_, diags := m.Backend(&BackendOpts{
 		ConfigOverride: configs.SynthBody("synth", extras),
@@ -2153,7 +2199,7 @@ func TestBackendFromState(t *testing.T) {
 	t.Chdir(wd.RootModuleDir())
 
 	// Setup the meta
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	m.WorkingDir = wd
 	// terraform caches a small "state" file that stores the backend config.
 	// This test must override m.dataDir so it loads the "terraform.tfstate" file in the
@@ -2311,7 +2357,7 @@ func TestMetaBackend_configureStateStoreVariableUse(t *testing.T) {
 			mock := testStateStoreMock(t)
 
 			// Setup the meta
-			m := testMetaBackend(t, nil)
+			m := testMetaBackend(t)
 			m.testingOverrides = metaOverridesForProvider(mock)
 			m.AllowExperimentalFeatures = true
 
@@ -2345,7 +2391,7 @@ func TestSavedBackend(t *testing.T) {
 
 	// Make a state manager for the backend state file,
 	// read state from file
-	m := testMetaBackend(t, nil)
+	m := testMetaBackend(t)
 	statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	err := sMgr.RefreshState()
@@ -2413,7 +2459,7 @@ func TestSavedStateStore(t *testing.T) {
 
 		// Make a state manager for accessing the backend state file,
 		// and read the backend state from file
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 		sMgr := &clistate.LocalState{Path: statePath}
@@ -2452,7 +2498,7 @@ func TestSavedStateStore(t *testing.T) {
 
 		// Make a state manager for accessing the backend state file,
 		// and read the backend state from file
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 
 		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
@@ -2489,7 +2535,7 @@ func TestSavedStateStore(t *testing.T) {
 
 		// Make a state manager for accessing the backend state file,
 		// and read the backend state from file
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 
 		statePath := filepath.Join(m.DataDir(), DefaultStateFilename)
@@ -2549,7 +2595,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		}
 
 		// Setup the meta and test providerFactoriesDuringInit
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		_, diags := m.StateStoreProviderFactoryFromConfig(config, locks)
 		if !diags.HasErrors() {
 			t.Fatalf("expected error but got none")
@@ -2580,7 +2626,7 @@ func TestMetaBackend_GetStateStoreProviderFactory(t *testing.T) {
 		}
 
 		// Setup the meta and test providerFactoriesDuringInit
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		_, diags := m.StateStoreProviderFactoryFromConfig(config, locks)
 		if !diags.HasErrors() {
 			t.Fatal("expected and error but got none")
@@ -2659,7 +2705,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 		)
 
 		// Prepare the meta
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 
 		// Code under test
@@ -2675,7 +2721,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 
 	t.Run("error - when there's no state stores in provider", func(t *testing.T) {
 		// Prepare the meta
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		mock := testStateStoreMock(t)
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store") // Remove the only state store impl.
 		m.testingOverrides = metaOverridesForProvider(mock)
@@ -2708,7 +2754,7 @@ func TestMetaBackend_stateStoreInitFromConfig(t *testing.T) {
 
 	t.Run("error - when there's no matching state store in provider Terraform suggests different identifier", func(t *testing.T) {
 		// Prepare the meta
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		mock := testStateStoreMock(t)
 		testStore := mock.GetProviderSchemaResponse.StateStores["test_store"]
 		delete(mock.GetProviderSchemaResponse.StateStores, "test_store")
@@ -2789,7 +2835,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		mock := testStateStoreMock(t)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		finalConfig, _, diags := m.stateStoreConfig(opts)
 		if diags.HasErrors() {
@@ -2820,7 +2866,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		mock := testStateStoreMock(t)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
@@ -2845,7 +2891,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			Locks:            locks,
 		}
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
@@ -2873,7 +2919,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 			Locks:            locks,
 		}
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 
 		_, _, diags := m.stateStoreConfig(opts)
@@ -2905,7 +2951,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		mock := testStateStoreMock(t)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		_, _, diags := m.stateStoreConfig(opts)
 		if !diags.HasErrors() {
@@ -2934,7 +2980,7 @@ func TestMetaBackend_stateStoreConfig(t *testing.T) {
 
 		mock := testStateStoreMock(t)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.testingOverrides = metaOverridesForProvider(mock)
 		_, _, diags := m.stateStoreConfig(opts)
 		if diags.HasErrors() {
@@ -3069,7 +3115,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		testCopyDir(t, testFixturePath("cloud-config"), td)
 		t.Chdir(td)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 
 		// We cannot initialize a cloud backend so we instead check
 		// the init error is referencing HCP Terraform
@@ -3091,7 +3137,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		testCopyDir(t, testFixturePath("backend-unchanged"), td)
 		t.Chdir(td)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 
 		b, bDiags := m.backend(td, arguments.ViewHuman)
 		if bDiags.HasErrors() {
@@ -3116,7 +3162,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		testCopyDir(t, testFixturePath("empty"), td)
 		t.Chdir(td)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		b, bDiags := m.backend(td, arguments.ViewHuman)
 		if bDiags.HasErrors() {
 			t.Fatal("unexpected error: ", bDiags.Err())
@@ -3141,7 +3187,7 @@ func TestMetaBackend_prepareBackend(t *testing.T) {
 		testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
 		t.Chdir(td)
 
-		m := testMetaBackend(t, nil)
+		m := testMetaBackend(t)
 		m.AllowExperimentalFeatures = true
 		mock := testStateStoreMockWithChunkNegotiation(t, testStateStoreMock(t), 12345) // chunk size needs to be set, value is arbitrary
 		m.testingOverrides = &testingOverrides{
@@ -3430,16 +3476,22 @@ To fix this, create a minimal configuration(s) containing the specific provider 
 	})
 }
 
-func testMetaBackend(t *testing.T, args []string) *Meta {
+func testMetaBackend(t *testing.T) *Meta {
+	var args []string // purposefully left as nil
+
 	var m Meta
 	m.Ui = new(cli.MockUi)
 	view, _ := testView(t)
 	m.View = view
 	m.process(args)
-	f := m.extendedFlagSet("test")
-	if err := f.Parse(args); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
+
+	// Set meta fields that were previously set in this helper by
+	// calling m.extendedFlagSet with no flags.
+	// In non-test scenarios, these fields would be set by a command
+	// using parsed flag values returned from the `arguments` package.
+	m.input = true
+	m.compactWarnings = false
+	m.stateLock = true
 
 	// metaBackend tests are verifying migrate actions
 	m.migrateState = true

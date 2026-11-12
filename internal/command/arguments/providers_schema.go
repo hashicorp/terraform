@@ -8,10 +8,10 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // ProvidersSchema represents the command-line arguments for the providers
 // schema command.
 type ProvidersSchema struct {
-	JSON bool
-
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
+
+	ViewType ViewType
 }
 
 // ParseProvidersSchema processes CLI arguments, returning a ProvidersSchema
@@ -20,11 +20,13 @@ type ProvidersSchema struct {
 func ParseProvidersSchema(args []string) (*ProvidersSchema, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	providersSchema := &ProvidersSchema{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
+	var json bool
 	cmdFlags := extendedFlagSet("providers schema", nil, nil, providersSchema.Vars)
-	cmdFlags.BoolVar(&providersSchema.JSON, "json", false, "produce JSON output")
+	cmdFlags.BoolVar(&json, "json", false, "produce JSON output")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -43,7 +45,14 @@ func ParseProvidersSchema(args []string) (*ProvidersSchema, tfdiags.Diagnostics)
 		))
 	}
 
-	if !providersSchema.JSON {
+	switch {
+	case json:
+		providersSchema.ViewType = ViewJSON
+	default:
+		providersSchema.ViewType = ViewHuman
+
+		// The human view will only be used to render this error message
+		// after argument parsing.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"The -json flag is required",

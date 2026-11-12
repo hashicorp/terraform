@@ -5,6 +5,7 @@ package terraform
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -1108,6 +1109,224 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					}
 				}
 				t.Error("Expected module.child.test_resource.test in plan changes")
+			},
+		},
+		{
+			name:        "destroy plan: module policy is evaluated",
+			expectCalls: 1,
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				module "child" {
+					source = "./child"
+				}
+				`,
+			childConfig: `
+				resource "test_resource" "test" {
+					sensitive_value = "foo"
+				}
+				`,
+			planMode: plans.DestroyMode,
+			state: states.BuildState(func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("module.child.test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"bar","type":"test_resource","sensitive_value":"foo"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+					if req.Meta.Address != "module.child" {
+						t.Errorf("Expected module address to be \"module.child\", got %q", req.Meta.Address)
+					}
+					if req.Target != "./child" {
+						t.Errorf("Expected module target to be \"./child\", got %q", req.Target)
+					}
+					return policy.EvaluationResponse{
+						Overall: policy.DenyResult,
+						Diagnostics: policy.DiagsFromProto([]*proto.Diagnostic{
+							{
+								Severity: proto.Severity_ERROR,
+								Summary:  "Module policy violation",
+								Detail:   "module.child violates policy",
+								Result: &proto.DiagnosticResult{
+									Result: proto.EvaluateResult_DENY_EVALUATE_RESULT,
+								},
+							},
+						}, nil),
+					}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateModuleCalled {
+					t.Fatal("Expected policyClient.EvaluateModule to be called")
+				}
+
+				result, ok := d.viewHook.PolicyResults["module.child"]
+				if !ok {
+					t.Fatal("Expected a policy result for module.child")
+				}
+				if result.Overall != policy.DenyResult {
+					t.Errorf("Expected module.child policy result to be deny, got %v", result.Overall)
+				}
+
+				for _, rc := range d.plan.Changes.Resources {
+					if rc.Addr.String() == "module.child.test_resource.test" {
+						if rc.Action != plans.Delete {
+							t.Errorf("Expected delete action for module.child.test_resource.test, got %s", rc.Action)
+						}
+						return
+					}
+				}
+				t.Error("Expected module.child.test_resource.test in plan changes")
+			},
+		},
+		{
+			// The module call expands into multiple instances via for_each.
+			// The variable and the expansion node are pruned from the destroy
+			// graph, but the module policy is still evaluated once for the
+			// module call.
+			name:        "destroy plan: module policy is evaluated for expanded module call",
+			expectCalls: 2,
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				variable "keys" {
+					type    = set(string)
+					default = ["a", "b"]
+				}
+
+				module "child" {
+					source   = "./child"
+					for_each = var.keys
+				}
+				`,
+			childConfig: `
+				resource "test_resource" "test" {
+					sensitive_value = "foo"
+				}
+				`,
+			planMode: plans.DestroyMode,
+			state: states.BuildState(func(ss *states.SyncState) {
+				for _, key := range []string{"a", "b"} {
+					ss.SetResourceInstanceCurrent(
+						mustResourceInstanceAddr(fmt.Sprintf("module.child[%q].test_resource.test", key)),
+						&states.ResourceInstanceObjectSrc{
+							Status:    states.ObjectReady,
+							AttrsJSON: []byte(`{"id":"bar","type":"test_resource","sensitive_value":"foo"}`),
+						},
+						mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+					)
+				}
+			}),
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+					if req.Meta.Address != "module.child" {
+						t.Errorf("Expected module address to be \"module.child\", got %q", req.Meta.Address)
+					}
+					// Return a non-empty result so it is reported via the hook.
+					return policy.EvaluationResponse{Overall: policy.DenyResult}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateModuleCalled {
+					t.Error("Expected policyClient.EvaluateModule to be called")
+				}
+
+				var moduleResults int
+				for _, call := range d.viewHook.Calls {
+					if call.Action == "PolicyResult" && call.InstanceID == "module.child" {
+						moduleResults++
+					}
+				}
+				if moduleResults != 1 {
+					t.Errorf("Expected 1 module policy result for module.child, got %d", moduleResults)
+				}
+				tfdiags.AssertNoDiagnostics(t, d.diags)
+			},
+		},
+		{
+			// The module has nothing to destroy, so no destroy node in the
+			// graph depends on the module policy. The module policy node must
+			// still be retained by pruneUnusedNodesTransformer.
+			name:        "destroy plan: module policy is evaluated when module has nothing to destroy",
+			expectCalls: 1,
+			mainConfig: `
+				terraform {
+					required_providers {
+						test = {
+							source = "hashicorp/test"
+							version = "1.0.0"
+						}
+					}
+				}
+
+				resource "test_resource" "test" {
+					sensitive_value = "foo"
+				}
+
+				module "child" {
+					source = "./child"
+				}
+				`,
+			childConfig: `
+				resource "test_resource" "test" {
+					sensitive_value = "foo"
+				}
+				`,
+			planMode: plans.DestroyMode,
+			state: states.BuildState(func(ss *states.SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_resource.test"),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"id":"bar","type":"test_resource","sensitive_value":"foo"}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}),
+			prepareExpectations: func(t *testing.T, data *data) {
+				data.policy.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+					data.policyEvalCalls++
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+				data.policy.EvaluateModuleFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) policy.EvaluationResponse {
+					if req.Meta.Address != "module.child" {
+						t.Errorf("Expected module address to be \"module.child\", got %q", req.Meta.Address)
+					}
+					return policy.EvaluationResponse{Overall: policy.AllowResult}
+				}
+			},
+			assertPolicyResults: func(t *testing.T, d *data) {
+				if !d.policy.EvaluateModuleCalled {
+					t.Error("Expected policyClient.EvaluateModule to be called")
+				}
+				tfdiags.AssertNoDiagnostics(t, d.diags)
 			},
 		},
 	}

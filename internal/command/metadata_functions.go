@@ -4,16 +4,14 @@
 package command
 
 import (
-	"fmt"
-
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonfunction"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-var (
-	ignoredFunctions = []string{"map", "list", "core::map", "core::list"}
-)
+var ignoredFunctions = []string{"map", "list", "core::map", "core::list"}
 
 // MetadataFunctionsCommand is a Command implementation that prints out information
 // about the available functions in Terraform.
@@ -29,22 +27,18 @@ func (c *MetadataFunctionsCommand) Synopsis() string {
 	return "Show signatures and descriptions for the available functions"
 }
 
-func (c *MetadataFunctionsCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("metadata functions")
-	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
+func (c *MetadataFunctionsCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
 
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	if !jsonOutput {
-		c.Ui.Error(
-			"The `terraform metadata functions` command requires the `-json` flag.\n")
-		cmdFlags.Usage()
+	args := c.Meta.process(rawArgs)
+	parsedArgs, parsedArgDiags := arguments.ParseMetadataFunctions(args)
+	diags = diags.Append(parsedArgDiags)
+	if parsedArgDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		if !parsedArgs.JSON {
+			// Show help message if the -json flag is not provided
+			c.Ui.Error(c.Help())
+		}
 		return 1
 	}
 

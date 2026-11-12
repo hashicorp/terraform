@@ -232,14 +232,11 @@ func (n *nodePlannablePartialExpandedResource) managedResourceExecute(ctx EvalCo
 	// learn a subset of the "computed" attribute values to save as part
 	// of our placeholder value for downstream checks.
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
-		TypeName:         n.addr.Resource().Type,
-		Config:           unmarkedConfigVal,
-		PriorState:       priorVal,
-		ProposedNewState: proposedNewVal,
-		// TODO: Should we send "ProviderMeta" here? We don't have the
-		// necessary data for that wired through here right now, but
-		// we might need to do that before stabilizing support for unknown
-		// resource instance expansion.
+		TypeName:           n.addr.Resource().Type,
+		Config:             unmarkedConfigVal,
+		PriorState:         priorVal,
+		ProposedNewState:   proposedNewVal,
+		ClientCapabilities: ctx.ClientCapabilities(),
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(n.config.Config, n.addr.String()))
 	if diags.HasErrors() {

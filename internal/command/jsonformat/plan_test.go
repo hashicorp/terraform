@@ -886,6 +886,33 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
       ~ id  = "i-02ae66f368e8518a9" -> "i-02999999999999999"
     }`,
 		},
+		"forget-then-create": {
+			Action: plans.ForgetThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02999999999999999"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(cty.Path{
+				cty.GetAttrStep{Name: "ami"},
+			}),
+			ExpectedOutput: ` # test_instance.example must be replaced, but the existing object will not be destroyed
+ # (destroy = false is set in the configuration)
+./+ resource "test_instance" "example" {
+      ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
+      ~ id  = "i-02ae66f368e8518a9" -> "i-02999999999999999"
+    }`,
+		},
 		"string in-place update": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,

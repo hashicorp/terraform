@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -20,28 +22,33 @@ type LogoutCommand struct {
 }
 
 // Run implements cli.Command.
-func (c *LogoutCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("logout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error(
-			"The logout command expects at most one argument: the host to log out of.")
-		cmdFlags.Usage()
-		return 1
-	}
-
+func (c *LogoutCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	givenHostname := "app.terraform.io"
-	if len(args) != 0 {
-		givenHostname = args[0]
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	args, argDiags := arguments.ParseLogout(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewLogout(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
 	}
+
+	diags = diags.Append(argDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	givenHostname := args.Host
 
 	hostname, err := svchost.ForComparison(givenHostname)
 	if err != nil {
@@ -50,7 +57,7 @@ func (c *LogoutCommand) Run(args []string) int {
 			"Invalid hostname",
 			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
 		))
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -77,18 +84,18 @@ func (c *LogoutCommand) Run(args []string) int {
 	}
 
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	switch credsCtx.Location {
 	case cliconfig.CredentialsNotAvailable:
-		c.Ui.Output(fmt.Sprintf("No credentials for %s are stored.\n", dispHostname))
+		view.NoCredentialsStored(dispHostname)
 		return 0
 	case cliconfig.CredentialsViaHelper:
-		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the configured\n%q credentials helper.\n", dispHostname, credsCtx.HelperType))
+		view.NotifyTokenRemovedFromCredentialsHelper(dispHostname, credsCtx.HelperType)
 	case cliconfig.CredentialsInPrimaryFile:
-		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the following file:\n    %s\n", dispHostname, credsCtx.LocalFilename))
+		view.NotifyTokenRemovedFromFile(dispHostname, credsCtx.LocalFilename)
 	}
 
 	err = creds.ForgetForHost(hostname)
@@ -100,19 +107,12 @@ func (c *LogoutCommand) Run(args []string) int {
 		))
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	if diags.HasErrors() {
 		return 1
 	}
 
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has removed the stored API token for %s.[reset]
-`)),
-			dispHostname,
-		) + "\n",
-	)
+	view.LogoutSuccess(dispHostname)
 
 	return 0
 }

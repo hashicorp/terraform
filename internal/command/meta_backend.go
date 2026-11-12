@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
@@ -696,7 +696,6 @@ func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backendrun.O
 		PlanOutBackend:    planOutBackend,
 		PlanOutStateStore: planOutStateStore,
 
-		Targets:         m.targets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
 		Workspace:       workspace,
@@ -1616,9 +1615,9 @@ func (m *Meta) backend_c_r_S(
 
 	view := views.NewInit(vt, m.View)
 	if cloudMode == cloud.ConfigMigrationOut {
-		view.Output(views.BackendCloudMigrateLocalMessage)
+		view.LogMigrateFromCloudToLocal()
 	} else {
-		view.Output(views.BackendMigrateLocalMessage, s.Backend.Type)
+		view.LogMigrateBackendUnsetStart(s.Backend.Type)
 	}
 
 	// Grab a purely local backend to get the local state if it exists
@@ -1660,7 +1659,7 @@ func (m *Meta) backend_c_r_S(
 	}
 
 	if output {
-		view.Output(views.BackendConfiguredUnsetMessage, backendType)
+		view.LogMigrateBackendUnsetEnd(backendType)
 	}
 
 	// Return no backend
@@ -1830,7 +1829,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
 		view := views.NewInit(vt, m.View)
-		view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
+		view.LogBackendConfiguredSuccess(s.Backend.Type)
 	}
 
 	return b, diags
@@ -1861,16 +1860,16 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		view := views.NewInit(vt, m.View)
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			view.Output(views.BackendCloudChangeInPlaceMessage)
+			view.LogMigrateCloudConfigurationChanged()
 		case cloud.ConfigMigrationIn:
-			view.Output(views.BackendMigrateToCloudMessage, s.Backend.Type)
+			view.LogMigrateFromBackendToCloud(s.Backend.Type)
 		case cloud.ConfigMigrationOut:
-			view.Output(views.BackendMigrateFromCloudMessage, c.Type)
+			view.LogMigrateFromCloudToBackend(c.Type)
 		default:
 			if s.Backend.Type != c.Type {
-				view.Output(views.BackendMigrateTypeChangeMessage, s.Backend.Type, c.Type)
+				view.LogMigrateFromBackendToBackend(s.Backend.Type, c.Type)
 			} else {
-				view.Output(views.BackendReconfigureMessage)
+				view.LogMigrateBackendReconfigured()
 			}
 		}
 	}
@@ -1957,7 +1956,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
 			view := views.NewInit(vt, m.View)
-			view.Output(views.BackendConfiguredSuccessMessage, s.Backend.Type)
+			view.LogBackendConfiguredSuccess(s.Backend.Type)
 		}
 	}
 
@@ -2070,7 +2069,7 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 
 	// Only return error diagnostics at this point. Any warnings will be caught
 	// again later and duplicated in the output.
-	root, mDiags := m.loadSingleModule(configPath)
+	root, mDiags := m.loadRawModule(configPath)
 	if mDiags.HasErrors() {
 		diags = diags.Append(mDiags)
 		return nil, diags
@@ -2103,6 +2102,11 @@ func (m *Meta) backend(configPath string, viewType arguments.ViewType) (backendr
 		//
 		// Remember, the (Meta).backend method is used for non-init commands, so we expect dependency locks
 		// to be present or for the provider to be otherwise available, e.g. via reattach config.
+		root, mDiags = m.loadSingleModule(configPath)
+		if mDiags.HasErrors() {
+			diags = diags.Append(mDiags)
+			return nil, diags
+		}
 		root.StateStore.ProviderSupplyMode = m.getProviderSupplyModeForStateStore(root)
 		depsDiags := root.StateStore.VerifyDependencySelection(locks, root.ProviderRequirements, root.StateStore.ProviderSupplyMode)
 		diags = diags.Append(depsDiags)

@@ -275,10 +275,19 @@ func TestProvidersSchema(t *testing.T) {
                     "version":0,
                     "block": {
                         "attributes": {
+                            "default": {
+                                "type":"string",
+                                "description":"A non-functional attribute whose name can be changed at build time to enable E2E tests using different provider versions, shown by changing schemas. The default attribute name is 'default'.",
+                                "description_kind":"plain",
+                                "optional":true
+                            },
                             "workspace_dir": {
                                 "type":"string",
-                                "description":"The directory where state files will be created. When unset the value will default to terraform.tfstate.d","description_kind":"plain","optional":true}
-                            },
+                                "description":"The directory where state files will be created. When unset the value will default to terraform.tfstate.d",
+                                "description_kind":"plain",
+                                "optional":true
+                            }
+                        },
                         "description_kind":"plain"
                     }
                 },

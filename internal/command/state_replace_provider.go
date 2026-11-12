@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -26,6 +27,8 @@ type StateReplaceProviderCommand struct {
 }
 
 func (c *StateReplaceProviderCommand) Run(args []string) int {
+	var diags tfdiags.Diagnostics
+
 	parsedArgs, parseDiags := arguments.ParseStateReplaceProvider(c.Meta.process(args))
 	if parseDiags.HasErrors() {
 		c.showDiagnostics(parseDiags)
@@ -60,8 +63,6 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
 	// Parse from/to arguments into providers
 	from, fromDiags := addrs.ParseProviderSourceString(parsedArgs.FromProviderAddr)
 	if fromDiags.HasErrors() {
@@ -88,7 +89,8 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	view := arguments.ViewHuman
 	stateMgr, err := c.State(view)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -108,13 +110,19 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Refresh and load state
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh source state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -154,13 +162,18 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Confirm
 	if !parsedArgs.AutoApprove {
-		c.Ui.Output(colorize.Color(
-			"\n[bold]Do you want to make these changes?[reset]\n" +
+		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+			Id: "replace-provider",
+			Query: "\n[bold]Do you want to make these changes?[reset]\n" +
 				"Only 'yes' will be accepted to continue.\n",
-		))
-		v, err := c.Ui.Ask("Enter a value:")
+		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for approval: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to confirm provider replacement",
+				fmt.Sprintf("Error asking for approval: %s", err),
+			))
+			c.showDiagnostics(diags)
 			return 1
 		}
 		if v != "yes" {
@@ -192,11 +205,13 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	// Write the updated state
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateReplaceProviderPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateReplaceProviderPersistErrDiag(err))
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -242,4 +257,15 @@ Options:
 
 func (c *StateReplaceProviderCommand) Synopsis() string {
 	return "Replace provider in the state"
+}
+
+func stateReplaceProviderPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The state was not saved. No items were changed in the persisted
+state. Please resolve the issue above and try again.`, err),
+	)
 }

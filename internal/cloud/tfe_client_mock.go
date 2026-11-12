@@ -1332,6 +1332,10 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		r.RefreshOnly = *options.RefreshOnly
 	}
 
+	if options.MinimalRefresh != nil {
+		r.MinimalRefresh = *options.MinimalRefresh
+	}
+
 	if options.AllowConfigGeneration != nil && *options.AllowConfigGeneration {
 		r.Plan.GeneratedConfiguration = true
 	}
@@ -1962,9 +1966,10 @@ func (m *MockVariables) Delete(ctx context.Context, workspaceID string, variable
 var _ tfe.Workspaces = (*MockWorkspaces)(nil)
 
 type MockWorkspaces struct {
-	client         *MockClient
-	workspaceIDs   map[string]*tfe.Workspace
-	workspaceNames map[string]*tfe.Workspace
+	client          *MockClient
+	workspaceIDs    map[string]*tfe.Workspace
+	workspaceNames  map[string]*tfe.Workspace
+	lastListOptions *tfe.WorkspaceListOptions
 }
 
 func newMockWorkspaces(client *MockClient) *MockWorkspaces {
@@ -1976,6 +1981,7 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 }
 
 func (m *MockWorkspaces) List(ctx context.Context, organization string, options *tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
+	m.lastListOptions = options
 	wl := &tfe.WorkspaceList{}
 	// Get all the workspaces that match the Search value
 	var ws []*tfe.Workspace

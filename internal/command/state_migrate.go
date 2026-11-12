@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -37,13 +38,19 @@ type StateMigrateCommand struct {
 }
 
 func (c *StateMigrateCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.Meta.View.Configure(common)
 
-	args, diags := arguments.ParseStateMigrate(rawArgs)
+	args, argsDiags := arguments.ParseStateMigrate(rawArgs)
+	diags = diags.Append(argsDiags)
 
 	view := views.NewStateMigrate(args.ViewType, c.View)
+
+	// Log version output
+	view.Version()
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -362,6 +369,11 @@ Options:
   -upgrade                         Trigger upgrade of the provider used for state storage.
 
   -input=true                      Enable input for interactive prompts (defaults to true, set to false in automation).
+
+  -force-copy                      Suppress and auto-approve prompts about copying state data.
+                                   Enables state migrations when interactive prompts are disabled via -input=false.
+
+  -json                            If specified, machine readable output will be printed in JSON format
 `
 	return strings.TrimSpace(helpText)
 }
@@ -463,6 +475,12 @@ func (c *StateMigrateCommand) initializeDestinationStateStore(ctx context.Contex
 		return nil, cty.NilVal, cty.NilVal, nil, diags
 	}
 
+	if upgrade {
+		// When upgrading the provider, clear the schema cache to ensure that any new schema changes are picked up.
+		// The source state store's already been initialised by the time we reach this point, which means the older provider version's schema is cached.
+		providers.SchemaCache.Clear()
+	}
+
 	dstB, stateStoreConfig, providerConfig, dstDiags := c.Meta.stateStoreInitFromConfig(rootMod.StateStore, destinationLock)
 	diags = diags.Append(dstDiags)
 
@@ -475,7 +493,11 @@ func (c *StateMigrateCommand) updateBackendStateFile(s *workdir.BackendStateFile
 	statePath := filepath.Join(c.DataDir(), DefaultStateFilename)
 	sMgr := &clistate.LocalState{Path: statePath}
 	if err := sMgr.RefreshState(); err != nil {
-		diags = diags.Append(fmt.Errorf("Failed to load the backend state file when preparing to update it: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Failed to load the backend state file when preparing to update it: %s", err),
+		))
 		return diags
 	}
 

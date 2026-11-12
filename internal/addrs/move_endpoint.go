@@ -127,7 +127,7 @@ func (e *MoveEndpoint) ConfigMoveable(baseModule Module) ConfigMoveable {
 // it with the address of the module where it was declared in order to get
 // an absolute address relative to the root module.
 func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnostics) {
-	path, remain, diags := parseModuleInstancePrefix(traversal, false)
+	path, remain, diags := parseModuleInstancePrefix(traversal, knownInstanceKeys)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -141,7 +141,7 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 		}, diags
 	}
 
-	riAddr, moreDiags := parseResourceInstanceUnderModule(path, false, remain)
+	riAddr, moreDiags := parseResourceInstanceUnderModule(path, knownInstanceKeys, remain)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -173,14 +173,10 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 func UnifyMoveEndpoints(moduleAddr Module, relFrom, relTo *MoveEndpoint) (modFrom, modTo *MoveEndpointInModule) {
 
 	// First we'll make a decision about which address type we're
-	// ultimately trying to unify to. For our internal purposes
-	// here we're going to borrow TargetableAddrType just as a
-	// convenient way to talk about our address types, even though
-	// targetable address types are not 100% aligned with moveable
-	// address types.
-	fromType := relFrom.internalAddrType()
-	toType := relTo.internalAddrType()
-	var wantType TargetableAddrType
+	// ultimately trying to unify to.
+	fromType := relFrom.kind()
+	toType := relTo.kind()
+	var wantType moveEndpointKind
 
 	// Our goal here is to choose the whole-resource or whole-module-call
 	// addresses if both agree on it, but to use specific instance addresses
@@ -189,17 +185,14 @@ func UnifyMoveEndpoints(moduleAddr Module, relFrom, relTo *MoveEndpoint) (modFro
 	// whole resources and for switching from a single-instance object to
 	// a multi-instance object.
 	switch {
-	case fromType == AbsResourceInstanceAddrType || toType == AbsResourceInstanceAddrType:
-		wantType = AbsResourceInstanceAddrType
-	case fromType == AbsResourceAddrType || toType == AbsResourceAddrType:
-		wantType = AbsResourceAddrType
-	case fromType == ModuleInstanceAddrType || toType == ModuleInstanceAddrType:
-		wantType = ModuleInstanceAddrType
-	case fromType == ModuleAddrType || toType == ModuleAddrType:
-		// NOTE: We're fudging a little here and using
-		// ModuleAddrType to represent AbsModuleCall rather
-		// than Module.
-		wantType = ModuleAddrType
+	case fromType == moveResourceInstance || toType == moveResourceInstance:
+		wantType = moveResourceInstance
+	case fromType == moveResource || toType == moveResource:
+		wantType = moveResource
+	case fromType == moveModuleInstance || toType == moveModuleInstance:
+		wantType = moveModuleInstance
+	case fromType == moveModuleCall || toType == moveModuleCall:
+		wantType = moveModuleCall
 	default:
 		panic("unhandled move address types")
 	}
@@ -214,7 +207,7 @@ func UnifyMoveEndpoints(moduleAddr Module, relFrom, relTo *MoveEndpoint) (modFro
 	return modFrom, modTo
 }
 
-func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType TargetableAddrType) *MoveEndpointInModule {
+func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType moveEndpointKind) *MoveEndpointInModule {
 	// relAddr can only be either AbsResourceInstance or ModuleInstance, the
 	// internal intermediate representation produced by ParseMoveEndpoint.
 	relAddr := e.relSubject
@@ -222,7 +215,7 @@ func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType T
 	switch relAddr := relAddr.(type) {
 	case ModuleInstance:
 		switch wantType {
-		case ModuleInstanceAddrType:
+		case moveModuleInstance:
 			// Since our internal representation is already a module instance,
 			// we can just rewrap this one.
 			return &MoveEndpointInModule{
@@ -230,10 +223,7 @@ func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType T
 				module:      moduleAddr,
 				relSubject:  relAddr,
 			}
-		case ModuleAddrType:
-			// NOTE: We're fudging a little here and using
-			// ModuleAddrType to represent AbsModuleCall rather
-			// than Module.
+		case moveModuleCall:
 			callerAddr, callAddr := relAddr.Call()
 			absCallAddr := AbsModuleCall{
 				Module: callerAddr,
@@ -249,13 +239,13 @@ func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType T
 		}
 	case AbsResourceInstance:
 		switch wantType {
-		case AbsResourceInstanceAddrType:
+		case moveResourceInstance:
 			return &MoveEndpointInModule{
 				SourceRange: e.SourceRange,
 				module:      moduleAddr,
 				relSubject:  relAddr,
 			}
-		case AbsResourceAddrType:
+		case moveResource:
 			return &MoveEndpointInModule{
 				SourceRange: e.SourceRange,
 				module:      moduleAddr,
@@ -269,29 +259,32 @@ func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType T
 	}
 }
 
-// internalAddrType helps facilitate our slight abuse of TargetableAddrType
-// as a way to talk about our different possible result address types in
+// moveEndpointKind describes the different possible result address types in
 // UnifyMoveEndpoints.
-//
-// It's not really correct to use TargetableAddrType in this way, because
-// it's for Targetable rather than for AbsMoveable, but as long as the two
-// remain aligned enough it saves introducing yet another enumeration with
-// similar members that would be for internal use only anyway.
-func (e *MoveEndpoint) internalAddrType() TargetableAddrType {
+type moveEndpointKind int
+
+const (
+	moveModuleCall moveEndpointKind = iota
+	moveModuleInstance
+	moveResource
+	moveResourceInstance
+)
+
+// kind returns the most general kind of address that the receiver could
+// represent, resolving the ambiguity between no-key instance addresses and
+// whole-object addresses in favor of the whole object.
+func (e *MoveEndpoint) kind() moveEndpointKind {
 	switch addr := e.relSubject.(type) {
 	case ModuleInstance:
 		if !addr.IsRoot() && addr[len(addr)-1].InstanceKey == NoKey {
-			// NOTE: We're fudging a little here and using
-			// ModuleAddrType to represent AbsModuleCall rather
-			// than Module.
-			return ModuleAddrType
+			return moveModuleCall
 		}
-		return ModuleInstanceAddrType
+		return moveModuleInstance
 	case AbsResourceInstance:
 		if addr.Resource.Key == NoKey {
-			return AbsResourceAddrType
+			return moveResource
 		}
-		return AbsResourceInstanceAddrType
+		return moveResourceInstance
 	default:
 		// The above should cover all of the address types produced
 		// by ParseMoveEndpoint.

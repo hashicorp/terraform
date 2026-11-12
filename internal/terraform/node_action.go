@@ -6,7 +6,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"slices"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -110,7 +109,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 
 			} else {
 				expander.SetActionCountUnknown(module, n.Addr.Action)
-				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
+				ctx.Deferrals().ReportActionExpansionDeferred(module.UnexpandedAction(n.Addr.Action))
 			}
 
 		case n.Config.ForEach != nil:
@@ -123,7 +122,7 @@ func (n *NodeActionConfig) recordActionExpansion(ctx EvalContext) tfdiags.Diagno
 				expander.SetActionForEach(module, n.Addr.Action, forEach)
 			} else {
 				expander.SetActionForEachUnknown(module, n.Addr.Action)
-				ctx.Deferrals().ReportActionDeferred(n.Addr.Absolute(ctx.Path()), providers.DeferredReasonInstanceCountUnknown)
+				ctx.Deferrals().ReportActionExpansionDeferred(module.UnexpandedAction(n.Addr.Action))
 			}
 
 		default:
@@ -297,37 +296,21 @@ func (n *NodeActionConfig) SetProvider(p addrs.AbsProviderConfig) {
 	n.ResolvedProvider = p
 }
 
-// The invoke command can reference an action block to invoke all instances, so
-// here we return a value representing the entire block if we have an
-// addrs.NoKey This function uses addrs.ActionInstance even though it only needs
-// the key because we need to use use a full instance addr for the resulting map
-// keys anyway.
-func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.ActionInstance, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
+// EvalInvokedInstances evaluates each instance of the action within the
+// current module instance which is selected by the given target of the invoke
+// command.
+func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, target addrs.TargetPattern, caller addrs.Referenceable) (addrs.Map[addrs.ActionInstance, cty.Value], tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	expander := ctx.InstanceExpander()
-	absAddr := addr.Absolute(ctx.Path())
+	absAddr := n.Addr.Action.Absolute(ctx.Path())
 
 	all := addrs.MakeMap[addrs.ActionInstance, cty.Value]()
-	allInstances := addrs.MakeSet[addrs.AbsActionInstance](expander.ExpandAction(absAddr.ContainingAction())...)
-
-	var instances []addrs.AbsActionInstance
-	if addr.Key == addrs.NoKey {
-		// this might be a single instance with no key, or all instances, so we
-		// just use everything
-		instances = slices.Collect(allInstances.Iter())
-	} else {
-		// definitely looking for a single instance because we have an index of
-		// some sort, but check if it exists first, otherwise evaluation will
-		// panic
-		if !allInstances.Has(absAddr) {
-			diags = diags.Append(fmt.Errorf("invoked target %s not found", absAddr))
-			return all, diags
+	for _, instAddr := range expander.ExpandAction(absAddr) {
+		if !target.Contains(instAddr) {
+			continue
 		}
-		instances = []addrs.AbsActionInstance{absAddr}
-	}
 
-	for _, instAddr := range instances {
 		repData := expander.GetActionInstanceRepetitionData(instAddr)
 		val, evalDiags := n.evalInstance(ctx, repData, caller, cty.NilVal)
 		diags = diags.Append(evalDiags)
@@ -335,6 +318,11 @@ func (n *NodeActionConfig) EvalInvokedInstances(ctx EvalContext, addr addrs.Acti
 			return all, diags
 		}
 		all.Put(instAddr.Action, val)
+	}
+
+	if key := target.InstanceKey(); key != addrs.WildcardKey && all.Len() == 0 {
+		// The target selects a single instance, which doesn't exist.
+		diags = diags.Append(fmt.Errorf("invoked target %s not found", absAddr.Instance(key)))
 	}
 
 	return all, diags

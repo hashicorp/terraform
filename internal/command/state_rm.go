@@ -21,10 +21,23 @@ type StateRmCommand struct {
 	StateMeta
 }
 
-func (c *StateRmCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStateRm(c.Meta.process(args))
+func (c *StateRmCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateRm(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateRm(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -37,7 +50,7 @@ func (c *StateRmCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -45,45 +58,56 @@ func (c *StateRmCommand) Run(args []string) int {
 	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
 		loader.Parser().ForceFileSource(filename, src)
 	})
+	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(varDiags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Get the state
-	view := arguments.ViewHuman
-	stateMgr, err := c.State(view)
+	stateMgr, err := c.State(parsedArgs.ViewType)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if c.stateLock {
 		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
-		if diags := stateLocker.Lock(stateMgr, "state-rm"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+		if lockDiags := stateLocker.Lock(stateMgr, "state-rm"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
-			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		diags = diags.Append(errStateNotFound)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -96,20 +120,14 @@ func (c *StateRmCommand) Run(args []string) int {
 		diags = diags.Append(moreDiags)
 	}
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	prefix := "Removed "
-	if parsedArgs.DryRun {
-		prefix = "Would remove "
-	}
-
-	var isCount int
+	removals := []string{}
 	ss := state.SyncWrapper()
 	for _, addr := range addrs {
-		isCount++
-		c.Ui.Output(prefix + addr.String())
+		removals = append(removals, addr.String())
 		if !parsedArgs.DryRun {
 			ss.ForgetResourceInstanceAll(addr)
 			ss.RemoveResourceIfEmpty(addr.ContainingResource())
@@ -117,17 +135,25 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if parsedArgs.DryRun {
-		if isCount == 0 {
-			c.Ui.Output("Would have removed nothing.")
-		}
+		view.Remove(removals, parsedArgs.DryRun, diags)
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	if len(removals) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
-	b, backendDiags := c.backend(".", view)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -140,29 +166,17 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(state); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	if len(diags) > 0 && isCount != 0 {
-		c.showDiagnostics(diags)
-	}
-
-	if isCount == 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid target address",
-			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
-		))
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	c.Ui.Output(fmt.Sprintf("Successfully removed %d resource instance(s).", isCount))
+	view.Remove(removals, parsedArgs.DryRun, diags)
 	return 0
 }
 
@@ -185,11 +199,19 @@ Usage: terraform [global options] state rm [options] ADDRESS...
 
 Options:
 
+  -backup=PATH            Path where Terraform should write the backup
+                          state.
+
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
   -dry-run                If set, prints out what would've been removed but
                           doesn't actually remove anything.
 
-  -backup=PATH            Path where Terraform should write the backup
-                          state.
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
   -lock=false             Don't hold a state lock during the operation. This is
                           dangerous if others might concurrently run commands
@@ -197,15 +219,13 @@ Options:
 
   -lock-timeout=0s        Duration to retry a state lock.
 
+  -no-color               Disable text coloring in the output.
+
   -state=PATH             Path to the state file to update. Defaults to the
                           current workspace state.
                           Legacy option for the local backend only. See
                           the local backend's documentation for more
                           information.
-
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          are incompatible. This may result in an unusable
-                          workspace, and should be used with extreme caution.
 
   -var 'foo=bar'          Set a value for one of the input variables in the root
                           module of the configuration. Use this option more than
@@ -224,8 +244,13 @@ func (c *StateRmCommand) Synopsis() string {
 	return "Remove instances from the state"
 }
 
-const errStateRmPersist = `Error saving the state: %s
+func stateRmPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
 
 The state was not saved. No items were removed from the persisted
-state. No backup was created since no modification occurred. Please
-resolve the issue above and try again.`
+state. Please resolve the issue above and try again.`, err),
+	)
+}

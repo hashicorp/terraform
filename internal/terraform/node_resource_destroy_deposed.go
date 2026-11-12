@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -23,6 +24,7 @@ import (
 type ConcreteResourceInstanceDeposedNodeFunc func(*NodeAbstractResourceInstance, states.DeposedKey) dag.Vertex
 
 type GraphNodeDeposedResourceInstanceObject interface {
+	GraphNodeCreateBeforeDestroy
 	DeposedInstanceObjectKey() states.DeposedKey
 }
 
@@ -44,13 +46,9 @@ type NodePlanDeposedResourceInstanceObject struct {
 	// for any instances.
 	skipPlanChanges bool
 
-	// forgetResources lists resources that should not be destroyed, only removed
-	// from state.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules lists modules that should not be destroyed, only removed
-	// from state.
-	forgetModules []addrs.Module
+	// forget lists the modules and resources whose instances should not be
+	// destroyed, only removed from state.
+	forget []addrs.Targetable
 }
 
 var (
@@ -65,8 +63,8 @@ var (
 	_ GraphNodeDestroyer                     = (*NodePlanDeposedResourceInstanceObject)(nil)
 )
 
-func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
+func (n *NodePlanDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.Addr
 }
 
 func (n *NodePlanDeposedResourceInstanceObject) Name() string {
@@ -118,17 +116,9 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	var forget bool
-	for _, ft := range n.forgetResources {
-		if ft.Equal(n.ResourceAddr()) {
-			forget = true
-		}
-	}
-	for _, fm := range n.forgetModules {
-		if fm.TargetContains(n.Addr) {
-			forget = true
-		}
-	}
+	forget := slices.ContainsFunc(n.forget, func(addr addrs.Targetable) bool {
+		return addr.Contains(n.Addr)
+	})
 
 	// We don't refresh during the planDestroy walk, since that is only adding
 	// the destroy changes to the plan and the provider will not be configured
@@ -221,6 +211,11 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 type NodeDestroyDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+
+	// leftover is set when the object was already deposed in the prior state,
+	// rather than being deposed by a create_before_destroy replacement during
+	// this apply.
+	leftover bool
 }
 
 var (
@@ -257,16 +252,28 @@ func (n *NodeDestroyDeposedResourceInstanceObject) References() []*addrs.Referen
 }
 
 // GraphNodeDestroyer
-func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	addr := n.ResourceInstanceAddr()
-	return &addr
+// StateDependencies returns the dependencies stored with the deposed object
+// itself, falling back to those of the current object when the object will
+// only be deposed during apply.
+func (n *NodeDestroyDeposedResourceInstanceObject) StateDependencies() []addrs.ConfigResource {
+	if s := n.instanceState; s != nil {
+		if obj := s.Deposed[n.DeposedKey]; obj != nil {
+			return obj.Dependencies
+		}
+	}
+	return n.NodeAbstractResourceInstance.StateDependencies()
+}
+
+func (n *NodeDestroyDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.ResourceInstanceAddr()
 }
 
 // GraphNodeDestroyerCBD
 func (n *NodeDestroyDeposedResourceInstanceObject) CreateBeforeDestroy() bool {
-	// A deposed instance is always CreateBeforeDestroy by definition, since
-	// we use deposed only to handle create-before-destroy.
-	return true
+	// An object deposed during this apply is destroyed after its replacement
+	// is created. An object left over from a previous run already has its
+	// replacement, so is no longer ordered as create_before_destroy.
+	return !n.leftover
 }
 
 // GraphNodeDestroyerCBD
@@ -287,24 +294,20 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags
 	}
 
-	var change *plans.ResourceInstanceChange
-	var destroyPlanDiags tfdiags.Diagnostics
-	var deferred *providers.Deferred
-	if resourceLifecycleForget(n.Config) {
-		change, destroyPlanDiags = n.planForget(ctx, state, n.DeposedKey)
-	} else {
-		change, deferred, destroyPlanDiags = n.planDestroy(ctx, state, n.DeposedKey)
-	}
+	change, deferred, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
+	// Deferral is decided during planning, and this object's destroy was not
+	// deferred, so the provider must not defer it now.
 	if deferred != nil {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, deferred.Reason, change)
-		return diags
-	} else if ctx.Deferrals().ShouldDeferResourceInstanceChanges(n.Addr, n.Dependencies) {
-		ctx.Deferrals().ReportResourceInstanceDeferred(n.Addr, providers.DeferredReasonDeferredPrereq, change)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource deferred during apply, but not during plan",
+			fmt.Sprintf("Terraform has encountered a bug where a provider would mark the deposed object %s of %q as deferred during apply, but not during plan. This is most likely a bug in the provider. Please file an issue with the provider.", n.DeposedKey, n.Addr),
+		))
 		return diags
 	}
 
@@ -353,12 +356,18 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 type NodeForgetDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+
+	// leftover is set when the object was already deposed in the prior state,
+	// rather than being deposed by a create_before_destroy replacement during
+	// this apply.
+	leftover bool
 }
 
 var (
 	_ GraphNodeDeposedResourceInstanceObject = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeConfigResource                = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeResourceInstance              = (*NodeForgetDeposedResourceInstanceObject)(nil)
+	_ GraphNodeCreateBeforeDestroy           = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferenceable                 = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeReferencer                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
 	_ GraphNodeExecutable                    = (*NodeForgetDeposedResourceInstanceObject)(nil)
@@ -371,8 +380,31 @@ func (n *NodeForgetDeposedResourceInstanceObject) Name() string {
 	return fmt.Sprintf("%s (forget deposed %s)", n.ResourceInstanceAddr(), n.DeposedKey)
 }
 
-func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() *addrs.AbsResourceInstance {
-	return &n.Addr
+// StateDependencies returns the dependencies stored with the deposed object
+// itself, falling back to those of the current object when the object will
+// only be deposed during apply.
+func (n *NodeForgetDeposedResourceInstanceObject) StateDependencies() []addrs.ConfigResource {
+	if s := n.instanceState; s != nil {
+		if obj := s.Deposed[n.DeposedKey]; obj != nil {
+			return obj.Dependencies
+		}
+	}
+	return n.NodeAbstractResourceInstance.StateDependencies()
+}
+
+func (n *NodeForgetDeposedResourceInstanceObject) DestroyAddr() addrs.AbsResourceInstance {
+	return n.Addr
+}
+
+func (n *NodeForgetDeposedResourceInstanceObject) CreateBeforeDestroy() bool {
+	// An object deposed during this apply is forgotten after its replacement
+	// is created. An object left over from a previous run already has its
+	// replacement, so is no longer ordered as create_before_destroy.
+	return !n.leftover
+}
+
+func (n *NodeForgetDeposedResourceInstanceObject) ForceCreateBeforeDestroy() {
+	// noop because deposed instances are always CBD
 }
 
 func (n *NodeForgetDeposedResourceInstanceObject) DeposedInstanceObjectKey() states.DeposedKey {

@@ -1,5 +1,0 @@
-kind: NOTES
-body: "version: JSON output now includes a new `format_version` field, which will enable safer future changes of the command's JSON output format. It is assumed existing tooling ignores unknown fields and therefore this change should not be breaking in itself but we advice consumers to pay attention to `format_version` in future releases and/or use latest version of hashicorp/terraform-json & hashicorp/terraform-exec which does."
-time: 2026-07-28T13:09:11.825354+01:00
-custom:
-    Issue: "38930"

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'fix(cli): properly validate apply time -targets match plan -targets'
+time: 2026-09-21T11:29:48.316406-04:00
+custom:
+    Issue: "39257"

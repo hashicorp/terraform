@@ -27,17 +27,12 @@ var (
 type nodeActionInvokeExpand struct {
 	// invoke always relies on targeting, and we need to capture the initial
 	// target here to ensure we only expand the targeted instances
-	Target addrs.Targetable
+	Target addrs.TargetPattern
 
 	// There may be specific caller instances targeted for this action
-	ResourceTargets []addrs.Targetable
+	ResourceTargets []addrs.TargetPattern
 
-	Module addrs.Module
-
-	// as we have used in other targeting situations, because a single instance
-	// is indistinguishable from an expanded block, we'll default to instance
-	// addrs for consistency.
-	Addr         addrs.AbsActionInstance
+	Module       addrs.Module
 	ActionConfig *NodeActionConfig
 
 	// Callers is a list of resources which reference an action which uses the
@@ -57,7 +52,7 @@ func (n *nodeActionInvokeExpand) ModulePath() addrs.Module {
 }
 
 func (n *nodeActionInvokeExpand) Name() string {
-	return n.Addr.String()
+	return n.Target.String()
 }
 
 func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
@@ -74,10 +69,7 @@ func (n *nodeActionInvokeExpand) References() []*addrs.Reference {
 
 	return append([]*addrs.Reference{
 		{
-			Subject: n.Addr.Action,
-		},
-		{
-			Subject: n.Addr.Action.Action,
+			Subject: n.ActionConfig.Addr.Action,
 		},
 	}, callers...)
 }
@@ -100,14 +92,18 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 	actionFound := len(n.Callers) != 0
 
 	for _, mod := range expander.ExpandModule(n.Module, false) {
-		if !mod.TargetContains(n.Target) {
+		// The target might only select the action in some of the module
+		// instances. The targeted instances of the action itself are selected
+		// when it is evaluated.
+		addr := n.ActionConfig.Addr.Action.Absolute(mod)
+		if !addrs.CouldContain(n.Target, addr) {
 			continue
 		}
 
 		if len(n.Callers) == 0 {
 			g.Add(&nodeActionPlanInvoke{
-				Module:       mod,
-				Addr:         n.Addr,
+				Addr:         addr,
+				Target:       n.Target,
 				ActionConfig: n.ActionConfig,
 				ProviderAddr: n.ActionConfig.ResolvedProvider,
 			})
@@ -116,7 +112,7 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 			for _, caller := range n.Callers {
 				callerFound := false
 				for _, res := range state.Resources(caller) {
-					if !mod.TargetContains(res.Addr) {
+					if !mod.Contains(res.Addr) {
 						// resource from the wrong module instance
 						continue
 					}
@@ -126,10 +122,10 @@ func (n *nodeActionInvokeExpand) DynamicExpand(ctx EvalContext) (*Graph, tfdiags
 							continue
 						}
 
-						log.Printf("[TRACE] expanding %s invoke node for caller %s", n.Addr, res.Addr.Resource)
+						log.Printf("[TRACE] expanding %s invoke node for caller %s", addr, res.Addr.Resource)
 						g.Add(&nodeActionPlanInvoke{
-							Module:          mod,
-							Addr:            n.Addr,
+							Addr:            addr,
+							Target:          n.Target,
 							ActionConfig:    n.ActionConfig,
 							ProviderAddr:    n.ActionConfig.ResolvedProvider,
 							Caller:          res.Addr.Resource.Instance(instKey),
@@ -169,12 +165,14 @@ var (
 )
 
 type nodeActionPlanInvoke struct {
-	Module          addrs.ModuleInstance
-	Addr            addrs.AbsActionInstance
+	// Addr is the action within a single module instance, and Target selects
+	// which of its instances to invoke.
+	Addr            addrs.AbsAction
+	Target          addrs.TargetPattern
 	ActionConfig    *NodeActionConfig
 	ProviderAddr    addrs.AbsProviderConfig
 	Caller          addrs.Referenceable
-	ResourceTargets []addrs.Targetable
+	ResourceTargets []addrs.TargetPattern
 }
 
 func (n *nodeActionPlanInvoke) Name() string {
@@ -182,7 +180,7 @@ func (n *nodeActionPlanInvoke) Name() string {
 }
 
 func (n *nodeActionPlanInvoke) Path() addrs.ModuleInstance {
-	return n.Module
+	return n.Addr.Module
 }
 
 func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diagnostics {
@@ -194,10 +192,7 @@ func (n *nodeActionPlanInvoke) Execute(ctx EvalContext, _ walkOperation) tfdiags
 func (n *nodeActionPlanInvoke) planActions(ctx EvalContext) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// We're relying on the given addr derived from the action target to
-	// determine which action instance to evaluate. If the address has no key
-	// and the action is expanded, we will plan all instances.
-	actionVals, actionDiags := n.ActionConfig.EvalInvokedInstances(ctx, n.Addr.Action, n.Caller)
+	actionVals, actionDiags := n.ActionConfig.EvalInvokedInstances(ctx, n.Target, n.Caller)
 	diags = diags.Append(actionDiags)
 	if diags.HasErrors() {
 		return diags
@@ -221,7 +216,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		// if we have resource targets, filter any unwanted callers
 		targeted := len(n.ResourceTargets) == 0
 		for _, resTgt := range n.ResourceTargets {
-			if resTgt.TargetContains(absCaller) {
+			if resTgt.Contains(absCaller) {
 				targeted = true
 				break
 			}
@@ -247,7 +242,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Failed to get provider",
-			Detail:   fmt.Sprintf("Failed to get provider while triggering action %s: %s.", n.Addr, err),
+			Detail:   fmt.Sprintf("Failed to get provider while triggering action %s: %s.", addr, err),
 			Subject:  config.DeclRange.Ptr(),
 		})
 	}
@@ -262,7 +257,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Partially applied configuration",
-			Detail:   fmt.Sprintf("The action %s contains unknown values while planning. This means it is referencing resources that have not yet been created, please run a complete plan/apply cycle to ensure the state matches the configuration before using the -invoke argument.", n.Addr),
+			Detail:   fmt.Sprintf("The action %s contains unknown values while planning. This means it is referencing resources that have not yet been created, please run a complete plan/apply cycle to ensure the state matches the configuration before using the -invoke argument.", addr),
 			Subject:  config.DeclRange.Ptr(),
 		})
 	}
@@ -278,7 +273,7 @@ func (n *nodeActionPlanInvoke) planAction(ctx EvalContext, config *configs.Actio
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Provider deferred an action",
-			Detail:   fmt.Sprintf("The provider for %s ordered the action deferred. This likely means you are executing the action against a configuration that hasn't been completely applied.", n.Addr),
+			Detail:   fmt.Sprintf("The provider for %s ordered the action deferred. This likely means you are executing the action against a configuration that hasn't been completely applied.", addr),
 			Subject:  config.DeclRange.Ptr(),
 		})
 	}

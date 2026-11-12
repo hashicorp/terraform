@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-tfe"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -31,6 +31,8 @@ import (
 
 // Test renders outputs for test executions.
 type Test interface {
+	JSONOutputVersionLogger
+
 	// Abstract should print an early summary of the tests that will be
 	// executed. This will be called before the tests have been executed so
 	// the status for everything within suite will be test.Pending.
@@ -103,6 +105,8 @@ type TestHuman struct {
 }
 
 var _ Test = (*TestHuman)(nil)
+
+func (t *TestHuman) Version() {}
 
 func (t *TestHuman) Abstract(_ *moduletest.Suite) {
 	// Do nothing, we don't print an abstract for the human view.
@@ -277,14 +281,14 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 
 	if diags.HasErrors() {
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier), t.view.errorColumns()))
+		t.view.streams.Eprint(t.view.wrapToStderr(fmt.Sprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier)))
 	}
 	t.Diagnostics(run, file, diags)
 
 	skipCleanup := run != nil && run.Config.SkipCleanup
 	if state.HasManagedResourceInstanceObjects() {
 		if skipCleanup {
-			t.view.streams.Print(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier), t.view.outputColumns()))
+			t.view.streams.Print(t.view.wrapToStdout(fmt.Sprintf("\nTerraform left the following resources in state after executing %s because the skip_cleanup attribute was set:\n", identifier)))
 			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 				if resource.DeposedKey != states.NotDeposed {
 					t.view.streams.Printf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
@@ -295,7 +299,7 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 		} else {
 			// FIXME: This message says "resources" but this is actually a list
 			// of resource instance objects.
-			t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
+			t.view.streams.Eprint(t.view.wrapToStderr(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier)))
 			for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 				if resource.DeposedKey != states.NotDeposed {
 					t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
@@ -312,26 +316,28 @@ func (t *TestHuman) Diagnostics(_ *moduletest.Run, _ *moduletest.File, diags tfd
 }
 
 func (t *TestHuman) Interrupted() {
-	t.view.streams.Eprintln(format.WordWrap(interrupted, t.view.errorColumns()))
+	t.view.streams.Eprintln(t.view.wrapToStderr(interrupted))
 }
 
 func (t *TestHuman) FatalInterrupt() {
-	t.view.streams.Eprintln(format.WordWrap(fatalInterrupt, t.view.errorColumns()))
+	t.view.streams.Eprintln(t.view.wrapToStderr(fatalInterrupt))
 }
 
 func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-	t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name), t.view.errorColumns()))
+	// We build the summary and then write it to stderr all at once.
+	str := &strings.Builder{}
+	str.WriteString(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name))
 
 	// Print out the main state first, this is the state that isn't associated
 	// with a run block.
 	if state, exists := existingStates[configs.TestMainStateIdentifier]; exists && !state.Empty() {
-		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
+		str.WriteString("\nTerraform has already created the following resources from the module under test:\n")
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+				str.WriteString(fmt.Sprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey))
 				continue
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource.ResourceInstance))
 		}
 	}
 
@@ -340,18 +346,19 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 			continue
 		}
 
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q:\n", key), t.view.errorColumns()))
+		str.WriteString(fmt.Sprintf("\nTerraform has already created the following resources for %q:\n", key))
 		for _, resource := range addrs.SetSortedNatural(state.AllManagedResourceInstanceObjectAddrs()) {
 			if resource.DeposedKey != states.NotDeposed {
-				t.view.streams.Eprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey)
+				str.WriteString(fmt.Sprintf("  - %s (%s)\n", resource.ResourceInstance, resource.DeposedKey))
 				continue
 			}
-			t.view.streams.Eprintf("  - %s\n", resource.ResourceInstance)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource.ResourceInstance))
 		}
 	}
 
 	if len(created) == 0 {
-		// No planned changes, so we won't print anything.
+		// No planned changes, so we print and return early.
+		t.view.streams.Eprint(t.view.wrapToStderr(str.String()))
 		return
 	}
 
@@ -366,11 +373,14 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 			module = fmt.Sprintf("%q", run.Config.Module.Source.String())
 		}
 
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module), t.view.errorColumns()))
+		str.WriteString(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module))
 		for _, resource := range resources {
-			t.view.streams.Eprintf("  - %s\n", resource)
+			str.WriteString(fmt.Sprintf("  - %s\n", resource))
 		}
 	}
+
+	// Print to stderr.
+	t.view.streams.Eprint(t.view.wrapToStderr(str.String()))
 }
 
 func (t *TestHuman) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {
@@ -393,6 +403,10 @@ type TestJSON struct {
 }
 
 var _ Test = (*TestJSON)(nil)
+
+func (t *TestJSON) Version() {
+	t.view.Version()
+}
 
 func (t *TestJSON) Abstract(suite *moduletest.Suite) {
 	var fileCount, runCount int
@@ -555,7 +569,8 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File, progress modu
 			Path:     file.Name,
 			Run:      run.Name,
 			Progress: json.ToTestProgress(progress),
-			Status:   json.ToTestStatus(run.Status)},
+			Status:   json.ToTestStatus(run.Status),
+		},
 		"@testfile", file.Name,
 		"@testrun", run.Name)
 
@@ -698,7 +713,6 @@ func (t *TestJSON) FatalInterrupt() {
 }
 
 func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[string]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-
 	message := json.TestFatalInterrupt{
 		States: make(map[string][]json.TestFailedResource),
 	}

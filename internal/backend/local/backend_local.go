@@ -361,26 +361,8 @@ func (b *Local) localRunForPlanFile(op *backendrun.Operation, pf *planfile.Reade
 	// All variables that we need to load the configuration should be in the
 	// plan file. We don't need to look at plan.ApplyTimeVariables, because
 	// ephemeral values are not supported for constant variables.
-	variables := terraform.InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		if pvm, ok := plan.VariableMarks[name]; ok {
-			val = val.MarkWithPaths(pvm)
-		}
-
-		variables[name] = &terraform.InputValue{
-			Value:      val,
-			SourceType: terraform.ValueFromPlan,
-		}
-	}
+	variables, varDiags := terraform.InputValuesFromPlan(plan)
+	diags = diags.Append(varDiags)
 
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)

@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/posener/complete"
 )
 
@@ -17,23 +18,33 @@ type WorkspaceShowCommand struct {
 }
 
 func (c *WorkspaceShowCommand) Run(rawArgs []string) int {
-	// Process global flags and configure the view/UI.
-	rawArgs = c.Meta.process(rawArgs)
+	var diags tfdiags.Diagnostics
 
-	// Process command-specific arguments.
-	// Currently there are no arguments for this command, so ignore the returned value for now.
-	_, diags := arguments.ParseWorkspaceShow(rawArgs)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	args, parseDiags := arguments.ParseWorkspaceShow(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewWorkspaceShow(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return cli.RunResultHelp
+		view.Diagnostics(diags)
+		return 1
 	}
 
 	workspace, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(fmt.Errorf("Error selecting workspace: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
-	c.Ui.Output(workspace)
+
+	view.Show(workspace, diags)
 
 	return 0
 }
@@ -51,6 +62,12 @@ func (c *WorkspaceShowCommand) Help() string {
 Usage: terraform [global options] workspace show
 
   Show the name of the current workspace.
+
+  -compact-warnings    If Terraform produces any warnings that are not
+                       accompanied by errors, show them in a more compact
+                       form that includes only the summary messages
+
+  -no-color            If specified, output won't contain any color.
 `
 	return strings.TrimSpace(helpText)
 }

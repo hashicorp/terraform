@@ -24,8 +24,9 @@ func TestContext2Apply_identity(t *testing.T) {
 		plannedIdentity cty.Value
 		appliedIdentity cty.Value
 
-		expectedIdentity  cty.Value
-		expectDiagnostics tfdiags.Diagnostics
+		expectedIdentity       cty.Value
+		expectedDeleteIdentity cty.Value
+		expectDiagnostics      tfdiags.Diagnostics
 	}{
 		"create": {
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
@@ -94,7 +95,12 @@ func TestContext2Apply_identity(t *testing.T) {
 					},
 				)
 			}),
-			plannedIdentity: cty.NilVal,
+			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("planned-delete"),
+			}),
+			expectedDeleteIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("planned-delete"),
+			}),
 			expectedIdentity: cty.NullVal(cty.Object(map[string]cty.Type{
 				"id": cty.String,
 			})),
@@ -122,6 +128,9 @@ func TestContext2Apply_identity(t *testing.T) {
 			requiresReplace: []cty.Path{cty.GetAttrPath("id")},
 			plannedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("bar"),
+			}),
+			expectedDeleteIdentity: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("foo"),
 			}),
 			expectedIdentity: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.StringVal("bar"),
@@ -178,11 +187,17 @@ func TestContext2Apply_identity(t *testing.T) {
 				}
 			}
 
-			if !tc.appliedIdentity.IsNull() {
+			var applyRequests []providers.ApplyResourceChangeRequest
+			if tc.appliedIdentity != cty.NilVal || tc.expectedDeleteIdentity != cty.NilVal {
 				p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
-					resp := providers.ApplyResourceChangeResponse{}
-					resp.NewState = req.PlannedState
-					resp.NewIdentity = tc.appliedIdentity
+					applyRequests = append(applyRequests, req)
+					resp := providers.ApplyResourceChangeResponse{
+						NewState:    req.PlannedState,
+						NewIdentity: req.PlannedIdentity,
+					}
+					if tc.appliedIdentity != cty.NilVal {
+						resp.NewIdentity = tc.appliedIdentity
+					}
 					return resp
 				}
 			}
@@ -196,6 +211,23 @@ func TestContext2Apply_identity(t *testing.T) {
 				return
 			}
 			tfdiags.AssertNoDiagnostics(t, diags)
+
+			if tc.expectedDeleteIdentity != cty.NilVal {
+				var deleteRequests []providers.ApplyResourceChangeRequest
+				for _, req := range applyRequests {
+					if req.PlannedState.IsNull() {
+						deleteRequests = append(deleteRequests, req)
+					} else if !req.PlannedIdentity.RawEquals(tc.plannedIdentity) {
+						t.Fatalf("wrong identity in apply request\nwant: %s\ngot: %s", tc.plannedIdentity.GoString(), req.PlannedIdentity.GoString())
+					}
+				}
+				if len(deleteRequests) != 1 {
+					t.Fatalf("provider received %d delete requests; want 1", len(deleteRequests))
+				}
+				if got := deleteRequests[0].PlannedIdentity; !got.RawEquals(tc.expectedDeleteIdentity) {
+					t.Fatalf("wrong identity in delete request\nwant: %s\ngot: %s", tc.expectedDeleteIdentity.GoString(), got.GoString())
+				}
+			}
 
 			if !tc.expectedIdentity.IsNull() {
 				schema := p.GetProviderSchemaResponse.ResourceTypes["test_resource"]

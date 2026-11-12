@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -22,42 +22,38 @@ type UnlockCommand struct {
 	Meta
 }
 
-func (c *UnlockCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	var force bool
-	cmdFlags := c.Meta.defaultFlagSet("force-unlock")
-	cmdFlags.BoolVar(&force, "force", false, "force")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
-
-	args = cmdFlags.Args()
-	if len(args) != 1 {
-		c.Ui.Error("Expected a single argument: LOCK_ID")
-		return cli.RunResultHelp
-	}
-
-	lockID := args[0]
-	args = args[1:]
-
-	// assume everything is initialized. The user can manually init if this is
-	// required.
-	configPath, err := ModulePath(args)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-
+func (c *UnlockCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	args, argDiags := arguments.ParseUnlock(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewUnlock(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	diags = diags.Append(argDiags)
+	if argDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
-	view := arguments.ViewHuman
-	b, backendDiags := c.backend(configPath, view)
+	configPath := c.WorkingDir.RootModuleDir()
+	b, backendDiags := c.backend(configPath, args.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -66,22 +62,36 @@ func (c *UnlockCommand) Run(args []string) int {
 
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to determine the current workspace",
+			err.Error(),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	stateMgr, sDiags := b.StateMgr(env)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", sDiags.Err()))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to access state",
+			fmt.Sprintf("Failed to access state: %s", sDiags.Err()),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	_, isLocal := stateMgr.(*statemgr.Filesystem)
 
-	if !force {
+	if !args.Force {
 		// Forcing this doesn't do anything, but doesn't break anything either,
 		// and allows us to run the basic command test too.
 		if isLocal {
-			c.Ui.Error("Local state cannot be unlocked by another process")
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to unlock local state",
+				"Local state cannot be unlocked by another process"))
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -95,21 +105,36 @@ func (c *UnlockCommand) Run(args []string) int {
 			Description: desc,
 		})
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to confirm forced unlock",
+				fmt.Sprintf("Error asking for confirmation: %s", err),
+			))
+			view.Diagnostics(diags)
 			return 1
 		}
 		if v != "yes" {
-			c.Ui.Output("force-unlock cancelled.")
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unlock cancelled",
+				"User did not confirm to proceed with the forced unlock",
+			))
+			view.Diagnostics(diags)
 			return 1
 		}
 	}
 
-	if err := stateMgr.Unlock(lockID); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to unlock state: %s", err))
+	if err := stateMgr.Unlock(args.LockID); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to unlock state",
+			fmt.Sprintf("Failed to unlock state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputUnlockSuccess)))
+	view.UnlockSuccessful(diags)
 	return 0
 }
 
@@ -134,10 +159,3 @@ Options:
 func (c *UnlockCommand) Synopsis() string {
 	return "Release a stuck lock on the current workspace"
 }
-
-const outputUnlockSuccess = `
-[reset][bold][green]Terraform state has been successfully unlocked![reset][green]
-
-The state has been unlocked, and Terraform commands should now be able to
-obtain a new lock on the remote state.
-`

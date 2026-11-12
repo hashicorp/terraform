@@ -4,6 +4,7 @@
 package views
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -16,6 +17,7 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/version"
 )
 
 // Ensure that the correct view type and in-automation settings propagate to the
@@ -211,4 +213,38 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 			},
 		},
 	}
+}
+
+func TestNewPlan_Version(t *testing.T) {
+	t.Run("json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewPlan(arguments.ViewJSON, NewView(streams))
+
+		v.Version()
+
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version.String()),
+				"@module":   "terraform.ui",
+				"type":      "version",
+				"terraform": version.String(),
+				"ui":        JSON_UI_VERSION,
+			},
+		}
+		testJSONViewOutputEquals(t, done(t).Stdout(), want)
+	})
+
+	t.Run("human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewPlan(arguments.ViewHuman, NewView(streams))
+
+		v.Version()
+
+		got := done(t).Stdout()
+		want := ""
+		if got != want {
+			t.Fatalf("expected output %q, got %q", want, got)
+		}
+	})
 }

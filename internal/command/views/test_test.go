@@ -4,6 +4,7 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestTestHuman_Conclusion(t *testing.T) {
@@ -394,7 +396,6 @@ func TestTestHuman_Conclusion(t *testing.T) {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
@@ -457,7 +458,6 @@ func TestTestHuman_File(t *testing.T) {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
@@ -619,7 +619,7 @@ something bad happened during this test
 					State:  states.NewState(), // empty state
 					Config: &configs.Config{},
 					Providers: map[addrs.Provider]providers.ProviderSchema{
-						addrs.Provider{
+						{
 							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
@@ -692,7 +692,7 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 					}),
 					Config: &configs.Config{},
 					Providers: map[addrs.Provider]providers.ProviderSchema{
-						addrs.Provider{
+						{
 							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
@@ -2775,7 +2775,7 @@ func TestTestJSON_Run(t *testing.T) {
 						},
 					},
 					Providers: map[addrs.Provider]providers.ProviderSchema{
-						addrs.Provider{
+						{
 							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
@@ -2903,7 +2903,7 @@ func TestTestJSON_Run(t *testing.T) {
 						Module: &configs.Module{},
 					},
 					Providers: map[addrs.Provider]providers.ProviderSchema{
-						addrs.Provider{
+						{
 							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
@@ -3322,4 +3322,38 @@ func dynamicValue(t *testing.T, value cty.Value, typ cty.Type) plans.DynamicValu
 		t.Fatalf("failed to create dynamic value: %s", err)
 	}
 	return d
+}
+
+func TestNewTest_Version(t *testing.T) {
+	t.Run("json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewTest(arguments.ViewJSON, NewView(streams))
+
+		v.Version()
+
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version.String()),
+				"@module":   "terraform.ui",
+				"type":      "version",
+				"terraform": version.String(),
+				"ui":        JSON_UI_VERSION,
+			},
+		}
+		testJSONViewOutputEquals(t, done(t).Stdout(), want)
+	})
+
+	t.Run("human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewTest(arguments.ViewHuman, NewView(streams))
+
+		v.Version()
+
+		got := done(t).Stdout()
+		want := ""
+		if got != want {
+			t.Fatalf("expected output %q, got %q", want, got)
+		}
+	})
 }

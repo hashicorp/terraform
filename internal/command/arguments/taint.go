@@ -40,6 +40,8 @@ type Taint struct {
 	// IgnoreRemoteVersion, if true, continues even if remote and local
 	// Terraform versions are incompatible.
 	IgnoreRemoteVersion bool
+
+	ViewType ViewType
 }
 
 // ParseTaint processes CLI arguments, returning a Taint value and errors.
@@ -48,7 +50,8 @@ type Taint struct {
 func ParseTaint(args []string) (*Taint, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	taint := &Taint{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("taint", nil, nil, taint.Vars)

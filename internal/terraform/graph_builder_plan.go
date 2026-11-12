@@ -52,10 +52,10 @@ type PlanGraphBuilder struct {
 	Plugins *contextPlugins
 
 	// Targets are resources to target
-	Targets []addrs.Targetable
+	Targets []addrs.TargetPattern
 
 	// ActionTargets are actions that should be triggered.
-	ActionTargets []addrs.Targetable
+	ActionTargets []addrs.TargetPattern
 
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
@@ -103,13 +103,9 @@ type PlanGraphBuilder struct {
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
 
-	// forgetResources lists the resources that are to be forgotten, i.e. removed
-	// from state without destroying.
-	forgetResources []addrs.ConfigResource
-
-	// forgetModules lists the modules that are to be forgotten, i.e. removed
-	// from state without destroying.
-	forgetModules []addrs.Module
+	// forget lists the modules and resources whose instances are to be
+	// forgotten, i.e. removed from state without destroying.
+	forget []addrs.Targetable
 
 	// GenerateConfig tells Terraform where to write and generated config for
 	// any import targets that do not already have configuration.
@@ -138,6 +134,12 @@ type PlanGraphBuilder struct {
 	// or test runtimes, where the root modules as Terraform sees them aren't
 	// the actual root modules.
 	AllowRootEphemeralOutputs bool
+
+	// AllowRootDeprecatedOutputs overrides a specific check made within the
+	// output nodes that they cannot be deprecated for root modules. This
+	// should be set to true for plans executing from within the test runtime,
+	// where the root module as Terraform sees it isn't the actual root module.
+	AllowRootDeprecatedOutputs bool
 }
 
 // See GraphBuilder
@@ -194,11 +196,12 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:                    b.Config,
-			RefreshOnly:               b.skipPlanChanges || b.preDestroyRefresh,
-			Destroying:                b.Operation == walkPlanDestroy,
-			Overrides:                 b.Overrides,
-			AllowRootEphemeralOutputs: b.AllowRootEphemeralOutputs,
+			Config:                     b.Config,
+			RefreshOnly:                b.skipPlanChanges || b.preDestroyRefresh,
+			Destroying:                 b.Operation == walkPlanDestroy,
+			Overrides:                  b.Overrides,
+			AllowRootEphemeralOutputs:  b.AllowRootEphemeralOutputs,
+			AllowRootDeprecatedOutputs: b.AllowRootDeprecatedOutputs,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
@@ -272,6 +275,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// come after all other transformers that create nodes representing
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Concrete: b.ConcreteModule, Config: b.Config},
+
+		// Evaluate module policies before the objects within each module.
+		&ModulePolicyTransformer{Config: b.Config, PolicyClient: b.PolicyClient},
 
 		// Plug in any external references.
 		&ExternalReferenceTransformer{
@@ -352,8 +358,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
-			forgetResources: b.forgetResources,
-			forgetModules:   b.forgetModules,
+			forget:          b.forget,
 		}
 	}
 
@@ -366,8 +371,7 @@ func (b *PlanGraphBuilder) initPlan() {
 			// -minimal-refresh optimizes to skip refreshing when destroying / deleting instances
 			skipRefresh:     b.skipRefresh || b.minimalRefresh,
 			skipPlanChanges: b.skipPlanChanges,
-			forgetResources: b.forgetResources,
-			forgetModules:   b.forgetModules,
+			forget:          b.forget,
 		}
 	}
 }

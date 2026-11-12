@@ -241,17 +241,21 @@ Usage: terraform [global options] validate [options]
 
 Options:
 
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
+
   -json                 Produce output in a machine-readable JSON format, 
                         suitable for use in text editor integrations and other 
                         automated systems. Always disables color.
 
   -no-color             If specified, output won't contain any color.
 
-  -no-tests             If specified, Terraform will not validate test files.
-
-  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+  -no-tests            	If specified, Terraform will not validate test files.
 
   -query                If specified, the command will also validate .tfquery.hcl files.
+
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than
@@ -261,7 +265,6 @@ Options:
                         to the default files terraform.tfvars and *.auto.tfvars.
                         Use this option more than once to include more than one
                         variables file.
-
 `
 	return strings.TrimSpace(helpText)
 }

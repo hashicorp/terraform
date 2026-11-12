@@ -4,10 +4,13 @@
 package terraform
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -34,7 +37,7 @@ func TestConfigProviderTypes(t *testing.T) {
 		t.Fatal("expected empty result from empty config")
 	}
 
-	cfg, diags := testModuleCfgFromFileWithExperiments("testdata/config-graph/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleConfigFromFile(t, "testdata/config-graph/valid-files/providers-explicit-implied.tf")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -535,7 +538,7 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 }
 
 func TestConfigAddProviderRequirements(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/config-graph/valid-files/providers-explicit-implied.tf")
+	cfg, diags := testModuleConfigFromFile(t, "testdata/config-graph/valid-files/providers-explicit-implied.tf")
 	assertNoDiagnostics(t, diags)
 
 	reqs := providerreqs.Requirements{
@@ -564,24 +567,24 @@ Use the providers argument within the module block to configure providers for al
 }
 
 func TestConfigImportProviderClashesWithResources(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/config-graph/invalid-import-files/import-and-resource-clash.tf")
+	cfg, diags := testModuleConfigFromFile(t, "testdata/config-graph/invalid-import-files/import-and-resource-clash.tf")
 	assertNoDiagnostics(t, diags)
 
 	diags = cfg.AddProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
-		`testdata/config-graph/invalid-import-files/import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
+		`import-and-resource-clash.tf:9,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
 	})
 }
 
 func TestConfigImportProviderWithNoResourceProvider(t *testing.T) {
-	cfg, diags := testModuleConfigFromFile("testdata/config-graph/invalid-import-files/import-and-no-resource.tf")
+	cfg, diags := testModuleConfigFromFile(t, "testdata/config-graph/invalid-import-files/import-and-no-resource.tf")
 	assertNoDiagnostics(t, diags)
 
 	diags = cfg.AddProviderRequirements(providerreqs.Requirements{}, true, false)
 	assertExactDiagnostics(t, diags, []string{
-		`testdata/config-graph/invalid-import-files/import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
+		`import-and-no-resource.tf:5,3-19: Invalid import provider argument; The provider argument can only be specified in import blocks that will generate configuration.
 
 Use the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.`,
 	})
@@ -601,6 +604,63 @@ func TestConfigActionInResourceDependsOn(t *testing.T) {
 	assertExactDiagnostics(t, diags, []string{
 		`main.tf:5,17-42: Invalid depends_on Action Reference; The depends_on attribute cannot reference action blocks directly. You must reference a resource or data source instead.`,
 	})
+}
+
+func TestParserLoadConfigFileError(t *testing.T) {
+	files, err := os.ReadDir("testdata/config-graph/error-files")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, info := range files {
+		name := info.Name()
+		t.Run(name, func(t *testing.T) {
+			src, err := os.ReadFile(filepath.Join("testdata/config-graph/error-files", name))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// First we'll scan the file to see what warnings are expected.
+			// That's declared inside the files themselves by using the
+			// string "ERROR: " somewhere on each line that is expected
+			// to produce a warning, followed by the expected warning summary
+			// text. A single-line comment (with #) is the main way to do that.
+			const marker = "ERROR: "
+			sc := bufio.NewScanner(bytes.NewReader(src))
+			wantErrors := make(map[int]string)
+			lineNum := 1
+			for sc.Scan() {
+				lineText := sc.Text()
+				if idx := strings.Index(lineText, marker); idx != -1 {
+					summaryText := lineText[idx+len(marker):]
+					wantErrors[lineNum] = summaryText
+				}
+				lineNum++
+			}
+
+			parser := testParser(map[string]string{
+				name: string(src),
+			})
+
+			mod, mDiags := parser.LoadConfigDir(".")
+			if mDiags != nil {
+				t.Errorf("wrong diags\n%s", mDiags)
+			}
+			_, diags := BuildModuleWithGraph(mod, nil)
+
+			gotErrors := make(map[int]string)
+			for _, diag := range diags.ToHCL() {
+				if diag.Severity != hcl.DiagError || diag.Subject == nil {
+					continue
+				}
+				gotErrors[diag.Subject.Start.Line] = diag.Summary
+			}
+
+			if diff := cmp.Diff(wantErrors, gotErrors); diff != "" {
+				t.Errorf("wrong errors\n%s", diff)
+			}
+		})
+	}
 }
 
 // testNestedModuleConfigFromDirWithTests matches testNestedModuleConfigFromDir
@@ -663,9 +723,11 @@ func buildNestedModuleConfig(mod *configs.Module, path string, parser *configs.P
 func testModuleConfigFromDir(path string) (*configs.Config, hcl.Diagnostics) {
 	parser := configs.NewParser(nil)
 	mod, diags := parser.LoadConfigDir(path)
-	cfg := testConfig(mod)
-	moreDiags := configs.FinalizeConfig(cfg, nil)
-	return cfg, append(diags, moreDiags...)
+
+	cfg, nestedDiags := buildNestedModuleConfig(mod, ".", parser)
+	diags = append(diags, nestedDiags...)
+
+	return cfg, diags
 }
 
 func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) bool {
@@ -684,35 +746,28 @@ func assertDiagnosticSummary(t *testing.T, diags hcl.Diagnostics, want string) b
 	return true
 }
 
-func testConfig(mod *configs.Module) *configs.Config {
-	cfg := &configs.Config{Module: mod, Children: map[string]*configs.Config{}}
-	cfg.Root = cfg
-	return cfg
-}
-
 // testModuleConfigFrom File reads a single file from the given path as a
 // module and returns its configuration. This is a helper for use in unit tests.
-func testModuleConfigFromFile(filename string) (*configs.Config, hcl.Diagnostics) {
-	parser := configs.NewParser(nil)
-	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := configs.NewModule([]*configs.File{f}, nil)
-	diags = append(diags, modDiags...)
-	cfg := testConfig(mod)
-	moreDiags := configs.FinalizeConfig(cfg, nil)
-	return cfg, append(diags, moreDiags...)
-}
+func testModuleConfigFromFile(t *testing.T, file string) (*configs.Config, hcl.Diagnostics) {
+	src, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := filepath.Base(file)
 
-// testModuleCfgFromFileWithExperiments File reads a single file from the given path as a
-// module and returns its configuration. This is a helper for use in unit tests.
-func testModuleCfgFromFileWithExperiments(filename string) (*configs.Config, hcl.Diagnostics) {
-	parser := configs.NewParser(nil)
-	parser.AllowLanguageExperiments(true)
-	f, diags := parser.LoadConfigFile(filename)
-	mod, modDiags := configs.NewModule([]*configs.File{f}, nil)
-	diags = append(diags, modDiags...)
-	cfg := testConfig(mod)
-	moreDiags := configs.FinalizeConfig(cfg, nil)
-	return cfg, append(diags, moreDiags...)
+	parser := testParser(map[string]string{
+		name: string(src),
+	})
+
+	mod, diags := parser.LoadConfigDir(".")
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, nestedDiags := buildNestedModuleConfig(mod, ".", parser)
+	diags = append(diags, nestedDiags...)
+
+	return cfg, diags
 }
 
 func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) bool {

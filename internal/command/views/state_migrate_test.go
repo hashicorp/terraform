@@ -4,6 +4,7 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestNewStateMigrate_LogInstallProviderVersionComplete(t *testing.T) {
@@ -107,14 +109,10 @@ func TestNewStateMigrate_Spacer_json(t *testing.T) {
 
 	smView.Spacer()
 
-	// Assert output
+	// Assert no output
 	output := done(t)
-
-	// We cannot simply assert no output as the JSON view logs the version message on initialization
-	// Splitting on \n when there's only the version log will get an array of the log and an empty string.
-	// If there are more logs there'll be >2 elements.
-	if x := strings.Split(output.Stdout(), "\n"); len(x) != 2 {
-		t.Fatalf("expected no additional output after version message, got: %s", output.Stdout())
+	if output.Stdout() != "" {
+		t.Fatalf("expected no output, got: %s", output.Stdout())
 	}
 }
 
@@ -195,7 +193,7 @@ func TestNewStateMigrate_LogDependencyLockfileCreated_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`Terraform has created a lock file .terraform.lock.hcl`, // @message - incomplete but sufficient
+		`"@message":"Terraform has created a lock file .terraform.lock.hcl to record the provider selections made during this command."`,
 		`"@module":"terraform.ui"`,
 		`"type":"provider_lockfile_created"`,
 	}
@@ -217,7 +215,7 @@ func TestNewStateMigrate_LogDependencyLockfileUpdated_json(t *testing.T) {
 	output := done(t)
 	expectedOutputFields := []string{
 		`"@level":"info"`,
-		`Terraform has made some changes to the provider dependency selections`, // @message - incomplete but sufficient
+		`"@message":"Terraform has made some changes to the provider dependency selections recorded in the .terraform.lock.hcl file."`,
 		`"@module":"terraform.ui"`,
 		`"type":"provider_lockfile_updated"`,
 	}
@@ -700,4 +698,38 @@ func TestNewStateMigrate_LogMigrationDestinationInitializationComplete_json(t *t
 			t.Fatalf("output didn't include expected snippet:\n expected: %s\n got:\n %s", snippet, output.Stdout())
 		}
 	}
+}
+
+func TestNewStateMigrate_Version(t *testing.T) {
+	t.Run("json view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewStateMigrate(arguments.ViewJSON, NewView(streams))
+
+		v.Version()
+
+		want := []map[string]interface{}{
+			{
+				"@level":    "info",
+				"@message":  fmt.Sprintf("Terraform %s", version.String()),
+				"@module":   "terraform.ui",
+				"type":      "version",
+				"terraform": version.String(),
+				"ui":        JSON_UI_VERSION,
+			},
+		}
+		testJSONViewOutputEquals(t, done(t).Stdout(), want)
+	})
+
+	t.Run("human view", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := NewStateMigrate(arguments.ViewHuman, NewView(streams))
+
+		v.Version()
+
+		got := done(t).Stdout()
+		want := ""
+		if got != want {
+			t.Fatalf("expected output %q, got %q", want, got)
+		}
+	})
 }

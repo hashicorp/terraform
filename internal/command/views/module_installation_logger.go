@@ -3,11 +3,18 @@
 
 package views
 
-type ModuleInstallationLogger interface {
-	// TODO: Refactor calling code so that these methods can format the messages internally
-	LogModuleDownload(message string)
-	LogModuleInstallation(message string)
+import (
+	version "github.com/hashicorp/go-version"
+)
 
-	LogModuleUpgrade()
-	LogModuleInitialization()
+type ModuleInstallationLogger interface {
+	// LogModuleDownload logs the start of a module download.
+	// This may or may not include a version (nil versions impact the output format)
+	LogModuleDownload(packageAddr string, version *version.Version, modulePath string)
+
+	// LogModuleInstallation logs the completion of a module installation without showing details about where it's downloaded to.
+	LogModuleInstallation(modulePath string)
+
+	// LogModuleInstallationWithLocalPath logs the completion of a module installation including the local path.
+	LogModuleInstallationWithLocalPath(modulePath, localDir string)
 }

@@ -14,6 +14,7 @@ const (
 	CreateThenDelete Action = '±'
 	Delete           Action = '-'
 	Forget           Action = '.'
+	ForgetThenCreate Action = '∔'
 	CreateThenForget Action = '⨥'
 	Open             Action = '⟃'
 	Renew            Action = '⟳'
@@ -25,5 +26,5 @@ const (
 // IsReplace returns true if the action is one of the actions that
 // represent replacing an existing object with a new object.
 func (a Action) IsReplace() bool {
-	return a == DeleteThenCreate || a == CreateThenDelete || a == CreateThenForget
+	return a == DeleteThenCreate || a == CreateThenDelete || a == ForgetThenCreate || a == CreateThenForget
 }

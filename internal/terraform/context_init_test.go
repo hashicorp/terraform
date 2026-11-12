@@ -9,11 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/getmodules/moduleaddrs"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -1146,5 +1147,48 @@ func mustVersionContraint(t *testing.T, rawStr string) configs.VersionConstraint
 	}
 	return configs.VersionConstraint{
 		Required: constraints,
+	}
+}
+
+func TestInit_doesNotLoadProviderFunctionSchemas(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Parallelism: 1,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testRootModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
+locals {
+  source = "./modules/example"
+}
+
+module "example" {
+  source = local.source
+}
+`,
+	}, false)
+
+	moduleWalker := MockModuleWalker{
+		DefaultModule: testRootModuleInline(t, map[string]string{"main.tf": `// empty`}, false),
+	}
+	_, diags := ctx.Init(m, InitOpts{Walker: &moduleWalker})
+	tfdiags.AssertNoDiagnostics(t, diags)
+
+	if len(moduleWalker.Calls) != 1 {
+		t.Fatalf("expected 1 LoadModule call, got %d", len(moduleWalker.Calls))
+	}
+	if p.GetProviderSchemaCalled {
+		t.Fatal("provider schema was loaded during init")
 	}
 }

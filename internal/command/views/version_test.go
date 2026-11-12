@@ -132,11 +132,12 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			version:  "1.0.0",
 			platform: "linux_amd64",
 			wantOutput: `{
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `,
 		},
@@ -160,14 +161,15 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 				),
 			},
 			wantOutput: `{
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {
     "registry.terraform.io/hashicorp/test1": "1.2.3",
     "registry.terraform.io/hashicorp/test2": "0.0.0"
   },
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": []
 }
 `,
 		},
@@ -179,11 +181,12 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 			latest:             "1.16.0",
 			diags:              nil,
 			wantOutput: `{
-  "format_version": "1.0",
+  "format_version": "1.1",
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
-  "terraform_outdated": true
+  "terraform_outdated": true,
+  "diagnostics": []
 }
 `,
 		},
@@ -198,16 +201,19 @@ func TestVersionJSON_LogVersion(t *testing.T) {
 					"Watch out, or you'll trip!",
 				),
 			},
-			wantOutput: `
-Warning: Your shoelaces are untied
-
-Watch out, or you'll trip!
-{
-  "format_version": "1.0",
+			wantOutput: `{
+  "format_version": "1.1",
   "terraform_version": "1.0.0",
   "platform": "linux_amd64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "terraform_outdated": false,
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "summary": "Your shoelaces are untied",
+      "detail": "Watch out, or you'll trip!"
+    }
+  ]
 }
 `,
 		},
@@ -237,6 +243,66 @@ Watch out, or you'll trip!
 			got := output.Stdout()
 			if diff := cmp.Diff(tc.wantOutput, got); diff != "" {
 				t.Errorf("unexpected output diff:\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestVersionJSON_Diagnostics(t *testing.T) {
+	testCases := map[string]struct {
+		diags tfdiags.Diagnostics
+
+		wantOutput string
+	}{
+		"errors are rendered alongside format_version and zero-values": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Error!",
+					"Fix your error!",
+				),
+			},
+			wantOutput: `{
+  "format_version": "1.1",
+  "terraform_version": "",
+  "platform": "",
+  "provider_selections": {},
+  "terraform_outdated": false,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Error!",
+      "detail": "Fix your error!"
+    }
+  ]
+}
+`,
+		},
+		"skip if no diags": {
+			diags:      tfdiags.Diagnostics{},
+			wantOutput: ``,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewView(streams)
+			view.Configure(&arguments.View{NoColor: true})
+			v := NewVersion(arguments.ViewJSON, view)
+
+			v.Diagnostics(
+				tc.diags,
+			)
+
+			output := done(t)
+			gotErr := output.Stderr()
+			if diff := cmp.Diff(tc.wantOutput, gotErr); diff != "" {
+				t.Errorf("unexpected output diff:\n%s", diff)
+			}
+
+			got := output.Stdout()
+			if got != "" {
+				t.Errorf("unexpected stdout output:\n%s", got)
 			}
 		})
 	}

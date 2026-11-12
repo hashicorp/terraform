@@ -15,6 +15,7 @@ import (
 	viewjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/mitchellh/colorstring"
 )
 
 type queryPolicyResult string
@@ -109,7 +110,7 @@ func ParsePolicyQuerySummary(line []byte) (PolicyQuerySummary, error) {
 
 // RenderPolicyQuerySummariesHuman renders a complete human-readable policy
 // section for one or more list blocks.
-func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
+func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary, colorize *colorstring.Colorize) string {
 	if len(summaries) == 0 {
 		return ""
 	}
@@ -119,24 +120,56 @@ func RenderPolicyQuerySummariesHuman(summaries []PolicyQuerySummary) string {
 		return ordered[i].ListBlockAddress < ordered[j].ListBlockAddress
 	})
 
-	policies := make(map[queryPolicyKey]struct{})
+	policies := make(map[queryPolicyKey]viewjson.PolicyMetadata)
+	var failed, passed, unknown, errored int
 	for _, summary := range ordered {
 		for _, metadata := range summary.PassedPolicies {
-			policies[queryPolicyKeyFromMetadata(metadata)] = struct{}{}
+			policies[queryPolicyKeyFromMetadata(metadata)] = metadata
 		}
 		for _, result := range summary.Results {
 			for _, pol := range result.Policies {
-				policies[queryPolicyKeyFromMetadata(pol.PolicyMetadata)] = struct{}{}
+				policies[queryPolicyKeyFromMetadata(pol.PolicyMetadata)] = pol.PolicyMetadata
+			}
+
+			switch result.Result {
+			case queryPolicyResultFail:
+				failed++
+			case queryPolicyResultPass:
+				if len(result.Policies) > 0 {
+					passed++
+				}
+			case queryPolicyResultUnknown:
+				unknown++
+			case queryPolicyResultError:
+				errored++
 			}
 		}
 	}
 
+	evaluated := make([]viewjson.PolicyMetadata, 0, len(policies))
+	for _, metadata := range policies {
+		evaluated = append(evaluated, metadata)
+	}
+	sort.Slice(evaluated, func(i, j int) bool {
+		return queryPolicyMetadataLess(evaluated[i], evaluated[j])
+	})
+
 	var buf strings.Builder
-	fmt.Fprintf(&buf, "Evaluated %d policies.", len(policies))
+	fmt.Fprintf(&buf, "Evaluated %d policies.", len(evaluated))
+	for _, metadata := range evaluated {
+		fmt.Fprintf(&buf, "\n%s", metadata.PolicyName)
+	}
 	for _, summary := range ordered {
 		buf.WriteString("\n\n")
-		buf.WriteString(renderQueryPolicySummaryHuman(summary))
+		buf.WriteString(renderQueryPolicySummaryHuman(summary, colorize))
 	}
+
+	fmt.Fprintf(
+		&buf,
+		"\n\nSummary: %d failed, %d passed, %d unknown, %d errored",
+		failed, passed, unknown, errored,
+	)
+
 	return buf.String()
 }
 
@@ -397,10 +430,10 @@ func queryPolicyResultFromEvaluation(result policy.EvaluateResult) queryPolicyRe
 	}
 }
 
-func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
+func renderQueryPolicySummaryHuman(summary PolicyQuerySummary, colorize *colorstring.Colorize) string {
 	var buf strings.Builder
 
-	fmt.Fprintf(&buf, "Policy results for %s - %s\n", summary.ListBlockAddress, toPolicyResultLabel(summary.OverallResult))
+	fmt.Fprintf(&buf, "Policy results for %s - %s\n", summary.ListBlockAddress, toPolicyResultLabel(summary.OverallResult, colorize))
 
 	maxLen := 0
 	for _, r := range summary.Results {
@@ -411,7 +444,7 @@ func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
 
 	for _, result := range summary.Results {
 		identity := formatQueryPolicyIdentity(result.Identity)
-		label := toPolicyResultLabel(result.Result)
+		label := toPolicyResultLabel(result.Result, colorize)
 		if result.Result == queryPolicyResultPass && len(result.Policies) == 0 {
 			label = "N/A"
 		}
@@ -429,11 +462,14 @@ func renderQueryPolicySummaryHuman(summary PolicyQuerySummary) string {
 	return strings.TrimRight(buf.String(), "\n")
 }
 
-func toPolicyResultLabel(r queryPolicyResult) string {
+func toPolicyResultLabel(r queryPolicyResult, colorize *colorstring.Colorize) string {
 	switch r {
 	case queryPolicyResultPass:
 		return "Passed"
 	case queryPolicyResultFail:
+		if colorize != nil {
+			return colorize.Color("[red]Failed[reset]")
+		}
 		return "Failed"
 	case queryPolicyResultError:
 		return "Error"

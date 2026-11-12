@@ -141,11 +141,11 @@ func TestAnalyzerMetaReferences(t *testing.T) {
 			var containerAddr addrs.Targetable
 			containerAddr = addrs.RootModuleInstance
 			if test.InputContainer != "" {
-				moduleAddrTarget, diags := addrs.ParseTargetStr(test.InputContainer)
+				moduleAddr, diags := addrs.ParseModuleInstanceStr(test.InputContainer)
 				if diags.HasErrors() {
 					t.Fatalf("input module address is invalid: %s", diags.Err())
 				}
-				containerAddr = moduleAddrTarget.Subject
+				containerAddr = moduleAddr
 			}
 
 			localRef, diags := addrs.ParseRefStr(test.InputRef)

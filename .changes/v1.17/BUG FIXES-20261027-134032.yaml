@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Always evaluate module policies during destroy plan
+time: 2026-10-27T13:40:32.51201+01:00
+custom:
+    Issue: "39455"

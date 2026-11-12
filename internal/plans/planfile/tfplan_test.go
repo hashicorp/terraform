@@ -23,6 +23,39 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+func TestActionProtoRoundTrip_forgetThenCreate(t *testing.T) {
+	before, err := plans.NewDynamicValue(cty.StringVal("before"), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := plans.NewDynamicValue(cty.StringVal("after"), cty.String)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := changeToTfplan(&plans.ChangeSrc{
+		Action: plans.ForgetThenCreate,
+		Before: before,
+		After:  after,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := changeFromTfplan(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Action != plans.ForgetThenCreate {
+		t.Fatalf("wrong action after round trip: got %s, want %s", got.Action, plans.ForgetThenCreate)
+	}
+	if !bytes.Equal(got.Before, before) {
+		t.Fatalf("wrong before value after round trip")
+	}
+	if !bytes.Equal(got.After, after) {
+		t.Fatalf("wrong after value after round trip")
+	}
+}
+
 // TestTFPlanRoundTrip writes a plan to a planfile, reads the contents of the planfile,
 // and asserts that the read data matches the written data.
 func TestTFPlanRoundTrip(t *testing.T) {
@@ -533,12 +566,8 @@ func examplePlanForTest(t *testing.T) *plans.Plan {
 				),
 			),
 		},
-		TargetAddrs: []addrs.Targetable{
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "woot",
-			}.Absolute(addrs.RootModuleInstance),
+		TargetAddrs: []addrs.TargetPattern{
+			mustParseTargetPattern("test_thing.woot"),
 		},
 		Backend: &plans.Backend{
 			Type: "local",
@@ -578,6 +607,14 @@ func mustNewDynamicValueStr(val string) plans.DynamicValue {
 		panic(err)
 	}
 	return ret
+}
+
+func mustParseTargetPattern(str string) addrs.TargetPattern {
+	target, diags := addrs.ParseTargetStr(str)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return target
 }
 
 // TestTFPlanRoundTripDestroy ensures that encoding and decoding null values for
@@ -637,12 +674,8 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 			},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
-		TargetAddrs: []addrs.Targetable{
-			addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "test_thing",
-				Name: "woot",
-			}.Absolute(addrs.RootModuleInstance),
+		TargetAddrs: []addrs.TargetPattern{
+			mustParseTargetPattern("test_thing.woot"),
 		},
 		Backend: &plans.Backend{
 			Type: "local",

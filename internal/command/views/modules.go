@@ -4,11 +4,11 @@
 package views
 
 import (
-	encJson "encoding/json"
 	"fmt"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/moduleref"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/xlab/treeprint"
@@ -16,7 +16,7 @@ import (
 
 type Modules interface {
 	// Display renders the list of module entries.
-	Display(manifest moduleref.Manifest) int
+	Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -25,7 +25,7 @@ type Modules interface {
 func NewModules(vt arguments.ViewType, view *View) Modules {
 	switch vt {
 	case arguments.ViewJSON:
-		return &ModulesJSON{view: view}
+		return NewModulesJSON(view)
 	case arguments.ViewHuman:
 		return &ModulesHuman{view: view}
 	default:
@@ -39,7 +39,9 @@ type ModulesHuman struct {
 
 var _ Modules = (*ModulesHuman)(nil)
 
-func (v *ModulesHuman) Display(manifest moduleref.Manifest) int {
+func (v *ModulesHuman) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	v.view.Diagnostics(diags) // Print any warnings
+
 	if len(manifest.Records) == 0 {
 		v.view.streams.Println("No modules found in configuration.")
 		return 0
@@ -77,44 +79,62 @@ func (v *ModulesHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ModulesJSON struct {
-	view *View
+	view *JSONStaticView[ModulesOutput]
+
+	formatVersion string
 }
 
-var _ Modules = (*ModulesHuman)(nil)
+func NewModulesJSON(view *View) *ModulesJSON {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const formatVersion = "1.1"
 
-func (v *ModulesJSON) Display(manifest moduleref.Manifest) int {
-	var bytes []byte
-	var err error
-
-	flattenedManifest := flattenManifest(manifest)
-	if bytes, err = encJson.Marshal(flattenedManifest); err != nil {
-		v.view.streams.Eprintf("error marshalling manifest: %v", err)
-		return 1
+	return &ModulesJSON{
+		view:          NewJSONStaticView[ModulesOutput](view),
+		formatVersion: formatVersion,
 	}
+}
 
-	v.view.streams.Println(string(bytes))
+type ModulesOutput struct {
+	FormatVersion string                  `json:"format_version"`
+	Modules       []ModuleOutput          `json:"modules"`
+	Diagnostics   []*viewsjson.Diagnostic `json:"diagnostics"`
+}
+
+type ModuleOutput struct {
+	Key     string `json:"key"`
+	Source  string `json:"source"`
+	Version string `json:"version"`
+}
+
+var _ Modules = (*ModulesJSON)(nil)
+
+func (v *ModulesJSON) Display(manifest moduleref.Manifest, diags tfdiags.Diagnostics) int {
+	flattenedManifest := flattenManifest(manifest, v.formatVersion, v.view.prepareDiagnostics(diags))
+	v.view.Print(flattenedManifest)
 	return 0
 }
 
-// FlattenManifest returns the nested contents of a moduleref.Manifest in
-// a flattened format with the VersionConstraints and Children attributes
+// FlattenManifest returns the nested contents of a moduleref.Manifest as
+// a ModulesOutput with the VersionConstraints and Children attributes
 // ommited for the purposes of the json format of the modules command
-func flattenManifest(m moduleref.Manifest) map[string]interface{} {
+func flattenManifest(m moduleref.Manifest, formatVersion string, diags []*viewsjson.Diagnostic) ModulesOutput {
 	var flatten func(records []*moduleref.Record)
-	var recordList []map[string]string
+	recordList := make([]ModuleOutput, 0) // Ensure non-nil slice for JSON output
 	flatten = func(records []*moduleref.Record) {
 		for _, record := range records {
 			if record.Version != nil {
-				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
-					"source":  record.Source.String(),
-					"version": record.Version.String(),
+				recordList = append(recordList, ModuleOutput{
+					Key:     record.Key,
+					Source:  record.Source.String(),
+					Version: record.Version.String(),
 				})
 			} else {
-				recordList = append(recordList, map[string]string{
-					"key":     record.Key,
-					"source":  record.Source.String(),
-					"version": "",
+				recordList = append(recordList, ModuleOutput{
+					Key:     record.Key,
+					Source:  record.Source.String(),
+					Version: "",
 				})
 			}
 
@@ -125,13 +145,32 @@ func flattenManifest(m moduleref.Manifest) map[string]interface{} {
 	}
 
 	flatten(m.Records)
-	ret := map[string]interface{}{
-		"format_version": m.FormatVersion,
-		"modules":        recordList,
+	ret := ModulesOutput{
+		FormatVersion: formatVersion,
+		Modules:       recordList,
+		Diagnostics:   diags,
 	}
 	return ret
 }
 
+// Diagnostics prints a JSON output that contains only the format and diagnostics information.
 func (v *ModulesJSON) Diagnostics(diags tfdiags.Diagnostics) {
-	v.view.Diagnostics(diags)
+	if len(diags) == 0 {
+		return
+	}
+
+	output := ModulesOutput{
+		FormatVersion: v.formatVersion,
+		Modules:       []ModuleOutput{}, // Ensure non-nil slice for JSON output
+		Diagnostics:   v.view.prepareDiagnostics(diags),
+	}
+
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }

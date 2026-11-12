@@ -5,10 +5,12 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -30,7 +32,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -63,7 +67,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
 
-	hook := new(MockHook)
+	hook := new(deposedPreApplyHook)
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{hook},
 		Providers: map[addrs.Provider]providers.Factory{
@@ -83,16 +87,50 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 		t.Fatalf("diags: %s", diags.Err())
 	}
 
-	// Verify PreApply was called correctly
-	if !hook.PreApplyCalled {
+	// Verify PreApply was called correctly for the deposed object. The
+	// leftover deposed object is not ordered against the update of the
+	// current object, so we can't rely on it being the last call.
+	if len(hook.calls) == 0 {
 		t.Fatalf("PreApply hook not called")
 	}
-	if addr, wantAddr := hook.PreApplyAddr, mustResourceInstanceAddr("aws_instance.bar"); !addr.Equal(wantAddr) {
-		t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
+	wantAddr := mustResourceInstanceAddr("aws_instance.bar")
+	var found bool
+	for _, call := range hook.calls {
+		if !call.addr.Equal(wantAddr) {
+			t.Errorf("expected addr to be %s, but was %s", wantAddr, call.addr)
+		}
+		if call.action == plans.Delete {
+			found = true
+			if call.dk != deposedKey {
+				t.Errorf("expected gen to be %q, but was %q", deposedKey, call.dk)
+			}
+		}
 	}
-	if gen := hook.PreApplyGen; gen != deposedKey {
-		t.Errorf("expected gen to be %q, but was %q", deposedKey, gen)
+	if !found {
+		t.Fatalf("PreApply hook not called for the deposed object")
 	}
+}
+
+// deposedPreApplyHook records the PreApply calls along with their deposed key
+// and prior value.
+type deposedPreApplyHook struct {
+	NilHook
+	mu    sync.Mutex
+	calls []deposedPreApplyCall
+}
+
+type deposedPreApplyCall struct {
+	addr   addrs.AbsResourceInstance
+	dk     addrs.DeposedKey
+	action plans.Action
+	prior  cty.Value
+}
+
+func (h *deposedPreApplyHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.calls = append(h.calls, deposedPreApplyCall{addr: id.Addr, dk: dk, action: action, prior: priorState})
+	return HookActionContinue, nil
 }
 
 func TestContext2Apply_destroyWithDataSourceExpansion(t *testing.T) {
@@ -689,7 +727,7 @@ resource "test_object" "s" {
 	// destroy only a single instance not included in the moved statements
 	_, diags = ctx.Plan(m, state, &PlanOpts{
 		Mode:    plans.DestroyMode,
-		Targets: []addrs.Targetable{mustResourceInstanceAddr(`module.modb["a"].test_object.a`)},
+		Targets: []addrs.TargetPattern{mustTargetPattern(`module.modb["a"].test_object.a`)},
 	})
 	tfdiags.AssertNoErrors(t, diags)
 }
@@ -5123,7 +5161,7 @@ resource test_object default {}
 	t.Run("targeted destroy", func(t *testing.T) {
 		p.ApplyResourceChangeCalled = false //reset!
 		state := testState()
-		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.Targetable{forget}})
+		plan, diags := ctx.Plan(m, state, &PlanOpts{Mode: plans.DestroyMode, Targets: []addrs.TargetPattern{mustTargetPattern(forget.String())}})
 		if len(diags) != 2 { // usual -target diag + warning about forgetting
 			t.Fatalf("wrong number of diagnostics. Got %d, expected %d\n", len(diags), 2)
 		}
@@ -5197,7 +5235,7 @@ resource test_object default {}
 		if !strings.Contains(diags.ErrWithWarnings().Error(), "Some objects will no longer be managed by Terraform") {
 			t.Fatal("missing expected diagnostic")
 		}
-		assertPlan(t, plan, forget, plans.CreateThenForget)
+		assertPlan(t, plan, forget, plans.ForgetThenCreate)
 
 		state, applyDiags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, applyDiags)
@@ -5402,4 +5440,1397 @@ resource "test_object" "r3" {
 		_, applyDiags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, applyDiags)
 	})
+}
+
+func TestContext2Apply_forget_createBeforeDestroy(t *testing.T) {
+	tests := map[string]string{
+		"explicit": `
+resource "test_object" "forget" {
+	lifecycle {
+		destroy               = false
+		create_before_destroy = true
+	}
+}
+`,
+		"propagated": `
+resource "test_object" "forget" {
+	lifecycle {
+		destroy = false
+	}
+}
+
+resource "test_object" "dependent" {
+	depends_on = [test_object.forget]
+
+	lifecycle {
+		create_before_destroy = true
+	}
+}
+`,
+	}
+
+	for name, config := range tests {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{
+				"main.tf": config,
+			})
+
+			p := simpleMockProvider()
+			createCalls := 0
+			p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+				if req.PlannedState.IsNull() {
+					t.Fatal("provider was asked to destroy an object")
+				}
+
+				if req.PriorState.IsNull() {
+					createCalls++
+				}
+				resp.NewState = req.PlannedState
+				return resp
+			}
+			ctx := testContext2(t, &ContextOpts{
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			forget := mustResourceInstanceAddr("test_object.forget")
+			state := states.NewState()
+			root := state.EnsureModule(addrs.RootModuleInstance)
+			root.SetResourceInstanceCurrent(
+				forget.Resource,
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectTainted,
+					AttrsJSON: []byte(`{"test_string":"old"}`),
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+			if name == "propagated" {
+				root.SetResourceInstanceCurrent(
+					mustResourceInstanceAddr("test_object.dependent").Resource,
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				)
+			}
+
+			plan, diags := ctx.Plan(m, state, nil)
+			tfdiags.AssertNoErrors(t, diags)
+			change := plan.Changes.ResourceInstance(forget)
+			if change == nil {
+				t.Fatal("expected a change")
+			}
+			if got, want := change.Action, plans.CreateThenForget; got != want {
+				t.Fatalf("wrong change type for %s: got %s, want %s", forget, got, want)
+			}
+
+			state, diags = ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+			if got, want := createCalls, 1; got != want {
+				t.Fatalf("wrong number of provider create calls: got %d, want %d", got, want)
+			}
+
+			instance := state.ResourceInstance(forget)
+			if instance == nil || instance.Current == nil {
+				t.Fatalf("%s has no current object after replacement", forget)
+			}
+			if got := len(instance.Deposed); got != 0 {
+				t.Fatalf("%s has %d deposed objects after replacement; want none", forget, got)
+			}
+		})
+	}
+}
+
+func TestContext2Apply_forget_createBeforeDestroyInvalidResult(t *testing.T) {
+	initialConfig := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = "old"
+
+	lifecycle {
+		destroy               = false
+		create_before_destroy = true
+	}
+}
+`,
+	})
+
+	replacementConfig := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = "new"
+
+	lifecycle {
+		destroy               = false
+		create_before_destroy = true
+	}
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		if req.PriorState.IsNull() || req.ProposedNewState.IsNull() {
+			return resp
+		}
+		if !req.PriorState.GetAttr("test_string").RawEquals(req.ProposedNewState.GetAttr("test_string")) {
+			resp.RequiresReplace = []cty.Path{cty.GetAttrPath("test_string")}
+		}
+		return resp
+	}
+	createCalls := 0
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		if req.PlannedState.IsNull() {
+			t.Fatal("provider was asked to destroy an object")
+		}
+		if req.PriorState.IsNull() {
+			createCalls++
+		}
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(initialConfig, states.NewState(), nil)
+	tfdiags.AssertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, initialConfig, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	if got, want := createCalls, 1; got != want {
+		t.Fatalf("wrong number of provider create calls after initial apply: got %d, want %d", got, want)
+	}
+
+	plan, diags = ctx.Plan(replacementConfig, state, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, replacementConfig, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	if got, want := createCalls, 2; got != want {
+		t.Fatalf("wrong total number of provider create calls: got %d, want %d", got, want)
+	}
+}
+
+func TestContext2Apply_forget_replace(t *testing.T) {
+	// https://github.com/hashicorp/terraform/issues/39088
+	// we have a resource in state that needs replacing, and forget statement, but we're doing a replace
+	// don't be weird about it
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+	test_string = "hello"
+	lifecycle {
+		destroy = false
+	}
+}
+`})
+
+	p := simpleMockProvider()
+
+	hook := new(MockHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	forget := mustResourceInstanceAddr("test_object.forget")
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		forget.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"hi"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	// need the provider to return a requires_replace (or otherwise force replace)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		obj := req.ProposedNewState.AsValueMap()
+
+		if req.Config.IsNull() {
+			t.Fatal("should not plan a destroy")
+		}
+
+		if !req.PriorState.IsNull() {
+			if req.PriorState.GetAttr("test_string").AsString() != "hello" {
+				resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("test_string"))
+			}
+		}
+
+		resp.PlannedState = cty.ObjectVal(obj)
+		return resp
+	}
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		if req.PlannedState.IsNull() {
+			t.Fatal("should not be applying a destroy")
+		}
+
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	plan, diags := ctx.Plan(m, state, nil)
+	if !diags.HasWarnings() { // forgetting emits a warning, but there should be no errors.
+		t.Errorf("missing expected forget warning")
+	}
+	assertNoDiagnostics(t, diags.ErrorsOnly())
+	change := plan.Changes.ResourceInstance(forget)
+	if change == nil {
+		t.Fatal("expected a change")
+	}
+	if got, want := change.Action, plans.ForgetThenCreate; got != want {
+		t.Fatalf("wrong change type for %s: got %s, want %s", forget, got, want)
+	}
+
+	state, applyDiags := ctx.Apply(plan, m, nil)
+	assertNoDiagnostics(t, applyDiags)
+
+	replaced := state.Resources(forget.ConfigResource())
+	if len(replaced) != 1 {
+		t.Fatal("expected one resource in state")
+	}
+
+	if len(replaced[0].Instances[addrs.NoKey].Deposed) != 0 {
+		t.Fatal("should be no deposed instances")
+	}
+}
+
+func TestContext2Apply_forget_providerDependency(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "forget" {
+  test_string = "ok"
+  lifecycle {
+    destroy = false
+  }
+}
+
+provider "other" {
+  test_string = test_object.forget.test_string
+}
+
+resource "other_object" "a" {
+}
+`})
+
+	testProvider := simpleMockProvider()
+	otherProvider := &testing_provider.MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Body: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"other_object": {Body: simpleTestSchema()},
+			},
+		},
+	}
+	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		if got := req.Config.GetAttr("test_string"); !got.IsKnown() || got.IsNull() || got.AsString() != "ok" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong provider config value: %#v", got))
+		}
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("other"): testProviderFuncFixed(otherProvider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	tfdiags.AssertNoErrors(t, diags)
+
+	forget := mustResourceInstanceAddr("test_object.forget")
+	if change := plan.Changes.ResourceInstance(forget); change == nil || change.Action != plans.Forget {
+		t.Fatalf("expected Forget change for %s, got %#v", forget, change)
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+}
+
+// A create that fails with a partial state must never be visible in the
+// working state with an invalid status, because concurrent nodes may be
+// persisting state snapshots at any time.
+func TestContext2Apply_failedCreateStatusVisibleToConcurrentStateUpdate(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "a"
+  provisioner "shell" {}
+}
+
+resource "test_object" "b" {
+  test_string = "b"
+}
+`,
+	})
+
+	// b is held until a is either provisioning or complete
+	releaseB := make(chan struct{})
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(releaseB) }) }
+	bPersisted := make(chan struct{})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		if req.PlannedState.GetAttr("test_string").AsString() == "a" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("create failed"))
+		}
+		return resp
+	}
+
+	pr := testProvisioner()
+	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+		release()
+		select {
+		case <-bPersisted:
+		case <-time.After(5 * time.Second):
+			panic("timeout")
+		}
+		return resp
+	}
+
+	hook := &stateSerializingTestHook{
+		onPreApply: func(addr addrs.AbsResourceInstance) {
+			if addr.Equal(mustResourceInstanceAddr("test_object.b")) {
+				select {
+				case <-releaseB:
+				case <-time.After(5 * time.Second):
+					panic("timeout")
+				}
+			}
+		},
+		onPostApply: func(addr addrs.AbsResourceInstance) {
+			if addr.Equal(mustResourceInstanceAddr("test_object.a")) {
+				release()
+			}
+		},
+		onUpdate: func(s *states.State) {
+			if s.ResourceInstance(mustResourceInstanceAddr("test_object.b")) != nil {
+				select {
+				case <-bPersisted:
+				default:
+					close(bPersisted)
+				}
+			}
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m, nil)
+	if !diags.HasErrors() {
+		t.Fatal("expected apply error")
+	}
+
+	for _, err := range hook.errs() {
+		t.Errorf("state snapshot could not be serialized: %s", err)
+	}
+
+	if pr.ProvisionResourceCalled {
+		t.Error("provisioner should not run for a failed create")
+	}
+
+	a := state.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
+	if a == nil || a.Current == nil || a.Current.Status != states.ObjectTainted {
+		t.Fatalf("expected test_object.a to be tainted, got %#v", a)
+	}
+}
+
+// stateSerializingTestHook serializes every state snapshot, as the local backend's
+// StateHook does via statemgr.Filesystem.
+type stateSerializingTestHook struct {
+	NilHook
+
+	mu          sync.Mutex
+	serErrs     []error
+	onPreApply  func(addrs.AbsResourceInstance)
+	onPostApply func(addrs.AbsResourceInstance)
+	onUpdate    func(*states.State)
+}
+
+func (h *stateSerializingTestHook) PostApply(id HookResourceIdentity, dk addrs.DeposedKey, newState cty.Value, err error) (HookAction, error) {
+	if h.onPostApply != nil {
+		h.onPostApply(id.Addr)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) PreApply(id HookResourceIdentity, dk addrs.DeposedKey, action plans.Action, priorState, plannedNewState cty.Value) (HookAction, error) {
+	if h.onPreApply != nil {
+		h.onPreApply(id.Addr)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) PostStateUpdate(s *states.State) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if err := statefile.Write(&statefile.File{State: s}, &bytes.Buffer{}); err != nil {
+		h.serErrs = append(h.serErrs, err)
+	}
+	if h.onUpdate != nil {
+		h.onUpdate(s)
+	}
+	return HookActionContinue, nil
+}
+
+func (h *stateSerializingTestHook) errs() []error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.serErrs
+}
+
+func TestContext2Apply_AllowRootDeprecatedOutputs(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "old" {
+  value      = "example"
+  deprecated = "Use the new output."
+}
+`,
+	})
+	ctx := testContext2(t, &ContextOpts{})
+
+	opts := &PlanOpts{
+		Mode:                       plans.NormalMode,
+		AllowRootDeprecatedOutputs: true,
+	}
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
+
+	state, diags := ctx.Apply(plan, m, opts.ApplyOpts())
+	tfdiags.AssertDiagnosticsMatch(t, diags, nil)
+
+	output := state.RootOutputValues["old"]
+	if output == nil || !output.Value.RawEquals(cty.StringVal("example")) {
+		t.Fatalf("unexpected root output: %#v", output)
+	}
+}
+
+func TestContext2Apply_orphanWhileChangingCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "b" {
+  replace = "yes"
+  lifecycle {
+    // changing this while simultaneously removing test_object.a leaves
+    // test_object.a without create_before_destroy set in the state, which can
+    // lead to incorrect replacement ordering.
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"replace": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		if req.Config.IsNull() {
+			resp.PlannedState = req.Config
+			return resp
+		}
+
+		resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+			"id":      cty.UnknownVal(cty.String),
+			"replace": cty.StringVal("yes"),
+		})
+		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("replace"))
+
+		return resp
+	}
+
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+			AttrsJSON:    []byte(`{"replace":"foo"}`),
+			Status:       states.ObjectReady,
+			Dependencies: []addrs.ConfigResource{addrA.ConfigResource()},
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	hook := new(deposedPreApplyHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags.Err())
+	}
+
+	for addr, want := range map[string]plans.Action{
+		addrA.String(): plans.Delete,
+		addrB.String(): plans.CreateThenDelete,
+	} {
+		change := plan.Changes.ResourceInstance(mustResourceInstanceAddr(addr))
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if change.Action != want {
+			t.Fatalf("expected %s to be planned for %s, got %s", addr, want, change.Action)
+		}
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Fatalf("expected no errors, but got %s", diags.Err())
+	}
+
+	// The replacement for b must be created before the old b object is
+	// deposed and destroyed, and a must be destroyed only after the old b
+	// object which depended on it.
+	callIndex := func(addr addrs.AbsResourceInstance, deposed bool, action plans.Action) int {
+		for i, call := range hook.calls {
+			if call.addr.Equal(addr) && (call.dk != addrs.NotDeposed) == deposed && call.action == action {
+				return i
+			}
+		}
+		return -1
+	}
+	createB := callIndex(addrB, false, plans.Create)
+	destroyOldB := callIndex(addrB, true, plans.Delete)
+	destroyA := callIndex(addrA, false, plans.Delete)
+	switch {
+	case createB < 0:
+		t.Errorf("%s was not created", addrB)
+	case destroyOldB < 0:
+		t.Errorf("the prior %s object was not deposed and destroyed", addrB)
+	case destroyA < 0:
+		t.Errorf("%s was not destroyed", addrA)
+	case createB > destroyOldB || destroyOldB > destroyA:
+		t.Errorf("wrong apply order: create %s at %d, destroy deposed %s at %d, destroy %s at %d", addrB, createB, addrB, destroyOldB, addrA, destroyA)
+	}
+	if i := callIndex(addrB, false, plans.Delete); i >= 0 {
+		t.Errorf("the current %s object was destroyed rather than the deposed object", addrB)
+	}
+
+	if a := state.ResourceInstance(addrA); a != nil {
+		t.Errorf("%s should have been removed from the state", addrA)
+	}
+	b := state.ResourceInstance(addrB)
+	switch {
+	case b == nil || b.Current == nil:
+		t.Errorf("missing the new %s object", addrB)
+	case len(b.Deposed) > 0:
+		t.Errorf("%s has leftover deposed objects", addrB)
+	case !b.Current.CreateBeforeDestroy:
+		t.Errorf("%s should be stored as create_before_destroy", addrB)
+	}
+}
+
+// A deposed object left over from a previous run is only destroyed, and must
+// not force create_before_destroy on to anything else in the configuration.
+func TestContext2Apply_leftoverDeposedDoesNotForceCBD(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  replace = "new"
+}
+
+provider "other" {
+  value = test_object.a.id
+}
+
+resource "other_object" "b" {
+}
+`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"replace": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			return resp
+		}
+
+		resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+			"id":      cty.UnknownVal(cty.String),
+			"replace": req.ProposedNewState.GetAttr("replace"),
+		})
+		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("replace"))
+		return resp
+	}
+
+	other := &testing_provider.MockProvider{}
+	other.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"other_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("other_object.b")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"a","replace":"old"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"b"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/other"]`))
+		s.SetResourceInstanceDeposed(addrB, states.DeposedKey("00000001"), &states.ResourceInstanceObjectSrc{
+			AttrsJSON:           []byte(`{"id":"b_deposed"}`),
+			Status:              states.ObjectReady,
+			CreateBeforeDestroy: true,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/other"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("other"): testProviderFuncFixed(other),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+
+	if change := plan.Changes.ResourceInstance(addrA); change == nil || change.Action != plans.DeleteThenCreate {
+		t.Fatalf("expected %s to be planned for DeleteThenCreate, got %#v", addrA, change)
+	}
+
+	state, diags = ctx.Apply(plan, m, nil)
+	tfdiags.AssertNoErrors(t, diags)
+
+	a := state.ResourceInstance(addrA)
+	if a == nil || a.Current == nil {
+		t.Fatalf("missing %s", addrA)
+	}
+	if a.Current.CreateBeforeDestroy {
+		t.Errorf("%s should not be stored as create_before_destroy", addrA)
+	}
+	if b := state.ResourceInstance(addrB); b == nil || len(b.Deposed) > 0 {
+		t.Errorf("expected the deposed %s object to be destroyed", addrB)
+	}
+}
+
+// A destroy node which must follow a create_before_destroy destroy node is also
+// ordered as create_before_destroy, but a replacement must still be applied in
+// the order recorded in the plan. If a DeleteThenCreate replacement were to
+// create the new object first, the prior object would never be deposed, and
+// would be lost without being destroyed.
+func TestContext2Apply_cbdDestroyOrderWithReplacedDependency(t *testing.T) {
+	type stateObject struct {
+		addr    string
+		id      string
+		replace string
+		value   string
+		deps    []string
+		cbd     bool
+
+		// staleDeps are stored dependencies which the configuration has
+		// removed, and are not required to order the destroy operations.
+		staleDeps []string
+	}
+
+	cases := map[string]struct {
+		config        string
+		stateObjects  []stateObject
+		plannedAction map[string]plans.Action
+	}{
+		// b no longer references a in the configuration, so the stored
+		// dependency of b on a is overridden.
+		"stale dependency replaced": {
+			config: `
+resource "test_object" "a" {
+  replace = "new"
+}
+
+resource "test_object" "b" {
+  replace = "new"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+			stateObjects: []stateObject{
+				{addr: "test_object.a", id: "a", replace: "old"},
+				{addr: "test_object.b", id: "b", replace: "old", staleDeps: []string{"test_object.a"}},
+			},
+			plannedAction: map[string]plans.Action{
+				"test_object.a": plans.DeleteThenCreate,
+				"test_object.b": plans.CreateThenDelete,
+			},
+		},
+		"orphan dependency replaced": {
+			config: `
+resource "test_object" "d" {
+  replace = "new"
+}
+
+resource "test_object" "b" {
+  replace = "new"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+			stateObjects: []stateObject{
+				{addr: "test_object.d", id: "d", replace: "old"},
+				{addr: "test_object.a", id: "a", deps: []string{"test_object.d"}},
+				{addr: "test_object.b", id: "b", replace: "old", deps: []string{"test_object.a", "test_object.d"}},
+			},
+			plannedAction: map[string]plans.Action{
+				"test_object.d": plans.DeleteThenCreate,
+				"test_object.a": plans.Delete,
+				"test_object.b": plans.CreateThenDelete,
+			},
+		},
+		// a[1] is removed while still create_before_destroy in the state, and
+		// d is no longer create_before_destroy in the configuration.
+		"count reduced create_before_destroy instance dependency replaced": {
+			config: `
+resource "test_object" "d" {
+  replace = "new"
+}
+
+resource "test_object" "a" {
+  count = 1
+  value = test_object.d.id
+}
+`,
+			stateObjects: []stateObject{
+				{addr: "test_object.d", id: "d", replace: "old", cbd: true},
+				{addr: "test_object.a[0]", id: "a0", value: "d", deps: []string{"test_object.d"}, cbd: true},
+				{addr: "test_object.a[1]", id: "a1", value: "d", deps: []string{"test_object.d"}, cbd: true},
+			},
+			plannedAction: map[string]plans.Action{
+				"test_object.d":    plans.DeleteThenCreate,
+				"test_object.a[0]": plans.Update,
+				"test_object.a[1]": plans.Delete,
+			},
+		},
+		"removed create_before_destroy resource dependency replaced": {
+			config: `
+resource "test_object" "a" {
+  replace = "new"
+}
+`,
+			stateObjects: []stateObject{
+				{addr: "test_object.a", id: "a", replace: "old"},
+				{addr: "test_object.x", id: "x", deps: []string{"test_object.a"}, cbd: true},
+			},
+			plannedAction: map[string]plans.Action{
+				"test_object.a": plans.DeleteThenCreate,
+				"test_object.x": plans.Delete,
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			m := testModuleInline(t, map[string]string{"main.tf": tc.config})
+
+			state := states.BuildState(func(s *states.SyncState) {
+				for _, o := range tc.stateObjects {
+					attrs := map[string]string{"id": o.id}
+					if o.replace != "" {
+						attrs["replace"] = o.replace
+					}
+					if o.value != "" {
+						attrs["value"] = o.value
+					}
+					js, err := json.Marshal(attrs)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					var deps []addrs.ConfigResource
+					for _, dep := range slices.Concat(o.deps, o.staleDeps) {
+						deps = append(deps, mustConfigResourceAddr(dep))
+					}
+
+					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(o.addr), &states.ResourceInstanceObjectSrc{
+						AttrsJSON:           js,
+						Status:              states.ObjectReady,
+						Dependencies:        deps,
+						CreateBeforeDestroy: o.cbd,
+					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+				}
+			})
+
+			p := &testing_provider.MockProvider{}
+			p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+				ResourceTypes: map[string]providers.Schema{
+					"test_object": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"replace": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			}
+			p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+				if req.ProposedNewState.IsNull() {
+					resp.PlannedState = req.ProposedNewState
+					return resp
+				}
+
+				planned := req.ProposedNewState.AsValueMap()
+				switch {
+				case req.PriorState.IsNull():
+					planned["id"] = cty.UnknownVal(cty.String)
+				case !req.PriorState.GetAttr("replace").RawEquals(planned["replace"]):
+					resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("replace"))
+					planned["id"] = cty.UnknownVal(cty.String)
+				}
+				resp.PlannedState = cty.ObjectVal(planned)
+				return resp
+			}
+
+			var mu sync.Mutex
+			nextID := 0
+			p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+				if req.PlannedState.IsNull() {
+					resp.NewState = req.PlannedState
+					return resp
+				}
+
+				newState := req.PlannedState.AsValueMap()
+				if !newState["id"].IsKnown() {
+					mu.Lock()
+					nextID++
+					newState["id"] = cty.StringVal(fmt.Sprintf("new%d", nextID))
+					mu.Unlock()
+				}
+				resp.NewState = cty.ObjectVal(newState)
+				return resp
+			}
+
+			hook := new(deposedPreApplyHook)
+			ctx := testContext2(t, &ContextOpts{
+				Hooks: []Hook{hook},
+				Providers: map[addrs.Provider]providers.Factory{
+					addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				},
+			})
+
+			plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+			tfdiags.AssertNoErrors(t, diags)
+
+			for addr, want := range tc.plannedAction {
+				change := plan.Changes.ResourceInstance(mustResourceInstanceAddr(addr))
+				if change == nil {
+					t.Fatalf("no planned change for %s", addr)
+				}
+				if change.Action != want {
+					t.Fatalf("expected %s to be planned for %s, got %s", addr, want, change.Action)
+				}
+			}
+
+			newState, diags := ctx.Apply(plan, m, nil)
+			tfdiags.AssertNoErrors(t, diags)
+
+			// Record the order of the operations, identifying each destroyed
+			// object by the id of its prior value.
+			created := map[string]int{}
+			destroyed := map[string]deposedPreApplyCall{}
+			destroyedAt := map[string]int{}
+			for i, call := range hook.calls {
+				switch call.action {
+				case plans.Create:
+					created[call.addr.String()] = i
+				case plans.Delete:
+					id := call.prior.GetAttr("id").AsString()
+					destroyed[id] = call
+					destroyedAt[id] = i
+				}
+			}
+
+			for _, o := range tc.stateObjects {
+				create, isCreated := created[o.addr]
+				destroy, isDestroyed := destroyedAt[o.id]
+
+				switch action := tc.plannedAction[o.addr]; action {
+				case plans.DeleteThenCreate:
+					if !isDestroyed || !isCreated || destroy > create {
+						t.Errorf("%s was planned for %s, but the prior object was not destroyed before its replacement was created", o.addr, action)
+					}
+				case plans.CreateThenDelete:
+					if !isDestroyed || !isCreated || destroy < create {
+						t.Errorf("%s was planned for %s, but the prior object was not destroyed after its replacement was created", o.addr, action)
+					} else if destroyed[o.id].dk == addrs.NotDeposed {
+						t.Errorf("%s was planned for %s, but the prior object was not deposed before it was destroyed", o.addr, action)
+					}
+				case plans.Delete:
+					if !isDestroyed {
+						t.Errorf("%s was planned for %s, but was not destroyed", o.addr, action)
+					}
+				}
+
+				// Objects must be destroyed before the objects they depend on.
+				for _, dep := range tc.stateObjects {
+					if !slices.Contains(o.deps, mustResourceInstanceAddr(dep.addr).ConfigResource().String()) {
+						continue
+					}
+					depDestroy, depDestroyed := destroyedAt[dep.id]
+					if isDestroyed && depDestroyed && destroy > depDestroy {
+						t.Errorf("%s was destroyed after its dependency %s", o.addr, dep.addr)
+					}
+				}
+			}
+
+			for _, o := range tc.stateObjects {
+				addr := mustResourceInstanceAddr(o.addr)
+				is := newState.ResourceInstance(addr)
+				switch action := tc.plannedAction[o.addr]; {
+				case action == plans.Delete:
+					if is != nil {
+						t.Errorf("%s should have been removed from the state", addr)
+					}
+				case is == nil || is.Current == nil:
+					t.Errorf("missing current object for %s", addr)
+				case len(is.Deposed) > 0:
+					t.Errorf("%s has leftover deposed objects", addr)
+				}
+			}
+		})
+	}
+}
+
+// The configuration takes precedence over a stored dependency which conflicts
+// with it.
+//
+// Initially d depends on x and is create_before_destroy, and c depends on d.
+// The change replaces x and d, removes the reference from d to x, and updates c
+// to reference both d and x. Nothing create_before_destroy depends on x in the
+// new configuration, so x is replaced delete-then-create, but the old d object
+// still has a stored dependency on x.
+//
+// The configuration requires c to update to the new d before the old d is
+// destroyed, and c also needs the new x, which can only be created after the
+// old x is destroyed. The stored dependency would require the old d to be
+// destroyed before the old x, so it must be overridden by the configuration.
+func TestContext2Apply_cbdConfigurationOverridesStoredDependency(t *testing.T) {
+	initial := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  name    = "x"
+  replace = "old"
+}
+
+resource "test_object" "d" {
+  name    = "d"
+  replace = "old"
+  value   = test_object.x.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "test_object" "c" {
+  name  = "c"
+  value = test_object.d.id
+}
+`,
+	})
+
+	updated := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  name    = "x"
+  replace = "new"
+}
+
+resource "test_object" "d" {
+  name    = "d"
+  replace = "new"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "test_object" "c" {
+  name  = "c"
+  value = "${test_object.d.id}:${test_object.x.id}"
+}
+`,
+	})
+
+	replacedAgain := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  name    = "x"
+  replace = "newer"
+}
+
+resource "test_object" "d" {
+  name    = "d"
+  replace = "newer"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "test_object" "c" {
+  name  = "c"
+  value = "${test_object.d.id}:${test_object.x.id}"
+}
+`,
+	})
+
+	p := &testing_provider.MockProvider{}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+						"name": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"replace": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"value": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			return resp
+		}
+
+		planned := req.ProposedNewState.AsValueMap()
+		switch {
+		case req.PriorState.IsNull():
+			planned["id"] = cty.UnknownVal(cty.String)
+		case !req.PriorState.GetAttr("replace").RawEquals(planned["replace"]):
+			resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("replace"))
+			planned["id"] = cty.UnknownVal(cty.String)
+		}
+		resp.PlannedState = cty.ObjectVal(planned)
+		return resp
+	}
+
+	// Each new object gets a unique id prefixed by its name, so the prior
+	// object of every operation can be identified.
+	var mu sync.Mutex
+	generation := map[string]int{}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		if req.PlannedState.IsNull() {
+			resp.NewState = req.PlannedState
+			return resp
+		}
+
+		newState := req.PlannedState.AsValueMap()
+		if !newState["id"].IsKnown() {
+			name := newState["name"].AsString()
+			mu.Lock()
+			generation[name]++
+			newState["id"] = cty.StringVal(fmt.Sprintf("%s%d", name, generation[name]))
+			mu.Unlock()
+		}
+		resp.NewState = cty.ObjectVal(newState)
+		return resp
+	}
+
+	hook := new(deposedPreApplyHook)
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	addrX := mustResourceInstanceAddr("test_object.x")
+	addrD := mustResourceInstanceAddr("test_object.d")
+	addrC := mustResourceInstanceAddr("test_object.c")
+
+	// logApply records the operations of an apply in the order they started.
+	logApply := func(step string) {
+		t.Logf("%s:", step)
+		for i, call := range hook.calls {
+			prior := ""
+			if !call.prior.IsNull() {
+				prior = call.prior.GetAttr("id").AsString()
+			}
+			deposed := ""
+			if call.dk != addrs.NotDeposed {
+				deposed = " (deposed)"
+			}
+			t.Logf("  %d: %s %s%s prior=%q", i, call.action, call.addr, deposed, prior)
+		}
+	}
+
+	// Apply the initial configuration starting with no state.
+	plan, diags := ctx.Plan(initial, states.NewState(), DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, initial, nil)
+	tfdiags.AssertNoErrors(t, diags)
+	logApply("initial apply")
+
+	// x is create_before_destroy because d depends on it, and the stored
+	// dependencies record that d depends on x, and c depends on d.
+	x := state.ResourceInstance(addrX).Current
+	d := state.ResourceInstance(addrD).Current
+	c := state.ResourceInstance(addrC).Current
+	if !x.CreateBeforeDestroy {
+		t.Fatalf("%s should have create_before_destroy forced on", addrX)
+	}
+	if !slices.ContainsFunc(d.Dependencies, addrX.ConfigResource().Equal) {
+		t.Fatalf("%s should have a stored dependency on %s, got %v", addrD, addrX, d.Dependencies)
+	}
+	if !slices.ContainsFunc(c.Dependencies, addrD.ConfigResource().Equal) {
+		t.Fatalf("%s should have a stored dependency on %s, got %v", addrC, addrD, c.Dependencies)
+	}
+
+	idOf := func(addr addrs.AbsResourceInstance) string {
+		var attrs map[string]any
+		if err := json.Unmarshal(state.ResourceInstance(addr).Current.AttrsJSON, &attrs); err != nil {
+			t.Fatal(err)
+		}
+		return attrs["id"].(string)
+	}
+
+	type plannedChange struct {
+		addr   addrs.AbsResourceInstance
+		action plans.Action
+	}
+
+	// planAndApply plans and applies the configuration, after checking the
+	// planned actions.
+	planAndApply := func(step string, m *configs.Config, want []plannedChange) {
+		hook.calls = nil
+		plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+		tfdiags.AssertNoErrors(t, diags)
+
+		for _, w := range want {
+			change := plan.Changes.ResourceInstance(w.addr)
+			if change == nil {
+				t.Fatalf("%s: no planned change for %s", step, w.addr)
+			}
+			if change.Action != w.action {
+				t.Fatalf("%s: expected %s to be planned for %s, got %s", step, w.addr, w.action, change.Action)
+			}
+		}
+
+		state, diags = ctx.Apply(plan, m, nil)
+		tfdiags.AssertNoErrors(t, diags)
+		logApply(step)
+	}
+
+	callIndex := func(addr addrs.AbsResourceInstance, action plans.Action, prior string) int {
+		for i, call := range hook.calls {
+			if !call.addr.Equal(addr) || call.action != action {
+				continue
+			}
+			if prior != "" && (call.prior.IsNull() || call.prior.GetAttr("id").AsString() != prior) {
+				continue
+			}
+			return i
+		}
+		t.Fatalf("no %s operation for %s", action, addr)
+		return -1
+	}
+
+	// Apply the changed configuration.
+	oldX := idOf(addrX)
+	oldD := idOf(addrD)
+	planAndApply("updated apply", updated, []plannedChange{
+		{addrX, plans.DeleteThenCreate},
+		{addrD, plans.CreateThenDelete},
+		{addrC, plans.Update},
+	})
+
+	createX := callIndex(addrX, plans.Create, "")
+	destroyOldX := callIndex(addrX, plans.Delete, oldX)
+	createD := callIndex(addrD, plans.Create, "")
+	destroyOldD := callIndex(addrD, plans.Delete, oldD)
+	updateC := callIndex(addrC, plans.Update, "")
+
+	// The planned replacements.
+	if createX < destroyOldX {
+		t.Errorf("%s was planned for DeleteThenCreate, but the new object was created first", addrX)
+	}
+	if destroyOldD < createD {
+		t.Errorf("%s was planned for CreateThenDelete, but the old object was destroyed first", addrD)
+	}
+	if hook.calls[destroyOldD].dk == addrs.NotDeposed {
+		t.Errorf("the old %s object was not deposed before it was destroyed", addrD)
+	}
+
+	// c needs the new d and x.
+	if updateC < createX || updateC < createD {
+		t.Errorf("%s was updated before the new %s and %s were created", addrC, addrD, addrX)
+	}
+
+	// The configuration of c still references d, so c must be updated to the
+	// new d before the old d is destroyed. Since c also needs the new x, this
+	// means the old x is destroyed before the old d, overriding the stored
+	// dependency of the old d on x.
+	if destroyOldD < updateC {
+		t.Errorf("the old %s object was destroyed before %s was updated to the new object", addrD, addrC)
+	}
+
+	// The new d object no longer depends on x.
+	if deps := state.ResourceInstance(addrD).Current.Dependencies; slices.ContainsFunc(deps, addrX.ConfigResource().Equal) {
+		t.Fatalf("%s should no longer have a stored dependency on %s, got %v", addrD, addrX, deps)
+	}
+
+	// Replace x and d again. Without the stored dependency, x is replaced
+	// delete-then-create.
+	oldX = idOf(addrX)
+	oldD = idOf(addrD)
+	planAndApply("replaced again", replacedAgain, []plannedChange{
+		{addrX, plans.DeleteThenCreate},
+		{addrD, plans.CreateThenDelete},
+		{addrC, plans.Update},
+	})
+
+	createX = callIndex(addrX, plans.Create, "")
+	destroyOldX = callIndex(addrX, plans.Delete, oldX)
+	createD = callIndex(addrD, plans.Create, "")
+	destroyOldD = callIndex(addrD, plans.Delete, oldD)
+	updateC = callIndex(addrC, plans.Update, "")
+
+	if createX < destroyOldX {
+		t.Errorf("%s was planned for DeleteThenCreate, but the new object was created first", addrX)
+	}
+	if destroyOldD < createD {
+		t.Errorf("%s was planned for CreateThenDelete, but the old object was destroyed first", addrD)
+	}
+	if hook.calls[destroyOldD].dk == addrs.NotDeposed {
+		t.Errorf("the old %s object was not deposed before it was destroyed", addrD)
+	}
+	if updateC < createX || updateC < createD {
+		t.Errorf("%s was updated before the new %s and %s were created", addrC, addrD, addrX)
+	}
+	if destroyOldD < updateC {
+		t.Errorf("the old %s object was destroyed before %s was updated to the new object", addrD, addrC)
+	}
+
+	for _, addr := range []addrs.AbsResourceInstance{addrX, addrD, addrC} {
+		is := state.ResourceInstance(addr)
+		switch {
+		case is == nil || is.Current == nil:
+			t.Errorf("missing current object for %s", addr)
+		case len(is.Deposed) > 0:
+			t.Errorf("%s has leftover deposed objects", addr)
+		}
+	}
 }

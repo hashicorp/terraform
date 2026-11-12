@@ -5,12 +5,12 @@ package command
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -38,10 +38,23 @@ func (c *ProvidersLockCommand) Synopsis() string {
 	return "Write out dependency locks for the configured providers"
 }
 
-func (c *ProvidersLockCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseProvidersLock(c.Meta.process(args))
+func (c *ProvidersLockCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseProvidersLock(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewProvidersLock(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -88,7 +101,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 				"Invalid network mirror URL",
 				"The -net-mirror option requires a valid https: URL as the mirror base URL.",
 			))
-			c.showDiagnostics(diags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		source = getproviders.NewHTTPMirrorSource(u, c.Services.CredentialsSource())
@@ -102,7 +115,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -112,20 +125,20 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	diags = diags.Append(c.resolveConstVariables(".", arguments.ViewHuman))
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	config, confDiags := c.loadConfigWithTests(".", parsedArgs.TestsDirectory)
 	diags = diags.Append(confDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 	reqs, hclDiags := config.ProviderRequirements()
@@ -177,7 +190,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -196,7 +209,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	updatedLocks := map[getproviders.Platform]*depsfile.Locks{}
 	selectedVersions := map[addrs.Provider]getproviders.Version{}
 	for _, platform := range platforms {
-		tempDir, err := ioutil.TempDir("", "terraform-providers-lock")
+		tempDir, err := os.MkdirTemp("", "terraform-providers-lock")
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -211,7 +224,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			// Our output from this command is minimal just to show that
 			// we're making progress, rather than just silently hanging.
 			FetchPackageBegin: func(provider addrs.Provider, version getproviders.Version, loc getproviders.PackageLocation) {
-				c.Ui.Output(fmt.Sprintf("- Fetching %s %s for %s...", provider.ForDisplay(), version, platform))
+				view.LogInstallProviderVersionStart(provider, version, platform)
 				if prevVersion, exists := selectedVersions[provider]; exists && version != prevVersion {
 					// This indicates a weird situation where we ended up
 					// selecting a different version for one platform than
@@ -242,9 +255,10 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 					keyID = auth.KeyID
 				}
 				if keyID != "" {
-					keyID = c.Colorize().Color(fmt.Sprintf(", key ID [reset][bold]%s[reset]", keyID))
+					view.LogInstallProviderVersionCompleteWithKeyID(provider, version, platform, auth, keyID)
+				} else {
+					view.LogInstallProviderVersionComplete(provider, version, platform, auth)
 				}
-				c.Ui.Output(fmt.Sprintf("- Retrieved %s %s for %s (%s%s)", provider.ForDisplay(), version, platform, auth, keyID))
 			},
 		}
 		ctx := evts.OnContext(ctx)
@@ -274,7 +288,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	// If we have any error diagnostics from installation then we won't
 	// proceed to merging and updating the lock file on disk.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -319,24 +333,12 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 			switch providersLockCalculateChangeType(oldLock, platformLock) {
 			case providersLockChangeTypeNewProvider:
 				madeAnyChange = true
-				c.Ui.Output(
-					fmt.Sprintf(
-						"- Obtained %s checksums for %s; This was a new provider and the checksums for this platform are now tracked in the lock file",
-						provider.ForDisplay(),
-						platform))
+				view.ProviderAddedToLockFile(provider, platform)
 			case providersLockChangeTypeNewHashes:
 				madeAnyChange = true
-				c.Ui.Output(
-					fmt.Sprintf(
-						"- Obtained %s checksums for %s; Additional checksums for this platform are now tracked in the lock file",
-						provider.ForDisplay(),
-						platform))
+				view.ProviderChecksumsUpdatedInLockFile(provider, platform)
 			case providersLockChangeTypeNoChange:
-				c.Ui.Output(
-					fmt.Sprintf(
-						"- Obtained %s checksums for %s; All checksums for this platform were already tracked in the lock file",
-						provider.ForDisplay(),
-						platform))
+				view.ProviderUnchangedInLockFile(provider, platform)
 			}
 		}
 		newLocks.SetProvider(provider, version, constraints, hashes)
@@ -345,16 +347,15 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 	moreDiags = c.replaceLockedDependencies(newLocks)
 	diags = diags.Append(moreDiags)
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags) // Enable logging of warning diagnostics, if any
 	if diags.HasErrors() {
 		return 1
 	}
 
 	if madeAnyChange {
-		c.Ui.Output(c.Colorize().Color("\n[bold][green]Success![reset] [bold]Terraform has updated the lock file.[reset]"))
-		c.Ui.Output("\nReview the changes in .terraform.lock.hcl and then commit to your\nversion control system to retain the new checksums.\n")
+		view.LogProviderLockfileUpdated()
 	} else {
-		c.Ui.Output(c.Colorize().Color("\n[bold][green]Success![reset] [bold]Terraform has validated the lock file and found no need for changes.[reset]"))
+		view.LockFileValidated()
 	}
 	return 0
 }

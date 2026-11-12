@@ -604,3 +604,16 @@ func assertDiagnosticCount(t *testing.T, diags hcl.Diagnostics, want int) bool {
 	}
 	return false
 }
+
+func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(want))
+		return true
+	}
+	return false
+}
+
+func stringPtr(s string) *string {
+	return &s
+}

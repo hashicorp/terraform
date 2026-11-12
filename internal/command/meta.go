@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/command/workdir"
@@ -226,7 +226,6 @@ type Meta struct {
 	input bool
 
 	// Targets for this context (private)
-	targets     []addrs.Targetable
 	targetFlags []string
 
 	// Internal fields
@@ -294,6 +293,23 @@ type testingOverrides struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 	PolicyClient policy.Client
+
+	// UIInput is used to override the default input mechanism for tests.
+	// By setting a value here, input will become enabled.
+	// If this is not set, input will be considered disabled.
+	UIInput ui.InputRequester
+}
+
+func (to *testingOverrides) Input() bool {
+	if to == nil {
+		// This path covers non-test scenarios and also tests where no overrides are present.
+		return true
+	}
+
+	// If a test's testingOverrides provides a UIInput we say input is enabled.
+	// If a test's testingOverrides hasn't provided a UIInput we say input is disabled, as this
+	// prevents those tests from timing out waiting for input.
+	return to.UIInput != nil
 }
 
 // initStatePaths is used to initialize the default values for
@@ -359,7 +375,7 @@ const (
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
-	if test || !m.input {
+	if !m.testingOverrides.Input() || !m.input {
 		return 0
 	}
 
@@ -379,9 +395,16 @@ func (m *Meta) InputMode() terraform.InputMode {
 
 // UIInput returns a UIInput object to be used for asking for input.
 func (m *Meta) UIInput() terraform.UIInput {
-	return &UIInput{
+	// Tests can override the UIInput object.
+	if m.testingOverrides != nil &&
+		m.testingOverrides.UIInput != nil {
+		return m.testingOverrides.UIInput
+	}
+
+	opts := ui.UIInputOptions{
 		Colorize: m.Colorize(),
 	}
+	return ui.NewUIInput(opts)
 }
 
 // OutputColumns returns the number of columns that normal (non-error) UI
@@ -571,34 +594,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	}
 
 	return &opts, err
-}
-
-// defaultFlagSet creates a default flag set for commands.
-// See also command/arguments/default.go
-func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
-	f := flag.NewFlagSet(n, flag.ContinueOnError)
-	f.SetOutput(ioutil.Discard)
-
-	// Set the default Usage to empty
-	f.Usage = func() {}
-
-	return f
-}
-
-// extendedFlagSet adds custom flags that are mostly used by commands
-// that are used to run an operation like plan or apply.
-func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
-	f := m.defaultFlagSet(n)
-
-	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*arguments.FlagStringSlice)(&m.targetFlags), "target", "resource to target")
-	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
-
-	// commands that bypass locking will supply their own flag on this var,
-	// but set the initial meta value to true as a failsafe.
-	m.stateLock = true
-
-	return f
 }
 
 // process will process any -no-color entries out of the arguments. This

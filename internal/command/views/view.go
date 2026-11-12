@@ -5,6 +5,7 @@ package views
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/mitchellh/colorstring"
@@ -43,10 +44,14 @@ type View struct {
 // Initialize a View with the given streams, a disabled colorize object, and a
 // no-op configSources callback.
 func NewView(streams *terminal.Streams) *View {
+	colors := make(map[string]string, (len(colorstring.DefaultColors) + 1))
+	maps.Copy(colors, colorstring.DefaultColors)
+	colors["purple"] = "38;5;57" // Add purple color used in `login`'s MOTD from HCP Terraform
+
 	return &View{
 		streams: streams,
 		colorize: &colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
+			Colors:  colors,
 			Disable: true,
 			Reset:   true,
 		},
@@ -208,6 +213,16 @@ const helpPrompt = `
 For more help on using this command, run:
   terraform %s -help
 `
+
+// wrapToStdout will word-wrap the given message to the output column width of stdout.
+func (v *View) wrapToStdout(msg string) string {
+	return format.WordWrap(msg, v.outputColumns())
+}
+
+// wrapToStderr will word-wrap the given message to the output column width of stderr.
+func (v *View) wrapToStderr(msg string) string {
+	return format.WordWrap(msg, v.errorColumns())
+}
 
 // outputColumns returns the number of text character cells any non-error
 // output should be wrapped to.

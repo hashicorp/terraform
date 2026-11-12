@@ -25,6 +25,7 @@ func TestParseStateRm_valid(t *testing.T) {
 				BackupPath: "-",
 				StateLock:  true,
 				Addrs:      []string{"test_instance.foo"},
+				ViewType:   ViewHuman,
 			},
 		},
 		"multiple addresses": {
@@ -34,6 +35,7 @@ func TestParseStateRm_valid(t *testing.T) {
 				BackupPath: "-",
 				StateLock:  true,
 				Addrs:      []string{"test_instance.foo", "test_instance.bar"},
+				ViewType:   ViewHuman,
 			},
 		},
 		"all options": {
@@ -47,6 +49,7 @@ func TestParseStateRm_valid(t *testing.T) {
 				StatePath:           "state.tfstate",
 				IgnoreRemoteVersion: true,
 				Addrs:               []string{"test_instance.foo"},
+				ViewType:            ViewHuman,
 			},
 		},
 	}
@@ -126,6 +129,7 @@ func TestParseStateRm_invalid(t *testing.T) {
 				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
+				ViewType:   ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -141,6 +145,7 @@ func TestParseStateRm_invalid(t *testing.T) {
 				Vars:       &Vars{},
 				BackupPath: "-",
 				StateLock:  true,
+				ViewType:   ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

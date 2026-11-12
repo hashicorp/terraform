@@ -1,0 +1,3 @@
+output "empty" {
+  value = "empty"
+}

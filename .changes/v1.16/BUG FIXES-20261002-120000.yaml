@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "cloud: `terraform init` can now find workspaces selected by key/value tags whose keys contain uppercase letters."
+time: 2026-10-02T12:00:00.000000-07:00
+custom:
+  Issue: "39306"

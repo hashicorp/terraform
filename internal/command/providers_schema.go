@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -27,14 +27,24 @@ func (c *ProvidersSchemaCommand) Synopsis() string {
 	return "Show schemas for the providers used in the configuration"
 }
 
-func (c *ProvidersSchemaCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseProvidersSchema(c.Meta.process(args))
+func (c *ProvidersSchemaCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, diags := arguments.ParseProvidersSchema(rawArgs)
+
+	// Prepare the view
+	view := views.NewProvidersSchema(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
-
-	viewType := arguments.ViewJSON // See above; enforced use of JSON output
 
 	// Check for user-supplied plugin path
 	var err error
@@ -43,18 +53,18 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 		return 1
 	}
 	// Load the backend
-	b, backendDiags := c.backend(".", viewType)
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// We require a local backend
 	local, ok := b.(backendrun.Local)
 	if !ok {
-		c.showDiagnostics(diags) // in case of any warnings in here
-		c.Ui.Error(ErrUnsupportedLocalOp)
+		diags = diags.Append(unsupportedLocalOpErrDiag)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -71,7 +81,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	opReq.AllowUnsetVariables = true
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -81,7 +91,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	})
 	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -90,23 +100,22 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	jsonSchemas, err := jsonprovider.Marshal(schemas)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to marshal provider schemas to json: %s", err))
+	viewDiags := view.Schemas(schemas)
+	if viewDiags.HasErrors() {
+		view.Diagnostics(viewDiags)
 		return 1
 	}
-	c.Ui.Output(string(jsonSchemas))
 
 	return 0
 }

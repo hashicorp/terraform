@@ -4,6 +4,7 @@
 package e2etest
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -34,7 +36,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	t.Parallel()
 
 	// This test reaches out to releases.hashicorp.com to download the
-	// template and null providers, so it can only run if network access is
+	// local and null providers, so it can only run if network access is
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
@@ -49,8 +51,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	// Make sure we actually downloaded the plugins, rather than picking up
 	// copies that might be already installed globally on the system.
-	if !strings.Contains(stdout, "Installing hashicorp/template v") {
-		t.Errorf("template provider download message is missing from init output:\n%s", stdout)
+	if !strings.Contains(stdout, "Installing hashicorp/local v") {
+		t.Errorf("local provider download message is missing from init output:\n%s", stdout)
 		t.Logf("(this can happen if you have a copy of the plugin in one of the global plugin search dirs)")
 	}
 	if !strings.Contains(stdout, "Installing hashicorp/null v") {
@@ -64,8 +66,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "1 to add, 0 to change, 0 to destroy") {
-		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
+	if !strings.Contains(stdout, "2 to add, 0 to change, 0 to destroy") {
+		t.Errorf("incorrect plan tally; want 2 to add:\n%s", stdout)
 	}
 
 	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
@@ -81,11 +83,12 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	}
 
 	diffResources := plan.Changes.Resources
-	if len(diffResources) != 1 {
-		t.Errorf("incorrect number of resources in plan")
+	if len(diffResources) != 2 {
+		t.Errorf("incorrect number of resources in plan, want %d, got %d", 2, len(diffResources))
 	}
 
 	expected := map[string]plans.Action{
+		"local_file.hello":   plans.Create,
 		"null_resource.test": plans.Create,
 	}
 
@@ -105,8 +108,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 1 added, 0 changed, 0 destroyed") {
-		t.Errorf("incorrect apply tally; want 1 added:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 2 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 2 added:\n%s", stdout)
 	}
 
 	state, err := tf.LocalState()
@@ -122,7 +125,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	sort.Strings(gotResources)
 
 	wantResources := []string{
-		"data.template_file.test",
+		"local_file.hello",
 		"null_resource.test",
 	}
 
@@ -136,8 +139,98 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "Resources: 1 destroyed") {
-		t.Errorf("incorrect destroy tally; want 1 destroyed:\n%s", stdout)
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
+	}
+
+	state, err = tf.LocalState()
+	if err != nil {
+		t.Fatalf("failed to read state file after destroy: %s", err)
+	}
+
+	stateResources = state.RootModule().Resources
+	if len(stateResources) != 0 {
+		t.Errorf("wrong resources in state after destroy; want none, but still have:%s", spew.Sdump(stateResources))
+	}
+}
+
+func TestPrimary_promptApproval(t *testing.T) {
+	t.Parallel()
+
+	// This test reaches out to releases.hashicorp.com to download the
+	// local and null providers, so it can only run if network access is
+	// allowed.
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "full-workflow-null")
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+
+	//// INIT
+	_, stderr, err := tf.Run("init")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	//// PLAN - there is no separate plan step in this test, instead apply generates a plan to be approved.
+
+	//// APPLY
+
+	// The test should respond "yes" to the approval prompt.
+	applyInput := strings.NewReader("yes\n")
+
+	applyCmd := tf.Cmd("apply")
+	applyCmd.Stdin = applyInput
+	applyCmd.Stdout = &bytes.Buffer{}
+	applyCmd.Stderr = &bytes.Buffer{}
+	err = applyCmd.Run()
+	stdout := applyCmd.Stdout.(*bytes.Buffer).String()
+	if err != nil {
+		stderr := applyCmd.Stderr.(*bytes.Buffer).String()
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 2 added, 0 changed, 0 destroyed") {
+		t.Errorf("incorrect apply tally; want 2 added:\n%s", stdout)
+	}
+
+	state, err := tf.LocalState()
+	if err != nil {
+		t.Fatalf("failed to read state file: %s", err)
+	}
+
+	stateResources := state.RootModule().Resources
+	var gotResources []string
+	for n := range stateResources {
+		gotResources = append(gotResources, n)
+	}
+	sort.Strings(gotResources)
+
+	wantResources := []string{
+		"local_file.hello",
+		"null_resource.test",
+	}
+
+	if !reflect.DeepEqual(gotResources, wantResources) {
+		t.Errorf("wrong resources in state\ngot: %#v\nwant: %#v", gotResources, wantResources)
+	}
+
+	//// DESTROY
+
+	// The test should respond "yes" to the approval prompt.
+	destroyInput := strings.NewReader("yes\n")
+
+	destroyCmd := tf.Cmd("destroy")
+	destroyCmd.Stdin = destroyInput
+	destroyCmd.Stdout = &bytes.Buffer{}
+	destroyCmd.Stderr = &bytes.Buffer{}
+	err = destroyCmd.Run()
+	stdout = destroyCmd.Stdout.(*bytes.Buffer).String()
+	if err != nil {
+		stderr := destroyCmd.Stderr.(*bytes.Buffer).String()
+		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
+	}
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Errorf("incorrect destroy tally; want 2 destroyed:\n%s", stdout)
 	}
 
 	state, err = tf.LocalState()
@@ -936,4 +1029,124 @@ func TestPrimary_stateStore_swapProviderSupplyMode_betweenSuccessiveInits(t *tes
 			t.Fatalf("expected error about state store configuration changing, but got:\n%s", stderr)
 		}
 	})
+}
+
+// Test using dynamic provider sources in combination with pluggable state storage for multiple commands:
+// - init
+// - plan
+// - apply
+// - refresh
+// - query
+func TestPrimary_stateStore_dynamicProviderSources(t *testing.T) {
+	t.Parallel()
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
+
+	fixturePath := filepath.Join("testdata", "full-workflow-with-dyn-sourced-state-store-fs")
+
+	tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+
+	// Build the simple6 provider binary and supply it to `init` via the -plugin-dir flag.
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple6")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple6/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple6/0.0.1/", platform, "terraform-provider-simple6")); err != nil {
+		t.Fatal(err)
+	}
+
+	// INIT
+	stdout, stderr, err := tf.Run(
+		"init",
+		"-enable-pluggable-state-storage-experiment",
+		"-plugin-dir=cache",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	expectedMsg := `Finding hashicorp/simple6 versions matching "0.0.1"...`
+	if !strings.Contains(stdout, expectedMsg) {
+		t.Fatalf("expected output %q, got %q", expectedMsg, stdout)
+	}
+
+	// Verify the lockfile includes expected provider and version
+	lockPath := filepath.Join(tf.WorkDir(), depsfile.LockFilePath)
+	locks, diags := depsfile.LoadLocksFromFile(lockPath)
+	if len(diags) > 0 {
+		t.Fatalf("unexpected diagnostics: %s", diags)
+	}
+	pAddr := addrs.MustParseProviderSourceString("hashicorp/simple6")
+	pLock := locks.Provider(pAddr)
+
+	expectedVersion := getproviders.MustParseVersion("0.0.1")
+	givenVersion := pLock.Version()
+	if expectedVersion.String() != givenVersion.String() {
+		t.Fatalf("mismatching version, expected %s, given %s", expectedVersion, givenVersion)
+	}
+
+	// PLAN
+	_, stderr, err = tf.Run(
+		"plan",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// APPLY
+	_, stderr, err = tf.Run(
+		"apply",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+		"-auto-approve",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// REFRESH
+	_, stderr, err = tf.Run(
+		"refresh",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
+
+	// QUERY
+	// TODO: Need to check if the provider implements necessary logic for performing a query.
+
+	// Add a .tfquery.hcl file and then run the query command
+	queryFilePath := tf.Path("main.tfquery.hcl")
+	os.WriteFile(queryFilePath, []byte(`
+list "simple_resource" "test" {
+  provider = simple6
+  include_resource = true
+  config {
+    value = "dynamic_value"
+  }
+}
+`), 0644)
+	_, stderr, err = tf.Run(
+		"query",
+		"-var", "provider_source=registry.terraform.io/hashicorp/simple6",
+		"-var", "provider_version=0.0.1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+	}
 }

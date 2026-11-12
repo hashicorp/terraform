@@ -5,12 +5,12 @@ package views
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,14 +30,14 @@ type VersionOutput struct {
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
+
+	Diagnostics []*viewsjson.Diagnostic `json:"diagnostics"`
 }
 
 func NewVersion(vt arguments.ViewType, view *View) Version {
 	switch vt {
 	case arguments.ViewJSON:
-		return &VersionJSON{
-			view: view,
-		}
+		return NewVersionJSON(view)
 	case arguments.ViewHuman:
 		return &VersionHuman{
 			view: view,
@@ -90,46 +90,63 @@ func (v *VersionHuman) LogVersion(version string, platform string, providerSelec
 }
 
 type VersionJSON struct {
-	view *View
+	view *JSONStaticView[VersionOutput]
+
+	formatVersion string
 }
 
+func NewVersionJSON(view *View) *VersionJSON {
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	const formatVersion = "1.1"
+
+	return &VersionJSON{
+		view:          NewJSONStaticView[VersionOutput](view),
+		formatVersion: formatVersion,
+	}
+}
+
+// Diagnostics produces human-readable output, despite the -json flag being used.
+// This was a bug in the original implementation of JSON output and should be updated in future.
 func (v *VersionJSON) Diagnostics(diags tfdiags.Diagnostics) {
 	if len(diags) == 0 {
 		return
 	}
-	v.view.Diagnostics(diags)
+
+	output := VersionOutput{
+		FormatVersion: v.formatVersion,
+		Diagnostics:   v.view.prepareDiagnostics(diags),
+
+		// Ensure {}, non-null value
+		ProviderSelections: make(map[string]string),
+	}
+
+	switch {
+	case diags.HasErrors():
+		v.view.Eprint(output)
+	default:
+		// No errors, which indicates the command is
+		// using this method incorrectly.
+		v.view.Print(output)
+	}
 }
 
 // LogVersion prints the version information in JSON format.
 // The schema of the output is versioned using the format_version field, which is standard for commands with 'static log' JSON output.
 func (v *VersionJSON) LogVersion(version string, platform string, providerSelections map[addrs.Provider]*depsfile.ProviderLock, outdated bool, latest string, diags tfdiags.Diagnostics) {
-	// FormatVersion represents the version of the json format and will be
-	// incremented for any change to this format that requires changes to a
-	// consuming parser.
-	const FormatVersion = "1.0"
-
-	v.Diagnostics(diags) // Log any warnings. This is done in human-readable format, even for JSON output, as that's an existing bug in the command.
-
 	output := VersionOutput{
-		FormatVersion:      FormatVersion,
+		FormatVersion:      v.formatVersion,
 		Version:            version,
 		Platform:           platform,
 		ProviderSelections: make(map[string]string),
 		Outdated:           outdated,
+		Diagnostics:        v.view.prepareDiagnostics(diags),
 	}
 
 	for provider, lock := range providerSelections {
 		output.ProviderSelections[provider.String()] = lock.Version().String()
 	}
 
-	v.view.streams.Println(v.marshal(&output))
-}
-
-func (v *VersionJSON) marshal(output *VersionOutput) string {
-	j, err := json.MarshalIndent(output, "", "  ")
-	if err != nil {
-		// Should never happen because we fully-control the input here
-		panic(err)
-	}
-	return string(j)
+	v.view.Print(output)
 }
