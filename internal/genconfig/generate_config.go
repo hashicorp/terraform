@@ -293,7 +293,11 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 		}
 
 		if attrS.NestedType != nil {
-			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
+			// Pass the value we already selected for this attribute: when the
+			// state is null or the attribute is missing from it, that is the
+			// schema's empty value and it has to be skipped or written as null
+			// the same way a plain attribute is.
+			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, val, indent)
 			continue
 		}
 
@@ -458,6 +462,12 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 		return diags
 	}
 
+	// A null state has no values at all, so there is nothing to render for any
+	// block. The caller may still write the surrounding resource block.
+	if stateVal.IsNull() {
+		return diags
+	}
+
 	// Sort block names so the output will be consistent between runs.
 	for _, name := range slices.Sorted(maps.Keys(blocks)) {
 		blockS := blocks[name]
@@ -474,7 +484,7 @@ func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.
 	return diags
 }
 
-func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
+func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, attrVal cty.Value, indent int) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	switch schema.NestedType.Nesting {
@@ -485,15 +495,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			return diags
 		}
 
-		// This shouldn't happen in real usage; state always has all values (set
-		// to null as needed), but it protects against panics in tests (and any
-		// really weird and unlikely cases).
-		if !stateVal.Type().HasAttribute(name) {
-			return diags
-		}
-		nestedVal := stateVal.GetAttr(name)
-
-		if nestedVal.IsNull() {
+		if attrVal.IsNull() {
 			// There is a difference between a null object, and an object with
 			// no attributes.
 			buf.WriteString(strings.Repeat(" ", indent))
@@ -503,7 +505,7 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
-		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, attrVal, schema.NestedType.Attributes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 
@@ -515,15 +517,14 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			return diags
 		}
 
-		vals := stateVal.GetAttr(name)
-		if vals.IsNull() {
+		if attrVal.IsNull() {
 			// There is a difference between an empty list and a null list
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = null\n", name))
 			return diags
 		}
 
-		listVals := vals.AsValueSlice()
+		listVals := attrVal.AsValueSlice()
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = [\n", name))
@@ -546,15 +547,14 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			return diags
 		}
 
-		attr := stateVal.GetAttr(name)
-		if attr.IsNull() {
+		if attrVal.IsNull() {
 			// There is a difference between an empty map and a null map.
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = null\n", name))
 			return diags
 		}
 
-		vals := attr.AsValueMap()
+		vals := attrVal.AsValueMap()
 
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
