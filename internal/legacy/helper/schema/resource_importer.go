@@ -35,21 +35,3 @@ type ResourceImporter struct {
 // To create the ResourceData structures for other resource types (if
 // you have to), instantiate your resource and call the Data function.
 type StateFunc func(*ResourceData, interface{}) ([]*ResourceData, error)
-
-// InternalValidate should be called to validate the structure of this
-// importer. This should be called in a unit test.
-//
-// Resource.InternalValidate() will automatically call this, so this doesn't
-// need to be called manually. Further, Resource.InternalValidate() is
-// automatically called by Provider.InternalValidate(), so you only need
-// to internal validate the provider.
-func (r *ResourceImporter) InternalValidate() error {
-	return nil
-}
-
-// ImportStatePassthrough is an implementation of StateFunc that can be
-// used to simply pass the ID directly through. This should be used only
-// in the case that an ID-only refresh is possible.
-func ImportStatePassthrough(d *ResourceData, m interface{}) ([]*ResourceData, error) {
-	return []*ResourceData{d}, nil
-}

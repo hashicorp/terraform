@@ -195,9 +195,3 @@ func (b *Backend) shimConfig(obj cty.Value) *terraform.ResourceConfig {
 		Raw:    shimMap,
 	}
 }
-
-// Config returns the configuration. This is available after Configure is
-// called.
-func (b *Backend) Config() *ResourceData {
-	return b.config
-}

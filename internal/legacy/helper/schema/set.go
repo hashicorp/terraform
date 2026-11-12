@@ -14,18 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/legacy/helper/hashcode"
 )
 
-// HashString hashes strings. If you want a Set of strings, this is the
-// SchemaSetFunc you want.
-func HashString(v interface{}) int {
-	return hashcode.String(v.(string))
-}
-
-// HashInt hashes integers. If you want a Set of integers, this is the
-// SchemaSetFunc you want.
-func HashInt(v interface{}) int {
-	return hashcode.String(strconv.Itoa(v.(int)))
-}
-
 // HashResource hashes complex structures that are described using
 // a *Resource. This is the default set implementation used when a set's
 // element type is a full resource.
@@ -57,36 +45,9 @@ type Set struct {
 	once sync.Once
 }
 
-// NewSet is a convenience method for creating a new set with the given
-// items.
-func NewSet(f SchemaSetFunc, items []interface{}) *Set {
-	s := &Set{F: f}
-	for _, i := range items {
-		s.Add(i)
-	}
-
-	return s
-}
-
-// CopySet returns a copy of another set.
-func CopySet(otherSet *Set) *Set {
-	return NewSet(otherSet.F, otherSet.List())
-}
-
 // Add adds an item to the set if it isn't already in the set.
 func (s *Set) Add(item interface{}) {
 	s.add(item, false)
-}
-
-// Remove removes an item if it's already in the set. Idempotent.
-func (s *Set) Remove(item interface{}) {
-	s.remove(item)
-}
-
-// Contains checks if the set has the given item.
-func (s *Set) Contains(item interface{}) bool {
-	_, ok := s.m[s.hash(item)]
-	return ok
 }
 
 // Len returns the amount of items in the set.
@@ -122,37 +83,6 @@ func (s *Set) Difference(other *Set) *Set {
 	return result
 }
 
-// Intersection performs the set intersection of the two sets
-// and returns a new third set.
-func (s *Set) Intersection(other *Set) *Set {
-	result := &Set{F: s.F}
-	result.once.Do(result.init)
-
-	for k, v := range s.m {
-		if _, ok := other.m[k]; ok {
-			result.m[k] = v
-		}
-	}
-
-	return result
-}
-
-// Union performs the set union of the two sets and returns a new third
-// set.
-func (s *Set) Union(other *Set) *Set {
-	result := &Set{F: s.F}
-	result.once.Do(result.init)
-
-	for k, v := range s.m {
-		result.m[k] = v
-	}
-	for k, v := range other.m {
-		result.m[k] = v
-	}
-
-	return result
-}
-
 func (s *Set) Equal(raw interface{}) bool {
 	other, ok := raw.(*Set)
 	if !ok {
@@ -160,31 +90,6 @@ func (s *Set) Equal(raw interface{}) bool {
 	}
 
 	return reflect.DeepEqual(s.m, other.m)
-}
-
-// HashEqual simply checks to the keys the top-level map to the keys in the
-// other set's top-level map to see if they are equal. This obviously assumes
-// you have a properly working hash function - use HashResource if in doubt.
-func (s *Set) HashEqual(raw interface{}) bool {
-	other, ok := raw.(*Set)
-	if !ok {
-		return false
-	}
-
-	ks1 := make([]string, 0)
-	ks2 := make([]string, 0)
-
-	for k := range s.m {
-		ks1 = append(ks1, k)
-	}
-	for k := range other.m {
-		ks2 = append(ks2, k)
-	}
-
-	sort.Strings(ks1)
-	sort.Strings(ks2)
-
-	return reflect.DeepEqual(ks1, ks2)
 }
 
 func (s *Set) GoString() string {
@@ -227,19 +132,6 @@ func (s *Set) hash(item interface{}) string {
 		code = -code
 	}
 	return strconv.Itoa(code)
-}
-
-func (s *Set) remove(item interface{}) string {
-	s.once.Do(s.init)
-
-	code := s.hash(item)
-	delete(s.m, code)
-
-	return code
-}
-
-func (s *Set) index(item interface{}) int {
-	return sort.SearchStrings(s.listCode(), s.hash(item))
 }
 
 func (s *Set) listCode() []string {

@@ -18,9 +18,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"regexp"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
@@ -45,15 +43,6 @@ func isProto5() bool {
 	defer protoVersionMu.Unlock()
 	return protoVersion5
 
-}
-
-// SetProto5 enables a feature flag for any internal changes required required
-// to work with the new plugin protocol.  This should not be called by
-// provider.
-func SetProto5() {
-	protoVersionMu.Lock()
-	defer protoVersionMu.Unlock()
-	protoVersion5 = true
 }
 
 // Schema is used to describe the structure of a value.
@@ -616,188 +605,12 @@ func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return m.validateObject("", m, c)
 }
 
-// InternalValidate validates the format of this schema. This should be called
-// from a unit test (and not in user-path code) to verify that a schema
-// is properly built.
-func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
-	return m.internalValidate(topSchemaMap, false)
-}
-
-func (m schemaMap) internalValidate(topSchemaMap schemaMap, attrsOnly bool) error {
-	if topSchemaMap == nil {
-		topSchemaMap = m
-	}
-	for k, v := range m {
-		if v.Type == TypeInvalid {
-			return fmt.Errorf("%s: Type must be specified", k)
-		}
-
-		if v.Optional && v.Required {
-			return fmt.Errorf("%s: Optional or Required must be set, not both", k)
-		}
-
-		if v.Required && v.Computed {
-			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
-		}
-
-		if !v.Required && !v.Optional && !v.Computed {
-			return fmt.Errorf("%s: One of optional, required, or computed must be set", k)
-		}
-
-		computedOnly := v.Computed && !v.Optional
-
-		switch v.ConfigMode {
-		case SchemaConfigModeBlock:
-			if _, ok := v.Elem.(*Resource); !ok {
-				return fmt.Errorf("%s: ConfigMode of block is allowed only when Elem is *schema.Resource", k)
-			}
-			if attrsOnly {
-				return fmt.Errorf("%s: ConfigMode of block cannot be used in child of schema with ConfigMode of attribute", k)
-			}
-			if computedOnly {
-				return fmt.Errorf("%s: ConfigMode of block cannot be used for computed schema", k)
-			}
-		case SchemaConfigModeAttr:
-			// anything goes
-		case SchemaConfigModeAuto:
-			// Since "Auto" for Elem: *Resource would create a nested block,
-			// and that's impossible inside an attribute, we require it to be
-			// explicitly overridden as mode "Attr" for clarity.
-			if _, ok := v.Elem.(*Resource); ok {
-				if attrsOnly {
-					return fmt.Errorf("%s: in *schema.Resource with ConfigMode of attribute, so must also have ConfigMode of attribute", k)
-				}
-			}
-		default:
-			return fmt.Errorf("%s: invalid ConfigMode value", k)
-		}
-
-		if v.Computed && v.Default != nil {
-			return fmt.Errorf("%s: Default must be nil if computed", k)
-		}
-
-		if v.Required && v.Default != nil {
-			return fmt.Errorf("%s: Default cannot be set with Required", k)
-		}
-
-		if len(v.ComputedWhen) > 0 && !v.Computed {
-			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
-		}
-
-		if len(v.ConflictsWith) > 0 && v.Required {
-			return fmt.Errorf("%s: ConflictsWith cannot be set with Required", k)
-		}
-
-		if len(v.ConflictsWith) > 0 {
-			for _, key := range v.ConflictsWith {
-				parts := strings.Split(key, ".")
-				sm := topSchemaMap
-				var target *Schema
-				for _, part := range parts {
-					// Skip index fields
-					if _, err := strconv.Atoi(part); err == nil {
-						continue
-					}
-
-					var ok bool
-					if target, ok = sm[part]; !ok {
-						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s) at part (%s)", k, key, part)
-					}
-
-					if subResource, ok := target.Elem.(*Resource); ok {
-						sm = schemaMap(subResource.Schema)
-					}
-				}
-				if target == nil {
-					return fmt.Errorf("%s: ConflictsWith cannot find target attribute (%s), sm: %#v", k, key, sm)
-				}
-				if target.Required {
-					return fmt.Errorf("%s: ConflictsWith cannot contain Required attribute (%s)", k, key)
-				}
-
-				if len(target.ComputedWhen) > 0 {
-					return fmt.Errorf("%s: ConflictsWith cannot contain Computed(When) attribute (%s)", k, key)
-				}
-			}
-		}
-
-		if v.Type == TypeList || v.Type == TypeSet {
-			if v.Elem == nil {
-				return fmt.Errorf("%s: Elem must be set for lists", k)
-			}
-
-			if v.Default != nil {
-				return fmt.Errorf("%s: Default is not valid for lists or sets", k)
-			}
-
-			if v.Type != TypeSet && v.Set != nil {
-				return fmt.Errorf("%s: Set can only be set for TypeSet", k)
-			}
-
-			switch t := v.Elem.(type) {
-			case *Resource:
-				attrsOnly := attrsOnly || v.ConfigMode == SchemaConfigModeAttr
-
-				if err := schemaMap(t.Schema).internalValidate(topSchemaMap, attrsOnly); err != nil {
-					return err
-				}
-			case *Schema:
-				bad := t.Computed || t.Optional || t.Required
-				if bad {
-					return fmt.Errorf(
-						"%s: Elem must have only Type set", k)
-				}
-			}
-		} else {
-			if v.MaxItems > 0 || v.MinItems > 0 {
-				return fmt.Errorf("%s: MaxItems and MinItems are only supported on lists or sets", k)
-			}
-		}
-
-		// Computed-only field
-		if v.Computed && !v.Optional {
-			if v.ValidateFunc != nil {
-				return fmt.Errorf("%s: ValidateFunc is for validating user input, "+
-					"there's nothing to validate on computed-only field", k)
-			}
-			if v.DiffSuppressFunc != nil {
-				return fmt.Errorf("%s: DiffSuppressFunc is for suppressing differences"+
-					" between config and state representation. "+
-					"There is no config for computed-only field, nothing to compare.", k)
-			}
-		}
-
-		if v.ValidateFunc != nil {
-			switch v.Type {
-			case TypeList, TypeSet:
-				return fmt.Errorf("%s: ValidateFunc is not yet supported on lists or sets.", k)
-			}
-		}
-
-		if v.Deprecated == "" && v.Removed == "" {
-			if !isValidFieldName(k) {
-				return fmt.Errorf("%s: Field name may only contain lowercase alphanumeric characters & underscores.", k)
-			}
-		}
-	}
-
-	return nil
-}
-
-func isValidFieldName(name string) bool {
-	re := regexp.MustCompile("^[a-z0-9_]+$")
-	return re.MatchString(name)
-}
-
 // resourceDiffer is an interface that is used by the private diff functions.
 // This helps facilitate diff logic for both ResourceData and ResoureDiff with
 // minimal divergence in code.
 type resourceDiffer interface {
 	diffChange(string) (interface{}, interface{}, bool, bool, bool)
-	Get(string) interface{}
-	GetChange(string) (interface{}, interface{})
 	GetOk(string) (interface{}, bool)
-	HasChange(string) bool
 	Id() string
 }
 

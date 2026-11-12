@@ -4,8 +4,6 @@
 package schema
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -35,29 +33,6 @@ func (w *newValueWriter) init() {
 	if w.computedKeys == nil {
 		w.computedKeys = make(map[string]bool)
 	}
-}
-
-// WriteField overrides MapValueWriter's WriteField, adding the ability to flag
-// the address as computed.
-func (w *newValueWriter) WriteField(address []string, value interface{}, computed bool) error {
-	// Fail the write if we have a non-nil value and computed is true.
-	// NewComputed values should not have a value when written.
-	if value != nil && computed {
-		return errors.New("Non-nil value with computed set")
-	}
-
-	if err := w.MapFieldWriter.WriteField(address, value); err != nil {
-		return err
-	}
-
-	w.once.Do(w.init)
-
-	w.lock.Lock()
-	defer w.lock.Unlock()
-	if computed {
-		w.computedKeys[strings.Join(address, ".")] = true
-	}
-	return nil
 }
 
 // ComputedKeysMap returns the underlying computed keys map.
@@ -227,48 +202,6 @@ func (d *ResourceDiff) UpdatedKeys() []string {
 	return s
 }
 
-// Clear wipes the diff for a particular key. It is called by ResourceDiff's
-// functionality to remove any possibility of conflicts, but can be called on
-// its own to just remove a specific key from the diff completely.
-//
-// Note that this does not wipe an override. This function is only allowed on
-// computed keys.
-func (d *ResourceDiff) Clear(key string) error {
-	if err := d.checkKey(key, "Clear", true); err != nil {
-		return err
-	}
-
-	return d.clear(key)
-}
-
-func (d *ResourceDiff) clear(key string) error {
-	// Check the schema to make sure that this key exists first.
-	schemaL := addrToSchema(strings.Split(key, "."), d.schema)
-	if len(schemaL) == 0 {
-		return fmt.Errorf("%s is not a valid key", key)
-	}
-
-	for k := range d.diff.Attributes {
-		if strings.HasPrefix(k, key) {
-			delete(d.diff.Attributes, k)
-		}
-	}
-	return nil
-}
-
-// GetChangedKeysPrefix helps to implement Resource.CustomizeDiff
-// where we need to act on all nested fields
-// without calling out each one separately
-func (d *ResourceDiff) GetChangedKeysPrefix(prefix string) []string {
-	keys := make([]string, 0)
-	for k := range d.diff.Attributes {
-		if strings.HasPrefix(k, prefix) {
-			keys = append(keys, k)
-		}
-	}
-	return keys
-}
-
 // diffChange helps to implement resourceDiffer and derives its change values
 // from ResourceDiff's own change data, in addition to existing diff, config, and state.
 func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, bool, bool) {
@@ -282,102 +215,6 @@ func (d *ResourceDiff) diffChange(key string) (interface{}, interface{}, bool, b
 	}
 
 	return old.Value, new.Value, !reflect.DeepEqual(old.Value, new.Value), new.Computed, customized
-}
-
-// SetNew is used to set a new diff value for the mentioned key. The value must
-// be correct for the attribute's schema (mostly relevant for maps, lists, and
-// sets). The original value from the state is used as the old value.
-//
-// This function is only allowed on computed attributes.
-func (d *ResourceDiff) SetNew(key string, value interface{}) error {
-	if err := d.checkKey(key, "SetNew", false); err != nil {
-		return err
-	}
-
-	return d.setDiff(key, value, false)
-}
-
-// SetNewComputed functions like SetNew, except that it blanks out a new value
-// and marks it as computed.
-//
-// This function is only allowed on computed attributes.
-func (d *ResourceDiff) SetNewComputed(key string) error {
-	if err := d.checkKey(key, "SetNewComputed", false); err != nil {
-		return err
-	}
-
-	return d.setDiff(key, nil, true)
-}
-
-// setDiff performs common diff setting behaviour.
-func (d *ResourceDiff) setDiff(key string, new interface{}, computed bool) error {
-	if err := d.clear(key); err != nil {
-		return err
-	}
-
-	if err := d.newWriter.WriteField(strings.Split(key, "."), new, computed); err != nil {
-		return fmt.Errorf("Cannot set new diff value for key %s: %s", key, err)
-	}
-
-	d.updatedKeys[key] = true
-
-	return nil
-}
-
-// ForceNew force-flags ForceNew in the schema for a specific key, and
-// re-calculates its diff, effectively causing this attribute to force a new
-// resource.
-//
-// Keep in mind that forcing a new resource will force a second run of the
-// resource's CustomizeDiff function (with a new ResourceDiff) once the current
-// one has completed. This second run is performed without state. This behavior
-// will be the same as if a new resource is being created and is performed to
-// ensure that the diff looks like the diff for a new resource as much as
-// possible. CustomizeDiff should expect such a scenario and act correctly.
-//
-// This function is a no-op/error if there is no diff.
-//
-// Note that the change to schema is permanent for the lifecycle of this
-// specific ResourceDiff instance.
-func (d *ResourceDiff) ForceNew(key string) error {
-	if !d.HasChange(key) {
-		return fmt.Errorf("ForceNew: No changes for %s", key)
-	}
-
-	keyParts := strings.Split(key, ".")
-	var schema *Schema
-	schemaL := addrToSchema(keyParts, d.schema)
-	if len(schemaL) > 0 {
-		schema = schemaL[len(schemaL)-1]
-	} else {
-		return fmt.Errorf("ForceNew: %s is not a valid key", key)
-	}
-
-	schema.ForceNew = true
-
-	// Flag this for a re-diff. Don't save any values to guarantee that existing
-	// diffs aren't messed with, as this gets messy when dealing with complex
-	// structures, zero values, etc.
-	d.forcedNewKeys[keyParts[0]] = true
-
-	return nil
-}
-
-// Get hands off to ResourceData.Get.
-func (d *ResourceDiff) Get(key string) interface{} {
-	r, _ := d.GetOk(key)
-	return r
-}
-
-// GetChange gets the change between the state and diff, checking first to see
-// if an overridden diff exists.
-//
-// This implementation differs from ResourceData's in the way that we first get
-// results from the exact levels for the new diff, then from state and diff as
-// per normal.
-func (d *ResourceDiff) GetChange(key string) (interface{}, interface{}) {
-	old, new, _ := d.getChange(key)
-	return old.Value, new.Value
 }
 
 // GetOk functions the same way as ResourceData.GetOk, but it also checks the
@@ -399,44 +236,6 @@ func (d *ResourceDiff) GetOk(key string) (interface{}, bool) {
 	}
 
 	return r.Value, exists
-}
-
-// GetOkExists functions the same way as GetOkExists within ResourceData, but
-// it also checks the new diff levels to provide data consistent with the
-// current state of the customized diff.
-//
-// This is nearly the same function as GetOk, yet it does not check
-// for the zero value of the attribute's type. This allows for attributes
-// without a default, to fully check for a literal assignment, regardless
-// of the zero-value for that type.
-func (d *ResourceDiff) GetOkExists(key string) (interface{}, bool) {
-	r := d.get(strings.Split(key, "."), "newDiff")
-	exists := r.Exists && !r.Computed
-	return r.Value, exists
-}
-
-// NewValueKnown returns true if the new value for the given key is available
-// as its final value at diff time. If the return value is false, this means
-// either the value is based of interpolation that was unavailable at diff
-// time, or that the value was explicitly marked as computed by SetNewComputed.
-func (d *ResourceDiff) NewValueKnown(key string) bool {
-	r := d.get(strings.Split(key, "."), "newDiff")
-	return !r.Computed
-}
-
-// HasChange checks to see if there is a change between state and the diff, or
-// in the overridden diff.
-func (d *ResourceDiff) HasChange(key string) bool {
-	old, new := d.GetChange(key)
-
-	// If the type implements the Equal interface, then call that
-	// instead of just doing a reflect.DeepEqual. An example where this is
-	// needed is *Set
-	if eq, ok := old.(Equal); ok {
-		return !eq.Equal(new)
-	}
-
-	return !reflect.DeepEqual(old, new)
 }
 
 // Id returns the ID of this resource.
@@ -535,28 +334,4 @@ func childAddrOf(child, parent string) bool {
 		return false
 	}
 	return reflect.DeepEqual(ps, cs[:len(ps)])
-}
-
-// checkKey checks the key to make sure it exists and is computed.
-func (d *ResourceDiff) checkKey(key, caller string, nested bool) error {
-	var schema *Schema
-	if nested {
-		keyParts := strings.Split(key, ".")
-		schemaL := addrToSchema(keyParts, d.schema)
-		if len(schemaL) > 0 {
-			schema = schemaL[len(schemaL)-1]
-		}
-	} else {
-		s, ok := d.schema[key]
-		if ok {
-			schema = s
-		}
-	}
-	if schema == nil {
-		return fmt.Errorf("%s: invalid key: %s", caller, key)
-	}
-	if !schema.Computed {
-		return fmt.Errorf("%s only operates on computed keys - %s is not one", caller, key)
-	}
-	return nil
 }
