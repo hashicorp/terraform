@@ -31,14 +31,10 @@ func (c *MetadataFunctionsCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
 	args := c.Meta.process(rawArgs)
-	parsedArgs, parsedArgDiags := arguments.ParseMetadataFunctions(args)
+	_, parsedArgDiags := arguments.ParseMetadataFunctions(args)
 	diags = diags.Append(parsedArgDiags)
 	if parsedArgDiags.HasErrors() {
 		c.showDiagnostics(diags)
-		if !parsedArgs.JSON {
-			// Show help message if the -json flag is not provided
-			c.Ui.Error(c.Help())
-		}
 		return 1
 	}
 
