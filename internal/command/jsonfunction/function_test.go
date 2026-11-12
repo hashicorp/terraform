@@ -14,13 +14,13 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-func TestMarshal(t *testing.T) {
+func TestMarshalToFunctionSignatures(t *testing.T) {
 	tests := []struct {
-		Name              string
-		Functions         map[string]function.Function
-		ProviderFunctions map[string]providers.FunctionDecl
-		Want              string
-		WantErr           string
+		Name                   string
+		Functions              map[string]function.Function
+		WantFunctionSignatures map[string]*FunctionSignature
+		WantJSON               string
+		WantErr                string
 	}{
 		{
 			Name: "minimal function",
@@ -29,12 +29,12 @@ func TestMarshal(t *testing.T) {
 					Type: function.StaticReturnType(cty.Bool),
 				}),
 			},
-			ProviderFunctions: map[string]providers.FunctionDecl{
+			WantFunctionSignatures: map[string]*FunctionSignature{
 				"fun": {
 					ReturnType: cty.Bool,
 				},
 			},
-			Want: `{"format_version":"1.0","function_signatures":{"fun":{"return_type":"bool"}}}`,
+			WantJSON: `{"fun":{"return_type":"bool"}}`,
 		},
 		{
 			Name: "function with description",
@@ -44,13 +44,13 @@ func TestMarshal(t *testing.T) {
 					Type:        function.StaticReturnType(cty.String),
 				}),
 			},
-			ProviderFunctions: map[string]providers.FunctionDecl{
+			WantFunctionSignatures: map[string]*FunctionSignature{
 				"fun": {
 					Description: "`timestamp` returns a UTC timestamp string.",
 					ReturnType:  cty.String,
 				},
 			},
-			Want: "{\"format_version\":\"1.0\",\"function_signatures\":{\"fun\":{\"description\":\"`timestamp` returns a UTC timestamp string.\",\"return_type\":\"string\"}}}",
+			WantJSON: "{\"fun\":{\"description\":\"`timestamp` returns a UTC timestamp string.\",\"return_type\":\"string\"}}",
 		},
 		{
 			Name: "function with parameters",
@@ -71,9 +71,10 @@ func TestMarshal(t *testing.T) {
 					Type: function.StaticReturnType(cty.String),
 				}),
 			},
-			ProviderFunctions: map[string]providers.FunctionDecl{
+			WantFunctionSignatures: map[string]*FunctionSignature{
 				"fun": {
-					Parameters: []providers.FunctionParam{
+					ReturnType: cty.String,
+					Parameters: []*parameter{
 						{
 							Name:        "timestamp",
 							Description: "timestamp text",
@@ -85,10 +86,9 @@ func TestMarshal(t *testing.T) {
 							Type:        cty.String,
 						},
 					},
-					ReturnType: cty.String,
 				},
 			},
-			Want: `{"format_version":"1.0","function_signatures":{"fun":{"return_type":"string","parameters":[{"name":"timestamp","description":"timestamp text","type":"string"},{"name":"duration","description":"duration text","type":"string"}]}}}`,
+			WantJSON: `{"fun":{"return_type":"string","parameters":[{"name":"timestamp","description":"timestamp text","type":"string"},{"name":"duration","description":"duration text","type":"string"}]}}`,
 		},
 		{
 			Name: "function with variadic parameter",
@@ -106,19 +106,18 @@ func TestMarshal(t *testing.T) {
 					Type: function.StaticReturnType(cty.DynamicPseudoType),
 				}),
 			},
-			ProviderFunctions: map[string]providers.FunctionDecl{
+			WantFunctionSignatures: map[string]*FunctionSignature{
 				"fun": {
-					VariadicParameter: &providers.FunctionParam{
-						Name:               "default",
-						Description:        "default description",
-						Type:               cty.DynamicPseudoType,
-						AllowUnknownValues: true,
-						AllowNullValue:     true,
-					},
 					ReturnType: cty.DynamicPseudoType,
+					VariadicParameter: &parameter{
+						Name:        "default",
+						Description: "default description",
+						Type:        cty.DynamicPseudoType,
+						IsNullable:  true,
+					},
 				},
 			},
-			Want: `{"format_version":"1.0","function_signatures":{"fun":{"return_type":"dynamic","variadic_parameter":{"name":"default","description":"default description","is_nullable":true,"type":"dynamic"}}}}`,
+			WantJSON: `{"fun":{"return_type":"dynamic","variadic_parameter":{"name":"default","description":"default description","is_nullable":true,"type":"dynamic"}}}`,
 		},
 		{
 			Name: "function with list types",
@@ -133,18 +132,18 @@ func TestMarshal(t *testing.T) {
 					Type: function.StaticReturnType(cty.List(cty.String)),
 				}),
 			},
-			ProviderFunctions: map[string]providers.FunctionDecl{
+			WantFunctionSignatures: map[string]*FunctionSignature{
 				"fun": {
-					Parameters: []providers.FunctionParam{
+					ReturnType: cty.List(cty.String),
+					Parameters: []*parameter{
 						{
 							Name: "list",
 							Type: cty.List(cty.String),
 						},
 					},
-					ReturnType: cty.List(cty.String),
 				},
 			},
-			Want: `{"format_version":"1.0","function_signatures":{"fun":{"return_type":["list","string"],"parameters":[{"name":"list","type":["list","string"]}]}}}`,
+			WantJSON: `{"fun":{"return_type":["list","string"],"parameters":[{"name":"list","type":["list","string"]}]}}`,
 		},
 		{
 			Name: "returns diagnostics on failure",
@@ -162,7 +161,7 @@ func TestMarshal(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
-			got, diags := Marshal(test.Functions)
+			gotSignatures, diags := MarshalToFunctionSignatures(test.Functions)
 			if test.WantErr != "" {
 				if !diags.HasErrors() {
 					t.Fatal("expected error, got none")
@@ -175,42 +174,176 @@ func TestMarshal(t *testing.T) {
 					t.Fatal(diags)
 				}
 
-				if diff := cmp.Diff(test.Want, string(got)); diff != "" {
+				if diff := cmp.Diff(test.WantFunctionSignatures, gotSignatures, cmp.Comparer(func(a, b cty.Type) bool {
+					return a.Equals(b)
+				})); diff != "" {
+					t.Fatalf("mismatch of function signatures: %s", diff)
+				}
+
+				gotBytes, err := json.Marshal(gotSignatures)
+				if err != nil {
+					// these should never error
+					t.Fatal("marshal failed:", err)
+				}
+
+				if diff := cmp.Diff(test.WantJSON, string(gotBytes)); diff != "" {
 					t.Fatalf("mismatch of function signature: %s", diff)
 				}
 			}
+		})
+	}
+}
 
-			if test.ProviderFunctions != nil {
-				// Provider functions should marshal identically to cty
-				// functions, without the wrapping object.
-				got := MarshalProviderFunctions(test.ProviderFunctions)
+func TestMarshalProviderFunctions(t *testing.T) {
+	tests := []struct {
+		Name                   string
+		ProviderFunctions      map[string]providers.FunctionDecl
+		WantFunctionSignatures map[string]*FunctionSignature
+		WantJSON               string
+	}{
+		{
+			Name: "minimal function",
+			ProviderFunctions: map[string]providers.FunctionDecl{
+				"fun": {
+					ReturnType: cty.Bool,
+				},
+			},
+			WantFunctionSignatures: map[string]*FunctionSignature{
+				"fun": {
+					ReturnType: cty.Bool,
+				},
+			},
+			WantJSON: `{"fun":{"return_type":"bool"}}`,
+		},
+		{
+			Name: "function with description",
+			ProviderFunctions: map[string]providers.FunctionDecl{
+				"fun": {
+					Description: "`timestamp` returns a UTC timestamp string.",
+					ReturnType:  cty.String,
+				},
+			},
+			WantFunctionSignatures: map[string]*FunctionSignature{
+				"fun": {
+					Description: "`timestamp` returns a UTC timestamp string.",
+					ReturnType:  cty.String,
+				},
+			},
+			WantJSON: "{\"fun\":{\"description\":\"`timestamp` returns a UTC timestamp string.\",\"return_type\":\"string\"}}",
+		},
+		{
+			Name: "function with parameters",
+			ProviderFunctions: map[string]providers.FunctionDecl{
+				"fun": {
+					Parameters: []providers.FunctionParam{
+						{
+							Name:        "timestamp",
+							Description: "timestamp text",
+							Type:        cty.String,
+						},
+						{
+							Name:        "duration",
+							Description: "duration text",
+							Type:        cty.String,
+						},
+					},
+					ReturnType: cty.String,
+				},
+			},
+			WantFunctionSignatures: map[string]*FunctionSignature{
+				"fun": {
+					ReturnType: cty.String,
+					Parameters: []*parameter{
+						{
+							Name:        "timestamp",
+							Description: "timestamp text",
+							Type:        cty.String,
+						},
+						{
+							Name:        "duration",
+							Description: "duration text",
+							Type:        cty.String,
+						},
+					},
+				},
+			},
+			WantJSON: `{"fun":{"return_type":"string","parameters":[{"name":"timestamp","description":"timestamp text","type":"string"},{"name":"duration","description":"duration text","type":"string"}]}}`,
+		},
+		{
+			Name: "function with variadic parameter",
+			ProviderFunctions: map[string]providers.FunctionDecl{
+				"fun": {
+					VariadicParameter: &providers.FunctionParam{
+						Name:               "default",
+						Description:        "default description",
+						Type:               cty.DynamicPseudoType,
+						AllowUnknownValues: true,
+						AllowNullValue:     true,
+					},
+					ReturnType: cty.DynamicPseudoType,
+				},
+			},
+			WantFunctionSignatures: map[string]*FunctionSignature{
+				"fun": {
+					ReturnType: cty.DynamicPseudoType,
+					VariadicParameter: &parameter{
+						Name:        "default",
+						Description: "default description",
+						Type:        cty.DynamicPseudoType,
+						IsNullable:  true,
+					},
+				},
+			},
+			WantJSON: `{"fun":{"return_type":"dynamic","variadic_parameter":{"name":"default","description":"default description","is_nullable":true,"type":"dynamic"}}}`,
+		},
+		{
+			Name: "function with list types",
+			ProviderFunctions: map[string]providers.FunctionDecl{
+				"fun": {
+					Parameters: []providers.FunctionParam{
+						{
+							Name: "list",
+							Type: cty.List(cty.String),
+						},
+					},
+					ReturnType: cty.List(cty.String),
+				},
+			},
+			WantFunctionSignatures: map[string]*FunctionSignature{
+				"fun": {
+					ReturnType: cty.List(cty.String),
+					Parameters: []*parameter{
+						{
+							Name: "list",
+							Type: cty.List(cty.String),
+						},
+					},
+				},
+			},
+			WantJSON: `{"fun":{"return_type":["list","string"],"parameters":[{"name":"list","type":["list","string"]}]}}`,
+		},
+	}
 
-				gotBytes, err := json.Marshal(got)
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
+			// Provider functions should marshal identically to cty
+			// functions, without the wrapping object.
+			gotSignatures := MarshalProviderFunctions(test.ProviderFunctions)
 
-				if err != nil {
-					// these should never error
-					t.Fatal("Marshal of ProviderFunctions failed:", err)
-				}
+			if diff := cmp.Diff(test.WantFunctionSignatures, gotSignatures, cmp.Comparer(func(a, b cty.Type) bool {
+				return a.Equals(b)
+			})); diff != "" {
+				t.Fatalf("mismatch of function signatures: %s", diff)
+			}
 
-				var want functions
+			gotBytes, err := json.Marshal(gotSignatures)
+			if err != nil {
+				// these should never error
+				t.Fatal("marshal failed:", err)
+			}
 
-				err = json.Unmarshal([]byte(test.Want), &want)
-
-				if err != nil {
-					// these should never error
-					t.Fatal("Unmarshal of Want failed:", err)
-				}
-
-				wantBytes, err := json.Marshal(want.Signatures)
-
-				if err != nil {
-					// these should never error
-					t.Fatal("Marshal of Want.Signatures failed:", err)
-				}
-
-				if diff := cmp.Diff(string(wantBytes), string(gotBytes)); diff != "" {
-					t.Fatalf("mismatch of function signature: %s", diff)
-				}
+			if diff := cmp.Diff(test.WantJSON, string(gotBytes)); diff != "" {
+				t.Fatalf("mismatch of function signature: %s", diff)
 			}
 		})
 	}

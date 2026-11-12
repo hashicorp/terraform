@@ -4,7 +4,6 @@
 package jsonfunction
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/providers"
@@ -13,22 +12,10 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
-// FormatVersion represents the version of the json format and will be
-// incremented for any change to this format that requires changes to a
-// consuming parser.
-//
-// Any changes to this version should also consider compatibility in the
-// jsonprovider package versioning as well, as that functionality is also
-// reliant on this package.
-const FormatVersion = "1.0"
-
-// functions is the top-level object returned when exporting function signatures
-type functions struct {
-	FormatVersion string                        `json:"format_version"`
-	Signatures    map[string]*FunctionSignature `json:"function_signatures,omitempty"`
-}
-
 // FunctionSignature represents a function signature.
+//
+// Any changes to this struct will impact versioning in the jsonprovider package's versioning,
+// in addition to versioning for the `metadata functions` command's JSON's output
 type FunctionSignature struct {
 	// Description is an optional human-readable description
 	// of the function
@@ -55,14 +42,6 @@ type FunctionSignature struct {
 	VariadicParameter *parameter `json:"variadic_parameter,omitempty"`
 }
 
-func newFunctions() *functions {
-	signatures := make(map[string]*FunctionSignature)
-	return &functions{
-		FormatVersion: FormatVersion,
-		Signatures:    signatures,
-	}
-}
-
 func MarshalProviderFunctions(f map[string]providers.FunctionDecl) map[string]*FunctionSignature {
 	if f == nil {
 		return nil
@@ -77,20 +56,20 @@ func MarshalProviderFunctions(f map[string]providers.FunctionDecl) map[string]*F
 	return result
 }
 
-func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
+func MarshalToFunctionSignatures(f map[string]function.Function) (map[string]*FunctionSignature, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	signatures := newFunctions()
+	signatures := make(map[string]*FunctionSignature, len(f))
 
 	for name, v := range f {
 		switch name {
 		case "can", "core::can":
-			signatures.Signatures[name] = marshalCan(v)
+			signatures[name] = marshalCan(v)
 		case "try", "core::try":
-			signatures.Signatures[name] = marshalTry(v)
+			signatures[name] = marshalTry(v)
 		case "templatestring", "core::templatestring":
-			signatures.Signatures[name] = marshalTemplatestring(v)
+			signatures[name] = marshalTemplatestring(v)
 		case "convert", "core::convert":
-			signatures.Signatures[name] = marshalConvert(v)
+			signatures[name] = marshalConvert(v)
 		default:
 			signature, err := marshalFunction(v)
 			if err != nil {
@@ -100,7 +79,7 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 					err.Error(),
 				))
 			}
-			signatures.Signatures[name] = signature
+			signatures[name] = signature
 		}
 	}
 
@@ -108,16 +87,7 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	ret, err := json.Marshal(signatures)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to serialize functions",
-			err.Error(),
-		))
-		return nil, diags
-	}
-	return ret, nil
+	return signatures, nil
 }
 
 func marshalFunction(f function.Function) (*FunctionSignature, error) {
