@@ -5,7 +5,7 @@ package command
 
 import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonfunction"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty/function"
@@ -30,11 +30,20 @@ func (c *MetadataFunctionsCommand) Synopsis() string {
 func (c *MetadataFunctionsCommand) Run(rawArgs []string) int {
 	var diags tfdiags.Diagnostics
 
-	args := c.Meta.process(rawArgs)
-	_, parsedArgDiags := arguments.ParseMetadataFunctions(args)
-	diags = diags.Append(parsedArgDiags)
-	if parsedArgDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	args, argDiags := arguments.ParseMetadataFunctions(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewMetadataFunctions(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -48,12 +57,7 @@ func (c *MetadataFunctionsCommand) Run(rawArgs []string) int {
 		filteredFuncs[k] = v
 	}
 
-	jsonFunctions, marshalDiags := jsonfunction.Marshal(filteredFuncs)
-	if marshalDiags.HasErrors() {
-		c.showDiagnostics(marshalDiags)
-		return 1
-	}
-	c.Ui.Output(string(jsonFunctions))
+	view.Functions(filteredFuncs)
 
 	return 0
 }

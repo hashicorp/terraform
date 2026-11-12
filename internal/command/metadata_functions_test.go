@@ -6,6 +6,8 @@ package command
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/command/views"
 )
 
 func TestMetadataFunctions_error(t *testing.T) {
@@ -25,16 +27,20 @@ func TestMetadataFunctions_error(t *testing.T) {
 
 func TestMetadataFunctions_output(t *testing.T) {
 	t.Parallel()
-	ui := testUiWrapped(t)
-	m := Meta{Ui: ui}
-	c := &MetadataFunctionsCommand{Meta: m}
-
-	if code := c.Run([]string{"-json"}); code != 0 {
-		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+	view, done := testView(t)
+	c := &MetadataFunctionsCommand{
+		Meta: Meta{
+			View: view,
+		},
 	}
 
-	var got functions
-	gotString := ui.OutputWriter.String()
+	if code := c.Run([]string{"-json"}); code != 0 {
+		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, done(t).Stderr())
+	}
+	output := done(t)
+
+	var got views.MetadataFunctionsOutput
+	gotString := output.Stdout()
 	err := json.Unmarshal([]byte(gotString), &got)
 	if err != nil {
 		t.Fatal(err)
@@ -47,14 +53,18 @@ func TestMetadataFunctions_output(t *testing.T) {
 	// check if one particular stable function is correct
 	gotMax, ok := got.Signatures["max"]
 	wantMax := "{\"description\":\"`max` takes one or more numbers and returns the greatest number from the set.\",\"return_type\":\"number\",\"variadic_parameter\":{\"name\":\"numbers\",\"type\":\"number\"}}"
-	if !ok {
+	if !ok || gotMax == nil {
 		t.Fatal(`missing function signature for "max"`)
 	}
-	if string(gotMax) != wantMax {
-		t.Fatalf("wrong function signature for \"max\":\ngot: %q\nwant: %q", gotMax, wantMax)
+	gotMaxBytes, err := json.Marshal(gotMax)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotMaxBytes) != wantMax {
+		t.Fatalf("wrong function signature for \"max\":\ngot: %q\nwant: %q", string(gotMaxBytes), wantMax)
 	}
 
-	stderr := ui.ErrorWriter.String()
+	stderr := output.Stderr()
 	if stderr != "" {
 		t.Fatalf("expected empty stderr, got:\n%s", stderr)
 	}
@@ -66,9 +76,4 @@ func TestMetadataFunctions_output(t *testing.T) {
 			t.Fatalf("found ignored function %q inside output", v)
 		}
 	}
-}
-
-type functions struct {
-	FormatVersion string                     `json:"format_version"`
-	Signatures    map[string]json.RawMessage `json:"function_signatures,omitempty"`
 }
