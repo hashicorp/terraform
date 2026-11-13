@@ -8,7 +8,7 @@ import "github.com/hashicorp/terraform/internal/tfdiags"
 // MetadataFunctions represents the command-line arguments for the metadata
 // functions command.
 type MetadataFunctions struct {
-	JSON bool
+	ViewType ViewType
 }
 
 // ParseMetadataFunctions processes CLI arguments, returning a
@@ -20,7 +20,8 @@ func ParseMetadataFunctions(args []string) (*MetadataFunctions, tfdiags.Diagnost
 	metadataFunctions := &MetadataFunctions{}
 
 	cmdFlags := defaultFlagSet("metadata functions")
-	cmdFlags.BoolVar(&metadataFunctions.JSON, "json", false, "produce JSON output")
+	var json bool
+	cmdFlags.BoolVar(&json, "json", false, "produce JSON output")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -35,12 +36,17 @@ func ParseMetadataFunctions(args []string) (*MetadataFunctions, tfdiags.Diagnost
 	// TODO: Add validation of unexpected arguments in future major version.
 	_ = cmdFlags.Args()
 
-	if !metadataFunctions.JSON {
+	switch {
+	case json:
+		metadataFunctions.ViewType = ViewJSON
+
+	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"The -json flag is required",
 			"The `terraform metadata functions` command requires the `-json` flag.",
 		))
+		metadataFunctions.ViewType = ViewHuman // only used to render the error message above.
 	}
 
 	return metadataFunctions, diags
