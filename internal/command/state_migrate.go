@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -80,6 +82,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	if cfg.Module.StateStore != nil {
+		// If present, record how the destination state store provider is supplied to Terraform
 		cfg.Module.StateStore.ProviderSupplyMode = c.getProviderSupplyModeForStateStore(cfg.Module)
 	}
 
@@ -92,6 +95,15 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		))
 		view.Diagnostics(diags)
 		return 1
+	}
+	if smi.StateStore != nil {
+		// If present, record how the source state store provider is supplied to Terraform
+		isReattached, err := reattach.IsProviderReattached(smi.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", smi.StateStore.ProviderAddr.ForDisplay(), err))
+		}
+		smi.StateStore.ProviderSupplyMode = getproviders.DetermineProviderSupplyMode(c.isProviderDevOverride(smi.StateStore.ProviderAddr), isReattached, smi.StateStore.ProviderAddr.IsBuiltIn())
+
 	}
 
 	// When configuring the source and destination backends,
