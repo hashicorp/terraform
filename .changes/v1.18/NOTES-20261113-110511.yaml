@@ -1,0 +1,5 @@
+kind: NOTES
+body: Several commands now display diagnostics in a more compact format, consistent with the existing output of the `plan` and `apply` commands.
+time: 2026-11-13T11:05:11.22163Z
+custom:
+    Issue: "39544"
