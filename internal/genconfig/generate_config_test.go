@@ -1135,234 +1135,50 @@ import {
 	}
 }
 
-// TestGenerateResourceContentsNullState covers config generation when the
-// state value for the whole resource is null, which is what a list resource
-// result without a resource object produces. Nested attributes and blocks are
-// the interesting part: a null root value must not be dereferenced with
-// GetAttr.
-func TestGenerateResourceContentsNullState(t *testing.T) {
+// Null attributes of an existing resource are valid; a null resource is not.
+func TestGenerateListResourceContentsNullState(t *testing.T) {
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"value": {
-				Type:     cty.String,
-				Optional: true,
-			},
-			"timeouts": {
-				Optional: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"create": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
-			"nested_list": {
-				Optional: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingList,
-					Attributes: map[string]*configschema.Attribute{
-						"entry": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
-			"nested_set": {
-				Optional: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSet,
-					Attributes: map[string]*configschema.Attribute{
-						"entry": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
-			"nested_map": {
-				Optional: true,
-				NestedType: &configschema.Object{
-					Nesting: configschema.NestingMap,
-					Attributes: map[string]*configschema.Attribute{
-						"entry": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
-		},
-		BlockTypes: map[string]*configschema.NestedBlock{
-			"list_block": {
-				Nesting: configschema.NestingSingle,
-				Block: configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"nested_value": {
-							Type:     cty.String,
-							Optional: true,
-						},
-					},
-				},
-			},
+			"name": {Type: cty.String, Optional: true},
 		},
 	}
-	if err := schema.InternalValidate(); err != nil {
-		t.Fatalf("schema failed InternalValidate: %s", err)
-	}
-
-	addr := addrs.AbsResourceInstance{
-		Module: addrs.RootModuleInstance,
-		Resource: addrs.ResourceInstance{
-			Resource: addrs.Resource{
-				Mode: addrs.ManagedResourceMode,
-				Type: "testing_resource",
-				Name: "resource",
-			},
-			Key: addrs.NoKey,
+	idSchema := &configschema.Object{
+		Nesting: configschema.NestingSingle,
+		Attributes: map[string]*configschema.Attribute{
+			"id": {Type: cty.String, Required: true},
 		},
 	}
+	addr := addrs.AbsResource{
+		Module:   addrs.RootModuleInstance,
+		Resource: addrs.Resource{Mode: addrs.ListResourceMode, Type: "test_resource", Name: "entries"},
+	}.Instance(addrs.NoKey)
+	pc := addrs.LocalProviderConfig{LocalName: "test"}
+	identity := cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("instance-1")})
 
-	nestedType := cty.Object(map[string]cty.Type{
-		"create": cty.String,
-	})
-	collectionType := cty.Object(map[string]cty.Type{
-		"entry": cty.String,
-	})
-
-	tcs := map[string]struct {
-		value cty.Value
-		want  string
-	}{
-		"null root": {
-			// no state at all: every attribute falls back to the schema and
-			// the null block is omitted.
-			value: cty.NullVal(schema.ImpliedType()),
-			want: `resource "testing_resource" "resource" {
-  nested_list = null
-  nested_map  = null
-  nested_set  = null
-  timeouts    = null
-  value       = null
-}`,
-		},
-		"null nested values next to existing ones": {
-			value: cty.ObjectVal(map[string]cty.Value{
-				"value":       cty.StringVal("Hello, world!"),
-				"timeouts":    cty.NullVal(nestedType),
-				"nested_list": cty.NullVal(cty.List(collectionType)),
-				"nested_set":  cty.NullVal(cty.Set(collectionType)),
-				"nested_map":  cty.NullVal(cty.Map(collectionType)),
-				"list_block": cty.ObjectVal(map[string]cty.Value{
-					"nested_value": cty.StringVal("nested"),
-				}),
-			}),
-			want: `resource "testing_resource" "resource" {
-  nested_list = null
-  nested_map  = null
-  nested_set  = null
-  timeouts    = null
-  value       = "Hello, world!"
-  list_block {
-    nested_value = "nested"
-  }
-}`,
-		},
-		"missing nested attribute in a non-null state": {
-			// An attribute missing from a non-null state falls back to the
-			// schema too, exactly like a null state and a plain attribute.
-			value: cty.ObjectVal(map[string]cty.Value{
-				"value": cty.StringVal("Hello, world!"),
-			}),
-			want: `resource "testing_resource" "resource" {
-  nested_list = null
-  nested_map  = null
-  nested_set  = null
-  timeouts    = null
-  value       = "Hello, world!"
-}`,
-		},
-		"null element inside a collection of objects": {
-			value: cty.ObjectVal(map[string]cty.Value{
-				"value": cty.StringVal("Hello, world!"),
-				"nested_list": cty.ListVal([]cty.Value{
-					cty.NullVal(collectionType),
-				}),
-			}),
-			want: `resource "testing_resource" "resource" {
-  nested_list = [
-    {
-      entry = null
-    },
-  ]
-  nested_map = null
-  nested_set = null
-  timeouts   = null
-  value      = "Hello, world!"
-}`,
-		},
-		"non-null nested values are kept": {
-			value: cty.ObjectVal(map[string]cty.Value{
-				"value": cty.StringVal("Hello, world!"),
-				"timeouts": cty.ObjectVal(map[string]cty.Value{
-					"create": cty.StringVal("5m"),
-				}),
-				"nested_list": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"entry": cty.StringVal("a")}),
-				}),
-				"nested_set": cty.SetVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{"entry": cty.StringVal("b")}),
-				}),
-				"nested_map": cty.MapVal(map[string]cty.Value{
-					"key": cty.ObjectVal(map[string]cty.Value{"entry": cty.StringVal("c")}),
-				}),
-				"list_block": cty.NullVal(cty.Object(map[string]cty.Type{
-					"nested_value": cty.String,
-				})),
-			}),
-			want: `resource "testing_resource" "resource" {
-  nested_list = [
-    {
-      entry = "a"
-    },
-  ]
-  nested_map = {
-    key = {
-      entry = "c"
-    }
-  }
-  nested_set = [
-    {
-      entry = "b"
-    },
-  ]
-  timeouts = {
-    create = "5m"
-  }
-  value = "Hello, world!"
-}`,
-		},
-	}
-
-	for name, tc := range tcs {
-		t.Run(name, func(t *testing.T) {
-			generated, diags := GenerateResourceContents(addr, schema, addrs.LocalProviderConfig{LocalName: "testing"}, tc.value, false)
-			if diags.HasErrors() {
-				t.Fatalf("unexpected generation diagnostics: %s", diags.Err())
-			}
-
-			got := strings.TrimSpace(generated.String())
-			want := strings.TrimSpace(tc.want)
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Fatalf("wrong generated configuration: %s", diff)
-			}
-
-			if _, parseDiags := hclsyntax.ParseConfig([]byte(got), "generated.tf", hcl.InitialPos); parseDiags.HasErrors() {
-				t.Fatalf("generated configuration did not parse: %s", parseDiags.Error())
-			}
+	t.Run("null resource", func(t *testing.T) {
+		generated, diags := GenerateListResourceContents(addr, schema, idSchema, pc, []ResourceListElement{
+			{Config: cty.NullVal(schema.ImpliedType()), Identity: identity},
 		})
-	}
+		if !diags.HasErrors() || len(diags) != 1 {
+			t.Fatalf("expected one error for null resource state, got %s", diags.Err())
+		}
+		if got := diags[0].Description(); got.Summary != "Missing resource state" || !strings.Contains(got.Detail, "null object for list.test_resource.entries.data[0].state") {
+			t.Fatalf("missing list result context in diagnostic: %#v", got)
+		}
+		if len(generated.Imports) != 0 {
+			t.Fatalf("generated placeholder for a null resource: %s", generated.String())
+		}
+	})
+
+	t.Run("existing resource with null attribute", func(t *testing.T) {
+		generated, diags := GenerateListResourceContents(addr, schema, idSchema, pc, []ResourceListElement{
+			{Config: schema.EmptyValue(), Identity: identity},
+		})
+		if diags.HasErrors() {
+			t.Fatalf("unexpected generation diagnostics: %s", diags.Err())
+		}
+		if len(generated.Imports) != 1 || !strings.Contains(strings.Join(strings.Fields(generated.ResourcesString()), " "), "name = null") {
+			t.Fatalf("lost configuration for an existing resource: %s", generated.String())
+		}
+	})
 }

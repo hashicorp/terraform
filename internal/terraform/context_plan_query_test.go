@@ -1499,12 +1499,9 @@ import {
 	tfdiags.AssertDiagnosticsMatch(t, diags, exp)
 }
 
-// TestContext2Plan_queryListConfigGenerationNullState covers a list resource
-// result without a resource object, which is what a provider produces when it
-// accepts include_resource_object but has no object to return. The generated
-// resource block then has no state to derive values from, so config generation
-// must fall back to the schema for every attribute and block, including nested
-// attributes and blocks.
+// TestContext2Plan_queryListConfigGenerationNullState exercises query planning
+// through GenerateListResourceContents, using the typed null produced by the
+// gRPC adapter when the provider does not return a requested resource object.
 func TestContext2Plan_queryListConfigGenerationNullState(t *testing.T) {
 	// The gRPC adapter always sets "state" to a typed null when the provider
 	// omits the resource object, so that is the primary representation. A
@@ -1515,126 +1512,138 @@ func TestContext2Plan_queryListConfigGenerationNullState(t *testing.T) {
 		"omitted state":       true,
 	}
 
-	for name, omitState := range cases {
-		t.Run(name, func(t *testing.T) {
-			listSchema := &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"data": {
-						Type:     cty.DynamicPseudoType,
-						Computed: true,
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"config": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"project_id": {
-									Type:     cty.String,
-									Required: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingSingle,
-					},
-				},
-			}
-
-			// timeouts is an optional nested attribute (as used by several
-			// providers), and tags is an optional nested block, so both
-			// rendering paths have to cope with a null root value.
-			resourceSchema := &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"project_id": {
-						Type:     cty.String,
-						Optional: true,
-					},
-					"timeouts": {
-						Optional: true,
-						NestedType: &configschema.Object{
-							Nesting: configschema.NestingSingle,
-							Attributes: map[string]*configschema.Attribute{
-								"create": {
-									Type:     cty.String,
-									Optional: true,
-								},
-								"read": {
-									Type:     cty.String,
-									Optional: true,
-								},
-							},
-						},
-					},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"tags": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"key": {
-									Type:     cty.String,
-									Optional: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			}
-
-			provider := testProvider("test")
-			provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
-				Provider: &configschema.Block{},
-				ResourceTypes: map[string]*configschema.Block{
-					"test_resource": resourceSchema,
-				},
-				ListResourceTypes: map[string]*configschema.Block{
-					"test_resource": listSchema,
-				},
-				IdentityTypes: map[string]*configschema.Object{
-					"test_resource": {
+	for _, shape := range []string{"nested attribute", "nested block", "plain attribute"} {
+		t.Run(shape, func(t *testing.T) {
+			for name, omitState := range cases {
+				t.Run(name, func(t *testing.T) {
+					listSchema := &configschema.Block{
 						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Required: true,
+							"data": {
+								Type:     cty.DynamicPseudoType,
+								Computed: true,
 							},
 						},
-						Nesting: configschema.NestingSingle,
-					},
-				},
-			})
-
-			provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
-				if !request.IncludeResourceObject {
-					t.Fatalf("expected the resource object to be requested when generating config")
-				}
-
-				var resp []cty.Value
-				for i := range 2 {
-					mp := map[string]cty.Value{
-						"identity": cty.ObjectVal(map[string]cty.Value{
-							"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
-						}),
-						"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"config": {
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"project_id": {
+											Type:     cty.String,
+											Required: true,
+										},
+									},
+								},
+								Nesting: configschema.NestingSingle,
+							},
+						},
 					}
-					if !omitState {
-						mp["state"] = cty.NullVal(resourceSchema.ImpliedType())
+
+					// timeouts is an optional nested attribute (as used by several
+					// providers), and tags is an optional nested block, so both
+					// rendering paths have to cope with a null root value.
+					resourceSchema := &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"project_id": {
+								Type:     cty.String,
+								Optional: true,
+							},
+							"timeouts": {
+								Optional: true,
+								NestedType: &configschema.Object{
+									Nesting: configschema.NestingSingle,
+									Attributes: map[string]*configschema.Attribute{
+										"create": {
+											Type:     cty.String,
+											Optional: true,
+										},
+										"read": {
+											Type:     cty.String,
+											Optional: true,
+										},
+									},
+								},
+							},
+						},
+						BlockTypes: map[string]*configschema.NestedBlock{
+							"tags": {
+								Block: configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"key": {
+											Type:     cty.String,
+											Optional: true,
+										},
+									},
+								},
+								Nesting: configschema.NestingList,
+							},
+						},
 					}
-					resp = append(resp, cty.ObjectVal(mp))
-				}
 
-				ret := map[string]cty.Value{
-					"data": cty.TupleVal(resp),
-				}
-				for k, v := range request.Config.AsValueMap() {
-					if k != "data" {
-						ret[k] = v
+					// Exercise the two independent GetAttr panic paths. A schema with
+					// only plain attributes must reject a null resource too, even
+					// though the old generator could silently produce a placeholder.
+					if shape != "nested attribute" {
+						delete(resourceSchema.Attributes, "timeouts")
 					}
-				}
+					if shape != "nested block" {
+						resourceSchema.BlockTypes = nil
+					}
 
-				return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
-			}
+					provider := testProvider("test")
+					provider.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{
+						Provider: &configschema.Block{},
+						ResourceTypes: map[string]*configschema.Block{
+							"test_resource": resourceSchema,
+						},
+						ListResourceTypes: map[string]*configschema.Block{
+							"test_resource": listSchema,
+						},
+						IdentityTypes: map[string]*configschema.Object{
+							"test_resource": {
+								Attributes: map[string]*configschema.Attribute{
+									"id": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+								Nesting: configschema.NestingSingle,
+							},
+						},
+					})
 
-			mod := testModuleInline(t, map[string]string{
-				"main.tf": `
+					provider.ListResourceFn = func(request providers.ListResourceRequest) providers.ListResourceResponse {
+						if !request.IncludeResourceObject {
+							t.Fatalf("expected the resource object to be requested when generating config")
+						}
+
+						var resp []cty.Value
+						for i := range 2 {
+							mp := map[string]cty.Value{
+								"identity": cty.ObjectVal(map[string]cty.Value{
+									"id": cty.StringVal(fmt.Sprintf("i-v%d", i+1)),
+								}),
+								"display_name": cty.StringVal(fmt.Sprintf("Instance %d", i+1)),
+							}
+							if !omitState {
+								mp["state"] = cty.NullVal(resourceSchema.ImpliedType())
+							}
+							resp = append(resp, cty.ObjectVal(mp))
+						}
+
+						ret := map[string]cty.Value{
+							"data": cty.TupleVal(resp),
+						}
+						for k, v := range request.Config.AsValueMap() {
+							if k != "data" {
+								ret[k] = v
+							}
+						}
+
+						return providers.ListResourceResponse{Result: cty.ObjectVal(ret)}
+					}
+
+					mod := testModuleInline(t, map[string]string{
+						"main.tf": `
 					terraform {
 						required_providers {
 							test = {
@@ -1644,7 +1653,7 @@ func TestContext2Plan_queryListConfigGenerationNullState(t *testing.T) {
 						}
 					}
 				`,
-				"main.tfquery.hcl": `
+						"main.tfquery.hcl": `
 					variable "project_id" {
 						type = string
 						default = "project-1"
@@ -1658,79 +1667,50 @@ func TestContext2Plan_queryListConfigGenerationNullState(t *testing.T) {
 						}
 					}
 				`,
-			}, configs.MatchQueryFiles())
+					}, configs.MatchQueryFiles())
 
-			providerAddr := addrs.NewDefaultProvider("test")
-			provider.ConfigureProvider(providers.ConfigureProviderRequest{})
+					providerAddr := addrs.NewDefaultProvider("test")
+					provider.ConfigureProvider(providers.ConfigureProviderRequest{})
 
-			ctx, diags := NewContext(&ContextOpts{
-				Providers: map[addrs.Provider]providers.Factory{
-					providerAddr: testProviderFuncFixed(provider),
-				},
-			})
-			tfdiags.AssertNoDiagnostics(t, diags)
+					ctx, diags := NewContext(&ContextOpts{
+						Providers: map[addrs.Provider]providers.Factory{
+							providerAddr: testProviderFuncFixed(provider),
+						},
+					})
+					tfdiags.AssertNoDiagnostics(t, diags)
 
-			diags = ctx.Validate(mod, &ValidateOpts{Query: true})
-			tfdiags.AssertNoDiagnostics(t, diags)
+					diags = ctx.Validate(mod, &ValidateOpts{Query: true})
+					tfdiags.AssertNoDiagnostics(t, diags)
 
-			generatedPath := t.TempDir()
-			plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
-				Mode:               plans.NormalMode,
-				SetVariables:       testInputValuesUnset(mod.Module.Variables),
-				Query:              true,
-				GenerateConfigPath: generatedPath,
-			})
-			tfdiags.AssertNoDiagnostics(t, diags)
-
-			if got, want := len(plan.Changes.Queries), 1; got != want {
-				t.Fatalf("wrong number of query instances: got %d, want %d", got, want)
+					generatedPath := t.TempDir()
+					plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{
+						Mode:               plans.NormalMode,
+						SetVariables:       testInputValuesUnset(mod.Module.Variables),
+						Query:              true,
+						GenerateConfigPath: generatedPath,
+					})
+					if !diags.HasErrors() || len(diags) != 2 {
+						t.Fatalf("expected one error for each null list result, got %s", diags.Err())
+					}
+					for i, diag := range diags {
+						got := diag.Description()
+						if got.Summary != "Missing resource state" {
+							t.Errorf("wrong diagnostic summary: %s", got.Summary)
+						}
+						wantPath := fmt.Sprintf("null object for list.test_resource.entries.data[%d].state", i)
+						if !strings.Contains(got.Detail, wantPath) || !strings.Contains(got.Detail, "must return the resource object when requested") {
+							t.Errorf("missing provider result context: %s", got.Detail)
+						}
+					}
+					if plan != nil {
+						for _, query := range plan.Changes.Queries {
+							if len(query.Generated.Imports) != 0 {
+								t.Fatalf("generated placeholder configuration: %s", query.Generated.String())
+							}
+						}
+					}
+				})
 			}
-
-			query := plan.Changes.Queries[0]
-			generated := query.Generated.String()
-
-			// The state was null, so no attribute values can be derived: the
-			// block must still be generated, with the schema-provided
-			// placeholders. Null nested values are written as null and null
-			// blocks are omitted, exactly like the plain attributes.
-			expected := `resource "test_resource" "entries_0" {
-  provider   = test
-  project_id = null
-  timeouts   = null
-}
-
-import {
-  to       = test_resource.entries_0
-  provider = test
-  identity = {
-    id = "i-v1"
-  }
-}
-
-resource "test_resource" "entries_1" {
-  provider   = test
-  project_id = null
-  timeouts   = null
-}
-
-import {
-  to       = test_resource.entries_1
-  provider = test
-  identity = {
-    id = "i-v2"
-  }
-}
-
-`
-			if diff := cmp.Diff(expected, generated); diff != "" {
-				t.Fatalf("unexpected generated configuration: %s", diff)
-			}
-
-			// The generated configuration must be valid HCL; testModuleInline
-			// fails the test if it does not parse.
-			testModuleInline(t, map[string]string{
-				"main.tf": generated,
-			})
 		})
 	}
 }

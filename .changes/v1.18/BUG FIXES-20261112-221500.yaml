@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: '`terraform query -generate-config-out`: Fixed a crash when the provider returns a list result without a resource object and the resource schema contains nested attributes or blocks'
+body: '`terraform query -generate-config-out`: Report an error instead of crashing or generating placeholder configuration when a provider returns a list result without the requested resource object'
 time: 2026-11-12T22:15:00.000000+01:00
 custom:
     Issue: "38569"
