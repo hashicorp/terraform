@@ -223,7 +223,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
 			Config:   b.Config,
-			skip:     b.Operation == walkPlanDestroy,
+			skip:     b.Operation == walkPlanDestroy || b.queryPlan,
 		},
 
 		// We also need nodes for any deposed instance objects present in the
@@ -235,6 +235,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			ConcreteCurrent: b.ConcreteDestroyResourceInstance,
 			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
 			State:           b.State,
+			skip:            b.queryPlan,
 		},
 
 		// Attach the state
@@ -342,12 +343,13 @@ func (b *PlanGraphBuilder) initPlan() {
 	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		a.overridePreventDestroy = b.overridePreventDestroy
 		return &nodeExpandPlannableResource{
-			NodeAbstractResource: a,
-			skipRefresh:          b.skipRefresh,
-			skipPlanChanges:      b.skipPlanChanges,
-			preDestroyRefresh:    b.preDestroyRefresh,
-			forceReplace:         b.ForceReplace,
-			minimalRefresh:       b.minimalRefresh,
+			NodeAbstractResource:  a,
+			skipRefresh:           b.skipRefresh,
+			skipPlanChanges:       b.skipPlanChanges,
+			skipOrphanedInstances: b.queryPlan,
+			preDestroyRefresh:     b.preDestroyRefresh,
+			forceReplace:          b.ForceReplace,
+			minimalRefresh:        b.minimalRefresh,
 		}
 	}
 

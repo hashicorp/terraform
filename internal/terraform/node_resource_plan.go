@@ -37,6 +37,12 @@ type nodeExpandPlannableResource struct {
 	// for any instances.
 	skipPlanChanges bool
 
+	// skipOrphanedInstances prevents configured resources from reconciling
+	// instances that are represented only in state. Instances that might still
+	// be selected by an unknown count or for_each expression are not definite
+	// orphans and must remain in the graph.
+	skipOrphanedInstances bool
+
 	// minimalRefresh indicates that we should run an initial plan for each instance prior to refreshing:
 	//   - If the plan returns a no-op, then the instance won't be refreshed.
 	//   - If the plan returns a change (anything but no-op), the instance will be refreshed and another plan will be run.
@@ -536,6 +542,9 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, knownModule
 			}
 
 			// Otherwise, everything in here is just a simple orphaned instance.
+			if n.skipOrphanedInstances {
+				continue Resources
+			}
 
 			for key := range res.Instances {
 				inst := res.Addr.Instance(key)
@@ -798,6 +807,9 @@ func (n *nodeExpandPlannableResource) knownModuleSubgraph(ctx EvalContext, addr 
 				}
 
 				// If none of the above, then this is definitely an orphan.
+				if n.skipOrphanedInstances {
+					continue
+				}
 				graph.Add(n.concreteResourceOrphan(NewNodeAbstractResourceInstance(addr.Instance(key))))
 			}
 
