@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
-	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -397,8 +396,7 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
 	t.Chdir(td)
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
+	view, done := testView(t)
 
 	provider := testing_command.NewProvider(nil)
 
@@ -409,7 +407,6 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -423,9 +420,8 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	}
 
 	// reset streams for next command
-	streams, done = terminal.StreamsForTesting(t)
-	meta.View = views.NewView(streams)
-	meta.Streams = streams
+	view, done = testView(t)
+	meta.View = view
 
 	c := &ValidateCommand{
 		Meta: meta,
@@ -598,6 +594,8 @@ The first step in the traversal for a list resource must be an attribute
 		t.Run(tc.name, func(t *testing.T) {
 			testCopyDir(t, testFixturePath(tc.path), td)
 			t.Chdir(td)
+
+			view, done := testView(t)
 
 			provider := queryFixtureProvider()
 			providerSource := newMockProviderSource(t, map[string][]string{
