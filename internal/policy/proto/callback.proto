@@ -9,6 +9,7 @@ option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
 
 service CallbackService {
   rpc GetResources(GetResourcesRequest) returns (GetResourcesResponse);
+  rpc RelatedResources(RelatedResourcesRequest) returns (RelatedResourcesResponse);
   rpc GetDataSource(GetDataSourceRequest) returns (GetDataSourceResponse);
 }
 
@@ -26,6 +27,26 @@ message GetResourcesResponse {
   repeated bytes results = 1;
   // partial means that the request encountered unknown objects during evaluation,
   // and the results may be incomplete.
+  bool partial = 2;
+}
+
+message RelatedResourcesRequest {
+  message AttributePair {
+    string source_attribute = 1;
+    string related_attribute = 2;
+  }
+
+  string type = 1;
+  repeated AttributePair attribute_pairs = 2;
+  // evaluation_request_id is the ID of the policy evaluation request that is
+  // making this callback request.
+  uint32 evaluation_request_id = 3;
+}
+
+message RelatedResourcesResponse {
+  repeated bytes results = 1;
+  // partial means that Terraform could not conclusively determine whether the
+  // relationship exists for all candidates.
   bool partial = 2;
 }
 
