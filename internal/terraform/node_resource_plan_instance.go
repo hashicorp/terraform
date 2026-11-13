@@ -1140,8 +1140,8 @@ func (n *NodePlannableResourceInstance) generateHCLListResourceDef(ctx EvalConte
 	iter := state.ElementIterator()
 	for iter.Next() {
 		_, val := iter.Element()
-		// we still need to generate the resource block even if the state is not given,
-		// so that the import block can reference it.
+		// Preserve missing state as null so that GenerateListResourceContents
+		// reports an error instead of generating resource and import blocks.
 		stateVal := cty.NullVal(schema.Body.ImpliedType())
 		if val.Type().HasAttribute("state") {
 			stateVal = val.GetAttr("state")
