@@ -236,7 +236,7 @@ func TestParseAbsTargetable(t *testing.T) {
 			}
 
 			// A concrete address doesn't accept traversal patterns.
-			patternTraversal, _ := hclsyntax.ParseTraversalPartial([]byte(test.Input+"[*]"), "", hcl.Pos{Line: 1, Column: 1})
+			patternTraversal, _ := hclsyntax.ParseTraversalAbsPattern([]byte(test.Input+"[*]"), "", hcl.Pos{Line: 1, Column: 1})
 			if _, diags := ParseAbsTargetable(patternTraversal); !diags.HasErrors() {
 				t.Errorf("ParseAbsTargetable accepted traversal pattern %q", test.Input+"[*]")
 			}
@@ -323,7 +323,7 @@ func TestParseTarget(t *testing.T) {
 
 	for _, test := range tcs {
 		t.Run(test.Input, func(t *testing.T) {
-			traversal, travDiags := hclsyntax.ParseTraversalPartial([]byte(test.Input), "", hcl.InitialPos)
+			traversal, travDiags := hclsyntax.ParseTraversalAbsPattern([]byte(test.Input), "", hcl.InitialPos)
 			if travDiags.HasErrors() {
 				t.Fatal(travDiags.Error())
 			}

@@ -25,7 +25,7 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 	diags = append(diags, moreDiags...)
 
 	if attr, exists := content.Attributes["from"]; exists {
-		from, traversalDiags := hcl.AbsTraversalForExpr(attr.Expr)
+		from, traversalDiags := hcl.AbsTraversalPatternForExpr(attr.Expr)
 		diags = append(diags, traversalDiags...)
 		if !traversalDiags.HasErrors() {
 			from, fromDiags := addrs.ParseMoveEndpoint(from)
@@ -35,7 +35,7 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
-		to, traversalDiags := hcl.AbsTraversalForExpr(attr.Expr)
+		to, traversalDiags := hcl.AbsTraversalPatternForExpr(attr.Expr)
 		diags = append(diags, traversalDiags...)
 		if !traversalDiags.HasErrors() {
 			to, toDiags := addrs.ParseMoveEndpoint(to)

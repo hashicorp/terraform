@@ -134,7 +134,7 @@ func ParseAbsComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagn
 
 func ParsePartialComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	traversal, hclDiags := hclsyntax.ParseTraversalAbsPattern([]byte(s), "", hcl.InitialPos)
 	diags = diags.Append(hclDiags)
 	if diags.HasErrors() {
 		return AbsComponentInstance{}, diags
@@ -147,7 +147,7 @@ func ParsePartialComponentInstanceStr(s string) (AbsComponentInstance, tfdiags.D
 
 func ParseAbsComponentInstanceStrOnly(s string) (AbsComponentInstance, hcl.Traversal, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	traversal, hclDiags := hclsyntax.ParseTraversalAbsPattern([]byte(s), "", hcl.InitialPos)
 	diags = diags.Append(hclDiags)
 	if diags.HasErrors() {
 		return AbsComponentInstance{}, traversal, diags
