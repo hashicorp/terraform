@@ -61,6 +61,11 @@ type Filesystem struct {
 	readFile      *statefile.File
 	backupFile    *statefile.File
 	writtenBackup bool
+
+	// backupFileRead distinguishes an absent original snapshot from one that
+	// has not been read yet, so reopening after an unlocked write does not
+	// replace the original backup snapshot with a snapshot we wrote ourselves.
+	backupFileRead bool
 }
 
 var (
@@ -103,6 +108,7 @@ func NewFilesystemBetweenPaths(readPath, writePath string) *Filesystem {
 func (s *Filesystem) SetBackupPath(path string) {
 	s.backupPath = path
 	s.backupFile = nil
+	s.backupFileRead = false
 	s.writtenBackup = false
 }
 
@@ -141,6 +147,17 @@ func (s *Filesystem) WriteState(state *states.State) error {
 }
 
 func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
+	// A locked writer must retain its file handle until Unlock. An unlocked
+	// writer has no subsequent Unlock call to release the handle.
+	if s.lockID == "" {
+		defer func() {
+			if s.stateFileOut != nil {
+				s.stateFileOut.Close()
+				s.stateFileOut = nil
+			}
+		}()
+	}
+
 	if s.stateFileOut == nil {
 		if err := s.createStateFiles(); err != nil {
 			return nil
@@ -374,6 +391,7 @@ func (s *Filesystem) Unlock(id string) error {
 	s.stateFileOut.Close()
 	s.stateFileOut = nil
 	s.lockID = ""
+	s.backupFileRead = false
 
 	// clean up the state file if we created it an never wrote to it
 	stat, err := os.Stat(fileName)
@@ -466,19 +484,25 @@ func (s *Filesystem) createStateFiles() error {
 		return err
 	}
 
-	s.stateFileOut = f
-
 	// If the file already existed with content then that'll be the content
 	// of our backup file if we write a change later.
-	s.backupFile, err = statefile.Read(s.stateFileOut)
-	if err != nil {
-		if err != statefile.ErrNoState {
-			return err
+	// Unlocked writes close and reopen this file, so only capture the original
+	// snapshot once, even if it is absent. Otherwise a later write could back
+	// up a snapshot written by this manager instead of the original state.
+	if !s.backupFileRead {
+		s.backupFile, err = statefile.Read(f)
+		if err != nil {
+			if err != statefile.ErrNoState {
+				f.Close()
+				return err
+			}
+			log.Printf("[TRACE] statemgr.Filesystem: no previously-stored snapshot exists")
+		} else {
+			log.Printf("[TRACE] statemgr.Filesystem: existing snapshot has lineage %q serial %d", s.backupFile.Lineage, s.backupFile.Serial)
 		}
-		log.Printf("[TRACE] statemgr.Filesystem: no previously-stored snapshot exists")
-	} else {
-		log.Printf("[TRACE] statemgr.Filesystem: existing snapshot has lineage %q serial %d", s.backupFile.Lineage, s.backupFile.Serial)
+		s.backupFileRead = true
 	}
+	s.stateFileOut = f
 
 	// Refresh now, to load in the snapshot if the file already existed
 	return nil
