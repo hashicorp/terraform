@@ -18,7 +18,7 @@
 #/internal/backend/remote-state/cos              @likexian @SevenEarth
 /internal/backend/remote-state/gcs               @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
 /internal/backend/remote-state/http              @hashicorp/terraform-core
-#/internal/backend/remote-state/oss              @xiaozhu36
+#/internal/backend/remote-state/oss              @alibabacloud-terraform-team
 #/internal/backend/remote-state/pg               @remilapeyre
 /internal/backend/remote-state/s3                @hashicorp/terraform-core @hashicorp/terraform-aws
 /internal/backend/remote-state/kubernetes        @hashicorp/terraform-core @hashicorp/tf-eco-hybrid-cloud
