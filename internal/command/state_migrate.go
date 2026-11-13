@@ -166,8 +166,12 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		if !diags.HasErrors() {
 			pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
-			source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
-				smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+			source = fmt.Sprintf(
+				"state store %q (%s %s)",
+				smi.StateStore.Type,
+				smi.StateStore.ProviderAddr.ForDisplay(),
+				smi.StateStore.ProviderSupplyMode.VersionStringForDisplay(pLock),
+			)
 
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
@@ -237,8 +241,12 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		if !diags.HasErrors() {
 			pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
-			destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
-				rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+			destination = fmt.Sprintf(
+				"state store %q (%s %s)",
+				rootMod.StateStore.Type,
+				rootMod.StateStore.ProviderAddr.ForDisplay(),
+				rootMod.StateStore.ProviderSupplyMode.VersionStringForDisplay(pLock),
+			)
 
 			migrateOpts.DestinationType = rootMod.StateStore.Type
 			migrateOpts.Destination = dstB
