@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/pluggable"
@@ -261,12 +262,20 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				view.Diagnostics(diags)
 				return 1
 			}
-			v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
-			version, err := providerreqs.GoVersionFromVersion(v)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
-				view.Diagnostics(diags)
-				return 1
+
+			var version *version.Version
+			if rootMod.StateStore.ProviderSupplyMode.NotManagedByTerraform() {
+				// No lock and no version data
+				version = nil
+			} else {
+				v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version()
+				var err error
+				version, err = providerreqs.GoVersionFromVersion(v)
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
+					view.Diagnostics(diags)
+					return 1
+				}
 			}
 
 			bsf.StateStore = &workdir.StateStoreConfigState{
@@ -278,7 +287,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				},
 				ProviderSupplyMode: rootMod.StateStore.ProviderSupplyMode,
 			}
-			err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
+			err := bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
 				view.Diagnostics(diags)
