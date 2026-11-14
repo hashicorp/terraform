@@ -116,6 +116,8 @@ Options:
 
   -json               If specified, output the Terraform plan or state in
                       a machine-readable form.
+  -redacted           If specified, output the Terraform plan or state in
+                      a redacted form.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than
