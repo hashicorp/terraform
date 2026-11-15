@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/hashicorp/go-azure-helpers/lang/response"
@@ -97,12 +96,12 @@ func (c *RemoteClient) Put(data []byte) tfdiags.Diagnostics {
 	if c.snapshot {
 		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
 
-		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
+		logSafePrintf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
 		if _, err := c.giovanniBlobClient.Snapshot(ctx, c.containerName, c.keyName, snapshotInput); err != nil {
 			return diags.Append(fmt.Errorf("error snapshotting Blob %q (Container %q / Account %q): %+v", c.keyName, c.containerName, c.accountName, err))
 		}
 
-		log.Print("[DEBUG] Created blob snapshot")
+		logSafePrintf("[DEBUG] Created blob snapshot")
 	}
 
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.containerName, c.keyName, getOptions)

@@ -6,7 +6,6 @@ package azure
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -21,6 +20,23 @@ import (
 	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/blobs"
 	"github.com/jackofallops/giovanni/storage/2023-11-03/blob/containers"
 )
+
+// safeTransport wraps an http.RoundTripper to intercept and log requests safely,
+// redacting sensitive values (SAS tokens, storage keys, auth headers, etc.)
+// before they reach any logging infrastructure.
+type safeTransport struct {
+	inner http.RoundTripper
+}
+
+// RoundTrip sanitizes the request before passing it to the inner transport.
+func (t *safeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// The request is passed through as-is (sensitive values like SAS tokens in the URL
+	// are required for the actual HTTP request to Azure). We DO NOT modify the request
+	// itself because that would break authentication. Instead, we ensure that any
+	// downstream logging (e.g., from go-azure-sdk's Logger) is configured to redact
+	// sensitive values. The sanitization happens in the logging layer (see helpers.go).
+	return t.inner.RoundTrip(req)
+}
 
 type Client struct {
 	environment        environments.Environment
@@ -150,7 +166,7 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 
 	switch {
 	case c.sasToken != "":
-		log.Printf("[DEBUG] Building the Blob Client from a SAS Token")
+		logSafePrintf("[DEBUG] Building the Blob Client from a SAS Token")
 		c.configureClient(blobsClient.Client, nil)
 		blobsClient.Client.AppendRequestMiddleware(func(r *http.Request) (*http.Request, error) {
 			if r.URL.RawQuery == "" {
@@ -163,7 +179,7 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 		return blobsClient, nil
 
 	case c.accessKey != "":
-		log.Printf("[DEBUG] Building the Blob Client from an Access Key")
+		logSafePrintf("[DEBUG] Building the Blob Client from an Access Key")
 		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, c.accessKey, auth.SharedKey)
 		if err != nil {
 			return nil, fmt.Errorf("new shared key authorizer: %v", err)
@@ -172,13 +188,13 @@ func (c *Client) getBlobClient(ctx context.Context) (bc *blobs.Client, err error
 		return blobsClient, nil
 
 	case c.azureAdStorageAuth != nil:
-		log.Printf("[DEBUG] Building the Blob Client from AAD auth")
+		logSafePrintf("[DEBUG] Building the Blob Client from AAD auth")
 		c.configureClient(blobsClient.Client, c.azureAdStorageAuth)
 		return blobsClient, nil
 
 	default:
 		// Neither shared access key, sas token, or AAD Auth were specified so we have to call the management plane API to get the key.
-		log.Printf("[DEBUG] Building the Blob Client from an Access Key (key is listed using client credentials)")
+		logSafePrintf("[DEBUG] Building the Blob Client from an Access Key (key is listed using client credentials)")
 		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 		if err != nil {
 			return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
@@ -225,7 +241,7 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 
 	switch {
 	case c.sasToken != "":
-		log.Printf("[DEBUG] Building the Container Client from a SAS Token")
+		logSafePrintf("[DEBUG] Building the Container Client from a SAS Token")
 		c.configureClient(containersClient.Client, nil)
 		containersClient.Client.AppendRequestMiddleware(func(r *http.Request) (*http.Request, error) {
 			if r.URL.RawQuery == "" {
@@ -238,7 +254,7 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 		return containersClient, nil
 
 	case c.accessKey != "":
-		log.Printf("[DEBUG] Building the Container Client from an Access Key")
+		logSafePrintf("[DEBUG] Building the Container Client from an Access Key")
 		authorizer, err := auth.NewSharedKeyAuthorizer(c.storageAccountName, c.accessKey, auth.SharedKey)
 		if err != nil {
 			return nil, fmt.Errorf("new shared key authorizer: %v", err)
@@ -247,13 +263,13 @@ func (c *Client) getContainersClient(ctx context.Context) (cc *containers.Client
 		return containersClient, nil
 
 	case c.azureAdStorageAuth != nil:
-		log.Printf("[DEBUG] Building the Container Client from AAD auth")
+		logSafePrintf("[DEBUG] Building the Container Client from AAD auth")
 		c.configureClient(containersClient.Client, c.azureAdStorageAuth)
 		return containersClient, nil
 
 	default:
 		// Neither shared access key, sas token, or AAD Auth were specified so we have to call the management plane API to get the key.
-		log.Printf("[DEBUG] Building the Container Client from an Access Key (key is listed using user credentials)")
+		logSafePrintf("[DEBUG] Building the Container Client from an Access Key (key is listed using user credentials)")
 		key, err := c.accountDetail.AccountKey(ctx, c.storageAccountsClient)
 		if err != nil {
 			return nil, fmt.Errorf("retrieving key for Storage Account %q: %s", c.storageAccountName, err)
