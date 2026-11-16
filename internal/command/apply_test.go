@@ -131,7 +131,7 @@ func TestApply_approveNo(t *testing.T) {
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}
@@ -177,7 +177,7 @@ func TestApply_approveYes(t *testing.T) {
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}
@@ -841,10 +841,8 @@ output "foobar" {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -888,8 +886,6 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		planCmd := &PlanCommand{
@@ -903,8 +899,6 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		applyCmd := &ApplyCommand{
@@ -963,10 +957,8 @@ output "foobar" {
 			"hashicorp/terraform": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1003,8 +995,6 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		planCmd := &PlanCommand{
@@ -1018,8 +1008,6 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		applyCmd := &ApplyCommand{

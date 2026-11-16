@@ -15,11 +15,9 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: false,
 			},
@@ -45,11 +43,9 @@ func TestInit_stateStoreBlockIsExperimental(t *testing.T) {
 		testCopyDir(t, testFixturePath("init-with-state-store"), td)
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		c := &PlanCommand{
 			Meta: Meta{
-				Ui:                        ui,
 				View:                      view,
 				AllowExperimentalFeatures: false,
 			},
