@@ -50,7 +50,7 @@ type MockClient struct {
 	// RelationshipsResponse is returned by Relationships.
 	RelationshipsResponse Relationships
 
-	valueTable
+	objectTable
 }
 
 func (p *MockClient) beginWrite() func() {

@@ -187,11 +187,10 @@ type client struct {
 	callbackRegistry callback.Registry
 	cbServer         *callback.Server
 
-	// relationships are the relationship definitions and usages of the
-	// Setup response.
+	// relationships are the relationship trees of the Setup response.
 	relationships Relationships
 
-	valueTable
+	objectTable
 }
 
 func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server, Diagnostics) {
@@ -203,7 +202,7 @@ func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server,
 	c.cbServer = &callback.Server{
 		ID:       cbServiceID,
 		Registry: c.callbackRegistry,
-		Values:   &c.valueTable,
+		Objects:  &c.objectTable,
 	}
 
 	serverCh := make(chan *grpc.Server, 1)
@@ -276,11 +275,8 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 		}}
 	}
 
-	c.ids.Store(response.GetServerCapabilities().GetResourceValueIds())
-	c.relationships = Relationships{
-		Definitions: response.GetRelationshipDefinitions(),
-		Usages:      response.GetRelationshipUsages(),
-	}
+	c.identifiers.Store(response.GetServerCapabilities().GetGetresourcesIdentifiers())
+	c.relationships = Relationships{Trees: response.GetServerCapabilities().GetRelationships()}
 
 	return SetupResponse{
 		serverCapabilities: response.ServerCapabilities,
@@ -300,7 +296,21 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 
 	req = normalizeRequest(req)
 
-	attrs, attrsEncoded, err := c.attributes(req.AttrsSource, false, func() PolicyValue { return req.Attrs })
+	var identifier string
+	var object *objectEntry
+	if req.Object != nil {
+		var err error
+		object, identifier, err = c.register(req.Object)
+		if err != nil {
+			return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
+				Severity: proto.Severity_ERROR,
+				Summary:  "Failed to serialize attributes",
+				Detail:   fmt.Sprintf("Failed to serialize attributes: %v.", err),
+			}))
+		}
+	}
+
+	attrs, err := c.subjectAttributes(req.Object, object, req.Attrs, false)
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -309,7 +319,7 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 		}))
 	}
 
-	priorAttrs, priorEncoded, err := c.attributes(req.PriorAttrsSource, false, func() PolicyValue { return req.PriorAttrs })
+	priorAttrs, err := c.subjectAttributes(req.Object, object, req.PriorAttrs, true)
 	if err != nil {
 		return ErrorEvalFromDiags(append(diags, &proto.Diagnostic{
 			Severity: proto.Severity_ERROR,
@@ -317,19 +327,16 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 			Detail:   fmt.Sprintf("Failed to serialize prior attributes: %v.", err),
 		}))
 	}
-	span.SetAttributes(
-		attribute.Bool("policy.values.attrs_encoded", attrsEncoded),
-		attribute.Bool("policy.values.prior_attrs_encoded", priorEncoded),
-	)
 
 	evalID := c.callbackRegistry.NextID()
 	request := &proto.PolicyEvaluateResourceRequest{
-		EvaluationId: evalID,
-		Resource:     req.Target,
-		Attrs:        attrs,
-		PriorAttrs:   priorAttrs,
-		Metadata:     req.Meta,
-		Related:      req.Related,
+		EvaluationId:  evalID,
+		Resource:      req.Target,
+		Attrs:         attrs,
+		PriorAttrs:    priorAttrs,
+		Metadata:      req.Meta,
+		Identifier:    identifier,
+		Relationships: req.Relationships,
 	}
 
 	// Register the callback functions with the callback service, so that they are available
@@ -349,6 +356,22 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 	}
 
 	return EvaluationFromProtoResponse(response.Result, response.PolicyDetails)
+}
+
+// subjectAttributes returns the encoding of the attrs or prior attrs of a
+// subject: the object's, if it has them, and value with the paths that the
+// object's schema declares sensitive redacted otherwise.
+func (c *client) subjectAttributes(req *callback.Object, object *objectEntry, value PolicyValue, prior bool) (*proto.ResourceAttributes, error) {
+	if object == nil {
+		return resourceAttributesToProto(value)
+	}
+	if attrs := object.resource.Attrs; !prior && attrs != nil {
+		return attrs, nil
+	}
+	if attrs := object.resource.PriorAttrs; prior && attrs != nil {
+		return attrs, nil
+	}
+	return resourceAttributesToProto(markSchemaSensitive(value, req.Schema))
 }
 
 func (c *client) EvaluateProvider(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse {
@@ -442,25 +465,21 @@ func (c *client) Stop() {
 func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 	attrs := req.Attrs
 	priorAttrs := req.PriorAttrs
-	attrsSource, priorAttrsSource := req.AttrsSource, req.PriorAttrsSource
 	if attrs.Raw == cty.NilVal {
 		attrs.Raw = cty.EmptyObjectVal
-		attrsSource = nil
 	}
 	if priorAttrs.Raw == cty.NilVal {
 		priorAttrs.Raw = cty.EmptyObjectVal
-		priorAttrsSource = nil
 	}
 
 	return EvaluationRequest[T]{
-		Target:           req.Target,
-		Attrs:            attrs,
-		PriorAttrs:       priorAttrs,
-		AttrsSource:      attrsSource,
-		PriorAttrsSource: priorAttrsSource,
-		Meta:             req.Meta,
-		Callbacks:        req.Callbacks,
-		Related:          req.Related,
+		Target:        req.Target,
+		Attrs:         attrs,
+		PriorAttrs:    priorAttrs,
+		Object:        req.Object,
+		Meta:          req.Meta,
+		Callbacks:     req.Callbacks,
+		Relationships: req.Relationships,
 	}
 }
 

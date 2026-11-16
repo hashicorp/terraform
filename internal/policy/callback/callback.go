@@ -14,43 +14,54 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 )
 
-// The kinds of a ValueSource.
-const (
-	// KindPlanned is a change's After.
-	KindPlanned = "planned"
-	// KindPrior is a change's Before.
-	KindPrior = "prior"
-	// KindState is a current object read from state.
-	KindState = "state"
-)
-
-// ValueSource names a resource value in one policy phase.
-type ValueSource struct {
+// Object is one resource object in a policy session (contract §3.4): the
+// subject of an evaluation, a related resource, or a match of the
+// getresources callback.
+type Object struct {
 	// Generation is the policy phase; see policy.Client.NextGeneration.
 	Generation uint64
-	Kind       string
-	DeposedKey string
-	// Address is the resource instance address, qualified with the component
-	// instance in Stacks.
+	// Address is the resource instance address, relative to the component
+	// in Stacks.
 	Address string
+	// DeposedKey is the deposed key of a deposed object, and "" otherwise.
+	DeposedKey string
+	// OldObject is set for the object that a replace deletes.
+	OldObject bool
+
+	Type     string
+	Metadata *proto.PolicyEvaluateResourceRequest_ResourceMetadata
+	// Attrs and PriorAttrs are the object's values, keeping their marks, or
+	// cty.NilVal when absent: Attrs of a DELETE, and PriorAttrs of a CREATE
+	// or of a state value without a change.
+	Attrs, PriorAttrs cty.Value
 	// Schema is the schema of the resource type, whose sensitive attributes
-	// the value's encoding redacts. It isn't part of the ID.
+	// the encoding of the values redacts.
 	Schema *configschema.Block
 }
 
-// ID returns the value ID of the source. The address goes last because it is
-// the only part that can contain ":".
-func (s ValueSource) ID() string {
-	sum := sha256.Sum256(fmt.Appendf(nil, "resource_value:%d:%s:%s:%s", s.Generation, s.Kind, s.DeposedKey, s.Address))
+// Identifier returns the identifier of the object. The address goes last
+// because it is the only part that can contain ":".
+func (o *Object) Identifier() string {
+	kind := "current"
+	switch {
+	case o.DeposedKey != "":
+		kind = "deposed " + o.DeposedKey
+	case o.OldObject:
+		kind = "old"
+	}
+	sum := sha256.Sum256(fmt.Appendf(nil, "resource_object:%d:%s:%s", o.Generation, kind, o.Address))
 	return base64.StdEncoding.EncodeToString(sum[:])
 }
 
 // Resource is a match of the getresources callback. Value keeps its marks.
+// Object is the object that Value is the attrs of, if the plugin accepts
+// identifiers for matches.
 type Resource struct {
 	Value  cty.Value
-	Source ValueSource
+	Object *Object
 }
 
 type Functions struct {

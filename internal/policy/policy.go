@@ -22,26 +22,26 @@ type Client interface {
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
 
-	// Relationships returns the relationship definitions and usages of the
-	// policies, as received from Setup.
+	// Relationships returns the relationship trees of the policies, as
+	// received from Setup.
 	Relationships() Relationships
 
 	// NextGeneration starts a policy phase, and returns its generation for
-	// the value sources of the phase.
+	// the objects of the phase.
 	NextGeneration() uint64
 
-	// ResourceAttributes encodes the value of a related member, with its
-	// source: by reference if the plugin resolves value IDs.
-	ResourceAttributes(value cty.Value, src callback.ValueSource) (*proto.ResourceAttributes, error)
+	// RegisterObject returns the identifier of a resource object, and
+	// encodes its values once per session. It fails if the encoding fails.
+	RegisterObject(obj *callback.Object) (string, error)
 
 	Stop()
 }
 
-// Relationships are the relationship definitions the policies declare, and
-// the relationship hops they use per resource type.
+// Relationships are the relationship trees of the policies: per resource
+// type, the relationships its policies follow, with their definitions
+// inlined in every node (contract §3.2).
 type Relationships struct {
-	Definitions []*proto.RelationshipDefinition
-	Usages      []*proto.RelationshipUsage
+	Trees []*proto.RelationshipTree
 }
 
 // CallbackService is an interface for registering a callback service with a policy engine.
@@ -130,18 +130,20 @@ type (
 		// PriorAttrs contains the state of the object prior to the current operation.
 		PriorAttrs PolicyValue
 
-		// AttrsSource and PriorAttrsSource are the sources of a resource's
-		// Attrs and PriorAttrs, or nil for values that have none.
-		AttrsSource, PriorAttrsSource *callback.ValueSource
+		// Object is the resource object being evaluated, or nil for anything
+		// else. Its encoded values are sent for Attrs and PriorAttrs where it
+		// has them.
+		Object *callback.Object
 
 		// Meta is additional metadata required for evaluation.
 		Meta T
 
 		Callbacks callback.Functions
 
-		// Related holds the related members of the resource, one entry per
-		// relationship hop its type uses. Only used for resource evaluations.
-		Related []*proto.RelatedMembers
+		// Relationships are the relations of the resource, one per
+		// relationship at the top of its type's tree. Only used for resource
+		// evaluations.
+		Relationships []*proto.Relation
 	}
 
 	EnforcementResult struct {

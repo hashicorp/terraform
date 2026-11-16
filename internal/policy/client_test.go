@@ -15,8 +15,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -539,16 +537,15 @@ func TestClientSetupEntitlement(t *testing.T) {
 }
 
 func TestClientSetupRelationships(t *testing.T) {
-	defs := []*proto.RelationshipDefinition{{
+	trees := []*proto.RelationshipTree{{
+		ResourceType:   "test_a",
 		ProviderSource: "registry.terraform.io/hashicorp/test",
-		Name:           "attached",
-		KeyResource:    "test_a",
-		ValueResource:  "test_b",
-	}}
-	usages := []*proto.RelationshipUsage{{
-		ProviderSource: "registry.terraform.io/hashicorp/test",
-		Type:           "test_a",
-		Hops:           []*proto.RelationshipHop{{Relationship: "attached"}},
+		Relationships: []*proto.Relationship{{
+			Name:           "attached",
+			KeyType:        "test_a",
+			ValueType:      "test_b",
+			ProviderSource: "registry.terraform.io/hashicorp/test",
+		}},
 	}}
 
 	var gotReq *proto.PolicySetupRequest
@@ -556,7 +553,12 @@ func TestClientSetupRelationships(t *testing.T) {
 		client: &stubPolicyClient{
 			setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
 				gotReq = req
-				return &proto.PolicySetupResponse{RelationshipDefinitions: defs, RelationshipUsages: usages}, nil
+				return &proto.PolicySetupResponse{
+					ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{
+						Relationships:           trees,
+						GetresourcesIdentifiers: true,
+					},
+				}, nil
 			},
 		},
 	}
@@ -569,15 +571,30 @@ func TestClientSetupRelationships(t *testing.T) {
 		t.Fatal("expected the client to announce the relationships capability")
 	}
 	got := c.Relationships()
-	if len(got.Definitions) != 1 || got.Definitions[0] != defs[0] || len(got.Usages) != 1 || got.Usages[0] != usages[0] {
+	if len(got.Trees) != 1 || got.Trees[0] != trees[0] {
 		t.Fatalf("unexpected relationships: %v", got)
 	}
-	if len(resp.Relationships.Definitions) != 1 || len(resp.Relationships.Usages) != 1 {
-		t.Fatalf("unexpected response relationships: %v", resp.Relationships)
+	if !c.identifiers.Load() {
+		t.Fatal("expected the client to keep the getresources_identifiers capability")
 	}
 }
 
-func TestClientEvaluateRelated(t *testing.T) {
+// testObject returns a planned update of test_resource.NAME in generation 1.
+func testObject(name string, attrs, prior cty.Value) *callback.Object {
+	return &callback.Object{
+		Generation: 1,
+		Address:    "test_resource." + name,
+		Type:       "test_resource",
+		Metadata: &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+			Address:   "test_resource." + name,
+			Operation: proto.Operation_UPDATE,
+		},
+		Attrs:      attrs,
+		PriorAttrs: prior,
+	}
+}
+
+func TestClientEvaluateRelationships(t *testing.T) {
 	var gotReq *proto.PolicyEvaluateResourceRequest
 	c := &client{
 		client: &stubPolicyClient{
@@ -591,60 +608,65 @@ func TestClientEvaluateRelated(t *testing.T) {
 		callbackRegistry: callback.NewRegistry(),
 	}
 
-	related := []*proto.RelatedMembers{{
+	val := cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("a")})
+	subject := testObject("a", val, cty.NilVal)
+	relations := []*proto.Relation{{
 		Relationship: "attached",
 		Completeness: proto.Completeness_PLAN_COMPLETENESS,
-		Members:      []*proto.RelatedMember{{Address: "test_b.x", Type: "test_b"}},
+		Resources:    map[string]*proto.RelatedResource{"x": {Operation: proto.Operation_CREATE}},
 	}}
 	c.EvaluateResource(t.Context(), EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-		Target:  "test_a",
-		Meta:    &proto.PolicyEvaluateResourceRequest_ResourceMetadata{Address: "test_a.y"},
-		Related: related,
+		Target:        "test_resource",
+		Attrs:         CtyToPolicyValue(val),
+		Object:        subject,
+		Meta:          subject.Metadata,
+		Relationships: relations,
 	})
 	if gotReq == nil {
 		t.Fatal("expected EvaluateResource RPC to be called")
 	}
-	if len(gotReq.Related) != 1 || !gproto.Equal(gotReq.Related[0], related[0]) {
-		t.Fatalf("unexpected related: %v", gotReq.Related)
+	if len(gotReq.Relationships) != 1 || !gproto.Equal(gotReq.Relationships[0], relations[0]) {
+		t.Fatalf("unexpected relationships: %v", gotReq.Relationships)
+	}
+	if gotReq.Identifier != subject.Identifier() {
+		t.Fatalf("wrong identifier %q, want %q", gotReq.Identifier, subject.Identifier())
+	}
+
+	// The subject's values are those of its identifier.
+	resp := c.GetResourcesByIdentifier(t.Context(), []string{gotReq.Identifier})
+	if len(resp.Diagnostics) != 0 || len(resp.Resources) != 1 {
+		t.Fatalf("unexpected response: %v", resp)
+	}
+	if !gproto.Equal(resp.Resources[0].Attrs, gotReq.Attrs) || resp.Resources[0].PriorAttrs != nil {
+		t.Fatalf("wrong values of the subject: %v", resp.Resources[0])
 	}
 }
 
-func TestClientValueIDs(t *testing.T) {
+// Each object is encoded once per session: the first registration of an
+// identifier wins, and getresources returns identifiers only when the plugin
+// accepts them.
+func TestClientObjects(t *testing.T) {
 	ctx := t.Context()
 	marked := cty.ObjectVal(map[string]cty.Value{
 		"name":   cty.StringVal("a"),
 		"secret": cty.StringVal("s").Mark(marks.Sensitive),
 	})
-	src := callback.ValueSource{Generation: 1, Kind: callback.KindPlanned, Address: "test_resource.a"}
-	// The encodings before value IDs: an inline value, and a getresources
-	// result.
-	today, err := resourceAttributesToProto(CtyToPolicyValue(marked))
-	if err != nil {
-		t.Fatal(err)
-	}
+	obj := testObject("a", marked, cty.NilVal)
 	unmarked, _ := marked.UnmarkDeep()
 	todayResult, err := msgpack.Marshal(unmarked, cty.DynamicPseudoType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bytes := func(t *testing.T, m gproto.Message) []byte {
-		t.Helper()
-		b, err := gproto.MarshalOptions{Deterministic: true}.Marshal(m)
-		if err != nil {
-			t.Fatal(err)
-		}
-		return b
-	}
 
-	for _, ids := range []bool{false, true} {
-		t.Run(fmt.Sprintf("resource_value_ids=%t", ids), func(t *testing.T) {
+	for _, identifiers := range []bool{false, true} {
+		t.Run(fmt.Sprintf("getresources_identifiers=%t", identifiers), func(t *testing.T) {
 			var reqs []*proto.PolicyEvaluateResourceRequest
 			registry := callback.NewRegistry()
 			c := &client{
 				client: &stubPolicyClient{
 					setupFn: func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
 						return &proto.PolicySetupResponse{
-							ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{ResourceValueIds: ids},
+							ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{GetresourcesIdentifiers: identifiers},
 						}, nil
 					},
 					evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
@@ -656,83 +678,68 @@ func TestClientValueIDs(t *testing.T) {
 			}
 			c.Setup(ctx, SetupRequest{})
 
-			// With value IDs, the second send of the source carries the first
-			// encoding, even with another value; without, inline sends are
-			// encoded as before. The missing prior value has no source.
-			vals := []cty.Value{marked, cty.EmptyObjectVal}
-			for _, val := range vals {
-				c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-					Target:           "test_resource",
-					Attrs:            CtyToPolicyValue(val),
-					AttrsSource:      &src,
-					PriorAttrsSource: &src,
-				})
-			}
-			wantInline := gproto.Clone(today).(*proto.ResourceAttributes)
-			if ids {
-				wantInline.Id = src.ID()
-			}
-			for i, req := range reqs {
-				want := wantInline
-				if !ids {
-					want, _ = resourceAttributesToProto(CtyToPolicyValue(vals[i]))
-				}
-				if got, want := bytes(t, req.Attrs), bytes(t, want); !slices.Equal(got, want) {
-					t.Errorf("request %d: wrong attrs\ngot:  %v\nwant: %v", i, req.Attrs, want)
-				}
-				if req.PriorAttrs.Id != "" {
-					t.Errorf("request %d: prior attrs without a value have ID %q", i, req.PriorAttrs.Id)
-				}
-			}
-
-			member, err := c.ResourceAttributes(marked, src)
+			id, err := c.RegisterObject(obj)
 			if err != nil {
 				t.Fatal(err)
 			}
-			id := registry.NextID()
-			registry.Register(id, callback.Functions{
+			// Another object with the same identifier stands for the first
+			// one's values.
+			other := testObject("a", cty.EmptyObjectVal, cty.NilVal)
+			c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+				Target: "test_resource",
+				Attrs:  CtyToPolicyValue(cty.EmptyObjectVal),
+				Object: other,
+			})
+			want, err := resourceAttributesToProto(CtyToPolicyValue(marked))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if reqs[0].Identifier != id || !gproto.Equal(reqs[0].Attrs, want) {
+				t.Errorf("wrong subject\ngot:  %v %v\nwant: %v %v", reqs[0].Identifier, reqs[0].Attrs, id, want)
+			}
+			// The subject has no prior object, so its prior attrs are
+			// inline.
+			if wantPrior, _ := resourceAttributesToProto(CtyToPolicyValue(cty.EmptyObjectVal)); !gproto.Equal(reqs[0].PriorAttrs, wantPrior) {
+				t.Errorf("wrong prior attrs %v", reqs[0].PriorAttrs)
+			}
+
+			evalID := registry.NextID()
+			registry.Register(evalID, callback.Functions{
 				GetResources: func(context.Context, string, cty.Value) ([]callback.Resource, bool, error) {
-					return []callback.Resource{{Value: marked, Source: src}}, false, nil
+					return []callback.Resource{{Value: marked, Object: obj}}, false, nil
 				},
 			})
 			nullAttrs, _ := msgpack.Marshal(cty.NullVal(cty.DynamicPseudoType), cty.DynamicPseudoType)
-			server := &callback.Server{Registry: registry, Values: &c.valueTable}
-			resources, err := server.GetResources(ctx, &proto.GetResourcesRequest{EvaluationRequestId: id, Type: "test_resource", Attributes: nullAttrs})
+			server := &callback.Server{Registry: registry, Objects: &c.objectTable}
+			resources, err := server.GetResources(ctx, &proto.GetResourcesRequest{EvaluationRequestId: evalID, Type: "test_resource", Attributes: nullAttrs})
 			if err != nil {
 				t.Fatal(err)
 			}
-
-			byRef := &proto.ResourceAttributes{Id: src.ID()}
-			if !ids {
-				if got, want := bytes(t, member), bytes(t, today); !slices.Equal(got, want) {
-					t.Errorf("wrong member attrs\ngot:  %v\nwant: %v", member, today)
-				}
-				if len(resources.Values) != 0 || len(resources.Results) != 1 || !slices.Equal(resources.Results[0], todayResult) {
+			if !identifiers {
+				if len(resources.Identifiers) != 0 || len(resources.Results) != 1 || !slices.Equal(resources.Results[0], todayResult) {
 					t.Errorf("wrong getresources response: %v", resources)
 				}
 				return
 			}
-			if !gproto.Equal(member, byRef) {
-				t.Errorf("wrong member attrs\ngot:  %v\nwant: %v", member, byRef)
-			}
-			if len(resources.Results) != 0 || len(resources.Values) != 1 || !gproto.Equal(resources.Values[0], byRef) {
+			if len(resources.Results) != 0 || !slices.Equal(resources.Identifiers, []string{id}) {
 				t.Errorf("wrong getresources response: %v", resources)
 			}
-			values, err := server.GetResourceValues(ctx, &proto.GetResourceValuesRequest{Ids: []string{src.ID()}})
+			byID, err := server.GetResourcesByIdentifier(ctx, &proto.GetResourcesByIdentifierRequest{EvaluationRequestId: evalID, Identifiers: []string{id}})
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got, want := bytes(t, values.Values[0]), bytes(t, wantInline); !slices.Equal(got, want) {
-				t.Errorf("wrong resolved value\ngot:  %v\nwant: %v", values.Values[0], wantInline)
+			if len(byID.Resources) != 1 || byID.Resources[0].Identifier != id || byID.Resources[0].Type != "test_resource" ||
+				!gproto.Equal(byID.Resources[0].Metadata, obj.Metadata) || !gproto.Equal(byID.Resources[0].Attrs, want) {
+				t.Errorf("wrong resolved object: %v", byID)
 			}
 		})
 	}
 }
 
-// An ID's encoding redacts the paths that the schema declares sensitive,
-// whichever send encodes it first; an inline send without value IDs redacts
-// only the value's.
-func TestClientValueSchemaSensitive(t *testing.T) {
+// An object's encoding redacts the paths that the schema declares
+// sensitive, whether it's first encoded for a subject or for a related
+// resource; a subject's inline values do too.
+func TestClientObjectSchemaSensitive(t *testing.T) {
 	ctx := t.Context()
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -755,7 +762,6 @@ func TestClientValueSchemaSensitive(t *testing.T) {
 		"secret": cty.StringVal("s"),
 		"nested": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"key": cty.StringVal("k")})}).Mark(marks.Sensitive),
 	})
-	src := callback.ValueSource{Generation: 1, Kind: callback.KindPlanned, Address: "test_resource.a", Schema: schema}
 	pathString := func(path *proto.AttributePath) string {
 		var ret string
 		for _, step := range path.Steps {
@@ -776,15 +782,10 @@ func TestClientValueSchemaSensitive(t *testing.T) {
 		return ret
 	}
 
-	sends := func(ids, subjectFirst bool) (subject, member *proto.ResourceAttributes) {
+	sends := func(subjectFirst bool) (subject, prior, member *proto.ResourceAttributes) {
 		var req *proto.PolicyEvaluateResourceRequest
 		c := &client{
 			client: &stubPolicyClient{
-				setupFn: func(*proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
-					return &proto.PolicySetupResponse{
-						ServerCapabilities: &proto.PolicySetupResponse_ServerCapabilities{ResourceValueIds: ids},
-					}, nil
-				},
 				evaluateResourceFn: func(r *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
 					req = r
 					return &proto.PolicyEvaluateResourceResponse{Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT}, nil
@@ -792,96 +793,105 @@ func TestClientValueSchemaSensitive(t *testing.T) {
 			},
 			callbackRegistry: callback.NewRegistry(),
 		}
-		c.Setup(ctx, SetupRequest{})
+		obj := testObject("a", val, cty.NilVal)
+		obj.Schema = schema
 		evaluate := func() {
 			c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-				Target:      "test_resource",
-				Attrs:       CtyToPolicyValue(val),
-				AttrsSource: &src,
+				Target:     "test_resource",
+				Attrs:      CtyToPolicyValue(val),
+				PriorAttrs: CtyToPolicyValue(val),
+				Object:     obj,
 			})
 		}
 		if subjectFirst {
 			evaluate()
 		}
-		if _, err := c.ResourceAttributes(val, src); err != nil {
+		id, err := c.RegisterObject(obj)
+		if err != nil {
 			t.Fatal(err)
 		}
 		if !subjectFirst {
 			evaluate()
 		}
-		values, err := c.GetResourceValues(ctx, []string{src.ID()})
-		if err != nil {
-			t.Fatal(err)
-		}
-		return req.Attrs, values[0]
+		resp := c.GetResourcesByIdentifier(ctx, []string{id})
+		return req.Attrs, req.PriorAttrs, resp.Resources[0].Attrs
 	}
 
-	subjectFirst, _ := sends(true, true)
-	memberFirst, _ := sends(true, false)
-	if got, want := redacted(memberFirst), redacted(subjectFirst); !slices.Equal(got, want) {
-		t.Fatalf("redacted paths depend on the first send\nsubject first: %v\nmember first:  %v", want, got)
+	subjectFirst, prior, member := sends(true)
+	memberFirst, _, _ := sends(false)
+	for _, got := range [][]string{redacted(memberFirst), redacted(prior), redacted(member)} {
+		if want := redacted(subjectFirst); !slices.Equal(got, want) {
+			t.Fatalf("wrong redacted paths\ngot:  %v\nwant: %v", got, want)
+		}
 	}
 	for _, path := range []string{"name", "secret", "nested", "nested[0].key"} {
 		if !slices.Contains(redacted(subjectFirst), path) {
 			t.Errorf("redacted paths %v don't include %s", redacted(subjectFirst), path)
 		}
 	}
-
-	// Without value IDs, a subject's inline value is as before value IDs, and
-	// a related member's redacts the schema's paths, as before value IDs.
-	subject, member := sends(false, true)
-	if want, _ := resourceAttributesToProto(CtyToPolicyValue(val)); !gproto.Equal(subject, want) {
-		t.Errorf("wrong subject attrs\ngot:  %v\nwant: %v", subject, want)
-	}
-	if got, want := redacted(member), redacted(subjectFirst); !slices.Equal(got, want) {
-		t.Errorf("wrong member redacted paths\ngot:  %v\nwant: %v", got, want)
-	}
 }
 
-func TestValueSourceID(t *testing.T) {
-	src := callback.ValueSource{Generation: 1, Kind: callback.KindPrior, Address: "test_resource.a"}
-	if src.ID() != src.ID() {
-		t.Fatal("the ID of a source isn't stable")
+func TestObjectIdentifier(t *testing.T) {
+	obj := callback.Object{Generation: 1, Address: "test_resource.a"}
+	if obj.Identifier() != obj.Identifier() {
+		t.Fatal("the identifier of an object isn't stable")
 	}
-	for name, other := range map[string]callback.ValueSource{
-		"generation":  {Generation: 2, Kind: callback.KindPrior, Address: "test_resource.a"},
-		"kind":        {Generation: 1, Kind: callback.KindState, Address: "test_resource.a"},
-		"deposed key": {Generation: 1, Kind: callback.KindPrior, DeposedKey: "00000001", Address: "test_resource.a"},
-		"address":     {Generation: 1, Kind: callback.KindPrior, Address: "component.x.test_resource.a"},
+	for name, other := range map[string]callback.Object{
+		"generation":  {Generation: 2, Address: "test_resource.a"},
+		"old object":  {Generation: 1, OldObject: true, Address: "test_resource.a"},
+		"deposed key": {Generation: 1, DeposedKey: "00000001", Address: "test_resource.a"},
+		"address":     {Generation: 1, Address: "test_resource.b"},
 	} {
-		if other.ID() == src.ID() {
-			t.Errorf("IDs of sources that differ in %s are equal", name)
+		if other.Identifier() == obj.Identifier() {
+			t.Errorf("identifiers of objects that differ in %s are equal", name)
 		}
 	}
+	// The values aren't part of the identifier.
+	withValues := obj
+	withValues.Attrs = cty.EmptyObjectVal
+	if withValues.Identifier() != obj.Identifier() {
+		t.Error("the identifier of an object depends on its values")
+	}
 }
 
-func TestClientGetResourceValues(t *testing.T) {
+func TestClientGetResourcesByIdentifier(t *testing.T) {
 	var c client
-	c.ids.Store(true)
-	a := callback.ValueSource{Kind: callback.KindState, Address: "test_resource.a"}
-	b := callback.ValueSource{Kind: callback.KindState, Address: "test_resource.b"}
-	for _, src := range []callback.ValueSource{a, b} {
-		if _, err := c.ResourceAttributes(cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal(src.Address)}), src); err != nil {
+	a := testObject("a", cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("a")}), cty.NilVal)
+	b := testObject("b", cty.NilVal, cty.ObjectVal(map[string]cty.Value{"name": cty.StringVal("b")}))
+	b.Metadata.Operation = proto.Operation_DELETE
+	for _, obj := range []*callback.Object{a, b} {
+		if _, err := c.RegisterObject(obj); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	values, err := c.GetResourceValues(t.Context(), []string{b.ID(), a.ID()})
-	if err != nil {
-		t.Fatal(err)
+	resp := c.GetResourcesByIdentifier(t.Context(), []string{b.Identifier(), a.Identifier()})
+	if len(resp.Diagnostics) != 0 || len(resp.Resources) != 2 {
+		t.Fatalf("unexpected response: %v", resp)
 	}
-	for i, src := range []callback.ValueSource{b, a} {
-		val, err := msgpack.Unmarshal(values[i].Raw, cty.DynamicPseudoType)
+	for i, obj := range []*callback.Object{b, a} {
+		res := resp.Resources[i]
+		attrs := res.Attrs
+		if obj == b {
+			if res.Attrs != nil {
+				t.Errorf("a DELETE has attrs: %v", res)
+			}
+			attrs = res.PriorAttrs
+		} else if res.PriorAttrs != nil {
+			t.Errorf("an object without prior attrs has prior attrs: %v", res)
+		}
+		val, err := msgpack.Unmarshal(attrs.Raw, cty.DynamicPseudoType)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if values[i].Id != src.ID() || val.GetAttr("name").AsString() != src.Address {
-			t.Errorf("value %d is %v, want the value of %s", i, values[i], src.Address)
+		if res.Identifier != obj.Identifier() || res.Metadata.Address != obj.Address || val.GetAttr("name").AsString() != obj.Address[len("test_resource."):] {
+			t.Errorf("resource %d is %v, want %s", i, res, obj.Address)
 		}
 	}
 
-	unknown := callback.ValueSource{Kind: callback.KindState, Address: "test_resource.c"}.ID()
-	if _, err := c.GetResourceValues(t.Context(), []string{a.ID(), unknown}); status.Code(err) != codes.NotFound {
-		t.Fatalf("wrong error for an unknown ID: %v", err)
+	unknown := (&callback.Object{Generation: 1, Address: "test_resource.c"}).Identifier()
+	resp = c.GetResourcesByIdentifier(t.Context(), []string{a.Identifier(), unknown})
+	if len(resp.Resources) != 0 || len(resp.Diagnostics) != 1 || resp.Diagnostics[0].Severity != proto.Severity_ERROR {
+		t.Fatalf("wrong response for an unknown identifier: %v", resp)
 	}
 }

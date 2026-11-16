@@ -22,17 +22,17 @@ type Server struct {
 	ID       uint32
 	Registry Registry
 	Grpc     *grpc.Server
-	// Values encodes the resources that GetResources returns, and serves
-	// GetResourceValues. The policy client sets it.
-	Values Values
+	// Objects encodes the resources that GetResources returns, and serves
+	// GetResourcesByIdentifier. The policy client sets it.
+	Objects Objects
 	proto.UnimplementedCallbackServiceServer
 }
 
-// Values encodes resource values for the plugin, and resolves the value IDs
-// it hands out.
-type Values interface {
+// Objects encodes resource objects for the plugin, and resolves the
+// identifiers it hands out.
+type Objects interface {
 	GetResourcesResponse(ctx context.Context, resources []Resource, partial bool) (*proto.GetResourcesResponse, error)
-	GetResourceValues(ctx context.Context, ids []string) ([]*proto.ResourceAttributes, error)
+	GetResourcesByIdentifier(ctx context.Context, identifiers []string) *proto.GetResourcesByIdentifierResponse
 }
 
 func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRequest) (*proto.GetResourcesResponse, error) {
@@ -50,15 +50,11 @@ func (s *Server) GetResources(ctx context.Context, request *proto.GetResourcesRe
 	if err != nil {
 		return nil, err
 	}
-	return s.Values.GetResourcesResponse(ctx, resources, isPartialResult)
+	return s.Objects.GetResourcesResponse(ctx, resources, isPartialResult)
 }
 
-func (s *Server) GetResourceValues(ctx context.Context, request *proto.GetResourceValuesRequest) (*proto.GetResourceValuesResponse, error) {
-	values, err := s.Values.GetResourceValues(ctx, request.Ids)
-	if err != nil {
-		return nil, err
-	}
-	return &proto.GetResourceValuesResponse{Values: values}, nil
+func (s *Server) GetResourcesByIdentifier(ctx context.Context, request *proto.GetResourcesByIdentifierRequest) (*proto.GetResourcesByIdentifierResponse, error) {
+	return s.Objects.GetResourcesByIdentifier(ctx, request.Identifiers), nil
 }
 
 func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSourceRequest) (*proto.GetDataSourceResponse, error) {
