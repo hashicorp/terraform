@@ -149,9 +149,6 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 		return complete(), nil
 	})
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
-	// Every component instance has planned, so the deployment's policy run
-	// can relate their instances and evaluate the subjects.
-	diags = diags.Append(m.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

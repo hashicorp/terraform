@@ -422,50 +422,22 @@ instance will block until the `ChangeExec`-managed apply phase for that
 component instance has completed. Otherwise, the usual data-flow-driven
 scheduling decides on the evaluation order for all other object types.
 
-## Policy Relationship Runs
+## Policy Relationships
 
-When the policy client supports relationships, the plan, and likewise the
-apply, of a deployment is one relationship run with runtime `STACKS`
-(`policy_run.go`). The first component instance whose Terraform walk reaches
-its policy phase begins it, with the schemas of every provider in the
-deployment. Each walk evaluates no policy itself: it reports its resource
-instances to the run with component-qualified addresses
-(`component.foo["a"].aws_s3_bucket.b`), but no type statuses, and hands back
-one evaluation per subject.
+A deployment has one policy client, so its relationship trees are validated
+once, before any component instance plans or applies, against the schemas of
+every provider the deployment can use (`policy_relationships.go`). Invalid
+definitions fail the deployment: no component instance plans, or applies.
 
-Once `PlanAll` or `ApplyPlan` has walked every object, `Main.finishPolicyRun`
-sends the type statuses merged across all walks, evaluates every subject once,
-with every policy and the run's id, reporting the results through the
-component instances' policy hooks, and finishes the run. The evaluations use
-their walk's evaluation context, so `core::getresources` still sees only the
-subject's component's resources. This
-end-of-deployment batch mirrors the end-of-walk batch of a Terraform CLI run;
-streaming is a later optimization.
-
-In a plan, origins cross components: a leaf of a record that comes from a
-root module variable of its component is left for the run to resolve. If the
-component's `inputs` set that variable to a direct reference to another
-component instance's output (`component.x.out`, `component.x["k"].out` or
-`component.x[each.key].out`, optionally with attribute and index steps),
-`finishPolicyRun` gives the leaf the origins of that output, which the
-producing walk traces through its root module like any other origin, with
-component-qualified addresses. Anything else, such as a function call, keeps
-the reason `VARIABLE`, and the engine relates the leaf by value. The records
-with such leaves are only reported then. References through embedded stacks'
-inputs and outputs aren't followed yet.
-
-A provider configuration passed in from the stack is one provider instance in
-the run, whichever components it's passed to: its `config_address` is the
-stack provider configuration instance (`provider.aws.this`,
-`provider.aws.this["k"]`, prefixed with the stack for an embedded stack), and
-its class is computed from the stack provider configuration's value like the
-Terraform CLI computes it, with one key for the whole run, which the walks use
-for their own classes too. Two configurations with the same value have the
-same class.
+Each component instance's Terraform walk then relates and evaluates its own
+resource instances, with the validated trees, like a Terraform CLI run:
+relationships, origins and `core::getresources` stay within the component,
+addresses stay relative to it, and a component's inputs are root module
+variables, where origins stop. Each walk is its own policy phase, with its own
+generation of identifiers, so instances with the same address in different
+components never share one.
 
 An apply skips a component instance whose plan has nothing to apply. Like a
-Terraform CLI apply of such a plan, which reports and evaluates its unchanged
-instances, the run still gets the component instance's contribution, without
-a walk (`terraform.Context.ContributeSkippedApply`): a record of every
-instance in its state and one evaluation per no-op change, so its types can be
-complete.
+Terraform CLI apply of such a plan, its instances are still related and its
+no-op changes evaluated, without a walk
+(`terraform.Context.EvaluateSkippedApplyPolicies`).

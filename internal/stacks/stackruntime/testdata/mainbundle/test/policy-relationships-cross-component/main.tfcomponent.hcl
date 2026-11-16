@@ -16,8 +16,8 @@ variable "block_deferred" {
   default = false
 }
 
-# The bucket and the block are in different components, so only relating the
-# instances of the whole deployment relates them.
+# The bucket and the block are in different components, so they aren't related:
+# each component instance's walk relates only its own instances.
 component "bucket" {
   source = "./bucket"
 

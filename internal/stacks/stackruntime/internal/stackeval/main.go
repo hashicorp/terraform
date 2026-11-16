@@ -90,10 +90,10 @@ type Main struct {
 	providerFunctionResults *lang.FunctionResults
 	cleanupFuncs            []func(context.Context) tfdiags.Diagnostics
 
-	// policyRun relates instances across the deployment's component
-	// instances; nil if the deployment has no relationships. See
+	// policyRelationships are the policy client's relationship trees,
+	// validated once for the deployment, or nil if it has none. See
 	// Main.validatePolicyRelationships.
-	policyRun *policyRun
+	policyRelationships *policy.Relationships
 	// policyInvalid is set if the policy client's relationship definitions
 	// are invalid, which fails the operation before it walks.
 	policyInvalid bool

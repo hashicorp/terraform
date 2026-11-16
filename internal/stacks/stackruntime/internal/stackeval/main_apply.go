@@ -378,11 +378,6 @@ func ApplyPlan(ctx context.Context, config *stackconfig.Config, plan *stackplan.
 	diags := withDiags.Diagnostics
 	main := withDiags.Result
 	diags = diags.Append(diagnosticsForPromisingTaskError(err))
-	if main != nil {
-		// Every component instance has applied, so the deployment's policy
-		// run can relate their instances and evaluate the subjects.
-		diags = diags.Append(main.finishPolicyRun(ctx, seenAnyErrors.Load() || diags.HasErrors()))
-	}
 	if len(diags) > 0 {
 		outp.AnnounceDiagnostics(ctx, diags)
 	}

@@ -261,7 +261,7 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		newState, moreDiags = tfCtx.Apply(plan, moduleTree, &terraform.ApplyOpts{
 			ExternalProviders:         providerClients,
 			PolicyClient:              main.PolicyClient(),
-			PolicyRun:                 main.PolicyRun().join(ctx, inst.Addr(), policyComponentInputs(inst), known),
+			PolicyRelationships:       main.PolicyRelationships(),
 			AllowRootEphemeralOutputs: false, // TODO(issues/37822): Enable this.
 		})
 		diags = diags.Append(moreDiags)
@@ -270,16 +270,14 @@ func ApplyComponentPlan(ctx context.Context, main *Main, plan *plans.Plan, requi
 		// and just propagate the prior state (including any refreshing we
 		// did during the plan phase) forward.
 		newState = plan.PriorState
-		if run := main.PolicyRun(); run != nil {
-			// Like a Terraform CLI apply of a plan without changes, the
-			// deployment's run gets the component's instances from its state
-			// and evaluates their no-op changes.
-			diags = diags.Append(tfCtx.ContributeSkippedApply(plan, moduleTree, &terraform.ApplyOpts{
-				ExternalProviders: providerClients,
-				PolicyClient:      main.PolicyClient(),
-				PolicyRun:         run.join(ctx, inst.Addr(), policyComponentInputs(inst), known),
-			}))
-		}
+		// Like a Terraform CLI apply of a plan without changes, the
+		// component's instances in its state are related and their no-op
+		// changes evaluated.
+		diags = diags.Append(tfCtx.EvaluateSkippedApplyPolicies(plan, moduleTree, &terraform.ApplyOpts{
+			ExternalProviders:   providerClients,
+			PolicyClient:        main.PolicyClient(),
+			PolicyRelationships: main.PolicyRelationships(),
+		}))
 	}
 
 	if newState != nil {
