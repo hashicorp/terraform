@@ -296,12 +296,10 @@ func TestInit2_getFalseWithDynamicSource(t *testing.T) {
 	}
 
 	// Now run init with -get=false; should succeed since modules are already installed
-	ui2 := testUiWrapped(t)
 	view2, done2 := testView(t)
 	c2 := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui2,
 			View:             view2,
 		},
 	}
@@ -357,12 +355,10 @@ func TestInit2_reinitWithDifferentVariable(t *testing.T) {
 	}
 
 	// Re-init with different variable
-	ui2 := testUiWrapped(t)
 	view2, done2 := testView(t)
 	c2 := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui2,
 			View:             view2,
 		},
 	}
@@ -424,12 +420,10 @@ func TestPlan_dynamicModuleSource(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -442,12 +436,10 @@ func TestPlan_dynamicModuleSource(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
@@ -475,12 +467,10 @@ func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
 	})
 	args := []string{"-var", "module_name=example"}
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -493,12 +483,10 @@ func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
 	}
 
 	// Now run plan with a different variable value
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
@@ -522,12 +510,10 @@ func TestApply_dynamicModuleSource(t *testing.T) {
 	})
 	args := []string{"-var", "module_name=example"}
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -539,12 +525,10 @@ func TestApply_dynamicModuleSource(t *testing.T) {
 		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
 	}
 
-	applyUi := testUiWrapped(t)
 	applyView, applyDone := testView(t)
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               applyUi,
 			View:             applyView,
 		},
 	}
@@ -572,12 +556,10 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 		"hashicorp/test": {"1.0.0"},
 	})
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -591,12 +573,10 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 
 	// Run plan with -out
 	planPath := filepath.Join(td, "saved.plan")
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
@@ -614,12 +594,10 @@ func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
 	}
 
 	// Apply the saved plan
-	applyUi := testUiWrapped(t)
 	applyView, applyDone := testView(t)
 	applyCmd := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               applyUi,
 			View:             applyView,
 		},
 	}
@@ -649,12 +627,10 @@ func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -667,12 +643,10 @@ func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
@@ -701,12 +675,10 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 
 	args := []string{"-var", "module_name=example"}
 
-	initUi := testUiWrapped(t)
 	initView, initDone := testView(t)
 	initCmd := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               initUi,
 			View:             initView,
 			ProviderSource:   providerSource,
 		},
@@ -719,12 +691,10 @@ func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
 	}
 
 	// Now run plan
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
@@ -905,12 +875,10 @@ func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
 
 	// Plan should fail because the installed module version (0.0.1 in
 	// modules.json) doesn't satisfy the constraint we provide.
-	planUi := testUiWrapped(t)
 	planView, planDone := testView(t)
 	planCmd := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               planUi,
 			View:             planView,
 		},
 	}
