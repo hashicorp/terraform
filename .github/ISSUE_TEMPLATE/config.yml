@@ -1,0 +1,26 @@
+# Copyright IBM Corp. 2014, 2026
+# SPDX-License-Identifier: BUSL-1.1
+
+blank_issues_enabled: false
+contact_links:
+  - name: HCP Terraform and Terraform Enterprise Troubleshooting and Feature Requests
+    url: https://support.hashicorp.com/hc/en-us/requests/new
+    about: For issues and feature requests related to HCP Terraform or Terraform Enterprise, please submit a HashiCorp support request or email tf-cloud@hashicorp.support
+  - name: AWS Terraform Provider Feedback and Questions
+    url: https://github.com/hashicorp/terraform-provider-aws
+    about: The AWS Terraform Provider has its own repository, any provider related issues or questions should be directed there.
+  - name: Azure Terraform Provider Feedback and Questions
+    url: https://github.com/hashicorp/terraform-provider-azurerm
+    about: The Azure Terraform Provider has its own repository, any provider related issues or questions should be directed there.
+  - name: Other Provider-related Feedback and Questions
+    url: https://registry.terraform.io/browse/providers
+    about: Each provider (e.g. GCP, Oracle, K8S, etc.) has its own repository, any provider related issues or questions should be directed to the appropriate issue tracker linked from the Registry.
+  - name: Provider Development Feedback and Questions
+    url: https://github.com/hashicorp/terraform-plugin-sdk/issues/new/choose
+    about: Plugin SDK has its own repository, any SDK and provider development related issues or questions should be directed there.
+  - name: Terraform Usage, Language, or Workflow Questions
+    url: https://discuss.hashicorp.com/c/terraform-core
+    about: Please ask and answer language or workflow related questions through the Terraform Core Community Forum.
+  - name: Documentation Issue
+    url: https://github.com/hashicorp/web-unified-docs
+    about: Documentation has its own repository for all HashiCorp products and related issues or questions should be directed there.

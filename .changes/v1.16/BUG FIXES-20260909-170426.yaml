@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix function result comparison when there are multiple marks
+time: 2026-09-09T17:04:26.18364-04:00
+custom:
+    Issue: "39170"

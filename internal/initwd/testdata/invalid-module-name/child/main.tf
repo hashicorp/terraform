@@ -1,0 +1,3 @@
+output "boop" {
+  value = "beep"
+}

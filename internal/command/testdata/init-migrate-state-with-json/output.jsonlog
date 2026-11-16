@@ -1,0 +1,2 @@
+{"@level":"info","@message":"Terraform 1.9.0-dev","@module":"terraform.ui","terraform":"1.9.0-dev","type":"version","ui":"1.2"}
+{"@level":"error","@message":"Error: The -migrate-state and -json options are mutually-exclusive","@module":"terraform.ui","diagnostic":{"severity":"error","summary":"The -migrate-state and -json options are mutually-exclusive","detail":"Terraform cannot ask for interactive approval when -json is set. To use the -migrate-state option, disable the -json option."},"type":"diagnostic"}

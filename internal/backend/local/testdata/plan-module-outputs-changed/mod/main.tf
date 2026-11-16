@@ -1,0 +1,3 @@
+output "changed" {
+  value = "after"
+}

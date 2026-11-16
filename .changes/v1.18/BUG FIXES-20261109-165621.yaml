@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'fmt: Output from the `-diff` option is now printed to stdout when using `terraform fmt -check -diff -list=false`'
+time: 2026-11-09T16:56:21.909029Z
+custom:
+    Issue: "39518"

@@ -1,0 +1,664 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"fmt"
+	"sort"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// StateMvCommand is a Command implementation that changes bindings
+// in Terraform state so that existing remote objects bind to new resource instances.
+type StateMvCommand struct {
+	StateMeta
+}
+
+func (c *StateMvCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateMv(c.Meta.process(rawArgs))
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateMv(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// If backup or backup-out options are set
+	// and the state option is not set, make sure
+	// the backend is local
+	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.statePath == ""
+	backupOutOptionSetWithoutStateOption := parsedArgs.BackupOutPath != "-" && c.statePath == ""
+
+	var setLegacyLocalBackendOptions []string
+	if backupOptionSetWithoutStateOption {
+		setLegacyLocalBackendOptions = append(setLegacyLocalBackendOptions, "-backup")
+	}
+	if backupOutOptionSetWithoutStateOption {
+		setLegacyLocalBackendOptions = append(setLegacyLocalBackendOptions, "-backup-out")
+	}
+
+	if len(setLegacyLocalBackendOptions) > 0 {
+		currentBackend, beDiags := c.backendFromConfig(&BackendOpts{})
+		diags = diags.Append(beDiags)
+		if beDiags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		// If currentBackend is nil and diags didn't have errors,
+		// this means we have an implicit local backend
+		_, isLocalBackend := currentBackend.(backendrun.Local)
+		if currentBackend != nil && !isLocalBackend {
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Invalid command line options: %s", strings.Join(setLegacyLocalBackendOptions[:], ", ")),
+					"Command line options -backup and -backup-out are legacy options that operate on a local state file only. You must specify a local state file with the -state option or switch to the local backend.",
+				),
+			)
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+
+	// Read the from state
+	stateFromMgr, err := c.State(parsedArgs.ViewType)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
+		if lockDiags := stateLocker.Lock(stateFromMgr, "state-mv"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
+			view.Diagnostics(diags)
+			return 1
+		}
+		defer func() {
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
+				view.Diagnostics(diags)
+			}
+		}()
+	}
+
+	if err := stateFromMgr.RefreshState(); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the source state: %s", err),
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	stateFrom := stateFromMgr.State()
+	if stateFrom == nil {
+		diags = diags.Append(errStateNotFound)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Read the destination state
+	stateToMgr := stateFromMgr
+	stateTo := stateFrom
+
+	if parsedArgs.StateOutPath != "" {
+		c.statePath = parsedArgs.StateOutPath
+		c.backupPath = parsedArgs.BackupOutPath
+
+		stateToMgr, err = c.State(parsedArgs.ViewType)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		if c.stateLock {
+			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
+			if lockDiags := stateLocker.Lock(stateToMgr, "state-mv"); lockDiags.HasErrors() {
+				diags = diags.Append(lockDiags)
+				view.Diagnostics(diags)
+				return 1
+			}
+			defer func() {
+				if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+					diags = diags.Append(unlockDiags)
+					view.Diagnostics(diags)
+				}
+			}()
+		}
+
+		if err := stateToMgr.RefreshState(); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to refresh the state",
+				fmt.Sprintf("Error refreshing the destination state: %s", err),
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		stateTo = stateToMgr.State()
+		if stateTo == nil {
+			stateTo = states.NewState()
+		}
+	}
+
+	sourceAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.SourceAddr)
+	diags = diags.Append(moreDiags)
+	destAddr, moreDiags := c.lookupSingleStateObjectAddr(stateFrom, parsedArgs.DestAddr)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	const msgInvalidSource = "Invalid source address"
+	const msgInvalidTarget = "Invalid target address"
+
+	// Collect data about state moves for rendering later
+	moves := []views.StateMvPair{}
+
+	ssFrom := stateFrom.SyncWrapper()
+	sourceAddrs := c.sourceObjectAddrs(stateFrom, sourceAddr)
+	if len(sourceAddrs) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			msgInvalidSource,
+			fmt.Sprintf("Cannot move %s: does not match anything in the current state.", sourceAddr),
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+	for _, rawAddrFrom := range sourceAddrs {
+		switch addrFrom := rawAddrFrom.(type) {
+		case addrs.ModuleInstance:
+			search := sourceAddr.(addrs.ModuleInstance)
+			addrTo, ok := destAddr.(addrs.ModuleInstance)
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move %s to %s: the target must also be a module.", addrFrom, destAddr),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			if len(search) < len(addrFrom) {
+				n := make(addrs.ModuleInstance, 0, len(addrTo)+len(addrFrom)-len(search))
+				n = append(n, addrTo...)
+				n = append(n, addrFrom[len(search):]...)
+				addrTo = n
+			}
+
+			if stateTo.Module(addrTo) != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: the destination module already exists at that address in the current state.", addrTo),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			ms := ssFrom.Module(addrFrom)
+			if ms == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo.String(),
+				From: addrFrom.String(),
+			})
+			if !parsedArgs.DryRun {
+				ssFrom.RemoveModule(addrFrom)
+
+				// Update the address before adding it to the state.
+				ms.Addr = addrTo
+				stateTo.Modules[addrTo.String()] = ms
+			}
+
+		case addrs.AbsResource:
+			addrTo, ok := destAddr.(addrs.AbsResource)
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move %s to %s: the source is a whole resource (not a resource instance) so the target must also be a whole resource.", addrFrom, destAddr),
+				))
+				view.Diagnostics(diags)
+				return 1
+			}
+			diags = diags.Append(c.validateResourceMove(addrFrom, addrTo))
+
+			if stateTo.Resource(addrTo) != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: there is already a resource at that address in the current state.", addrTo),
+				))
+			}
+
+			rs := ssFrom.Resource(addrFrom)
+			if rs == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+			}
+
+			if diags.HasErrors() {
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo.String(),
+				From: addrFrom.String(),
+			})
+			if !parsedArgs.DryRun {
+				ssFrom.RemoveResource(addrFrom)
+
+				// Update the address before adding it to the state.
+				rs.Addr = addrTo
+				stateTo.EnsureModule(addrTo.Module).Resources[addrTo.Resource.String()] = rs
+			}
+
+		case addrs.AbsResourceInstance:
+			addrTo, ok := destAddr.(addrs.AbsResourceInstance)
+			if !ok {
+				ra, ok := destAddr.(addrs.AbsResource)
+				if !ok {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						msgInvalidTarget,
+						fmt.Sprintf("Cannot move %s to %s: the target must also be a resource instance.", addrFrom, destAddr),
+					))
+					view.Diagnostics(diags)
+					return 1
+				}
+				addrTo = ra.Instance(addrs.NoKey)
+			}
+
+			diags = diags.Append(c.validateResourceMove(addrFrom.ContainingResource(), addrTo.ContainingResource()))
+
+			if stateTo.Module(addrTo.Module) == nil {
+				// moving something to a mew module, so we need to ensure it exists
+				stateTo.EnsureModule(addrTo.Module)
+			}
+			if stateTo.ResourceInstance(addrTo) != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidTarget,
+					fmt.Sprintf("Cannot move to %s: there is already a resource instance at that address in the current state.", addrTo),
+				))
+			}
+
+			is := ssFrom.ResourceInstance(addrFrom)
+			if is == nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					msgInvalidSource,
+					fmt.Sprintf("The current state does not contain %s.", addrFrom),
+				))
+			}
+
+			if diags.HasErrors() {
+				view.Diagnostics(diags)
+				return 1
+			}
+
+			moves = append(moves, views.StateMvPair{
+				To:   addrTo.String(),
+				From: addrFrom.String(),
+			})
+			if !parsedArgs.DryRun {
+				fromResourceAddr := addrFrom.ContainingResource()
+				fromResource := ssFrom.Resource(fromResourceAddr)
+				fromProviderAddr := fromResource.ProviderConfig
+				ssFrom.ForgetResourceInstanceAll(addrFrom)
+				ssFrom.RemoveResourceIfEmpty(fromResourceAddr)
+
+				rs := stateTo.Resource(addrTo.ContainingResource())
+				if rs == nil {
+					// If we're moving to an address without an index then that
+					// suggests the user's intent is to establish both the
+					// resource and the instance at the same time (since the
+					// address covers both). If there's an index in the
+					// target then allow creating the new instance here.
+					resourceAddr := addrTo.ContainingResource()
+					stateTo.SyncWrapper().SetResourceProvider(
+						resourceAddr,
+						fromProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
+					)
+					rs = stateTo.Resource(resourceAddr)
+				}
+
+				rs.Instances[addrTo.Resource.Key] = is
+			}
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidSource,
+				fmt.Sprintf("Cannot move %s: Terraform doesn't know how to move this object.", rawAddrFrom),
+			))
+		}
+
+		// Look for any dependencies that may be effected and
+		// remove them to ensure they are recreated in full. Dependencies are
+		// recorded as configuration addresses, so we compare them with the
+		// configuration object containing whatever was moved.
+		var configFrom addrs.Targetable
+		switch addr := rawAddrFrom.(type) {
+		case addrs.ModuleInstance:
+			configFrom = addr.Module()
+		case addrs.AbsResource:
+			configFrom = addr.Config()
+		case addrs.AbsResourceInstance:
+			configFrom = addr.ConfigResource()
+		default:
+			configFrom = rawAddrFrom
+		}
+		for _, mod := range stateTo.Modules {
+			for _, res := range mod.Resources {
+				for _, ins := range res.Instances {
+					if ins.Current == nil {
+						continue
+					}
+
+					for _, dep := range ins.Current.Dependencies {
+						// check both directions here, since we may be moving
+						// an instance which is in a resource, or a module
+						// which can contain a resource.
+						if dep.Contains(configFrom) || configFrom.Contains(dep) {
+							ins.Current.Dependencies = nil
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if parsedArgs.DryRun {
+		view.Move(moves, parsedArgs.DryRun, diags)
+		return 0 // This is as far as we go in dry-run mode
+	}
+
+	// Load the backend
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(stateTo, nil)
+		diags = diags.Append(schemaDiags)
+	}
+
+	// Write the new state
+	if err := stateToMgr.WriteState(stateTo); err != nil {
+		diags = diags.Append(stateMvPersistErrDiag(err))
+		view.Diagnostics(diags)
+		return 1
+	}
+	if err := stateToMgr.PersistState(schemas); err != nil {
+		diags = diags.Append(stateMvPersistErrDiag(err))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Write the old state if it is different
+	if stateTo != stateFrom {
+		if err := stateFromMgr.WriteState(stateFrom); err != nil {
+			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
+			view.Diagnostics(diags)
+			return 1
+		}
+		if err := stateFromMgr.PersistState(schemas); err != nil {
+			diags = diags.Append(stateMvPersistSourceStateErrDiag(err))
+			view.Diagnostics(diags)
+			return 1
+		}
+	}
+
+	view.Move(moves, parsedArgs.DryRun, diags)
+	return 0
+}
+
+// sourceObjectAddrs takes a single source object address and expands it to
+// potentially multiple objects that need to be handled within it.
+//
+// In particular, this handles the case where a module is requested directly:
+// if it has any child modules, then they must also be moved. It also resolves
+// the ambiguity that an index-less resource address could either be a resource
+// address or a resource instance address, by making a decision about which
+// is intended based on the current state of the resource in question.
+func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Targetable) []addrs.Targetable {
+	var ret []addrs.Targetable
+
+	switch addr := matched.(type) {
+	case addrs.ModuleInstance:
+		for _, mod := range state.Modules {
+			if len(mod.Addr) < len(addr) {
+				continue // can't possibly be our selection or a child of it
+			}
+			if !mod.Addr[:len(addr)].Equal(addr) {
+				continue
+			}
+			ret = append(ret, mod.Addr)
+		}
+	case addrs.AbsResource:
+		// If this refers to a resource without "count" or "for_each" set then
+		// we'll assume the user intended it to be a resource instance
+		// address instead, to allow for requests like this:
+		//   terraform state mv aws_instance.foo aws_instance.bar[1]
+		// That wouldn't be allowed if aws_instance.foo had multiple instances
+		// since we can't move multiple instances into one.
+		if rs := state.Resource(addr); rs != nil {
+			if _, ok := rs.Instances[addrs.NoKey]; ok {
+				ret = append(ret, addr.Instance(addrs.NoKey))
+			} else {
+				ret = append(ret, addr)
+			}
+		}
+	default:
+		ret = append(ret, matched)
+	}
+
+	// Sort, to counter-act iterating over the state.Modules map above.
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].String() < ret[j].String()
+	})
+
+	return ret
+}
+
+func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource) tfdiags.Diagnostics {
+	const msgInvalidRequest = "Invalid state move request"
+
+	var diags tfdiags.Diagnostics
+	if addrFrom.Resource.Mode != addrTo.Resource.Mode {
+		switch addrFrom.Resource.Mode {
+		case addrs.ManagedResourceMode:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: a managed resource can be moved only to another managed resource address.", addrFrom, addrTo),
+			))
+		case addrs.DataResourceMode:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: a data resource can be moved only to another data resource address.", addrFrom, addrTo),
+			))
+		default:
+			// In case a new mode is added in future, this unhelpful error is better than nothing.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				msgInvalidRequest,
+				fmt.Sprintf("Cannot move %s to %s: cannot change resource mode.", addrFrom, addrTo),
+			))
+		}
+	}
+	if addrFrom.Resource.Type != addrTo.Resource.Type {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			msgInvalidRequest,
+			fmt.Sprintf("Cannot move %s to %s: resource types don't match.", addrFrom, addrTo),
+		))
+	}
+	return diags
+}
+
+func (c *StateMvCommand) Help() string {
+	helpText := `
+Usage: terraform [global options] state mv [options] SOURCE DESTINATION
+
+ This command will move an item matched by the address given to the
+ destination address. This command can also move to a destination address
+ in a completely different state file.
+
+ This can be used for simple resource renaming, moving items to and from
+ a module, moving entire modules, and more. And because this command can also
+ move data to a completely new state, it can also be used for refactoring
+ one configuration into multiple separately managed Terraform configurations.
+
+ This command will output a backup copy of the state prior to saving any
+ changes. The backup cannot be disabled. Due to the destructive nature
+ of this command, backups are required.
+
+ If you're moving an item to a different state file, a backup will be created
+ for each state file.
+
+Options:
+
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
+  -dry-run                If set, prints out what would've been moved but doesn't
+                          actually move anything.
+
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
+
+  -lock=false             Don't hold a state lock during the operation. This is
+                          dangerous if others might concurrently run commands
+                          against the same workspace.
+
+  -lock-timeout=0s        Duration to retry a state lock.
+
+  -no-color               Disable text coloring in the output.
+
+
+  -var 'foo=bar'          Set a value for one of the input variables in the root
+                          module of the configuration. Use this option more than
+                          once to set more than one variable.
+
+  -var-file=filename      Load variable values from the given file, in addition
+                          to the default files terraform.tfvars and *.auto.tfvars.
+                          Use this option more than once to include more than one
+                          variables file.
+
+  -state, state-out, and -backup are legacy options supported for the local
+  backend only. For more information, see the local backend's documentation.
+
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *StateMvCommand) Synopsis() string {
+	return "Move an item in the state"
+}
+
+func stateMvPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The state was not saved. No items were moved within the persisted state.
+Please resolve the issue above and try again.`, err),
+	)
+}
+
+// This is only relevant if the -state-out and -state options are both used.
+func stateMvPersistSourceStateErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The destination state provided using -state-out was updated, but an error occurred when performing the
+paired update of the source state provided using -state. The source state may still contain any items
+that were intended to be moved. Please resolve the issue above and try again.`, err),
+	)
+}

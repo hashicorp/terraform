@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'workspace delete: Human-readable output has changed format as a result of refactoring how this command writes to the terminal.'
+time: 2026-10-20T11:16:51.425314+01:00
+custom:
+    Issue: "39405"

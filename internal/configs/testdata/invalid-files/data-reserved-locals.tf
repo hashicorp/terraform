@@ -1,0 +1,3 @@
+data "test" "foo" {
+  locals {}
+}

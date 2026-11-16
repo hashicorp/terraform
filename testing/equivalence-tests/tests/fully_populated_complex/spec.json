@@ -1,0 +1,6 @@
+{
+  "description": "this test creates an almost fully populated tfcoremock_complex_resource, which should cover most basic Terraform use cases",
+  "include_files": [],
+  "ignore_fields": {}
+}
+

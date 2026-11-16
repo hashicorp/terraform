@@ -1,0 +1,9 @@
+# tfcoremock_object.object:
+resource "tfcoremock_object" "object" {
+    id     = "AF9833AE-3434-4D0B-8B69-F4B992565D9F"
+    object = {
+        boolean = true
+        number  = 10
+        string  = "Hello, world!"
+    }
+}

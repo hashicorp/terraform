@@ -1,0 +1,761 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package configs
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
+)
+
+func TestModuleOverrideVariable(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable")
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+	want := map[string]*Variable{
+		"fully_overridden": {
+			Name:           "fully_overridden",
+			Description:    "b_override description",
+			DescriptionSet: true,
+			Default:        cty.StringVal("b_override"),
+			Nullable:       false,
+			NullableSet:    true,
+			Type:           cty.String,
+			ConstraintType: cty.String,
+			ParsingMode:    VariableParseLiteral,
+			DeclRange: hcl.Range{
+				Filename: "testdata/valid-modules/override-variable/primary.tf",
+				Start: hcl.Pos{
+					Line:   1,
+					Column: 1,
+					Byte:   0,
+				},
+				End: hcl.Pos{
+					Line:   1,
+					Column: 28,
+					Byte:   27,
+				},
+			},
+		},
+		"partially_overridden": {
+			Name:           "partially_overridden",
+			Description:    "base description",
+			DescriptionSet: true,
+			Default:        cty.StringVal("b_override partial"),
+			Nullable:       true,
+			NullableSet:    false,
+			Type:           cty.String,
+			ConstraintType: cty.String,
+			ParsingMode:    VariableParseLiteral,
+			DeclRange: hcl.Range{
+				Filename: "testdata/valid-modules/override-variable/primary.tf",
+				Start: hcl.Pos{
+					Line:   7,
+					Column: 1,
+					Byte:   103,
+				},
+				End: hcl.Pos{
+					Line:   7,
+					Column: 32,
+					Byte:   134,
+				},
+			},
+		},
+	}
+	assertResultDeepEqual(t, got, want)
+}
+
+func TestModuleOverrideRequiredProviders(t *testing.T) {
+	for name, tc := range map[string]struct {
+		primary   string
+		overrides []string
+		wantExpr  bool
+	}{
+		"legacy to expression-based": {
+			primary:   `"~> 3.0"`,
+			overrides: []string{`{ source = "acme/random" }`},
+			wantExpr:  true,
+		},
+		"expression-based to legacy": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`"~> 2.0"`},
+		},
+		"expression-based to empty": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`{}`},
+		},
+		"last override is resolved": {
+			primary:   `"~> 3.0"`,
+			overrides: []string{`{ source = "acme/random" }`, `"~> 2.0"`},
+		},
+		"last override is expression-based": {
+			primary:   `{ source = "acme/random" }`,
+			overrides: []string{`"~> 2.0"`, `{ source = "other/random" }`},
+			wantExpr:  true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			files := map[string]string{
+				"mod/main.tf": fmt.Sprintf(`
+terraform {
+  required_providers {
+    random = %s
+    legacy = "~> 1.0"
+    expression = { source = "acme/expression" }
+  }
+}
+`, tc.primary),
+			}
+			var wantFile string
+			for i, override := range tc.overrides {
+				wantFile = fmt.Sprintf("mod/%d_override.tf", i)
+				files[wantFile] = fmt.Sprintf(`
+terraform {
+  required_providers {
+    random = %s
+  }
+}
+`, override)
+			}
+
+			mod, diags := testParser(files).LoadConfigDir("mod")
+			assertNoDiagnostics(t, diags)
+
+			req, hasResolved := mod.ProviderRequirements.RequiredProviders["random"]
+			expr, hasExpr := mod.ProviderRequirementExprs["random"]
+			if hasResolved == hasExpr {
+				t.Fatalf("expected exactly one representation of the requirement: resolved=%t, expression-based=%t", hasResolved, hasExpr)
+			}
+			if hasExpr != tc.wantExpr {
+				t.Fatalf("wrong requirement representation: expression-based=%t, want %t", hasExpr, tc.wantExpr)
+			}
+			var gotFile string
+			if hasExpr {
+				gotFile = expr.DeclRange.Filename
+			} else {
+				gotFile = req.DeclRange.Filename
+			}
+			if gotFile != wantFile {
+				t.Errorf("wrong requirement declaration: got %q, want %q", gotFile, wantFile)
+			}
+
+			// Providers omitted from the overrides must retain their primary declarations.
+			if req, exists := mod.ProviderRequirements.RequiredProviders["legacy"]; !exists || req.DeclRange.Filename != "mod/main.tf" {
+				t.Error("override changed the unrelated legacy requirement")
+			}
+			if expr, exists := mod.ProviderRequirementExprs["expression"]; !exists || expr.DeclRange.Filename != "mod/main.tf" {
+				t.Error("override changed the unrelated expression-based requirement")
+			}
+		})
+	}
+}
+
+func TestModuleOverrideRequiredProvidersSameFile(t *testing.T) {
+	const (
+		expression      = `required_providers { random = { source = var.provider_source, version = var.provider_version, configuration_aliases = [random.old] } }`
+		laterExpression = `required_providers { random = { source = "other/random", version = "~> 4.0" } }`
+		legacy          = `required_providers { random = "~> 2.0" }`
+		emptyObject     = `required_providers { random = {} }`
+		aliasesOnly     = `required_providers { random = { configuration_aliases = [random.next] } }`
+		emptyBlock      = `required_providers {}`
+	)
+
+	tests := []struct {
+		name      string
+		blocks    []string
+		wantBlock int
+	}{
+		{
+			name:      "expression-based to legacy",
+			blocks:    []string{expression, legacy},
+			wantBlock: 1,
+		},
+		{
+			name:      "expression-based to empty object",
+			blocks:    []string{expression, emptyObject},
+			wantBlock: 1,
+		},
+		{
+			name:      "expression-based to aliases-only",
+			blocks:    []string{expression, aliasesOnly},
+			wantBlock: 1,
+		},
+		{
+			name:      "legacy to expression-based",
+			blocks:    []string{legacy, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "empty object to expression-based",
+			blocks:    []string{emptyObject, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "aliases-only to expression-based clears aliases",
+			blocks:    []string{aliasesOnly, laterExpression},
+			wantBlock: 1,
+		},
+		{
+			name:      "alternating declarations ending resolved",
+			blocks:    []string{`required_providers { random = "~> 3.0" }`, expression, legacy},
+			wantBlock: 2,
+		},
+		{
+			name:      "alternating declarations ending expression-based",
+			blocks:    []string{expression, legacy, laterExpression},
+			wantBlock: 2,
+		},
+		{
+			name:      "aliases-only to legacy clears aliases",
+			blocks:    []string{aliasesOnly, legacy},
+			wantBlock: 1,
+		},
+		{
+			name:      "aliases-only to empty object clears aliases",
+			blocks:    []string{aliasesOnly, emptyObject},
+			wantBlock: 1,
+		},
+		{
+			name:      "empty block retains expression-based requirement",
+			blocks:    []string{expression, emptyBlock},
+			wantBlock: 0,
+		},
+		{
+			name:      "empty block retains resolved requirement",
+			blocks:    []string{legacy, emptyBlock},
+			wantBlock: 0,
+		},
+		{
+			name:      "empty block between declarations",
+			blocks:    []string{expression, emptyBlock, legacy},
+			wantBlock: 2,
+		},
+	}
+
+	for layout, separator := range map[string]string{
+		"one terraform block":       "\n",
+		"separate terraform blocks": "\n}\nterraform {\n",
+	} {
+		t.Run(layout, func(t *testing.T) {
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					parser := testParser(map[string]string{
+						"mod/override.tf": "terraform {\n" + strings.Join(tc.blocks, separator) + "\n}",
+					})
+					override, diags := parser.LoadConfigFileOverride("mod/override.tf")
+					assertNoDiagnostics(t, diags)
+
+					// The whole declaration must come from the winning block,
+					// including its aliases, expressions, and source ranges.
+					want := override.RequiredProviders[tc.wantBlock]
+					mod, diags := NewModule(nil, []*File{override})
+					assertNoDiagnostics(t, diags)
+
+					req, hasResolved := mod.ProviderRequirements.RequiredProviders["random"]
+					expr, hasExpr := mod.ProviderRequirementExprs["random"]
+					if hasResolved == hasExpr {
+						t.Fatalf("expected exactly one representation of the requirement: resolved=%t, expression-based=%t", hasResolved, hasExpr)
+					}
+					assertResultDeepEqual(t, req, want.RequiredProviders["random"])
+					assertResultDeepEqual(t, expr, want.RequiredProviderExprs["random"])
+				})
+			}
+		})
+	}
+}
+
+func TestModuleOverrideRequiredProvidersSameFileRetainsUnrelated(t *testing.T) {
+	parser := testParser(map[string]string{
+		"mod/main.tf": `
+terraform {
+  required_providers {
+    legacy = "~> 1.0"
+    expression = { source = "acme/expression" }
+  }
+}
+`,
+		"mod/override.tf": `
+terraform {
+  required_providers {
+    random = { source = "acme/random" }
+    retainedlegacy = "~> 1.0"
+    retainedexpression = { source = "acme/expression" }
+  }
+  required_providers {
+    random = "~> 2.0"
+  }
+}
+`,
+	})
+	primary, diags := parser.LoadConfigFile("mod/main.tf")
+	assertNoDiagnostics(t, diags)
+	override, diags := parser.LoadConfigFileOverride("mod/override.tf")
+	assertNoDiagnostics(t, diags)
+
+	wantResolved := map[string]*RequiredProvider{
+		"legacy":         primary.RequiredProviders[0].RequiredProviders["legacy"],
+		"retainedlegacy": override.RequiredProviders[0].RequiredProviders["retainedlegacy"],
+		"random":         override.RequiredProviders[1].RequiredProviders["random"],
+	}
+	wantExprs := map[string]*ProviderRequirementExpr{
+		"expression":         primary.RequiredProviders[0].RequiredProviderExprs["expression"],
+		"retainedexpression": override.RequiredProviders[0].RequiredProviderExprs["retainedexpression"],
+	}
+
+	mod, diags := NewModule([]*File{primary}, []*File{override})
+	assertNoDiagnostics(t, diags)
+	assertResultDeepEqual(t, mod.ProviderRequirements.RequiredProviders, wantResolved)
+	assertResultDeepEqual(t, mod.ProviderRequirementExprs, wantExprs)
+}
+
+func TestModuleRequiredProvidersDuplicateEmptyBlocks(t *testing.T) {
+	for name, tc := range map[string]struct {
+		first  string
+		second string
+	}{
+		"two empty blocks": {},
+		"empty then legacy": {
+			second: `    random = "~> 2.0"`,
+		},
+		"legacy then empty": {
+			first: `    random = "~> 2.0"`,
+		},
+		"empty then expression-based": {
+			second: `    random = { source = "acme/random" }`,
+		},
+		"expression-based then empty": {
+			first: `    random = { source = "acme/random" }`,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, diags := testParser(map[string]string{
+				"mod/main.tf": fmt.Sprintf(`terraform {
+  required_providers {
+%s
+  }
+  required_providers {
+%s
+  }
+}
+`, tc.first, tc.second),
+			}).LoadConfigDir("mod")
+			assertDiagnosticCount(t, diags, 1)
+			assertExactDiagnostics(t, diags, []string{
+				"mod/main.tf:5,3-21: Duplicate required providers configuration; A module may have only one required providers configuration. The required providers were previously configured at mod/main.tf:2,3-21.",
+			})
+		})
+	}
+}
+
+func TestModuleOverrideModule(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-module")
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	if _, exists := mod.ModuleCalls["example"]; !exists {
+		t.Fatalf("no module 'example'")
+	}
+	if len(mod.ModuleCalls) != 1 {
+		t.Fatalf("wrong number of module calls in result %d; want 1", len(mod.ModuleCalls))
+	}
+
+	got := mod.ModuleCalls["example"]
+	want := &ModuleCall{
+		Name: "example",
+		SourceExpr: mustExpr(hclsyntax.ParseExpression(
+			[]byte("\"./example2-a_override\""), "testdata/valid-modules/override-module/a_override.tf",
+			hcl.Pos{Line: 3, Column: 12, Byte: 31},
+		)),
+		DeclRange: hcl.Range{
+			Filename: "testdata/valid-modules/override-module/primary.tf",
+			Start: hcl.Pos{
+				Line:   2,
+				Column: 1,
+				Byte:   1,
+			},
+			End: hcl.Pos{
+				Line:   2,
+				Column: 17,
+				Byte:   17,
+			},
+		},
+		DependsOn: []hcl.Traversal{
+			{
+				hcl.TraverseRoot{
+					Name: "null_resource",
+					SrcRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/primary.tf",
+						Start:    hcl.Pos{Line: 11, Column: 17, Byte: 149},
+						End:      hcl.Pos{Line: 11, Column: 30, Byte: 162},
+					},
+				},
+				hcl.TraverseAttr{
+					Name: "test",
+					SrcRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/primary.tf",
+						Start:    hcl.Pos{Line: 11, Column: 30, Byte: 162},
+						End:      hcl.Pos{Line: 11, Column: 35, Byte: 167},
+					},
+				},
+			},
+		},
+		Providers: []PassedProviderConfig{
+			{
+				InChild: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 5, Byte: 97},
+						End:      hcl.Pos{Line: 7, Column: 9, Byte: 101},
+					},
+				},
+				InParent: &ProviderConfigRef{
+					Name: "test",
+					NameRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 104},
+						End:      hcl.Pos{Line: 7, Column: 16, Byte: 108},
+					},
+					Alias: "b_override",
+					AliasRange: &hcl.Range{
+						Filename: "testdata/valid-modules/override-module/b_override.tf",
+						Start:    hcl.Pos{Line: 7, Column: 16, Byte: 108},
+						End:      hcl.Pos{Line: 7, Column: 27, Byte: 119},
+					},
+				},
+			},
+		},
+	}
+
+	// We're going to extract and nil out our hcl.Body here because DeepEqual
+	// is not a useful way to assert on that.
+	gotConfig := got.Config
+	got.Config = nil
+
+	assertResultDeepEqual(t, got, want)
+
+	type content struct {
+		Kept  *string `hcl:"kept"`
+		Foo   *string `hcl:"foo"`
+		New   *string `hcl:"new"`
+		Newer *string `hcl:"newer"`
+	}
+	var gotArgs content
+	diags = gohcl.DecodeBody(gotConfig, nil, &gotArgs)
+	assertNoDiagnostics(t, diags)
+
+	wantArgs := content{
+		Kept:  stringPtr("primary kept"),
+		Foo:   stringPtr("a_override foo"),
+		New:   stringPtr("b_override new"),
+		Newer: stringPtr("b_override newer"),
+	}
+
+	assertResultDeepEqual(t, gotArgs, wantArgs)
+}
+
+func TestModuleOverrideDynamic(t *testing.T) {
+	schema := &hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: "foo"},
+			{Type: "dynamic", LabelNames: []string{"type"}},
+		},
+	}
+
+	t.Run("base is dynamic", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-dynamic-block-base")
+		assertNoDiagnostics(t, diags)
+		if mod == nil {
+			t.Fatalf("module is nil")
+		}
+
+		if _, exists := mod.ManagedResources["test.foo"]; !exists {
+			t.Fatalf("no module 'example'")
+		}
+		if len(mod.ManagedResources) != 1 {
+			t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+		}
+
+		body := mod.ManagedResources["test.foo"].Config
+		content, diags := body.Content(schema)
+		assertNoDiagnostics(t, diags)
+
+		if len(content.Blocks) != 1 {
+			t.Fatalf("wrong number of blocks in result %d; want 1", len(content.Blocks))
+		}
+		if got, want := content.Blocks[0].Type, "foo"; got != want {
+			t.Fatalf("wrong block type %q; want %q", got, want)
+		}
+	})
+	t.Run("override is dynamic", func(t *testing.T) {
+		mod, diags := testModuleFromDir("testdata/valid-modules/override-dynamic-block-override")
+		assertNoDiagnostics(t, diags)
+		if mod == nil {
+			t.Fatalf("module is nil")
+		}
+
+		if _, exists := mod.ManagedResources["test.foo"]; !exists {
+			t.Fatalf("no module 'example'")
+		}
+		if len(mod.ManagedResources) != 1 {
+			t.Fatalf("wrong number of managed resources in result %d; want 1", len(mod.ManagedResources))
+		}
+
+		body := mod.ManagedResources["test.foo"].Config
+		content, diags := body.Content(schema)
+		assertNoDiagnostics(t, diags)
+
+		if len(content.Blocks) != 1 {
+			t.Fatalf("wrong number of blocks in result %d; want 1", len(content.Blocks))
+		}
+		if got, want := content.Blocks[0].Type, "dynamic"; got != want {
+			t.Fatalf("wrong block type %q; want %q", got, want)
+		}
+		if got, want := content.Blocks[0].Labels[0], "foo"; got != want {
+			t.Fatalf("wrong dynamic block label %q; want %q", got, want)
+		}
+	})
+}
+
+func TestModuleOverrideSensitiveVariable(t *testing.T) {
+	type testCase struct {
+		sensitive    bool
+		sensitiveSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+		"true_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"false_true_false": {
+			sensitive:    false,
+			sensitiveSet: true,
+		},
+		"true_false_true": {
+			sensitive:    true,
+			sensitiveSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-sensitive")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Sensitive != want.sensitive {
+				t.Errorf("wrong result for sensitive\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
+			}
+
+			if got[v].SensitiveSet != want.sensitiveSet {
+				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].SensitiveSet, want.sensitiveSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideEphemeralVariable(t *testing.T) {
+	type testCase struct {
+		ephemeral    bool
+		ephemeralSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+		"true_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"false_true_false": {
+			ephemeral:    false,
+			ephemeralSet: true,
+		},
+		"true_false_true": {
+			ephemeral:    true,
+			ephemeralSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-ephemeral")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Ephemeral != want.ephemeral {
+				t.Errorf("wrong result for ephemeral\ngot: %t want: %t", got[v].Ephemeral, want.ephemeral)
+			}
+
+			if got[v].EphemeralSet != want.ephemeralSet {
+				t.Errorf("wrong result for ephemeral set\ngot: %t want: %t", got[v].EphemeralSet, want.ephemeralSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideConstVariable(t *testing.T) {
+	type testCase struct {
+		constV   bool
+		constSet bool
+	}
+	cases := map[string]testCase{
+		"false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+		"true_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"false_true_false": {
+			constV:   false,
+			constSet: true,
+		},
+		"true_false_true": {
+			constV:   true,
+			constSet: true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-variable-const")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	got := mod.Variables
+
+	for v, want := range cases {
+		t.Run(fmt.Sprintf("variable %s", v), func(t *testing.T) {
+			if got[v].Const != want.constV {
+				t.Errorf("wrong result for const\ngot: %t want: %t", got[v].Const, want.constV)
+			}
+
+			if got[v].ConstSet != want.constSet {
+				t.Errorf("wrong result for const set\ngot: %t want: %t", got[v].ConstSet, want.constSet)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideOutputType(t *testing.T) {
+	type testCase struct {
+		constraintType cty.Type
+		typeDefaults   *typeexpr.Defaults
+		typeSet        bool
+	}
+	cases := map[string]testCase{
+		"fully_overridden": {
+			constraintType: cty.Number,
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+		"no_override": {
+			constraintType: cty.String,
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+		"type_added_by_override": {
+			constraintType: cty.List(cty.String),
+			typeDefaults:   nil,
+			typeSet:        true,
+		},
+	}
+
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-output-type")
+
+	assertNoDiagnostics(t, diags)
+
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+
+	for name, want := range cases {
+		t.Run(fmt.Sprintf("output %s", name), func(t *testing.T) {
+			got, exists := mod.Outputs[name]
+			if !exists {
+				t.Fatalf("output %q not found", name)
+			}
+
+			if !got.ConstraintType.Equals(want.constraintType) {
+				t.Errorf("wrong result for constraint type\ngot:  %#v\nwant: %#v", got.ConstraintType, want.constraintType)
+			}
+
+			if got.TypeSet != want.typeSet {
+				t.Errorf("wrong result for type set\ngot: %t want: %t", got.TypeSet, want.typeSet)
+			}
+
+			if got.TypeDefaults != want.typeDefaults {
+				t.Errorf("wrong result for type defaults\ngot: %#v want: %#v", got.TypeDefaults, want.typeDefaults)
+			}
+		})
+	}
+}
+
+func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-ignore-changes")
+	assertNoDiagnostics(t, diags)
+
+	r := mod.ManagedResources["test_instance.foo"]
+	if !r.Managed.IgnoreAllChanges {
+		t.Fatalf("wrong result: expected r.Managed.IgnoreAllChanges to be true")
+	}
+}

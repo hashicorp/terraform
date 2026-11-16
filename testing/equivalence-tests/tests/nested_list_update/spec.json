@@ -1,0 +1,5 @@
+{
+  "description": "tests updating a nested list attribute within a resource",
+  "include_files": [],
+  "ignore_fields": {}
+}

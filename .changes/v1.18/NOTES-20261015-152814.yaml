@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'modules: The `modules` command now shows diagnostics in its JSON format output'
+time: 2026-10-15T15:28:14.804+01:00
+custom:
+    Issue: "39396"

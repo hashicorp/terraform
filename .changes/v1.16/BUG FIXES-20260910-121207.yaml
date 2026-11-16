@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix issue with import provider resolution
+time: 2026-09-10T12:12:07.068649-04:00
+custom:
+    Issue: "39185"

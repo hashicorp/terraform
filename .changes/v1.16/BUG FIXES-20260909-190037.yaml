@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Filter logic for marks could cause values with multiple marks to erroneously fail validations
+time: 2026-09-09T19:00:37.342225-04:00
+custom:
+    Issue: "39171"

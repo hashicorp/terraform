@@ -1,0 +1,326 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+)
+
+func TestStatePull(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-pull-backend"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StatePullCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "null_resource",
+      "name": "a",
+      "provider": "provider[\"registry.terraform.io/-/null\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "id": "8521602373864259745",
+            "triggers": null
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := done(t).Stdout()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+	}
+}
+
+// Tests using `terraform state pull` subcommand in combination with pluggable state storage
+//
+// Note: Whereas other tests in this file use the local backend and require a state file in the test fixures,
+// with pluggable state storage we can define the state via the mocked provider.
+func TestStatePull_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing a resource
+	state := states.NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"input": "foobar"
+			}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+	stateBytes := stateBuf.Bytes()
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBytes,
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	view, done := testView(t)
+	c := &StatePullCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			ProviderSource: providerSource,
+			View:           view,
+		},
+	}
+
+	// `terraform show` command specifying a given resource addr
+	expectedResourceAddr := "test_instance.foo"
+	args := []string{expectedResourceAddr}
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that the state in the output matches the original state
+	expectedResource := `
+    {
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "foo",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {
+            "input": "foobar"
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+	actual := done(t).Stdout()
+	if !strings.Contains(actual, expectedResource) {
+		t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+	}
+}
+
+func TestStatePull_noState(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StatePullCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	actual := done(t).Stdout()
+	if actual != "" {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+func TestStatePull_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := done(t).Stderr()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-var", "module_name=child"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+		}
+
+		expectedResource := `
+    {
+      "module": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {},
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+		actual := done(t).Stdout()
+		if !strings.Contains(actual, expectedResource) {
+			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		mockBackend := TestNewVariableBackend(map[string]string{
+			"module_name": "child",
+		})
+		backendInit.Set("local-vars", func() backend.Backend { return mockBackend })
+		defer backendInit.Set("local-vars", nil)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &StatePullCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+		}
+
+		expectedResource := `
+    {
+      "module": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider": "provider[\"registry.terraform.io/hashicorp/test\"]",
+      "instances": [
+        {
+          "schema_version": 0,
+          "attributes": {},
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        }
+      ]
+    }
+`
+		actual := done(t).Stdout()
+		if !strings.Contains(actual, expectedResource) {
+			t.Fatalf("expected state to contain: %s\n\nstate:%s", expectedResource, actual)
+		}
+	})
+}
+
+func TestStatePull_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StatePullCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), done(t).Stdout())
+	}
+
+	// Required version diags are correct
+	errStr := done(t).Stderr()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
+}

@@ -1,0 +1,300 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package cloud
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/go-tfe"
+)
+
+type testIntegrationOutput struct {
+	ctx    *IntegrationContext
+	output *strings.Builder
+	t      *testing.T
+}
+
+var _ IntegrationOutputWriter = (*testIntegrationOutput)(nil) // Compile time check
+
+func (s *testIntegrationOutput) End() {
+	s.output.WriteString("END\n")
+}
+
+func (s *testIntegrationOutput) SubOutput(str string) {
+	s.output.WriteString(s.ctx.B.Colorize().Color("[reset]│ "+str) + "\n")
+}
+
+func (s *testIntegrationOutput) Output(str string) {
+	s.output.WriteString(s.ctx.B.Colorize().Color("[reset]│ ") + str + "\n")
+}
+
+func (s *testIntegrationOutput) OutputElapsed(message string, maxMessage int) {
+	s.output.WriteString("PENDING MESSAGE: " + message)
+}
+
+func newMockIntegrationContext(b *Cloud, t *testing.T) (*IntegrationContext, *testIntegrationOutput) {
+	ctx := context.Background()
+
+	// Retrieve the workspace used to run this operation in.
+	w, err := b.client.Workspaces.Read(ctx, b.Organization, b.WorkspaceMapping.Name)
+	if err != nil {
+		t.Fatalf("error retrieving workspace: %v", err)
+	}
+
+	// Create a new configuration version.
+	c, err := b.client.ConfigurationVersions.Create(ctx, w.ID, tfe.ConfigurationVersionCreateOptions{})
+	if err != nil {
+		t.Fatalf("error creating configuration version: %v", err)
+	}
+
+	// Create a pending run to block this run.
+	r, err := b.client.Runs.Create(ctx, tfe.RunCreateOptions{
+		ConfigurationVersion: c,
+		Workspace:            w,
+	})
+	if err != nil {
+		t.Fatalf("error creating pending run: %v", err)
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	defer done(t)
+
+	integrationContext := &IntegrationContext{
+		B:             b,
+		StopContext:   ctx,
+		CancelContext: ctx,
+		Op:            op,
+		Run:           r,
+	}
+
+	return integrationContext, &testIntegrationOutput{
+		ctx:    integrationContext,
+		output: &strings.Builder{},
+		t:      t,
+	}
+}
+
+func TestCloud_runTasksWithTaskResults(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	integrationContext, writer := newMockIntegrationContext(b, t)
+
+	cases := map[string]struct {
+		taskStage        func() *tfe.TaskStage
+		context          *IntegrationContext
+		writer           *testIntegrationOutput
+		expectedOutputs  []string
+		expectedContinue bool
+		isError          bool
+	}{
+		"all-succeeded": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Overall Result: Passed\n"},
+			isError:         false,
+		},
+		"mandatory-failed": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "500 Error", Status: tfe.TaskFailed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Passed\n", "A-OK\n", "Overall Result: Failed\n"},
+			isError:         true,
+		},
+		"advisory-failed": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "500 Error", Status: tfe.TaskFailed, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Failed (Advisory)", "Overall Result: Passed with advisory failure"},
+			isError:         false,
+		},
+		"unreachable": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskUnreachable, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskUnreachable, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping"},
+			isError:         false,
+		},
+		"pending-with-running-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageRunning}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+				}
+				return ts
+			},
+			writer:           writer,
+			context:          integrationContext,
+			expectedOutputs:  []string{"tasks still pending"},
+			expectedContinue: true,
+			isError:          false,
+		},
+		"pending-with-passed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStagePassed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"pending-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"pending-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"pending-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskRunning, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping task results."},
+			isError:         false,
+		},
+		"mixed-pending-and-completed-with-failed-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageFailed}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "Still running", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is failed.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-canceled-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageCanceled}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is canceled.",
+			},
+			isError: false,
+		},
+		"mixed-pending-and-completed-with-errored-task-stage": {
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{Status: tfe.TaskStageErrored}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: tfe.TaskPassed, WorkspaceTaskEnforcementLevel: tfe.Mandatory},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: tfe.TaskPending, WorkspaceTaskEnforcementLevel: tfe.Advisory},
+				}
+				return ts
+			},
+			writer:  writer,
+			context: integrationContext,
+			expectedOutputs: []string{
+				"All tasks completed! 1 passed, 0 failed",
+				"Overall Result: Passed",
+				"Skipping 1 pending task result(s) because task stage is errored.",
+			},
+			isError: false,
+		},
+	}
+
+	for _, c := range cases {
+		c.writer.output.Reset()
+		trs := taskResultSummarizer{
+			cloud: b,
+		}
+		c.context.Poll(0, 0, func(i int) (bool, error) {
+			cont, msg, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			if cont != c.expectedContinue {
+				t.Fatalf("expected continue=%t, got %t", c.expectedContinue, cont)
+			}
+			if cont && msg != nil {
+				c.writer.OutputElapsed(*msg, len(*msg))
+			}
+
+			output := c.writer.output.String()
+			for _, expected := range c.expectedOutputs {
+				if !strings.Contains(output, expected) {
+					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
+				}
+			}
+			return false, nil
+		})
+	}
+}

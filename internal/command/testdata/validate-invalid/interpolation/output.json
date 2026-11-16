@@ -1,0 +1,60 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 2,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Variables not allowed",
+      "detail": "Variables may not be used here.",
+      "range": {
+        "filename": "testdata/validate-invalid/interpolation/main.tf",
+        "start": {
+          "line": 6,
+          "column": 16,
+          "byte": 122
+        },
+        "end": {
+          "line": 6,
+          "column": 19,
+          "byte": 125
+        }
+      },
+      "snippet": {
+        "context": "variable \"vairable_with_interpolation\"",
+        "code": "  default = \"${var.otherresourcename}\"",
+        "start_line": 6,
+        "highlight_start_offset": 15,
+        "highlight_end_offset": 18,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Invalid expression",
+      "detail": "A single static variable reference is required: only attribute access and indexing with constant keys. No calculations, function calls, template expressions, etc are allowed here.",
+      "range": {
+        "filename": "testdata/validate-invalid/interpolation/main.tf",
+        "start": {
+          "line": 10,
+          "column": 17,
+          "byte": 197
+        },
+        "end": {
+          "line": 10,
+          "column": 44,
+          "byte": 224
+        }
+      },
+      "snippet": {
+        "context": "resource \"aws_instance\" \"web\"",
+        "code": "  depends_on = [\"${var.otherresourcename}}\"]",
+        "start_line": 10,
+        "highlight_start_offset": 16,
+        "highlight_end_offset": 43,
+        "values": []
+      }
+    }
+  ]
+}

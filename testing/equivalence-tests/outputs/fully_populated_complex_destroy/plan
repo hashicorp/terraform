@@ -1,0 +1,229 @@
+tfcoremock_complex_resource.complex: Refreshing state... [id=64564E36-BFCB-458B-9405-EBBF6A3CAC7A]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # tfcoremock_complex_resource.complex will be destroyed
+  - resource "tfcoremock_complex_resource" "complex" {
+      - bool    = true -> null
+      - float   = 987654321 -> null
+      - id      = "64564E36-BFCB-458B-9405-EBBF6A3CAC7A" -> null
+      - integer = 987654321 -> null
+      - list    = [
+          - {
+              - string = "this is my first entry in the list, and doesn't contain anything interesting" -> null
+            },
+          - {
+              - string = <<-EOT
+                    this is my second entry in the list
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT -> null
+            },
+          - {
+              - list   = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                  - {
+                      - number = 2 -> null
+                    },
+                ] -> null
+              - string = "this is my third entry, and I actually have a nested list" -> null
+            },
+          - {
+              - set    = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                ] -> null
+              - string = "this is my fourth entry, and I actually have a nested set" -> null
+            },
+        ] -> null
+      - map     = {
+          - "key_four" = {
+              - set    = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                ] -> null
+              - string = "this is my fourth entry, and I actually have a nested set" -> null
+            },
+          - "key_one" = {
+              - string = "this is my first entry in the map, and doesn't contain anything interesting" -> null
+            },
+          - "key_three" = {
+              - list   = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                  - {
+                      - number = 2 -> null
+                    },
+                ] -> null
+              - string = "this is my third entry, and I actually have a nested list" -> null
+            },
+          - "key_two" = {
+              - string = <<-EOT
+                    this is my second entry in the map
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT -> null
+            },
+        } -> null
+      - number  = 123456789 -> null
+      - object  = {
+          - bool   = false -> null
+          - number = 0 -> null
+          - object = {
+              - bool   = true -> null
+              - number = 1 -> null
+              - string = "i am a nested nested object" -> null
+            } -> null
+          - string = "i am a nested object" -> null
+        } -> null
+      - set     = [
+          - {
+              - list   = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                  - {
+                      - number = 2 -> null
+                    },
+                ] -> null
+              - string = "this is my third entry, and I actually have a nested list" -> null
+            },
+          - {
+              - set    = [
+                  - {
+                      - number = 0 -> null
+                    },
+                  - {
+                      - number = 1 -> null
+                    },
+                ] -> null
+              - string = "this is my fourth entry, and I actually have a nested set" -> null
+            },
+          - {
+              - string = "this is my first entry in the set, and doesn't contain anything interesting" -> null
+            },
+          - {
+              - string = <<-EOT
+                    this is my second entry in the set
+                    I am a bit more interesting
+                    and contain multiple lines
+                EOT -> null
+            },
+        ] -> null
+      - string  = "a not very long or complex string" -> null
+
+      - list_block {
+          - string = jsonencode(
+                {
+                  - index = 0
+                }
+            ) -> null
+        }
+      - list_block {
+          - list   = [
+              - {
+                  - number = 0 -> null
+                },
+              - {
+                  - number = 1 -> null
+                },
+              - {
+                  - number = 2 -> null
+                },
+            ] -> null
+          - string = jsonencode(
+                {
+                  - index = 1
+                }
+            ) -> null
+        }
+      - list_block {
+          - set    = [
+              - {
+                  - number = 0 -> null
+                },
+              - {
+                  - number = 1 -> null
+                },
+            ] -> null
+          - string = jsonencode(
+                {
+                  - index = 2
+                }
+            ) -> null
+        }
+
+      - set_block {
+          - list   = [
+              - {
+                  - number = 0 -> null
+                },
+              - {
+                  - number = 1 -> null
+                },
+              - {
+                  - number = 2 -> null
+                },
+            ] -> null
+          - string = jsonencode(
+                {
+                  - index = 1
+                }
+            ) -> null
+        }
+      - set_block {
+          - set    = [
+              - {
+                  - number = 0 -> null
+                },
+              - {
+                  - number = 1 -> null
+                },
+            ] -> null
+          - string = jsonencode(
+                {
+                  - index = 2
+                }
+            ) -> null
+        }
+      - set_block {
+          - string = jsonencode(
+                {
+                  - index = 0
+                }
+            ) -> null
+        }
+    }
+
+Plan: 0 to add, 0 to change, 1 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

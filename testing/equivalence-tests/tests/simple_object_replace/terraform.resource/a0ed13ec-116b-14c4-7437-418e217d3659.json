@@ -1,0 +1,20 @@
+{
+  "values": {
+    "id": {
+      "string": "a0ed13ec-116b-14c4-7437-418e217d3659"
+    },
+    "object": {
+      "object": {
+        "boolean": {
+          "boolean": true
+        },
+        "number": {
+          "number": "10"
+        },
+        "string": {
+          "string": "Hello, world!"
+        }
+      }
+    }
+  }
+}

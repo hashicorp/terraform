@@ -1,0 +1,5 @@
+{
+  "description": "tests deleting a resource created by the null provider",
+  "include_files": [],
+  "ignore_fields": {}
+}

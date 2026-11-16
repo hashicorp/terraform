@@ -1,0 +1,34 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Duplicate provider configuration",
+      "detail": "A default (non-aliased) provider configuration for \"aws\" was already given at testdata/validate-invalid/multiple_providers/main.tf:1,1-15. If multiple configurations are required, set the \"alias\" argument for alternative configurations.",
+      "range": {
+        "filename": "testdata/validate-invalid/multiple_providers/main.tf",
+        "start": {
+          "line": 7,
+          "column": 1,
+          "byte": 85
+        },
+        "end": {
+          "line": 7,
+          "column": 15,
+          "byte": 99
+        }
+      },
+      "snippet": {
+        "context": null,
+        "code": "provider \"aws\" {",
+        "start_line": 7,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 14,
+        "values": []
+      }
+    }
+  ]
+}

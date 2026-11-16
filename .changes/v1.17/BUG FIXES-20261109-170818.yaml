@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'init: Fix repeated unavailable-provider schema warnings in log output'
+time: 2026-11-09T17:08:18.379879+01:00
+custom:
+    Issue: "39517"

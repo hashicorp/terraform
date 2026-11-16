@@ -1,0 +1,388 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package terraform
+
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
+)
+
+// GraphNodeDestroyer must be implemented by nodes that destroy resources.
+type GraphNodeDestroyer interface {
+	dag.Vertex
+	// DestroyAddr is the address of the resource that is being destroyed.
+	DestroyAddr() addrs.AbsResourceInstance
+}
+
+// GraphNodeCreator must be implemented by nodes that create OR update resources.
+type GraphNodeCreator interface {
+	dag.Vertex
+	// CreateAddr is the address of the resource being created or updated.
+	CreateAddr() addrs.AbsResourceInstance
+}
+
+// DestroyEdgeTransformer is a GraphTransformer that creates the proper
+// references for destroy resources. Destroy resources are more complex
+// in that they must be depend on the destruction of resources that
+// in turn depend on the CREATION of the node being destroy.
+//
+// That is complicated. Visually:
+//
+//	B_d -> A_d -> A -> B
+//
+// Notice that A destroy depends on B destroy, while B create depends on
+// A create. They're inverted. This must be done for example because often
+// dependent resources will block parent resources from deleting. Concrete
+// example: VPC with subnets, the VPC can't be deleted while there are
+// still subnets.
+//
+// Deposed objects left over from a previous run already have their
+// replacement, so they are only ordered by their destroy dependencies, and not
+// against any create or update.
+type DestroyEdgeTransformer struct {
+	// FIXME: GraphNodeCreators are not always applying changes, and should not
+	// participate in the destroy graph if there are no operations which could
+	// interract with destroy nodes. We need Changes for now to detect the
+	// action type, but perhaps this should be indicated somehow by the
+	// DiffTransformer which was intended to be the only transformer operating
+	// from the change set.
+	Changes *plans.ChangesSrc
+
+	// FIXME: Operation will not be needed here one we can better track
+	// inter-provider dependencies and remove the cycle checks in
+	// tryInterProviderDestroyEdge.
+	Operation walkOperation
+}
+
+// tryInterProviderDestroyEdge checks if we're inserting a destroy edge
+// across a provider boundary, and only adds the edge if it results in no cycles.
+//
+// FIXME: The cycles can arise in valid configurations when a provider depends
+// on resources from another provider. In the future we may want to inspect
+// the dependencies of the providers themselves, to avoid needing to use the
+// blunt hammer of checking for cycles.
+//
+// A reduced example of this dependency problem looks something like:
+/*
+
+createA <-               createB
+  |        \            /    |
+  |         providerB <-     |
+  v                     \    v
+destroyA ------------->  destroyB
+
+*/
+//
+// The edge from destroyA to destroyB would be skipped in this case, but there
+// are still other combinations of changes which could connect the A and B
+// groups around providerB in various ways.
+//
+// The most difficult problem here happens during a full destroy operation.
+// That creates a special case where resources on which a provider depends must
+// exist for evaluation before they are destroyed. This means that any provider
+// dependencies must wait until all that provider's resources have first been
+// destroyed. This is where these cross-provider edges are still required to
+// ensure the correct order.
+func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
+	g.Connect(from, to)
+
+	// If this is a complete destroy operation, then there are no create/update
+	// nodes to worry about and we can accept the edge without deeper inspection.
+	if t.Operation == walkDestroy || t.Operation == walkPlanDestroy {
+		return
+	}
+
+	// getComparableProvider inspects the node to try and get the most precise
+	// description of the provider being used to help determine if 2 nodes are
+	// from the same provider instance.
+	getComparableProvider := func(pc GraphNodeProviderConsumer) string {
+		return pc.Provider().String()
+	}
+
+	pc, ok := from.(GraphNodeProviderConsumer)
+	if !ok {
+		return
+	}
+	fromProvider := getComparableProvider(pc)
+
+	pc, ok = to.(GraphNodeProviderConsumer)
+	if !ok {
+		return
+	}
+	toProvider := getComparableProvider(pc)
+
+	// Check for cycles, and back out the edge if there are any.
+	// The cycles we are looking for only appears between providers, so don't
+	// waste time checking for cycles if both nodes use the same provider.
+	if fromProvider != toProvider && g.Ancestors(to).Contains(from) {
+		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
+			from.Name(), to.Name())
+		g.RemoveEdge(from, to)
+	}
+}
+
+func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
+	// Build a map of what is being destroyed (by address string) to
+	// the list of destroyers.
+	destroyers := addrs.MakeMap[addrs.AbsResourceInstance, []GraphNodeDestroyer]()
+
+	// Record the creators, which will need to depend on the destroyers if they
+	// are only being updated.
+	creators := addrs.MakeMap[addrs.ConfigResource, []GraphNodeCreator]()
+
+	// destroyersByResource records each destroyer by the ConfigResource
+	// address.  We use this because dependencies are only referenced as
+	// resources and have no index or module instance information, but we will
+	// want to connect all the individual instances for correct ordering.
+	destroyersByResource := addrs.MakeMap[addrs.ConfigResource, []GraphNodeDestroyer]()
+	for v := range g.VerticesSeq() {
+		switch n := v.(type) {
+		case GraphNodeDestroyer:
+			addr := n.DestroyAddr()
+
+			key := addr.String()
+			log.Printf("[TRACE] DestroyEdgeTransformer: %q (%T) destroys %s", n.Name(), v, key)
+			destroyers.Put(addr, append(destroyers.Get(addr), n))
+
+			resAddr := addr.ContainingResource().Config()
+			destroyersByResource.Put(resAddr, append(destroyersByResource.Get(resAddr), n))
+		case GraphNodeCreator:
+			addr := n.CreateAddr()
+			cfgAddr := addr.ContainingResource().Config()
+
+			if t.Changes == nil {
+				// unit tests may not have changes
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
+				break
+			}
+
+			// NoOp changes should not participate in the destroy dependencies.
+			rc := t.Changes.ResourceInstance(addr)
+			if rc != nil && rc.Action != plans.NoOp {
+				creators.Put(cfgAddr, append(creators.Get(cfgAddr), n))
+			}
+		}
+	}
+
+	// If we aren't destroying anything, there will be no edges to make
+	// so just exit early and avoid future work.
+	if destroyers.Len() == 0 {
+		return nil
+	}
+
+	// Go through and connect creators to destroyers.
+	//
+	// destroyFirst records destroy nodes which are part of a replacement and
+	// will be executed first, i.e. they are not create-before-destroy
+	destroyFirst := dag.NewVertexSet()
+	for v := range g.VerticesSeq() {
+		creator, ok := v.(GraphNodeCreator)
+		if !ok {
+			continue
+		}
+
+		addr := creator.CreateAddr()
+		for _, destroyer := range destroyers.Get(addr) {
+			log.Printf(
+				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
+				creator.Name(), destroyer.Name())
+
+			g.Connect(creator, destroyer)
+
+			if _, ok := destroyer.(GraphNodeDeposedResourceInstanceObject); !ok {
+				destroyFirst.Add(destroyer)
+			}
+		}
+	}
+
+	// connect creators to any destroyers on which they may depend
+	for _, cs := range creators.Iter() {
+		for _, c := range cs {
+			ri, ok := c.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
+
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", c.Name(), desDep.Name())
+						g.Connect(c, desDep)
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", c.Name(), desDep.Name())
+					}
+				}
+			}
+		}
+	}
+
+	// Connect destroy dependencies as stored in the state
+	for _, ds := range destroyers.Iter() {
+		for _, des := range ds {
+			ri, ok := des.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
+
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource.Get(resAddr) {
+					// The plan forces configured dependencies of a CBD
+					// replacement to be CBD too. A stored dependency planned
+					// for destroy-first replacement therefore must no longer be
+					// a configured dependency. Let current configuration take
+					// precedence by omitting this stored destroy edge.
+					if replacedCreateBeforeDestroy(des) && destroyFirst.Contains(desDep) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping stored dependency of %s on %s, which is no longer in the configuration\n", des.Name(), desDep.Name())
+						continue
+					}
+
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", desDep.Name(), des.Name())
+						t.tryInterProviderDestroyEdge(g, desDep, des)
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", desDep.Name(), des.Name())
+					}
+				}
+
+				// We can have some create or update nodes which were
+				// dependents of the destroy node. If they have no destroyer
+				// themselves, make the connection directly from the creator.
+				for _, createDep := range creators.Get(resAddr) {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
+						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", createDep.Name(), des.Name())
+						t.tryInterProviderDestroyEdge(g, createDep, des)
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", createDep.Name(), des.Name())
+					}
+				}
+			}
+		}
+	}
+
+	// Deposed objects left over from a previous run already have their
+	// respective replacements and updates already completed, so they are only
+	// ordered relative to other destroy nodes, and not against any create or
+	// update. We remove these edges in a single pass after the fact, because
+	// the above logic can add them in multiple places.
+	for _, ds := range destroyers.Iter() {
+		for _, des := range ds {
+			// Leftover deposed nodes are detected by the diff transformer, and
+			// have their CreateBeforeDestroy status stripped. This check
+			// ensures that des is a GraphNodeDeposedResourceInstanceObject
+			// which is not CreateBeforeDestroy.
+			if deposedCBD, ok := des.(GraphNodeDeposedResourceInstanceObject); !ok || deposedCBD.CreateBeforeDestroy() {
+				continue
+			}
+
+			for src := range g.EdgesTo(des).All() {
+				if _, ok := src.(GraphNodeCreator); ok {
+					log.Printf("[TRACE] DestroyEdgeTransformer: removing edge %s -> %s for leftover deposed object", src.Name(), des.Name())
+					g.RemoveEdge(src, des)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// replacedCreateBeforeDestroy returns true if v destroys an object which is
+// deposed by a create_before_destroy replacement in this apply. Deposed objects
+// left over from a previous run are not create_before_destroy.
+func replacedCreateBeforeDestroy(v dag.Vertex) bool {
+	dn, ok := v.(GraphNodeDeposedResourceInstanceObject)
+	return ok && dn.CreateBeforeDestroy()
+}
+
+// Remove nodes that aren't needed, when planning or applying a full destroy.
+// Specifically, we want to remove any temporary values (variables, outputs,
+// locals) that aren't ultimately referenced by a provider, as well as any
+// expanders whose instances are never relevant. This is necessary because of
+// some interacting behaviors:
+//
+// - In a destroy, we create nodes from the full config, but then try to *act*
+// like we're using a config with all the resources removed. So we have many
+// nodes for temporary values that *would not exist* in the stipulated
+// "resources gone" config. (This is why we *can* prune some nodes.)
+//
+// - We still need provider configurations to destroy anything. Provider configs
+// must be re-evaluated during apply (they aren't cached in the state or plan),
+// and they might refer to temporary values like locals or variables. (This is
+// why we can't just prune *all* the temporary value nodes.)
+//
+// - Any node referenced by an in-use provider should end up properly anchored
+// in the destroy graph ordering. But other temporary values are more randomly
+// ordered (because we don't bother fixing edges to guarantee they happen before
+// relevant destructions), so they might be impossible to evaluate properly
+// during a destroy, especially if we already performed a partial destroy and
+// got interrupted. (This is why we *must* prune some nodes.)
+//
+// - The first and third points above aren't relevant in a normal run that
+// happens to perform some destructions, because any temporary value that
+// references a destroyed resource will get ordered after the creation of the
+// resource's replacement. (This is why we only prune for destroys.)
+type pruneUnusedNodesTransformer struct {
+	// Both the plan and apply graph builders will skip this transformer except
+	// during a full destroy.
+	skip bool
+}
+
+func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
+	// we need to track nodes to keep, because the dependency trees can overlap,
+	// so we can't just remove all dependencies of nodes we don't want.
+	keep := dag.NewVertexSet()
+
+	// Only keep destroyers, their providers, and anything the providers need
+	// for configuration. Since the destroyer should already be hooked up to the
+	// provider, keeping all the destroyer dependencies should suffice.
+	for n := range g.VerticesSeq() {
+		// a special case of destroyer, is that by convention Terraform expects
+		// root outputs to be "destroyed", and the output node is what writes
+		// the nil state. A root module output currently identifies itself as a
+		// temporary value which is not temporary for that reason.
+		if tmp, ok := n.(graphNodeTemporaryValue); ok && !tmp.temporaryValue() {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping root output %s", n.Name())
+			keep.Add(n)
+			continue
+		}
+
+		// Module policies only depend on static configuration, so they can always be evaluated,
+		// even when the module expansion itself is pruned.
+		if _, ok := n.(*nodeModulePolicy); ok {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping module policy %s", n.Name())
+			keep.Add(n)
+			continue
+		}
+
+		// from here we only search for managed resource destroy nodes
+		n, ok := n.(GraphNodeDestroyer)
+		if !ok {
+			continue
+		}
+
+		log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping destroy node %s", n.Name())
+		keep.Add(n)
+
+		for anc := range g.Ancestors(n).All() {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: keeping %s as dependency of %s", anc.Name(), n.Name())
+			keep.Add(anc)
+		}
+	}
+
+	for n := range g.VerticesSeq() {
+		if !keep.Contains(n) {
+			log.Printf("[TRACE] pruneUnusedNodesTransformer: removing %s", n.Name())
+			g.Remove(n)
+		}
+	}
+
+	return nil
+}

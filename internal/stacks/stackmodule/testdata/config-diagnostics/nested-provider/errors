@@ -1,0 +1,1 @@
+nested-provider/root.tf:2,11-12: Module is incompatible with count, for_each, and depends_on; The module at module.child.module.child2 is a legacy module which contains its own local provider configurations, and so calls to it may not use the count, for_each, or depends_on arguments.

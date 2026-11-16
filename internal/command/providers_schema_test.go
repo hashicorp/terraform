@@ -1,0 +1,414 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/workdir"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+)
+
+func TestProvidersSchema_error(t *testing.T) {
+	view, done := testView(t)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	if code := c.Run(nil); code != 1 {
+		t.Fatalf("expected error: \n%s", done(t).All())
+	}
+}
+
+func TestProvidersSchema_output(t *testing.T) {
+	fixtureDir := "testdata/providers-schema"
+	testDirs, err := os.ReadDir(fixtureDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entry := range testDirs {
+		if !entry.IsDir() {
+			continue
+		}
+		t.Run(entry.Name(), func(t *testing.T) {
+			td := t.TempDir()
+			inputDir := filepath.Join(fixtureDir, entry.Name())
+			testCopyDir(t, inputDir, td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"test": {"1.2.3"},
+			})
+
+			p := providersSchemaFixtureProvider()
+			view, done := testView(t)
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+				ProviderSource:   providerSource,
+			}
+
+			// `terrafrom init`
+			ic := &InitCommand{
+				Meta: m,
+			}
+			if code := ic.Run([]string{}); code != 0 {
+				t.Fatalf("init failed\n%s", done(t).Stderr())
+			}
+
+			// `terraform provider schemas` command
+			view, done = testView(t)
+			m.View = view
+			pc := &ProvidersSchemaCommand{Meta: m}
+			if code := pc.Run([]string{"-json"}); code != 0 {
+				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, done(t).All())
+			}
+			var got, want providerSchemas
+
+			gotString := done(t).Stdout()
+			json.Unmarshal([]byte(gotString), &got)
+
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := io.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
+			json.Unmarshal([]byte(byteValue), &want)
+
+			if !cmp.Equal(got, want) {
+				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+			}
+		})
+	}
+}
+
+// Test that provider schema data can be obtained based on directory data set in the Meta,
+// not by relying on code upstream from the command having changed the working directory.
+// This test mimics a user running `terraform -chdir=<dir> providers schema`
+func TestProvidersSchema_output_withOverriddenWorkingDir(t *testing.T) {
+	fixtureDir := "providers-schema/basic"
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(fixtureDir), td)
+
+	// We don't call t.Chdir, intentionally.
+
+	p := providersSchemaFixtureProvider()
+	view, done := testView(t)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			View:             view,
+			testingOverrides: metaOverridesForProvider(p),
+
+			// Setting WorkingDir mimics what calling code would do
+			// when running a command with -chdir.
+			WorkingDir: workdir.NewDir(td),
+		},
+	}
+
+	args := []string{
+		"-json",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+
+	// Assert we got the expected output, despite no changing into that directory.
+	var got, want providerSchemas
+
+	gotString := done(t).Stdout()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open(filepath.Join(td, "output.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
+func TestProvidersSchema_output_withStateStore(t *testing.T) {
+	// State with a 'baz' provider not in the config
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "baz_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("baz"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	// Create a temporary working directory that includes config using
+	// a state store in the `test` provider
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("provider-schemas-state-store"), td)
+	t.Chdir(td)
+
+	// Get bytes describing the state
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(originalState, "", 1), &stateBuf); err != nil {
+		t.Fatalf("error during test setup: %s", err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
+	mockProviderAddressTest := addrs.NewDefaultProvider("test")
+
+	// Mock for the provider in the state
+	mockProviderAddressBaz := addrs.NewDefaultProvider("baz")
+
+	view, done := testView(t)
+	c := &ProvidersSchemaCommand{
+		Meta: Meta{
+			View:                      view,
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddressTest: providers.FactoryFixed(mockProvider),
+					mockProviderAddressBaz:  providers.FactoryFixed(mockProvider),
+				},
+			},
+		},
+	}
+
+	args := []string{"-json"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+	}
+
+	// Does the output mention the 2 providers, and the name of the state store?
+	wantOutput := []string{
+		mockProviderAddressBaz.String(),  // provider from state
+		mockProviderAddressTest.String(), // provider from config
+		"test_store",                     // the name of the state store implemented in the provider
+	}
+
+	output := done(t).Stdout()
+	for _, want := range wantOutput {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %s:\n%s", want, output)
+		}
+	}
+
+	// Does the output match the full expected schema?
+	var got, want providerSchemas
+	err := json.Unmarshal([]byte(output), &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantFile, err := os.Open("output.json")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = json.Unmarshal([]byte(byteValue), &want)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
+func TestProvidersSchema_constVariable(t *testing.T) {
+	t.Run("missing value", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-json"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error, got 0")
+		}
+
+		errStr := done(t).All()
+		if !strings.Contains(errStr, "No value for required variable") {
+			t.Fatalf("expected missing variable error, got: %s", errStr)
+		}
+	})
+
+	t.Run("value via cli", func(t *testing.T) {
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+			},
+		}
+
+		args := []string{"-json", "-var", "module_name=child"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+		}
+
+		output := done(t).Stdout()
+		wantOutput := []string{
+			`"registry.terraform.io/hashicorp/test"`,
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
+
+	t.Run("value via backend", func(t *testing.T) {
+		server := cloudTestServerWithVars(t)
+		defer server.Close()
+		d := testDisco(server)
+
+		previousBackend := backendInit.Backend("cloud")
+		backendInit.Set("cloud", func() backend.Backend { return backendCloud.New(d) })
+		defer backendInit.Set("cloud", previousBackend)
+
+		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
+		t.Chdir(wd.RootModuleDir())
+
+		view, done := testView(t)
+		c := &ProvidersSchemaCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+				WorkingDir:       wd,
+				Services:         d,
+			},
+		}
+
+		args := []string{"-json"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, done(t).All())
+		}
+
+		output := done(t).Stdout()
+		wantOutput := []string{
+			`"registry.terraform.io/hashicorp/test"`,
+		}
+
+		for _, want := range wantOutput {
+			if !strings.Contains(output, want) {
+				t.Fatalf("output missing %s:\n%s", want, output)
+			}
+		}
+	})
+}
+
+type providerSchemas struct {
+	FormatVersion string                    `json:"format_version"`
+	Schemas       map[string]providerSchema `json:"provider_schemas"`
+}
+
+type providerSchema struct {
+	Provider          interface{}            `json:"provider,omitempty"`
+	ResourceSchemas   map[string]interface{} `json:"resource_schemas,omitempty"`
+	DataSourceSchemas map[string]interface{} `json:"data_source_schemas,omitempty"`
+	StateStoreSchemas map[string]interface{} `json:"state_store_schemas,omitempty"`
+}
+
+// testProvider returns a mock provider that is configured for basic
+// operation with the configuration in testdata/providers-schema.
+func providersSchemaFixtureProvider() *testing_provider.MockProvider {
+	p := testProvider()
+	p.GetProviderSchemaResponse = providersSchemaFixtureSchema()
+	return p
+}
+
+// providersSchemaFixtureSchema returns a schema suitable for processing the
+// configuration in testdata/providers-schema.ß
+func providersSchemaFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Body: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+						"volumes": {
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":        {Type: cty.String, Required: true},
+									"mount_point": {Type: cty.String, Required: true},
+								},
+							},
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
+}

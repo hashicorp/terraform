@@ -1,0 +1,5 @@
+{
+  "description": "this test updates a resource that has also been moved",
+  "include_files": [],
+  "ignore_fields": {}
+}

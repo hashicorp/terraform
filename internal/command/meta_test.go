@@ -1,0 +1,520 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/command/ui"
+	"github.com/hashicorp/terraform/internal/terraform"
+)
+
+func TestMetaColorize(t *testing.T) {
+	var m *Meta
+	var args, args2 []string
+
+	// Test basic, color
+	m = new(Meta)
+	m.Color = true
+	args = []string{"foo", "bar"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if m.Colorize().Disable {
+		t.Fatal("should not be disabled")
+	}
+
+	// Test basic, no change
+	m = new(Meta)
+	args = []string{"foo", "bar"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !m.Colorize().Disable {
+		t.Fatal("should be disabled")
+	}
+
+	// Test disable #1
+	m = new(Meta)
+	m.Color = true
+	args = []string{"foo", "-no-color", "bar"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !m.Colorize().Disable {
+		t.Fatal("should be disabled")
+	}
+
+	// Test disable #2
+	// Verify multiple -no-color options are removed from args slice.
+	// E.g. an additional -no-color arg could be added by TF_CLI_ARGS.
+	m = new(Meta)
+	m.Color = true
+	args = []string{"foo", "-no-color", "bar", "-no-color"}
+	args2 = []string{"foo", "bar"}
+	args = m.process(args)
+	if !reflect.DeepEqual(args, args2) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !m.Colorize().Disable {
+		t.Fatal("should be disabled")
+	}
+}
+
+func TestMetaInputMode(t *testing.T) {
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil,
+	)
+
+	m := new(Meta)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
+
+	// In a command implementation, the -input flag would need to be parsed by logic in the `arguments`
+	// package, and the returned value used to set the `input` field on the Meta.
+	// So, this test simply verifies that the input mode is enabled when (Meta).input is true.
+	m.input = true
+
+	if m.InputMode() != terraform.InputModeStd {
+		t.Fatalf("bad: %#v", m.InputMode())
+	}
+}
+
+func TestMetaInputMode_envVar(t *testing.T) {
+	t.Run("env var overrides input mode, if input is otherwise considered enabled", func(t *testing.T) {
+		// Ask for input
+		uiInput := ui.NewUIInputForTests(
+			ui.UIInputOptions{},
+			nil, nil,
+		)
+
+		m := new(Meta)
+		m.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
+		// Commands will set this value to true, which is the default value.
+		// The ENV only overrides if this value is set to true.
+		m.input = true
+
+		off := terraform.InputMode(0)
+		on := terraform.InputModeStd
+		cases := []struct {
+			EnvVar   string
+			Expected terraform.InputMode
+		}{
+			{"false", off},
+			{"0", off},
+			{"true", on},
+			{"1", on},
+		}
+
+		for _, tc := range cases {
+			t.Setenv(InputModeEnvVar, tc.EnvVar)
+			if m.InputMode() != tc.Expected {
+				t.Fatalf("expected InputMode: %#v, got: %#v", tc.Expected, m.InputMode())
+			}
+		}
+	})
+
+	t.Run("env var cannot enable input mode if it is disabled by -input=false", func(t *testing.T) {
+		// Ask for input
+		uiInput := ui.NewUIInputForTests(
+			ui.UIInputOptions{},
+			nil, nil,
+		)
+
+		m := new(Meta)
+		m.testingOverrides = &testingOverrides{
+			UIInput: uiInput,
+		}
+
+		// (Meta).input = false if a command receives -input=false as a CLI flag.
+		// Or, if the command is incorrectly implemented and ignores the -input flag.
+		m.input = false
+
+		off := terraform.InputMode(0)
+		cases := []struct {
+			EnvVar   string
+			Expected terraform.InputMode
+		}{
+			{"true", off},
+			{"1", off},
+		}
+
+		for _, tc := range cases {
+			t.Setenv(InputModeEnvVar, tc.EnvVar)
+			if m.InputMode() != tc.Expected {
+				t.Fatalf("expected InputMode: %#v, got: %#v", tc.Expected, m.InputMode())
+			}
+		}
+	})
+}
+
+func TestMetaInputMode_disable(t *testing.T) {
+	// Ask for input
+	uiInput := ui.NewUIInputForTests(
+		ui.UIInputOptions{},
+		nil, nil,
+	)
+
+	m := new(Meta)
+	m.testingOverrides = &testingOverrides{
+		UIInput: uiInput,
+	}
+
+	// In a command implementation, the -input flag would need to be parsed by logic in the `arguments`
+	// package, and the returned value used to set the `input` field on the Meta.
+	// So, this test simply verifies that the input mode is disabled when (Meta).input is false.
+	m.input = false
+
+	if m.InputMode() > 0 {
+		t.Fatalf("bad: %#v", m.InputMode())
+	}
+}
+
+func TestMeta_Env(t *testing.T) {
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	t.Chdir(td)
+
+	m := new(Meta)
+
+	env, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if env != backend.DefaultStateName {
+		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
+	}
+
+	testEnv := "test_env"
+	if err := m.SetWorkspace(testEnv); err != nil {
+		t.Fatal("error setting env:", err)
+	}
+
+	env, _ = m.Workspace()
+	if env != testEnv {
+		t.Fatalf("expected env %q, got env %q", testEnv, env)
+	}
+
+	if err := m.SetWorkspace(backend.DefaultStateName); err != nil {
+		t.Fatal("error setting env:", err)
+	}
+
+	env, _ = m.Workspace()
+	if env != backend.DefaultStateName {
+		t.Fatalf("expected env %q, got env %q", backend.DefaultStateName, env)
+	}
+}
+
+func TestMeta_StatePersistInterval(t *testing.T) {
+	m := new(Meta)
+	t.Run("when the env var is not defined", func(t *testing.T) {
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with valid interval greater than the default", func(t *testing.T) {
+		t.Setenv(StatePersistIntervalEnvVar, "25")
+
+		interval := m.StatePersistInterval()
+		if interval != 25 {
+			t.Fatalf("expected state persist interval to be 25, got: %d", interval)
+		}
+	})
+	t.Run("with a valid interval less than the default", func(t *testing.T) {
+		t.Setenv(StatePersistIntervalEnvVar, "10")
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with invalid integer interval", func(t *testing.T) {
+		t.Setenv(StatePersistIntervalEnvVar, "foo")
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+	t.Run("with negative integer interval", func(t *testing.T) {
+		t.Setenv(StatePersistIntervalEnvVar, "-10")
+
+		interval := m.StatePersistInterval()
+		if interval != DefaultStatePersistInterval {
+			t.Fatalf("expected state persist interval to be %d, got: %d", DefaultStatePersistInterval, interval)
+		}
+	})
+}
+
+// Invalid workspace names provided via ENV are validated.
+func TestMeta_Workspace_override(t *testing.T) {
+	m := new(Meta)
+
+	testCases := map[string]struct {
+		workspace string
+		err       error
+	}{
+		"": {
+			"default",
+			nil,
+		},
+		"development": {
+			"development",
+			nil,
+		},
+		"invalid name": {
+			"",
+			errInvalidWorkspaceNameEnvVar,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(WorkspaceNameEnvVar, name)
+			workspace, err := m.Workspace()
+			if workspace != tc.workspace {
+				t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", workspace, tc.workspace)
+			}
+			if err != tc.err {
+				t.Errorf("Unexpected error\n got: %s\nwant: %s\n", err, tc.err)
+			}
+		})
+	}
+}
+
+func TestMeta_Workspace_invalidSelected(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+
+	// this is an invalid workspace name
+	workspace := "test workspace"
+
+	// create the workspace directories
+	if err := os.MkdirAll(filepath.Join(local.DefaultWorkspaceDir, workspace), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// create the workspace file to select it
+	if err := os.MkdirAll(DefaultDataDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(DefaultDataDir, local.DefaultWorkspaceFile), []byte(workspace), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := new(Meta)
+
+	// Normally, errors are returned when selecting an invalid workspace.
+	ws, err := m.Workspace()
+	if ws != "" {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err == nil {
+		t.Errorf("Expected error but got none")
+	}
+
+	// But it is possible to select an invalid workspace, enabling some
+	// commands to interact with and correct the issue.
+	m.bypassWorkspaceNameValidityCheck = true
+	ws, err = m.Workspace()
+	if ws != workspace {
+		t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", ws, workspace)
+	}
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err)
+	}
+}
+
+func TestMeta_process(t *testing.T) {
+	// Create a temporary directory for our cwd
+	d := t.TempDir()
+	os.MkdirAll(d, 0755)
+	t.Chdir(d)
+
+	// At one point it was the responsibility of this process function to
+	// insert fake additional -var-file options into the command line
+	// if the automatic tfvars files were present. This is no longer the
+	// responsibility of process (it happens in collectVariableValues instead)
+	// but we're still testing with these files in place to verify that
+	// they _aren't_ being interpreted by process, since that could otherwise
+	// cause them to be added more than once and mess up the precedence order.
+	defaultVarsfile := "terraform.tfvars"
+	err := ioutil.WriteFile(
+		filepath.Join(d, defaultVarsfile),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fileFirstAlphabetical := "a-file.auto.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, fileFirstAlphabetical),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	fileLastAlphabetical := "z-file.auto.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, fileLastAlphabetical),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	// Regular tfvars files will not be autoloaded
+	fileIgnored := "ignored.tfvars"
+	err = ioutil.WriteFile(
+		filepath.Join(d, fileIgnored),
+		[]byte(""),
+		0644)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	tests := []struct {
+		GivenArgs    []string
+		FilteredArgs []string
+		ExtraCheck   func(*testing.T, *Meta)
+	}{
+		{
+			[]string{},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, true; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, true; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
+		{
+			[]string{"-no-color"},
+			[]string{},
+			func(t *testing.T, m *Meta) {
+				if got, want := m.color, false; got != want {
+					t.Errorf("wrong m.color value %#v; want %#v", got, want)
+				}
+				if got, want := m.Color, false; got != want {
+					t.Errorf("wrong m.Color value %#v; want %#v", got, want)
+				}
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s", test.GivenArgs), func(t *testing.T) {
+			uiInput := ui.NewUIInputForTests(
+				ui.UIInputOptions{},
+				nil,
+				nil,
+			)
+
+			m := new(Meta)
+			m.testingOverrides = &testingOverrides{
+				UIInput: uiInput,
+			}
+			m.Color = true // this is the default also for normal use, overridden by -no-color
+			args := test.GivenArgs
+			args = m.process(args)
+
+			if !cmp.Equal(test.FilteredArgs, args) {
+				t.Errorf("wrong filtered arguments\n%s", cmp.Diff(test.FilteredArgs, args))
+			}
+
+			if test.ExtraCheck != nil {
+				test.ExtraCheck(t, m)
+			}
+		})
+	}
+}
+
+func TestCommand_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	t.Chdir(td)
+
+	ui := testUiWrapped(t)
+	meta := Meta{
+		Ui: ui,
+	}
+
+	diags := meta.checkRequiredVersion()
+	if diags == nil {
+		t.Fatalf("diagnostics should contain unmet version constraint, but is nil")
+	}
+
+	meta.showDiagnostics(diags)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
+}
+
+func TestTestingOverrides_Input(t *testing.T) {
+	cases := []struct {
+		name             string
+		testingOverrides *testingOverrides
+		expected         bool
+	}{
+		{
+			name:             "nil testingOverrides",
+			testingOverrides: nil,
+			expected:         true,
+		},
+		{
+			name: "UIInput set",
+			testingOverrides: &testingOverrides{
+				UIInput: ui.NewUIInputForTests(ui.UIInputOptions{}, nil, nil),
+			},
+			expected: true,
+		},
+		{
+			name: "UIInput not set in testingOverrides",
+			testingOverrides: &testingOverrides{
+				UIInput: nil,
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := tc.testingOverrides.Input()
+			if got != tc.expected {
+				t.Errorf("got %v; want %v", got, tc.expected)
+			}
+		})
+	}
+}

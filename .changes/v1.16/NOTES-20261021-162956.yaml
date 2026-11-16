@@ -1,0 +1,5 @@
+kind: NOTES
+body: Terraform is now built with Go 1.26.10, which no longer trusts certificates issued through a set of compromised eMudhra intermediate CAs (CVE-2026-111943)
+time: 2026-10-21T16:29:56.124743+02:00
+custom:
+    Issue: "39417"

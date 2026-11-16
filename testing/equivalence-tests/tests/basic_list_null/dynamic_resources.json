@@ -1,0 +1,13 @@
+{
+  "tfcoremock_list": {
+    "attributes": {
+      "list": {
+        "type": "list",
+        "optional": true,
+        "list": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

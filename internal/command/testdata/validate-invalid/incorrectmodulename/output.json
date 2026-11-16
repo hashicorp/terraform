@@ -1,0 +1,60 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 2,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Missing required argument",
+      "detail": "The argument \"source\" is required, but no definition was found.",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 1,
+          "column": 23,
+          "byte": 22
+        },
+        "end": {
+          "line": 1,
+          "column": 24,
+          "byte": 23
+        }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 22,
+        "highlight_end_offset": 23,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Invalid module instance name",
+      "detail": "A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.",
+      "range": {
+        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
+        "start": {
+          "line": 1,
+          "column": 8,
+          "byte": 7
+        },
+        "end": {
+          "line": 1,
+          "column": 22,
+          "byte": 21
+        }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 7,
+        "highlight_end_offset": 21,
+        "values": []
+      }
+    }
+  ]
+}

@@ -1,0 +1,1007 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/modsdir"
+)
+
+func TestInit2_dynamicSourceErrors(t *testing.T) {
+	tests := map[string]struct {
+		fixture   string
+		args      []string
+		wantError string
+	}{
+		"version constraint added to previously unversioned module": {
+			fixture:   "add-version-constraint",
+			args:      []string{"-get=false"},
+			wantError: "Module version requirements have changed",
+		},
+		"invalid registry source with version argument": {
+			fixture:   "invalid-registry-source-with-module",
+			wantError: "Invalid registry module source address",
+		},
+		"local source with version argument": {
+			fixture:   "local-source-with-version",
+			wantError: "Invalid registry module source address",
+		},
+		"non-const variable in module source": {
+			fixture:   "local-source-with-non-const-variable",
+			args:      []string{"-var", "module_name=example"},
+			wantError: "Unknown module source",
+		},
+		"resource reference in module source": {
+			fixture:   "source-with-resource-reference",
+			wantError: "Invalid module source",
+		},
+		"module output reference in module source": {
+			fixture:   "source-with-module-output-reference",
+			wantError: "Invalid module source",
+		},
+		"each.key in module source": {
+			fixture:   "each-in-module-source",
+			wantError: "Invalid module source",
+		},
+		"count.index in module source": {
+			fixture:   "count-in-module-source",
+			wantError: "Invalid module source",
+		},
+		"terraform.workspace in module source": {
+			fixture:   "terraform-attr-in-module-source",
+			wantError: "Invalid module source",
+		},
+		"required const variable not set": {
+			fixture:   "local-source-with-variable",
+			wantError: "No value for required variable",
+		},
+		"override default with nonexistent module": {
+			fixture:   "local-source-with-variable-default",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "", // any error; the module directory doesn't exist
+		},
+		"version mismatch with dynamic constraint": {
+			fixture:   "plan-with-version-mismatch",
+			args:      []string{"-get=false", "-var", "module_version=0.0.2"},
+			wantError: "Module version requirements have changed",
+		},
+
+		"const variable with static validation check": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "The module_name variable must be set to \"example\"",
+		},
+		// This error is in addition to the expected validation error in the test case above and is
+		// a consequence of validation blocks having their own node in the graph, thus a validation
+		// error doesn't prevent the module install node from executing.
+		"const variable with static validation check - module install bug": {
+			fixture:   "const-var-source-with-validation",
+			args:      []string{"-var", "module_name=nonexistent"},
+			wantError: "Unable to evaluate directory symlink: lstat modules/nonexistent",
+		},
+
+		// we can't determine if a provider function fails somewhere in the
+		// evaluation chain during init, so we have to return a generic error
+		// about unknown values.
+		"provider function in module source": {
+			fixture:   "provider-function-in-source",
+			wantError: "Only literal values and const variables can be evaluated during init.",
+		},
+		"provider function in module version": {
+			fixture:   "provider-function-in-version",
+			wantError: "Only literal values and const variables can be evaluated during init.",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 1 {
+				t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+
+			if tc.wantError != "" {
+				got := testOutput.All()
+				if !strings.Contains(got, tc.wantError) {
+					t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, tc.wantError)
+				}
+			}
+		})
+	}
+}
+
+func TestInit2_dynamicSourceSuccess(t *testing.T) {
+	tests := map[string]struct {
+		fixture string
+		args    []string
+	}{
+		"const variable via -var": {
+			fixture: "local-source-with-variable",
+			args:    []string{"-var", "module_name=example"},
+		},
+		"const variable with default value": {
+			fixture: "local-source-with-variable-default",
+		},
+		"local value referencing const variable": {
+			fixture: "local-source-with-local-value",
+			args:    []string{"-var", "module_name=example"},
+		},
+		"nested module with variable passed through parent": {
+			fixture: "nested-module-with-variable-source",
+			args:    []string{"-var", "child_name=child"},
+		},
+		"const variable from tfvars file": {
+			fixture: "local-source-with-varsfile",
+			args:    []string{"-var-file", "test.tfvars"},
+		},
+		"path.module in module source": {
+			fixture: "path-attr-in-module-source",
+		},
+		"const variable with static validation check": {
+			fixture: "const-var-source-with-validation",
+			args:    []string{"-var", "module_name=example"},
+		},
+		"const variable with validation referencing non-const variable": {
+			fixture: "const-var-with-validation-and-reference",
+			// the non_const_var variable is not defined here since we are only testing init
+			// so the value will always be unknown regardless of input.
+			args: []string{"-var", "const_var=hello"},
+		},
+
+		// The validation returns unknown during init, and must wait until
+		// a full validation is actually run.
+		"provider function in const variable validation check": {
+			fixture: "provider-function-in-const-validation",
+			args:    []string{"-var", "module_name=example"},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 0 {
+				t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+		})
+	}
+}
+
+func TestInit2_dynamicSourceInTestModule(t *testing.T) {
+	tests := map[string]struct {
+		fixture     string
+		args        []string
+		manifestKey string
+	}{
+		"required variable": {
+			fixture:     "test-module-required-variable",
+			args:        []string{"-var", "module_src=../modules/simple"},
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"module in same directory": {
+			fixture:     "test-module-same-directory",
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"local value": {
+			fixture:     "test-module-local-value",
+			manifestKey: "test.main.dynamic_source.const_var_source",
+		},
+		"nested test file": {
+			fixture:     "test-module-nested-test-file",
+			manifestKey: "test.tests.dynamic.dynamic_source.const_var_source",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			view, done := testView(t)
+			meta := Meta{
+				View: view,
+			}
+
+			init := &InitCommand{Meta: meta}
+			if code := init.Run(tc.args); code != 0 {
+				output := done(t)
+				t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+			}
+			done(t)
+
+			manifest, err := modsdir.ReadManifestSnapshotForDir(filepath.Join(td, ".terraform", "modules"))
+			if err != nil {
+				t.Fatalf("failed to read module manifest: %s", err)
+			}
+			if _, exists := manifest[tc.manifestKey]; !exists {
+				t.Errorf("module manifest does not contain %q", tc.manifestKey)
+			}
+
+			view, done = testView(t)
+			meta.View = view
+
+			test := &TestCommand{Meta: meta}
+			code := test.Run(append(tc.args, "-no-color"))
+			output := done(t)
+			if code != 0 {
+				t.Fatalf("test failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
+			}
+			if !strings.Contains(output.Stdout(), "1 passed, 0 failed.") {
+				t.Fatalf("expected test to pass, got:\n%s", output.Stdout())
+			}
+		})
+	}
+}
+
+func TestInit2_getFalseWithDynamicSource(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "get-false-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	// First, run init normally to install the module
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{"-var", "module_name=example"}
+	code := c.Run(args)
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("first init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// Now run init with -get=false; should succeed since modules are already installed
+	view2, done2 := testView(t)
+	c2 := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view2,
+		},
+	}
+
+	args2 := []string{"-get=false", "-var", "module_name=example"}
+	code = c2.Run(args2)
+	testOutput2 := done2(t)
+	if code != 0 {
+		t.Fatalf("init -get=false failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, testOutput2.Stderr(), testOutput2.Stdout())
+	}
+}
+
+func TestInit2_getFalseWithDynamicSourceNotInstalled(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "get-false-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	// Run init with -get=false without having installed modules first
+	args := []string{"-get=false", "-var", "module_name=example"}
+	code := c.Run(args)
+	testOutput := done(t)
+	if code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+}
+
+func TestInit2_reinitWithDifferentVariable(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "local-source-with-variable-default")), td)
+	t.Chdir(td)
+
+	// First init with default variable (example)
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{})
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("first init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// Re-init with different variable
+	view2, done2 := testView(t)
+	c2 := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view2,
+		},
+	}
+
+	code = c2.Run([]string{"-var", "module_name=alternate"})
+	testOutput2 := done2(t)
+	if code != 0 {
+		t.Fatalf("second init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, testOutput2.Stderr(), testOutput2.Stdout())
+	}
+}
+
+func TestInit2_fromModuleWithDynamicSource(t *testing.T) {
+	// TODO: -from-module currently errors when the copied configuration
+	// contains a dynamic module source (e.g. "./modules/${var.module_name}").
+	t.Skip("skipping: -from-module errors on dynamic module sources (see TODO in from_module.go)")
+
+	// Create an empty target directory for -from-module to copy into
+	td := t.TempDir()
+	t.Chdir(td)
+
+	view, done := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	// Use -from-module to copy the source module (which has a dynamic source)
+	// into the empty working directory. This should copy the files but the
+	// nested dynamic module won't be resolved by -from-module itself.
+	srcDir := testFixturePath(filepath.Join("dynamic-module-sources", "from-module-with-dynamic-source", "source-module"))
+	args := []string{"-from-module=" + srcDir, "-var", "module_name=test"}
+	code := c.Run(args)
+	testOutput := done(t)
+
+	// -from-module should succeed in copying. The dynamic module source
+	// within the copied configuration won't be resolved yet — that requires
+	// a separate init with the variable value.
+	if code != 0 {
+		t.Fatalf("init -from-module failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// Verify the main.tf was copied
+	if _, err := os.Stat(filepath.Join(td, "main.tf")); os.IsNotExist(err) {
+		t.Fatal("main.tf was not copied from the source module")
+	}
+}
+
+func TestPlan_dynamicModuleSource(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "plan-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	args := []string{"-var", "module_name=example"}
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run(args)
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	// Now run plan
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planCode := planCmd.Run(args)
+	planOutput := planDone(t)
+	if planCode != 0 {
+		t.Fatalf("plan failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", planCode, planOutput.Stderr(), planOutput.Stdout())
+	}
+
+	output := planOutput.Stdout()
+	if !strings.Contains(output, "1 to add") {
+		t.Fatalf("expected plan to show 1 resource to add, got:\n%s", output)
+	}
+}
+
+func TestPlan_dynamicModuleSourceMismatch(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "plan-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	args := []string{"-var", "module_name=example"}
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run(args)
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	// Now run plan with a different variable value
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planArgs := []string{"-var", "module_name=nonexistent"}
+	code := planCmd.Run(planArgs)
+	planOutput := planDone(t)
+	if code == 0 {
+		t.Fatalf("expected plan to fail, but got exit status 0\nstdout:\n%s", planOutput.Stdout())
+	}
+}
+
+func TestApply_dynamicModuleSource(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "apply-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	args := []string{"-var", "module_name=example"}
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run(args)
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	applyView, applyDone := testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             applyView,
+		},
+	}
+
+	applyArgs := []string{"-auto-approve", "-var", "module_name=example"}
+	code := applyCmd.Run(applyArgs)
+	applyOutput := applyDone(t)
+	if code != 0 {
+		t.Fatalf("apply failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, applyOutput.Stderr(), applyOutput.Stdout())
+	}
+
+	output := applyOutput.Stdout()
+	if !strings.Contains(output, "Apply complete!") {
+		t.Fatalf("expected apply to succeed, got:\n%s", output)
+	}
+}
+
+func TestApply_dynamicModuleSourceWithDefaultPlanFile(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "apply-plan-with-dynamic-source")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run([]string{})
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	// Run plan with -out
+	planPath := filepath.Join(td, "saved.plan")
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planArgs := []string{"-out", planPath}
+	code := planCmd.Run(planArgs)
+	planOutput := planDone(t)
+	if code != 0 {
+		t.Fatalf("plan failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, planOutput.Stderr(), planOutput.Stdout())
+	}
+
+	// Verify the plan file was created
+	if _, err := os.Stat(planPath); os.IsNotExist(err) {
+		t.Fatalf("plan file was not created at %s", planPath)
+	}
+
+	// Apply the saved plan
+	applyView, applyDone := testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             applyView,
+		},
+	}
+
+	applyArgs := []string{planPath}
+	code = applyCmd.Run(applyArgs)
+	applyOutput := applyDone(t)
+	if code != 0 {
+		t.Fatalf("apply failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", code, applyOutput.Stderr(), applyOutput.Stdout())
+	}
+
+	output := applyOutput.Stdout()
+	if !strings.Contains(output, "Apply complete!") {
+		t.Fatalf("expected apply to succeed, got:\n%s", output)
+	}
+}
+
+func TestPlan_dynamicModuleSourceWithCount(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "module-with-count")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	args := []string{"-var", "module_name=example"}
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run(args)
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	// Now run plan
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planCode := planCmd.Run(args)
+	planOutput := planDone(t)
+	if planCode != 0 {
+		t.Fatalf("plan failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", planCode, planOutput.Stderr(), planOutput.Stdout())
+	}
+
+	output := planOutput.Stdout()
+	if !strings.Contains(output, "2 to add") {
+		t.Fatalf("expected plan to show 2 resources to add, got:\n%s", output)
+	}
+}
+
+func TestPlan_dynamicModuleSourceWithForEach(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "module-with-for-each")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	args := []string{"-var", "module_name=example"}
+
+	initView, initDone := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             initView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	initCode := initCmd.Run(args)
+	initOutput := initDone(t)
+	if initCode != 0 {
+		t.Fatalf("init failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", initCode, initOutput.Stderr(), initOutput.Stdout())
+	}
+
+	// Now run plan
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planCode := planCmd.Run(args)
+	planOutput := planDone(t)
+	if planCode != 0 {
+		t.Fatalf("plan failed with exit status %d\nstderr:\n%s\n\nstdout:\n%s", planCode, planOutput.Stderr(), planOutput.Stdout())
+	}
+
+	output := planOutput.Stdout()
+	if !strings.Contains(output, "2 to add") {
+		t.Fatalf("expected plan to show 2 resources to add, got:\n%s", output)
+	}
+}
+
+func TestInit2_dynamicProviderSourceErrors(t *testing.T) {
+	tests := map[string]struct {
+		fixture   string
+		args      []string
+		wantError string
+	}{
+		"non-const variable in provider source": {
+			fixture:   "provider-source-with-non-const-variable",
+			args:      []string{"-var", "provider_src=hashicorp/test"},
+			wantError: "Unknown provider source",
+		},
+		"non-const variable in provider version": {
+			fixture:   "provider-version-with-non-const-variable",
+			args:      []string{"-var", "provider_ver=1.0.0"},
+			wantError: "Unknown provider version",
+		},
+		"resource reference in provider source": {
+			fixture:   "provider-source-with-resource-reference",
+			wantError: "Invalid provider source",
+		},
+		"required const variable not set": {
+			fixture:   "provider-source-with-variable-no-value",
+			wantError: "No value for required variable",
+		},
+		"invalid provider source after evaluation": {
+			fixture:   "provider-source-invalid-after-eval",
+			args:      []string{"-var", "provider_src=!!!invalid"},
+			wantError: "Invalid provider type",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providerSource := newMockProviderSource(t, map[string][]string{
+				"hashicorp/test": {"1.0.0"},
+			})
+
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 1 {
+				t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+
+			if tc.wantError != "" {
+				got := testOutput.All()
+				if !strings.Contains(got, tc.wantError) {
+					t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, tc.wantError)
+				}
+			}
+		})
+	}
+}
+
+func TestInit2_dynamicProviderSourceSuccess(t *testing.T) {
+	tests := map[string]struct {
+		fixture   string
+		args      []string
+		providers map[string][]string
+	}{
+		"const variable via -var": {
+			fixture: "provider-source-with-variable",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+		"const variable for source and version": {
+			fixture: "provider-source-and-version-with-variables",
+			args:    []string{"-var", "provider_src=hashicorp/test", "-var", "provider_ver=1.0.0"},
+		},
+		"const variable with default value": {
+			fixture: "provider-source-with-variable-default",
+		},
+		"string interpolation in provider source": {
+			fixture: "provider-source-with-interpolation",
+			args:    []string{"-var", "provider_ns=hashicorp"},
+		},
+		"local value referencing const variable": {
+			fixture: "provider-source-with-local-value",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+		"const variable from tfvars file": {
+			fixture: "provider-source-with-varsfile",
+			args:    []string{"-var-file", "test.tfvars"},
+		},
+		"mixed static and dynamic providers": {
+			fixture: "provider-source-mixed-static-dynamic",
+			args:    []string{"-var", "dyn_src=hashicorp/dynamic"},
+			providers: map[string][]string{
+				"hashicorp/dynamic": {"1.0.0"},
+				"hashicorp/static":  {"1.0.0"},
+			},
+		},
+		"child module with dynamic provider source": {
+			fixture: "provider-source-in-child-module",
+			args:    []string{"-var", "provider_src=hashicorp/test"},
+		},
+		"const with extra resource": {
+			fixture: "provider-source-with-resources",
+			args:    []string{},
+			providers: map[string][]string{
+				"hashicorp2/test": {"1.0.0"},
+			},
+		},
+		"const with extra resource and provider local name": {
+			fixture: "provider-source-with-resources-and-provider-local-name",
+			args:    []string{},
+			providers: map[string][]string{
+				"hashicorp2/test": {"1.0.0"},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", tc.fixture)), td)
+			t.Chdir(td)
+
+			providers := tc.providers
+			if providers == nil {
+				providers = map[string][]string{
+					"hashicorp/test": {"1.0.0"},
+				}
+			}
+			providerSource := newMockProviderSource(t, providers)
+
+			view, done := testView(t)
+			c := &InitCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
+					ProviderSource:   providerSource,
+				},
+			}
+
+			code := c.Run(tc.args)
+			testOutput := done(t)
+			if code != 0 {
+				t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+			}
+		})
+	}
+}
+
+func TestPlan_dynamicModuleVersionMismatch(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-module-sources", "plan-with-version-mismatch")), td)
+	t.Chdir(td)
+
+	p := planFixtureProvider()
+
+	// Plan should fail because the installed module version (0.0.1 in
+	// modules.json) doesn't satisfy the constraint we provide.
+	planView, planDone := testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+		},
+	}
+
+	planArgs := []string{"-var", "module_version=0.0.2"}
+	code := planCmd.Run(planArgs)
+	planOutput := planDone(t)
+	if code == 0 {
+		t.Fatalf("expected plan to fail, but got exit status 0\nstdout:\n%s", planOutput.Stdout())
+	}
+	got := planOutput.All()
+
+	want := "Module version requirements have changed"
+	if !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
+	}
+}
+
+func TestPrimaryWorkflow_dynamicProviderSource_pluggableStateStorage(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(filepath.Join("dynamic-provider-sources", "combined-with-pluggable-state-storage")), td)
+	t.Chdir(td)
+
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	// Make the mock provider have an empty schema body, matching the mock used below for the query command.
+	// Without this, Terraform will detect the change in the provider schema and think the state store configuration has changed.
+	mockProvider.GetProviderSchemaResponse.Provider.Body = &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{},
+		BlockTypes: map[string]*configschema.NestedBlock{},
+	}
+	providerSource := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+
+	varArgs := []string{
+		"-var", "provider_source=registry.terraform.io/hashicorp/test",
+		"-var", "provider_version=1.0.0",
+	}
+
+	// INIT
+	view, done := testView(t)
+	initCmd := &InitCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+
+	code := initCmd.Run(append([]string{"-enable-pluggable-state-storage-experiment"}, varArgs...))
+	testOutput := done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+	expectedMsg := `Finding hashicorp/test versions matching "1.0.0"...`
+	if !strings.Contains(testOutput.All(), expectedMsg) {
+		t.Fatalf("expected output to contain %q\n, got:\n%s", expectedMsg, testOutput.All())
+	}
+
+	// PLAN
+	view, done = testView(t)
+	planCmd := &PlanCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = planCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// APPLY
+	view, done = testView(t)
+	applyCmd := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = applyCmd.Run(append([]string{"-auto-approve"}, varArgs...))
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// REFRESH
+	view, done = testView(t)
+	refreshCmd := &RefreshCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(mockProvider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = refreshCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+
+	// QUERY
+	queryMockProvider := queryFixtureProvider()
+	queryMockProvider = addPluggableStateStoreToMockProvider(queryMockProvider, mockSingleStateStoreSchema("test_store")) // Update the query-specific mock to also include a state store.
+	view, done = testView(t)
+	queryCmd := &QueryCommand{
+		Meta: Meta{
+			testingOverrides:          metaOverridesForProvider(queryMockProvider),
+			View:                      view,
+			ProviderSource:            providerSource,
+			AllowExperimentalFeatures: true,
+		},
+	}
+	code = queryCmd.Run(varArgs)
+	testOutput = done(t)
+	if code != 0 {
+		t.Fatalf("got exit status %d; want 0\nstderr:\n%s\n\nstdout:\n%s", code, testOutput.Stderr(), testOutput.Stdout())
+	}
+}

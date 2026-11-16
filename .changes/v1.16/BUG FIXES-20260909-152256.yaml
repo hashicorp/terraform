@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fix handling of destroy=false around create_before_destroy instances
+time: 2026-09-09T15:22:56.069683-04:00
+custom:
+    Issue: "39169"

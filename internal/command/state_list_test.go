@@ -1,0 +1,405 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+)
+
+func TestStateList(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateListOutput) + "\n"
+	actual := done(t).Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+func TestStateListWithID(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-id", "bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := strings.TrimSpace(testStateListOutput) + "\n"
+	actual := done(t).Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+func TestStateListWithNonExistentID(t *testing.T) {
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-id", "baz",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that output is empty
+	output := done(t).Stdout()
+	if output != "" {
+		t.Fatalf("Expected an empty output but got: %q", output)
+	}
+}
+
+func TestStateList_backendDefaultState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-list-backend-default"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := "null_resource.a\n"
+	actual := done(t).Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+func TestStateList_backendCustomState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := "null_resource.a\n"
+	actual := done(t).Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+// Tests using `terraform state list` subcommand in combination with pluggable state storage
+//
+// Note: Whereas other tests in this file use the local backend and require a state file in the test fixures,
+// with pluggable state storage we can define the state via the mocked provider.
+func TestStateList_stateStore(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-store-unchanged/provider-managed-by-terraform"), td)
+	t.Chdir(td)
+
+	// Get bytes describing a state containing a resource
+	state := states.NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&states.ResourceInstanceObjectSrc{
+			Status: states.ObjectReady,
+			AttrsJSON: []byte(`{
+				"ami": "bar",
+				"network_interface": [{
+					"device_index": 0,
+					"description": "Main network interface"
+				}]
+			}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	var stateBuf bytes.Buffer
+	if err := statefile.Write(statefile.New(state, "", 1), &stateBuf); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a mock that contains a persisted "default" state that uses the bytes from above.
+	mockProvider := mockPluggableStateStorageProvider(mockSingleStateStoreSchema("test_store"))
+	mockProvider.MockStates = testing_provider.NewMockStateBytesWithSingleState(
+		"test_store",
+		"default",
+		stateBuf.Bytes(),
+	)
+	mockProviderAddress := addrs.NewDefaultProvider("test")
+
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			AllowExperimentalFeatures: true,
+			testingOverrides: &testingOverrides{
+				Providers: map[addrs.Provider]providers.Factory{
+					mockProviderAddress: providers.FactoryFixed(mockProvider),
+				},
+			},
+			View: view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
+	}
+
+	// Test that outputs were displayed
+	expected := "test_instance.foo\n"
+	actual := done(t).Stdout()
+	if actual != expected {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+	}
+}
+
+func TestStateList_backendOverrideState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, done := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	// This test is configured to use a local backend that has
+	// a custom path defined. So we test if we can still pass
+	// is a user defined state file that will then override the
+	// one configured in the backend. As this file does not exist
+	// it should exit with a no state found error.
+	args := []string{"-state=" + DefaultStateFilename}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d", code)
+	}
+	if !strings.Contains(done(t).Stderr(), "No state file was found!") {
+		t.Fatalf("expected a no state file error, got: %s", done(t).Stderr())
+	}
+}
+
+func TestStateList_noState(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+
+	p := testProvider()
+	view, _ := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d", code)
+	}
+}
+
+func TestStateList_modules(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("state-list-nested-modules"), td)
+	t.Chdir(td)
+
+	p := testProvider()
+	view, _ := testView(t)
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	t.Run("list resources in module and submodules", func(t *testing.T) {
+		view, done := testView(t)
+		c.Meta.View = view
+		args := []string{"module.nest"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+
+		// resources in the module and any submodules should be included in the outputs
+		expected := "module.nest.test_instance.nest\nmodule.nest.module.subnest.test_instance.subnest\n"
+		actual := done(t).Stdout()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("submodule has resources only", func(t *testing.T) {
+		// now get the state for a module that has no resources, only another nested module
+		view, done := testView(t)
+		c.Meta.View = view
+		args := []string{"module.nonexist"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.nonexist.module.child.test_instance.child\n"
+		actual := done(t).Stdout()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("expanded module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		view, done := testView(t)
+		c.Meta.View = view
+		args := []string{"module.count"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
+		actual := done(t).Stdout()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("all instances of a module", func(t *testing.T) {
+		// a module address selects every instance of a module call without
+		// an instance key, the same as an explicit wildcard
+		for _, addr := range []string{"module.count", "module.count[*]"} {
+			view, done := testView(t)
+			c.Meta.View = view
+			if code := c.Run([]string{addr}); code != 0 {
+				t.Fatalf("%s: bad: %d", addr, code)
+			}
+			expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
+			actual := done(t).Stdout()
+			if actual != expected {
+				t.Fatalf("%s: Expected:\n%q\n\nTo equal: %q", addr, actual, expected)
+			}
+		}
+	})
+
+	t.Run("resource in an expanded module", func(t *testing.T) {
+		// a resource address only selects the resource in a single module
+		// instance, so a module call without an instance key in a resource
+		// address doesn't select any instance of an expanded module
+		view, done := testView(t)
+		c.Meta.View = view
+		if code := c.Run([]string{"module.count.test_instance.count"}); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+		output := done(t)
+		if actual := output.Stdout(); actual != "" {
+			t.Fatalf("unexpected output: %q", actual)
+		}
+		if got := output.Stderr(); !strings.Contains(got, "Unknown resource") {
+			t.Fatalf("wrong error: %s", got)
+		}
+	})
+
+	t.Run("wildcard in a resource address", func(t *testing.T) {
+		view, done := testView(t)
+		c.Meta.View = view
+		if code := c.Run([]string{"module.count[*].test_instance.count"}); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+		output := done(t)
+		if actual := output.Stdout(); actual != "" {
+			t.Fatalf("unexpected output: %q", actual)
+		}
+		if got := output.Stderr(); !strings.Contains(got, "Invalid resource address") {
+			t.Fatalf("wrong error: %s", got)
+		}
+	})
+
+	t.Run("completely nonexistent module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		view, _ := testView(t)
+		c.Meta.View = view
+		args := []string{"module.notevenalittlebit"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+	})
+}
+
+const testStateListOutput = `
+test_instance.foo
+`

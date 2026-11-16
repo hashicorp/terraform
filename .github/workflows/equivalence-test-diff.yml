@@ -1,0 +1,74 @@
+name: equivalence-test-diff
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - ready_for_review
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  equivalence-test-diff:
+    name: "Equivalence Test Diff"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch source code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+          cache-dependency-path: go.sum
+
+      - name: Download testing framework
+        shell: bash
+        run: |
+          ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
+            0.5.0 \
+            ./bin/equivalence-tests \
+            linux \
+            amd64
+
+      - name: Build terraform
+        shell: bash
+        run: ./.github/scripts/equivalence-test.sh build_terraform_binary ./bin/terraform
+
+      - name: Run equivalence tests
+        id: equivalence-tests
+        shell: bash {0} # we want to capture the exit code
+        run: |
+          ./bin/equivalence-tests diff \
+              --tests=testing/equivalence-tests/tests \
+              --goldens=testing/equivalence-tests/outputs \
+              --binary=$(pwd)/bin/terraform
+          echo "exit-code=$?" >> "${GITHUB_OUTPUT}"
+
+      - name: Equivalence tests failed
+        if: steps.equivalence-tests.outputs.exit-code == 1 # 1 is the exit code for failure
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "The equivalence tests failed. Please investigate [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          exit 1 # fail the job
+
+      - name: Equivalence tests changed
+        if: steps.equivalence-tests.outputs.exit-code == 2 # 2 is the exit code for changed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "The equivalence tests will be updated. Please verify the changes [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."

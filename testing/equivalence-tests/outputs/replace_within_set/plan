@@ -1,0 +1,30 @@
+tfcoremock_set.set: Refreshing state... [id=F40F2AB4-100C-4AE8-BFD0-BF332A158415]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+-/+ destroy and then create replacement
+
+Terraform will perform the following actions:
+
+  # tfcoremock_set.set must be replaced
+-/+ resource "tfcoremock_set" "set" {
+        id  = "F40F2AB4-100C-4AE8-BFD0-BF332A158415"
+      ~ set = [
+          - { # forces replacement
+              - id = "56C7E07F-B9DF-4799-AF62-E703D1167A51" -> null
+            },
+          + { # forces replacement
+              + id = "07F887E2-FDFF-4B2E-9BFB-B6AA4A05EDB9"
+            },
+            # (2 unchanged elements hidden)
+        ]
+    }
+
+Plan: 1 to add, 0 to change, 1 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

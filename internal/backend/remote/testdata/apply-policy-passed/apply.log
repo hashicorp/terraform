@@ -1,0 +1,7 @@
+Terraform v0.11.10
+
+Initializing plugins and modules...
+null_resource.hello: Creating...
+null_resource.hello: Creation complete after 0s (ID: 8657651096157629581)
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.

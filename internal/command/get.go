@@ -1,0 +1,133 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"context"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// GetCommand is a Command implementation that takes a Terraform
+// configuration and downloads all the modules.
+type GetCommand struct {
+	Meta
+}
+
+func (c *GetCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseGet(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewGet(arguments.ViewHuman, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
+	path := c.Meta.WorkingDir.RootModuleDir()
+	diags = diags.Append(c.resolveConstVariables(path, arguments.ViewHuman))
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	path = c.normalizePath(path)
+
+	abort, moreDiags := getModules(ctx, &c.Meta, path, parsedArgs.TestDirectory, parsedArgs.Update, view)
+	diags = diags.Append(moreDiags)
+	view.Diagnostics(diags)
+	if abort || diags.HasErrors() {
+		return 1
+	}
+
+	return 0
+}
+
+func (c *GetCommand) Help() string {
+	helpText := `
+Usage: terraform [global options] get [options]
+
+  Downloads and installs modules needed for the configuration in the 
+  current working directory.
+
+  This recursively downloads all modules needed, such as modules
+  imported by modules imported by the root and so on. If a module is
+  already downloaded, it will not be redownloaded or checked for updates
+  unless the -update flag is specified.
+
+  Module installation also happens automatically by default as part of
+  the "terraform init" command, so you should rarely need to run this
+  command separately.
+
+Options:
+
+  -compact-warnings     If Terraform produces any warnings that are not
+                        accompanied by errors, show them in a more compact
+                        form that includes only the summary messages
+
+  -no-color             Disable text coloring in the output.
+
+  -test-directory=path  Set the Terraform test directory, defaults to "tests".
+
+  -update               Check already-downloaded modules for available updates
+                        and install the newest versions available.
+
+  -var 'foo=bar'        Set a value for one of the input variables in the root
+                        module of the configuration. Use this option more than
+                        once to set more than one variable.
+
+  -var-file=filename    Load variable values from the given file, in addition
+                        to the default files terraform.tfvars and *.auto.tfvars.
+                        Use this option more than once to include more than one
+                        variables file.
+
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *GetCommand) Synopsis() string {
+	return "Install or upgrade remote Terraform modules"
+}
+
+func getModules(ctx context.Context, m *Meta, path string, testsDir string, upgrade bool, view views.Get) (abort bool, diags tfdiags.Diagnostics) {
+	hooks := uiModuleInstallHooks{
+		ShowLocalPaths: true,
+		View:           view,
+	}
+	return m.installModules(ctx, path, testsDir, upgrade, true, hooks)
+}

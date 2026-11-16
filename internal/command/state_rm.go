@@ -1,0 +1,256 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// StateRmCommand is a Command implementation that removes
+// a single resource from the state.
+type StateRmCommand struct {
+	StateMeta
+}
+
+func (c *StateRmCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStateRm(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStateRm(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	c.backupPath = parsedArgs.BackupPath
+	c.Meta.stateLock = parsedArgs.StateLock
+	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
+	c.statePath = parsedArgs.StatePath
+	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
+
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	var varDiags tfdiags.Diagnostics
+	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
+		loader.Parser().ForceFileSource(filename, src)
+	})
+	diags = diags.Append(varDiags)
+	if varDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Get the state
+	stateMgr, err := c.State(parsedArgs.ViewType)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf(errStateLoadingState, err))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	if c.stateLock {
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if lockDiags := stateLocker.Lock(stateMgr, "state-rm"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
+			view.Diagnostics(diags)
+			return 1
+		}
+		defer func() {
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
+				view.Diagnostics(diags)
+			}
+		}()
+	}
+
+	if err := stateMgr.RefreshState(); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the state: %s", err),
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	state := stateMgr.State()
+	if state == nil {
+		diags = diags.Append(errStateNotFound)
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// This command primarily works with resource instances, though it will
+	// also clean up any modules and resources left empty by actions it takes.
+	var addrs []addrs.AbsResourceInstance
+	for _, addrStr := range parsedArgs.Addrs {
+		moreAddrs, moreDiags := c.lookupResourceInstanceAddr(state, true, addrStr)
+		addrs = append(addrs, moreAddrs...)
+		diags = diags.Append(moreDiags)
+	}
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	removals := []string{}
+	ss := state.SyncWrapper()
+	for _, addr := range addrs {
+		removals = append(removals, addr.String())
+		if !parsedArgs.DryRun {
+			ss.ForgetResourceInstanceAll(addr)
+			ss.RemoveResourceIfEmpty(addr.ContainingResource())
+		}
+	}
+
+	if parsedArgs.DryRun {
+		view.Remove(removals, parsedArgs.DryRun, diags)
+		return 0 // This is as far as we go in dry-run mode
+	}
+
+	if len(removals) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid target address",
+			"No matching objects found. To view the available instances, use \"terraform state list\". Please modify the address to reference a specific instance.",
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Load the backend
+	b, backendDiags := c.backend(".", parsedArgs.ViewType)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
+		diags = diags.Append(schemaDiags)
+	}
+
+	if err := stateMgr.WriteState(state); err != nil {
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		view.Diagnostics(diags)
+		return 1
+	}
+	if err := stateMgr.PersistState(schemas); err != nil {
+		diags = diags.Append(stateRmPersistErrDiag(err))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	view.Remove(removals, parsedArgs.DryRun, diags)
+	return 0
+}
+
+func (c *StateRmCommand) Help() string {
+	helpText := `
+Usage: terraform [global options] state rm [options] ADDRESS...
+
+  Remove one or more items from the Terraform state, causing Terraform to
+  "forget" those items without first destroying them in the remote system.
+
+  This command removes one or more resource instances from the Terraform state
+  based on the addresses given. You can view and list the available instances
+  with "terraform state list".
+
+  If you give the address of an entire module then all of the instances in
+  that module and any of its child modules will be removed from the state.
+
+  If you give the address of a resource that has "count" or "for_each" set,
+  all of the instances of that resource will be removed from the state.
+
+Options:
+
+  -backup=PATH            Path where Terraform should write the backup
+                          state.
+
+  -compact-warnings       If Terraform produces any warnings that are not
+                          accompanied by errors, show them in a more compact
+                          form that includes only the summary messages
+
+  -dry-run                If set, prints out what would've been removed but
+                          doesn't actually remove anything.
+
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
+
+  -lock=false             Don't hold a state lock during the operation. This is
+                          dangerous if others might concurrently run commands
+                          against the same workspace.
+
+  -lock-timeout=0s        Duration to retry a state lock.
+
+  -no-color               Disable text coloring in the output.
+
+  -state=PATH             Path to the state file to update. Defaults to the
+                          current workspace state.
+                          Legacy option for the local backend only. See
+                          the local backend's documentation for more
+                          information.
+
+  -var 'foo=bar'          Set a value for one of the input variables in the root
+                          module of the configuration. Use this option more than
+                          once to set more than one variable.
+
+  -var-file=filename      Load variable values from the given file, in addition
+                          to the default files terraform.tfvars and *.auto.tfvars.
+                          Use this option more than once to include more than one
+                          variables file.
+
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *StateRmCommand) Synopsis() string {
+	return "Remove instances from the state"
+}
+
+func stateRmPersistErrDiag(err error) tfdiags.Diagnostic {
+	return tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save the state",
+		fmt.Sprintf(`Terraform encountered an error when saving state: %s
+
+The state was not saved. No items were removed from the persisted
+state. Please resolve the issue above and try again.`, err),
+	)
+}

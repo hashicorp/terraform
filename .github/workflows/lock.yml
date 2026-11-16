@@ -1,0 +1,28 @@
+name: 'Lock Threads'
+
+on:
+  schedule:
+    - cron: '50 1 * * *'
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dessant/lock-threads@89ae32b08ed1a541efecbab17912962a5e38981c # v6.0.2
+        with:
+          process-only: 'issues, prs'
+          github-token: ${{ github.token }}
+          issue-comment: >
+            I'm going to lock this issue because it has been closed for _30 days_ ⏳. This helps our maintainers find and focus on the active issues.
+
+            If you have found a problem that seems similar to this, please open a new issue and complete the issue template so we can capture all the details necessary to investigate further.
+          issue-inactive-days: '30'
+          pr-comment: >
+            I'm going to lock this pull request because it has been closed for _30 days_ ⏳. This helps our maintainers find and focus on the active contributions.
+
+            If you have found a problem that seems related to this change, please open a new issue and complete the issue template so we can capture all the details necessary to investigate further.
+          pr-inactive-days: '30'

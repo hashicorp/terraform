@@ -1,0 +1,10 @@
+{
+    "terraform_source_bundle": 1,
+    "packages": [
+        {
+            "source": "git::https://example.com/test.git",
+            "local": "test",
+            "meta": {}
+        }
+    ]
+}

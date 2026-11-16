@@ -1,0 +1,5 @@
+/*
+module "subsubchild" {
+  source = "./subsubchild"
+}
+*/

@@ -1,0 +1,5 @@
+# This directory acts both as a cache so we can avoid constantly re-downloading
+# the same protoc, and as a staging area where we can put a protoc-gen-go
+# executable that won't interfere with the operation of other Go codebases
+# on the same system which might want a different version of protoc-gen-go.
+protoc-*

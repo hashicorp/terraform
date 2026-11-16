@@ -1,0 +1,19 @@
+{
+  "Modules": [
+    {
+      "Key": "",
+      "Source": "",
+      "Dir": "testdata/config-graph/valid-modules/with-tests-nested-module"
+    },
+    {
+      "Key": "test.main.load_module",
+      "Source": "./setup",
+      "Dir": "testdata/config-graph/valid-modules/with-tests-nested-module/setup"
+    },
+    {
+      "Key": "test.main.load_module.child",
+      "Source": "./other",
+      "Dir": "testdata/config-graph/valid-modules/with-tests-nested-module/setup/other"
+    }
+  ]
+}

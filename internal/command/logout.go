@@ -1,0 +1,157 @@
+// Copyright IBM Corp. 2014, 2026
+// SPDX-License-Identifier: BUSL-1.1
+
+package command
+
+import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
+
+// LogoutCommand is a Command implementation which removes stored credentials
+// for a remote service host.
+type LogoutCommand struct {
+	Meta
+}
+
+// Run implements cli.Command.
+func (c *LogoutCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	args, argDiags := arguments.ParseLogout(rawArgs)
+	diags = diags.Append(argDiags)
+
+	// Prepare the view
+	view := views.NewLogout(args.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	diags = diags.Append(argDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	givenHostname := args.Host
+
+	hostname, err := svchost.ForComparison(givenHostname)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid hostname",
+			fmt.Sprintf("The given hostname %q is not valid: %s.", givenHostname, err.Error()),
+		))
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// From now on, since we've validated the given hostname, we should use
+	// dispHostname in the UI to ensure we're presenting it in the canonical
+	// form, in case that helps users with debugging when things aren't
+	// working as expected. (Perhaps the normalization is part of the cause.)
+	dispHostname := hostname.ForDisplay()
+
+	creds := c.Services.CredentialsSource().(*cliconfig.CredentialsSource)
+	filename, _ := creds.CredentialsFilePath()
+	credsCtx := &loginCredentialsContext{
+		Location:      creds.HostCredentialsLocation(hostname),
+		LocalFilename: filename, // empty in the very unlikely event that we can't select a config directory for this user
+		HelperType:    creds.CredentialsHelperType(),
+	}
+
+	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Credentials for %s are manually configured", dispHostname),
+			"The \"terraform logout\" command cannot log out because credentials for this host are manually configured in a CLI configuration file.\n\nTo log out, revoke the existing credentials and remove that block from the CLI configuration.",
+		))
+	}
+
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	switch credsCtx.Location {
+	case cliconfig.CredentialsNotAvailable:
+		view.NoCredentialsStored(dispHostname)
+		return 0
+	case cliconfig.CredentialsViaHelper:
+		view.NotifyTokenRemovedFromCredentialsHelper(dispHostname, credsCtx.HelperType)
+	case cliconfig.CredentialsInPrimaryFile:
+		view.NotifyTokenRemovedFromFile(dispHostname, credsCtx.LocalFilename)
+	}
+
+	err = creds.ForgetForHost(hostname)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to remove API token",
+			fmt.Sprintf("Unable to remove stored API token: %s", err),
+		))
+	}
+
+	view.Diagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
+
+	view.LogoutSuccess(dispHostname)
+
+	return 0
+}
+
+// Help implements cli.Command.
+func (c *LogoutCommand) Help() string {
+	defaultFile := c.defaultOutputFile()
+	if defaultFile == "" {
+		// Because this is just for the help message and it's very unlikely
+		// that a user wouldn't have a functioning home directory anyway,
+		// we'll just use a placeholder here. The real command has some
+		// more complex behavior for this case. This result is not correct
+		// on all platforms, but given how unlikely we are to hit this case
+		// that seems okay.
+		defaultFile = "~/.terraform/credentials.tfrc.json"
+	}
+
+	helpText := `
+Usage: terraform [global options] logout [hostname]
+
+  Removes locally-stored credentials for specified hostname.
+
+  Note: the API token is only removed from local storage, not destroyed on the
+  remote server, so it will remain valid until manually revoked.
+
+  If no hostname is provided, the default hostname is app.terraform.io.
+      %s
+`
+	return strings.TrimSpace(helpText)
+}
+
+// Synopsis implements cli.Command.
+func (c *LogoutCommand) Synopsis() string {
+	return "Remove locally-stored credentials for a remote host"
+}
+
+func (c *LogoutCommand) defaultOutputFile() string {
+	if c.CLIConfigDir == "" {
+		return "" // no default available
+	}
+	return filepath.Join(c.CLIConfigDir, "credentials.tfrc.json")
+}

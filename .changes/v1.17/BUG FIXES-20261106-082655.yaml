@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Providers referencing a managed resource with detroy=false can cause a cycle
+time: 2026-11-06T08:26:55.560863-05:00
+custom:
+    Issue: "39507"

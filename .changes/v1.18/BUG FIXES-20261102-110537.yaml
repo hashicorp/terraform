@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'state identities -json: Diagnostics are now correctly rendered in `diagnostics` field in JSON output (warnings to stdout and errors to stderr), as opposed to human-readable format mixed with JSON data'
+time: 2026-11-02T11:01:33.615894Z
+custom:
+    Issue: "39443"

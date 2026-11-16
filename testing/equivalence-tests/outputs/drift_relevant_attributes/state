@@ -1,0 +1,12 @@
+# tfcoremock_simple_resource.base:
+resource "tfcoremock_simple_resource" "base" {
+    id     = "f6f74ca6-e8ef-e51f-522c-433b9ed5038f"
+    number = 0
+    string = "Hello, change!"
+}
+
+# tfcoremock_simple_resource.dependent:
+resource "tfcoremock_simple_resource" "dependent" {
+    id     = "1b17b502-96c9-fcc3-3b09-2af1c3de6ad8"
+    string = "Hello, change!"
+}

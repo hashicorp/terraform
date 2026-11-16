@@ -1,0 +1,37 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # tfcoremock_multiple_blocks.multiple_blocks will be created
+  + resource "tfcoremock_multiple_blocks" "multiple_blocks" {
+      + id = "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
+
+      + first_block {
+          + id = "D35E88DA-BC3B-46D7-9E0B-4ED4582FA65A"
+        }
+      + first_block {
+          + id = "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+        }
+      + first_block {
+          + id = "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+        }
+
+      + second_block {
+          + id = "157660A9-D590-469E-BE28-83B8526428CA"
+        }
+      + second_block {
+          + id = "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"
