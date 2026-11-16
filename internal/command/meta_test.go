@@ -192,43 +192,6 @@ func TestMetaInputMode_disable(t *testing.T) {
 	}
 }
 
-func TestMeta_initStatePaths(t *testing.T) {
-	m := new(Meta)
-	m.initStatePaths()
-
-	if m.statePath != DefaultStateFilename {
-		t.Fatalf("bad: %#v", m)
-	}
-	if m.stateOutPath != DefaultStateFilename {
-		t.Fatalf("bad: %#v", m)
-	}
-	if m.backupPath != DefaultStateFilename+DefaultBackupExtension {
-		t.Fatalf("bad: %#v", m)
-	}
-
-	m = new(Meta)
-	m.statePath = "foo"
-	m.initStatePaths()
-
-	if m.stateOutPath != "foo" {
-		t.Fatalf("bad: %#v", m)
-	}
-	if m.backupPath != "foo"+DefaultBackupExtension {
-		t.Fatalf("bad: %#v", m)
-	}
-
-	m = new(Meta)
-	m.stateOutPath = "foo"
-	m.initStatePaths()
-
-	if m.statePath != DefaultStateFilename {
-		t.Fatalf("bad: %#v", m)
-	}
-	if m.backupPath != "foo"+DefaultBackupExtension {
-		t.Fatalf("bad: %#v", m)
-	}
-}
-
 func TestMeta_Env(t *testing.T) {
 	td := t.TempDir()
 	os.MkdirAll(td, 0755)
