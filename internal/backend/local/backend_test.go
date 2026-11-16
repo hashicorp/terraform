@@ -436,9 +436,9 @@ func TestLocal_StatePaths_defaultWorkspace(t *testing.T) {
 	b.StatePath = configPath    // equivalent of path = "new-path.tfstate" in config
 	b.StateOutPath = configPath // equivalent of path = "new-path.tfstate" in config
 	override := "override.tfstate"
-	b.OverrideStatePath = override
-	b.OverrideStateOutPath = override
-	b.OverrideStateBackupPath = override
+	b.overrideStatePath = override
+	b.overrideStateOutPath = override
+	b.overrideStateBackupPath = override
 
 	path, out, back = b.StatePaths("")
 
@@ -525,9 +525,9 @@ func TestLocal_StatePaths_nonDefaultWorkspace(t *testing.T) {
 	b = New()
 	b.StateWorkspaceDir = workingDir // equivalent of setting working_dir = "my/alternative/state/dir" in config
 	override := "override.tfstate"
-	b.OverrideStatePath = override
-	b.OverrideStateOutPath = override
-	b.OverrideStateBackupPath = override
+	b.overrideStatePath = override
+	b.overrideStateOutPath = override
+	b.overrideStateBackupPath = override
 
 	path, out, back = b.StatePaths(workspace)
 
