@@ -64,8 +64,11 @@ type Local struct {
 	// overrideStateOutPath is set as a result of the -state-out flag
 	// overrideStateBackupPath is set as a result of the -state-backup flag
 	//
-	// Note: these flags are only accepted by some commands.
-	// Importantly, they are not accepted by `init`.
+	// Note: these flags are only accepted by some commands:
+	// * apply
+	// * plan
+	// * refresh
+	// * destroy
 	overrideStatePath       string
 	overrideStateOutPath    string
 	overrideStateBackupPath string
