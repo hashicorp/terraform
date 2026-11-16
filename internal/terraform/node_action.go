@@ -446,7 +446,7 @@ func (n *NodeActionConfig) EvalInstance(ctx EvalContext, inst addrs.AbsActionIns
 }
 
 // Eval one or more instances of the action. This function expects that the key
-// is already validated for the the calling context, and will not produce
+// is already validated for the calling context, and will not produce
 // diagnostics for incorrect key types.
 func (n *NodeActionConfig) evalInstance(ctx EvalContext, repData instances.RepetitionData, caller addrs.Referenceable, callerVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
