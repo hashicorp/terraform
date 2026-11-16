@@ -16,14 +16,14 @@ func (b *Local) CLIInit(opts *backendrun.CLIOpts) error {
 	b.OpValidation = opts.Validation
 
 	// configure any new cli options
-	if opts.StatePath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -state is overriding state path to %s", opts.StatePath)
-		b.overrideStatePath = opts.StatePath
+	if opts.OverrideStatePath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -state is overriding state path to %s", opts.OverrideStatePath)
+		b.overrideStatePath = opts.OverrideStatePath
 	}
 
-	if opts.StateOutPath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -state-out is overriding state output path to %s", opts.StateOutPath)
-		b.overrideStateOutPath = opts.StateOutPath
+	if opts.OverrideStateOutPath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -state-out is overriding state output path to %s", opts.OverrideStateOutPath)
+		b.overrideStateOutPath = opts.OverrideStateOutPath
 	}
 
 	if opts.StateBackupPath != "" {
