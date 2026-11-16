@@ -88,11 +88,11 @@ func (x *GetResourcesRequest) GetEvaluationRequestId() uint32 {
 
 type GetResourcesResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
-	Results [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"` // without the capability, as today
+	Results [][]byte               `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"` // as today, unless the plugin accepts identifiers
 	// partial means that the request encountered unknown objects during evaluation,
 	// and the results may be incomplete.
-	Partial       bool                  `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
-	Values        []*ResourceAttributes `protobuf:"bytes,3,rep,name=values,proto3" json:"values,omitempty"` // with the capability: id only, instead of results
+	Partial       bool     `protobuf:"varint,2,opt,name=partial,proto3" json:"partial,omitempty"`
+	Identifiers   []string `protobuf:"bytes,3,rep,name=identifiers,proto3" json:"identifiers,omitempty"` // instead of results, when the plugin accepts identifiers
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,9 +141,9 @@ func (x *GetResourcesResponse) GetPartial() bool {
 	return false
 }
 
-func (x *GetResourcesResponse) GetValues() []*ResourceAttributes {
+func (x *GetResourcesResponse) GetIdentifiers() []string {
 	if x != nil {
-		return x.Values
+		return x.Identifiers
 	}
 	return nil
 }
@@ -263,27 +263,29 @@ func (x *GetDataSourceResponse) GetDeferred() bool {
 	return false
 }
 
-type GetResourceValuesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ids           []string               `protobuf:"bytes,1,rep,name=ids,proto3" json:"ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type GetResourcesByIdentifierRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The evaluation_id of the EvaluateResource being served.
+	EvaluationRequestId uint32   `protobuf:"varint,1,opt,name=evaluation_request_id,json=evaluationRequestId,proto3" json:"evaluation_request_id,omitempty"`
+	Identifiers         []string `protobuf:"bytes,2,rep,name=identifiers,proto3" json:"identifiers,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
-func (x *GetResourceValuesRequest) Reset() {
-	*x = GetResourceValuesRequest{}
+func (x *GetResourcesByIdentifierRequest) Reset() {
+	*x = GetResourcesByIdentifierRequest{}
 	mi := &file_callback_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetResourceValuesRequest) String() string {
+func (x *GetResourcesByIdentifierRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetResourceValuesRequest) ProtoMessage() {}
+func (*GetResourcesByIdentifierRequest) ProtoMessage() {}
 
-func (x *GetResourceValuesRequest) ProtoReflect() protoreflect.Message {
+func (x *GetResourcesByIdentifierRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_callback_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -295,39 +297,47 @@ func (x *GetResourceValuesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetResourceValuesRequest.ProtoReflect.Descriptor instead.
-func (*GetResourceValuesRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetResourcesByIdentifierRequest.ProtoReflect.Descriptor instead.
+func (*GetResourcesByIdentifierRequest) Descriptor() ([]byte, []int) {
 	return file_callback_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *GetResourceValuesRequest) GetIds() []string {
+func (x *GetResourcesByIdentifierRequest) GetEvaluationRequestId() uint32 {
 	if x != nil {
-		return x.Ids
+		return x.EvaluationRequestId
+	}
+	return 0
+}
+
+func (x *GetResourcesByIdentifierRequest) GetIdentifiers() []string {
+	if x != nil {
+		return x.Identifiers
 	}
 	return nil
 }
 
-type GetResourceValuesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Values        []*ResourceAttributes  `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"` // in request order, each with raw, redacted_paths and id
+type GetResourcesByIdentifierResponse struct {
+	state         protoimpl.MessageState                       `protogen:"open.v1"`
+	Resources     []*GetResourcesByIdentifierResponse_Resource `protobuf:"bytes,1,rep,name=resources,proto3" json:"resources,omitempty"` // one per requested identifier, in request order
+	Diagnostics   []*Diagnostic                                `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetResourceValuesResponse) Reset() {
-	*x = GetResourceValuesResponse{}
+func (x *GetResourcesByIdentifierResponse) Reset() {
+	*x = GetResourcesByIdentifierResponse{}
 	mi := &file_callback_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetResourceValuesResponse) String() string {
+func (x *GetResourcesByIdentifierResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetResourceValuesResponse) ProtoMessage() {}
+func (*GetResourcesByIdentifierResponse) ProtoMessage() {}
 
-func (x *GetResourceValuesResponse) ProtoReflect() protoreflect.Message {
+func (x *GetResourcesByIdentifierResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_callback_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -339,14 +349,97 @@ func (x *GetResourceValuesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetResourceValuesResponse.ProtoReflect.Descriptor instead.
-func (*GetResourceValuesResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetResourcesByIdentifierResponse.ProtoReflect.Descriptor instead.
+func (*GetResourcesByIdentifierResponse) Descriptor() ([]byte, []int) {
 	return file_callback_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetResourceValuesResponse) GetValues() []*ResourceAttributes {
+func (x *GetResourcesByIdentifierResponse) GetResources() []*GetResourcesByIdentifierResponse_Resource {
 	if x != nil {
-		return x.Values
+		return x.Resources
+	}
+	return nil
+}
+
+func (x *GetResourcesByIdentifierResponse) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type GetResourcesByIdentifierResponse_Resource struct {
+	state         protoimpl.MessageState                          `protogen:"open.v1"`
+	Identifier    string                                          `protobuf:"bytes,1,opt,name=identifier,proto3" json:"identifier,omitempty"`
+	Type          string                                          `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"` // e.g. aws_lb_listener
+	Metadata      *PolicyEvaluateResourceRequest_ResourceMetadata `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	Attrs         *ResourceAttributes                             `protobuf:"bytes,4,opt,name=attrs,proto3" json:"attrs,omitempty"`                             // absent for DELETE
+	PriorAttrs    *ResourceAttributes                             `protobuf:"bytes,5,opt,name=prior_attrs,json=priorAttrs,proto3" json:"prior_attrs,omitempty"` // absent for CREATE
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) Reset() {
+	*x = GetResourcesByIdentifierResponse_Resource{}
+	mi := &file_callback_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResourcesByIdentifierResponse_Resource) ProtoMessage() {}
+
+func (x *GetResourcesByIdentifierResponse_Resource) ProtoReflect() protoreflect.Message {
+	mi := &file_callback_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResourcesByIdentifierResponse_Resource.ProtoReflect.Descriptor instead.
+func (*GetResourcesByIdentifierResponse_Resource) Descriptor() ([]byte, []int) {
+	return file_callback_proto_rawDescGZIP(), []int{5, 0}
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) GetIdentifier() string {
+	if x != nil {
+		return x.Identifier
+	}
+	return ""
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) GetMetadata() *PolicyEvaluateResourceRequest_ResourceMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) GetAttrs() *ResourceAttributes {
+	if x != nil {
+		return x.Attrs
+	}
+	return nil
+}
+
+func (x *GetResourcesByIdentifierResponse_Resource) GetPriorAttrs() *ResourceAttributes {
+	if x != nil {
+		return x.PriorAttrs
 	}
 	return nil
 }
@@ -355,32 +448,43 @@ var File_callback_proto protoreflect.FileDescriptor
 
 const file_callback_proto_rawDesc = "" +
 	"\n" +
-	"\x0ecallback.proto\x12\x05proto\x1a\vtypes.proto\"}\n" +
+	"\x0ecallback.proto\x12\x05proto\x1a\x11diagnostics.proto\x1a\fpolicy.proto\x1a\vtypes.proto\"}\n" +
 	"\x13GetResourcesRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
 	"\n" +
 	"attributes\x18\x02 \x01(\fR\n" +
 	"attributes\x122\n" +
-	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"}\n" +
+	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"l\n" +
 	"\x14GetResourcesResponse\x12\x18\n" +
 	"\aresults\x18\x01 \x03(\fR\aresults\x12\x18\n" +
-	"\apartial\x18\x02 \x01(\bR\apartial\x121\n" +
-	"\x06values\x18\x03 \x03(\v2\x19.proto.ResourceAttributesR\x06values\"v\n" +
+	"\apartial\x18\x02 \x01(\bR\apartial\x12 \n" +
+	"\videntifiers\x18\x03 \x03(\tR\videntifiers\"v\n" +
 	"\x14GetDataSourceRequest\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06config\x18\x02 \x01(\fR\x06config\x122\n" +
 	"\x15evaluation_request_id\x18\x03 \x01(\rR\x13evaluationRequestId\"K\n" +
 	"\x15GetDataSourceResponse\x12\x16\n" +
 	"\x06result\x18\x01 \x01(\fR\x06result\x12\x1a\n" +
-	"\bdeferred\x18\x02 \x01(\bR\bdeferred\",\n" +
-	"\x18GetResourceValuesRequest\x12\x10\n" +
-	"\x03ids\x18\x01 \x03(\tR\x03ids\"N\n" +
-	"\x19GetResourceValuesResponse\x121\n" +
-	"\x06values\x18\x01 \x03(\v2\x19.proto.ResourceAttributesR\x06values2\xfe\x01\n" +
+	"\bdeferred\x18\x02 \x01(\bR\bdeferred\"w\n" +
+	"\x1fGetResourcesByIdentifierRequest\x122\n" +
+	"\x15evaluation_request_id\x18\x01 \x01(\rR\x13evaluationRequestId\x12 \n" +
+	"\videntifiers\x18\x02 \x03(\tR\videntifiers\"\xa8\x03\n" +
+	" GetResourcesByIdentifierResponse\x12N\n" +
+	"\tresources\x18\x01 \x03(\v20.proto.GetResourcesByIdentifierResponse.ResourceR\tresources\x123\n" +
+	"\vdiagnostics\x18\x02 \x03(\v2\x11.proto.DiagnosticR\vdiagnostics\x1a\xfe\x01\n" +
+	"\bResource\x12\x1e\n" +
+	"\n" +
+	"identifier\x18\x01 \x01(\tR\n" +
+	"identifier\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12Q\n" +
+	"\bmetadata\x18\x03 \x01(\v25.proto.PolicyEvaluateResourceRequest.ResourceMetadataR\bmetadata\x12/\n" +
+	"\x05attrs\x18\x04 \x01(\v2\x19.proto.ResourceAttributesR\x05attrs\x12:\n" +
+	"\vprior_attrs\x18\x05 \x01(\v2\x19.proto.ResourceAttributesR\n" +
+	"priorAttrs2\x93\x02\n" +
 	"\x0fCallbackService\x12G\n" +
 	"\fGetResources\x12\x1a.proto.GetResourcesRequest\x1a\x1b.proto.GetResourcesResponse\x12J\n" +
-	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponse\x12V\n" +
-	"\x11GetResourceValues\x12\x1f.proto.GetResourceValuesRequest\x1a .proto.GetResourceValuesResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
+	"\rGetDataSource\x12\x1b.proto.GetDataSourceRequest\x1a\x1c.proto.GetDataSourceResponse\x12k\n" +
+	"\x18GetResourcesByIdentifier\x12&.proto.GetResourcesByIdentifierRequest\x1a'.proto.GetResourcesByIdentifierResponseB4Z2github.com/hashicorp/terraform-policy-plugin/protob\x06proto3"
 
 var (
 	file_callback_proto_rawDescOnce sync.Once
@@ -394,30 +498,36 @@ func file_callback_proto_rawDescGZIP() []byte {
 	return file_callback_proto_rawDescData
 }
 
-var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_callback_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_callback_proto_goTypes = []any{
-	(*GetResourcesRequest)(nil),       // 0: proto.GetResourcesRequest
-	(*GetResourcesResponse)(nil),      // 1: proto.GetResourcesResponse
-	(*GetDataSourceRequest)(nil),      // 2: proto.GetDataSourceRequest
-	(*GetDataSourceResponse)(nil),     // 3: proto.GetDataSourceResponse
-	(*GetResourceValuesRequest)(nil),  // 4: proto.GetResourceValuesRequest
-	(*GetResourceValuesResponse)(nil), // 5: proto.GetResourceValuesResponse
-	(*ResourceAttributes)(nil),        // 6: proto.ResourceAttributes
+	(*GetResourcesRequest)(nil),                            // 0: proto.GetResourcesRequest
+	(*GetResourcesResponse)(nil),                           // 1: proto.GetResourcesResponse
+	(*GetDataSourceRequest)(nil),                           // 2: proto.GetDataSourceRequest
+	(*GetDataSourceResponse)(nil),                          // 3: proto.GetDataSourceResponse
+	(*GetResourcesByIdentifierRequest)(nil),                // 4: proto.GetResourcesByIdentifierRequest
+	(*GetResourcesByIdentifierResponse)(nil),               // 5: proto.GetResourcesByIdentifierResponse
+	(*GetResourcesByIdentifierResponse_Resource)(nil),      // 6: proto.GetResourcesByIdentifierResponse.Resource
+	(*Diagnostic)(nil),                                     // 7: proto.Diagnostic
+	(*PolicyEvaluateResourceRequest_ResourceMetadata)(nil), // 8: proto.PolicyEvaluateResourceRequest.ResourceMetadata
+	(*ResourceAttributes)(nil),                             // 9: proto.ResourceAttributes
 }
 var file_callback_proto_depIdxs = []int32{
-	6, // 0: proto.GetResourcesResponse.values:type_name -> proto.ResourceAttributes
-	6, // 1: proto.GetResourceValuesResponse.values:type_name -> proto.ResourceAttributes
-	0, // 2: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
-	2, // 3: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
-	4, // 4: proto.CallbackService.GetResourceValues:input_type -> proto.GetResourceValuesRequest
-	1, // 5: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
-	3, // 6: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
-	5, // 7: proto.CallbackService.GetResourceValues:output_type -> proto.GetResourceValuesResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 0: proto.GetResourcesByIdentifierResponse.resources:type_name -> proto.GetResourcesByIdentifierResponse.Resource
+	7, // 1: proto.GetResourcesByIdentifierResponse.diagnostics:type_name -> proto.Diagnostic
+	8, // 2: proto.GetResourcesByIdentifierResponse.Resource.metadata:type_name -> proto.PolicyEvaluateResourceRequest.ResourceMetadata
+	9, // 3: proto.GetResourcesByIdentifierResponse.Resource.attrs:type_name -> proto.ResourceAttributes
+	9, // 4: proto.GetResourcesByIdentifierResponse.Resource.prior_attrs:type_name -> proto.ResourceAttributes
+	0, // 5: proto.CallbackService.GetResources:input_type -> proto.GetResourcesRequest
+	2, // 6: proto.CallbackService.GetDataSource:input_type -> proto.GetDataSourceRequest
+	4, // 7: proto.CallbackService.GetResourcesByIdentifier:input_type -> proto.GetResourcesByIdentifierRequest
+	1, // 8: proto.CallbackService.GetResources:output_type -> proto.GetResourcesResponse
+	3, // 9: proto.CallbackService.GetDataSource:output_type -> proto.GetDataSourceResponse
+	5, // 10: proto.CallbackService.GetResourcesByIdentifier:output_type -> proto.GetResourcesByIdentifierResponse
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_callback_proto_init() }
@@ -425,6 +535,8 @@ func file_callback_proto_init() {
 	if File_callback_proto != nil {
 		return
 	}
+	file_diagnostics_proto_init()
+	file_policy_proto_init()
 	file_types_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -432,7 +544,7 @@ func file_callback_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_callback_proto_rawDesc), len(file_callback_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

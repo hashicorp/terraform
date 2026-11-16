@@ -34,8 +34,8 @@ message PolicySetupRequest {
 
   // ClientCapabilities are the set of capabilities the client supports.
   message ClientCapabilities {
-    // The client fills `related` on EvaluateResource for every hop of the
-    // usage of the subject's type.
+    // The client fills EvaluateResource.relationships and serves
+    // CallbackService.GetResourcesByIdentifier.
     bool relationships = 1;
   }
 
@@ -82,9 +82,10 @@ message PolicySetupResponse {
     map<string, TerraformConfiguration> configurations = 1;
     // 2 is used by validate_policies on the policy-schema-validation branch.
     reserved 3;
-    reserved "relationships";
-    // The plugin resolves value IDs through CallbackService.GetResourceValues.
-    bool resource_value_ids = 4;
+    // One per subject resource type whose policies follow relationships.
+    repeated RelationshipTree relationships = 4;
+    // The plugin accepts identifiers in GetResourcesResponse.
+    bool getresources_identifiers = 5;
   }
 
   // service_capabilities will be populated by the server to indicate which
@@ -95,43 +96,35 @@ message PolicySetupResponse {
   // the Terraform Policy files.
   repeated Diagnostic diagnostics = 2;
 
-  // The relationship definitions that some usage reaches.
-  repeated RelationshipDefinition relationship_definitions = 3;
-
-  // The relationships that policies walk, per resource type.
-  repeated RelationshipUsage relationship_usages = 4;
+  reserved 3, 4;
+  reserved "relationship_definitions", "relationship_usages";
 }
 
-// A relationship definition that some usage reaches.
-message RelationshipDefinition {
-  string provider_source = 1;                // e.g. registry.terraform.io/hashicorp/aws
-  string name = 2;
-  string key_resource = 3;
-  string value_resource = 4;
-  repeated MatchAlternative match = 5;       // ORed; at least one
-  Range decl_range = 6;                      // the relationship block, for Core's diagnostics
+// The relationships that the policies of one subject resource type follow.
+message RelationshipTree {
+  string resource_type = 1;                  // the policies' subject, e.g. aws_lb
+  repeated Relationship relationships = 2;   // only those its policies follow
+  string provider_source = 3;                // e.g. registry.terraform.io/hashicorp/aws
 }
 
-message MatchAlternative {
-  repeated MatchKey keys = 1;                // ANDed; none relates every pair
-}
+// A relationship, with its definition, walked from the subject or from each
+// resource its parent reaches.
+message Relationship {
+  string name = 1;                           // e.g. load_balancer_listeners
+  string key_type = 2;                       // the type of the keys of matches, e.g. aws_lb
+  string value_type = 3;                     // the type of the values of matches, e.g. aws_lb_listener
+  repeated Match matches = 4;                // related when any one Match holds
+  repeated Relationship relationships = 5;   // followed from each resource this relationship reaches
+  string provider_source = 6;
+  Range decl_range = 7;                      // the relationship block, for Core's diagnostics
 
-message MatchKey {
-  AttributePath key_path = 1;                // read on the key resource; attribute_name steps only
-  AttributePath value_path = 2;              // read on the value resource
-}
-
-// The relationships that policies walk from instances of one resource type.
-message RelationshipUsage {
-  string provider_source = 1;
-  string type = 2;
-  repeated RelationshipHop hops = 3;
-}
-
-// One relationship, walked from an instance. Its hops are walked from each member.
-message RelationshipHop {
-  string relationship = 1;                   // a definition's name, in the provider of the type walked from
-  repeated RelationshipHop hops = 2;
+  message Match {
+    repeated Key keys = 1;                   // holds when every Key holds; at least one
+  }
+  message Key {
+    AttributePath key_path = 1;              // read on key_type; attribute_name steps only
+    AttributePath value_path = 2;            // read on value_type
+  }
 }
 
 // EvaluateResourceRequest is the message body for the EvaluateResource RPC.
@@ -155,8 +148,11 @@ message PolicyEvaluateResourceRequest {
   // prior_attrs contains the state of the resource prior to the current operation.
   ResourceAttributes prior_attrs = 5;
 
-  // One entry per hop of the usage of the subject's type, in the usage's order.
-  repeated RelatedMembers related = 6;
+  // identifier names the subject's object in this policy session.
+  string identifier = 6;
+
+  // One per Relationship at the top of the subject type's tree, in the tree's order.
+  repeated Relation relationships = 7;
 
   message ResourceMetadata {
     string provider_type = 1;
@@ -164,39 +160,32 @@ message PolicyEvaluateResourceRequest {
     string module_path = 3;
     string address = 4;              // always set by Core, e.g. module.net.random_pet.a[0]
     string provider_source = 5;      // always set by Core, e.g. registry.terraform.io/hashicorp/random
-    string deposed_key = 6;          // the deposed key of the planned change; "" for current objects
+    string deposed_key = 6;          // "" for current objects
+    bool old_object = 7;             // the object that a replace deletes
   }
 }
 
-// The members of one hop, walked from one instance: the subject or a member.
-message RelatedMembers {
+// The resources of one relationship, walked from one resource: the subject or
+// a related resource.
+message Relation {
   string relationship = 1;
-  Completeness completeness = 2;
-  repeated string deferred = 3;              // sorted; only with DEFERRED_COMPLETENESS
-  repeated RelatedMember members = 4;        // sorted by address, then deposed key
+  map<string, RelatedResource> resources = 2;  // keyed by identifier
+  Completeness completeness = 3;
+  repeated string deferred = 4;              // addresses, sorted; only with DEFERRED_COMPLETENESS
+}
+
+message RelatedResource {
+  // One per Relationship nested under the one that reached it.
+  repeated Relation relationships = 1;
+  Operation operation = 2;                   // CREATE, UPDATE, DELETE or NO_OP
 }
 
 enum Completeness {
   INVALID_COMPLETENESS = 0;
-  COMPLETE_COMPLETENESS = 1;                 // every member is here
+  COMPLETE_COMPLETENESS = 1;                 // every related resource is here
   PLAN_COMPLETENESS = 2;                     // a plan: candidates Core isn't certain of are left out
-  DEFERRED_COMPLETENESS = 3;                 // instances that could be members are deferred
+  DEFERRED_COMPLETENESS = 3;                 // instances that could be related are deferred
   ERROR_COMPLETENESS = 4;                    // Core couldn't report every instance of the type
-}
-
-message RelatedMember {
-  string address = 1;
-  string deposed_key = 2;                    // "" for current objects
-  bool old_object = 3;                       // the object that a replace deletes
-  string type = 4;
-  string provider_type = 5;
-  string provider_source = 6;
-  string module_path = 7;
-  Operation operation = 8;                   // CREATE, UPDATE, DELETE or NO_OP
-  ResourceAttributes attrs = 9;              // absent for DELETE
-  ResourceAttributes prior_attrs = 10;       // absent for CREATE
-  // One entry per child of the hop this member was found by, walked from this member.
-  repeated RelatedMembers related = 11;
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation

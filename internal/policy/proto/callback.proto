@@ -7,12 +7,14 @@ package proto;
 
 option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
 
+import "diagnostics.proto";
+import "policy.proto";
 import "types.proto";
 
 service CallbackService {
   rpc GetResources(GetResourcesRequest) returns (GetResourcesResponse);
   rpc GetDataSource(GetDataSourceRequest) returns (GetDataSourceResponse);
-  rpc GetResourceValues(GetResourceValuesRequest) returns (GetResourceValuesResponse);
+  rpc GetResourcesByIdentifier(GetResourcesByIdentifierRequest) returns (GetResourcesByIdentifierResponse);
 }
 
 message GetResourcesRequest {
@@ -24,11 +26,11 @@ message GetResourcesRequest {
 }
 
 message GetResourcesResponse {
-  repeated bytes results = 1;                // without the capability, as today
+  repeated bytes results = 1;                // as today, unless the plugin accepts identifiers
   // partial means that the request encountered unknown objects during evaluation,
   // and the results may be incomplete.
   bool partial = 2;
-  repeated ResourceAttributes values = 3;    // with the capability: id only, instead of results
+  repeated string identifiers = 3;           // instead of results, when the plugin accepts identifiers
 }
 
 message GetDataSourceRequest {
@@ -45,10 +47,21 @@ message GetDataSourceResponse {
   bool deferred = 2;
 }
 
-message GetResourceValuesRequest {
-  repeated string ids = 1;
+message GetResourcesByIdentifierRequest {
+  // The evaluation_id of the EvaluateResource being served.
+  uint32 evaluation_request_id = 1;
+  repeated string identifiers = 2;
 }
 
-message GetResourceValuesResponse {
-  repeated ResourceAttributes values = 1;    // in request order, each with raw, redacted_paths and id
+message GetResourcesByIdentifierResponse {
+  repeated Resource resources = 1;           // one per requested identifier, in request order
+  repeated Diagnostic diagnostics = 2;
+
+  message Resource {
+    string identifier = 1;
+    string type = 2;                         // e.g. aws_lb_listener
+    PolicyEvaluateResourceRequest.ResourceMetadata metadata = 3;
+    ResourceAttributes attrs = 4;            // absent for DELETE
+    ResourceAttributes prior_attrs = 5;      // absent for CREATE
+  }
 }
