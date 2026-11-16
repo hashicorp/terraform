@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/remote-state/azure: Sanitize sensitive values (SAS tokens, Bearer tokens, JWTs, and authorization headers) in debug log output of the azurerm remote backend to prevent secret leakage when TF_LOG=debug|trace|json is enabled.'
+time: 2026-11-16T01:55:07.000000Z
+custom:
+    Issue: "32382"
