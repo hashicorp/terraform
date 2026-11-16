@@ -1118,22 +1118,21 @@ func testPolicyRelationshipDefinitionClient(t *testing.T) *policy.MockClient {
 		return &proto.AttributePath{Steps: []*proto.AttributePath_Step{{Selector: &proto.AttributePath_Step_AttributeName{AttributeName: name}}}}
 	}
 	client.RelationshipsResponse = policy.Relationships{
-		Definitions: []*proto.RelationshipDefinition{{
+		Trees: []*proto.RelationshipTree{{
+			ResourceType:   "test_instance",
 			ProviderSource: "registry.terraform.io/hashicorp/test",
-			Name:           "foo_net",
-			KeyResource:    "test_instance",
-			ValueResource:  "test_instance",
-			Match:          []*proto.MatchAlternative{{Keys: []*proto.MatchKey{{KeyPath: attr("net"), ValuePath: attr("id")}}}},
-			DeclRange: &proto.Range{
-				Filename: "policies/foo.tfpolicy.hcl",
-				Start:    &proto.Position{Line: 1, Column: 1, Byte: 0},
-				End:      &proto.Position{Line: 1, Column: 55, Byte: 54},
-			},
-		}},
-		Usages: []*proto.RelationshipUsage{{
-			ProviderSource: "registry.terraform.io/hashicorp/test",
-			Type:           "test_instance",
-			Hops:           []*proto.RelationshipHop{{Relationship: "foo_net"}},
+			Relationships: []*proto.Relationship{{
+				ProviderSource: "registry.terraform.io/hashicorp/test",
+				Name:           "foo_net",
+				KeyType:        "test_instance",
+				ValueType:      "test_instance",
+				Matches:        []*proto.Relationship_Match{{Keys: []*proto.Relationship_Key{{KeyPath: attr("net"), ValuePath: attr("id")}}}},
+				DeclRange: &proto.Range{
+					Filename: "policies/foo.tfpolicy.hcl",
+					Start:    &proto.Position{Line: 1, Column: 1, Byte: 0},
+					End:      &proto.Position{Line: 1, Column: 55, Byte: 54},
+				},
+			}},
 		}},
 	}
 	client.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {

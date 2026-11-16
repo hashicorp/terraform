@@ -17,45 +17,54 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// ValidatePolicyRelationships validates the policy plugin's relationship
-// definitions against the provider schemas of an operation (contract §3.3),
-// and returns the relationships without the definitions of providers that
-// the operation doesn't use. version returns the version of a provider, or ""
-// if it isn't known.
-func ValidatePolicyRelationships(rels policy.Relationships, schemas map[addrs.Provider]providers.ProviderSchema, version func(addrs.Provider) string) (policy.Relationships, tfdiags.Diagnostics) {
+// ValidatePolicyRelationships validates the definitions of the policy
+// plugin's relationship trees against the provider schemas of an operation
+// (contract §3.3). A definition whose provider isn't a provider of the
+// operation is skipped. Each definition is validated once, however many
+// nodes carry it. version returns the version of a provider, or "" if it
+// isn't known.
+func ValidatePolicyRelationships(rels policy.Relationships, schemas map[addrs.Provider]providers.ProviderSchema, version func(addrs.Provider) string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	sources := make(map[string]addrs.Provider, len(schemas))
 	for provider := range schemas {
 		sources[provider.String()] = provider
 	}
 
-	ret := policy.Relationships{Usages: rels.Usages}
-	for _, def := range rels.Definitions {
-		provider, ok := sources[def.ProviderSource]
-		if !ok {
-			continue
-		}
-		v := &relationshipValidator{
-			def:      def,
-			schema:   schemas[provider],
-			provider: def.ProviderSource,
-		}
-		if version := version(provider); version != "" {
-			v.provider += " v" + version
-		} else {
-			v.provider += " (version unknown)"
-		}
-		defDiags := v.validate()
-		diags = diags.Append(defDiags)
-		if !defDiags.HasErrors() {
-			ret.Definitions = append(ret.Definitions, def)
+	seen := make(map[policyTypeKey]bool)
+	var validate func(defs []*proto.Relationship)
+	validate = func(defs []*proto.Relationship) {
+		for _, def := range defs {
+			validate(def.Relationships)
+			key := policyTypeKey{source: def.ProviderSource, typ: def.Name}
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			provider, ok := sources[def.ProviderSource]
+			if !ok {
+				continue
+			}
+			v := &relationshipValidator{
+				def:      def,
+				schema:   schemas[provider],
+				provider: def.ProviderSource,
+			}
+			if version := version(provider); version != "" {
+				v.provider += " v" + version
+			} else {
+				v.provider += " (version unknown)"
+			}
+			diags = diags.Append(v.validate())
 		}
 	}
-	return ret, diags
+	for _, tree := range rels.Trees {
+		validate(tree.Relationships)
+	}
+	return diags
 }
 
 type relationshipValidator struct {
-	def    *proto.RelationshipDefinition
+	def    *proto.Relationship
 	schema providers.ProviderSchema
 	// provider names the provider and its version.
 	provider string
@@ -63,20 +72,20 @@ type relationshipValidator struct {
 
 func (v *relationshipValidator) validate() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	keyOK := v.checkType(&diags, v.def.KeyResource)
-	valueOK := v.checkType(&diags, v.def.ValueResource)
+	keyOK := v.checkType(&diags, v.def.KeyType)
+	valueOK := v.checkType(&diags, v.def.ValueType)
 	if !keyOK || !valueOK {
 		return diags
 	}
-	for _, alt := range v.def.Match {
-		for _, key := range alt.Keys {
+	for _, match := range v.def.Matches {
+		for _, key := range match.Keys {
 			keyPath, valuePath := policyKeyPathNames(key.KeyPath), policyKeyPathNames(key.ValuePath)
-			keyType, keyOK := v.leafType(&diags, v.def.KeyResource, keyPath)
-			valueType, valueOK := v.leafType(&diags, v.def.ValueResource, valuePath)
+			keyType, keyOK := v.leafType(&diags, v.def.KeyType, keyPath)
+			valueType, valueOK := v.leafType(&diags, v.def.ValueType, valuePath)
 			if keyOK && valueOK && !keyType.Equals(valueType) {
 				v.error(&diags, "`%s` of %s is %s, but `%s` of %s is %s, in the schema of %s. Both paths of a key must read the same primitive type.",
-					strings.Join(keyPath, "."), v.def.KeyResource, keyType.FriendlyName(),
-					strings.Join(valuePath, "."), v.def.ValueResource, valueType.FriendlyName(), v.provider)
+					strings.Join(keyPath, "."), v.def.KeyType, keyType.FriendlyName(),
+					strings.Join(valuePath, "."), v.def.ValueType, valueType.FriendlyName(), v.provider)
 			}
 		}
 	}

@@ -4,148 +4,16 @@
 package terraform
 
 import (
-	"sort"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
-
-func TestPolicyStaticProviderConfig(t *testing.T) {
-	schemas := &schemarepo.Schemas{Providers: map[addrs.Provider]providers.ProviderSchema{
-		addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
-	}}
-	region := func(v cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"region": v})
-	}
-	tests := map[string]struct {
-		files   map[string]string
-		addr    string
-		outside bool
-		// want is the decoded configuration; cty.NilVal if it can't be
-		// known statically.
-		want cty.Value
-	}{
-		"literal": {
-			files: map[string]string{"main.tf": `
-				provider "test" {
-					alias  = "a"
-					region = "r1"
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/test"].a`,
-			want: region(cty.StringVal("r1")),
-		},
-		"no provider block": {
-			files: map[string]string{"main.tf": `
-				provider "test" {
-					alias  = "a"
-					region = "r1"
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/test"]`,
-			want: region(cty.NullVal(cty.String)),
-		},
-		"JSON literal": {
-			files: map[string]string{"main.tf.json": `{"provider": {"test": [{"alias": "j", "region": "r1"}]}}`},
-			addr:  `provider["registry.terraform.io/hashicorp/test"].j`,
-			want:  region(cty.StringVal("r1")),
-		},
-		"JSON template": {
-			files: map[string]string{"main.tf.json": `{
-				"variable": {"r": {"default": "r1"}},
-				"provider": {"test": [{"alias": "j", "region": "${var.r}"}]}
-			}`},
-			addr: `provider["registry.terraform.io/hashicorp/test"].j`,
-		},
-		"variable": {
-			files: map[string]string{"main.tf": `
-				variable "r" {
-					default = "r1"
-				}
-				provider "test" {
-					region = var.r
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/test"]`,
-		},
-		"function call": {
-			files: map[string]string{"main.tf": `
-				provider "test" {
-					region = lower("R1")
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/test"]`,
-		},
-		"unsupported argument": {
-			files: map[string]string{"main.tf": `
-				provider "test" {
-					zone = "z"
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/test"]`,
-		},
-		"module": {
-			files: map[string]string{
-				"main.tf": `
-					module "child" {
-						source = "./child"
-					}
-				`,
-				"child/main.tf": `
-					provider "test" {
-						region = "r1"
-					}
-				`,
-			},
-			addr: `module.child.provider["registry.terraform.io/hashicorp/test"]`,
-			want: region(cty.StringVal("r1")),
-		},
-		"module not in the configuration": {
-			files: map[string]string{"main.tf": ``},
-			addr:  `module.gone.provider["registry.terraform.io/hashicorp/test"]`,
-		},
-		"values from outside the configuration": {
-			files:   map[string]string{"main.tf": ``},
-			addr:    `provider["registry.terraform.io/hashicorp/test"]`,
-			outside: true,
-		},
-		"no schema": {
-			files: map[string]string{"main.tf": `
-				terraform {
-					required_providers {
-						other = {
-							source = "hashicorp/other"
-						}
-					}
-				}
-			`},
-			addr: `provider["registry.terraform.io/hashicorp/other"]`,
-		},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			cfg := testModuleInline(t, test.files)
-			got := policyStaticProviderConfig(cfg, schemas, mustProviderConfig(test.addr), test.outside)
-			if test.want == cty.NilVal {
-				if got != cty.NilVal {
-					t.Fatalf("expected no static configuration, got %#v", got)
-				}
-				return
-			}
-			if !got.RawEquals(test.want) {
-				t.Fatalf("wrong configuration\ngot:  %#v\nwant: %#v", got, test.want)
-			}
-		})
-	}
-}
 
 func TestPolicyStateValue(t *testing.T) {
 	schema := providers.Schema{Body: &configschema.Block{
@@ -200,75 +68,67 @@ func TestPolicyStateValue(t *testing.T) {
 	})
 }
 
-func TestPolicyBagRead(t *testing.T) {
-	val := cty.ObjectVal(map[string]cty.Value{
-		"s":     cty.StringVal("a"),
-		"empty": cty.StringVal(""),
-		"null":  cty.NullVal(cty.String),
-		"n":     cty.NumberIntVal(10),
-		"b":     cty.False,
-		"list":  cty.ListVal([]cty.Value{cty.StringVal("x"), cty.StringVal(""), cty.StringVal("y")}),
-		"nested": cty.ListVal([]cty.Value{
-			cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("p")}),
-			cty.ObjectVal(map[string]cty.Value{"id": cty.UnknownVal(cty.String)}),
-		}),
-		"unknown": cty.UnknownVal(cty.String),
-		"map":     cty.MapVal(map[string]cty.Value{"k": cty.StringVal("v")}),
-	})
+// A key holds between two reads as contract §3.5 says, and certainly fails
+// only if one side is empty or both are known.
+func TestPolicyReadHolds(t *testing.T) {
+	str := cty.StringVal
+	unknown := cty.UnknownVal(cty.String)
+	list := func(vs ...cty.Value) cty.Value { return cty.ListVal(vs) }
+	obj := func(v cty.Value) *policyObject {
+		return &policyObject{addr: "test_vm.v", op: proto.Operation_CREATE, value: cty.ObjectVal(map[string]cty.Value{"k": v})}
+	}
+	withOrigin := func(v cty.Value, origin string) *policyObject {
+		o := obj(v)
+		o.origins = map[string][]string{"k": {origin}}
+		return o
+	}
+	const (
+		holds = iota
+		fails
+		undecided
+	)
 	tests := map[string]struct {
-		path        []string
-		wantKnown   []string
-		wantUnknown bool
+		a, b *policyObject
+		want int
 	}{
-		"string":        {path: []string{"s"}, wantKnown: []string{"string:a"}},
-		"empty string":  {path: []string{"empty"}},
-		"null":          {path: []string{"null"}},
-		"number":        {path: []string{"n"}, wantKnown: []string{"number:10"}},
-		"bool":          {path: []string{"b"}, wantKnown: []string{"bool:false"}},
-		"list":          {path: []string{"list"}, wantKnown: []string{"string:x", "string:y"}},
-		"nested":        {path: []string{"nested", "id"}, wantKnown: []string{"string:p"}, wantUnknown: true},
-		"unknown":       {path: []string{"unknown"}, wantUnknown: true},
-		"doesn't fit":   {path: []string{"map", "k"}, wantUnknown: true},
-		"no such attr":  {path: []string{"nope"}, wantUnknown: true},
-		"not primitive": {path: []string{"nested"}, wantUnknown: true},
+		"equal scalars":                 {obj(str("a")), obj(str("a")), holds},
+		"different scalars":             {obj(str("a")), obj(str("b")), fails},
+		"different types":               {obj(str("1")), obj(cty.NumberIntVal(1)), fails},
+		"null":                          {obj(cty.NullVal(cty.String)), obj(cty.NullVal(cty.String)), fails},
+		"empty string":                  {obj(str("")), obj(str("")), fails},
+		"empty list":                    {obj(cty.ListValEmpty(cty.String)), obj(cty.ListValEmpty(cty.String)), fails},
+		"unknown scalar":                {obj(unknown), obj(str("a")), undecided},
+		"unknown scalar, empty other":   {obj(unknown), obj(cty.NullVal(cty.String)), fails},
+		"scalar in list":                {obj(str("b")), obj(list(str("a"), str("b"))), holds},
+		"scalar not in list":            {obj(str("c")), obj(list(str("a"), str("b"))), fails},
+		"scalar maybe in list":          {obj(str("c")), obj(list(str("a"), unknown)), undecided},
+		"equal lists":                   {obj(list(str("a"), str("b"))), obj(list(str("a"), str("b"))), holds},
+		"lists in another order":        {obj(list(str("a"), str("b"))), obj(list(str("b"), str("a"))), fails},
+		"lists of different lengths":    {obj(list(str("a"))), obj(list(str("a"), str("b"))), fails},
+		"list with an unknown element":  {obj(list(str("a"), unknown)), obj(list(str("a"), str("b"))), undecided},
+		"list with an empty element":    {obj(list(str("a"), str(""))), obj(list(str("a"))), holds},
+		"wholly unknown list":           {obj(cty.UnknownVal(cty.List(cty.String))), obj(list(str("a"))), undecided},
+		"origins of a delete are unset": {&policyObject{addr: "test_vm.v", op: proto.Operation_DELETE, value: cty.ObjectVal(map[string]cty.Value{"k": unknown}), origins: map[string][]string{"k": {"x"}}}, withOrigin(unknown, "x"), undecided},
+		"shared origins":                {withOrigin(unknown, "x"), withOrigin(unknown, "x"), holds},
+		"shared origin, known values":   {withOrigin(str("a"), "x"), withOrigin(str("b"), "x"), fails},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			bag := policyBag{known: make(map[string]bool)}
-			bag.read(val, test.path)
-			var got []string
-			for v := range bag.known {
-				got = append(got, v)
+			other := *test.b
+			other.addr = "test_net.n"
+			a, b := test.a.read([]string{"k"}), other.read([]string{"k"})
+			got := undecided
+			switch {
+			case a.holds(b):
+				got = holds
+			case a.fails(b):
+				got = fails
 			}
-			sort.Strings(got)
-			if diff := cmp.Diff(test.wantKnown, got); diff != "" {
-				t.Errorf("wrong known values (-want +got):\n%s", diff)
+			if got != test.want {
+				t.Errorf("got %d, want %d", got, test.want)
 			}
-			if bag.unknown != test.wantUnknown {
-				t.Errorf("wrong unknown %t", bag.unknown)
-			}
-		})
-	}
-}
-
-func TestPolicyProviderSame(t *testing.T) {
-	region := func(r string) cty.Value { return cty.ObjectVal(map[string]cty.Value{"region": cty.StringVal(r)}) }
-	tests := map[string]struct {
-		a, b        PolicyProvider
-		same, known bool
-	}{
-		"same address":         {a: PolicyProvider{Addr: "p"}, b: PolicyProvider{Addr: "p"}, same: true},
-		"equal values":         {a: PolicyProvider{Addr: "p", Config: region("a")}, b: PolicyProvider{Addr: "q", Config: region("a")}, same: true},
-		"different values":     {a: PolicyProvider{Addr: "p", Config: region("a")}, b: PolicyProvider{Addr: "q", Config: region("b")}, known: true},
-		"a value is not known": {a: PolicyProvider{Addr: "p", Config: region("a")}, b: PolicyProvider{Addr: "q"}},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			if got := test.a.same(&test.b); got != test.same {
-				t.Errorf("same = %t, want %t", got, test.same)
-			}
-			if got := test.a.differs(&test.b); got != test.known {
-				t.Errorf("differs = %t, want %t", got, test.known)
+			if b.holds(a) != a.holds(b) {
+				t.Error("holds isn't symmetric")
 			}
 		})
 	}

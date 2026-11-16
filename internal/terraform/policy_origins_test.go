@@ -4,70 +4,71 @@
 package terraform
 
 import (
-	"math/big"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/providers"
-	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
-	"github.com/hashicorp/terraform/internal/schemarepo"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+// The origins of contract §3.5 relate instances through unknown values at
+// plan. Every test_net is new, so its id is unknown, and each test_vm relates
+// to the test_net whose id its net_id, or zone, refers to only through an
+// origin. A test_vm that refers to a test_net in a form that isn't followed
+// is undecided, so its relation is PLAN.
 func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 	tests := map[string]struct {
 		files map[string]string
 		state func(*states.SyncState)
-		opts  *PlanOpts
-		// computedZone makes the provider plan an unknown zone when the
-		// configuration has none, like providers do for optional and
-		// computed attributes.
-		computedZone bool
+		vars  InputValues
 		// planFn replaces the provider's planning when set.
 		planFn func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
-		// want are the origins of every object that has any, by address,
-		// then by key path.
-		want map[string]map[string][]string
-		// objects are objects that must exist, by relObjectKey.
-		objects []string
-		// ops are the operations of objects, by relObjectKey; not checked
-		// for objects without an entry.
-		ops map[string]proto.Operation
+		// want is the relation of each test_vm: its completeness, then the
+		// test_nets related to it.
+		want map[string]string
 	}{
 		// Followed forms.
-		"direct reference": {
+		"resource attribute": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
 					name = "a"
 				}
 				resource "test_vm" "v" {
 					net_id = test_net.a.id
-					zone   = test_net.a.name
 				}
 			`},
-			want: map[string]map[string][]string{
-				"test_vm.v": {
-					"net_id": {"test_net.a.id"},
-					"zone":   {"test_net.a.name"},
-				},
+			want: map[string]string{"test_vm.v": "COMPLETE test_net.a"},
+		},
+		"literal instance keys": {
+			files: map[string]string{"main.tf": `
+				resource "test_net" "c" {
+					count = 2
+					name  = "c"
+				}
+				resource "test_net" "e" {
+					for_each = toset(["x"])
+					name     = each.key
+				}
+				resource "test_vm" "c" {
+					net_id = test_net.c[1].id
+				}
+				resource "test_vm" "e" {
+					net_id = test_net.e["x"].id
+				}
+			`},
+			want: map[string]string{
+				"test_vm.c": `PLAN test_net.c[1]`,
+				"test_vm.e": `PLAN test_net.e["x"]`,
 			},
 		},
-		"local value": {
+		"local values": {
 			files: map[string]string{"main.tf": `
 				locals {
 					net_id = test_net.a.id
@@ -80,443 +81,39 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					net_id = local.alias
 				}
 			`},
-			want: map[string]map[string][]string{
-				"test_vm.v": {"net_id": {"test_net.a.id"}},
-			},
+			want: map[string]string{"test_vm.v": "COMPLETE test_net.a"},
 		},
-		"object constructor": {
+		// A data source attribute is an origin of its own, which a test_vm's
+		// zone and a test_net's name can share.
+		"data source attribute": {
 			files: map[string]string{"main.tf": `
-				locals {
-					nets = {
-						a     = test_net.a.id
-						"b"   = test_net.b.id
-						other = "literal"
-					}
-				}
 				resource "test_net" "a" {
 					name = "a"
+				}
+				data "test_info" "i" {
+					net_id = test_net.a.id
 				}
 				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "v1" {
-					net_id = local.nets.a
-				}
-				resource "test_vm" "v2" {
-					net_id = local.nets["b"]
-				}
-				resource "test_vm" "v3" {
-					net_id = local.nets.other
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.v1": {"net_id": {"test_net.a.id"}},
-				"test_vm.v2": {"net_id": {"test_net.b.id"}},
-			},
-		},
-		"template with a single interpolation and parentheses": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "v1" {
-					net_id = "${test_net.a.id}"
-				}
-				resource "test_vm" "v2" {
-					net_id = (test_net.a.id)
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.v1": {"net_id": {"test_net.a.id"}},
-				"test_vm.v2": {"net_id": {"test_net.a.id"}},
-			},
-		},
-		"tuple constructor": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
+					name = data.test_info.i.id
 				}
 				resource "test_vm" "v" {
-					net_ids = [test_net.a.id, test_net.b.id, "literal", test_net.a.id]
-				}
-				resource "test_vm" "w" {
-					net_id = [test_net.a.id, test_net.b.id][1]
+					zone = data.test_info.i.id
 				}
 			`},
-			want: map[string]map[string][]string{
-				// Origins are a set.
-				"test_vm.v": {"net_ids": {"test_net.a.id", "test_net.b.id"}},
-				"test_vm.w": {"net_id": {"test_net.b.id"}},
-			},
-		},
-		"splat": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					count = 2
-					name  = "a${count.index}"
-				}
-				resource "test_net" "single" {
-					name = "single"
-				}
-				resource "test_vm" "v1" {
-					net_ids = test_net.a[*].id
-				}
-				resource "test_vm" "v2" {
-					net_ids = test_net.a.*.id
-				}
-				resource "test_vm" "v3" {
-					net_ids = test_net.single[*].id
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.v1": {"net_ids": {"test_net.a[0].id", "test_net.a[1].id"}},
-				"test_vm.v2": {"net_ids": {"test_net.a[0].id", "test_net.a[1].id"}},
-				"test_vm.v3": {"net_ids": {"test_net.single.id"}},
-			},
-		},
-		"nested blocks": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "v" {
-					nic {
-						net_id = test_net.a.id
-					}
-					nic {
-						net_id = test_net.b.id
-					}
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.v": {"nic.net_id": {"test_net.a.id", "test_net.b.id"}},
-			},
-		},
-		"index into nested blocks": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "other" {
-					nic {
-						net_id = test_net.a.id
-					}
-					nic {
-						net_id = test_net.b.id
-					}
-				}
-				resource "test_vm" "v" {
-					net_id  = test_vm.other.nic[1].net_id
-					net_ids = [test_vm.other.nic[0].net_id, test_vm.other.nic[1].net_id]
-					# A legacy index step.
-					zone = test_vm.other.nic.0.net_id
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.other": {"nic.net_id": {"test_net.a.id", "test_net.b.id"}},
-				"test_vm.v": {
-					"net_id":  {"test_vm.other.nic[1].net_id"},
-					"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"},
-					"zone":    {"test_vm.other.nic[0].net_id"},
-				},
-			},
-		},
-		"index into a list attribute": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "other" {
-					net_ids = ["x", test_net.a.id]
-				}
-				resource "test_vm" "v" {
-					net_id = test_vm.other.net_ids[1]
-				}
-				resource "test_vm" "w" {
-					count  = 2
-					net_id = test_vm.other.net_ids[count.index]
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.other": {"net_ids": {"test_net.a.id"}},
-				"test_vm.v":     {"net_id": {"test_vm.other.net_ids[1]"}},
-				"test_vm.w[0]":  {"net_id": {"test_vm.other.net_ids[0]"}},
-				"test_vm.w[1]":  {"net_id": {"test_vm.other.net_ids[1]"}},
-			},
-		},
-		"index into a null element": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "other" {
-					net_ids = [test_net.a.id, null]
-				}
-				resource "test_vm" "v" {
-					net_ids = [test_vm.other.net_ids[0], test_vm.other.net_ids[1]]
-				}
-			`},
-			// The referenced null element is null in the planned value, so
-			// it contributes nothing.
-			want: map[string]map[string][]string{
-				"test_vm.other": {"net_ids": {"test_net.a.id"}},
-				"test_vm.v":     {"net_ids": {"test_vm.other.net_ids[0]"}},
-			},
-		},
-		"splat over a referenced list": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "other" {
-					net_ids = ["x", test_net.a.id]
-					nic {
-						net_id = test_net.a.id
-					}
-					nic {
-						net_id = test_net.b.id
-					}
-				}
-				resource "test_vm" "blocks" {
-					net_ids = test_vm.other.nic[*].net_id
-				}
-				resource "test_vm" "legacy" {
-					net_ids = test_vm.other.nic.*.net_id
-				}
-				resource "test_vm" "list" {
-					net_ids = test_vm.other.net_ids[*]
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.other":  {"net_ids": {"test_net.a.id"}, "nic.net_id": {"test_net.a.id", "test_net.b.id"}},
-				"test_vm.blocks": {"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"}},
-				"test_vm.legacy": {"net_ids": {"test_vm.other.nic[0].net_id", "test_vm.other.nic[1].net_id"}},
-				"test_vm.list":   {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
-			},
-		},
-		"splats not followed": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "other" {
-					net_set = [test_net.a.name]
-					# An unknown list.
-					net_ids = split(",", test_net.a.id)
-				}
-				resource "test_vm" "set" {
-					net_ids = test_vm.other.net_set[*]
-				}
-				resource "test_vm" "unknown" {
-					net_ids = test_vm.other.net_ids[*]
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		// A reference to a whole list is followed like a splat over it, so
-		// test_vm.direct's net_ids refer to test_vm.other's net_ids element
-		// by element: a relationship on net_ids between them is definite.
-		"whole-list reference": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_net" "a" {
-						name = "a"
-					}
-					resource "test_vm" "other" {
-						net_ids = ["x", test_net.a.id]
-						disks   = [{ size = 1 }, { size = 2 }]
-					}
-					locals {
-						ids = test_vm.other.net_ids
-					}
-					resource "test_vm" "direct" {
-						net_ids = test_vm.other.net_ids
-					}
-					resource "test_vm" "local" {
-						net_ids = local.ids
-					}
-					resource "test_vm" "nested" {
-						disks = test_vm.other.disks
-					}
-					module "m" {
-						source = "./child"
-						ids    = test_vm.other.net_ids
-					}
-					resource "test_vm" "output" {
-						net_ids = module.m.ids
-					}
-				`,
-				"child/main.tf": `
-					variable "ids" {
-						type = list(string)
-					}
-					resource "test_vm" "v" {
-						net_ids = var.ids
-					}
-					resource "test_vm" "src" {
-						net_ids = [test_vm.v.id]
-					}
-					output "ids" {
-						value = test_vm.src.net_ids
-					}
-				`,
-			},
-			want: map[string]map[string][]string{
-				"test_vm.other":        {"net_ids": {"test_net.a.id"}},
-				"test_vm.direct":       {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
-				"test_vm.local":        {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
-				"test_vm.nested":       {"disks.size": {"test_vm.other.disks[0].size", "test_vm.other.disks[1].size"}},
-				"module.m.test_vm.v":   {"net_ids": {"test_vm.other.net_ids[0]", "test_vm.other.net_ids[1]"}},
-				"module.m.test_vm.src": {"net_ids": {"module.m.test_vm.v.id"}},
-				"test_vm.output":       {"net_ids": {"module.m.test_vm.src.net_ids[0]"}},
-			},
-		},
-		// Whole sets, unknown lists and null lists have no origin.
-		"whole-list references not followed": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "other" {
-					net_set = [test_net.a.name]
-					# An unknown list.
-					net_ids = split(",", test_net.a.id)
-				}
-				resource "test_vm" "empty" {
-				}
-				resource "test_vm" "set" {
-					net_ids = test_vm.other.net_set
-				}
-				resource "test_vm" "unknown" {
-					net_ids = test_vm.other.net_ids
-				}
-				# Null, so its net_ids have no key path entry.
-				resource "test_vm" "null" {
-					net_ids = test_vm.empty.net_ids
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"index steps not followed": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-					tags = { "0" = "x" }
-				}
-				resource "test_vm" "other" {
-					net_ids = ["x"]
-					nic {
-						net_id = "n"
-					}
-				}
-				resource "test_vm" "string_key" {
-					net_id = test_vm.other.net_ids["0"]
-				}
-				resource "test_vm" "block_string_key" {
-					net_id = test_vm.other.nic["0"].net_id
-				}
-				resource "test_vm" "map" {
-					net_id = test_net.a.tags[0]
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"count.index": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					count = 2
-					name  = "a${count.index}"
-				}
-				resource "test_vm" "v" {
-					count  = 2
-					net_id = test_net.a[count.index].id
-				}
-			`},
-			want: map[string]map[string][]string{
-				"test_vm.v[0]": {"net_id": {"test_net.a[0].id"}},
-				"test_vm.v[1]": {"net_id": {"test_net.a[1].id"}},
-			},
-		},
-		"each.key": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					for_each = { x = "x", y = "y" }
-					name     = each.value
-				}
-				resource "test_vm" "v" {
-					for_each = { x = "1" }
-					net_id   = test_net.a[each.key].id
-				}
-			`},
-			want: map[string]map[string][]string{
-				`test_vm.v["x"]`: {"net_id": {`test_net.a["x"].id`}},
-			},
-		},
-		"each.value over a resource": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					for_each = { x = "x", y = "y" }
-					name     = each.value
-				}
-				resource "test_vm" "v" {
-					for_each = test_net.a
-					net_id   = each.value.id
-				}
-			`},
-			want: map[string]map[string][]string{
-				`test_vm.v["x"]`: {"net_id": {`test_net.a["x"].id`}},
-				`test_vm.v["y"]`: {"net_id": {`test_net.a["y"].id`}},
-			},
-		},
-		"each.value over an object": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "v" {
-					for_each = { x = test_net.a.id }
-					net_id   = each.value
-				}
-			`},
-			want: map[string]map[string][]string{
-				`test_vm.v["x"]`: {"net_id": {"test_net.a.id"}},
-			},
+			want: map[string]string{"test_vm.v": "PLAN test_net.b"},
 		},
 		"module input variable": {
 			files: map[string]string{
 				"main.tf": `
 					resource "test_net" "a" {
-						count = 2
-						name  = "a${count.index}"
+						name = "a"
 					}
-					module "single" {
-						source = "./child"
-						net_id = test_net.a[0].id
-					}
-					module "counted" {
-						count  = 2
-						source = "./child"
-						net_id = test_net.a[count.index].id
-					}
-					module "each" {
-						for_each = { x = test_net.a[1].id }
-						source   = "./child"
-						net_id   = each.value
+					module "m" {
+						source = "./m"
+						net_id = test_net.a.id
 					}
 				`,
-				"child/main.tf": `
+				"m/main.tf": `
 					variable "net_id" {
 						type = string
 					}
@@ -525,42 +122,37 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 					}
 				`,
 			},
-			want: map[string]map[string][]string{
-				"module.single.test_vm.v":     {"net_id": {"test_net.a[0].id"}},
-				"module.counted[0].test_vm.v": {"net_id": {"test_net.a[0].id"}},
-				"module.counted[1].test_vm.v": {"net_id": {"test_net.a[1].id"}},
-				`module.each["x"].test_vm.v`:  {"net_id": {"test_net.a[1].id"}},
-			},
+			want: map[string]string{"module.m.test_vm.v": "COMPLETE test_net.a"},
 		},
-		"module output": {
+		"module outputs": {
 			files: map[string]string{
 				"main.tf": `
-					module "single" {
-						source = "./child"
+					module "n" {
+						source = "./n"
 					}
-					module "counted" {
-						count  = 1
-						source = "./child"
+					module "k" {
+						source   = "./n"
+						for_each = toset(["x"])
 					}
-					resource "test_vm" "v1" {
-						net_id = module.single.net_id
+					resource "test_vm" "n" {
+						net_id = module.n.id
 					}
-					resource "test_vm" "v2" {
-						net_id = module.counted[0].net_id
+					resource "test_vm" "k" {
+						net_id = module.k["x"].id
 					}
 				`,
-				"child/main.tf": `
-					resource "test_net" "n" {
-						name = "n"
+				"n/main.tf": `
+					resource "test_net" "a" {
+						name = "a"
 					}
-					output "net_id" {
-						value = test_net.n.id
+					output "id" {
+						value = test_net.a.id
 					}
 				`,
 			},
-			want: map[string]map[string][]string{
-				"test_vm.v1": {"net_id": {"module.single.test_net.n.id"}},
-				"test_vm.v2": {"net_id": {"module.counted[0].test_net.n.id"}},
+			want: map[string]string{
+				"test_vm.n": `PLAN module.n.test_net.a`,
+				"test_vm.k": `PLAN module.k["x"].test_net.a`,
 			},
 		},
 
@@ -568,18 +160,17 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 		"not followed": {
 			files: map[string]string{"main.tf": `
 				variable "net_id" {
-					type    = string
-					default = "root"
+					type = string
 				}
 				resource "test_net" "a" {
-					name  = "a"
-					defer = false
+					name = "a"
 				}
-				data "test_info" "i" {
-					net_id = "x"
+				resource "test_net" "c" {
+					count = 1
+					name  = "c"
 				}
 				resource "test_vm" "template" {
-					net_id = "${test_net.a.id}-x"
+					net_id = "${test_net.a.id}"
 				}
 				resource "test_vm" "function" {
 					net_id = lower(test_net.a.id)
@@ -587,758 +178,119 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 				resource "test_vm" "conditional" {
 					net_id = true ? test_net.a.id : "x"
 				}
+				resource "test_vm" "tuple" {
+					net_ids = [test_net.a.id]
+				}
+				resource "test_vm" "splat" {
+					net_ids = test_net.c[*].id
+				}
 				resource "test_vm" "for" {
-					net_ids = [for n in [test_net.a] : n.id]
+					net_ids = [for n in test_net.c : n.id]
 				}
-				resource "test_vm" "data_source" {
-					net_id = data.test_info.i.id
+				resource "test_vm" "count" {
+					count  = 1
+					net_id = test_net.c[count.index].id
 				}
-				resource "test_vm" "root_variable" {
-					net_id = var.net_id
+				resource "test_vm" "each" {
+					for_each = { x = test_net.a }
+					net_id   = each.value.id
 				}
-				resource "test_vm" "other_type" {
-					net_id = test_net.a.defer
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"dynamic block": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "v" {
+				resource "test_vm" "nested_block" {
 					nic {
 						net_id = test_net.a.id
 					}
-					# Even without any dynamic blocks, a dynamic block type has
-					# no origins.
-					dynamic "nic" {
-						for_each = []
-						content {
-							net_id = test_net.a.id
-						}
-					}
+				}
+				resource "test_vm" "root_variable" {
+					zone = var.net_id
+				}
+				resource "test_net" "root_variable" {
+					name = var.net_id
 				}
 			`},
-			want: map[string]map[string][]string{},
-		},
-		"module variable default": {
-			files: map[string]string{
-				"main.tf": `
-					module "child" {
-						source = "./child"
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type    = string
-						default = "default"
-					}
-					resource "test_vm" "v" {
-						net_id = var.net_id
-					}
-				`,
+			vars: InputValues{"net_id": &InputValue{Value: cty.UnknownVal(cty.String), SourceType: ValueFromCaller}},
+			want: map[string]string{
+				"test_vm.template":      "PLAN",
+				"test_vm.function":      "PLAN",
+				"test_vm.conditional":   "PLAN",
+				"test_vm.tuple":         "PLAN",
+				"test_vm.splat":         "PLAN",
+				"test_vm.for":           "PLAN",
+				"test_vm.count[0]":      "PLAN",
+				`test_vm.each["x"]`:     "PLAN",
+				"test_vm.nested_block":  "PLAN",
+				"test_vm.root_variable": "PLAN",
 			},
-			want: map[string]map[string][]string{},
-		},
-		"JSON configuration": {
-			files: map[string]string{"main.tf.json": `{
-				"resource": {
-					"test_net": {"a": {"name": "a"}},
-					"test_vm": {"v": {"net_id": "${test_net.a.id}"}}
-				}
-			}`},
-			want: map[string]map[string][]string{},
 		},
 
-		// Drop rules.
+		// Dropped origins.
 		"ignore_changes": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
 					name = "a"
 				}
-				resource "test_vm" "v" {
+				resource "test_vm" "create" {
 					net_id = test_net.a.id
-					nic {
-						net_id = test_net.a.id
-					}
 					lifecycle {
 						ignore_changes = [net_id]
 					}
 				}
-				resource "test_vm" "all" {
+				resource "test_vm" "update" {
+					name   = "new"
 					net_id = test_net.a.id
 					lifecycle {
-						ignore_changes = all
+						ignore_changes = [net_id]
 					}
 				}
 			`},
 			state: func(s *states.SyncState) {
-				for _, addr := range []string{"test_vm.v", "test_vm.all"} {
-					s.SetResourceInstanceCurrent(mustResourceInstanceAddr(addr), &states.ResourceInstanceObjectSrc{
-						AttrsJSON: []byte(`{"id":"old","net_id":"old","nic":[]}`),
-						Status:    states.ObjectReady,
-					}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-				}
+				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_vm.update"), &states.ResourceInstanceObjectSrc{
+					AttrsJSON: []byte(`{"id":"u-id","name":"old","net_id":"old-id"}`),
+					Status:    states.ObjectReady,
+				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 			},
-			want: map[string]map[string][]string{
-				"test_vm.v": {"nic.net_id": {"test_net.a.id"}},
-			},
-		},
-		"planned value is null": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-				}
-				resource "test_vm" "v" {
-					net_id = test_net.a.name
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"referenced value is null": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-				}
-				resource "test_vm" "v" {
-					# zone is computed, so its planned value is unknown, but the
-					# provider might choose a value other than null.
-					zone = test_net.a.name
-				}
-			`},
-			computedZone: true,
-			want:         map[string]map[string][]string{},
-		},
-		"null leaves": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-				}
-				resource "test_vm" "v" {
-					net_id  = null
-					net_ids = [test_net.a.id, null, test_net.b.name]
-				}
-				resource "test_vm" "w" {
-					nic {
-						net_id = test_net.a.id
-					}
-					nic {
-					}
-				}
-			`},
-			// The null leaves are null in the planned values, so they
-			// contribute nothing, and the null key path has no entry.
-			want: map[string]map[string][]string{
-				"test_vm.v": {"net_ids": {"test_net.a.id"}},
-				"test_vm.w": {"nic.net_id": {"test_net.a.id"}},
+			// A create keeps its origins.
+			want: map[string]string{
+				"test_vm.create": "COMPLETE test_net.a",
+				"test_vm.update": "PLAN",
 			},
 		},
-		"different number of leaves": {
+		"planned value differs": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
 					name = "a"
 				}
 				resource "test_vm" "v" {
-					net_ids = [test_net.a.id]
+					net_id = test_net.a.id
+				}
+				resource "test_vm" "null" {
+					name   = "null"
+					net_id = test_net.a.id
 				}
 			`},
-			// A legacy provider plans a different list than the configured
-			// one.
 			planFn: func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-				planned, err := cty.Transform(req.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
-					if len(path) != 1 {
-						return v, nil
-					}
-					switch path[0].(cty.GetAttrStep).Name {
-					case "id":
-						return cty.UnknownVal(cty.String), nil
-					case "net_ids":
-						if !v.IsNull() {
-							return cty.ListVal([]cty.Value{cty.StringVal("x"), cty.StringVal("y")}), nil
-						}
-					}
-					return v, nil
-				})
-				if err != nil {
-					panic(err)
+				resp := testDiffFn(req)
+				if req.TypeName != "test_vm" {
+					return resp
 				}
-				return providers.PlanResourceChangeResponse{PlannedState: planned, LegacyTypeSystem: true}
+				attrs := resp.PlannedState.AsValueMap()
+				attrs["zone"] = cty.StringVal("z")
+				if name := attrs["name"]; !name.IsNull() {
+					attrs["net_id"] = cty.NullVal(cty.String)
+				} else {
+					attrs["net_id"] = cty.StringVal("other-id")
+				}
+				resp.PlannedState = cty.ObjectVal(attrs)
+				resp.LegacyTypeSystem = true
+				return resp
 			},
-			want: map[string]map[string][]string{},
-		},
-
-		// No origins.
-		"no_origin: literals": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "c" {
-					count   = 1
-					net_id  = "fixed"
-					zone    = count.index
-					net_ids = [test_net.a.id, "fixed"]
-				}
-				resource "test_vm" "e" {
-					for_each = toset(["k"])
-					net_id   = each.key
-				}
-			`},
-			// A key path with some leaves without origins has the origins of
-			// the others.
-			want: map[string]map[string][]string{
-				"test_vm.c[0]": {"net_ids": {"test_net.a.id"}},
+			want: map[string]string{
+				"test_vm.v":    "PLAN",
+				"test_vm.null": "COMPLETE",
 			},
-		},
-		"no_origin: data sources and variables": {
-			files: map[string]string{
-				"main.tf": `
-					variable "zone" {
-						type    = string
-						default = "z"
-					}
-					data "test_info" "i" {
-						net_id = "x"
-					}
-					resource "test_vm" "v" {
-						net_id = data.test_info.i.net_id
-						zone   = var.zone
-					}
-					module "child" {
-						source = "./child"
-						net_id = var.zone
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					variable "zone" {
-						type    = string
-						default = "d"
-					}
-					resource "test_vm" "v" {
-						net_id = var.net_id
-						zone   = var.zone
-					}
-				`,
-			},
-			want: map[string]map[string][]string{},
-		},
-		"no_origin: expressions": {
-			files: map[string]string{"main.tf": `
-				variable "i" {
-					type    = number
-					default = 0
-				}
-				resource "test_net" "c" {
-					count = 1
-					name  = "c-${count.index}"
-				}
-				resource "test_net" "f" {
-					for_each = toset(["x"])
-					name     = each.key
-				}
-				resource "test_vm" "v" {
-					net_id  = upper(test_net.c[0].id)
-					zone    = test_net.c[0].name == "c-0" ? "x" : "y"
-					net_ids = [for n in test_net.c : n.id]
-				}
-				resource "test_vm" "w" {
-					net_id  = test_net.c[var.i].id
-					zone    = "${test_net.f["x"].name}-${test_net.c[0].name}"
-					net_ids = test_net.f[*]["x"].id
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"ignore_changes on create": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "v" {
-					net_id = test_net.a.id
-					lifecycle {
-						ignore_changes = [net_id]
-					}
-				}
-				resource "test_vm" "all" {
-					net_id = test_net.a.id
-					lifecycle {
-						ignore_changes = all
-					}
-				}
-			`},
-			// ignore_changes doesn't apply without a prior object, so the
-			// planned value comes from the reference.
-			computedZone: true,
-			want: map[string]map[string][]string{
-				"test_vm.v":   {"net_id": {"test_net.a.id"}},
-				"test_vm.all": {"net_id": {"test_net.a.id"}},
-			},
-			ops: map[string]proto.Operation{"test_vm.v": proto.Operation_CREATE, "test_vm.all": proto.Operation_CREATE},
-		},
-		"ignore_changes on update": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "v" {
-					name   = "new"
-					net_id = test_net.a.id
-					zone   = test_net.a.name
-					lifecycle {
-						ignore_changes = [net_id]
-					}
-				}
-				resource "test_vm" "all" {
-					name   = "new"
-					net_id = test_net.a.id
-					zone   = test_net.a.name
-					lifecycle {
-						ignore_changes = all
-					}
-				}
-				resource "test_vm" "literal" {
-					net_id = "x"
-					lifecycle {
-						ignore_changes = [net_id]
-					}
-				}
-				resource "test_vm" "replaced" {
-					net_id = test_net.a.id
-					lifecycle {
-						ignore_changes = [net_id]
-					}
-				}
-			`},
-			state: func(s *states.SyncState) {
-				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
-				relNetState(s, "test_vm.v", `{"id":"v-id","name":"old","net_id":"other-id","zone":"a","nic":[]}`)
-				relNetState(s, "test_vm.all", `{"id":"all-id","name":"old","net_id":"other-id","zone":"a","nic":[]}`)
-				relNetState(s, "test_vm.literal", `{"id":"l-id","net_id":"y","nic":[]}`)
-				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_vm.replaced"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"id":"r-id","net_id":"other-id","nic":[]}`),
-					Status:    states.ObjectTainted,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			},
-			// An attribute in ignore_changes keeps its prior value on an
-			// update or a no-op, whatever the configuration says; the other
-			// attributes still come from their references. A replace plans
-			// the new object from the whole configuration.
-			want: map[string]map[string][]string{
-				"test_vm.v":        {"zone": {"test_net.a.name"}},
-				"test_vm.replaced": {"net_id": {"test_net.a.id"}},
-			},
-			ops: map[string]proto.Operation{
-				"test_vm.v":            proto.Operation_UPDATE,
-				"test_vm.all":          proto.Operation_NO_OP,
-				"test_vm.literal":      proto.Operation_NO_OP,
-				"test_vm.replaced":     proto.Operation_CREATE,
-				"test_vm.replaced old": proto.Operation_DELETE,
-			},
-		},
-		"provider changed the value": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "known" {
-					net_id = test_net.a.name
-					zone   = test_net.b.name
-				}
-				resource "test_vm" "unknown" {
-					net_id = test_net.a.id
-					zone   = test_net.a.name
-				}
-				resource "test_vm" "list" {
-					net_ids = [test_net.b.name, test_net.a.name]
-				}
-				resource "test_vm" "list_changed" {
-					net_ids = [test_net.a.name, test_net.b.id]
-				}
-			`},
-			// A legacy provider plans other values than the configured ones:
-			// it upper-cases a known net_id, plans a known value for an
-			// unknown one and an unknown zone for a known one, sorts
-			// net_ids, and plans a known value for an unknown element. Only
-			// a planned value that keeps the configured leaves, in any
-			// order, comes from the references.
-			planFn: relLegacyPlanFn(func(addr, name string, v cty.Value) cty.Value {
-				switch {
-				case name == "net_id" && v.IsKnown():
-					return cty.StringVal(strings.ToUpper(v.AsString()))
-				case name == "net_id":
-					return cty.StringVal("fixed")
-				case name == "zone" && addr == "unknown":
-					return cty.UnknownVal(cty.String)
-				case name == "net_ids" && addr == "list":
-					return cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})
-				case name == "net_ids":
-					return cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b-id")})
-				}
-				return v
-			}),
-			want: map[string]map[string][]string{
-				"test_vm.known": {"zone": {"test_net.b.name"}},
-				"test_vm.list":  {"net_ids": {"test_net.a.name", "test_net.b.name"}},
-			},
-		},
-		"no_origin: unsupported": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-					tags = { x = "y" }
-				}
-				resource "test_vm" "other" {
-					net_set = ["n"]
-				}
-				resource "test_vm" "v" {
-					net_id  = test_net.a.tags["x"]
-					zone    = path.module
-					net_ids = test_vm.other.net_set
-				}
-				resource "test_vm" "w" {
-					net_id = path.root
-					nic {
-						net_id = test_net.a.id
-					}
-					dynamic "nic" {
-						for_each = ["n"]
-						content {
-							net_id = "n"
-						}
-					}
-				}
-			`},
-			want: map[string]map[string][]string{},
-		},
-		"no_origin: JSON and override files": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_vm" "o" {
-						net_id = "x"
-					}
-				`,
-				"main_override.tf": `
-					resource "test_vm" "o" {
-						zone = "z"
-					}
-				`,
-				"vm.tf.json": `{"resource": {"test_vm": {"j": {"net_id": "x"}}}}`,
-			},
-			want: map[string]map[string][]string{},
-		},
-		// Test overrides. The outputs of an overridden module come from the
-		// override, so they have no origins, but overridden resources still
-		// plan their configured attributes from their configuration.
-		"overridden module": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_net" "a" {
-						name = "a"
-					}
-					module "over" {
-						source = "./child"
-						net_id = test_net.a.id
-					}
-					module "kept" {
-						source = "./child"
-						net_id = test_net.a.id
-					}
-					module "fed" {
-						source = "./child"
-						net_id = module.over.net_id
-					}
-					locals {
-						over = module.over
-						kept = module.kept
-					}
-					resource "test_vm" "over" {
-						net_id = module.over.net_id
-					}
-					resource "test_vm" "kept" {
-						net_id = module.kept.net_id
-					}
-					resource "test_vm" "over_call" {
-						net_id = local.over.net_id
-					}
-					resource "test_vm" "kept_call" {
-						net_id = local.kept.net_id
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					resource "test_vm" "inner" {
-						net_id = var.net_id
-					}
-					output "net_id" {
-						value = var.net_id
-					}
-				`,
-			},
-			opts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(addrs.RootModuleInstance.Child("over", addrs.NoKey), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
-					})
-				}),
-			},
-			want: map[string]map[string][]string{
-				"test_vm.kept":              {"net_id": {"test_net.a.id"}},
-				"test_vm.kept_call":         {"net_id": {"test_net.a.id"}},
-				"module.kept.test_vm.inner": {"net_id": {"test_net.a.id"}},
-			},
-		},
-		"overridden module instance": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_net" "a" {
-						count = 2
-						name  = "a${count.index}"
-					}
-					module "child" {
-						count  = 2
-						source = "./child"
-						net_id = test_net.a[count.index].id
-					}
-					resource "test_vm" "v0" {
-						net_id = module.child[0].net_id
-					}
-					resource "test_vm" "v1" {
-						net_id = module.child[1].net_id
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					resource "test_vm" "inner" {
-						net_id = var.net_id
-					}
-					output "net_id" {
-						value = var.net_id
-					}
-				`,
-			},
-			opts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(addrs.RootModuleInstance.Child("child", addrs.IntKey(0)), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
-					})
-				}),
-			},
-			want: map[string]map[string][]string{
-				"test_vm.v1":                    {"net_id": {"test_net.a[1].id"}},
-				"module.child[1].test_vm.inner": {"net_id": {"test_net.a[1].id"}},
-			},
-		},
-		"module overridden through its containing call": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_net" "a" {
-						count = 2
-						name  = "a${count.index}"
-					}
-					module "child" {
-						count  = 2
-						source = "./child"
-						net_id = test_net.a[count.index].id
-					}
-					module "kept" {
-						source = "./child"
-						net_id = test_net.a[0].id
-					}
-					resource "test_vm" "v0" {
-						net_id = module.child[0].net_id
-					}
-					resource "test_vm" "all" {
-						net_ids = module.child[*].net_id
-					}
-					resource "test_vm" "kept" {
-						net_id = module.kept.net_id
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					output "net_id" {
-						value = var.net_id
-					}
-				`,
-			},
-			opts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(addrs.RootModuleInstance.Child("child", addrs.NoKey), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
-					})
-				}),
-			},
-			want: map[string]map[string][]string{
-				"test_vm.kept": {"net_id": {"test_net.a[0].id"}},
-			},
-		},
-		"overridden nested module": {
-			files: map[string]string{
-				"main.tf": `
-					resource "test_net" "a" {
-						name = "a"
-					}
-					module "parent" {
-						source = "./parent"
-						net_id = test_net.a.id
-					}
-					resource "test_vm" "over" {
-						net_id = module.parent.over_net_id
-					}
-					resource "test_vm" "kept" {
-						net_id = module.parent.kept_net_id
-					}
-				`,
-				"parent/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					module "over" {
-						source = "../child"
-						net_id = var.net_id
-					}
-					module "kept" {
-						source = "../child"
-						net_id = var.net_id
-					}
-					output "over_net_id" {
-						value = module.over.net_id
-					}
-					output "kept_net_id" {
-						value = module.kept.net_id
-					}
-				`,
-				"child/main.tf": `
-					variable "net_id" {
-						type = string
-					}
-					resource "test_vm" "inner" {
-						net_id = var.net_id
-					}
-					output "net_id" {
-						value = var.net_id
-					}
-				`,
-			},
-			opts: &PlanOpts{
-				Mode: plans.NormalMode,
-				Overrides: mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(addrs.RootModuleInstance.Child("parent", addrs.NoKey).Child("over", addrs.NoKey), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal("overridden")}),
-					})
-				}),
-			},
-			want: map[string]map[string][]string{
-				"test_vm.kept": {"net_id": {"test_net.a.id"}},
-				"module.parent.module.kept.test_vm.inner": {"net_id": {"test_net.a.id"}},
-			},
-		},
-		"overridden resources": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_net" "b" {
-					name = "b"
-				}
-				resource "test_vm" "v" {
-					net_id = test_net.a.id
-					zone   = test_net.a.name
-				}
-				resource "test_vm" "w" {
-					net_id = test_net.b.id
-					zone   = test_net.b.name
-				}
-				resource "test_vm" "over" {
-					net_id = test_net.a.id
-				}
-			`},
-			opts: &PlanOpts{
-				Mode: plans.NormalMode,
-				// test_net.b is overridden like a mock_provider override.
-				Overrides: mocking.OverridesForTesting(func(overrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]) {
-					m := addrs.MakeMap[addrs.Targetable, *configs.Override]()
-					m.Put(mustResourceInstanceAddr("test_net.b").ContainingResource(), &configs.Override{
-						Values:     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("b-over")}),
-						UseForPlan: true,
-					})
-					overrides[addrs.RootProviderConfig{Provider: addrs.NewDefaultProvider("test")}] = m
-				}, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-					overrides.Put(mustResourceInstanceAddr("test_net.a").ContainingResource(), &configs.Override{
-						Values:     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("a-over")}),
-						UseForPlan: true,
-					})
-					overrides.Put(mustResourceInstanceAddr("test_vm.over"), &configs.Override{
-						Values: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("vm-over")}),
-					})
-				}),
-			},
-			want: map[string]map[string][]string{
-				"test_vm.v": {
-					"net_id": {"test_net.a.id"},
-					"zone":   {"test_net.a.name"},
-				},
-				"test_vm.w": {
-					"net_id": {"test_net.b.id"},
-					"zone":   {"test_net.b.name"},
-				},
-				"test_vm.over": {"net_id": {"test_net.a.id"}},
-			},
-		},
-		"state objects": {
-			files: map[string]string{"main.tf": `
-				resource "test_net" "a" {
-					name = "a"
-				}
-				resource "test_vm" "targeted" {
-					net_id = test_net.a.id
-				}
-				resource "test_vm" "untargeted" {
-					net_id = test_net.a.id
-				}
-			`},
-			state: func(s *states.SyncState) {
-				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
-				s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_vm.untargeted"), &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"id":"u-id","net_id":"a-id"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-				s.SetResourceInstanceDeposed(mustResourceInstanceAddr("test_vm.targeted"), "00000001", &states.ResourceInstanceObjectSrc{
-					AttrsJSON: []byte(`{"id":"d-id","net_id":"a-id"}`),
-					Status:    states.ObjectReady,
-				}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
-			},
-			opts: &PlanOpts{
-				Mode:    plans.NormalMode,
-				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_vm.targeted")},
-			},
-			// Neither the state object of test_vm.untargeted nor the deposed
-			// object of test_vm.targeted have origins.
-			want: map[string]map[string][]string{
-				"test_vm.targeted": {"net_id": {"test_net.a.id"}},
-			},
-			objects: []string{"test_vm.untargeted", "test_vm.targeted deposed 00000001"},
 		},
 	}
 
+	defs := []*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id", "nic.net_id=id", "zone=name")}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			mod := testModuleInline(t, test.files)
@@ -1346,334 +298,33 @@ func TestContext2Plan_PolicyRelationships_origins(t *testing.T) {
 			if test.state != nil {
 				state = states.BuildState(test.state)
 			}
-			opts := test.opts
-			if opts == nil {
-				opts = &PlanOpts{Mode: plans.NormalMode}
-			}
+			client := relClient(t, relRelationships(defs, relUsage("test_vm", relHop("vm_net"))))
 			provider := relationshipsTestProvider()
-			provider.PlanResourceChangeFn = test.planFn
-			if test.computedZone {
-				provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-					planned, err := cty.Transform(req.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
-						if len(path) != 1 || !v.IsNull() {
-							return v, nil
-						}
-						if step, ok := path[0].(cty.GetAttrStep); ok && (step.Name == "id" || step.Name == "zone") {
-							return cty.UnknownVal(cty.String), nil
-						}
-						return v, nil
-					})
-					if err != nil {
-						t.Fatal(err)
-					}
-					return providers.PlanResourceChangeResponse{PlannedState: planned}
-				}
+			if test.planFn != nil {
+				provider.PlanResourceChangeFn = test.planFn
 			}
-			objects := planPolicyObjects(t, mod, state, opts, provider)
+			vars := testInputValuesUnset(mod.Module.Variables)
+			for name, v := range test.vars {
+				vars[name] = v
+			}
+			relPlan(t, mod, state, &PlanOpts{Mode: plans.NormalMode, PolicyClient: client, SetVariables: vars}, provider)
 
-			for _, key := range test.objects {
-				if _, ok := objects[key]; !ok {
-					t.Errorf("missing object %s", key)
-				}
-			}
-			for key, op := range test.ops {
-				if obj, ok := objects[key]; !ok {
-					t.Errorf("missing object %s", key)
-				} else if obj.op != op {
-					t.Errorf("%s: wrong operation %s, want %s", key, obj.op, op)
-				}
-			}
-			got := make(map[string]map[string][]string)
-			for key, obj := range objects {
-				origins := relObjectOrigins(obj)
-				if origins == nil {
+			got := make(map[string]string)
+			for _, req := range client.EvaluateRequests {
+				if len(req.Relationships) != 1 {
 					continue
 				}
-				if obj.op == proto.Operation_DELETE || obj.deposed != "" {
-					t.Errorf("%s: unexpected origins on a %s object", key, obj.op)
+				rel := req.Relationships[0]
+				line := []string{strings.TrimSuffix(rel.Completeness.String(), "_COMPLETENESS")}
+				var addrs []string
+				for id := range rel.Resources {
+					addrs = append(addrs, relResolve(t, client, id).Metadata.Address)
 				}
-				got[key] = origins
+				sort.Strings(addrs)
+				got[req.Meta.Address] = strings.Join(append(line, addrs...), " ")
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Fatalf("wrong origins (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-// relOriginDefinitions are relationships that read every key path the origin
-// tests check.
-func relOriginDefinitions() policy.Relationships {
-	return policy.Relationships{Definitions: []*proto.RelationshipDefinition{
-		relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id", "nic.net_id=id", "zone=name"),
-		relDefinition("vm_disks", "test_vm", "test_vm", "disks.size=disks.size"),
-	}}
-}
-
-// planPolicyObjects plans with relOriginDefinitions, and returns the objects
-// that the walk collected for them, by relObjectKey. The walk contributes
-// them to a shared run, which follows root module variables.
-func planPolicyObjects(t *testing.T, mod *configs.Config, state *states.State, opts *PlanOpts, provider *testing_provider.MockProvider) map[string]*policyObject {
-	t.Helper()
-	var got *PolicyInstances
-	opts.PolicyClient = policy.NewTestMockClient(t)
-	opts.PolicyRun = &SharedPolicyRun{
-		Relationships: relOriginDefinitions(),
-		Contribute:    func(c PolicyRunContribution) { got = c.Instances },
-	}
-	relPlan(t, mod, state, opts, provider)
-	if got == nil {
-		t.Fatal("the walk contributed no instances")
-	}
-	ret := make(map[string]*policyObject)
-	for _, obj := range got.objects {
-		key := relObjectKey(obj)
-		if _, ok := ret[key]; ok {
-			t.Fatalf("duplicate object %s", key)
-		}
-		ret[key] = obj
-	}
-	return ret
-}
-
-// relObjectKey identifies an object: its address, then " deposed KEY" for a
-// deposed object or " old" for the old object of a replace.
-func relObjectKey(obj *policyObject) string {
-	switch {
-	case obj.deposed != "":
-		return obj.addr + " deposed " + obj.deposed
-	case obj.old:
-		return obj.addr + " old"
-	default:
-		return obj.addr
-	}
-}
-
-// relObjectOrigins returns the origin ids of an object by key path, or nil
-// if it has none.
-func relObjectOrigins(obj *policyObject) map[string][]string {
-	var ret map[string][]string
-	for path, origins := range obj.origins {
-		for _, o := range origins {
-			if ret == nil {
-				ret = make(map[string][]string)
-			}
-			ret[path] = append(ret[path], o.id())
-		}
-		sort.Strings(ret[path])
-	}
-	return ret
-}
-
-// relLegacyPlanFn returns a PlanResourceChangeFn of a legacy provider that
-// plans unknown ids for new objects, and replaces the proposed value of each
-// top-level attribute of a test_vm with what fn returns for the resource
-// name and attribute name.
-func relLegacyPlanFn(fn func(addr, name string, v cty.Value) cty.Value) func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-	return func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
-		var resp providers.PlanResourceChangeResponse
-		if req.ProposedNewState.IsNull() {
-			resp.PlannedState = req.ProposedNewState
-			return resp
-		}
-		attrs := req.ProposedNewState.AsValueMap()
-		for name, v := range attrs {
-			switch {
-			case name == "id" && v.IsNull():
-				attrs[name] = cty.UnknownVal(cty.String)
-			case req.TypeName == "test_vm" && !v.IsNull():
-				// The resource name isn't in the request, so the test
-				// configurations tell resources apart by their values.
-				attrs[name] = fn(relLegacyPlanName(req.Config), name, v)
-			}
-		}
-		resp.PlannedState = cty.ObjectVal(attrs)
-		resp.LegacyTypeSystem = true
-		return resp
-	}
-}
-
-// relLegacyPlanName tells the test_vm resources of the "provider changed the
-// value" test apart by their configuration.
-func relLegacyPlanName(cfg cty.Value) string {
-	switch {
-	case !cfg.GetAttr("net_ids").IsNull():
-		l := cfg.GetAttr("net_ids").AsValueSlice()
-		if l[1].IsKnown() {
-			return "list"
-		}
-		return "list_changed"
-	case cfg.GetAttr("net_id").IsKnown():
-		return "known"
-	default:
-		return "unknown"
-	}
-}
-
-func TestPolicyPlanKeepsConfig(t *testing.T) {
-	obj := func(attrs map[string]cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{
-			"net_id":  attrs["net_id"],
-			"net_set": attrs["net_set"],
-			"nic":     attrs["nic"],
-		})
-	}
-	nic := func(netIDs ...cty.Value) cty.Value {
-		var elems []cty.Value
-		for _, id := range netIDs {
-			elems = append(elems, cty.ObjectVal(map[string]cty.Value{"net_id": id, "name": cty.StringVal("n")}))
-		}
-		if len(elems) == 0 {
-			return cty.ListValEmpty(cty.Object(map[string]cty.Type{"net_id": cty.String, "name": cty.String}))
-		}
-		return cty.ListVal(elems)
-	}
-	str := cty.StringVal
-	unknown := cty.UnknownVal(cty.String)
-	null := cty.NullVal(cty.String)
-	set := func(vals ...cty.Value) cty.Value { return cty.SetVal(vals) }
-	tests := map[string]struct {
-		configured, planned cty.Value
-		kp                  string
-		want                bool
-	}{
-		"equal":                         {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", true},
-		"marked":                        {obj(map[string]cty.Value{"net_id": str("a").Mark(marks.Sensitive)}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", true},
-		"different":                     {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": str("A")}), "net_id", false},
-		"unknown kept unknown":          {obj(map[string]cty.Value{"net_id": unknown}), obj(map[string]cty.Value{"net_id": unknown}), "net_id", true},
-		"unknown planned known":         {obj(map[string]cty.Value{"net_id": unknown}), obj(map[string]cty.Value{"net_id": str("a")}), "net_id", false},
-		"known planned unknown":         {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": unknown}), "net_id", false},
-		"known planned null":            {obj(map[string]cty.Value{"net_id": str("a")}), obj(map[string]cty.Value{"net_id": null}), "net_id", false},
-		"not available":                 {cty.NilVal, obj(map[string]cty.Value{"net_id": str("a")}), "net_id", false},
-		"other attributes are ignored":  {obj(map[string]cty.Value{"net_id": str("a"), "net_set": set(str("x"))}), obj(map[string]cty.Value{"net_id": str("a"), "net_set": set(str("y"))}), "net_id", true},
-		"set":                           {obj(map[string]cty.Value{"net_set": set(str("a"), unknown)}), obj(map[string]cty.Value{"net_set": set(unknown, str("a"))}), "net_set", true},
-		"set element changed":           {obj(map[string]cty.Value{"net_set": set(str("a"), str("b"))}), obj(map[string]cty.Value{"net_set": set(str("a"), str("c"))}), "net_set", false},
-		"set element known":             {obj(map[string]cty.Value{"net_set": set(str("a"), unknown)}), obj(map[string]cty.Value{"net_set": set(str("a"), str("b"))}), "net_set", false},
-		"wholly unknown set":            {obj(map[string]cty.Value{"net_set": cty.UnknownVal(cty.Set(cty.String))}), obj(map[string]cty.Value{"net_set": cty.UnknownVal(cty.Set(cty.String))}), "net_set", false},
-		"nested blocks":                 {obj(map[string]cty.Value{"nic": nic(unknown, str("b"))}), obj(map[string]cty.Value{"nic": nic(str("b"), unknown)}), "nic.net_id", true},
-		"null configured leaf computed": {obj(map[string]cty.Value{"nic": nic(unknown, null)}), obj(map[string]cty.Value{"nic": nic(unknown, str("c"))}), "nic.net_id", true},
-		"nested block dropped":          {obj(map[string]cty.Value{"nic": nic(unknown, str("b"))}), obj(map[string]cty.Value{"nic": nic(unknown)}), "nic.net_id", false},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			for _, v := range []*cty.Value{&test.configured, &test.planned} {
-				if *v == cty.NilVal {
-					continue
-				}
-				// Fill in the attributes the test leaves out.
-				attrs := v.AsValueMap()
-				if attrs["net_id"] == cty.NilVal {
-					attrs["net_id"] = null
-				}
-				if attrs["net_set"] == cty.NilVal {
-					attrs["net_set"] = cty.NullVal(cty.Set(cty.String))
-				}
-				if attrs["nic"] == cty.NilVal {
-					attrs["nic"] = cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String, "name": cty.String})))
-				}
-				*v = cty.ObjectVal(attrs)
-			}
-			if got := policyPlanKeepsConfig(test.configured, test.planned, strings.Split(test.kp, ".")); got != test.want {
-				t.Errorf("got %t, want %t", got, test.want)
-			}
-		})
-	}
-}
-
-func TestPolicyPlannedLeaves(t *testing.T) {
-	obj := func(netID cty.Value) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"net_id": netID})
-	}
-	nicTy := cty.Object(map[string]cty.Type{"net_id": cty.String})
-	tests := map[string]struct {
-		val    cty.Value
-		path   []string
-		want   int
-		wantOK bool
-	}{
-		"primitive": {
-			val:    obj(cty.StringVal("a")),
-			path:   []string{"net_id"},
-			want:   1,
-			wantOK: true,
-		},
-		"unknown primitive": {
-			val:    obj(cty.UnknownVal(cty.String)),
-			path:   []string{"net_id"},
-			want:   1,
-			wantOK: true,
-		},
-		"null": {
-			val:    obj(cty.NullVal(cty.String)),
-			path:   []string{"net_id"},
-			want:   0,
-			wantOK: true,
-		},
-		"list of primitives": {
-			val:    cty.ObjectVal(map[string]cty.Value{"ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.UnknownVal(cty.String), cty.NullVal(cty.String)})}),
-			path:   []string{"ids"},
-			want:   2,
-			wantOK: true,
-		},
-		"set of primitives": {
-			val:    cty.ObjectVal(map[string]cty.Value{"ids": cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})}),
-			path:   []string{"ids"},
-			want:   2,
-			wantOK: true,
-		},
-		"wholly unknown list": {
-			val:    cty.ObjectVal(map[string]cty.Value{"ids": cty.UnknownVal(cty.List(cty.String))}),
-			path:   []string{"ids"},
-			wantOK: false,
-		},
-		"nested blocks": {
-			val: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListVal([]cty.Value{
-				obj(cty.StringVal("a")),
-				obj(cty.UnknownVal(cty.String)),
-				obj(cty.NullVal(cty.String)),
-			})}),
-			path:   []string{"nic", "net_id"},
-			want:   2,
-			wantOK: true,
-		},
-		"unknown nested block": {
-			val: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListVal([]cty.Value{
-				obj(cty.StringVal("a")),
-				cty.UnknownVal(nicTy),
-			})}),
-			path:   []string{"nic", "net_id"},
-			wantOK: false,
-		},
-		"empty nested blocks": {
-			val:    cty.ObjectVal(map[string]cty.Value{"nic": cty.ListValEmpty(nicTy)}),
-			path:   []string{"nic", "net_id"},
-			want:   0,
-			wantOK: true,
-		},
-		"map": {
-			val:    cty.ObjectVal(map[string]cty.Value{"tags": cty.MapVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
-			path:   []string{"tags", "a"},
-			wantOK: false,
-		},
-		"object at the leaf": {
-			val:    cty.ObjectVal(map[string]cty.Value{"nic": obj(cty.StringVal("a"))}),
-			path:   []string{"nic"},
-			wantOK: false,
-		},
-		"missing attribute": {
-			val:    obj(cty.StringVal("a")),
-			path:   []string{"other"},
-			wantOK: false,
-		},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			got, ok := policyPlannedLeaves(test.val, test.path)
-			if ok != test.wantOK {
-				t.Fatalf("wrong ok %t, want %t", ok, test.wantOK)
-			}
-			if ok && got != test.want {
-				t.Fatalf("wrong number of leaves %d, want %d", got, test.want)
+				t.Fatalf("wrong relations (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -1711,488 +362,4 @@ func TestPolicyIgnoresChanges(t *testing.T) {
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Fatalf("wrong ignored attributes (-want +got):\n%s", diff)
 	}
-}
-
-// TestOriginsForOverriddenModules checks each place that excludes overridden
-// modules on its own, because in a walk the outputs of an overridden module
-// are the only way to reach into it.
-func TestOriginsForOverriddenModules(t *testing.T) {
-	cfg := testModuleInline(t, map[string]string{
-		"main.tf": `
-			resource "test_net" "a" {
-				name = "a"
-			}
-			module "parent" {
-				source = "./parent"
-				net_id = test_net.a.id
-			}
-		`,
-		"parent/main.tf": `
-			variable "net_id" {
-				type = string
-			}
-			module "child" {
-				source = "../child"
-				net_id = var.net_id
-			}
-		`,
-		"child/main.tf": `
-			variable "net_id" {
-				type = string
-			}
-			resource "test_net" "n" {
-				name = "n"
-			}
-			resource "test_vm" "v" {
-				net_id = var.net_id
-			}
-			output "net_id" {
-				value = test_net.n.id
-			}
-		`,
-	})
-	parent := addrs.RootModuleInstance.Child("parent", addrs.NoKey)
-	child := parent.Child("child", addrs.NoKey)
-	childNet := mustResourceInstanceAddr("module.parent.module.child.test_net.n")
-	childVM := mustResourceInstanceAddr("module.parent.module.child.test_vm.v")
-
-	exp := instances.NewExpander(nil)
-	exp.SetResourceSingle(addrs.RootModuleInstance, mustResourceInstanceAddr("test_net.a").Resource.Resource)
-	exp.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "parent"})
-	exp.SetModuleSingle(parent, addrs.ModuleCall{Name: "child"})
-	exp.SetResourceSingle(child, childNet.Resource.Resource)
-	exp.SetResourceSingle(child, childVM.Resource.Resource)
-
-	lookup := &relationshipOriginLookup{
-		schemas: &schemarepo.Schemas{
-			Providers: map[addrs.Provider]providers.ProviderSchema{
-				addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
-			},
-		},
-		planned: map[string]cty.Value{},
-	}
-	overrideModule := func(mod addrs.ModuleInstance) *mocking.Overrides {
-		return mocking.OverridesForTesting(nil, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-			overrides.Put(mod, &configs.Override{Values: cty.EmptyObjectVal})
-		})
-	}
-
-	tests := map[string]struct {
-		overrides *mocking.Overrides
-		// overridden is whether the child module is overridden.
-		overridden bool
-	}{
-		"no overrides": {
-			overrides: nil,
-		},
-		"empty overrides": {
-			overrides: mocking.OverridesForTesting(nil, nil),
-		},
-		"overridden resources": {
-			overrides: mocking.OverridesForTesting(func(overrides map[addrs.RootProviderConfig]addrs.Map[addrs.Targetable, *configs.Override]) {
-				m := addrs.MakeMap[addrs.Targetable, *configs.Override]()
-				m.Put(childNet.ContainingResource(), &configs.Override{Values: cty.EmptyObjectVal})
-				overrides[addrs.RootProviderConfig{Provider: addrs.NewDefaultProvider("test")}] = m
-			}, func(overrides addrs.Map[addrs.Targetable, *configs.Override]) {
-				overrides.Put(childVM, &configs.Override{Values: cty.EmptyObjectVal})
-			}),
-		},
-		"overridden sibling": {
-			overrides: overrideModule(parent.Child("sibling", addrs.NoKey)),
-		},
-		"overridden module": {
-			overrides:  overrideModule(child),
-			overridden: true,
-		},
-		"overridden parent": {
-			overrides:  overrideModule(parent),
-			overridden: true,
-		},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			overridden := policyOverriddenModules(test.overrides)
-			if test.overrides.Empty() != (overridden == nil) {
-				t.Fatalf("expected a predicate only with overrides")
-			}
-
-			// An instance in the module.
-			val := cty.ObjectVal(map[string]cty.Value{"net_id": cty.UnknownVal(cty.String)})
-			got := originsFor(cfg, exp, overridden, childVM, plans.Create, val, val, [][]string{{"net_id"}}, lookup, false)
-			if test.overridden {
-				if len(got) != 0 {
-					t.Errorf("expected no origins for an instance in an overridden module, got %v", got)
-				}
-			} else if len(got["net_id"].origins) != 1 {
-				t.Errorf("expected the origin of the instance, got %v", got)
-			}
-
-			e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup}
-
-			// The module's outputs.
-			_, opaque := e.moduleInstance(child, cfg.DescendantForInstance(child)).(symOpaque)
-			if opaque != test.overridden {
-				t.Errorf("wrong outputs of the module: opaque = %t, want %t", opaque, test.overridden)
-			}
-
-			// A reference to a resource in the module.
-			allowed := e.originAllowed(symRef{addr: childNet, path: testOriginPath(t, "id")}, cty.String)
-			if allowed == test.overridden {
-				t.Errorf("wrong origin into the module: allowed = %t, want %t", allowed, !test.overridden)
-			}
-		})
-	}
-}
-
-func TestRelationshipOriginLookup(t *testing.T) {
-	provider := addrs.NewDefaultProvider("test")
-	lookup := &relationshipOriginLookup{
-		schemas: &schemarepo.Schemas{
-			Providers: map[addrs.Provider]providers.ProviderSchema{
-				provider: *relationshipsTestProvider().GetProviderSchemaResponse,
-			},
-		},
-		planned: map[string]cty.Value{
-			"test_net.a": cty.ObjectVal(map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"name": cty.StringVal("a"),
-				"tags": cty.NullVal(cty.Map(cty.String)),
-			}),
-			"test_vm.v": cty.ObjectVal(map[string]cty.Value{
-				"zone": cty.NullVal(cty.String),
-				"nic":  cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String}))),
-			}),
-			"test_vm.w": cty.ObjectVal(map[string]cty.Value{
-				"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.NullVal(cty.String), cty.UnknownVal(cty.String)}),
-				"nic": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
-					"net_id": cty.StringVal("n"),
-				})}),
-				"disks": cty.TupleVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
-					"size": cty.NumberIntVal(1),
-				})}),
-				"zone": cty.SetVal([]cty.Value{cty.StringVal("z")}),
-				"name": cty.MapVal(map[string]cty.Value{"0": cty.StringVal("m")}),
-			}),
-			"test_vm.null": cty.ObjectVal(map[string]cty.Value{
-				"net_ids": cty.NullVal(cty.List(cty.String)),
-			}),
-		},
-	}
-
-	t.Run("attrType", func(t *testing.T) {
-		tests := []struct {
-			resType string
-			path    string
-			want    cty.Type
-		}{
-			{"test_net", "id", cty.String},
-			{"test_net", "defer", cty.Bool},
-			{"test_vm", "disks", cty.NilType},          // list of objects
-			{"test_vm", "disks.size", cty.NilType},     // through a list
-			{"test_vm", "disks.password", cty.NilType}, // write-only, through a list
-			{"test_vm", "nic", cty.NilType},            // nested blocks
-			{"test_vm", "nic.net_id", cty.NilType},     // through a list
-			{"test_vm", "net_ids", cty.NilType},        // list
-			{"test_net", "tags", cty.NilType},          // map
-			{"test_net", "token", cty.NilType},         // write-only
-			{"test_net", "missing", cty.NilType},
-			{"test_missing", "id", cty.NilType},
-
-			// Index steps.
-			{"test_vm", "nic[0].net_id", cty.String},
-			{"test_vm", "nic[0].key", cty.NilType}, // write-only
-			{"test_vm", "nic[0]", cty.NilType},     // object
-			{"test_vm", "disks[1].size", cty.Number},
-			{"test_vm", "disks[0].password", cty.NilType}, // write-only
-			{"test_vm", "net_ids[2]", cty.String},
-			{"test_vm", "net_ids[0].x", cty.NilType},
-			{"test_net", "tags[0]", cty.NilType}, // map
-			{"test_net", "name[0]", cty.NilType}, // primitive
-		}
-		for _, test := range tests {
-			ty, ok := lookup.attrType(provider, test.resType, testOriginPath(t, test.path))
-			if ok != (test.want != cty.NilType) || (ok && !ty.Equals(test.want)) {
-				t.Errorf("%s.%s: got %#v, %t; want %#v", test.resType, test.path, ty, ok, test.want)
-			}
-		}
-		if _, ok := lookup.attrType(addrs.NewDefaultProvider("other"), "test_net", testOriginPath(t, "id")); ok {
-			t.Error("expected no type for another provider")
-		}
-		if _, ok := lookup.attrType(provider, "test_vm", []originStep{{index: 0}, {name: "net_id"}}); ok {
-			t.Error("expected no type for a path starting with an index step")
-		}
-	})
-
-	t.Run("plannedValue", func(t *testing.T) {
-		tests := []struct {
-			addr   string
-			path   string
-			want   cty.Value
-			wantOK bool
-		}{
-			{"test_net.a", "name", cty.StringVal("a"), true},
-			{"test_net.a", "id", cty.NilVal, false}, // unknown
-			{"test_net.a", "tags", cty.NullVal(cty.Map(cty.String)), true},
-			{"test_net.a", "missing", cty.NilVal, false},
-			{"test_vm.v", "zone", cty.NullVal(cty.String), true},
-			{"test_vm.v", "nic.net_id", cty.NilVal, false},
-			{"test_net.b", "id", cty.NilVal, false}, // no change
-
-			// Index steps.
-			{"test_vm.w", "net_ids[0]", cty.StringVal("a"), true},
-			{"test_vm.w", "net_ids[1]", cty.NullVal(cty.String), true},
-			{"test_vm.w", "net_ids[2]", cty.NilVal, false}, // unknown
-			{"test_vm.w", "nic[0].net_id", cty.StringVal("n"), true},
-			{"test_vm.w", "disks[0].size", cty.NumberIntVal(1), true}, // tuple
-			{"test_vm.v", "nic[0].net_id", cty.NilVal, false},         // unknown list
-			{"test_vm.null", "net_ids[0]", cty.NullVal(cty.List(cty.String)), true},
-			{"test_vm.w", "zone[0]", cty.NilVal, false}, // set
-			{"test_vm.w", "name[0]", cty.NilVal, false}, // map
-			{"test_vm.w", "nic.net_id", cty.NilVal, false},
-
-			// There's no element out of range of a known list or tuple.
-			{"test_vm.w", "net_ids[3]", cty.NullVal(cty.DynamicPseudoType), true},
-			{"test_vm.w", "nic[1].net_id", cty.NullVal(cty.DynamicPseudoType), true},
-			{"test_vm.w", "disks[1].size", cty.NullVal(cty.DynamicPseudoType), true},
-		}
-		for _, test := range tests {
-			got, ok := lookup.plannedValue(mustResourceInstanceAddr(test.addr), testOriginPath(t, test.path))
-			if ok != test.wantOK || (ok && !got.RawEquals(test.want)) {
-				t.Errorf("%s.%s: got %#v, %t; want %#v, %t", test.addr, test.path, got, ok, test.want, test.wantOK)
-			}
-		}
-	})
-}
-
-func TestOriginEvalIndex(t *testing.T) {
-	addr := mustResourceInstanceAddr("test_vm.v")
-	ref := symRef{addr: addr, path: []originStep{{name: "net_ids"}}}
-	tooLarge, _ := new(big.Float).SetString("1e30")
-	tests := map[string]struct {
-		base originSym
-		key  cty.Value
-		want originSym
-	}{
-		"whole number": {ref, cty.NumberIntVal(1), symRef{addr: addr, path: []originStep{{name: "net_ids"}, {index: 1}}}},
-		"zero":         {ref, cty.Zero, symRef{addr: addr, path: []originStep{{name: "net_ids"}, {index: 0}}}},
-		"nested": {
-			symRef{addr: addr, path: []originStep{{name: "m"}, {index: 2}}},
-			cty.NumberIntVal(3),
-			symRef{addr: addr, path: []originStep{{name: "m"}, {index: 2}, {index: 3}}},
-		},
-		"negative":       {ref, cty.NumberIntVal(-1), opaqueValue},
-		"fractional":     {ref, cty.NumberFloatVal(1.5), opaqueValue},
-		"too large":      {ref, cty.NumberVal(tooLarge), opaqueValue},
-		"string":         {ref, cty.StringVal("1"), opaqueValue},
-		"unknown":        {ref, cty.UnknownVal(cty.Number), opaqueValue},
-		"null":           {ref, cty.NullVal(cty.Number), opaqueValue},
-		"marked":         {ref, cty.NumberIntVal(1).Mark(marks.Sensitive), opaqueValue},
-		"whole resource": {symRef{addr: addr}, cty.Zero, opaqueValue},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			e := &originEval{}
-			got := e.index(test.base, symLit{val: test.key})
-			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
-			}
-		})
-	}
-}
-
-func TestOriginEvalOriginAllowed_indexSteps(t *testing.T) {
-	cfg := testModuleInline(t, map[string]string{
-		"main.tf": `
-			resource "test_net" "a" {
-			}
-			resource "test_vm" "v" {
-			}
-		`,
-	})
-	lookup := &relationshipOriginLookup{
-		schemas: &schemarepo.Schemas{
-			Providers: map[addrs.Provider]providers.ProviderSchema{
-				addrs.NewDefaultProvider("test"): *relationshipsTestProvider().GetProviderSchemaResponse,
-			},
-		},
-		planned: map[string]cty.Value{
-			"test_net.a": cty.ObjectVal(map[string]cty.Value{
-				"tags": cty.MapVal(map[string]cty.Value{"0": cty.StringVal("x")}),
-			}),
-			"test_vm.v": cty.ObjectVal(map[string]cty.Value{
-				"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.NullVal(cty.String)}),
-				"nic":     cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{"net_id": cty.String}))),
-			}),
-		},
-	}
-	tests := []struct {
-		addr string
-		path string
-		want bool
-	}{
-		{"test_vm.v", "net_ids[0]", true},
-		{"test_vm.v", "net_ids[1]", false}, // null
-		{"test_vm.v", "net_ids[2]", false}, // out of range
-		{"test_vm.v", "nic[3].net_id", true},
-		{"test_vm.v", "nic[0].key", false}, // write-only
-		{"test_net.a", "tags[0]", false},   // map
-	}
-	e := &originEval{cfg: cfg, exp: instances.NewExpander(nil), lookup: lookup}
-	for _, test := range tests {
-		ref := symRef{addr: mustResourceInstanceAddr(test.addr), path: testOriginPath(t, test.path)}
-		if got := e.originAllowed(ref, cty.String); got != test.want {
-			t.Errorf("%s.%s: allowed = %t, want %t", test.addr, test.path, got, test.want)
-		}
-	}
-}
-
-func TestOriginEvalSplat(t *testing.T) {
-	cfg := testModuleInline(t, map[string]string{
-		"main.tf": `
-			resource "test_vm" "v" {
-			}
-		`,
-	})
-	addr := mustResourceInstanceAddr("test_vm.v")
-	exp := instances.NewExpander(nil)
-	exp.SetResourceSingle(addrs.RootModuleInstance, addr.Resource.Resource)
-	ref := func(path string) symRef {
-		return symRef{addr: addr, path: testOriginPath(t, path)}
-	}
-	nic := func(netID string) cty.Value {
-		return cty.ObjectVal(map[string]cty.Value{"net_id": cty.StringVal(netID)})
-	}
-
-	tests := map[string]struct {
-		expr string
-		// planned is the planned value of test_vm.v; none when null.
-		planned cty.Value
-		want    originSym
-	}{
-		"list": {
-			expr:    "test_vm.v.net_ids[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.ListVal([]cty.Value{cty.StringVal("a"), cty.UnknownVal(cty.String)})}),
-			want:    symSeq{elems: []originSym{ref("net_ids[0]"), ref("net_ids[1]")}},
-		},
-		"blocks": {
-			expr:    "test_vm.v.nic[*].net_id",
-			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListVal([]cty.Value{nic("a"), nic("b")})}),
-			want:    symSeq{elems: []originSym{ref("nic[0].net_id"), ref("nic[1].net_id")}},
-		},
-		"tuple": {
-			expr:    "test_vm.v.nic[*].net_id",
-			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.TupleVal([]cty.Value{nic("a")})}),
-			want:    symSeq{elems: []originSym{ref("nic[0].net_id")}},
-		},
-		"nested": {
-			expr:    "test_vm.v.m[1][*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"m": cty.TupleVal([]cty.Value{cty.EmptyTupleVal, cty.ListVal([]cty.Value{cty.StringVal("a")})})}),
-			want:    symSeq{elems: []originSym{ref("m[1][0]")}},
-		},
-		"empty list": {
-			expr:    "test_vm.v.nic[*].net_id",
-			planned: cty.ObjectVal(map[string]cty.Value{"nic": cty.ListValEmpty(cty.Object(map[string]cty.Type{"net_id": cty.String}))}),
-			want:    symSeq{},
-		},
-		"set": {
-			expr:    "test_vm.v.net_set[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"net_set": cty.SetVal([]cty.Value{cty.StringVal("a")})}),
-			want:    opaqueValue,
-		},
-		"map": {
-			expr:    "test_vm.v.tags[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"tags": cty.MapVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
-			want:    opaqueValue,
-		},
-		"object": {
-			expr:    "test_vm.v.obj[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"obj": cty.ObjectVal(map[string]cty.Value{"a": cty.StringVal("a")})}),
-			want:    opaqueValue,
-		},
-		"unknown list": {
-			expr:    "test_vm.v.net_ids[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.UnknownVal(cty.List(cty.String))}),
-			want:    opaqueValue,
-		},
-		"null list": {
-			expr:    "test_vm.v.net_ids[*]",
-			planned: cty.ObjectVal(map[string]cty.Value{"net_ids": cty.NullVal(cty.List(cty.String))}),
-			want:    opaqueValue,
-		},
-		"no planned value": {
-			expr: "test_vm.v.net_ids[*]",
-			want: opaqueValue,
-		},
-		"whole resource": {
-			expr: "test_vm.v[*].net_id",
-			want: symSeq{elems: []originSym{ref("net_id")}},
-		},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			expr, diags := hclsyntax.ParseExpression([]byte(test.expr), "", hcl.InitialPos)
-			if diags.HasErrors() {
-				t.Fatal(diags.Error())
-			}
-			planned := map[string]cty.Value{}
-			if test.planned != cty.NilVal {
-				planned[addr.String()] = test.planned
-			}
-			lookup := &relationshipOriginLookup{planned: planned}
-			e := &originEval{cfg: cfg, exp: exp, lookup: lookup}
-			got := e.eval(expr, &originScope{mod: addrs.RootModuleInstance, cfg: cfg})
-			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
-			}
-		})
-	}
-}
-
-func TestOriginPath(t *testing.T) {
-	paths := []string{"nic[10].net_id", "net_ids[1]", "nic[2].net_id", "name", "nic[2].id", "net_ids[0]", "m[1][0]"}
-	wantOrder := []string{"m[1][0]", "name", "net_ids[0]", "net_ids[1]", "nic[2].id", "nic[2].net_id", "nic[10].net_id"}
-
-	var parsed [][]originStep
-	for _, p := range paths {
-		path := testOriginPath(t, p)
-		parsed = append(parsed, path)
-		if got := originPathString(path); got != p {
-			t.Errorf("wrong id for %s: %s", p, got)
-		}
-	}
-	sort.Slice(parsed, func(i, j int) bool { return originPathLess(parsed[i], parsed[j]) })
-	var gotOrder []string
-	for _, path := range parsed {
-		gotOrder = append(gotOrder, originPathString(path))
-	}
-	if diff := cmp.Diff(wantOrder, gotOrder); diff != "" {
-		t.Errorf("wrong order (-want +got):\n%s", diff)
-	}
-}
-
-// testOriginPath parses an origin path such as "nic[0].net_id".
-func testOriginPath(t *testing.T, s string) []originStep {
-	t.Helper()
-	trav, diags := hclsyntax.ParseTraversalAbs([]byte(s), "", hcl.InitialPos)
-	if diags.HasErrors() {
-		t.Fatalf("invalid origin path %q: %s", s, diags.Error())
-	}
-	var path []originStep
-	for _, step := range trav {
-		switch step := step.(type) {
-		case hcl.TraverseRoot:
-			path = append(path, originStep{name: step.Name})
-		case hcl.TraverseAttr:
-			path = append(path, originStep{name: step.Name})
-		case hcl.TraverseIndex:
-			i, acc := step.Key.AsBigFloat().Int64()
-			if acc != big.Exact {
-				t.Fatalf("invalid index in origin path %q", s)
-			}
-			path = append(path, originStep{index: i})
-		default:
-			t.Fatalf("invalid step in origin path %q", s)
-		}
-	}
-	return path
 }

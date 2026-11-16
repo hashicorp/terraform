@@ -238,8 +238,8 @@ func TestContext2Plan_PolicyEvaluation(t *testing.T) {
 					}, protocmp.Transform()); diff != "" {
 						t.Errorf("Invalid resource metadata: %s", diff)
 					}
-					if req.Related != nil {
-						t.Errorf("Expected no related members without relationships, got %v", req.Related)
+					if req.Relationships != nil {
+						t.Errorf("Expected no relations without relationships, got %v", req.Relationships)
 					}
 					return policy.EvaluationResponse{Overall: policy.AllowResult}
 				}

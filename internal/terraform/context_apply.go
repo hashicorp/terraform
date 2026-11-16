@@ -58,9 +58,9 @@ type ApplyOpts struct {
 	// When nil, that logic will be skipped.
 	PolicyClient policy.Client
 
-	// PolicyRun is a relationship run that the caller owns and that the walk
-	// contributes to; see PlanOpts.PolicyRun.
-	PolicyRun *SharedPolicyRun
+	// PolicyRelationships are the caller's validated relationship trees;
+	// see PlanOpts.PolicyRelationships.
+	PolicyRelationships *policy.Relationships
 }
 
 // ApplyOpts creates an [ApplyOpts] with copies of all of the elements that

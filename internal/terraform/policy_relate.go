@@ -9,7 +9,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 )
 
@@ -18,399 +17,299 @@ type policyTypeKey struct {
 	typ    string
 }
 
-// PolicyProvider is the provider configuration of a resource instance, for
-// the provider rule (contract §3.5): two instances can only be related if
-// they use the same provider configuration. Instances with the same
-// configuration share one PolicyProvider.
-type PolicyProvider struct {
-	// Addr identifies the configuration: its address, or in Terraform
-	// Stacks the stack address of a provider configuration instance.
-	Addr string
-	// Config is the configuration's value without marks if it's wholly
-	// known, and cty.NilVal otherwise.
-	Config cty.Value
-}
-
-// same returns true if p and o are the same configuration: the same address,
-// or known and equal values.
-func (p *PolicyProvider) same(o *PolicyProvider) bool {
-	if p.Addr == o.Addr {
-		return true
-	}
-	return p.Config != cty.NilVal && o.Config != cty.NilVal && p.Config.RawEquals(o.Config)
-}
-
-// differs returns true if p and o are known to be different configurations.
-func (p *PolicyProvider) differs(o *PolicyProvider) bool {
-	return !p.same(o) && p.Config != cty.NilVal && o.Config != cty.NilVal
-}
-
 // policyObject is an object of a managed resource instance that relationships
 // can relate: a row of the candidates table of contract §3.4.
 type policyObject struct {
-	addr    string
-	deposed string
-	// old is set for the object that a replace deletes.
-	old          bool
-	typ          policyTypeKey
-	op           proto.Operation
-	modulePath   string
-	providerType string
-	provider     *PolicyProvider
-
-	attrs, priorAttrs *proto.ResourceAttributes
+	id   string
+	addr string
+	typ  policyTypeKey
+	op   proto.Operation
+	// provider is the address of the resolved provider configuration.
+	provider string
 
 	// value is the value that keys read, without marks: the attrs, or the
 	// prior attrs of a DELETE.
 	value cty.Value
 	// origins are the origins of the object's key paths in a plan, by
-	// dot-joined key path. vars are the leaves of key paths whose values are
-	// root module variables, when the walk follows them.
-	origins map[string][]PolicyOrigin
-	vars    map[string][]PolicyVariableOrigin
-	// bags are what the object's key paths read, by dot-joined key path.
-	bags map[string]policyBag
+	// dot-joined key path, other than the values themselves.
+	origins map[string][]string
+	// reads are what the object's key paths read, by dot-joined key path.
+	reads map[string]policyRead
 }
 
-func (o *policyObject) member() *proto.RelatedMember {
-	return &proto.RelatedMember{
-		Address:        o.addr,
-		DeposedKey:     o.deposed,
-		OldObject:      o.old,
-		Type:           o.typ.typ,
-		ProviderType:   o.providerType,
-		ProviderSource: o.typ.source,
-		ModulePath:     o.modulePath,
-		Operation:      o.op,
-		Attrs:          o.attrs,
-		PriorAttrs:     o.priorAttrs,
+// read returns what the key path reads from the object.
+func (o *policyObject) read(path []string) policyRead {
+	if read, ok := o.reads[strings.Join(path, ".")]; ok {
+		return read
 	}
+	return o.readPath(path)
 }
 
-// bag returns what the key path reads from the object.
-func (o *policyObject) bag(path []string) policyBag {
-	if bag, ok := o.bags[strings.Join(path, ".")]; ok {
-		return bag
-	}
-	return o.readBag(path)
-}
-
-// readBag reads the values at path, with their origins. The values of a
-// DELETE are prior values, which have no origins.
-func (o *policyObject) readBag(path []string) policyBag {
-	bag := policyBag{known: make(map[string]bool)}
+// readPath reads the values at path, with their origins in a plan. Every
+// value is its own origin, ADDRESS.KEYPATH, except those of a DELETE, which
+// are prior values.
+func (o *policyObject) readPath(path []string) policyRead {
+	var read policyRead
 	if o.value == cty.NilVal {
-		bag.unknown = true
-		return bag
+		read.unknownLen = true
+		return read
 	}
-	bag.read(o.value, path)
-	if o.op == proto.Operation_DELETE || (len(bag.known) == 0 && !bag.unknown) {
-		return bag
+	read.scalar = policyScalarPath(o.value.Type(), path)
+	read.read(o.value, path)
+	if o.op == proto.Operation_DELETE || !read.scalar || read.empty() {
+		return read
 	}
 	key := strings.Join(path, ".")
-	bag.self = o.addr + "." + key
-	bag.origins = make(map[string]bool)
-	bag.unindexed = make(map[string]bool)
-	for _, origin := range o.origins[key] {
-		bag.origins[origin.id()] = true
-		bag.unindexed[origin.unindexed()] = true
-	}
-	return bag
+	read.origins = append([]string{o.addr + "." + key}, o.origins[key]...)
+	return read
 }
 
-// policyBag is what one side of a key reads: a set of primitive values, and
-// their origins.
-type policyBag struct {
-	known   map[string]bool
-	unknown bool
-	// self identifies the values themselves, ADDRESS.KEYPATH: every value
-	// is its own origin.
-	self      string
-	origins   map[string]bool
-	unindexed map[string]bool
+// policyRead is what one side of a key reads (contract §3.5): one scalar, or
+// a list of scalars in order, with the origins of a scalar.
+type policyRead struct {
+	// vals are the scalars read, unknown ones included; nulls and "" are
+	// left out.
+	vals []cty.Value
+	// scalar is set if the path reads one primitive value, stepping through
+	// no list, set or tuple.
+	scalar bool
+	// unknownLen is set if a collection or an object on the way isn't
+	// known, so there are scalars that aren't in vals.
+	unknownLen bool
+	origins    []string
 }
 
-// read adds the values at path in v. Lists, sets and tuples flatten at any
-// depth, and null and "" add nothing. Anything that doesn't fit the path is
-// read as unknown.
-func (b *policyBag) read(v cty.Value, path []string) {
+// read appends the values at path in v. Lists, sets and tuples are stepped
+// through as if flat, and null and "" add nothing. Anything that doesn't fit
+// the path is read as unknown.
+func (r *policyRead) read(v cty.Value, path []string) {
+	ty := v.Type()
 	if !v.IsKnown() {
-		b.unknown = true
+		if len(path) == 0 && ty.IsPrimitiveType() {
+			r.vals = append(r.vals, v)
+		} else {
+			r.unknownLen = true
+		}
 		return
 	}
 	if v.IsNull() {
 		return
 	}
-	ty := v.Type()
 	if ty.IsListType() || ty.IsSetType() || ty.IsTupleType() {
 		for it := v.ElementIterator(); it.Next(); {
 			_, elem := it.Element()
-			b.read(elem, path)
+			r.read(elem, path)
 		}
 		return
 	}
 	if len(path) == 0 {
-		switch ty {
-		case cty.String:
-			if s := v.AsString(); s != "" {
-				b.known["string:"+s] = true
-			}
-		case cty.Number:
-			b.known["number:"+v.AsBigFloat().Text('g', -1)] = true
-		case cty.Bool:
-			if v.True() {
-				b.known["bool:true"] = true
-			} else {
-				b.known["bool:false"] = true
-			}
-		default:
-			b.unknown = true
+		if !ty.IsPrimitiveType() {
+			r.unknownLen = true
+			return
 		}
+		if ty == cty.String && v.AsString() == "" {
+			return
+		}
+		r.vals = append(r.vals, v)
 		return
 	}
 	if !ty.IsObjectType() || !ty.HasAttribute(path[0]) {
-		b.unknown = true
+		r.unknownLen = true
 		return
 	}
-	b.read(v.GetAttr(path[0]), path[1:])
+	r.read(v.GetAttr(path[0]), path[1:])
 }
 
-// holds returns true if a key holds between two bags: they share a known
-// value or an origin.
-func (b policyBag) holds(o policyBag) bool {
-	for id := range b.origins {
-		if o.origins[id] {
-			return true
+// policyScalarPath returns true if a path of a value of type ty reads one
+// primitive value, stepping through no list, set or tuple.
+func policyScalarPath(ty cty.Type, path []string) bool {
+	for _, name := range path {
+		if !ty.IsObjectType() || !ty.HasAttribute(name) {
+			return false
+		}
+		ty = ty.AttributeType(name)
+	}
+	return ty.IsPrimitiveType()
+}
+
+// empty returns true if nothing is read: a null or "" scalar, or an empty
+// list.
+func (r policyRead) empty() bool {
+	return len(r.vals) == 0 && !r.unknownLen
+}
+
+func (r policyRead) known() bool {
+	if r.unknownLen {
+		return false
+	}
+	for _, v := range r.vals {
+		if !v.IsKnown() {
+			return false
 		}
 	}
-	if (o.self != "" && b.unindexed[o.self]) || (b.self != "" && o.unindexed[b.self]) {
-		return true
+	return true
+}
+
+// holds returns true if a key holds between two reads: equal scalars, a
+// scalar that equals an element of a list, two lists that are equal element
+// by element in order, or, in a plan, a shared origin (contract §3.5).
+func (r policyRead) holds(o policyRead) bool {
+	if r.empty() || o.empty() {
+		return false
 	}
-	for value := range b.known {
-		if o.known[value] {
-			return true
+	if r.scalar && o.scalar {
+		if r.known() && o.known() {
+			return policyValueEqual(r.vals[0], o.vals[0])
+		}
+		for _, a := range r.origins {
+			for _, b := range o.origins {
+				if a == b {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if r.scalar != o.scalar {
+		scalar, list := r, o
+		if o.scalar {
+			scalar, list = o, r
+		}
+		if !scalar.known() {
+			return false
+		}
+		for _, v := range list.vals {
+			if v.IsKnown() && policyValueEqual(scalar.vals[0], v) {
+				return true
+			}
+		}
+		return false
+	}
+	if !r.known() || !o.known() || len(r.vals) != len(o.vals) {
+		return false
+	}
+	for i := range r.vals {
+		if !policyValueEqual(r.vals[i], o.vals[i]) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // fails returns true if a key that doesn't hold certainly fails: one side is
 // empty, or both sides are wholly known (contract §3.5).
-func (b policyBag) fails(o policyBag) bool {
-	return b.empty() || o.empty() || (!b.unknown && !o.unknown)
+func (r policyRead) fails(o policyRead) bool {
+	return r.empty() || o.empty() || (r.known() && o.known())
 }
 
-func (b policyBag) empty() bool {
-	return len(b.known) == 0 && !b.unknown
+func policyValueEqual(a, b cty.Value) bool {
+	return a.Type().Equals(b.Type()) && a.Equals(b).True()
 }
 
-// PolicyInstances are the instances of a walk that relationships can relate.
-type PolicyInstances struct {
-	objects []*policyObject
-	// errored are the types whose instances aren't all known.
-	errored map[policyTypeKey]bool
-	// deferred are the deferred instances of each type, with their provider
-	// configurations, by address.
-	deferred map[policyTypeKey]map[string]*PolicyProvider
-
-	// Providers are the provider configurations of the instances, by their
-	// address in the walk.
-	Providers map[string]*PolicyProvider
-}
-
-// prefix qualifies the addresses of the instances, their origins and the
-// addresses of their provider configurations.
-func (p *PolicyInstances) prefix(prefix string) {
-	for _, obj := range p.objects {
-		obj.addr = prefix + obj.addr
-		for _, origins := range obj.origins {
-			for i := range origins {
-				origins[i].Address = prefix + origins[i].Address
-			}
-		}
-	}
-	for key, deferred := range p.deferred {
-		prefixed := make(map[string]*PolicyProvider, len(deferred))
-		for addr, provider := range deferred {
-			prefixed[prefix+addr] = provider
-		}
-		p.deferred[key] = prefixed
-	}
-	for _, provider := range p.Providers {
-		provider.Addr = prefix + provider.Addr
-	}
-}
-
-// ResolveVariables adds origins to the leaves of key paths whose values are
-// root module variables: resolve returns the origins of a leaf.
-func (p *PolicyInstances) ResolveVariables(resolve func(PolicyVariableOrigin) []PolicyOrigin) {
-	for _, obj := range p.objects {
-		for path, leaves := range obj.vars {
-			for _, leaf := range leaves {
-				if obj.origins == nil {
-					obj.origins = make(map[string][]PolicyOrigin)
-				}
-				obj.origins[path] = append(obj.origins[path], resolve(leaf)...)
-			}
-		}
-	}
-}
-
-// PolicyRelations relates instances and builds the related members of
-// subjects (contract §3.4, §3.5).
-type PolicyRelations struct {
+// policyRelations relates the instances of a walk and builds the relations
+// of its subjects (contract §3.4, §3.5).
+type policyRelations struct {
 	plan bool
-	// errored makes every hop ERROR.
-	errored bool
 
-	// defs are the definitions by provider source and name.
-	defs     map[policyTypeKey]*proto.RelationshipDefinition
-	usages   map[policyTypeKey]*proto.RelationshipUsage
-	objects  map[policyTypeKey][]*policyObject
-	byAddr   map[string][]*policyObject
-	erroredT map[policyTypeKey]bool
-	deferred map[policyTypeKey]map[string]*PolicyProvider
+	// trees are the relationship trees by provider source and subject type.
+	trees   map[policyTypeKey]*proto.RelationshipTree
+	objects map[policyTypeKey][]*policyObject
+	byID    map[string]*policyObject
+	errored map[policyTypeKey]bool
+	// deferred are the deferred instances of each type, with the addresses
+	// of their provider configurations, by address.
+	deferred map[policyTypeKey]map[string]string
 }
 
-// NewPolicyRelations returns the relations of the given instances for the
-// relationships. plan is set in a plan, and errored when the instances
-// aren't all known, e.g. because the operation failed.
-func NewPolicyRelations(rels policy.Relationships, plan, errored bool, insts ...*PolicyInstances) *PolicyRelations {
-	r := &PolicyRelations{
+func newPolicyRelations(trees []*proto.RelationshipTree, plan bool) *policyRelations {
+	r := &policyRelations{
 		plan:     plan,
-		errored:  errored,
-		defs:     make(map[policyTypeKey]*proto.RelationshipDefinition),
-		usages:   make(map[policyTypeKey]*proto.RelationshipUsage),
+		trees:    make(map[policyTypeKey]*proto.RelationshipTree),
 		objects:  make(map[policyTypeKey][]*policyObject),
-		byAddr:   make(map[string][]*policyObject),
-		erroredT: make(map[policyTypeKey]bool),
-		deferred: make(map[policyTypeKey]map[string]*PolicyProvider),
+		byID:     make(map[string]*policyObject),
+		errored:  make(map[policyTypeKey]bool),
+		deferred: make(map[policyTypeKey]map[string]string),
 	}
-	for _, def := range rels.Definitions {
-		r.defs[policyTypeKey{source: def.ProviderSource, typ: def.Name}] = def
-	}
-	for _, usage := range rels.Usages {
-		r.usages[policyTypeKey{source: usage.ProviderSource, typ: usage.Type}] = usage
-	}
-	for _, inst := range insts {
-		for _, obj := range inst.objects {
-			r.objects[obj.typ] = append(r.objects[obj.typ], obj)
-			r.byAddr[obj.addr] = append(r.byAddr[obj.addr], obj)
-		}
-		for key := range inst.errored {
-			r.erroredT[key] = true
-		}
-		for key, deferred := range inst.deferred {
-			if r.deferred[key] == nil {
-				r.deferred[key] = make(map[string]*PolicyProvider)
-			}
-			for addr, provider := range deferred {
-				r.deferred[key][addr] = provider
-			}
-		}
-	}
-	for _, objs := range r.objects {
-		sort.Slice(objs, func(i, j int) bool {
-			a, b := objs[i], objs[j]
-			if a.addr != b.addr {
-				return a.addr < b.addr
-			}
-			if a.deposed != b.deposed {
-				return a.deposed < b.deposed
-			}
-			return !a.old && b.old
-		})
-	}
-
-	// The bags are read once, before subjects are evaluated concurrently.
-	for key, paths := range policyKeyPathsByType(rels) {
-		for _, obj := range r.objects[key] {
-			obj.bags = make(map[string]policyBag, len(paths))
-			for _, path := range paths {
-				obj.bags[strings.Join(path, ".")] = obj.readBag(path)
-			}
-		}
+	for _, tree := range trees {
+		r.trees[policyTypeKey{source: tree.ProviderSource, typ: tree.ResourceType}] = tree
 	}
 	return r
 }
 
-// Related returns the related members of a subject: one entry per hop of
-// the usage of its type, or nil if its type has no usage. before and after
-// are the subject's values, used if the walk has no object for it.
-func (r *PolicyRelations) Related(meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, typ string, before, after cty.Value) []*proto.RelatedMembers {
-	key := policyTypeKey{source: meta.ProviderSource, typ: typ}
-	usage := r.usages[key]
-	if usage == nil {
-		return nil
-	}
-	isDelete := meta.Operation == proto.Operation_DELETE
-	var from *policyObject
-	for _, obj := range r.byAddr[meta.Address] {
-		if obj.deposed == meta.DeposedKey && (obj.op == proto.Operation_DELETE) == isDelete {
-			from = obj
-			break
-		}
-	}
-	if from == nil {
-		// The object failed to encode, so its provider configuration isn't
-		// known either.
-		from = &policyObject{addr: meta.Address, deposed: meta.DeposedKey, typ: key, op: meta.Operation, provider: &PolicyProvider{}}
-		from.value = after
-		if isDelete {
-			from.value = before
-		}
-		if from.value != cty.NilVal {
-			from.value, _ = from.value.UnmarkDeep()
-		}
-	}
-	return r.related(from, usage.Hops)
+func (r *policyRelations) add(obj *policyObject) {
+	r.objects[obj.typ] = append(r.objects[obj.typ], obj)
+	r.byID[obj.id] = obj
 }
 
-// related returns the members of each hop walked from an instance.
-func (r *PolicyRelations) related(from *policyObject, hops []*proto.RelationshipHop) []*proto.RelatedMembers {
-	ret := make([]*proto.RelatedMembers, 0, len(hops))
-	for _, hop := range hops {
-		members := &proto.RelatedMembers{Relationship: hop.Relationship}
-		ret = append(ret, members)
+// finish sorts the objects and reads their key paths, before subjects are
+// evaluated concurrently.
+func (r *policyRelations) finish(keyPaths map[policyTypeKey][][]string) {
+	for key, objs := range r.objects {
+		for _, obj := range objs {
+			obj.reads = make(map[string]policyRead, len(keyPaths[key]))
+			for _, path := range keyPaths[key] {
+				obj.reads[strings.Join(path, ".")] = obj.readPath(path)
+			}
+		}
+	}
+}
 
-		def := r.defs[policyTypeKey{source: from.typ.source, typ: hop.Relationship}]
+// subject returns the relations of a subject: one per relationship at the
+// top of its type's tree, or nil if its type has no tree. from is the
+// subject's object, used if the walk has none with its identifier.
+func (r *policyRelations) subject(from *policyObject) []*proto.Relation {
+	tree := r.trees[from.typ]
+	if tree == nil {
+		return nil
+	}
+	if obj, ok := r.byID[from.id]; ok {
+		from = obj
+	}
+	return r.relations(from, tree.Relationships)
+}
+
+// relations returns the relation of each node walked from an object.
+func (r *policyRelations) relations(from *policyObject, nodes []*proto.Relationship) []*proto.Relation {
+	ret := make([]*proto.Relation, 0, len(nodes))
+	for _, node := range nodes {
+		rel := &proto.Relation{Relationship: node.Name, Resources: make(map[string]*proto.RelatedResource)}
+		ret = append(ret, rel)
+
 		var fromIsKey bool
-		var memberType string
-		switch {
-		case def == nil:
-			members.Completeness = proto.Completeness_ERROR_COMPLETENESS
-			continue
-		case def.KeyResource == from.typ.typ:
-			fromIsKey, memberType = true, def.ValueResource
-		case def.ValueResource == from.typ.typ:
-			memberType = def.KeyResource
+		var otherType string
+		switch from.typ.typ {
+		case node.KeyType:
+			fromIsKey, otherType = true, node.ValueType
+		case node.ValueType:
+			otherType = node.KeyType
 		default:
-			members.Completeness = proto.Completeness_ERROR_COMPLETENESS
+			rel.Completeness = proto.Completeness_ERROR_COMPLETENESS
 			continue
 		}
 
-		key := policyTypeKey{source: from.typ.source, typ: memberType}
+		key := policyTypeKey{source: node.ProviderSource, typ: otherType}
 		undecided := false
 		for _, obj := range r.objects[key] {
-			if obj.addr == from.addr || from.provider.differs(obj.provider) {
+			if obj.addr == from.addr || obj.provider != from.provider {
 				continue
 			}
-			match := policyMatches(def, fromIsKey, from, obj)
-			if match == policyRelated && from.provider.same(obj.provider) {
-				member := obj.member()
-				member.Related = r.related(obj, hop.Hops)
-				members.Members = append(members.Members, member)
-			} else if match != policyUnrelated {
+			switch policyMatches(node, fromIsKey, from, obj) {
+			case policyRelated:
+				rel.Resources[obj.id] = &proto.RelatedResource{
+					Operation:     obj.op,
+					Relationships: r.relations(obj, node.Relationships),
+				}
+			case policyUndecided:
 				undecided = true
 			}
 		}
-		members.Completeness, members.Deferred = r.completeness(key, from, undecided)
+		rel.Completeness, rel.Deferred = r.completeness(key, from, undecided)
 	}
 	return ret
 }
 
-// policyMatch is how a candidate relates to the instance a hop is walked
-// from.
+// policyMatch is how a candidate relates to the object a relation is
+// walked from.
 type policyMatch int
 
 const (
@@ -420,29 +319,32 @@ const (
 	policyRelated
 )
 
-// policyMatches returns policyRelated if every key of some alternative of a
+// policyMatches returns policyRelated if every key of some match of a
 // definition holds between from and m, and policyUndecided if no key of some
-// alternative certainly fails.
-func policyMatches(def *proto.RelationshipDefinition, fromIsKey bool, from, m *policyObject) policyMatch {
+// match certainly fails.
+func policyMatches(def *proto.Relationship, fromIsKey bool, from, m *policyObject) policyMatch {
 	ret := policyUnrelated
-	for _, alt := range def.Match {
-		match := policyRelated
-		for _, key := range alt.Keys {
+	for _, match := range def.Matches {
+		result := policyRelated
+		for _, key := range match.Keys {
 			fromPath, mPath := key.KeyPath, key.ValuePath
 			if !fromIsKey {
 				fromPath, mPath = mPath, fromPath
 			}
-			fromBag, mBag := from.bag(policyKeyPathNames(fromPath)), m.bag(policyKeyPathNames(mPath))
-			if fromBag.holds(mBag) {
+			fromRead, mRead := from.read(policyKeyPathNames(fromPath)), m.read(policyKeyPathNames(mPath))
+			if fromRead.holds(mRead) {
 				continue
 			}
-			if fromBag.fails(mBag) {
-				match = policyUnrelated
+			if fromRead.fails(mRead) {
+				result = policyUnrelated
 				break
 			}
-			match = policyUndecided
+			result = policyUndecided
 		}
-		ret = max(ret, match)
+		if len(match.Keys) == 0 {
+			result = policyUnrelated
+		}
+		ret = max(ret, result)
 		if ret == policyRelated {
 			break
 		}
@@ -450,16 +352,16 @@ func policyMatches(def *proto.RelationshipDefinition, fromIsKey bool, from, m *p
 	return ret
 }
 
-// completeness returns the completeness of a hop to the given type walked
-// from an instance, and the deferred addresses with DEFERRED. undecided is
-// set if a candidate is undecided.
-func (r *PolicyRelations) completeness(key policyTypeKey, from *policyObject, undecided bool) (proto.Completeness, []string) {
-	if r.errored || r.erroredT[key] {
+// completeness returns the completeness of a relation to the given type
+// walked from an object, and the deferred addresses with DEFERRED. undecided
+// is set if a candidate is undecided.
+func (r *policyRelations) completeness(key policyTypeKey, from *policyObject, undecided bool) (proto.Completeness, []string) {
+	if r.errored[key] {
 		return proto.Completeness_ERROR_COMPLETENESS, nil
 	}
 	var deferred []string
 	for addr, provider := range r.deferred[key] {
-		if addr != from.addr && !from.provider.differs(provider) {
+		if addr != from.addr && provider == from.provider {
 			deferred = append(deferred, addr)
 		}
 	}

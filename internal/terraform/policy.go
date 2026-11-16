@@ -24,9 +24,10 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-// evaluatePolicies evaluates the policies of a resource instance. related
-// are its related members, or nil without relationships.
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, attrsSource, priorAttrsSource *callback.ValueSource, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions, related []*proto.RelatedMembers) policy.EvaluationResponse {
+// evaluatePolicies evaluates the policies of a resource instance. obj is the
+// resource object, or nil for a discovered resource of a query, and
+// relations are its relations, or nil if the walk relates no instances.
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, obj *callback.Object, callbacks callback.Functions, relations []*proto.Relation) policy.EvaluationResponse {
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
@@ -37,15 +38,13 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	}
 
 	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
-		Target:     target.Resource.Resource.Type,
-		Attrs:      policy.CtyToPolicyValue(attrs),
-		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
-		Meta:       meta,
-		Callbacks:  callbacks,
-		Related:    related,
-
-		AttrsSource:      attrsSource,
-		PriorAttrsSource: priorAttrsSource,
+		Target:        target.Resource.Resource.Type,
+		Attrs:         policy.CtyToPolicyValue(attrs),
+		PriorAttrs:    policy.CtyToPolicyValue(priorAttrs),
+		Object:        obj,
+		Meta:          meta,
+		Callbacks:     callbacks,
+		Relationships: relations,
 	})
 
 	// Do a nil check because orphaned resources do not have a config, so we can't provide source information
@@ -58,8 +57,8 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 }
 
 // getResourcesForPolicyCallback returns the getresources callback. Its
-// matches keep their marks, so that their encoding redacts what the
-// subject's encoding of the same source redacts.
+// matches are the objects of the candidates table (contract §3.4), whose
+// values keep their marks.
 func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]callback.Resource, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) ([]callback.Resource, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
@@ -114,13 +113,39 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 							log.Printf("[ERROR] getresources: failed to decode resource %q: %v", addr, err)
 							return callback.Resource{}, false
 						}
-						return callback.Resource{Value: rsc.Value, Source: pg.valueSource(callback.KindState, states.NotDeposed, instAddr, schema.Body)}, true
+						rs := state.Resource(instAddr.ContainingResource())
+						if rs == nil {
+							return callback.Resource{}, false
+						}
+						spec := policyObjectSpec{addr: instAddr, provider: rs.ProviderConfig, op: proto.Operation_NO_OP}
+						prior := cty.NilVal
+						if change := pg.appliedChange(instAddr, states.NotDeposed); change != nil {
+							if op, ok := policyChangeOperation(change.Action); ok {
+								spec.op = op
+								if op != proto.Operation_CREATE {
+									prior = change.Before
+								}
+							}
+						}
+						return callback.Resource{Value: rsc.Value, Object: pg.callbackObject(spec, rsc.Value, prior, schema.Body)}, true
 					})
 				} else {
 					// Read each config resource change from the plan, returning the corresponding cty.Value
 					resourcesSeq = func(yield func(callback.Resource) bool) {
 						for change := range plans.ReadInstancesForConfigResource(ctx.Changes(), addr) {
-							yield(callback.Resource{Value: change.After, Source: pg.valueSource(callback.KindPlanned, change.DeposedKey, change.Addr, schema.Body)})
+							op, ok := policyChangeOperation(change.Action)
+							if !ok || change.DeposedKey != states.NotDeposed {
+								// Deletes leave no object to match.
+								continue
+							}
+							prior := change.Before
+							if op == proto.Operation_CREATE {
+								prior = cty.NilVal
+							}
+							spec := policyObjectSpec{addr: change.Addr, provider: change.ProviderAddr, op: op}
+							if !yield(callback.Resource{Value: change.After, Object: pg.callbackObject(spec, change.After, prior, schema.Body)}) {
+								return
+							}
 						}
 					}
 				}

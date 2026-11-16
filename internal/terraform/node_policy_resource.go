@@ -31,6 +31,10 @@ type nodeResourcePolicy struct {
 	// replace; NotDeposed for current objects.
 	DeposedKey states.DeposedKey
 
+	// OldObject is set for the delete half of a planned replace, which
+	// deletes the instance's old object.
+	OldObject bool
+
 	// Refreshed is whether Before and After are the object's refreshed state,
 	// rather than a change's, as in a refresh-only plan.
 	Refreshed bool
@@ -42,17 +46,9 @@ func (n *nodeResourcePolicy) Name() string {
 	return n.ResourceAddr.String() + " (policy evaluation)"
 }
 
+// Execute evaluates the resource instance's policies and reports the result
+// through the PolicyResult hook.
 func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) tfdiags.Diagnostics {
-	var scope policyEvaluationScope
-	if pg := ctx.PolicyGraph(); pg != nil {
-		scope.relations = pg.walkRelations()
-	}
-	return n.evaluate(ctx, operation, scope)
-}
-
-// evaluate evaluates the resource instance's policies in the given scope and
-// reports the result through the PolicyResult hook.
-func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, scope policyEvaluationScope) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	client := ctx.PolicyClient()
 	config := ctx.Config()
@@ -80,18 +76,6 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 		return nil
 	}
 
-	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
-		ProviderType: providerAddr.Provider.Type,
-		Operation:    policyOperation,
-		ModulePath:   n.ResourceAddr.Module.String(),
-
-		Address:        scope.addressPrefix + n.ResourceAddr.String(),
-		ProviderSource: providerAddr.Provider.String(),
-	}
-	if pg := ctx.PolicyGraph(); pg != nil {
-		meta.DeposedKey = pg.subjectDeposedKey(n.ResourceAddr, n.DeposedKey)
-	}
-
 	// the module config may be nil if the module call has been removed from the configuration
 	// in this case, we are fine with a nil resource config, as that would only mean
 	// that we do not have the terraform config's source information in the diagnostics.
@@ -105,26 +89,39 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
 	}
 
-	var related []*proto.RelatedMembers
-	if scope.relations != nil {
-		related = scope.relations.Related(meta, n.ResourceAddr.Resource.Resource.Type, n.Before, n.After)
+	pg := ctx.PolicyGraph()
+	if pg == nil {
+		pg = newPolicySubgraph()
+	}
+	spec := n.objectSpec(pg, policyOperation)
+	attrs, prior := n.After, n.Before
+	switch {
+	case policyOperation == proto.Operation_CREATE || n.Refreshed:
+		prior = cty.NilVal
+	case policyOperation == proto.Operation_DELETE:
+		attrs = cty.NilVal
+	}
+	body := schema.SchemaForResourceAddr(n.ResourceAddr.Resource.Resource).Body
+	obj := pg.callbackObject(spec, attrs, prior, body)
+
+	var relations []*proto.Relation
+	if r := pg.walkRelations(); r != nil {
+		val := n.After
+		if policyOperation == proto.Operation_DELETE {
+			val = n.Before
+		}
+		val, _ = val.UnmarkDeep()
+		relations = r.subject(&policyObject{
+			id:       obj.Identifier(),
+			addr:     n.ResourceAddr.String(),
+			typ:      policyTypeKey{source: providerAddr.Provider.String(), typ: n.ResourceAddr.Resource.Resource.Type},
+			op:       policyOperation,
+			provider: providerAddr.String(),
+			value:    val,
+		})
 	}
 
-	afterKind, beforeKind := callback.KindPlanned, callback.KindPrior
-	if operation == walkApply {
-		afterKind = callback.KindState
-	}
-	if n.Refreshed {
-		afterKind, beforeKind = callback.KindState, callback.KindState
-	}
-	var afterSource, beforeSource *callback.ValueSource
-	if pg := ctx.PolicyGraph(); pg != nil {
-		body := schema.SchemaForResourceAddr(n.ResourceAddr.Resource.Resource).Body
-		a, b := pg.valueSource(afterKind, n.DeposedKey, n.ResourceAddr, body), pg.valueSource(beforeKind, n.DeposedKey, n.ResourceAddr, body)
-		afterSource, beforeSource = &a, &b
-	}
-
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, afterSource, beforeSource, meta, callbacks, related)
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, obj.Metadata, obj, callbacks, relations)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)
@@ -132,6 +129,25 @@ func (n *nodeResourcePolicy) evaluate(ctx EvalContext, operation walkOperation, 
 		diags = diags.Append(hookErr)
 	}
 	return diags
+}
+
+// objectSpec says which object of the resource instance the node evaluates
+// (contract §3.4). In an apply, the deposed object of a create-before-destroy
+// replace, whose key the apply allocates, is the replace's old object, and a
+// deposed object with a planned change keeps its deposed key.
+func (n *nodeResourcePolicy) objectSpec(pg *policySubgraph, op proto.Operation) policyObjectSpec {
+	spec := policyObjectSpec{addr: n.ResourceAddr, provider: n.ProviderAddr, op: op, old: n.OldObject}
+	if op != proto.Operation_DELETE || pg.run == nil || !pg.run.Apply {
+		return spec
+	}
+	if n.DeposedKey != states.NotDeposed && pg.appliedChange(n.ResourceAddr, n.DeposedKey) != nil {
+		spec.deposed = n.DeposedKey
+		return spec
+	}
+	if change := pg.appliedChange(n.ResourceAddr, states.NotDeposed); change != nil {
+		spec.old = change.Action == plans.DeleteThenCreate || change.Action == plans.CreateThenDelete
+	}
+	return spec
 }
 
 func policyOperationForAction(action plans.Action) (proto.Operation, bool) {
@@ -169,6 +185,7 @@ func policyNodesFromChange(change *plans.ResourceInstanceChange) []*nodeResource
 				Action:       plans.Delete,
 				Before:       change.Before,
 				After:        cty.NilVal,
+				OldObject:    true,
 			},
 		}
 	case plans.ForgetThenCreate, plans.CreateThenForget:

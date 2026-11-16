@@ -24,32 +24,33 @@ import (
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 const relTestSource = "registry.terraform.io/hashicorp/test"
 
-// relDefinition returns a definition of the test provider. Each alternative
-// is a list of keys joined by "&", each key a key path and a value path
-// joined by "=", like "net_id=id&zone=name".
-func relDefinition(name, keyType, valueType string, alts ...string) *proto.RelationshipDefinition {
-	def := &proto.RelationshipDefinition{
+// relDefinition returns a definition of the test provider. Each match is a
+// list of keys joined by "&", each key a key path and a value path joined by
+// "=", like "net_id=id&zone=name".
+func relDefinition(name, keyType, valueType string, matches ...string) *proto.Relationship {
+	def := &proto.Relationship{
 		ProviderSource: relTestSource,
 		Name:           name,
-		KeyResource:    keyType,
-		ValueResource:  valueType,
+		KeyType:        keyType,
+		ValueType:      valueType,
 		DeclRange: &proto.Range{
 			Filename: "relationships.tfpolicy.hcl",
 			Start:    &proto.Position{Line: 1, Column: 1},
 			End:      &proto.Position{Line: 1, Column: 20, Byte: 19},
 		},
 	}
-	for _, alt := range alts {
-		var keys []*proto.MatchKey
-		for _, key := range strings.Split(alt, "&") {
+	for _, match := range matches {
+		var keys []*proto.Relationship_Key
+		for _, key := range strings.Split(match, "&") {
 			kp, vp, _ := strings.Cut(key, "=")
-			keys = append(keys, &proto.MatchKey{KeyPath: relAttrPath(kp), ValuePath: relAttrPath(vp)})
+			keys = append(keys, &proto.Relationship_Key{KeyPath: relAttrPath(kp), ValuePath: relAttrPath(vp)})
 		}
-		def.Match = append(def.Match, &proto.MatchAlternative{Keys: keys})
+		def.Matches = append(def.Matches, &proto.Relationship_Match{Keys: keys})
 	}
 	return def
 }
@@ -64,21 +65,53 @@ func relAttrPath(dotted string) *proto.AttributePath {
 	return path
 }
 
-func relUsage(typ string, hops ...*proto.RelationshipHop) *proto.RelationshipUsage {
-	return &proto.RelationshipUsage{ProviderSource: relTestSource, Type: typ, Hops: hops}
+// relUsage returns the tree of a subject type of the test provider, whose
+// nodes relRelationships inlines.
+func relUsage(typ string, hops ...*proto.Relationship) *proto.RelationshipTree {
+	return &proto.RelationshipTree{ProviderSource: relTestSource, ResourceType: typ, Relationships: hops}
 }
 
-func relHop(relationship string, hops ...*proto.RelationshipHop) *proto.RelationshipHop {
-	return &proto.RelationshipHop{Relationship: relationship, Hops: hops}
+// relHop returns a node of a tree that follows the named definition.
+func relHop(relationship string, hops ...*proto.Relationship) *proto.Relationship {
+	return &proto.Relationship{Name: relationship, Relationships: hops}
+}
+
+// relRelationships returns the trees of the given usages, with the named
+// definitions inlined in their nodes, as Setup returns them.
+func relRelationships(defs []*proto.Relationship, usages ...*proto.RelationshipTree) policy.Relationships {
+	byName := make(map[string]*proto.Relationship)
+	for _, def := range defs {
+		byName[def.Name] = def
+	}
+	var inline func([]*proto.Relationship) []*proto.Relationship
+	inline = func(hops []*proto.Relationship) []*proto.Relationship {
+		var ret []*proto.Relationship
+		for _, hop := range hops {
+			node := protobuf.Clone(byName[hop.Name]).(*proto.Relationship)
+			node.Relationships = inline(hop.Relationships)
+			ret = append(ret, node)
+		}
+		return ret
+	}
+	var rels policy.Relationships
+	for _, usage := range usages {
+		rels.Trees = append(rels.Trees, &proto.RelationshipTree{
+			ProviderSource: usage.ProviderSource,
+			ResourceType:   usage.ResourceType,
+			Relationships:  inline(usage.Relationships),
+		})
+	}
+	return rels
+}
+
+func relVMNetDefs() []*proto.Relationship {
+	return []*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_id=id")}
 }
 
 // relVMNet relates a test_vm to the test_net whose id is its net_id, and both
 // types use it.
 func relVMNet() policy.Relationships {
-	return policy.Relationships{
-		Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_id=id")},
-		Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net"))},
-	}
+	return relRelationships(relVMNetDefs(), relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net")))
 }
 
 func relClient(t *testing.T, rels policy.Relationships) *policy.MockClient {
@@ -127,76 +160,109 @@ func relNetDeposedState(s *states.SyncState, addr string, key states.DeposedKey,
 	}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 }
 
-// relTrees returns the related members of every evaluated subject that has
-// any, rendered by relTree, by subject: its address, " deposed KEY" for a
-// deposed object, and its operation.
+// relSubject returns the key of an evaluated subject: its address,
+// " deposed KEY" for a deposed object, " old" for the old object of a
+// replace, and its operation.
+func relSubject(meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata) string {
+	key := meta.Address
+	if meta.DeposedKey != "" {
+		key += " deposed " + meta.DeposedKey
+	}
+	if meta.OldObject {
+		key += " old"
+	}
+	return key + " " + meta.Operation.String()
+}
+
+// relResolve returns the related resource with the given identifier, as the
+// plugin fetches it, and fails the test if there is none.
+func relResolve(t *testing.T, client *policy.MockClient, id string) *proto.GetResourcesByIdentifierResponse_Resource {
+	t.Helper()
+	resp := client.GetResourcesByIdentifier(t.Context(), []string{id})
+	if len(resp.Diagnostics) > 0 || len(resp.Resources) != 1 {
+		t.Fatalf("can't resolve %q: %v", id, resp.Diagnostics)
+	}
+	return resp.Resources[0]
+}
+
+// relTrees returns the relations of every evaluated subject that has any,
+// rendered by relTree, by subject key (relSubject).
 func relTrees(t *testing.T, client *policy.MockClient) map[string][]string {
 	t.Helper()
 	ret := make(map[string][]string)
 	for _, req := range client.EvaluateRequests {
-		if req.Related == nil {
+		if req.Relationships == nil {
 			continue
 		}
-		key := req.Meta.Address
-		if req.Meta.DeposedKey != "" {
-			key += " deposed " + req.Meta.DeposedKey
-		}
-		key += " " + req.Meta.Operation.String()
+		key := relSubject(req.Meta)
 		if _, ok := ret[key]; ok {
 			t.Fatalf("subject %s evaluated twice", key)
 		}
-		ret[key] = relTree(req.Related)
+		ret[key] = relTree(t, client, req.Relationships)
 	}
 	return ret
 }
 
-// relTree renders related members, one line per hop and member, nested
-// members indented: "RELATIONSHIP COMPLETENESS [DEFERRED...]" for a hop, and
-// "ADDRESS [deposed KEY] [old] OPERATION [attrs] [prior]" for a member, with
-// attrs and prior when it has attrs and prior attrs.
-func relTree(related []*proto.RelatedMembers) []string {
-	var lines []string
-	var walk func([]*proto.RelatedMembers, string)
-	walk = func(hops []*proto.RelatedMembers, indent string) {
-		for _, hop := range hops {
-			line := []string{hop.Relationship, strings.TrimSuffix(hop.Completeness.String(), "_COMPLETENESS")}
-			lines = append(lines, indent+strings.Join(append(line, hop.Deferred...), " "))
-			for _, m := range hop.Members {
-				line := []string{m.Address}
-				if m.DeposedKey != "" {
-					line = append(line, "deposed", m.DeposedKey)
+// relTree renders relations, one line per relation and related resource,
+// nested relations indented: "RELATIONSHIP COMPLETENESS [DEFERRED...]" for a
+// relation, and "ADDRESS [deposed KEY] [old] OPERATION [attrs] [prior]" for
+// a resource, with attrs and prior when it has attrs and prior attrs.
+// Resources are sorted by their lines.
+func relTree(t *testing.T, client *policy.MockClient, relations []*proto.Relation) []string {
+	t.Helper()
+	var walk func([]*proto.Relation, string) []string
+	walk = func(relations []*proto.Relation, indent string) []string {
+		var lines []string
+		for _, rel := range relations {
+			line := []string{rel.Relationship, strings.TrimSuffix(rel.Completeness.String(), "_COMPLETENESS")}
+			lines = append(lines, indent+strings.Join(append(line, rel.Deferred...), " "))
+			var blocks [][]string
+			for id, related := range rel.Resources {
+				r := relResolve(t, client, id)
+				line := []string{r.Metadata.Address}
+				if r.Metadata.DeposedKey != "" {
+					line = append(line, "deposed", r.Metadata.DeposedKey)
 				}
-				if m.OldObject {
+				if r.Metadata.OldObject {
 					line = append(line, "old")
 				}
-				line = append(line, m.Operation.String())
-				if m.Attrs != nil {
+				if related.Operation != r.Metadata.Operation {
+					t.Errorf("%s has operation %s in the relation, but %s in its metadata", r.Metadata.Address, related.Operation, r.Metadata.Operation)
+				}
+				line = append(line, related.Operation.String())
+				if r.Attrs != nil {
 					line = append(line, "attrs")
 				}
-				if m.PriorAttrs != nil {
+				if r.PriorAttrs != nil {
 					line = append(line, "prior")
 				}
-				lines = append(lines, indent+"  "+strings.Join(line, " "))
-				walk(m.Related, indent+"    ")
+				block := []string{indent + "  " + strings.Join(line, " ")}
+				blocks = append(blocks, append(block, walk(related.Relationships, indent+"    ")...))
+			}
+			sort.Slice(blocks, func(i, j int) bool { return blocks[i][0] < blocks[j][0] })
+			for _, block := range blocks {
+				lines = append(lines, block...)
 			}
 		}
+		return lines
 	}
-	walk(related, "")
-	return lines
+	return walk(relations, "")
 }
 
-// relMembers returns the members of every hop of every subject, by subject
-// key like relTrees, then by member address.
-func relMembers(t *testing.T, client *policy.MockClient) map[string]map[string]*proto.RelatedMember {
-	ret := make(map[string]map[string]*proto.RelatedMember)
+// relMembers returns the related resources of every relation of every
+// subject, by subject key like relTrees, then by address.
+func relMembers(t *testing.T, client *policy.MockClient) map[string]map[string]*proto.GetResourcesByIdentifierResponse_Resource {
+	t.Helper()
+	ret := make(map[string]map[string]*proto.GetResourcesByIdentifierResponse_Resource)
 	for _, req := range client.EvaluateRequests {
-		key := req.Meta.Address + " " + req.Meta.Operation.String()
-		for _, hop := range req.Related {
-			for _, m := range hop.Members {
+		key := relSubject(req.Meta)
+		for _, rel := range req.Relationships {
+			for id := range rel.Resources {
 				if ret[key] == nil {
-					ret[key] = make(map[string]*proto.RelatedMember)
+					ret[key] = make(map[string]*proto.GetResourcesByIdentifierResponse_Resource)
 				}
-				ret[key][m.Address] = m
+				r := relResolve(t, client, id)
+				ret[key][r.Metadata.Address] = r
 			}
 		}
 	}
@@ -223,7 +289,7 @@ func relAttr(t *testing.T, attrs *proto.ResourceAttributes, name string) string 
 
 func TestContext2Plan_PolicyRelationships_validation(t *testing.T) {
 	tests := map[string]struct {
-		def *proto.RelationshipDefinition
+		def *proto.Relationship
 		// detail is the detail of the expected error; none when empty.
 		detail string
 	}{
@@ -275,12 +341,12 @@ func TestContext2Plan_PolicyRelationships_validation(t *testing.T) {
 			def: relDefinition("r", "test_vm", "test_net", "nic.net_id=id", "net_ids=id&net_set=name"),
 		},
 		"another provider": {
-			def: &proto.RelationshipDefinition{
+			def: &proto.Relationship{
 				ProviderSource: "registry.terraform.io/hashicorp/other",
 				Name:           "r",
-				KeyResource:    "other_nope",
-				ValueResource:  "other_nope",
-				Match:          []*proto.MatchAlternative{{Keys: []*proto.MatchKey{{KeyPath: relAttrPath("nope"), ValuePath: relAttrPath("nope")}}}},
+				KeyType:        "other_nope",
+				ValueType:      "other_nope",
+				Matches:        []*proto.Relationship_Match{{Keys: []*proto.Relationship_Key{{KeyPath: relAttrPath("nope"), ValuePath: relAttrPath("nope")}}}},
 			},
 		},
 	}
@@ -294,10 +360,7 @@ func TestContext2Plan_PolicyRelationships_validation(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			rels := policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{test.def},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_net", relHop("r"))},
-			}
+			rels := relRelationships([]*proto.Relationship{test.def}, relUsage("test_net", relHop("r")))
 			client := relClient(t, rels)
 			provider := relationshipsTestProvider()
 			_, diags := relContext(t, provider).Plan(mod, states.NewState(), &PlanOpts{
@@ -332,7 +395,7 @@ func TestContext2Plan_PolicyRelationships_validation(t *testing.T) {
 		plan, diags := ctx.Plan(mod, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 		tfdiags.AssertNoErrors(t, diags)
 
-		client := relClient(t, policy.Relationships{Definitions: []*proto.RelationshipDefinition{tests["write-only"].def}})
+		client := relClient(t, relRelationships([]*proto.Relationship{tests["write-only"].def}, relUsage("test_net", relHop("r"))))
 		_, diags = ctx.Apply(plan, mod, &ApplyOpts{PolicyClient: client, ProviderLocks: locks})
 		if !diags.HasErrors() || diags.Err().Error() != `Invalid relationship "r": `+tests["write-only"].detail {
 			t.Fatalf("expected the invalid relationship to fail the apply, got %v", diags.ErrWithWarnings())
@@ -343,7 +406,7 @@ func TestContext2Plan_PolicyRelationships_validation(t *testing.T) {
 	})
 
 	t.Run("version unknown", func(t *testing.T) {
-		client := relClient(t, policy.Relationships{Definitions: []*proto.RelationshipDefinition{tests["no such type"].def}})
+		client := relClient(t, relRelationships([]*proto.Relationship{tests["no such type"].def}, relUsage("test_net", relHop("r"))))
 		_, diags := relContext(t, relationshipsTestProvider()).Plan(mod, states.NewState(), &PlanOpts{
 			Mode:         plans.NormalMode,
 			PolicyClient: client,
@@ -408,18 +471,16 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 					name = "none"
 				}
 			`},
-			rels: policy.Relationships{
-				Definitions: relVMNet().Definitions,
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-			},
+			rels: relRelationships(relVMNetDefs(), relUsage("test_vm", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_vm.v CREATE":    {"vm_net PLAN"},
 				"test_vm.none CREATE": {"vm_net COMPLETE"},
 			},
 		},
-		// Unknown values relate nothing, but a reference relates the
+		// Unknown values relate nothing, but a plain reference relates the
 		// instance to the value it refers to. Unknown values that don't
-		// share an origin are undecided.
+		// share an origin are undecided: a collection constructor like
+		// [test_net.b.id] gives no origin.
 		"origins": {
 			files: map[string]string{"main.tf": `
 				resource "test_net" "a" {
@@ -438,15 +499,12 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 					net_ids = [test_net.b.id]
 				}
 			`},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id")}, relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_net.a CREATE":   {"vm_net PLAN", "  test_vm.v CREATE attrs"},
-				"test_net.b CREATE":   {"vm_net PLAN", "  test_vm.list CREATE attrs"},
+				"test_net.b CREATE":   {"vm_net PLAN"},
 				"test_vm.v CREATE":    {"vm_net PLAN", "  test_net.a CREATE attrs"},
-				"test_vm.list CREATE": {"vm_net PLAN", "  test_net.b CREATE attrs"},
+				"test_vm.list CREATE": {"vm_net PLAN"},
 			},
 		},
 		// Every key of an alternative must hold.
@@ -467,17 +525,14 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 			state: func(s *states.SyncState) {
 				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
 			},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_id=id&zone=name")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_net", relHop("vm_net"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_id=id&zone=name")}, relUsage("test_net", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_net.a NO_OP": {"vm_net COMPLETE", "  test_vm.both CREATE attrs"},
 			},
 		},
-		// Instances are related only with the same provider configuration:
-		// the same address, or known and equal values. An unknown provider
-		// configuration leaves a candidate undecided.
+		// Instances are related only with the same provider configuration
+		// address. Configurations aren't compared by value, so equal and
+		// unknown values relate nothing.
 		"provider rule": {
 			files: map[string]string{"main.tf": `
 				provider "test" {
@@ -520,12 +575,9 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 			state: func(s *states.SyncState) {
 				relNetState(s, "test_net.a", `{"id":"a-id","name":"a"}`)
 			},
-			rels: policy.Relationships{
-				Definitions: relVMNet().Definitions,
-				Usages:      []*proto.RelationshipUsage{relUsage("test_net", relHop("vm_net"))},
-			},
+			rels: relRelationships(relVMNetDefs(), relUsage("test_net", relHop("vm_net"))),
 			want: map[string][]string{
-				"test_net.a NO_OP":    {"vm_net PLAN", "  test_vm.default CREATE attrs", "  test_vm.same CREATE attrs"},
+				"test_net.a NO_OP":    {"vm_net COMPLETE", "  test_vm.default CREATE attrs"},
 				"test_net.new CREATE": {"vm_net PLAN"},
 			},
 		},
@@ -543,10 +595,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 					net_id = test_net.a.id
 				}
 			`},
-			rels: policy.Relationships{
-				Definitions: relVMNet().Definitions,
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net", relHop("vm_net")))},
-			},
+			rels: relRelationships(relVMNetDefs(), relUsage("test_vm", relHop("vm_net", relHop("vm_net")))),
 			want: map[string][]string{
 				"test_vm.v CREATE": {
 					"vm_net COMPLETE",
@@ -575,10 +624,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 					zone = "z"
 				}
 			`},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("zone", "test_vm", "test_vm", "zone=zone")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("zone"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("zone", "test_vm", "test_vm", "zone=zone")}, relUsage("test_vm", relHop("zone"))),
 			want: map[string][]string{
 				"test_vm.a CREATE": {"zone COMPLETE", "  test_vm.b CREATE attrs"},
 				"test_vm.b CREATE": {"zone COMPLETE", "  test_vm.a CREATE attrs"},
@@ -617,10 +663,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 				Mode:         plans.NormalMode,
 				ForceReplace: []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_net.r")},
 			},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")}, relUsage("test_vm", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_vm.v CREATE": {
 					"vm_net PLAN",
@@ -727,10 +770,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 				Mode:    plans.NormalMode,
 				Targets: []addrs.Targetable{mustResourceInstanceAddr("test_vm.v")},
 			},
-			rels: policy.Relationships{
-				Definitions: relVMNet().Definitions,
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-			},
+			rels: relRelationships(relVMNetDefs(), relUsage("test_vm", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_vm.v CREATE": {"vm_net ERROR"},
 			},
@@ -741,7 +781,7 @@ func TestContext2Plan_PolicyRelationships_related(t *testing.T) {
 					name = "v"
 				}
 			`},
-			rels: policy.Relationships{Definitions: relVMNet().Definitions},
+			rels: relRelationships(relVMNetDefs()),
 			want: map[string][]string{},
 		},
 	}
@@ -794,10 +834,7 @@ func TestContext2Plan_PolicyRelationships_memberValues(t *testing.T) {
 		relNetState(s, "test_net.u", `{"id":"u-id","name":"old","secret":"s"}`)
 		relNetState(s, "test_net.t", `{"id":"t-id","name":"old-t"}`)
 	})
-	client := relClient(t, policy.Relationships{
-		Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")},
-		Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-	})
+	client := relClient(t, relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")}, relUsage("test_vm", relHop("vm_net"))))
 	relPlan(t, mod, state, &PlanOpts{
 		Mode:         plans.NormalMode,
 		PolicyClient: client,
@@ -826,7 +863,7 @@ func TestContext2Plan_PolicyRelationships_memberValues(t *testing.T) {
 			t.Errorf("wrong redacted paths (-want +got):\n%s", diff)
 		}
 	}
-	if u.Type != "test_net" || u.ProviderType != "test" || u.ProviderSource != relTestSource || u.ModulePath != "" {
+	if u.Type != "test_net" || u.Metadata.ProviderType != "test" || u.Metadata.ProviderSource != relTestSource || u.Metadata.ModulePath != "" || u.Metadata.Operation != proto.Operation_UPDATE {
 		t.Errorf("wrong metadata: %v", u)
 	}
 }
@@ -870,10 +907,7 @@ func TestContext2Plan_PolicyRelationships_query(t *testing.T) {
 		})}
 	}
 
-	client := relClient(t, policy.Relationships{
-		Definitions: []*proto.RelationshipDefinition{relDefinition("self", "test_resource", "test_resource", "id=id")},
-		Usages:      []*proto.RelationshipUsage{relUsage("test_resource", relHop("self"))},
-	})
+	client := relClient(t, relRelationships([]*proto.Relationship{relDefinition("self", "test_resource", "test_resource", "id=id")}, relUsage("test_resource", relHop("self"))))
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
@@ -891,8 +925,8 @@ func TestContext2Plan_PolicyRelationships_query(t *testing.T) {
 		t.Fatal("expected the query results to be evaluated")
 	}
 	for _, req := range client.EvaluateRequests {
-		if req.Related != nil {
-			t.Errorf("expected no related members for %s, got %v", req.Meta.Address, req.Related)
+		if req.Relationships != nil {
+			t.Errorf("expected no related members for %s, got %v", req.Meta.Address, req.Relationships)
 		}
 	}
 }
@@ -925,10 +959,7 @@ func TestContext2Apply_PolicyRelationships_related(t *testing.T) {
 					net_ids = ["b-id"]
 				}
 			`},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_id=id", "net_ids=id")}, relUsage("test_vm", relHop("vm_net")), relUsage("test_net", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_net.a CREATE": {"vm_net COMPLETE", "  test_vm.v CREATE attrs"},
 				"test_net.b CREATE": {"vm_net COMPLETE", "  test_vm.w CREATE attrs"},
@@ -968,10 +999,7 @@ func TestContext2Apply_PolicyRelationships_related(t *testing.T) {
 					mustResourceInstanceAddr("test_net.gone"),
 				},
 			},
-			rels: policy.Relationships{
-				Definitions: []*proto.RelationshipDefinition{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")},
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-			},
+			rels: relRelationships([]*proto.Relationship{relDefinition("vm_net", "test_vm", "test_net", "net_ids=id")}, relUsage("test_vm", relHop("vm_net"))),
 			// The new object of test_net.r has the id r-id after apply.
 			want: map[string][]string{
 				"test_vm.v CREATE": {
@@ -1005,10 +1033,7 @@ func TestContext2Apply_PolicyRelationships_related(t *testing.T) {
 				}
 			},
 			wantErrors: true,
-			rels: policy.Relationships{
-				Definitions: relVMNet().Definitions,
-				Usages:      []*proto.RelationshipUsage{relUsage("test_vm", relHop("vm_net"))},
-			},
+			rels:       relRelationships(relVMNetDefs(), relUsage("test_vm", relHop("vm_net"))),
 			want: map[string][]string{
 				"test_vm.v CREATE": {"vm_net ERROR"},
 			},

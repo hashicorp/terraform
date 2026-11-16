@@ -4,9 +4,6 @@
 package terraform
 
 import (
-	"math/big"
-	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -15,117 +12,58 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/moduletest/mocking"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/schemarepo"
 )
 
-// originLookup gives originsFor the information about referenced resource
-// instances it needs to decide whether an origin is sound.
-type originLookup interface {
-	// attrType returns the type of the attribute of a managed resource type
-	// at path. ok is false unless path names a primitive value of a
-	// non-write-only attribute, through attribute steps and index steps
-	// into lists and tuples only.
-	attrType(provider addrs.Provider, resType string, path []originStep) (ty cty.Type, ok bool)
+// originMaxDepth bounds the references that resolving one origin follows.
+const originMaxDepth = 100
 
-	// plannedValue returns the planned value of a resource instance at path,
-	// following index steps into lists and tuples. ok is false if the value
-	// is unknown or isn't available. The value at an index out of range of a
-	// known list or tuple is null: there's no element to refer to.
-	plannedValue(addr addrs.AbsResourceInstance, path []originStep) (val cty.Value, ok bool)
-
-	// attrComputed returns whether the attribute of a managed resource type
-	// at path is computed. ok is false if path doesn't name an attribute.
-	attrComputed(provider addrs.Provider, resType string, path []string) (computed, ok bool)
+// policyOriginResolver resolves the origins of the key paths of a plan's
+// managed resource instances (contract §3.5): the resource attributes that
+// their configured values are copied from, by plain references only.
+type policyOriginResolver struct {
+	cfg     *configs.Config
+	schemas *schemarepo.Schemas
+	// overridden reports whether a module instance is overridden by the
+	// walk's test overrides; nil without overrides. The outputs of an
+	// overridden module come from the override instead of its
+	// configuration, so nothing in it is followed.
+	overridden func(addrs.ModuleInstance) bool
 }
 
-// policyKeyOrigins are the origins of the planned values of a key path of a
-// resource instance, and the leaves that are root module variables when
-// those are followed.
-type policyKeyOrigins struct {
-	origins []PolicyOrigin
-	vars    []PolicyVariableOrigin
+// policyOverriddenModules returns whether module instances are overridden
+// by the given test overrides, or nil if there are no overrides. Overridden
+// resources don't need excluding from origins: overrides only fill in their
+// computed attributes, so their configured attributes still come from their
+// configuration.
+func policyOverriddenModules(overrides *mocking.Overrides) func(addrs.ModuleInstance) bool {
+	if overrides.Empty() {
+		return nil
+	}
+	return overrides.IsOverridden
 }
 
-// originsFor returns the origins of the planned value of a resource instance
-// at the given key paths, by dot-joined key path: a static, symbolic
-// evaluation of the instance's configuration that only follows expressions
-// which preserve the referenced value. When in doubt, it returns no origins
-// for a key path, because a wrong origin relates instances that aren't
-// related. Key paths without origins have no entry.
+// originsFor returns the origins of the planned value of a managed resource
+// instance at the given key paths, by dot-joined key path. Key paths without
+// origins have no entry. A key path has origins only if it reads one
+// primitive value, through attributes and single nested blocks, and its
+// attribute's expression in the configuration is a plain reference.
 //
-// A reference is only an origin when the planned value comes from it. On an
-// update or a no-op, an attribute that ignore_changes covers keeps its prior
-// value, so its key paths get no origins; on a create or a replace,
-// ignore_changes doesn't apply. A key path whose planned value doesn't keep
-// the configured value, which is configured, or cty.NilVal if it isn't
-// available, gets no origins: the provider changed it.
-//
-// overridden reports whether a module instance is overridden by test
-// overrides, or is nil without overrides. The outputs of an overridden module
-// come from the override instead of its configuration, so nothing in it is
-// followed.
-//
-// With rootVariables, root module input variables are followed: their
-// leaves are returned as vars, for the caller, which may know where a
-// variable's value comes from. Otherwise they have no origin.
-func originsFor(cfg *configs.Config, exp *instances.Expander, overridden func(addrs.ModuleInstance) bool, addr addrs.AbsResourceInstance, action plans.Action, planned, configured cty.Value, keyPaths [][]string, lookup originLookup, rootVariables bool) map[string]policyKeyOrigins {
-	if planned == cty.NilVal || len(keyPaths) == 0 {
+// Every origin of a key path is dropped when the path's first step is in
+// ignore_changes and the change is an update or a no-op, which keep the prior
+// value; when the planned value at the path is null; and when the planned
+// value isn't the configured one, which is configured, because then the
+// provider changed it.
+func (o *policyOriginResolver) originsFor(addr addrs.AbsResourceInstance, action plans.Action, planned, configured cty.Value, keyPaths [][]string) map[string][]string {
+	if o.cfg == nil || planned == cty.NilVal || configured == cty.NilVal || len(keyPaths) == 0 {
 		return nil
 	}
-	planned, _ = planned.UnmarkDeep()
-	if planned.IsNull() {
+	if o.overridden != nil && o.overridden(addr.Module) {
 		return nil
 	}
-	e := &originEval{cfg: cfg, exp: exp, overridden: overridden, lookup: lookup, rootVariables: rootVariables}
-	rec := e.record(addr, planned)
-	if rec == nil {
-		return nil
-	}
-	rec.action = action
-	rec.configured = configured
-
-	ret := make(map[string]policyKeyOrigins)
-	for _, kp := range keyPaths {
-		if len(kp) == 0 {
-			continue
-		}
-		n, countable := policyPlannedLeaves(planned, kp)
-		if countable && n == 0 {
-			continue
-		}
-		if ko := rec.keyPath(kp, n, countable); len(ko.origins) > 0 || len(ko.vars) > 0 {
-			ret[strings.Join(kp, ".")] = ko
-		}
-	}
-	return ret
-}
-
-// originRecord is a record whose origins are analyzed.
-type originRecord struct {
-	e        *originEval
-	rc       *configs.Resource
-	body     *hclsyntax.Body
-	provider addrs.Provider
-	self     originSym
-	planned  cty.Value
-	// action is the action of the record's change.
-	action plans.Action
-	// configured is the configuration value the record was planned with, or
-	// cty.NilVal if it isn't available.
-	configured cty.Value
-}
-
-// record returns the record of the resource instance at addr, or nil if its
-// configuration can't be analyzed: there's no configuration or expansion,
-// its module is overridden, it isn't a managed resource, its body isn't in
-// native syntax (JSON bodies and bodies merged from override files are
-// other types), or its planned value is unknown.
-func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value) *originRecord {
-	if e.cfg == nil || e.exp == nil || e.moduleOverridden(addr.Module) || !planned.IsKnown() {
-		return nil
-	}
-	modCfg := e.cfg.DescendantForInstance(addr.Module)
+	modCfg := o.cfg.DescendantForInstance(addr.Module)
 	if modCfg == nil {
 		return nil
 	}
@@ -133,130 +71,226 @@ func (e *originEval) record(addr addrs.AbsResourceInstance, planned cty.Value) *
 	if rc == nil || rc.Mode != addrs.ManagedResourceMode {
 		return nil
 	}
+	// JSON bodies and bodies merged from override files are other types.
 	body, ok := rc.Config.(*hclsyntax.Body)
 	if !ok {
 		return nil
 	}
-	scope := &originScope{mod: addr.Module, cfg: modCfg, rep: e.resourceRepetition(rc, addr)}
-	return &originRecord{
-		e:        e,
-		rc:       rc,
-		body:     body,
-		provider: modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr()),
-		self:     e.body(body, scope),
-		planned:  planned,
-	}
-}
+	planned, _ = planned.UnmarkDeep()
+	configured, _ = configured.UnmarkDeep()
 
-// keyPath returns the origins of the record at a key path whose planned
-// value has n leaves, and the leaves that are root module variables when the
-// evaluation follows them. countable is false if the number of planned
-// leaves isn't known.
-func (r *originRecord) keyPath(kp []string, n int, countable bool) policyKeyOrigins {
-	if policyIgnoreChangesApplies(r.action) && policyIgnoresChanges(r.rc, kp[0]) {
-		return policyKeyOrigins{}
-	}
-	if !policyBodySets(r.body, kp[0]) || !countable {
-		return policyKeyOrigins{}
-	}
-	leaves, ok := r.e.leaves(r.self, r.planned.Type(), kp)
-	if !ok {
-		return policyKeyOrigins{}
-	}
-
-	// Leaves that are known to be null contribute no planned leaves, unless
-	// the provider planned a value for them. If the numbers match neither
-	// way, the planned value doesn't fit the configuration.
-	knownNull := make([]bool, len(leaves))
-	k := 0
-	for i, leaf := range leaves {
-		if r.knownNull(leaf, kp) {
-			knownNull[i] = true
-			k++
-		}
-	}
-	allPlanned := n == len(leaves)
-	if !allPlanned && n != len(leaves)-k {
-		return policyKeyOrigins{}
-	}
-
-	seen := make(map[string]bool)
-	var refs []symRef
-	var vars []PolicyVariableOrigin
-	for i, leaf := range leaves {
-		if knownNull[i] && !allPlanned {
+	var ret map[string][]string
+	for _, kp := range keyPaths {
+		if len(kp) == 0 || !policyScalarPath(planned.Type(), kp) {
 			continue
 		}
-		switch sym := leaf.sym.(type) {
-		case symRef:
-			if len(sym.path) == 0 || !r.e.originAllowed(sym, leaf.ty) {
-				continue
-			}
-			id := sym.addr.String() + "#" + originPathString(sym.path)
-			if seen[id] {
-				continue
-			}
-			seen[id] = true
-			refs = append(refs, sym)
-		case symVar:
-			id := "var." + sym.name + "#" + originPathString(sym.path)
-			if seen[id] {
-				continue
-			}
-			seen[id] = true
-			vars = append(vars, PolicyVariableOrigin{Variable: sym.name, path: sym.path, ty: leaf.ty})
+		if policyIgnoreChangesApplies(action) && policyIgnoresChanges(rc, kp[0]) {
+			continue
 		}
-	}
-	if (len(refs) > 0 || len(vars) > 0) && !policyPlanKeepsConfig(r.configured, r.planned, kp) {
-		return policyKeyOrigins{}
-	}
-	sort.Slice(refs, func(i, j int) bool {
-		if a, b := refs[i].addr.String(), refs[j].addr.String(); a != b {
-			return a < b
+		p, c := policyPathValue(planned, kp), policyPathValue(configured, kp)
+		if p == cty.NilVal || c == cty.NilVal || (p.IsKnown() && p.IsNull()) || !policySameValue(c, p) {
+			continue
 		}
-		return originPathLess(refs[i].path, refs[j].path)
-	})
-	ret := policyKeyOrigins{vars: vars}
-	for _, ref := range refs {
-		ret.origins = append(ret.origins, PolicyOrigin{Address: ref.addr.String(), path: ref.path})
+		expr := policyPathExpr(body, kp)
+		if expr == nil {
+			continue
+		}
+		if origin, ok := o.resolve(expr, addr.Module, 0); ok {
+			if ret == nil {
+				ret = make(map[string][]string)
+			}
+			ret[strings.Join(kp, ".")] = []string{origin}
+		}
 	}
 	return ret
 }
 
-// knownNull returns true if a leaf of the record at key path kp is known to
-// be null: a null literal, a reference to a planned null value, or an unset
-// attribute the provider doesn't compute.
-func (r *originRecord) knownNull(leaf originLeaf, kp []string) bool {
-	switch sym := leaf.sym.(type) {
-	case symLit:
-		return sym.val.IsNull()
-	case symRef:
-		if len(sym.path) == 0 {
-			return false
+// policyPathValue returns the value at a path of attribute steps, which is
+// null below a null and unknown below an unknown, or cty.NilVal if the path
+// doesn't fit the value.
+func policyPathValue(v cty.Value, path []string) cty.Value {
+	for _, name := range path {
+		ty := v.Type()
+		if !ty.IsObjectType() || !ty.HasAttribute(name) {
+			return cty.NilVal
 		}
-		val, ok := r.e.lookup.plannedValue(sym.addr, sym.path)
-		return ok && val.IsNull()
+		if !v.IsKnown() {
+			return cty.UnknownVal(ty.AttributeType(name))
+		}
+		if v.IsNull() {
+			return cty.NullVal(ty.AttributeType(name))
+		}
+		v = v.GetAttr(name)
+	}
+	return v
+}
+
+// policySameValue returns true if a planned value keeps a configured one:
+// both are known and equal, or both are unknown. A known planned value for
+// an unknown configured one, or the reverse, isn't the same value as far as
+// Terraform can tell.
+func policySameValue(c, p cty.Value) bool {
+	if !c.IsKnown() || !p.IsKnown() {
+		return !c.IsKnown() && !p.IsKnown()
+	}
+	return c.Type().Equals(p.Type()) && c.Equals(p).True()
+}
+
+// policyPathExpr returns the expression of the attribute at a key path in a
+// resource body, through blocks of which the body has exactly one, or nil if
+// there's no such attribute. A key path that steps into an attribute has no
+// expression: only plain references are followed, not object constructors.
+func policyPathExpr(body *hclsyntax.Body, kp []string) hclsyntax.Expression {
+	for _, name := range kp[:len(kp)-1] {
+		var found *hclsyntax.Block
+		for _, block := range body.Blocks {
+			if block.Type == name || (block.Type == "dynamic" && len(block.Labels) > 0 && block.Labels[0] == name) {
+				if found != nil || block.Type == "dynamic" {
+					return nil
+				}
+				found = block
+			}
+		}
+		if found == nil {
+			return nil
+		}
+		body = found.Body
+	}
+	attr, ok := body.Attributes[kp[len(kp)-1]]
+	if !ok {
+		return nil
+	}
+	return attr.Expr
+}
+
+// resolve returns the origin of an expression in a module instance:
+// references to resource attributes are the origin; references to local
+// values, to input variables of a non-root module and to module outputs are
+// followed to their expressions. Any other expression, including anything
+// that isn't only a traversal, has no origin.
+func (o *policyOriginResolver) resolve(expr hcl.Expression, mod addrs.ModuleInstance, depth int) (string, bool) {
+	if depth > originMaxDepth {
+		return "", false
+	}
+	trav, ok := expr.(*hclsyntax.ScopeTraversalExpr)
+	if !ok {
+		return "", false
+	}
+	ref, diags := addrs.ParseRef(trav.Traversal)
+	if diags.HasErrors() {
+		return "", false
+	}
+	modCfg := o.cfg.DescendantForInstance(mod)
+	if modCfg == nil {
+		return "", false
+	}
+
+	switch s := ref.Subject.(type) {
+	case addrs.Resource:
+		return o.resourceOrigin(modCfg, s.Absolute(mod).Instance(addrs.NoKey), ref.Remaining)
+	case addrs.ResourceInstance:
+		return o.resourceOrigin(modCfg, s.Absolute(mod), ref.Remaining)
+	case addrs.LocalValue:
+		local := modCfg.Module.Locals[s.Name]
+		if local == nil || len(ref.Remaining) > 0 {
+			return "", false
+		}
+		return o.resolve(local.Expr, mod, depth+1)
+	case addrs.InputVariable:
+		if mod.IsRoot() || len(ref.Remaining) > 0 {
+			return "", false
+		}
+		parent, call := mod.CallInstance()
+		parentCfg := o.cfg.DescendantForInstance(parent)
+		if parentCfg == nil {
+			return "", false
+		}
+		mc := parentCfg.Module.ModuleCalls[call.Call.Name]
+		if mc == nil {
+			return "", false
+		}
+		body, ok := mc.Config.(*hclsyntax.Body)
+		if !ok {
+			return "", false
+		}
+		attr, ok := body.Attributes[s.Name]
+		if !ok {
+			return "", false
+		}
+		return o.resolve(attr.Expr, parent, depth+1)
+	case addrs.ModuleCallInstanceOutput:
+		if len(ref.Remaining) > 0 {
+			return "", false
+		}
+		mc := modCfg.Module.ModuleCalls[s.Call.Call.Name]
+		if mc == nil || !policyKeyFits(s.Call.Key, mc.Count, mc.ForEach) {
+			return "", false
+		}
+		child := mod.Child(s.Call.Call.Name, s.Call.Key)
+		if o.overridden != nil && o.overridden(child) {
+			return "", false
+		}
+		childCfg := o.cfg.DescendantForInstance(child)
+		if childCfg == nil {
+			return "", false
+		}
+		out := childCfg.Module.Outputs[s.Name]
+		if out == nil {
+			return "", false
+		}
+		return o.resolve(out.Expr, child, depth+1)
 	default:
-		if !policySymUnset(sym) {
-			return false
-		}
-		computed, ok := r.e.lookup.attrComputed(r.provider, r.rc.Type, kp)
-		return ok && !computed
+		return "", false
 	}
 }
 
-// policyBodySets returns true if a resource body sets an argument or has
-// blocks, including dynamic ones, of the given name.
-func policyBodySets(body *hclsyntax.Body, name string) bool {
-	if _, ok := body.Attributes[name]; ok {
-		return true
+// resourceOrigin returns the origin that a reference to a resource
+// instance's attribute is: the attribute, if it's a primitive, non-write-only
+// attribute of a managed resource or a data source of the configuration.
+func (o *policyOriginResolver) resourceOrigin(modCfg *configs.Config, inst addrs.AbsResourceInstance, rest hcl.Traversal) (string, bool) {
+	res := inst.Resource.Resource
+	if res.Mode != addrs.ManagedResourceMode && res.Mode != addrs.DataResourceMode {
+		return "", false
 	}
-	for _, block := range body.Blocks {
-		if block.Type == name || (block.Type == "dynamic" && len(block.Labels) > 0 && block.Labels[0] == name) {
-			return true
+	rc := modCfg.Module.ResourceByAddr(res)
+	if rc == nil || !policyKeyFits(inst.Resource.Key, rc.Count, rc.ForEach) || len(rest) == 0 {
+		return "", false
+	}
+	names := make([]string, 0, len(rest))
+	path := make(cty.Path, 0, len(rest))
+	for _, step := range rest {
+		attr, ok := step.(hcl.TraverseAttr)
+		if !ok {
+			return "", false
 		}
+		names = append(names, attr.Name)
+		path = path.GetAttr(attr.Name)
 	}
-	return false
+
+	provider := modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr())
+	schema := o.schemas.ResourceTypeConfig(provider, res.Mode, res.Type)
+	if schema.Body == nil || !policyScalarPath(schema.Body.ImpliedType(), names) {
+		return "", false
+	}
+	if attr := schema.Body.AttributeByPath(path); attr == nil || attr.WriteOnly {
+		return "", false
+	}
+	return inst.String() + "." + strings.Join(names, "."), true
+}
+
+// policyKeyFits returns true if an instance key is a literal key of a
+// resource or module call with the given count and for_each.
+func policyKeyFits(key addrs.InstanceKey, count, forEach hcl.Expression) bool {
+	switch {
+	case count != nil:
+		_, ok := key.(addrs.IntKey)
+		return ok
+	case forEach != nil:
+		_, ok := key.(addrs.StringKey)
+		return ok
+	default:
+		return key == addrs.NoKey
+	}
 }
 
 // policyIgnoreChangesApplies returns true if ignore_changes applies to the
@@ -266,57 +300,6 @@ func policyBodySets(body *hclsyntax.Body, name string) bool {
 // configuration.
 func policyIgnoreChangesApplies(action plans.Action) bool {
 	return action == plans.Update || action == plans.NoOp
-}
-
-// policyPlanKeepsConfig returns true if the planned value of a record at a
-// key path keeps the configured value, so the references the configuration
-// makes there are where the planned value comes from: every non-null
-// configured leaf has a planned leaf of its own that is known and equal, or
-// unknown like the configured leaf. Leaves are compared as a multiset,
-// because sets have no order and the key matching doesn't use the order of
-// lists either. A configured leaf that is null can get a planned value from
-// the provider, which computes it; that leaf has no reference. It returns
-// false if configured is cty.NilVal: whether the provider changed the value
-// can't be told.
-func policyPlanKeepsConfig(configured, planned cty.Value, kp []string) bool {
-	if configured == cty.NilVal || planned == cty.NilVal {
-		return false
-	}
-	configured, _ = configured.UnmarkDeep()
-	planned, _ = planned.UnmarkDeep()
-	cfgLeaves, ok := policyValueLeaves(configured, kp)
-	if !ok {
-		return false
-	}
-	plannedLeaves, ok := policyValueLeaves(planned, kp)
-	if !ok {
-		return false
-	}
-	used := make([]bool, len(plannedLeaves))
-	for _, c := range cfgLeaves {
-		found := false
-		for i, p := range plannedLeaves {
-			if !used[i] && policySameLeaf(c, p) {
-				used[i], found = true, true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
-}
-
-// policySameLeaf returns true if a planned leaf keeps a configured leaf: both
-// are known and equal, or both are unknown. A known planned value for an
-// unknown configured one, or the reverse, isn't the same value as far as
-// Terraform can tell.
-func policySameLeaf(c, p cty.Value) bool {
-	if !c.IsKnown() || !p.IsKnown() {
-		return !c.IsKnown() && !p.IsKnown()
-	}
-	return c.Type().Equals(p.Type()) && c.Equals(p).True()
 }
 
 // policyIgnoresChanges returns true if the resource's ignore_changes covers
@@ -346,825 +329,4 @@ func policyIgnoresChanges(rc *configs.Resource, name string) bool {
 		}
 	}
 	return false
-}
-
-// policyPlannedLeaves returns the number of leaves of a planned value at a
-// key path, flattening lists, sets and tuples at any position like the policy
-// engine does. A null value contributes no leaves and an unknown primitive
-// value is one leaf. ok is false if the number can't be known: a wholly
-// unknown collection or object, or a value that doesn't fit the key path.
-func policyPlannedLeaves(v cty.Value, steps []string) (n int, ok bool) {
-	leaves, ok := policyValueLeaves(v, steps)
-	return len(leaves), ok
-}
-
-// policyValueLeaves returns the leaves of a value at a key path like
-// policyPlannedLeaves counts them.
-func policyValueLeaves(v cty.Value, steps []string) ([]cty.Value, bool) {
-	if v.IsNull() {
-		return nil, true
-	}
-	ty := v.Type()
-	if !v.IsKnown() {
-		if len(steps) == 0 && ty.IsPrimitiveType() {
-			return []cty.Value{v}, true
-		}
-		return nil, false
-	}
-	switch {
-	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
-		var ret []cty.Value
-		for it := v.ElementIterator(); it.Next(); {
-			_, el := it.Element()
-			leaves, ok := policyValueLeaves(el, steps)
-			if !ok {
-				return nil, false
-			}
-			ret = append(ret, leaves...)
-		}
-		return ret, true
-	case len(steps) > 0:
-		if !ty.IsObjectType() || !ty.HasAttribute(steps[0]) {
-			return nil, false
-		}
-		return policyValueLeaves(v.GetAttr(steps[0]), steps[1:])
-	case ty.IsPrimitiveType():
-		return []cty.Value{v}, true
-	default:
-		return nil, false
-	}
-}
-
-// Symbolic values. They describe what an expression evaluates to in terms of
-// other objects, as far as the evaluation preserves values.
-type originSym interface{}
-
-// symOpaque is a value that has no origin, or whose structure isn't known.
-// unset is set for an attribute that isn't configured.
-type symOpaque struct{ unset bool }
-
-var (
-	opaqueValue         = symOpaque{}
-	opaqueNotConfigured = symOpaque{unset: true}
-)
-
-// symVar is the value of a root module input variable, or of one of its
-// attributes or elements when path isn't empty. Only an evaluation for a
-// shared run follows root variables (originEval.rootVariables): the run's
-// owner may know where a variable's value comes from, e.g. a Terraform Stacks
-// component input that refers to another component's output. Otherwise a
-// root variable is opaqueValue.
-type symVar struct {
-	name string
-	path []originStep
-}
-
-func (v symVar) withStep(step originStep) symVar {
-	path := make([]originStep, len(v.path), len(v.path)+1)
-	copy(path, v.path)
-	return symVar{name: v.name, path: append(path, step)}
-}
-
-// PolicyVariableOrigin is a leaf of a record's key path whose value is the
-// value of a root module input variable, or of one of its attributes or
-// elements. A walk that contributes to a shared run leaves resolving it to
-// its caller (see PolicyRunContribution.Variables).
-type PolicyVariableOrigin struct {
-	// Variable is the name of the root module input variable.
-	Variable string
-	// path is the path into the variable's value; ty is the leaf's type.
-	path []originStep
-	ty   cty.Type
-}
-
-// PolicyOrigin is the value that a leaf of a key path refers to: an
-// attribute of a managed resource instance, or an element of one.
-type PolicyOrigin struct {
-	// Address is the address of the resource instance.
-	Address string
-	path    []originStep
-}
-
-// id identifies the value, like ADDRESS.a[0].b.
-func (o PolicyOrigin) id() string {
-	return o.Address + "." + originPathString(o.path)
-}
-
-// unindexed is the id without index steps: the whole list that an element
-// is in.
-func (o PolicyOrigin) unindexed() string {
-	var path []originStep
-	for _, step := range o.path {
-		if step.name != "" {
-			path = append(path, step)
-		}
-	}
-	return o.Address + "." + originPathString(path)
-}
-
-// symLit is a literal value, or count.index or each.key.
-type symLit struct{ val cty.Value }
-
-// symRef is the value of a managed resource instance, or of one of its
-// attributes or their elements when path isn't empty.
-type symRef struct {
-	addr addrs.AbsResourceInstance
-	path []originStep
-}
-
-// withStep returns the reference with a step appended to its path.
-func (r symRef) withStep(step originStep) symRef {
-	path := make([]originStep, len(r.path), len(r.path)+1)
-	copy(path, r.path)
-	return symRef{addr: r.addr, path: append(path, step)}
-}
-
-// originStep is a step of an origin path: an attribute step, or an index
-// step into a list or tuple when name is empty.
-type originStep struct {
-	name  string
-	index int64
-}
-
-// originPathString returns an origin path as in an origin id: attribute
-// steps joined with ".", and index steps appended as "[N]".
-func originPathString(path []originStep) string {
-	var b strings.Builder
-	for i, step := range path {
-		switch {
-		case step.name == "":
-			b.WriteString("[" + strconv.FormatInt(step.index, 10) + "]")
-		case i > 0:
-			b.WriteString("." + step.name)
-		default:
-			b.WriteString(step.name)
-		}
-	}
-	return b.String()
-}
-
-// originPathLess orders origin paths step by step: attribute steps by name,
-// index steps by index, and a path before the paths it's a prefix of.
-func originPathLess(a, b []originStep) bool {
-	for i := 0; i < len(a) && i < len(b); i++ {
-		if a[i].name != b[i].name {
-			return a[i].name < b[i].name
-		}
-		if a[i].index != b[i].index {
-			return a[i].index < b[i].index
-		}
-	}
-	return len(a) < len(b)
-}
-
-// symObj is an object whose attributes are evaluated on demand: an object
-// constructor, a block body, or a module instance's outputs.
-type symObj struct{ attr func(name string) originSym }
-
-// symSeq is a sequence: a tuple constructor, a splat result, or the blocks of
-// one type in a body.
-type symSeq struct {
-	elems  []originSym
-	blocks bool
-}
-
-// symColl is the instances of a resource or module call that has count or
-// for_each.
-type symColl struct {
-	keyType addrs.InstanceKeyType
-	elems   map[addrs.InstanceKey]originSym
-}
-
-type originLeaf struct {
-	sym originSym
-	ty  cty.Type
-}
-
-// originMaxDepth bounds the evaluation depth, as a safety net.
-const originMaxDepth = 100
-
-type originEval struct {
-	cfg        *configs.Config
-	exp        *instances.Expander
-	overridden func(addrs.ModuleInstance) bool
-	lookup     originLookup
-	depth      int
-	// rootVariables makes root module input variables symVars instead of
-	// opaqueValue.
-	rootVariables bool
-}
-
-func (e *originEval) moduleOverridden(mod addrs.ModuleInstance) bool {
-	return e.overridden != nil && e.overridden(mod)
-}
-
-type originScope struct {
-	mod  addrs.ModuleInstance
-	cfg  *configs.Config
-	rep  *originRepetition
-	anon map[*hclsyntax.AnonSymbolExpr]originSym
-}
-
-// originRepetition is the repetition data of the object whose expressions
-// are evaluated.
-type originRepetition struct {
-	key addrs.InstanceKey
-	// each returns each.value; nil without for_each.
-	each func() originSym
-}
-
-func (e *originEval) resourceRepetition(rc *configs.Resource, addr addrs.AbsResourceInstance) *originRepetition {
-	switch addr.Resource.Key.(type) {
-	case addrs.IntKey:
-		return &originRepetition{key: addr.Resource.Key}
-	case addrs.StringKey:
-		return &originRepetition{key: addr.Resource.Key, each: func() originSym {
-			if rc.ForEach == nil {
-				return opaqueValue
-			}
-			return e.index(e.eval(rc.ForEach, &originScope{mod: addr.Module, cfg: e.cfg.DescendantForInstance(addr.Module)}), instanceKeySym(addr.Resource.Key))
-		}}
-	default:
-		return nil
-	}
-}
-
-func instanceKeySym(key addrs.InstanceKey) originSym {
-	if key == nil || key == addrs.NoKey {
-		return opaqueValue
-	}
-	return symLit{val: key.Value()}
-}
-
-// body returns the symbolic value of a resource body or nested block body.
-func (e *originEval) body(body *hclsyntax.Body, s *originScope) originSym {
-	return symObj{attr: func(name string) originSym {
-		if attr, ok := body.Attributes[name]; ok {
-			return e.eval(attr.Expr, s)
-		}
-		seq := symSeq{blocks: true}
-		for _, block := range body.Blocks {
-			if block.Type == "dynamic" && len(block.Labels) > 0 && block.Labels[0] == name {
-				return opaqueValue
-			}
-			if block.Type == name {
-				seq.elems = append(seq.elems, e.body(block.Body, s))
-			}
-		}
-		return seq
-	}}
-}
-
-func (e *originEval) eval(expr hcl.Expression, s *originScope) originSym {
-	if s == nil || s.cfg == nil || e.depth >= originMaxDepth {
-		return opaqueValue
-	}
-	e.depth++
-	defer func() { e.depth-- }()
-
-	switch expr := expr.(type) {
-	case *hclsyntax.LiteralValueExpr:
-		return symLit{val: expr.Val}
-	case *hclsyntax.TemplateExpr:
-		if len(expr.Parts) == 1 {
-			if lit, ok := expr.Parts[0].(*hclsyntax.LiteralValueExpr); ok {
-				return symLit{val: lit.Val}
-			}
-		}
-		return opaqueValue
-	case *hclsyntax.TemplateWrapExpr:
-		return e.eval(expr.Wrapped, s)
-	case *hclsyntax.ParenthesesExpr:
-		return e.eval(expr.Expression, s)
-	case *hclsyntax.TupleConsExpr:
-		seq := symSeq{}
-		for _, el := range expr.Exprs {
-			seq.elems = append(seq.elems, e.eval(el, s))
-		}
-		return seq
-	case *hclsyntax.ObjectConsExpr:
-		attrs := make(map[string]originSym, len(expr.Items))
-		for _, item := range expr.Items {
-			name, ok := objectConsKey(item.KeyExpr)
-			if !ok {
-				return opaqueValue
-			}
-			attrs[name] = e.eval(item.ValueExpr, s)
-		}
-		return symObj{attr: func(name string) originSym {
-			if v, ok := attrs[name]; ok {
-				return v
-			}
-			return opaqueNotConfigured
-		}}
-	case *hclsyntax.ScopeTraversalExpr:
-		return e.traversal(expr.Traversal, s)
-	case *hclsyntax.RelativeTraversalExpr:
-		return e.steps(e.eval(expr.Source, s), expr.Traversal)
-	case *hclsyntax.IndexExpr:
-		return e.index(e.eval(expr.Collection, s), e.eval(expr.Key, s))
-	case *hclsyntax.SplatExpr:
-		return e.splat(expr, s)
-	case *hclsyntax.AnonSymbolExpr:
-		if v, ok := s.anon[expr]; ok {
-			return v
-		}
-		return opaqueValue
-	default:
-		// Function calls, conditionals, for expressions, operators,
-		// templates with several parts and anything else.
-		return opaqueValue
-	}
-}
-
-// objectConsKey returns the literal key of an object constructor item.
-func objectConsKey(expr hclsyntax.Expression) (string, bool) {
-	key, ok := expr.(*hclsyntax.ObjectConsKeyExpr)
-	if !ok {
-		return "", false
-	}
-	if !key.ForceNonLiteral {
-		if name := hcl.ExprAsKeyword(key.Wrapped); name != "" {
-			return name, true
-		}
-	}
-	switch wrapped := key.Wrapped.(type) {
-	case *hclsyntax.TemplateExpr:
-		if len(wrapped.Parts) == 1 {
-			if lit, ok := wrapped.Parts[0].(*hclsyntax.LiteralValueExpr); ok && lit.Val.Type() == cty.String && lit.Val.IsKnown() && !lit.Val.IsNull() {
-				return lit.Val.AsString(), true
-			}
-		}
-	case *hclsyntax.LiteralValueExpr:
-		if wrapped.Val.Type() == cty.String && wrapped.Val.IsKnown() && !wrapped.Val.IsNull() {
-			return wrapped.Val.AsString(), true
-		}
-	}
-	return "", false
-}
-
-func (e *originEval) traversal(trav hcl.Traversal, s *originScope) originSym {
-	ref, diags := addrs.ParseRef(trav)
-	if diags.HasErrors() || ref == nil {
-		return opaqueValue
-	}
-	var base originSym
-	switch subj := ref.Subject.(type) {
-	case addrs.Resource:
-		base = e.resource(subj, s)
-	case addrs.ResourceInstance:
-		base = e.resourceInstance(subj, s)
-	case addrs.LocalValue:
-		local := s.cfg.Module.Locals[subj.Name]
-		if local == nil {
-			return opaqueValue
-		}
-		base = e.eval(local.Expr, &originScope{mod: s.mod, cfg: s.cfg})
-	case addrs.InputVariable:
-		base = e.variable(subj.Name, s)
-	case addrs.ModuleCall:
-		base = e.moduleCall(subj, s)
-	case addrs.ModuleCallInstance:
-		base = e.moduleCallInstance(subj, s)
-	case addrs.ModuleCallInstanceOutput:
-		base = e.getAttr(e.moduleCallInstance(subj.Call, s), subj.Name)
-	case addrs.CountAttr:
-		if subj.Name != "index" || s.rep == nil {
-			return opaqueValue
-		}
-		if _, ok := s.rep.key.(addrs.IntKey); !ok {
-			return opaqueValue
-		}
-		base = instanceKeySym(s.rep.key)
-	case addrs.ForEachAttr:
-		if s.rep == nil || s.rep.each == nil {
-			return opaqueValue
-		}
-		switch subj.Name {
-		case "key":
-			base = instanceKeySym(s.rep.key)
-		case "value":
-			base = s.rep.each()
-		default:
-			return opaqueValue
-		}
-	default:
-		// path, terraform, self and others have no origin.
-		return opaqueValue
-	}
-	return e.steps(base, ref.Remaining)
-}
-
-func (e *originEval) steps(base originSym, trav hcl.Traversal) originSym {
-	for _, step := range trav {
-		switch step := step.(type) {
-		case hcl.TraverseAttr:
-			base = e.getAttr(base, step.Name)
-		case hcl.TraverseIndex:
-			base = e.index(base, symLit{val: step.Key})
-		default:
-			return opaqueValue
-		}
-	}
-	return base
-}
-
-func (e *originEval) getAttr(base originSym, name string) originSym {
-	switch base := base.(type) {
-	case symObj:
-		return base.attr(name)
-	case symRef:
-		return base.withStep(originStep{name: name})
-	case symVar:
-		return base.withStep(originStep{name: name})
-	case symOpaque:
-		return base
-	default:
-		return opaqueValue
-	}
-}
-
-func (e *originEval) index(base originSym, key originSym) originSym {
-	if base, ok := base.(symOpaque); ok {
-		return base
-	}
-	lit, ok := key.(symLit)
-	if !ok || !lit.val.IsWhollyKnown() || lit.val.IsNull() || lit.val.IsMarked() {
-		return opaqueValue
-	}
-	if ref, ok := base.(symRef); ok {
-		// Only a list or tuple element of an attribute can be referred to:
-		// an origin names a primitive attribute value.
-		i, ok := policyElementIndex(lit.val)
-		if !ok || len(ref.path) == 0 {
-			return opaqueValue
-		}
-		return ref.withStep(originStep{index: i})
-	}
-	if v, ok := base.(symVar); ok {
-		if lit.val.Type() == cty.String {
-			return v.withStep(originStep{name: lit.val.AsString()})
-		}
-		i, ok := policyElementIndex(lit.val)
-		if !ok {
-			return opaqueValue
-		}
-		return v.withStep(originStep{index: i})
-	}
-	k, err := addrs.ParseInstanceKey(lit.val)
-	if err != nil {
-		return opaqueValue
-	}
-	switch base := base.(type) {
-	case symColl:
-		if el, ok := base.elems[k]; ok {
-			return el
-		}
-	case symSeq:
-		if i, ok := k.(addrs.IntKey); ok && int(i) >= 0 && int(i) < len(base.elems) {
-			return base.elems[i]
-		}
-	case symObj:
-		if name, ok := k.(addrs.StringKey); ok {
-			return base.attr(string(name))
-		}
-	}
-	return opaqueValue
-}
-
-// policyElementIndex returns the element index a known, non-null, unmarked
-// index key names: a whole number of at least zero.
-func policyElementIndex(key cty.Value) (int64, bool) {
-	if key.Type() != cty.Number {
-		return 0, false
-	}
-	i, acc := key.AsBigFloat().Int64()
-	return i, acc == big.Exact && i >= 0
-}
-
-func (e *originEval) splat(expr *hclsyntax.SplatExpr, s *originScope) originSym {
-	var elems []originSym
-	switch src := e.eval(expr.Source, s).(type) {
-	case symSeq:
-		elems = src.elems
-	case symColl:
-		if src.keyType != addrs.IntKeyType {
-			return opaqueValue
-		}
-		keys := make([]int, 0, len(src.elems))
-		for k := range src.elems {
-			keys = append(keys, int(k.(addrs.IntKey)))
-		}
-		sort.Ints(keys)
-		for _, k := range keys {
-			elems = append(elems, src.elems[addrs.IntKey(k)])
-		}
-	case symRef:
-		if len(src.path) == 0 {
-			// A splat over a single object wraps it in a tuple.
-			elems = []originSym{src}
-			break
-		}
-		seq, ok := e.plannedElems(src)
-		if !ok {
-			return opaqueValue
-		}
-		elems = seq.elems
-	case symOpaque:
-		return src
-	default:
-		return opaqueValue
-	}
-
-	seq := symSeq{}
-	for _, el := range elems {
-		anon := make(map[*hclsyntax.AnonSymbolExpr]originSym, len(s.anon)+1)
-		for k, v := range s.anon {
-			anon[k] = v
-		}
-		anon[expr.Item] = el
-		seq.elems = append(seq.elems, e.eval(expr.Each, &originScope{mod: s.mod, cfg: s.cfg, rep: s.rep, anon: anon}))
-	}
-	return seq
-}
-
-// plannedElems returns the elements of the planned value a reference to an
-// attribute refers to, as references with an index step, if that's a known,
-// non-null list or tuple. ok is false otherwise, including for sets, whose
-// elements have no index.
-func (e *originEval) plannedElems(ref symRef) (symSeq, bool) {
-	if e.lookup == nil || len(ref.path) == 0 {
-		return symSeq{}, false
-	}
-	val, ok := e.lookup.plannedValue(ref.addr, ref.path)
-	if !ok || val.IsNull() || !(val.Type().IsListType() || val.Type().IsTupleType()) {
-		return symSeq{}, false
-	}
-	var seq symSeq
-	for i := range val.LengthInt() {
-		seq.elems = append(seq.elems, ref.withStep(originStep{index: int64(i)}))
-	}
-	return seq, true
-}
-
-func (e *originEval) resource(res addrs.Resource, s *originScope) originSym {
-	if opaque, ok := policyUnmanaged(res.Mode); ok {
-		return opaque
-	}
-	if s.cfg.Module.ResourceByAddr(res) == nil {
-		return opaqueValue
-	}
-	abs := res.Absolute(s.mod)
-	if !e.exp.ResourceInstanceExpanded(abs) {
-		return opaqueValue
-	}
-	keyType, keys, unknown := e.exp.ResourceInstanceKeys(abs)
-	if unknown {
-		return opaqueValue
-	}
-	if keyType == addrs.NoKeyType {
-		return symRef{addr: res.Instance(addrs.NoKey).Absolute(s.mod)}
-	}
-	coll := symColl{keyType: keyType, elems: make(map[addrs.InstanceKey]originSym, len(keys))}
-	for _, k := range keys {
-		coll.elems[k] = symRef{addr: res.Instance(k).Absolute(s.mod)}
-	}
-	return coll
-}
-
-func (e *originEval) resourceInstance(inst addrs.ResourceInstance, s *originScope) originSym {
-	if opaque, ok := policyUnmanaged(inst.Resource.Mode); ok {
-		return opaque
-	}
-	if s.cfg.Module.ResourceByAddr(inst.Resource) == nil {
-		return opaqueValue
-	}
-	abs := inst.Resource.Absolute(s.mod)
-	if !e.exp.ResourceInstanceExpanded(abs) {
-		return opaqueValue
-	}
-	keyType, keys, _ := e.exp.ResourceInstanceKeys(abs)
-	if !instanceKeyKnown(inst.Key, keyType, keys) {
-		return opaqueValue
-	}
-	return symRef{addr: inst.Absolute(s.mod)}
-}
-
-// policyUnmanaged returns the symbolic value of a reference to a resource
-// that isn't managed, which has no origin: data sources and ephemeral
-// resources are compared by value.
-func policyUnmanaged(mode addrs.ResourceMode) (symOpaque, bool) {
-	return opaqueValue, mode != addrs.ManagedResourceMode
-}
-
-func policyInstanceKeyType(key addrs.InstanceKey) addrs.InstanceKeyType {
-	switch key.(type) {
-	case addrs.IntKey:
-		return addrs.IntKeyType
-	case addrs.StringKey:
-		return addrs.StringKeyType
-	default:
-		return addrs.NoKeyType
-	}
-}
-
-func instanceKeyKnown(key addrs.InstanceKey, keyType addrs.InstanceKeyType, keys []addrs.InstanceKey) bool {
-	if key == nil {
-		key = addrs.NoKey
-	}
-	if policyInstanceKeyType(key) != keyType {
-		return false
-	}
-	for _, k := range keys {
-		if k == key {
-			return true
-		}
-	}
-	return false
-}
-
-// variable follows a module input variable to the argument of the module
-// call, in the parent module instance.
-func (e *originEval) variable(name string, s *originScope) originSym {
-	if s.mod.IsRoot() || s.cfg.Parent == nil {
-		if e.rootVariables && s.mod.IsRoot() {
-			return symVar{name: name}
-		}
-		return opaqueValue
-	}
-	parentMod, callInst := s.mod.CallInstance()
-	parentCfg := s.cfg.Parent
-	call := parentCfg.Module.ModuleCalls[callInst.Call.Name]
-	if call == nil {
-		return opaqueValue
-	}
-	body, ok := call.Config.(*hclsyntax.Body)
-	if !ok {
-		return opaqueValue
-	}
-	attr, ok := body.Attributes[name]
-	if !ok {
-		// The variable has its default value.
-		return opaqueValue
-	}
-	var rep *originRepetition
-	switch callInst.Key.(type) {
-	case addrs.IntKey:
-		rep = &originRepetition{key: callInst.Key}
-	case addrs.StringKey:
-		rep = &originRepetition{key: callInst.Key, each: func() originSym {
-			if call.ForEach == nil {
-				return opaqueValue
-			}
-			return e.index(e.eval(call.ForEach, &originScope{mod: parentMod, cfg: parentCfg}), instanceKeySym(callInst.Key))
-		}}
-	}
-	return e.eval(attr.Expr, &originScope{mod: parentMod, cfg: parentCfg, rep: rep})
-}
-
-func (e *originEval) moduleCall(call addrs.ModuleCall, s *originScope) originSym {
-	childCfg := s.cfg.Children[call.Name]
-	abs := call.Absolute(s.mod)
-	if childCfg == nil || !e.exp.AbsModuleCallExpanded(abs) {
-		return opaqueValue
-	}
-	keyType, keys, unknown := e.exp.GetModuleCallInstanceKeys(abs)
-	if unknown {
-		return opaqueValue
-	}
-	if keyType == addrs.NoKeyType {
-		return e.moduleInstance(s.mod.Child(call.Name, addrs.NoKey), childCfg)
-	}
-	coll := symColl{keyType: keyType, elems: make(map[addrs.InstanceKey]originSym, len(keys))}
-	for _, k := range keys {
-		coll.elems[k] = e.moduleInstance(s.mod.Child(call.Name, k), childCfg)
-	}
-	return coll
-}
-
-func (e *originEval) moduleCallInstance(inst addrs.ModuleCallInstance, s *originScope) originSym {
-	childCfg := s.cfg.Children[inst.Call.Name]
-	abs := inst.Call.Absolute(s.mod)
-	if childCfg == nil || !e.exp.AbsModuleCallExpanded(abs) {
-		return opaqueValue
-	}
-	keyType, keys, _ := e.exp.GetModuleCallInstanceKeys(abs)
-	if !instanceKeyKnown(inst.Key, keyType, keys) {
-		return opaqueValue
-	}
-	return e.moduleInstance(s.mod.Child(inst.Call.Name, inst.Key), childCfg)
-}
-
-// moduleInstance returns a module instance's outputs, which are evaluated
-// in the module instance. moduleCall and moduleCallInstance return module
-// instances through it, so this is where overridden modules are excluded.
-func (e *originEval) moduleInstance(mod addrs.ModuleInstance, cfg *configs.Config) originSym {
-	if e.moduleOverridden(mod) {
-		return opaqueValue
-	}
-	return symObj{attr: func(name string) originSym {
-		out := cfg.Module.Outputs[name]
-		if out == nil {
-			return opaqueValue
-		}
-		return e.eval(out.Expr, &originScope{mod: mod, cfg: cfg})
-	}}
-}
-
-// leaves walks a symbolic value along a key path like policyPlannedLeaves
-// walks the planned value of type ty, and returns the leaves with their
-// types. ok is false if the leaves can't be known, because a collection
-// position is neither syntactic nor a reference to a known, non-null list or
-// tuple.
-func (e *originEval) leaves(s originSym, ty cty.Type, steps []string) ([]originLeaf, bool) {
-	switch {
-	case ty.IsListType() || ty.IsSetType() || ty.IsTupleType():
-		if ref, ok := s.(symRef); ok {
-			// A reference to a whole list stands for its elements, as a
-			// splat over it does.
-			if elems, ok := e.plannedElems(ref); ok {
-				s = elems
-			}
-		}
-		seq, ok := s.(symSeq)
-		if !ok {
-			return nil, false
-		}
-		elemTy := func(int) cty.Type { return ty.ElementType() }
-		if ty.IsTupleType() {
-			elemTys := ty.TupleElementTypes()
-			if len(seq.elems) != len(elemTys) {
-				return nil, false
-			}
-			elemTy = func(i int) cty.Type { return elemTys[i] }
-		}
-		var ret []originLeaf
-		for i, el := range seq.elems {
-			l, ok := e.leaves(el, elemTy(i), steps)
-			if !ok {
-				return nil, false
-			}
-			ret = append(ret, l...)
-		}
-		return ret, true
-	case len(steps) > 0:
-		if !ty.IsObjectType() || !ty.HasAttribute(steps[0]) {
-			return nil, false
-		}
-		switch s := s.(type) {
-		case symObj, symRef, symVar:
-			return e.leaves(e.getAttr(s, steps[0]), ty.AttributeType(steps[0]), steps[1:])
-		case symSeq:
-			// A single nested block.
-			if s.blocks && len(s.elems) == 1 {
-				return e.leaves(s.elems[0], ty, steps)
-			}
-		}
-		return nil, false
-	case ty.IsPrimitiveType():
-		return []originLeaf{{sym: s, ty: ty}}, true
-	default:
-		return nil, false
-	}
-}
-
-// policySymUnset returns true if a symbolic value is an attribute that isn't
-// set: a body without the argument or blocks, or an object constructor
-// without the attribute.
-func policySymUnset(s originSym) bool {
-	switch s := s.(type) {
-	case symSeq:
-		return s.blocks && len(s.elems) == 0
-	case symOpaque:
-		return s.unset
-	default:
-		return false
-	}
-}
-
-// originAllowed checks the conditions of contract §5 for a single origin:
-// the referenced value is a primitive attribute value of the referenced
-// managed resource type, possibly an element of a list or tuple, of the same
-// type as the record's leaf, and isn't known to be null or missing.
-func (e *originEval) originAllowed(ref symRef, leafTy cty.Type) bool {
-	if e.moduleOverridden(ref.addr.Module) {
-		return false
-	}
-	modCfg := e.cfg.DescendantForInstance(ref.addr.Module)
-	if modCfg == nil {
-		return false
-	}
-	rc := modCfg.Module.ResourceByAddr(ref.addr.Resource.Resource)
-	if rc == nil || rc.Mode != addrs.ManagedResourceMode {
-		return false
-	}
-	provider := modCfg.Module.ProviderForLocalConfig(rc.ProviderConfigAddr())
-	ty, ok := e.lookup.attrType(provider, rc.Type, ref.path)
-	if !ok || !ty.Equals(leafTy) {
-		return false
-	}
-	if val, ok := e.lookup.plannedValue(ref.addr, ref.path); ok && val.IsNull() {
-		return false
-	}
-	return true
 }

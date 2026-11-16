@@ -95,8 +95,8 @@ type graphWalkOpts struct {
 
 	PolicyClient policy.Client
 
-	// PolicyRun describes the relationship run of the walk, or is nil when the
-	// walk has none.
+	// PolicyRun describes the policy run of the walk, or is nil when the
+	// walk relates no instances and needs nothing else of the run.
 	PolicyRun *policyRunOpts
 }
 

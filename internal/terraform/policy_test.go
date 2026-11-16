@@ -96,12 +96,20 @@ resource "test_resource" "b" {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 	state.Close()
+	before := cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("a"), "name": cty.StringVal("old"), "child": cty.NullVal(cty.Object(map[string]cty.Type{"value": cty.String}))})
 
 	ctx := &MockEvalContext{
-		StateState:       state,
-		ChangesChanges:   plans.NewChanges().SyncWrapper(),
-		DeferralsState:   deferring.NewDeferred(false),
-		PolicyGraphValue: &policySubgraph{generation: 7},
+		StateState:     state,
+		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		DeferralsState: deferring.NewDeferred(false),
+		PolicyGraphValue: &policySubgraph{generation: 7, run: &policyRunOpts{
+			Apply: true,
+			AppliedChanges: []*plans.ResourceInstanceChange{{
+				Addr:         mustResourceInstanceAddr("test_resource.a"),
+				ProviderAddr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				Change:       plans.Change{Action: plans.Update, Before: before},
+			}},
+		}},
 	}
 
 	getResources := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
@@ -158,11 +166,21 @@ resource "test_resource" "b" {
 			for _, resource := range got {
 				name := resource.Value.GetAttr("name").AsString()
 				gotNames = append(gotNames, name)
-				// The matches are named by their source, so that the policy
-				// client can send them by reference.
-				wantSource := callback.ValueSource{Generation: 7, Kind: callback.KindState, Address: "test_resource." + name[:1], Schema: providerSchema.ResourceTypes["test_resource"].Body}
-				if resource.Source != wantSource {
-					t.Errorf("wrong source of %s\ngot:  %#v\nwant: %#v", name, resource.Source, wantSource)
+				// Each match is the object of the candidates table, so the
+				// policy client can send it by identifier.
+				obj := resource.Object
+				if obj == nil {
+					t.Fatalf("no object for %s", name)
+				}
+				wantOp, wantPrior := proto.Operation_NO_OP, cty.NilVal
+				if name == "alpha" {
+					wantOp, wantPrior = proto.Operation_UPDATE, before
+				}
+				if obj.Generation != 7 || obj.Address != "test_resource."+name[:1] || obj.Type != "test_resource" || obj.Metadata.Operation != wantOp || obj.Metadata.Address != obj.Address || obj.Schema != providerSchema.ResourceTypes["test_resource"].Body {
+					t.Errorf("wrong object of %s: %#v", name, obj)
+				}
+				if !obj.Attrs.RawEquals(resource.Value) || (obj.PriorAttrs == cty.NilVal) != (wantPrior == cty.NilVal) || (wantPrior != cty.NilVal && !obj.PriorAttrs.RawEquals(wantPrior)) {
+					t.Errorf("wrong values of %s: %#v, %#v", name, obj.Attrs, obj.PriorAttrs)
 				}
 			}
 			sort.Strings(gotNames)

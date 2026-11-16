@@ -37,25 +37,15 @@ func (n *nodePolicyEval) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagnos
 	ctx.State().Close()
 
 	_, span := tracer().Start(ctx.StopCtx(), "terraform.policy.evaluate")
-	run := policyGraph.run
-	if client := ctx.PolicyClient(); client != nil && (run == nil || run.Shared == nil) {
+	if client := ctx.PolicyClient(); client != nil {
 		policyGraph.generation = client.NextGeneration()
 	}
-	if run == nil {
-		return policyGraph.evalGraph(span), nil
+	if policyGraph.run.relating() {
+		relations := collectPolicyRelations(ctx, policyGraph)
+		policyGraph.lock.Lock()
+		policyGraph.relations = relations
+		policyGraph.lock.Unlock()
 	}
-	inst, lookup := collectPolicyInstances(ctx, policyGraph)
-	if run.Shared != nil {
-		// The caller relates the instances of every walk and evaluates the
-		// subjects once every walk has contributed. See SharedPolicyRun.
-		policyGraph.contributeToSharedRun(ctx, inst, lookup)
-		span.End()
-		return nil, nil
-	}
-	relations := NewPolicyRelations(run.Relationships, !run.Apply, false, inst)
-	policyGraph.lock.Lock()
-	policyGraph.relations = relations
-	policyGraph.lock.Unlock()
 	return policyGraph.evalGraph(span), nil
 }
 
