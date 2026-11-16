@@ -41,44 +41,18 @@ type Resource struct {
 	// HCL Body of the resource, which is the attributes and blocks
 	// that are part of the resource.
 	Body []byte
+}
 
-	// Snapshot of the Core-formatted body, used to detect changes to public Body.
-	formattedBody string
-	bodyFormatted bool
+func resourceHeader(addr addrs.AbsResourceInstance) string {
+	return fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name)
 }
 
 func (r Resource) String() string {
-	if r.bodyFormatted && string(r.Body) == r.formattedBody && canIndentFormattedBody(r.Body) {
-		var buf strings.Builder
-		buf.Grow(len(r.Body) + 2*bytes.Count(r.Body, []byte{'\n'}) + 64)
-		fmt.Fprintf(&buf, "resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name)
-		for body := r.Body; len(body) > 0; {
-			end := bytes.IndexByte(body, '\n') + 1
-			if end > 1 {
-				buf.WriteString("  ")
-			}
-			buf.Write(body[:end])
-			body = body[end:]
-		}
-		buf.WriteByte('}')
-		return buf.String()
-	}
 	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf("resource %q %q {\n", r.Addr.Resource.Resource.Type, r.Addr.Resource.Resource.Name))
+	buf.WriteString(resourceHeader(r.Addr))
 	buf.Write(r.Body)
 	buf.WriteString("}")
-
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return string(formatted)
-}
-
-// Multiline tokens and CRLF require the formatter rather than line indentation.
-// Marker checks are conservative and also match quoted strings and comments.
-func canIndentFormattedBody(body []byte) bool {
-	return (len(body) == 0 || body[len(body)-1] == '\n') &&
-		!bytes.Contains(body, []byte("<<")) &&
-		!bytes.Contains(body, []byte("/*")) &&
-		!bytes.ContainsRune(body, '\r')
+	return buf.String()
 }
 
 func (i ImportGroup) String() string {
@@ -153,9 +127,9 @@ func GenerateResourceContents(addr addrs.AbsResourceInstance,
 		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, configVal, schema.BlockTypes, 2))
 	}
 
-	// The output better be valid HCL which can be parsed and formatted.
-	formatted := hclwrite.Format([]byte(buf.String()))
-	return Resource{Addr: addr, Body: formatted, formattedBody: string(formatted), bodyFormatted: true}, diags
+	header := resourceHeader(addr)
+	formatted := hclwrite.Format([]byte(header + buf.String() + "}"))
+	return Resource{Addr: addr, Body: formatted[len(header) : len(formatted)-1]}, diags
 }
 
 // ResourceListElement is a single Resource state and identity pair derived from
@@ -208,7 +182,10 @@ func GenerateListResourceContents(addr addrs.AbsResourceInstance,
 		}
 
 		resImport := ResourceImport{
-			Resource: content,
+			Resource: Resource{
+				Addr: resAddr,
+				Body: content.Body,
+			},
 		}
 
 		importContent, gDiags := GenerateImportBlock(resAddr, idSchema, pc, res.Identity)

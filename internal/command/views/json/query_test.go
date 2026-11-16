@@ -20,8 +20,6 @@ import (
 func TestNewQueryResult(t *testing.T) {
 	addr := addrs.Resource{Mode: addrs.ListResourceMode, Type: "test_resource", Name: "example"}.
 		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
-	resourceAddr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example_0"}.
-		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 	row := cty.ObjectVal(map[string]cty.Value{
 		"display_name": cty.StringVal("Example café"),
 		"identity":     cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("one")}),
@@ -47,14 +45,6 @@ func TestNewQueryResult(t *testing.T) {
 		importCfg string
 	}{
 		"without generated config": {},
-		"untracked resource": {
-			generated: &genconfig.ResourceImport{
-				Resource:   genconfig.Resource{Addr: resourceAddr, Body: []byte("value = \"café\"\n")},
-				ImportBody: []byte("# preserved verbatim\r\nimport {\r\n  to = test_resource.example_0\r\n  id = \"one\"\r\n}\r\n"),
-			},
-			config:    "resource \"test_resource\" \"example_0\" {\n  value = \"café\"\n}",
-			importCfg: "# preserved verbatim\r\nimport {\r\n  to = test_resource.example_0\r\n  id = \"one\"\r\n}\r\n",
-		},
 		"list-generated resource": {
 			generated: &group.Imports[0],
 			config:    "resource \"test_resource\" \"example_0\" {\n  provider = test\n  value    = \"café\\r\\nline\"\n}",
