@@ -109,13 +109,7 @@ func Test_mergeLockedDependencies(t *testing.T) {
 			td := t.TempDir()
 			t.Chdir(td)
 
-			ui := testUiWrapped(t)
-			view, _ := testView(t)
-
-			m := Meta{
-				Ui:   ui,
-				View: view,
-			}
+			m := Meta{}
 
 			// Code under test
 			mergedLocks := m.mergeLockedDependencies(tc.baseLocks, tc.additionalLocks)
