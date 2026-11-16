@@ -47,7 +47,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	c.backupPath = parsedArgs.BackupPath
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
-	c.statePath = parsedArgs.StatePath
+	c.overrideStatePath = parsedArgs.StatePath
 	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
 	loader, err := c.initConfigLoader()
@@ -77,8 +77,8 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	// If backup or backup-out options are set
 	// and the state option is not set, make sure
 	// the backend is local
-	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.statePath == ""
-	backupOutOptionSetWithoutStateOption := parsedArgs.BackupOutPath != "-" && c.statePath == ""
+	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.overrideStatePath == ""
+	backupOutOptionSetWithoutStateOption := parsedArgs.BackupOutPath != "-" && c.overrideStatePath == ""
 
 	var setLegacyLocalBackendOptions []string
 	if backupOptionSetWithoutStateOption {
@@ -157,7 +157,7 @@ func (c *StateMvCommand) Run(rawArgs []string) int {
 	stateTo := stateFrom
 
 	if parsedArgs.StateOutPath != "" {
-		c.statePath = parsedArgs.StateOutPath
+		c.overrideStatePath = parsedArgs.StateOutPath
 		c.backupPath = parsedArgs.BackupOutPath
 
 		stateToMgr, err = c.State(parsedArgs.ViewType)

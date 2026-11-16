@@ -46,8 +46,8 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	c.Meta.backupPath = parsedArgs.BackupPath
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
-	c.Meta.statePath = parsedArgs.StatePath
-	c.Meta.stateOutPath = parsedArgs.StateOutPath
+	c.Meta.overrideStatePath = parsedArgs.StatePath
+	c.Meta.overrideStateOutPath = parsedArgs.StateOutPath
 	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(parsedArgs.Address)

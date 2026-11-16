@@ -40,7 +40,7 @@ func (c *StateShowCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Meta.statePath = parsedArgs.StatePath
+	c.Meta.overrideStatePath = parsedArgs.StatePath
 	c.viewType = parsedArgs.ViewType
 	view := views.NewStateShow(parsedArgs.ViewType, c.View)
 

@@ -615,15 +615,15 @@ func (m *Meta) backendCLIOpts() (*backendrun.CLIOpts, error) {
 		return nil, err
 	}
 	return &backendrun.CLIOpts{
-		CLI:                 m.Ui,
-		CLIColor:            m.Colorize(),
-		Streams:             m.Streams,
-		OverrideStatePath:           m.statePath,
-		OverrideStateOutPath:        m.stateOutPath,
-		StateBackupPath:     m.backupPath,
-		ContextOpts:         contextOpts,
-		Input:               m.Input(),
-		RunningInAutomation: m.RunningInAutomation,
+		CLI:                  m.Ui,
+		CLIColor:             m.Colorize(),
+		Streams:              m.Streams,
+		OverrideStatePath:    m.overrideStatePath,
+		OverrideStateOutPath: m.overrideStateOutPath,
+		StateBackupPath:      m.backupPath,
+		ContextOpts:          contextOpts,
+		Input:                m.Input(),
+		RunningInAutomation:  m.RunningInAutomation,
 	}, err
 }
 

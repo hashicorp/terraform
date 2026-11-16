@@ -44,7 +44,7 @@ func (c *StateRmCommand) Run(rawArgs []string) int {
 	c.backupPath = parsedArgs.BackupPath
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
-	c.statePath = parsedArgs.StatePath
+	c.overrideStatePath = parsedArgs.StatePath
 	c.Meta.ignoreRemoteVersion = parsedArgs.IgnoreRemoteVersion
 
 	loader, err := c.initConfigLoader()

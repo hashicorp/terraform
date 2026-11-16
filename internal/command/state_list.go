@@ -43,7 +43,7 @@ func (c *StateListCommand) Run(rawArgs []string) int {
 	}
 
 	if parsedArgs.StatePath != "" {
-		c.Meta.statePath = parsedArgs.StatePath
+		c.Meta.overrideStatePath = parsedArgs.StatePath
 	}
 
 	// Load the backend

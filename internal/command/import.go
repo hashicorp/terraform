@@ -32,8 +32,8 @@ func (c *ImportCommand) Run(args []string) int {
 	parsedArgs, diags := arguments.ParseImport(c.Meta.process(args))
 
 	// Copy parsed flags back to Meta
-	c.Meta.statePath = parsedArgs.State.StatePath
-	c.Meta.stateOutPath = parsedArgs.State.StateOutPath
+	c.Meta.overrideStatePath = parsedArgs.State.StatePath
+	c.Meta.overrideStateOutPath = parsedArgs.State.StateOutPath
 	c.Meta.backupPath = parsedArgs.State.BackupPath
 	c.Meta.stateLock = parsedArgs.State.Lock
 	c.Meta.stateLockTimeout = parsedArgs.State.LockTimeout
