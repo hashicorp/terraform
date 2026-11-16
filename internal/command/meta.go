@@ -312,20 +312,6 @@ func (to *testingOverrides) Input() bool {
 	return to.UIInput != nil
 }
 
-// initStatePaths is used to initialize the default values for
-// statePath, stateOutPath, and backupPath
-func (m *Meta) initStatePaths() {
-	if m.statePath == "" {
-		m.statePath = DefaultStateFilename
-	}
-	if m.stateOutPath == "" {
-		m.stateOutPath = m.statePath
-	}
-	if m.backupPath == "" {
-		m.backupPath = m.stateOutPath + DefaultBackupExtension
-	}
-}
-
 // StateOutPath returns the true output path for the state file
 func (m *Meta) StateOutPath() string {
 	return m.stateOutPath
