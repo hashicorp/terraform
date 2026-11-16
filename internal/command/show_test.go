@@ -396,7 +396,11 @@ resource "terraform_data" "example" {
 			}
 
 			view, done := testView(t)
-			init := &InitCommand{Meta: Meta{Ui: testUiWrapped(t), View: view}}
+			init := &InitCommand{
+				Meta: Meta{
+					View: view,
+				},
+			}
 			if code := init.Run([]string{"-input=false", "-var=provider_source=" + plannedSource}); code != 0 {
 				t.Fatalf("init failed (%d):\n%s", code, done(t).All())
 			}
@@ -511,7 +515,11 @@ resource "terraform_data" "example" {
 			}
 
 			view, done := testView(t)
-			init := &InitCommand{Meta: Meta{Ui: testUiWrapped(t), View: view}}
+			init := &InitCommand{
+				Meta: Meta{
+					View: view,
+				},
+			}
 			if code := init.Run([]string{"-input=false", "-var=module_source=" + plannedSource}); code != 0 {
 				t.Fatalf("init failed (%d):\n%s", code, done(t).All())
 			}
@@ -824,12 +832,10 @@ func TestShow_json_output(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := testUiWrapped(t)
-			view, _ := testView(t)
+			view, done := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
@@ -839,7 +845,7 @@ func TestShow_json_output(t *testing.T) {
 					// this should error, but not panic.
 					return
 				}
-				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+				t.Fatalf("init failed\n%s", done(t).Stderr())
 			}
 
 			// read expected output
@@ -933,18 +939,16 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
 	}
 	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+		t.Fatalf("init failed\n%s", done(t).Stderr())
 	}
 
 	// plan
@@ -1024,19 +1028,17 @@ func TestShow_json_output_actions(t *testing.T) {
 	p := showFixtureProvider()
 
 	// init
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
 			testingOverrides:          metaOverridesForProvider(p),
-			Ui:                        ui,
 			View:                      view,
 			ProviderSource:            providerSource,
 			AllowExperimentalFeatures: true,
 		},
 	}
 	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+		t.Fatalf("init failed\n%s", done(t).Stderr())
 	}
 
 	// plan
@@ -1120,18 +1122,16 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 	p := showFixtureSensitiveProvider()
 
 	// init
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	ic := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 			ProviderSource:   providerSource,
 		},
 	}
 	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+		t.Fatalf("init failed\n%s", done(t).Stderr())
 	}
 
 	// plan
@@ -1230,18 +1230,16 @@ func TestShow_json_output_state(t *testing.T) {
 			p := showFixtureProvider()
 
 			// init
-			ui := testUiWrapped(t)
-			view, _ := testView(t)
+			view, done := testView(t)
 			ic := &InitCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(p),
-					Ui:               ui,
 					View:             view,
 					ProviderSource:   providerSource,
 				},
 			}
 			if code := ic.Run([]string{}); code != 0 {
-				t.Fatalf("init failed\n%s", ui.ErrorWriter)
+				t.Fatalf("init failed\n%s", done(t).Stderr())
 			}
 
 			// show

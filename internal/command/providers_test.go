@@ -82,8 +82,7 @@ func TestProviders_modules(t *testing.T) {
 	t.Chdir(td)
 
 	// first run init with mock provider sources to install the module
-	initUi := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"foo": {"1.0.0"},
 		"bar": {"2.0.0"},
@@ -91,7 +90,6 @@ func TestProviders_modules(t *testing.T) {
 	})
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
-		Ui:               initUi,
 		View:             view,
 		ProviderSource:   providerSource,
 		WorkingDir:       workdir.NewDir(td),
@@ -100,11 +98,11 @@ func TestProviders_modules(t *testing.T) {
 		Meta: m,
 	}
 	if code := ic.Run([]string{}); code != 0 {
-		t.Fatalf("init failed\n%s", initUi.ErrorWriter)
+		t.Fatalf("init failed\n%s", done(t).Stderr())
 	}
 
 	// Providers command
-	view, done := testView(t)
+	view, done = testView(t)
 	c := &ProvidersCommand{
 		Meta: Meta{
 			View:       view,
