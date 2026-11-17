@@ -108,6 +108,17 @@ func NewUIInputForTests(t *testing.T, opts UIInputOptions, testInputResponseMap 
 	return i
 }
 
+// NewUIInputForTests creates a new UI input instance for testing purposes, using the provided test input responses.
+// Also, prompts shown to the user will be printed to the provided writer.
+func NewUIInputForTestsWithWriter(t *testing.T, opts UIInputOptions, testInputResponseMap map[string]string, w io.Writer) InputRequesterForTest {
+	i := NewUIInputForTests(t, opts, testInputResponseMap).(*uIInput)
+
+	// Output usually written to stdout will go to this test-provided writer.
+	i.Writer = w
+
+	return i
+}
+
 // Implements InputRequesterForTest.
 func (i *uIInput) RemainingTestInputResponses() map[string]string {
 	// Entries are deleted as they are consumed.
