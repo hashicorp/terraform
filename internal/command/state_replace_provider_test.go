@@ -84,7 +84,6 @@ func TestStateReplaceProvider(t *testing.T) {
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
 						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: nil,
 							Writer: streams.Stdout.File,
 						}, nil, map[string]string{
 							"replace-provider": "yes",
@@ -263,9 +262,10 @@ Cancelled replacing providers.
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
 						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: bytes.NewBufferString("no\n"),
 							Writer: streams.Stdout.File,
-						}, nil, nil),
+						}, nil, map[string]string{
+							"replace-provider": "no",
+						}),
 					},
 				},
 			},
@@ -438,7 +438,6 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 
 					// Respond to the interactive approval prompt
 					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: nil,
 						Writer: streams.Stdout.File,
 					}, nil, map[string]string{
 						"replace-provider": "yes",
@@ -662,7 +661,6 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 				testingOverrides: &testingOverrides{
 					// Respond to the interactive approval prompt
 					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: nil,
 						Writer: streams.Stdout.File,
 					}, nil, map[string]string{
 						"replace-provider": "yes",
