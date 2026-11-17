@@ -4,7 +4,6 @@
 package command
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	tfui "github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -552,10 +550,9 @@ func TestApply_input(t *testing.T) {
 	// value "result" to echo that back to us below.
 	//
 	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: bytes.NewBufferString("foo\n"),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.foo": "foo",
+	})
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -598,10 +595,9 @@ func TestApply_inputPartial(t *testing.T) {
 	t.Chdir(td)
 
 	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: bytes.NewBufferString("one\ntwo\n"),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.bar": "one",
+	})
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
