@@ -944,7 +944,9 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
