@@ -101,8 +101,12 @@ type Local struct {
 	opLock sync.Mutex
 }
 
-var _ backend.Backend = (*Local)(nil)
-var _ backendrun.OperationsBackend = (*Local)(nil)
+var (
+	_ backend.Backend              = (*Local)(nil)
+	_ backendrun.OperationsBackend = (*Local)(nil)
+	_ backendrun.Local             = (*Local)(nil)
+	_ backendrun.CLI               = (*Local)(nil)
+)
 
 // New returns a new initialized local backend.
 func New() *Local {
@@ -365,7 +369,8 @@ func (b *Local) opWait(
 	cancelCtx context.Context,
 	tfCtx *terraform.Context,
 	opStateMgr statemgr.Persister,
-	view views.Operation) (canceled bool) {
+	view views.Operation,
+) (canceled bool) {
 	// Wait for the operation to finish or for us to be interrupted so
 	// we can handle it properly.
 	select {
