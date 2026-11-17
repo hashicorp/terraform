@@ -24,7 +24,6 @@ import (
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -880,12 +879,6 @@ func TestPlan_stateDefault(t *testing.T) {
 }
 
 func TestPlan_validate(t *testing.T) {
-	// Ask for input
-	uiInput := ui.NewUIInputForTests(
-		ui.UIInputOptions{},
-		nil, nil,
-	)
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-invalid"), td)
 	t.Chdir(td)
@@ -909,7 +902,6 @@ func TestPlan_validate(t *testing.T) {
 	}
 
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &PlanCommand{
