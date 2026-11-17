@@ -1863,7 +1863,9 @@ foo = "bar"
 		},
 
 		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			uiInput := testInteractiveInput(t, []string{"bar"})
+			uiInput, _ := testInputMap(t, map[string]string{
+				"var.foo": "bar",
+			})
 			c.Meta.testingOverrides.UIInput = uiInput
 
 			args := []string{
