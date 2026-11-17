@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/oci: Fix validation incorrectly rejecting auth = "OKEWorkloadIdentity", allowing the OCI backend to use OKE workload identity authentication.'
+time: 2026-11-17T13:53:50Z
+custom:
+    Issue: "37844"
