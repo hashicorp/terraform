@@ -697,26 +697,6 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	}
 }
 
-// testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent
-// in order to interactive prompts.
-// Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
-func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTest {
-	t.Helper()
-
-	// Set up reader/writers
-	testInputResponse := answers
-	inputReader := bytes.NewBufferString("")
-	inputWriter := new(bytes.Buffer)
-
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: inputReader,
-		Writer: inputWriter,
-	}, testInputResponse, nil)
-
-	// Return the UIInput for use in the test
-	return uiInput
-}
-
 // testInputMap configures a *ui.UIInput for tests so that the given answers are returned
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
