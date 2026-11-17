@@ -35,7 +35,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.backupPath = parsedArgs.BackupPath
+	c.overrideBackupPath = parsedArgs.BackupPath
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
 	c.overrideStatePath = parsedArgs.StatePath

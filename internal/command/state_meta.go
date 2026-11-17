@@ -31,7 +31,7 @@ type StateMeta struct {
 // backup path.
 func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 	var realState statemgr.Full
-	backupPath := c.backupPath
+	backupPath := c.overrideBackupPath
 	stateOutPath := c.overrideStatePath
 
 	// use the specified state

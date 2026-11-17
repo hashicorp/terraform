@@ -34,7 +34,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Copy parsed flags back to Meta
 	c.Meta.overrideStatePath = parsedArgs.State.StatePath
 	c.Meta.overrideStateOutPath = parsedArgs.State.StateOutPath
-	c.Meta.backupPath = parsedArgs.State.BackupPath
+	c.Meta.overrideBackupPath = parsedArgs.State.BackupPath
 	c.Meta.stateLock = parsedArgs.State.Lock
 	c.Meta.stateLockTimeout = parsedArgs.State.LockTimeout
 	c.Meta.parallelism = parsedArgs.Parallelism

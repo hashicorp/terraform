@@ -69,9 +69,9 @@ type CLIOpts struct {
 	// If this is empty, no backup will be taken.
 	//
 	// These are currently only used in the local backend.
-	OverrideStatePath    string
-	OverrideStateOutPath string
-	StateBackupPath      string
+	OverrideStatePath       string
+	OverrideStateOutPath    string
+	OverrideStateBackupPath string
 
 	// ContextOpts are the base context options to set when initializing a
 	// Terraform context. Many of these will be overridden or merged by

@@ -26,9 +26,9 @@ func (b *Local) CLIInit(opts *backendrun.CLIOpts) error {
 		b.overrideStateOutPath = opts.OverrideStateOutPath
 	}
 
-	if opts.StateBackupPath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -backup is overriding state backup path to %s", opts.StateBackupPath)
-		b.overrideStateBackupPath = opts.StateBackupPath
+	if opts.OverrideStateBackupPath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -backup is overriding state backup path to %s", opts.OverrideStateBackupPath)
+		b.overrideStateBackupPath = opts.OverrideStateBackupPath
 	}
 
 	return nil

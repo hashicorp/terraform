@@ -43,7 +43,7 @@ func (c *UntaintCommand) Run(rawArgs []string) int {
 	}
 
 	// Copy parsed flags to Meta
-	c.Meta.backupPath = parsedArgs.BackupPath
+	c.Meta.overrideBackupPath = parsedArgs.BackupPath
 	c.Meta.stateLock = parsedArgs.StateLock
 	c.Meta.stateLockTimeout = parsedArgs.StateLockTimeout
 	c.Meta.overrideStatePath = parsedArgs.StatePath

@@ -245,12 +245,12 @@ type Meta struct {
 	// will be used is used causing the old state to
 	// be overridden.
 	//
-	// backupPath, set via -state-backup CLI flag, is used to backup the state
+	// overrideBackupPath, set via -state-backup CLI flag, is used to backup the state
 	// file before writing a modified version.
 	// It defaults to stateOutPath + DefaultBackupExtension
 	overrideStatePath    string
 	overrideStateOutPath string
-	backupPath           string
+	overrideBackupPath   string
 
 	// The fields below are expected to be set by the command via
 	// command line flags. See the Apply command for an example.
@@ -830,7 +830,7 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 	m.stateLockTimeout = args.LockTimeout
 	m.overrideStatePath = args.StatePath
 	m.overrideStateOutPath = args.StateOutPath
-	m.backupPath = args.BackupPath
+	m.overrideBackupPath = args.BackupPath
 }
 
 // checkRequiredVersion loads the config and check if the
