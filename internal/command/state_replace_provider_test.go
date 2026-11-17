@@ -87,9 +87,11 @@ func TestStateReplaceProvider(t *testing.T) {
 							t,
 							tfui.UIInputOptions{
 								Writer: streams.Stdout.File,
-							}, map[string]string{
+							},
+							map[string]string{
 								"replace-provider": "yes",
-							}),
+							},
+						),
 					},
 				},
 			},
@@ -203,8 +205,10 @@ Successfully replaced provider for 2 resources.
 						UIInput: tfui.NewUIInputForTests(
 							t,
 							tfui.UIInputOptions{
+								Reader: nil,
 								Writer: streams.Stdout.File,
-							}, map[string]string{
+							},
+							map[string]string{
 								"replace-provider": "no",
 							}),
 					},
@@ -446,7 +450,8 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 						t,
 						tfui.UIInputOptions{
 							Writer: streams.Stdout.File,
-						}, map[string]string{
+						},
+						map[string]string{
 							"replace-provider": "yes",
 						}),
 				},
@@ -671,7 +676,8 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 						t,
 						tfui.UIInputOptions{
 							Writer: streams.Stdout.File,
-						}, map[string]string{
+						},
+						map[string]string{
 							"replace-provider": "yes",
 						}),
 				},
