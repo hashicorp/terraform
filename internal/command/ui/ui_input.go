@@ -69,31 +69,19 @@ type InputRequesterForTest interface {
 
 type UIInputOptions struct {
 	Colorize *colorstring.Colorize
-	Reader   io.Reader
-	Writer   io.Writer
 }
 
 func NewUIInput(opts UIInputOptions) InputRequester {
 	i := &uIInput{
 		Colorize: opts.Colorize,
-		Reader:   opts.Reader,
-		Writer:   opts.Writer,
 	}
 
 	i.once.Do(i.init)
 
-	// If a Reader or Writer wasn't provided, fall back to the OS standard streams.
-	r := i.Reader
-	w := i.Writer
-	if r == nil {
-		r = os.Stdin
-	}
-	if w == nil {
-		w = os.Stdout
-	}
-
-	i.Reader = r
-	i.Writer = w
+	// Always use stdin/stdout for input and output when
+	// the CLI is used in non-test scenarios.
+	i.Reader = os.Stdin
+	i.Writer = os.Stdout
 
 	return i
 }
@@ -101,6 +89,10 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 // NewUIInputForTests creates a new UI input instance for testing purposes, using the provided test input responses.
 func NewUIInputForTests(t *testing.T, opts UIInputOptions, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
+
+	// Leave i.Reader set as stdin; tests will fail due to receiving only EOF input.
+
+	i.Writer = io.Discard // Use NewUIInputForTestsWithWriter if output shouldn't be discarded
 
 	// Input will be read from this map, instead of from stdin
 	i.testInputResponseMap = testInputResponseMap
