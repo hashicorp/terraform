@@ -62,9 +62,6 @@ type InputRequesterForTest interface {
 
 	// Used for integration testing external to the ui package.
 	RemainingTestInputResponses() map[string]string
-
-	// Used for testing internal to the ui package.
-	getListening() int32
 }
 
 type UIInputOptions struct {
@@ -115,11 +112,6 @@ func NewUIInputForTestsWithWriter(t *testing.T, opts UIInputOptions, testInputRe
 func (i *uIInput) RemainingTestInputResponses() map[string]string {
 	// Entries are deleted as they are consumed.
 	return i.testInputResponseMap
-}
-
-// Implements InputRequesterForTest.
-func (i *uIInput) getListening() int32 {
-	return atomic.LoadInt32(&i.listening)
 }
 
 // Implements terraform.UIInput.
