@@ -1063,10 +1063,9 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	t.Chdir(td)
 
 	// The plan command will prompt for interactive input of provider.test.region
-	reader := bytes.NewBufferString("us-east-1\n")
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: reader,
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"provider.test.region": "us-east-1",
+	})
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument
@@ -1145,10 +1144,9 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 	t.Chdir(td)
 
 	// The plan command will prompt for interactive input of provider.test.region
-	reader := bytes.NewBufferString("us-east-1\n")
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: reader,
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"provider.test.region": "us-east-1",
+	})
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument and a nested block
