@@ -40,6 +40,8 @@ type StateReplaceProvider struct {
 
 	// ToProviderAddr is the replacement provider address.
 	ToProviderAddr string
+
+	ViewType ViewType
 }
 
 // ParseStateReplaceProvider processes CLI arguments, returning a
@@ -49,7 +51,8 @@ type StateReplaceProvider struct {
 func ParseStateReplaceProvider(args []string) (*StateReplaceProvider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	rp := &StateReplaceProvider{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("state replace-provider", nil, nil, rp.Vars)
