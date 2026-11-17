@@ -81,7 +81,7 @@ func TestMetaColorize(t *testing.T) {
 func TestMetaInputMode(t *testing.T) {
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil,
+		nil,
 	)
 
 	m := new(Meta)
@@ -104,7 +104,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 		// Ask for input
 		uiInput := ui.NewUIInputForTests(
 			ui.UIInputOptions{},
-			nil, nil,
+			nil,
 		)
 
 		m := new(Meta)
@@ -140,7 +140,7 @@ func TestMetaInputMode_envVar(t *testing.T) {
 		// Ask for input
 		uiInput := ui.NewUIInputForTests(
 			ui.UIInputOptions{},
-			nil, nil,
+			nil,
 		)
 
 		m := new(Meta)
@@ -174,7 +174,7 @@ func TestMetaInputMode_disable(t *testing.T) {
 	// Ask for input
 	uiInput := ui.NewUIInputForTests(
 		ui.UIInputOptions{},
-		nil, nil,
+		nil,
 	)
 
 	m := new(Meta)
@@ -432,7 +432,6 @@ func TestMeta_process(t *testing.T) {
 			uiInput := ui.NewUIInputForTests(
 				ui.UIInputOptions{},
 				nil,
-				nil,
 			)
 
 			m := new(Meta)
@@ -496,7 +495,7 @@ func TestTestingOverrides_Input(t *testing.T) {
 		{
 			name: "UIInput set",
 			testingOverrides: &testingOverrides{
-				UIInput: ui.NewUIInputForTests(ui.UIInputOptions{}, nil, nil),
+				UIInput: ui.NewUIInputForTests(ui.UIInputOptions{}, nil),
 			},
 			expected: true,
 		},

@@ -54,7 +54,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 				Writer: bytes.NewBuffer(nil),
 			},
 			nil,
-			nil,
 		)
 
 		v, err := i.Input(context.Background(), &terraform.InputOpts{})
@@ -63,38 +62,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 		}
 
 		if v != "foo" {
-			t.Fatalf("unexpected input: %s", v)
-		}
-	})
-
-	t.Run("input via supplied testInputResponse slice", func(t *testing.T) {
-		t.Parallel()
-
-		testInputResponse := []string{"foo1", "foo2"}
-		i := NewUIInputForTests(
-			UIInputOptions{
-				Reader: bytes.NewBuffer(nil),
-				Writer: bytes.NewBuffer(nil),
-			},
-			testInputResponse,
-			nil,
-		)
-
-		v, err := i.Input(context.Background(), &terraform.InputOpts{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		if v != "foo1" {
-			t.Fatalf("unexpected input: %s", v)
-		}
-
-		v, err = i.Input(context.Background(), &terraform.InputOpts{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		if v != "foo2" {
 			t.Fatalf("unexpected input: %s", v)
 		}
 	})
@@ -108,7 +75,6 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 				Reader: bytes.NewBuffer(nil),
 				Writer: bytes.NewBuffer(nil),
 			},
-			nil,
 			testInputResponseMap,
 		)
 
@@ -133,7 +99,6 @@ func TestUIInputInput_canceled(t *testing.T) {
 			Reader: r,
 			Writer: bytes.NewBuffer(nil),
 		},
-		nil,
 		nil,
 	)
 

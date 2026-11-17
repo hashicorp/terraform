@@ -36,7 +36,6 @@ type uIInput struct {
 	Writer io.Writer
 
 	// Test input responses for automated testing.
-	testInputResponse    []string
 	testInputResponseMap map[string]string
 
 	listening int32
@@ -98,9 +97,8 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 	return i
 }
 
-func NewUIInputForTests(opts UIInputOptions, testInputResponse []string, testInputResponseMap map[string]string) InputRequesterForTest {
+func NewUIInputForTests(opts UIInputOptions, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
-	i.testInputResponse = testInputResponse
 	i.testInputResponseMap = testInputResponseMap
 
 	return i
@@ -159,21 +157,8 @@ func (i *uIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		return "", err
 	}
 
-	// If we have test results, return those. testInputResponse is the
-	// "old" way of doing it and we should remove that.
-	if len(i.testInputResponse) != 0 {
-		v := i.testInputResponse[0]
-		i.testInputResponse = i.testInputResponse[1:]
-
-		// Print a newline so that any further output starts properly
-		// on a new line.
-		fmt.Fprintln(i.Writer)
-
-		return v, nil
-	}
-
-	// testInputResponseMap is the new way for test responses, based on
-	// the query ID.
+	// testInputResponseMap is used for tests' mocked responses to prompts.
+	// These are based on the query ID.
 	if len(i.testInputResponseMap) != 0 {
 		v, ok := i.testInputResponseMap[opts.Id]
 		if !ok {
