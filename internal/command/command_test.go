@@ -707,19 +707,17 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterForTest, *bytes.Buffer) {
 	t.Helper()
 
-	// Set up reader/writers
-	inputReader := bytes.NewBufferString("")
+	// Enable calling code to capture the prompts shown to the user
 	inputWriter := new(bytes.Buffer)
 
 	// Setup answers
 	var testInputResponseMap map[string]string = answers
 
-	ret := ui.NewUIInputForTests(
+	ret := ui.NewUIInputForTestsWithWriter(
 		t,
-		ui.UIInputOptions{
-			Reader: inputReader,
-			Writer: inputWriter,
-		}, testInputResponseMap)
+		ui.UIInputOptions{},
+		testInputResponseMap,
+		inputWriter)
 
 	// Queue the cleanup for the end of the test
 	t.Cleanup(func() {
