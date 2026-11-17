@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
@@ -27,6 +28,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/sts"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
+	"github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/jmespath/go-jmespath"
 	"github.com/mitchellh/go-homedir"
@@ -318,6 +320,29 @@ func (b *Backend) configure(ctx context.Context) error {
 	region := getBackendConfig("region", "region_id")
 	securityToken := getBackendConfig("security_token", "sts_token")
 
+	profile := d.Get("profile").(string)
+	mode, _ := providerConfig["mode"].(string)
+	var credentialsProvider providers.CredentialsProvider
+	if (accessKey == "" || secretKey == "") && profile != "" && needsCredentialsProvider(mode) {
+		profilePath, err := getProfilePath(d)
+		if err != nil {
+			return err
+		}
+		p, err := providers.NewCLIProfileCredentialsProviderBuilder().
+			WithProfileName(profile).
+			WithProfileFile(profilePath).
+			Build()
+		if err != nil {
+			return fmt.Errorf("failed to create a credentials provider for profile %q: %w", profile, err)
+		}
+		creds, err := p.GetCredentials()
+		if err != nil {
+			return fmt.Errorf("failed to get credentials for profile %q: %w", profile, err)
+		}
+		accessKey, secretKey, securityToken = creds.AccessKeyId, creds.AccessKeySecret, creds.SecurityToken
+		credentialsProvider = p
+	}
+
 	stsEndpoint := d.Get("sts_endpoint").(string)
 	endpoint := d.Get("endpoint").(string)
 	protocol := "https"
@@ -386,6 +411,8 @@ func (b *Backend) configure(ctx context.Context) error {
 			return err
 		}
 		accessKey, secretKey, securityToken = subAccessKeyId, subAccessKeySecret, subSecurityToken
+		// Requests are signed by the assumed role from here on, not by the profile
+		credentialsProvider = nil
 	}
 
 	if endpoint == "" {
@@ -411,6 +438,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	var options []oss.ClientOption
 	if securityToken != "" {
 		options = append(options, oss.SecurityToken(securityToken))
+	}
+	if credentialsProvider != nil {
+		options = append(options, oss.SetCredentialsProvider(&ossCredentialsProvider{
+			provider: credentialsProvider,
+			last:     ossCredentials{accessKeyID: accessKey, accessKeySecret: secretKey, securityToken: securityToken},
+		}))
 	}
 	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
 
@@ -567,23 +600,12 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 			return nil, nil
 		}
 		current := d.Get("profile").(string)
-		// Set CredsFilename, expanding home directory
-		var profilePath string
-		if v, ok := d.GetOk("shared_credentials_file"); ok {
-			path, err := homedir.Expand(v.(string))
-			if err != nil {
-				return nil, err
-			}
-			profilePath = path
-		}
-		if profilePath == "" {
-			profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("HOME"))
-			if runtime.GOOS == "windows" {
-				profilePath = fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("USERPROFILE"))
-			}
+		profilePath, err := getProfilePath(d)
+		if err != nil {
+			return nil, err
 		}
 		providerConfig = make(map[string]interface{})
-		_, err := os.Stat(profilePath)
+		_, err = os.Stat(profilePath)
 		if !os.IsNotExist(err) {
 			data, err := ioutil.ReadFile(profilePath)
 			if err != nil {
@@ -607,6 +629,10 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 		mode = v.(string)
 	} else {
 		return v, nil
+	}
+	// The cached credentials of these modes go stale; configure resolves them through credentials-go instead
+	if ProfileKey != "region_id" && needsCredentialsProvider(mode) {
+		return nil, nil
 	}
 	switch ProfileKey {
 	case "access_key_id", "access_key_secret":
@@ -633,6 +659,63 @@ func getConfigFromProfile(d *schema.ResourceData, ProfileKey string) (interface{
 
 	return providerConfig[ProfileKey], nil
 }
+
+// getProfilePath returns the shared credentials file, expanding the home directory.
+func getProfilePath(d *schema.ResourceData) (string, error) {
+	if v, ok := d.GetOk("shared_credentials_file"); ok {
+		return homedir.Expand(v.(string))
+	}
+	if runtime.GOOS == "windows" {
+		return fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("USERPROFILE")), nil
+	}
+	return fmt.Sprintf("%s/.aliyun/config.json", os.Getenv("HOME")), nil
+}
+
+// needsCredentialsProvider reports whether credentials of a profile mode must be fetched
+// and refreshed at run time by credentials-go, as the alicloud provider does.
+func needsCredentialsProvider(mode string) bool {
+	switch mode {
+	case "CloudSSO", "OAuth", "External", "ChainableRamRoleArn":
+		return true
+	}
+	return false
+}
+
+// ossCredentialsProvider adapts a credentials-go provider to the OSS SDK, which
+// asks for credentials on every request, so expiring STS tokens get refreshed.
+type ossCredentialsProvider struct {
+	mu       sync.Mutex
+	provider providers.CredentialsProvider
+	last     ossCredentials
+}
+
+func (p *ossCredentialsProvider) GetCredentials() oss.Credentials {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	creds, err := p.provider.GetCredentials()
+	if err != nil {
+		// The OSS SDK cannot return this error; fall back to the last credentials, which may still be valid
+		log.Printf("[ERROR] Failed to refresh credentials for the OSS backend: %s", err)
+		return p.last
+	}
+	p.last = ossCredentials{
+		accessKeyID:     creds.AccessKeyId,
+		accessKeySecret: creds.AccessKeySecret,
+		securityToken:   creds.SecurityToken,
+	}
+	return p.last
+}
+
+type ossCredentials struct {
+	accessKeyID     string
+	accessKeySecret string
+	securityToken   string
+}
+
+func (c ossCredentials) GetAccessKeyID() string     { return c.accessKeyID }
+func (c ossCredentials) GetAccessKeySecret() string { return c.accessKeySecret }
+func (c ossCredentials) GetSecurityToken() string   { return c.securityToken }
 
 var securityCredURL = "http://100.100.100.200/latest/meta-data/ram/security-credentials/"
 

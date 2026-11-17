@@ -4,9 +4,11 @@
 package oss
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,8 +16,10 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
+	"github.com/aliyun/credentials-go/credentials/providers"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 )
 
 // verify that we are doing ACC tests or the OSS tests specifically
@@ -142,6 +146,127 @@ func TestBackendConfigProfile(t *testing.T) {
 	}
 	if b.ossClient.Config.AccessKeySecret == "" {
 		t.Fatalf("No Secret Access Key was provided")
+	}
+}
+
+func TestGetConfigFromProfile_ignoresCachedCredentials(t *testing.T) {
+	for _, mode := range []string{"CloudSSO", "OAuth", "External", "ChainableRamRoleArn"} {
+		t.Run(mode, func(t *testing.T) {
+			path := writeTestProfiles(t, fmt.Sprintf(`{"profiles": [{
+				"name": "test", "mode": %q, "region_id": "cn-hangzhou",
+				"access_key_id": "STS.cached", "access_key_secret": "cached", "sts_token": "cached"
+			}]}`, mode))
+			resetProfileCache(t)
+			d := schema.TestResourceDataRaw(t, New().(*Backend).Schema, map[string]interface{}{
+				"bucket":                  "terraform-backend-oss-test",
+				"profile":                 "test",
+				"shared_credentials_file": path,
+			})
+
+			for _, key := range []string{"access_key_id", "access_key_secret", "sts_token", "ram_role_arn", "expired_seconds"} {
+				if got, err := getConfigFromProfile(d, key); err != nil || got != nil {
+					t.Errorf("%s: want nil, got %#v (err: %v)", key, got, err)
+				}
+			}
+			if got, _ := getConfigFromProfile(d, "region_id"); got != "cn-hangzhou" {
+				t.Errorf("region_id: want %q, got %#v", "cn-hangzhou", got)
+			}
+		})
+	}
+}
+
+func TestBackendConfigProfile_cloudSSOExpiredToken(t *testing.T) {
+	clearCredentialEnv(t)
+	path := writeTestProfiles(t, `{"profiles": [{
+		"name": "sso", "mode": "CloudSSO",
+		"cloud_sso_sign_in_url": "https://signin.example.com/login",
+		"cloud_sso_account_id": "1234567890", "cloud_sso_access_config": "ac-test",
+		"access_token": "expired", "cloud_sso_access_token_expire": 1,
+		"access_key_id": "STS.cached", "access_key_secret": "cached", "sts_token": "cached", "sts_expiration": 1
+	}]}`)
+	resetProfileCache(t)
+
+	b := New()
+	cfg, diags := b.PrepareConfig(hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"bucket":                  "terraform-backend-oss-test",
+		"region":                  "cn-hangzhou",
+		"profile":                 "sso",
+		"shared_credentials_file": path,
+	}))
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	diags = b.Configure(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected an error for an expired CloudSSO access token, the cached STS credentials must not be used")
+	}
+	if got := diags.Err().Error(); !strings.Contains(got, "re-login") {
+		t.Fatalf("want an error asking to re-login, got: %s", got)
+	}
+}
+
+func TestOSSCredentialsProvider(t *testing.T) {
+	p := &ossCredentialsProvider{provider: &fakeCredentialsProvider{responses: []fakeResponse{
+		{creds: &providers.Credentials{AccessKeyId: "ak1", AccessKeySecret: "sk1", SecurityToken: "token1"}},
+		{err: errors.New("refresh failed")},
+		{creds: &providers.Credentials{AccessKeyId: "ak2", AccessKeySecret: "sk2", SecurityToken: "token2"}},
+	}}}
+
+	for i, want := range []ossCredentials{
+		{"ak1", "sk1", "token1"},
+		{"ak1", "sk1", "token1"}, // the failed refresh falls back to the last credentials
+		{"ak2", "sk2", "token2"},
+	} {
+		if got := p.GetCredentials(); got != want {
+			t.Fatalf("call %d: want %+v, got %+v", i, want, got)
+		}
+	}
+}
+
+type fakeCredentialsProvider struct {
+	responses []fakeResponse
+}
+
+type fakeResponse struct {
+	creds *providers.Credentials
+	err   error
+}
+
+func (f *fakeCredentialsProvider) GetCredentials() (*providers.Credentials, error) {
+	r := f.responses[0]
+	f.responses = f.responses[1:]
+	return r.creds, r.err
+}
+
+func (f *fakeCredentialsProvider) GetProviderName() string { return "fake" }
+
+func writeTestProfiles(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// resetProfileCache clears the profile that getConfigFromProfile caches per process.
+func resetProfileCache(t *testing.T) {
+	t.Helper()
+	providerConfig = nil
+	t.Cleanup(func() { providerConfig = nil })
+}
+
+func clearCredentialEnv(t *testing.T) {
+	t.Helper()
+	for _, name := range []string{
+		"ALICLOUD_ACCESS_KEY", "ALIBABA_CLOUD_ACCESS_KEY_ID", "ALICLOUD_ACCESS_KEY_ID",
+		"ALICLOUD_SECRET_KEY", "ALIBABA_CLOUD_ACCESS_KEY_SECRET", "ALICLOUD_ACCESS_KEY_SECRET",
+		"ALICLOUD_SECURITY_TOKEN", "ALIBABA_CLOUD_SECURITY_TOKEN",
+		"ALICLOUD_ASSUME_ROLE_ARN", "ALIBABA_CLOUD_ROLE_ARN",
+		"ALIBABA_CLOUD_CLI_PROFILE_DISABLED",
+	} {
+		t.Setenv(name, "")
 	}
 }
 
