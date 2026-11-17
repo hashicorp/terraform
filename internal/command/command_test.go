@@ -714,10 +714,12 @@ func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterFor
 	// Setup answers
 	var testInputResponseMap map[string]string = answers
 
-	ret := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: inputReader,
-		Writer: inputWriter,
-	}, testInputResponseMap)
+	ret := ui.NewUIInputForTests(
+		t,
+		ui.UIInputOptions{
+			Reader: inputReader,
+			Writer: inputWriter,
+		}, testInputResponseMap)
 
 	// Queue the cleanup for the end of the test
 	t.Cleanup(func() {

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"testing"
 	"unicode"
 
 	"github.com/bgentry/speakeasy"
@@ -97,8 +98,11 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 	return i
 }
 
-func NewUIInputForTests(opts UIInputOptions, testInputResponseMap map[string]string) InputRequesterForTest {
+// NewUIInputForTests creates a new UI input instance for testing purposes, using the provided test input responses.
+func NewUIInputForTests(t *testing.T, opts UIInputOptions, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
+
+	// Input will be read from this map, instead of from stdin
 	i.testInputResponseMap = testInputResponseMap
 
 	return i

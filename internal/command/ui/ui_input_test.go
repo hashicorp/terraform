@@ -49,6 +49,7 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 	t.Run("input via supplied reader", func(t *testing.T) {
 		t.Parallel()
 		i := NewUIInputForTests(
+			t,
 			UIInputOptions{
 				Reader: bytes.NewBufferString("foo\n"),
 				Writer: bytes.NewBuffer(nil),
@@ -71,6 +72,7 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 
 		testInputResponseMap := map[string]string{"prompt-number-1": "foo"}
 		i := NewUIInputForTests(
+			t,
 			UIInputOptions{
 				Reader: bytes.NewBuffer(nil),
 				Writer: bytes.NewBuffer(nil),
@@ -95,6 +97,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 	t.Parallel()
 	r, w := io.Pipe()
 	i := NewUIInputForTests(
+		t,
 		UIInputOptions{
 			Reader: r,
 			Writer: bytes.NewBuffer(nil),
