@@ -675,18 +675,11 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: new(bytes.Buffer),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
-
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &ApplyCommand{
@@ -1027,13 +1020,6 @@ output "foobar" {
 // Test unhappy paths when applying a plan file describing a state store.
 func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
-		// Don't disable input, so input would be asked
-		// Set some default reader/writers for the inputs
-		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-			Reader: new(bytes.Buffer),
-			Writer: new(bytes.Buffer),
-		}, nil, nil)
-
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
 		providerCfg := cty.ObjectVal(map[string]cty.Value{
@@ -1092,7 +1078,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
-					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1114,13 +1099,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	})
 
 	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
-		// Don't disable input, so input would be asked
-		// Set some default reader/writers for the inputs
-		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-			Reader: new(bytes.Buffer),
-			Writer: new(bytes.Buffer),
-		}, nil, nil)
-
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
 		providerCfg := cty.ObjectVal(map[string]cty.Value{
@@ -1179,7 +1157,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
-					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1286,13 +1263,6 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Don't disable input, so input would be asked
-	// Set some default reader/writers for the inputs
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: new(bytes.Buffer),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
-
 	// Create a remote state
 	state := testState()
 	_, srv := testRemoteState(t, state, 200)
@@ -1331,7 +1301,6 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &ApplyCommand{
