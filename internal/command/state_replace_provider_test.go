@@ -84,9 +84,11 @@ func TestStateReplaceProvider(t *testing.T) {
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
 						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: bytes.NewBufferString("yes\n"),
+							Reader: nil,
 							Writer: streams.Stdout.File,
-						}, nil, nil),
+						}, nil, map[string]string{
+							"replace-provider": "yes",
+						}),
 					},
 				},
 			},
@@ -198,9 +200,11 @@ Successfully replaced provider for 2 resources.
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
 						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: bytes.NewBufferString("no\n"),
+							Reader: nil,
 							Writer: streams.Stdout.File,
-						}, nil, nil),
+						}, nil, map[string]string{
+							"replace-provider": "no",
+						}),
 					},
 				},
 			},
@@ -434,9 +438,11 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 
 					// Respond to the interactive approval prompt
 					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: bytes.NewBufferString("yes\n"),
+						Reader: nil,
 						Writer: streams.Stdout.File,
-					}, nil, nil),
+					}, nil, map[string]string{
+						"replace-provider": "yes",
+					}),
 				},
 				View: view,
 			},
@@ -656,9 +662,11 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 				testingOverrides: &testingOverrides{
 					// Respond to the interactive approval prompt
 					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: bytes.NewBufferString("yes\n"),
+						Reader: nil,
 						Writer: streams.Stdout.File,
-					}, nil, nil),
+					}, nil, map[string]string{
+						"replace-provider": "yes",
+					}),
 				},
 			},
 		},
