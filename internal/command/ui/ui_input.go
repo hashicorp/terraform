@@ -164,6 +164,11 @@ func (i *uIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 	if len(i.testInputResponse) != 0 {
 		v := i.testInputResponse[0]
 		i.testInputResponse = i.testInputResponse[1:]
+
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(i.Writer)
+
 		return v, nil
 	}
 
@@ -176,6 +181,11 @@ func (i *uIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 		}
 
 		delete(i.testInputResponseMap, opts.Id)
+
+		// Print a newline so that any further output starts properly
+		// on a new line.
+		fmt.Fprintln(i.Writer)
+
 		return v, nil
 	}
 
