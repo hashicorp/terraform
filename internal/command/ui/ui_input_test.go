@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -99,7 +100,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 	}
 
 	// As the context was canceled we should still be listening.
-	listening := i.getListening()
+	listening := atomic.LoadInt32(&j.listening)
 	if listening != 1 {
 		t.Fatalf("expected listening to be 1, got: %d", listening)
 	}
