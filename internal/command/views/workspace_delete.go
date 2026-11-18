@@ -17,6 +17,8 @@ type WorkspaceDelete interface {
 	LogWorkspaceDeletionSuccess(workspaceName string, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceDelete(viewType arguments.ViewType, view *View) WorkspaceDelete {
@@ -33,6 +35,8 @@ func NewWorkspaceDelete(viewType arguments.ViewType, view *View) WorkspaceDelete
 // The WorkspaceDeleteHuman implementation renders human-readable logs, suitable for direct consumption by a human user.
 type WorkspaceDeleteHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceDelete = (*WorkspaceDeleteHuman)(nil)
