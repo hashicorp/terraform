@@ -266,20 +266,12 @@ func (c *ImportCommand) Run(rawArgs []string) int {
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := state.WriteState(newState); err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to save the state",
-			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
-		))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %w", err))
 		view.Diagnostics(diags)
 		return 1
 	}
 	if err := state.PersistState(schemas); err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to save the state",
-			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
-		))
+		diags = diags.Append(fmt.Errorf("Error writing state file: %w", err))
 		view.Diagnostics(diags)
 		return 1
 	}
