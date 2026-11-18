@@ -570,7 +570,8 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 
 // TestEvaluatorGetResourceInstance checks that GetResourceInstance returns
 // the same value as indexing the value returned by GetResource, and declines
-// to return a value whenever that would depend on the other instances.
+// to return a value whenever that can't be determined from the instance alone
+// or the instance itself has a problem.
 func TestEvaluatorGetResourceInstance(t *testing.T) {
 	providerAddr := addrs.AbsProviderConfig{
 		Provider: addrs.NewDefaultProvider("test"),
@@ -606,6 +607,13 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("a")), ready("fa"), providerAddr)
 		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("b")), ready("fb"), providerAddr)
 		ss.SetResourceInstanceCurrent(instAddr("s", addrs.NoKey), ready("s"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("m", addrs.StringKey("a")), ready("ma"), providerAddr)
+		// state which can't be decoded with the current schema, as if it
+		// hadn't been upgraded yet
+		ss.SetResourceInstanceCurrent(instAddr("m", addrs.StringKey("b")), &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"mb","removed":"x"}`),
+		}, providerAddr)
 	}).SyncWrapper()
 
 	objTy := cty.Object(map[string]cty.Type{
@@ -672,6 +680,8 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		"a": cty.StringVal("a"),
 		"b": cty.StringVal("b"),
 	}))
+	invalidConfig := resourceConfig("m")
+	invalidConfig.ForEach = forEachConfig.ForEach
 
 	evaluator := &Evaluator{
 		Meta:      &ContextMeta{Env: "foo"},
@@ -681,6 +691,7 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.c": countConfig,
 					"test_resource.f": forEachConfig,
+					"test_resource.m": invalidConfig,
 					"test_resource.s": resourceConfig("s"),
 				},
 			},
@@ -694,6 +705,10 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 	}
 	evaluator.Instances.SetResourceCount(addrs.RootModuleInstance, resource("c"), 5)
 	evaluator.Instances.SetResourceForEach(addrs.RootModuleInstance, resource("f"), map[string]cty.Value{
+		"a": cty.StringVal("a"),
+		"b": cty.StringVal("b"),
+	})
+	evaluator.Instances.SetResourceForEach(addrs.RootModuleInstance, resource("m"), map[string]cty.Value{
 		"a": cty.StringVal("a"),
 		"b": cty.StringVal("b"),
 	})
@@ -718,8 +733,8 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		{resource("c").Instance(addrs.IntKey(2)), true},
 		// pending deletion, so excluded from the resource's value
 		{resource("c").Instance(addrs.IntKey(3)), false},
-		// planned, but with no recorded change
-		{resource("c").Instance(addrs.IntKey(4)), false},
+		// planned, but with no recorded change, so the value is unknown
+		{resource("c").Instance(addrs.IntKey(4)), true},
 		// not in the state at all
 		{resource("c").Instance(addrs.IntKey(5)), false},
 		// wrong kind of key for the resource
@@ -759,6 +774,29 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 			}
 		})
 	}
+
+	// Instances aren't ordered relative to one another, so another instance's
+	// state may not have been upgraded yet. GetResource reports that problem,
+	// but it must not affect the value of this instance.
+	t.Run("invalid other instance", func(t *testing.T) {
+		all, diags := data.GetResource(resource("m"), tfdiags.SourceRange{})
+		if !diags.HasErrors() {
+			t.Fatal("GetResource did not report the invalid instance")
+		}
+
+		got, ok := data.GetResourceInstance(resource("m").Instance(addrs.StringKey("a")))
+		if !ok {
+			t.Fatal("valid instance was not returned")
+		}
+		if want := all.GetAttr("a"); !got.RawEquals(want) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+
+		// The invalid instance's own problem is left to GetResource.
+		if _, ok := data.GetResourceInstance(resource("m").Instance(addrs.StringKey("b"))); ok {
+			t.Error("invalid instance was returned")
+		}
+	})
 }
 
 func TestEvaluatorGetModule(t *testing.T) {

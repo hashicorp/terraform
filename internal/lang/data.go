@@ -45,12 +45,16 @@ type Data interface {
 // references, which always refer to a particular resource instance.
 type ResourceInstanceData interface {
 	// GetResourceInstance returns the value of the given resource instance,
-	// which must be equal to the result of indexing the value returned by
-	// GetResource for the containing resource with the instance key, or the
-	// value itself for a resource with no instance key.
+	// which must be equal to the element GetResource would produce for that
+	// instance, or the whole value for a resource with no instance key.
 	//
-	// If the value can't be determined directly, or would produce any
-	// diagnostics, the second return value is false and the caller must use
-	// GetResource instead.
+	// The result must not depend on any other instance of the resource.
+	// Instances aren't ordered relative to one another, so another instance
+	// may not have been processed yet, and any problem GetResource would
+	// report for it doesn't affect this one.
+	//
+	// If the value can't be determined from this instance alone, or this
+	// instance has a problem GetResource would report, the second return
+	// value is false and the caller must use GetResource instead.
 	GetResourceInstance(addrs.ResourceInstance) (cty.Value, bool)
 }

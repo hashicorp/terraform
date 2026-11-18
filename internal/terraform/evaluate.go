@@ -800,7 +800,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 	// Decode all instances in the current state
-	pendingDestroy := d.Operation == walkDestroy
 	if rs != nil {
 		for key, is := range rs.Instances {
 			if _, ok := instances[key]; ok {
@@ -810,48 +809,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 			// Otherwise, we'll load the instance from state.
 
-			if is == nil || is.Current == nil {
-				// Assume we're dealing with an instance that hasn't been created yet.
-				instances[key] = cty.UnknownVal(ty)
-				continue
+			var obj *states.ResourceInstanceObjectSrc
+			if is != nil {
+				obj = is.Current
 			}
-
 			instAddr := addr.Instance(key).Absolute(d.ModulePath)
-			change := instChanges.Get(instAddr)
-			if change != nil {
-				// Don't take any resources that are yet to be deleted into account.
-				// If the referenced resource is CreateBeforeDestroy, then orphaned
-				// instances will be in the state, as they are not destroyed until
-				// after their dependants are updated.
-				if change.Action == plans.Delete {
-					if !pendingDestroy {
-						continue
-					}
-				}
-			}
-
-			// Planned resources are temporarily stored in state with empty values,
-			// and need to be replaced by the planned value here.
-			if is.Current.Status == states.ObjectPlanned {
-				if change == nil {
-					// FIXME: This is usually an unfortunate case where we need to
-					// lookup an individual instance referenced via "self" for
-					// postconditions which we know exists, but because evaluation
-					// must always get the resource in aggregate some instance
-					// changes may not yet be registered.
-					instances[key] = cty.DynamicVal
-					// log the problem for debugging, since it may be a legitimate error we can't catch
-					log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", instAddr)
-					continue
-				}
-				instances[key] = change.After
-				continue
-			}
-
-			ios, err := is.Current.Decode(schema)
+			val, include, err := d.resourceInstanceObjectValue(instAddr, obj, instChanges.Get(instAddr), schema)
 			if err != nil {
-				// This shouldn't happen, since by the time we get here we
-				// should have upgraded the state data already.
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid resource instance data in state",
@@ -860,10 +824,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				})
 				continue
 			}
-
-			val := ios.Value
-
-			instances[key] = val
+			if include {
+				instances[key] = val
+			}
 		}
 	}
 
@@ -1042,10 +1005,11 @@ var _ lang.ResourceInstanceData = (*evaluationStateData)(nil)
 // GetResourceInstance implements lang.ResourceInstanceData.
 //
 // This finds the value for a single instance of a managed or data resource
-// in the same way as GetResource, without reading and decoding all of the
-// other instances of the resource. Any situation where the instance's value
-// would depend on its siblings, or would produce diagnostics, is left to
-// GetResource.
+// using the same rules as GetResource, without reading and decoding all of
+// the other instances of the resource, which therefore can't affect the
+// result. Any situation where the value can't be determined from this
+// instance alone, or where this instance has a problem GetResource would
+// report, is left to GetResource.
 func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (cty.Value, bool) {
 	switch addr.Resource.Mode {
 	case addrs.ManagedResourceMode, addrs.DataResourceMode:
@@ -1099,7 +1063,6 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (
 	if schema.Body == nil {
 		return cty.NilVal, false
 	}
-	ty := schema.Body.ImpliedType()
 	instAddr := addr.Absolute(d.ModulePath)
 
 	markDeprecated := func(val cty.Value) (cty.Value, bool) {
@@ -1117,29 +1080,58 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (
 		// expansion and on any planned changes.
 		return cty.NilVal, false
 	}
-	if is.Current == nil {
-		// Assume we're dealing with an instance that hasn't been created yet.
-		return markDeprecated(cty.UnknownVal(ty))
-	}
 
 	change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
+	val, include, err := d.resourceInstanceObjectValue(instAddr, is.Current, change, schema)
+	if err != nil || !include {
+		// GetResource reports this instance's problem, or excludes it from
+		// the value of the resource.
+		return cty.NilVal, false
+	}
+	return markDeprecated(val)
+}
+
+// resourceInstanceObjectValue returns the value of a resource instance from
+// its current object in the state, which is nil if it has none, and from its
+// planned change, which may be nil.
+//
+// The second return value is false if the instance must be excluded from the
+// value of its resource. The error is non-nil if the object can't be decoded.
+func (d *evaluationStateData) resourceInstanceObjectValue(addr addrs.AbsResourceInstance, obj *states.ResourceInstanceObjectSrc, change *plans.ResourceInstanceChange, schema providers.Schema) (cty.Value, bool, error) {
+	if obj == nil {
+		// Assume we're dealing with an instance that hasn't been created yet.
+		return cty.UnknownVal(schema.Body.ImpliedType()), true, nil
+	}
+
+	// Don't take any resources that are yet to be deleted into account.
+	// If the referenced resource is CreateBeforeDestroy, then orphaned
+	// instances will be in the state, as they are not destroyed until
+	// after their dependants are updated.
 	if change != nil && change.Action == plans.Delete && d.Operation != walkDestroy {
-		// Instances pending deletion are excluded from the resource's value.
-		return cty.NilVal, false
+		return cty.NilVal, false, nil
 	}
 
-	if is.Current.Status == states.ObjectPlanned {
+	// Planned resources are temporarily stored in state with empty values,
+	// and need to be replaced by the planned value here.
+	if obj.Status == states.ObjectPlanned {
 		if change == nil {
-			return cty.NilVal, false
+			// The change for an instance referenced in aggregate may not be
+			// recorded yet, because instances are processed concurrently.
+			// Log the problem for debugging, since it may be a legitimate
+			// error we can't catch.
+			log.Printf("[WARN] instance %s is marked as having a change pending but that change is not recorded in the plan", addr)
+			return cty.DynamicVal, true, nil
 		}
-		return markDeprecated(change.After)
+		return change.After, true, nil
 	}
 
-	ios, err := is.Current.Decode(schema)
+	// Each instance's state is upgraded when its own graph node visits it, so
+	// this can only fail for an instance which hasn't been visited yet.
+	ios, err := obj.Decode(schema)
 	if err != nil {
-		return cty.NilVal, false
+		return cty.NilVal, false, err
 	}
-	return markDeprecated(ios.Value)
+	return ios.Value, true, nil
 }
 
 func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
