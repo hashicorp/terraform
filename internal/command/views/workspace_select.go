@@ -20,6 +20,8 @@ type WorkspaceSelect interface {
 
 	// Log that a workspace that didn't exist has been created and selected.
 	CreatedWorkspace(workspace string, diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceSelect(viewType arguments.ViewType, view *View) WorkspaceSelect {
@@ -34,6 +36,8 @@ func NewWorkspaceSelect(viewType arguments.ViewType, view *View) WorkspaceSelect
 // The WorkspaceSelectHuman implementation renders human-readable output.
 type WorkspaceSelectHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceSelect = (*WorkspaceSelectHuman)(nil)
