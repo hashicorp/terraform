@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -39,6 +40,9 @@ func (c *UnlockCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
+		if args.ViewType == arguments.ViewHuman {
+			return cli.RunResultHelp // help text, exit code 1
+		}
 		return 1
 	}
 
