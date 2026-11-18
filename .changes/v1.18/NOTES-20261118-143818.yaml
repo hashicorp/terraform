@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'workspace show: This command will now display help text when bad CLI flags or arguments cause errors'
+time: 2026-11-18T14:38:18.706032Z
+custom:
+    Issue: "9999"

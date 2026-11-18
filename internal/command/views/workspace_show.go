@@ -14,12 +14,17 @@ import (
 type WorkspaceShow interface {
 	Show(workspace string, diags tfdiags.Diagnostics)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceShow(viewType arguments.ViewType, view *View) WorkspaceShow {
 	switch viewType {
 	case arguments.ViewHuman:
-		return &WorkspaceShowHuman{view: view}
+		return &WorkspaceShowHuman{
+			view:      view,
+			HelpHuman: HelpHuman{view: view},
+		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
 	}
@@ -28,6 +33,8 @@ func NewWorkspaceShow(viewType arguments.ViewType, view *View) WorkspaceShow {
 // The WorkspaceShowHuman implementation renders human-readable output.
 type WorkspaceShowHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceShow = (*WorkspaceShowHuman)(nil)
