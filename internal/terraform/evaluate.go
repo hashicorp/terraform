@@ -89,6 +89,11 @@ type Evaluator struct {
 	// Scope.
 	FunctionResults *lang.FunctionResults
 
+	// FunctionTables caches the tables of functions shared between the scopes
+	// created during the walk. It may be nil, in which case each scope builds
+	// its own table.
+	FunctionTables *lang.FunctionTables
+
 	PlanTimestamp time.Time
 }
 
@@ -109,6 +114,7 @@ func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs
 		PlanTimestamp:                  e.PlanTimestamp,
 		ExternalFuncs:                  extFuncs,
 		FunctionResults:                e.FunctionResults,
+		FunctionTables:                 e.FunctionTables,
 		IgnoreUnknownProviderFunctions: e.Operation == walkInit,
 	}
 }

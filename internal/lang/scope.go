@@ -63,6 +63,11 @@ type Scope struct {
 	// check for consistency between plan and apply.
 	FunctionResults *FunctionResults
 
+	// FunctionTables is an optional cache of function tables which may be
+	// shared with other scopes, so that scopes with the same settings can
+	// share a single table of built-in functions.
+	FunctionTables *FunctionTables
+
 	funcs     map[string]function.Function
 	funcsLock sync.Mutex
 

@@ -215,6 +215,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		StopContext:             c.runContext,
 		PlanTimestamp:           opts.PlanTimeTimestamp,
 		functionResults:         opts.FunctionResults,
+		functionTables:          lang.NewFunctionTables(),
 		Forget:                  opts.Forget,
 		ProviderLocks:           opts.ProviderLocks,
 		PolicyClient:            opts.PolicyClient,

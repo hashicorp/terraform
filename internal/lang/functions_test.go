@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -1388,6 +1390,129 @@ func TestFunctions(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFunctionTables(t *testing.T) {
+	externalFuncs := ExternalFuncs{
+		Provider: map[string]map[string]function.Function{
+			"foo": {
+				"upper": stdlib.UpperFunc,
+			},
+		},
+	}
+	planTimestamp := time.Date(2004, 04, 25, 15, 00, 00, 000, time.UTC)
+	functionResults := NewFunctionResultsTable(nil)
+
+	newScope := func(tables *FunctionTables, ext ExternalFuncs, pureOnly, consoleMode, forProvider bool) *Scope {
+		return &Scope{
+			Data: &dataForTests{
+				LocalValues: map[string]cty.Value{
+					"tmpl": cty.StringVal(`${provider::foo::upper("a")}${upper("b")}`),
+				},
+			},
+			ParseRef:        addrs.ParseRef,
+			BaseDir:         "./testdata/functions-test",
+			PureOnly:        pureOnly,
+			ConsoleMode:     consoleMode,
+			ForProvider:     forProvider,
+			PlanTimestamp:   planTimestamp,
+			FunctionResults: functionResults,
+			ExternalFuncs:   ext,
+			FunctionTables:  tables,
+		}
+	}
+	mapPtr := func(m map[string]function.Function) uintptr {
+		return reflect.ValueOf(m).Pointer()
+	}
+	evalTemplate := func(t *testing.T, scope *Scope) (cty.Value, tfdiags.Diagnostics) {
+		t.Helper()
+		expr, parseDiags := hclsyntax.ParseExpression([]byte(`templatestring(local.tmpl, {})`), "test.hcl", hcl.Pos{Line: 1, Column: 1})
+		if parseDiags.HasErrors() {
+			t.Fatal(parseDiags.Error())
+		}
+		return scope.EvalExpr(expr, cty.DynamicPseudoType)
+	}
+
+	t.Run("same functions as without tables", func(t *testing.T) {
+		tables := NewFunctionTables()
+		for _, ext := range []ExternalFuncs{{}, externalFuncs} {
+			for _, pureOnly := range []bool{false, true} {
+				for _, consoleMode := range []bool{false, true} {
+					for _, forProvider := range []bool{false, true} {
+						name := fmt.Sprintf("ext=%t,pure=%t,console=%t,provider=%t", ext.hasFunctions(), pureOnly, consoleMode, forProvider)
+						t.Run(name, func(t *testing.T) {
+							want := newScope(nil, ext, pureOnly, consoleMode, forProvider).Functions()
+							got := newScope(tables, ext, pureOnly, consoleMode, forProvider).Functions()
+							if len(got) != len(want) {
+								t.Fatalf("wrong number of functions %d, want %d", len(got), len(want))
+							}
+							for name, wantFn := range want {
+								gotFn, ok := got[name]
+								if !ok {
+									t.Fatalf("missing function %s", name)
+								}
+								if gotFn.Description() != wantFn.Description() {
+									t.Errorf("wrong description for %s", name)
+								}
+							}
+						})
+					}
+				}
+			}
+		}
+	})
+
+	t.Run("shared between equivalent scopes", func(t *testing.T) {
+		tables := NewFunctionTables()
+		a := newScope(tables, ExternalFuncs{}, true, false, false).Functions()
+		b := newScope(tables, ExternalFuncs{}, true, false, false).Functions()
+		if mapPtr(a) != mapPtr(b) {
+			t.Error("equivalent scopes did not share a table")
+		}
+
+		c := newScope(tables, ExternalFuncs{}, false, false, false).Functions()
+		if mapPtr(a) == mapPtr(c) {
+			t.Error("scopes with different settings shared a table")
+		}
+		d := newScope(tables, ExternalFuncs{}, true, false, true).Functions()
+		if mapPtr(a) == mapPtr(d) {
+			t.Error("scopes with different settings shared a table")
+		}
+
+		e := newScope(tables, externalFuncs, true, false, false).Functions()
+		if mapPtr(a) == mapPtr(e) {
+			t.Error("scope with external functions used the shared table")
+		}
+		if _, ok := a["provider::foo::upper"]; ok {
+			t.Error("external function added to the shared table")
+		}
+	})
+
+	t.Run("templates call external functions", func(t *testing.T) {
+		tables := NewFunctionTables()
+
+		// The scope with external functions is first, so it builds the
+		// shared table.
+		withExt := newScope(tables, externalFuncs, false, false, false)
+		got, diags := evalTemplate(t, withExt)
+		if diags.HasErrors() {
+			t.Fatal(diags.Err())
+		}
+		if want := cty.StringVal("AB"); !got.RawEquals(want) {
+			t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+		}
+
+		// A scope without the external functions must not be able to call
+		// them from a template.
+		withoutExt := newScope(tables, ExternalFuncs{}, false, false, false)
+		_, diags = evalTemplate(t, withoutExt)
+		if !diags.HasErrors() {
+			t.Fatal("external function was available from a template in a scope without it")
+		}
+		if got, want := diags.Err().Error(), "provider::foo::"; !strings.Contains(got, want) {
+			t.Errorf("wrong error\ngot:  %s\nwant: error mentioning %s", got, want)
+		}
+	})
 }
 
 func TestPlanTimeStampUnknown(t *testing.T) {
