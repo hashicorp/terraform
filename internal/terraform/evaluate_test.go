@@ -607,6 +607,8 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("a")), ready("fa"), providerAddr)
 		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("b")), ready("fb"), providerAddr)
 		ss.SetResourceInstanceCurrent(instAddr("s", addrs.NoKey), ready("s"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("d", addrs.StringKey("a")), ready("da"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("u", addrs.IntKey(0)), ready("u0"), providerAddr)
 		ss.SetResourceInstanceCurrent(instAddr("m", addrs.StringKey("a")), ready("ma"), providerAddr)
 		// state which can't be decoded with the current schema, as if it
 		// hadn't been upgraded yet
@@ -682,6 +684,10 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 	}))
 	invalidConfig := resourceConfig("m")
 	invalidConfig.ForEach = forEachConfig.ForEach
+	deferredConfig := resourceConfig("d")
+	deferredConfig.ForEach = forEachConfig.ForEach
+	unknownConfig := resourceConfig("u")
+	unknownConfig.Count = hcltest.MockExprLiteral(cty.UnknownVal(cty.Number))
 
 	evaluator := &Evaluator{
 		Meta:      &ContextMeta{Env: "foo"},
@@ -690,9 +696,11 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 			Module: &configs.Module{
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.c": countConfig,
+					"test_resource.d": deferredConfig,
 					"test_resource.f": forEachConfig,
 					"test_resource.m": invalidConfig,
 					"test_resource.s": resourceConfig("s"),
+					"test_resource.u": unknownConfig,
 				},
 			},
 		},
@@ -700,10 +708,13 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		Changes:     changesSync,
 		Instances:   instances.NewExpander(nil),
 		NamedValues: namedvals.NewState(),
-		Deferrals:   deferring.NewDeferred(false),
+		Deferrals:   deferring.NewDeferred(true),
 		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
 	}
 	evaluator.Instances.SetResourceCount(addrs.RootModuleInstance, resource("c"), 5)
+	evaluator.Instances.SetResourceForEach(addrs.RootModuleInstance, resource("d"), map[string]cty.Value{
+		"a": cty.StringVal("a"),
+	})
 	evaluator.Instances.SetResourceForEach(addrs.RootModuleInstance, resource("f"), map[string]cty.Value{
 		"a": cty.StringVal("a"),
 		"b": cty.StringVal("b"),
@@ -713,6 +724,21 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		"b": cty.StringVal("b"),
 	})
 	evaluator.Instances.SetResourceSingle(addrs.RootModuleInstance, resource("s"))
+	evaluator.Instances.SetResourceCountUnknown(addrs.RootModuleInstance, resource("u"))
+	evaluator.Deferrals.ReportResourceInstanceDeferred(instAddr("d", addrs.StringKey("a")), providers.DeferredReasonResourceConfigUnknown, &plans.ResourceInstanceChange{
+		Addr:         instAddr("d", addrs.StringKey("a")),
+		PrevRunAddr:  instAddr("d", addrs.StringKey("a")),
+		ProviderAddr: providerAddr,
+		Change: plans.Change{
+			Action: plans.Update,
+			Before: cty.NullVal(objTy),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.StringVal("deferred"),
+				"secret": cty.UnknownVal(cty.String),
+				"old":    cty.StringVal("x"),
+			}),
+		},
+	})
 
 	data := &evaluationStateData{
 		evaluationData: &evaluationData{
@@ -744,6 +770,10 @@ func TestEvaluatorGetResourceInstance(t *testing.T) {
 		{resource("f").Instance(addrs.StringKey("c")), false},
 		{resource("s").Instance(addrs.NoKey), true},
 		{resource("s").Instance(addrs.IntKey(0)), false},
+		// deferred, so the value is taken from the deferred change
+		{resource("d").Instance(addrs.StringKey("a")), true},
+		// the expansion isn't known
+		{resource("u").Instance(addrs.IntKey(0)), false},
 		// undeclared
 		{resource("missing").Instance(addrs.NoKey), false},
 	}

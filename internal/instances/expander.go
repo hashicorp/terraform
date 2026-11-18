@@ -461,23 +461,49 @@ func (e *Expander) KnownResourceInstanceRepetitionData(addr addrs.AbsResourceIns
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	mod := e.exps
-	for _, step := range addr.Module {
-		if expansionIsDeferred(mod.moduleCalls[addrs.ModuleCall{Name: step.Name}]) {
-			return RepetitionData{}, false
-		}
-		next, ok := mod.childInstances[step]
-		if !ok {
-			return RepetitionData{}, false
-		}
-		mod = next
-	}
-
-	exp, ok := mod.resources[addr.Resource.Resource]
+	exp, ok := e.knownResourceExpansion(addr.ContainingResource())
 	if !ok || !expansionHasInstanceKey(exp, addr.Resource.Key) {
 		return RepetitionData{}, false
 	}
 	return exp.repetitionData(addr.Resource.Key), true
+}
+
+// ResourceExpansionKnown returns true if the expansions of the given resource
+// and all of its ancestor modules have been registered and are known, and so
+// the resource's instances can be enumerated.
+//
+// Unlike ResourceInstanceKeys, this doesn't build the set of instance keys,
+// and it returns false rather than panicking when an expansion hasn't been
+// registered.
+func (e *Expander) ResourceExpansionKnown(addr addrs.AbsResource) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	_, ok := e.knownResourceExpansion(addr)
+	return ok
+}
+
+// knownResourceExpansion returns the expansion of the given resource if the
+// expansions of the resource and all of its ancestor modules have been
+// registered and are known. The caller must hold e.mu.
+func (e *Expander) knownResourceExpansion(addr addrs.AbsResource) (expansion, bool) {
+	mod := e.exps
+	for _, step := range addr.Module {
+		if expansionIsDeferred(mod.moduleCalls[addrs.ModuleCall{Name: step.Name}]) {
+			return nil, false
+		}
+		next, ok := mod.childInstances[step]
+		if !ok {
+			return nil, false
+		}
+		mod = next
+	}
+
+	exp, ok := mod.resources[addr.Resource]
+	if !ok || expansionIsDeferred(exp) {
+		return nil, false
+	}
+	return exp, true
 }
 
 // ResourceInstanceKeys determines the child instance keys for one specific

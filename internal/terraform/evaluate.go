@@ -1051,10 +1051,9 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (
 
 	resAddr := addr.Resource.Absolute(d.ModulePath)
 	if d.Operation == walkPlan || d.Operation == walkApply {
-		if !d.Evaluator.Instances.ResourceInstanceExpanded(resAddr) {
-			return cty.NilVal, false
-		}
-		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(resAddr); hasUnknownKeys {
+		// GetResource returns an unknown value for the whole resource when
+		// its expansion isn't known.
+		if !d.Evaluator.Instances.ResourceExpansionKnown(resAddr) {
 			return cty.NilVal, false
 		}
 	}
@@ -1070,7 +1069,7 @@ func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (
 	}
 
 	// A deferred instance overrides anything that might be in the state.
-	if val, ok := d.Evaluator.Deferrals.GetDeferredResourceInstances(resAddr)[addr.Key]; ok {
+	if val, ok := d.Evaluator.Deferrals.GetDeferredResourceInstanceValue(instAddr); ok {
 		return markDeprecated(val)
 	}
 
