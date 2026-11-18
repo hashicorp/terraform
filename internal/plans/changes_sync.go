@@ -44,6 +44,33 @@ type ChangesSync struct {
 	// change for the same address, in which case outputIndex refers to the
 	// first of them.
 	outputDuplicates bool
+
+	// resourceIndex maps the address and deposed key of each resource
+	// instance change in changes.Resources to the change, so that changes
+	// can be found without scanning all of them. It refers to the changes
+	// rather than to their positions, so that removing a change doesn't leave
+	// a hole in changes.Resources. It is built on first use, because the
+	// wrapped Changes may already contain resource instance changes.
+	resourceIndex map[resourceChangeKey]*ResourceInstanceChange
+
+	// resourceDuplicates records that changes.Resources contains more than
+	// one change for the same address and deposed key, in which case
+	// resourceIndex refers to the first of them.
+	resourceDuplicates bool
+}
+
+// resourceChangeKey identifies a resource instance change in the index of a
+// ChangesSync.
+type resourceChangeKey struct {
+	addr       string
+	deposedKey addrs.DeposedKey
+}
+
+func makeResourceChangeKey(addr addrs.AbsResourceInstance, dk addrs.DeposedKey) resourceChangeKey {
+	return resourceChangeKey{
+		addr:       addr.String(),
+		deposedKey: dk,
+	}
 }
 
 // AppendResourceInstanceChange records the given resource instance change in
@@ -59,6 +86,13 @@ func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChan
 	defer cs.beginWrite()()
 
 	s := change.DeepCopy()
+	index := cs.resourceChangeIndex()
+	key := makeResourceChangeKey(s.Addr, s.DeposedKey)
+	if _, exists := index[key]; exists {
+		cs.resourceDuplicates = true
+	} else {
+		index[key] = s
+	}
 	cs.changes.Resources = append(cs.changes.Resources, s)
 }
 
@@ -89,10 +123,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	if dk == addrs.NotDeposed {
-		return cs.changes.ResourceInstance(addr).DeepCopy()
-	}
-	return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
+	return cs.resourceChangeIndex()[makeResourceChangeKey(addr, dk)].DeepCopy()
 }
 
 // GetChangesForConfigResource searches the set of resource instance
@@ -175,15 +206,51 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 	}
 	defer cs.beginWrite()()
 
-	addrStr := addr.String()
-	for i, r := range cs.changes.Resources {
-		if r.Addr.String() != addrStr || r.DeposedKey != dk {
-			continue
-		}
-		copy(cs.changes.Resources[i:], cs.changes.Resources[i+1:])
-		cs.changes.Resources = cs.changes.Resources[:len(cs.changes.Resources)-1]
+	index := cs.resourceChangeIndex()
+	key := makeResourceChangeKey(addr, dk)
+	rc, ok := index[key]
+	if !ok {
 		return
 	}
+
+	i := slices.Index(cs.changes.Resources, rc)
+	if i < 0 {
+		panic("resource instance change index is inconsistent with the changes it indexes")
+	}
+	cs.changes.Resources = slices.Delete(cs.changes.Resources, i, i+1)
+	delete(index, key)
+
+	if cs.resourceDuplicates {
+		// Another change for the same instance may follow the one we removed,
+		// and is now the first.
+		for _, other := range cs.changes.Resources[i:] {
+			if other.DeposedKey == dk && other.Addr.Equal(addr) {
+				index[key] = other
+				break
+			}
+		}
+	}
+}
+
+// resourceChangeIndex returns the index of resource instance changes by
+// address and deposed key, building it first if necessary. The caller must
+// hold the lock.
+func (cs *ChangesSync) resourceChangeIndex() map[resourceChangeKey]*ResourceInstanceChange {
+	if cs.resourceIndex != nil {
+		return cs.resourceIndex
+	}
+
+	cs.resourceIndex = make(map[resourceChangeKey]*ResourceInstanceChange, len(cs.changes.Resources))
+	cs.resourceDuplicates = false
+	for _, rc := range cs.changes.Resources {
+		key := makeResourceChangeKey(rc.Addr, rc.DeposedKey)
+		if _, exists := cs.resourceIndex[key]; exists {
+			cs.resourceDuplicates = true
+			continue
+		}
+		cs.resourceIndex[key] = rc
+	}
+	return cs.resourceIndex
 }
 
 // AppendOutputChange records the given output value change in the set of

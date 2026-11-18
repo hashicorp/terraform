@@ -198,3 +198,139 @@ func TestChangesSyncOutputChanges(t *testing.T) {
 		}
 	})
 }
+
+func TestChangesSyncResourceChanges(t *testing.T) {
+	instAddr := func(key string) addrs.AbsResourceInstance {
+		return addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "r",
+		}.Instance(addrs.StringKey(key)).Absolute(addrs.RootModuleInstance)
+	}
+	const dk = addrs.DeposedKey("00000001")
+
+	resourceChange := func(addr addrs.AbsResourceInstance, dk addrs.DeposedKey, val string) *ResourceInstanceChange {
+		return &ResourceInstanceChange{
+			Addr:        addr,
+			PrevRunAddr: addr,
+			DeposedKey:  dk,
+			Change: Change{
+				Action: Update,
+				Before: cty.NullVal(cty.String),
+				After:  cty.StringVal(val),
+			},
+		}
+	}
+
+	// gotChanges returns the values of the changes, in order.
+	gotChanges := func(changes *Changes) []string {
+		var ret []string
+		for _, rc := range changes.Resources {
+			ret = append(ret, rc.After.AsString())
+		}
+		return ret
+	}
+
+	t.Run("get and remove", func(t *testing.T) {
+		changes := NewChanges()
+		cs := changes.SyncWrapper()
+
+		a, b := instAddr("a"), instAddr("b")
+		cs.AppendResourceInstanceChange(resourceChange(a, addrs.NotDeposed, "a"))
+		cs.AppendResourceInstanceChange(resourceChange(a, dk, "a-deposed"))
+		cs.AppendResourceInstanceChange(resourceChange(b, addrs.NotDeposed, "b"))
+
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got == nil || got.After.AsString() != "a" {
+			t.Fatalf("wrong change for %s: %#v", a, got)
+		}
+		if got := cs.GetResourceInstanceChange(a, dk); got == nil || got.After.AsString() != "a-deposed" {
+			t.Fatalf("wrong change for %s deposed object %s: %#v", a, dk, got)
+		}
+		if got := cs.GetResourceInstanceChange(b, dk); got != nil {
+			t.Fatalf("unexpected change for missing deposed object: %#v", got)
+		}
+
+		cs.RemoveResourceInstanceChange(a, addrs.NotDeposed)
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got != nil {
+			t.Fatalf("unexpected change for removed instance: %#v", got)
+		}
+		if got := cs.GetResourceInstanceChange(a, dk); got == nil || got.After.AsString() != "a-deposed" {
+			t.Fatalf("wrong change for %s deposed object %s: %#v", a, dk, got)
+		}
+		// removing a missing change does nothing
+		cs.RemoveResourceInstanceChange(a, addrs.NotDeposed)
+
+		// The remaining changes keep their order, with no gaps.
+		if got, want := gotChanges(changes), []string{"a-deposed", "b"}; !slices.Equal(got, want) {
+			t.Fatalf("wrong resource changes\ngot:  %s\nwant: %s", got, want)
+		}
+		if got := changes.ResourceInstance(b); got == nil || got.After.AsString() != "b" {
+			t.Fatalf("wrong change for %s: %#v", b, got)
+		}
+	})
+
+	t.Run("changes are copied", func(t *testing.T) {
+		cs := NewChanges().SyncWrapper()
+
+		a := instAddr("a")
+		change := resourceChange(a, addrs.NotDeposed, "a")
+		cs.AppendResourceInstanceChange(change)
+		change.Addr = instAddr("other")
+
+		got := cs.GetResourceInstanceChange(a, addrs.NotDeposed)
+		if got == nil || !got.Addr.Equal(a) {
+			t.Fatalf("wrong change for %s: %#v", a, got)
+		}
+		got.Addr = instAddr("other")
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got == nil || !got.Addr.Equal(a) {
+			t.Fatalf("wrong change for %s: %#v", a, got)
+		}
+	})
+
+	t.Run("existing changes", func(t *testing.T) {
+		a, b := instAddr("a"), instAddr("b")
+		changes := &Changes{
+			Resources: []*ResourceInstanceChange{
+				resourceChange(a, addrs.NotDeposed, "a"),
+				resourceChange(b, addrs.NotDeposed, "b"),
+			},
+		}
+		cs := changes.SyncWrapper()
+
+		if got := cs.GetResourceInstanceChange(b, addrs.NotDeposed); got == nil || got.After.AsString() != "b" {
+			t.Fatalf("wrong change for %s: %#v", b, got)
+		}
+		cs.RemoveResourceInstanceChange(a, addrs.NotDeposed)
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got != nil {
+			t.Fatalf("unexpected change for removed instance: %#v", got)
+		}
+		if got, want := gotChanges(changes), []string{"b"}; !slices.Equal(got, want) {
+			t.Fatalf("wrong resource changes\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("duplicate changes", func(t *testing.T) {
+		changes := NewChanges()
+		cs := changes.SyncWrapper()
+
+		a := instAddr("a")
+		cs.AppendResourceInstanceChange(resourceChange(a, addrs.NotDeposed, "first"))
+		cs.AppendResourceInstanceChange(resourceChange(instAddr("b"), addrs.NotDeposed, "b"))
+		cs.AppendResourceInstanceChange(resourceChange(a, addrs.NotDeposed, "second"))
+
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got == nil || got.After.AsString() != "first" {
+			t.Fatalf("wrong change for %s: %#v", a, got)
+		}
+		cs.RemoveResourceInstanceChange(a, addrs.NotDeposed)
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got == nil || got.After.AsString() != "second" {
+			t.Fatalf("wrong change for %s: %#v", a, got)
+		}
+		cs.RemoveResourceInstanceChange(a, addrs.NotDeposed)
+		if got := cs.GetResourceInstanceChange(a, addrs.NotDeposed); got != nil {
+			t.Fatalf("unexpected change for removed instance: %#v", got)
+		}
+		if got, want := gotChanges(changes), []string{"b"}; !slices.Equal(got, want) {
+			t.Fatalf("wrong resource changes\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
