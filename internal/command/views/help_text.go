@@ -22,3 +22,18 @@ func (v *HelpHuman) HelpPrompt(command string) {
 func (v *HelpHuman) FullHelpText(text string) {
 	v.view.FullHelpText(text)
 }
+
+// HelpJSON should be embedded in JSON view implementations to add methods
+// for displaying help prompts and full help text.
+//
+// These are all no-ops in JSON views as help text is only shown in
+// human-readable views.
+type HelpJSON struct{}
+
+func (v *HelpJSON) HelpPrompt(command string) {
+	// no-op
+}
+
+func (v *HelpJSON) FullHelpText(text string) {
+	// no-op
+}

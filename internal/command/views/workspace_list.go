@@ -17,6 +17,8 @@ import (
 type WorkspaceList interface {
 	List(selected string, list []string, diags tfdiags.Diagnostics)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
@@ -35,6 +37,8 @@ func NewWorkspaceList(viewType arguments.ViewType, view *View) WorkspaceList {
 // The WorkspaceListHuman implementation renders human-readable logs, suitable for direct consumption by a human user.
 type WorkspaceListHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceList = (*WorkspaceListHuman)(nil)
@@ -76,6 +80,8 @@ type WorkspaceListJSON struct {
 
 	// formatVersion contains data used to populate the format_version field in the JSON output.
 	formatVersion string
+
+	HelpJSON
 }
 
 var _ WorkspaceList = (*WorkspaceListJSON)(nil)
