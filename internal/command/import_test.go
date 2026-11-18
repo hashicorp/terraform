@@ -928,37 +928,74 @@ func TestImport_dataResource(t *testing.T) {
 }
 
 func TestImport_invalidResourceAddr(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
-	t.Chdir(td)
+	t.Run("address not interpretable as resource instance", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+		t.Chdir(td)
 
-	statePath := testTempFile(t)
+		statePath := testTempFile(t)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
-		},
-	}
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &ImportCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		}
 
-	args := []string{
-		"-state", statePath,
-		"bananas",
-		"bar",
-	}
-	code := c.Run(args)
-	if code != 1 {
-		t.Fatalf("import succeeded; expected failure")
-	}
+		args := []string{
+			"-state", statePath,
+			"bananas",
+			"bar",
+		}
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("import succeeded; expected failure")
+		}
 
-	msg := ui.ErrorWriter.String()
-	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
-		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
-	}
+		msg := ui.ErrorWriter.String()
+		want := "\nError: Invalid address\n\n  on <import-address> line 1:\n   1: bananas\n\nResource specification must include a resource type and name.\n\n"
+		if msg != want {
+			t.Errorf("incorrect message\nwant: %s\ngot:\n%s", want, msg)
+		}
+	})
+	t.Run("invalid address", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+		t.Chdir(td)
+
+		statePath := testTempFile(t)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &ImportCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"~",
+			"bar",
+		}
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("import succeeded; expected failure")
+		}
+
+		want := "\nError: Unsupported operator\n\n  on <import-address> line 1:\n   1: ~\n\nBitwise operators are not supported. Did you mean boolean NOT (\"!\")?\n\n\nError: Variable name required\n\n  on <import-address> line 1:\n   1: ~\n\nMust begin with a variable name.\n\n"
+		msg := ui.ErrorWriter.String()
+		if msg != want {
+			t.Errorf("incorrect message\nwant:\n%s\ngot:\n%s", want, msg)
+		}
+	})
 }
 
 func TestImport_targetIsModule(t *testing.T) {
