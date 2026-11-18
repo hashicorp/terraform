@@ -6,6 +6,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -54,16 +55,23 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 
 		is := rs.Instance(addr.Resource.Key)
 		if is == nil {
-			// We don't actually need this here, since we'll attach the whole
-			// resource state, but we still check because it'd be weird
-			// for the specific instance we're attaching to not to exist.
+			// It'd be weird for the specific instance we're attaching to not
+			// to exist.
 			log.Printf("[DEBUG] Resource instance state not found for node %q, instance %s", v.Name(), addr)
 			continue
 		}
 
-		// make sure to attach a copy of the state, so instances can modify the
-		// same ResourceState.
-		an.AttachResourceState(rs.DeepCopy())
+		// Attach a copy containing only this node's own instance, so that
+		// instances can't modify each other's state. Copying the entire
+		// resource for every instance would be quadratic in the number of
+		// instances, and nodes only retain their own instance anyway.
+		an.AttachResourceState(&states.Resource{
+			Addr: rs.Addr,
+			Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+				addr.Resource.Key: is.DeepCopy(),
+			},
+			ProviderConfig: rs.ProviderConfig,
+		})
 	}
 
 	return nil
