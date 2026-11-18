@@ -149,7 +149,7 @@ func (c *FmtCommand) fmt(paths []string, stdin io.Reader, view views.Fmt) tfdiag
 			}
 
 			if !fmtd {
-				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, and .tftest.hcl files can be processed with terraform fmt"))
+				diags = diags.Append(fmt.Errorf("Only .tf, .tfvars, .tftest.hcl, .tfquery.hcl, and .tfmock.hcl files can be processed with terraform fmt"))
 				continue
 			}
 		}
@@ -382,19 +382,24 @@ func (c *FmtCommand) formatValueExpr(tokens hclwrite.Tokens) hclwrite.Tokens {
 	// parses correctly after unwrapping. This may be redundant in some cases,
 	// but is required for at least multi-line ternary expressions.
 	isMultiLine := false
-	hasLeadingParen := false
-	hasTrailingParen := false
+	hasOuterParens := len(trimmed) > 0 && trimmed[0].Type == hclsyntax.TokenOParen
+	parenDepth := 0
 	for i, token := range trimmed {
-		switch {
-		case i == 0 && token.Type == hclsyntax.TokenOParen:
-			hasLeadingParen = true
-		case token.Type == hclsyntax.TokenNewline:
+		switch token.Type {
+		case hclsyntax.TokenOParen:
+			parenDepth++
+		case hclsyntax.TokenCParen:
+			parenDepth--
+		case hclsyntax.TokenNewline:
 			isMultiLine = true
-		case i == len(trimmed)-1 && token.Type == hclsyntax.TokenCParen:
-			hasTrailingParen = true
+		}
+		if parenDepth == 0 && i < len(trimmed)-1 {
+			// The leading parenthesis must enclose the entire expression,
+			// not just a condition or another subexpression.
+			hasOuterParens = false
 		}
 	}
-	if isMultiLine && !(hasLeadingParen && hasTrailingParen) {
+	if isMultiLine && !hasOuterParens {
 		wrapped := make(hclwrite.Tokens, 0, len(trimmed)+2)
 		wrapped = append(wrapped, &hclwrite.Token{
 			Type:  hclsyntax.TokenOParen,
