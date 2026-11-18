@@ -21,13 +21,16 @@ type WorkspaceNew interface {
 	LogWorkspaceCreationFromStateFailure(workspaceName string, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceNew(viewType arguments.ViewType, view *View) WorkspaceNew {
 	switch viewType {
 	case arguments.ViewHuman:
 		return &WorkspaceNewHuman{
-			view: view,
+			view:      view,
+			HelpHuman: HelpHuman{view: view},
 		}
 	default:
 		panic(fmt.Sprintf("unsupported view type: %s", viewType))
@@ -37,6 +40,8 @@ func NewWorkspaceNew(viewType arguments.ViewType, view *View) WorkspaceNew {
 // The WorkspaceNewHuman implementation renders human-readable logs, suitable for direct consumption by a human user.
 type WorkspaceNewHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceNew = (*WorkspaceNewHuman)(nil)

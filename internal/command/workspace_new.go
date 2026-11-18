@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	backendPluggable "github.com/hashicorp/terraform/internal/backend/pluggable"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -46,7 +45,10 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if args.ViewType == arguments.ViewHuman {
+			view.HelpPrompt("workspace new")
+		}
+		return 1
 	}
 
 	workspace := args.Name
