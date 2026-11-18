@@ -594,6 +594,71 @@ func TestEvaluatorGetModule(t *testing.T) {
 	}
 }
 
+func TestEvaluatorGetModule_cache(t *testing.T) {
+	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), nil, nil)
+	evaluator.ModuleCallValues = newModuleCallValues()
+	evaluator.Instances.SetModuleCount(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"}, 2)
+	data := &evaluationStateData{
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
+	}
+	scope := evaluator.Scope(data, nil, nil, lang.ExternalFuncs{})
+	callAddr := addrs.ModuleCall{Name: "mod"}
+	absCallAddr := callAddr.Absolute(addrs.RootModuleInstance)
+	outAddr := func(i int) addrs.AbsOutputValue {
+		return addrs.OutputValue{Name: "out"}.Absolute(addrs.RootModuleInstance.Child("mod", addrs.IntKey(i)))
+	}
+
+	evaluator.NamedValues.SetOutputValue(outAddr(0), cty.StringVal("a"))
+
+	// Only one of the instances has published its output value, so the
+	// result must not be cached.
+	want := cty.TupleVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("a").Mark(marks.Sensitive)}),
+		cty.ObjectVal(map[string]cty.Value{"out": cty.DynamicVal}),
+	})
+	got, diags := scope.Data.GetModule(callAddr, tfdiags.SourceRange{})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+	if _, ok := evaluator.ModuleCallValues.get(absCallAddr); ok {
+		t.Fatal("incomplete module call value was cached")
+	}
+
+	evaluator.NamedValues.SetOutputValue(outAddr(1), cty.StringVal("b"))
+
+	want = cty.TupleVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("a").Mark(marks.Sensitive)}),
+		cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("b").Mark(marks.Sensitive)}),
+	})
+	got, diags = scope.Data.GetModule(callAddr, tfdiags.SourceRange{})
+	if len(diags) != 0 {
+		t.Fatalf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+	cached, ok := evaluator.ModuleCallValues.get(absCallAddr)
+	if !ok {
+		t.Fatal("complete module call value was not cached")
+	}
+	if !cached.RawEquals(want) {
+		t.Fatalf("wrong cached value\ngot:  %#v\nwant: %#v", cached, want)
+	}
+
+	// Later references must get the cached value.
+	sentinel := cty.StringVal("cached")
+	evaluator.ModuleCallValues.put(absCallAddr, sentinel)
+	got, _ = scope.Data.GetModule(callAddr, tfdiags.SourceRange{})
+	if !got.RawEquals(sentinel) {
+		t.Fatalf("cached value not used\ngot: %#v", got)
+	}
+}
+
 func TestEvaluatorGetModule_validateTypedOutputs(t *testing.T) {
 	tests := map[string]struct {
 		configureModuleCall func(*configs.ModuleCall)

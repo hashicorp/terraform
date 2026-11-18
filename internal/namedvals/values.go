@@ -76,6 +76,12 @@ func (v *values[LocalType, AbsType]) HasExactResult(addr AbsType) bool {
 	return v.exact.Has(addr)
 }
 
+// GetExactResultOk returns the value for the given address and true if it
+// has been set, or cty.NilVal and false if it has not.
+func (v *values[LocalType, AbsType]) GetExactResultOk(addr AbsType) (cty.Value, bool) {
+	return v.exact.GetOk(addr)
+}
+
 func (v *values[LocalType, AbsType]) GetExactResult(addr AbsType) cty.Value {
 	// TODO: Do we need to handle placeholder results in here too? Seems like
 	// callers should not end up holding AbsType addresses if they are dealing

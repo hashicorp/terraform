@@ -113,6 +113,25 @@ func (s *State) HasOutputValue(addr addrs.AbsOutputValue) bool {
 	return s.outputs.HasExactResult(addr)
 }
 
+// GetOutputValues reads the values of all of the given output values while
+// holding the lock only once, so the results form a consistent snapshot.
+//
+// Each element of vals is the value of the output value at the same index of
+// outputAddrs, and the corresponding element of ok reports whether that value
+// has been set yet. Elements of vals for values that have not been set are
+// cty.NilVal.
+func (s *State) GetOutputValues(outputAddrs []addrs.AbsOutputValue) (vals []cty.Value, ok []bool) {
+	vals = make([]cty.Value, len(outputAddrs))
+	ok = make([]bool, len(outputAddrs))
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for i, addr := range outputAddrs {
+		vals[i], ok[i] = s.outputs.GetExactResultOk(addr)
+	}
+	return vals, ok
+}
+
 func (s *State) SetOutputValuePlaceholder(addr addrs.InPartialExpandedModule[addrs.OutputValue], val cty.Value) {
 	s.mu.Lock()
 	s.outputs.SetPlaceholderResult(addr, val)
