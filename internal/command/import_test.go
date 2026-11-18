@@ -1042,6 +1042,64 @@ The import command expects two arguments: ADDR and ID.
 	}
 }
 
+func TestImport_failedStateWrite(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-inmem"), td)
+	t.Chdir(td)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	ui := testUiWrapped(t)
+	view, _ := testView(t)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	want := "Error writing state file: forced write error: this is an error forced by the test\n"
+	if diff := cmp.Diff(msg, want); diff != "" {
+		t.Errorf("incorrect message, diff:\n%s", diff)
+	}
+}
+
 const testImportStr = `
 test_instance.foo:
   ID = yay
