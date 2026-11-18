@@ -5,6 +5,9 @@ package lang
 
 import (
 	"fmt"
+	"maps"
+	"sync"
+	"time"
 
 	"github.com/hashicorp/hcl/v2/ext/tryfunc"
 	ctyyaml "github.com/zclconf/go-cty-yaml"
@@ -51,93 +54,153 @@ var templateFunctions = collections.NewSetCmp[string](
 
 // Functions returns the set of functions that should be used to when evaluating
 // expressions in the receiving scope.
+//
+// The returned map must not be modified, because it may be shared with other
+// scopes.
 func (s *Scope) Functions() map[string]function.Function {
+	s.funcsLock.Lock()
+	defer s.funcsLock.Unlock()
+
+	if s.funcs == nil {
+		s.funcs = s.buildFunctions()
+	}
+	return s.funcs
+}
+
+// buildFunctions returns the table of functions for the receiving scope,
+// either from s.FunctionTables or by building a new table.
+func (s *Scope) buildFunctions() map[string]function.Function {
+	if s.FunctionTables == nil {
+		table := s.coreFunctions()
+		s.addExternalFunctions(table)
+		return table
+	}
+
+	core := s.FunctionTables.get(s.functionTableKey(), s.coreFunctions)
+	if !s.ExternalFuncs.hasFunctions() {
+		return core
+	}
+
+	// External functions differ between scopes, so they must be added to a
+	// copy of the shared table. The template functions must be able to call
+	// the external functions too, so they must refer to the copy.
+	table := maps.Clone(core)
+	s.addTemplateFunctions(table)
+	s.addExternalFunctions(table)
+	return table
+}
+
+// coreFunctions builds a new table containing all of the built-in functions
+// available in the receiving scope, both with and without the "core::"
+// namespace prefix.
+func (s *Scope) coreFunctions() map[string]function.Function {
+	immutableResults := s.immutableResultsWrapper()
+	coreFuncs := baseFunctions(s.BaseDir)
+
+	// Modify the functions which behave slightly differently in core.
+	// Filesystem functions will check for consistent results, and the
+	// template functions are replaced below to close over the correct
+	// versions of the filesystem functions.
+	coreFuncs["file"] = funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults))
+	coreFuncs["fileexists"] = funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults))
+	coreFuncs["fileset"] = funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults))
+	coreFuncs["filebase64"] = funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults))
+	coreFuncs["filebase64sha256"] = funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults))
+	coreFuncs["filebase64sha512"] = funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults))
+	coreFuncs["filemd5"] = funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults))
+	coreFuncs["filesha1"] = funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults))
+	coreFuncs["filesha256"] = funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults))
+	coreFuncs["filesha512"] = funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults))
+
+	if s.ConsoleMode {
+		// The type function is only available in terraform console.
+		coreFuncs["type"] = funcs.TypeFunc
+	}
+
+	if !s.ConsoleMode {
+		// The plantimestamp function doesn't make sense in the terraform
+		// console.
+		coreFuncs["plantimestamp"] = funcs.MakeStaticTimestampFunc(s.PlanTimestamp)
+	}
+
+	if s.PureOnly {
+		// Force our few impure functions to return unknown so that we
+		// can defer evaluating them until a later pass.
+		for _, name := range impureFunctions {
+			coreFuncs[name] = function.Unpredictable(coreFuncs[name])
+		}
+	}
+
+	// All of the built-in functions are also available under the "core::"
+	// namespace, to distinguish from the "provider::" and "module::"
+	// namespaces that can serve as external extension points.
+	table := make(map[string]function.Function, len(coreFuncs)*2)
+	for name, fn := range coreFuncs {
+		if templateFunctions.Has(name) {
+			// replaced by addTemplateFunctions below
+			continue
+		}
+		addCoreFunction(table, name, fn)
+	}
+	s.addTemplateFunctions(table)
+	return table
+}
+
+// addTemplateFunctions adds the template rendering functions to the given
+// table of functions, such that templates can call the functions in that
+// table.
+func (s *Scope) addTemplateFunctions(table map[string]function.Function) {
+	immutableResults := s.immutableResultsWrapper()
+
+	// Our two template-rendering functions want to be able to call
+	// all of the other functions themselves, but we pass them indirectly
+	// via a callback to avoid chicken/egg problems while initializing
+	// the functions table.
+	funcsFunc := func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
+		// The templatefile and templatestring functions prevent recursive
+		// calls to themselves and each other by copying this map and
+		// overwriting the relevant entries.
+		return table, filesystemFunctions, templateFunctions
+	}
+	addCoreFunction(table, "templatefile", funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults)))
+	addCoreFunction(table, "templatestring", funcs.MakeTemplateStringFunc(funcsFunc))
+}
+
+// addExternalFunctions adds any external functions that the caller provided
+// when constructing the receiving scope to the given table of functions. For
+// now, that's just provider-contributed functions, under a
+// "provider::NAME::" namespace where NAME is the local name of the provider in
+// the current module.
+func (s *Scope) addExternalFunctions(table map[string]function.Function) {
+	for providerLocalName, funcs := range s.ExternalFuncs.Provider {
+		for funcName, fn := range funcs {
+			name := fmt.Sprintf("provider::%s::%s", providerLocalName, funcName)
+			table[name] = fn
+		}
+	}
+}
+
+// immutableResultsWrapper returns the function used to wrap the
+// implementations of functions which must return consistent results.
+func (s *Scope) immutableResultsWrapper() func(name string, priorResults *FunctionResults) func(fn function.ImplFunc) function.ImplFunc {
 	// For backwards compatibility, filesystem functions are allowed to return
 	// inconsistent results when called from within a provider configuration, so
 	// here we override the checks with a noop wrapper. This misbehavior was
 	// found to be used by a number of configurations, which took advantage of
 	// it to create the equivalent of ephemeral values before they formally
 	// existed in the language.
-	immutableResults := immutableResults
 	if s.ForProvider {
-		immutableResults = filesystemNoopWrapper
+		return filesystemNoopWrapper
 	}
+	return immutableResults
+}
 
-	s.funcsLock.Lock()
-	if s.funcs == nil {
-		coreFuncs := baseFunctions(s.BaseDir)
-
-		// Modify the functions which behave slightly differently in core.
-		// Filesystem functions will check for consistent results, and the
-		// template functions need to be updated to close over the correct
-		// versions of the filesystem functions.
-		coreFuncs["file"] = funcs.MakeFileFunc(s.BaseDir, false, immutableResults("file", s.FunctionResults))
-		coreFuncs["fileexists"] = funcs.MakeFileExistsFunc(s.BaseDir, immutableResults("fileexists", s.FunctionResults))
-		coreFuncs["fileset"] = funcs.MakeFileSetFunc(s.BaseDir, immutableResults("fileset", s.FunctionResults))
-		coreFuncs["filebase64"] = funcs.MakeFileFunc(s.BaseDir, true, immutableResults("filebase64", s.FunctionResults))
-		coreFuncs["filebase64sha256"] = funcs.MakeFileBase64Sha256Func(s.BaseDir, immutableResults("filebase64sha256", s.FunctionResults))
-		coreFuncs["filebase64sha512"] = funcs.MakeFileBase64Sha512Func(s.BaseDir, immutableResults("filebase64sha512", s.FunctionResults))
-		coreFuncs["filemd5"] = funcs.MakeFileMd5Func(s.BaseDir, immutableResults("filemd5", s.FunctionResults))
-		coreFuncs["filesha1"] = funcs.MakeFileSha1Func(s.BaseDir, immutableResults("filesha1", s.FunctionResults))
-		coreFuncs["filesha256"] = funcs.MakeFileSha256Func(s.BaseDir, immutableResults("filesha256", s.FunctionResults))
-		coreFuncs["filesha512"] = funcs.MakeFileSha512Func(s.BaseDir, immutableResults("filesha512", s.FunctionResults))
-
-		// Our two template-rendering functions want to be able to call
-		// all of the other functions themselves, but we pass them indirectly
-		// via a callback to avoid chicken/egg problems while initializing
-		// the functions table.
-		funcsFunc := func() (funcs map[string]function.Function, fsFuncs collections.Set[string], templateFuncs collections.Set[string]) {
-			// The templatefile and templatestring functions prevent recursive
-			// calls to themselves and each other by copying this map and
-			// overwriting the relevant entries.
-			return s.funcs, filesystemFunctions, templateFunctions
-		}
-		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, funcsFunc, immutableResults("templatefile", s.FunctionResults))
-		coreFuncs["templatestring"] = funcs.MakeTemplateStringFunc(funcsFunc)
-
-		if s.ConsoleMode {
-			// The type function is only available in terraform console.
-			coreFuncs["type"] = funcs.TypeFunc
-		}
-
-		if !s.ConsoleMode {
-			// The plantimestamp function doesn't make sense in the terraform
-			// console.
-			coreFuncs["plantimestamp"] = funcs.MakeStaticTimestampFunc(s.PlanTimestamp)
-		}
-
-		if s.PureOnly {
-			// Force our few impure functions to return unknown so that we
-			// can defer evaluating them until a later pass.
-			for _, name := range impureFunctions {
-				coreFuncs[name] = function.Unpredictable(coreFuncs[name])
-			}
-		}
-
-		// All of the built-in functions are also available under the "core::"
-		// namespace, to distinguish from the "provider::" and "module::"
-		// namespaces that can serve as external extension points.
-		s.funcs = make(map[string]function.Function)
-		for name, fn := range coreFuncs {
-			fn = funcs.WithDescription(name, fn)
-			s.funcs[name] = fn
-			s.funcs["core::"+name] = fn
-		}
-
-		// We'll also bring in any external functions that the caller provided
-		// when constructing this scope. For now, that's just
-		// provider-contributed functions, under a "provider::NAME::" namespace
-		// where NAME is the local name of the provider in the current module.
-		for providerLocalName, funcs := range s.ExternalFuncs.Provider {
-			for funcName, fn := range funcs {
-				name := fmt.Sprintf("provider::%s::%s", providerLocalName, funcName)
-				s.funcs[name] = fn
-			}
-		}
-	}
-	s.funcsLock.Unlock()
-
-	return s.funcs
+// addCoreFunction adds the given built-in function to the given table of
+// functions, both with and without the "core::" namespace prefix.
+func addCoreFunction(table map[string]function.Function, name string, fn function.Function) {
+	fn = funcs.WithDescription(name, fn)
+	table[name] = fn
+	table["core::"+name] = fn
 }
 
 // TestingFunctions returns the set of functions available to the testing
@@ -352,6 +415,70 @@ func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn funct
 // to conform to the expected function return value conventions.
 type ExternalFuncs struct {
 	Provider map[string]map[string]function.Function
+}
+
+// hasFunctions returns true if there are any external functions.
+func (e ExternalFuncs) hasFunctions() bool {
+	for _, funcs := range e.Provider {
+		if len(funcs) != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// FunctionTables is a concurrency-safe cache of tables of built-in functions,
+// which can be shared between the scopes used for an operation so that each
+// scope doesn't need to build its own table.
+//
+// A table is only shared between scopes whose settings would otherwise result
+// in identical tables. Scopes with external functions use a copy of the
+// shared table.
+type FunctionTables struct {
+	mu     sync.Mutex
+	tables map[functionTableKey]map[string]function.Function
+}
+
+// functionTableKey represents all of the settings of a Scope which affect its
+// table of built-in functions.
+type functionTableKey struct {
+	baseDir         string
+	pureOnly        bool
+	consoleMode     bool
+	forProvider     bool
+	planTimestamp   time.Time
+	functionResults *FunctionResults
+}
+
+func NewFunctionTables() *FunctionTables {
+	return &FunctionTables{
+		tables: make(map[functionTableKey]map[string]function.Function),
+	}
+}
+
+// get returns the table for the given key, calling build to create it if it
+// doesn't exist yet.
+func (t *FunctionTables) get(key functionTableKey, build func() map[string]function.Function) map[string]function.Function {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	table, ok := t.tables[key]
+	if !ok {
+		table = build()
+		t.tables[key] = table
+	}
+	return table
+}
+
+func (s *Scope) functionTableKey() functionTableKey {
+	return functionTableKey{
+		baseDir:         s.BaseDir,
+		pureOnly:        s.PureOnly,
+		consoleMode:     s.ConsoleMode,
+		forProvider:     s.ForProvider,
+		planTimestamp:   s.PlanTimestamp,
+		functionResults: s.FunctionResults,
+	}
 }
 
 // immutableResults is a wrapper for cty function implementations which may

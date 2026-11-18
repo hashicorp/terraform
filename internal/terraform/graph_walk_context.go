@@ -75,6 +75,7 @@ type ContextGraphWalker struct {
 	providerCache      map[string]providers.Interface
 	providerFuncCache  map[string]providers.Interface
 	functionResults    *lang.FunctionResults
+	functionTables     *lang.FunctionTables
 	providerSchemas    map[string]providers.ProviderSchema
 	providerLock       sync.Mutex
 	provisionerCache   map[string]provisioners.Interface
@@ -130,6 +131,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Deferrals:          w.Deferrals,
 		PlanTimestamp:      w.PlanTimestamp,
 		FunctionResults:    w.functionResults,
+		FunctionTables:     w.functionTables,
 	}
 
 	ctx := &BuiltinEvalContext{
