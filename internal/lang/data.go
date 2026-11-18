@@ -38,3 +38,19 @@ type Data interface {
 	GetCheckBlock(addrs.Check, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetRunBlock(addrs.Run, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 }
+
+// ResourceInstanceData is an optional extension of [Data] for implementations
+// which can find the value of a single resource instance without building the
+// value of the entire containing resource. It's used to resolve "self"
+// references, which always refer to a particular resource instance.
+type ResourceInstanceData interface {
+	// GetResourceInstance returns the value of the given resource instance,
+	// which must be equal to the result of indexing the value returned by
+	// GetResource for the containing resource with the instance key, or the
+	// value itself for a resource with no instance key.
+	//
+	// If the value can't be determined directly, or would produce any
+	// diagnostics, the second return value is false and the caller must use
+	// GetResource instead.
+	GetResourceInstance(addrs.ResourceInstance) (cty.Value, bool)
+}

@@ -359,6 +359,15 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			// self can only be used within a resource instance
 			subj := selfAddr.(addrs.ResourceInstance)
 
+			// Self always refers to a single instance, so we'll avoid building
+			// the value of the entire containing resource when possible.
+			if instData, ok := s.Data.(ResourceInstanceData); ok {
+				if val, ok := instData.GetResourceInstance(subj); ok {
+					self = val
+					continue
+				}
+			}
+
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
 			diags = diags.Append(valDiags)
 

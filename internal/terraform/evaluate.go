@@ -1031,6 +1031,111 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	return ret, diags
 }
 
+var _ lang.ResourceInstanceData = (*evaluationStateData)(nil)
+
+// GetResourceInstance implements lang.ResourceInstanceData.
+//
+// This finds the value for a single instance of a managed or data resource
+// in the same way as GetResource, without reading and decoding all of the
+// other instances of the resource. Any situation where the instance's value
+// would depend on its siblings, or would produce diagnostics, is left to
+// GetResource.
+func (d *evaluationStateData) GetResourceInstance(addr addrs.ResourceInstance) (cty.Value, bool) {
+	switch addr.Resource.Mode {
+	case addrs.ManagedResourceMode, addrs.DataResourceMode:
+	default:
+		return cty.NilVal, false
+	}
+
+	switch d.Operation {
+	case walkInit, walkValidate:
+		// These walks don't have values for individual instances.
+		return cty.NilVal, false
+	}
+
+	moduleConfig := d.Evaluator.Config.DescendantForInstance(d.ModulePath)
+	if moduleConfig == nil {
+		return cty.NilVal, false
+	}
+	config := moduleConfig.Module.ResourceByAddr(addr.Resource)
+	if config == nil {
+		return cty.NilVal, false
+	}
+
+	// The instance key must be of the kind used to build the value of the
+	// whole resource, or else the instance isn't part of that value.
+	switch addr.Key.(type) {
+	case addrs.IntKey:
+		if config.Count == nil {
+			return cty.NilVal, false
+		}
+	case addrs.StringKey:
+		if config.ForEach == nil {
+			return cty.NilVal, false
+		}
+	default:
+		if addr.Key != addrs.NoKey || config.Count != nil || config.ForEach != nil {
+			return cty.NilVal, false
+		}
+	}
+
+	resAddr := addr.Resource.Absolute(d.ModulePath)
+	if d.Operation == walkPlan || d.Operation == walkApply {
+		if !d.Evaluator.Instances.ResourceInstanceExpanded(resAddr) {
+			return cty.NilVal, false
+		}
+		if _, _, hasUnknownKeys := d.Evaluator.Instances.ResourceInstanceKeys(resAddr); hasUnknownKeys {
+			return cty.NilVal, false
+		}
+	}
+
+	schema := d.getResourceSchema(addr.Resource, config.Provider)
+	if schema.Body == nil {
+		return cty.NilVal, false
+	}
+	ty := schema.Body.ImpliedType()
+	instAddr := addr.Absolute(d.ModulePath)
+
+	markDeprecated := func(val cty.Value) (cty.Value, bool) {
+		return deprecation.MarkDeprecatedValues(val, schema.Body, instAddr.String()), true
+	}
+
+	// A deferred instance overrides anything that might be in the state.
+	if val, ok := d.Evaluator.Deferrals.GetDeferredResourceInstances(resAddr)[addr.Key]; ok {
+		return markDeprecated(val)
+	}
+
+	is := d.Evaluator.State.ResourceInstance(instAddr)
+	if is == nil {
+		// Whether a missing instance is unknown or absent depends on the
+		// expansion and on any planned changes.
+		return cty.NilVal, false
+	}
+	if is.Current == nil {
+		// Assume we're dealing with an instance that hasn't been created yet.
+		return markDeprecated(cty.UnknownVal(ty))
+	}
+
+	change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, addrs.NotDeposed)
+	if change != nil && change.Action == plans.Delete && d.Operation != walkDestroy {
+		// Instances pending deletion are excluded from the resource's value.
+		return cty.NilVal, false
+	}
+
+	if is.Current.Status == states.ObjectPlanned {
+		if change == nil {
+			return cty.NilVal, false
+		}
+		return markDeprecated(change.After)
+	}
+
+	ios, err := is.Current.Decode(schema)
+	if err != nil {
+		return cty.NilVal, false
+	}
+	return markDeprecated(ios.Value)
+}
+
 func (d *evaluationStateData) getListResource(config *configs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	switch d.Operation {

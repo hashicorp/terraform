@@ -568,6 +568,199 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	}
 }
 
+// TestEvaluatorGetResourceInstance checks that GetResourceInstance returns
+// the same value as indexing the value returned by GetResource, and declines
+// to return a value whenever that would depend on the other instances.
+func TestEvaluatorGetResourceInstance(t *testing.T) {
+	providerAddr := addrs.AbsProviderConfig{
+		Provider: addrs.NewDefaultProvider("test"),
+		Module:   addrs.RootModule,
+	}
+	resource := func(name string) addrs.Resource {
+		return addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: name,
+		}
+	}
+	instAddr := func(name string, key addrs.InstanceKey) addrs.AbsResourceInstance {
+		return resource(name).Instance(key).Absolute(addrs.RootModuleInstance)
+	}
+	ready := func(id string) *states.ResourceInstanceObjectSrc {
+		return &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(fmt.Sprintf(`{"id":%q,"secret":"shh","old":"x"}`, id)),
+		}
+	}
+	planned := &states.ResourceInstanceObjectSrc{
+		Status:    states.ObjectPlanned,
+		AttrsJSON: []byte(`{"id":"planned","secret":"shh","old":"x"}`),
+	}
+
+	stateSync := states.BuildState(func(ss *states.SyncState) {
+		ss.SetResourceInstanceCurrent(instAddr("c", addrs.IntKey(0)), ready("c0"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("c", addrs.IntKey(1)), planned, providerAddr)
+		ss.SetResourceInstanceDeposed(instAddr("c", addrs.IntKey(2)), states.NewDeposedKey(), ready("c2-deposed"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("c", addrs.IntKey(3)), ready("c3"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("c", addrs.IntKey(4)), planned, providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("a")), ready("fa"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("f", addrs.StringKey("b")), ready("fb"), providerAddr)
+		ss.SetResourceInstanceCurrent(instAddr("s", addrs.NoKey), ready("s"), providerAddr)
+	}).SyncWrapper()
+
+	objTy := cty.Object(map[string]cty.Type{
+		"id":     cty.String,
+		"secret": cty.String,
+		"old":    cty.String,
+	})
+	changesSync := plans.NewChanges().SyncWrapper()
+	changesSync.AppendResourceInstanceChange(&plans.ResourceInstanceChange{
+		Addr:         instAddr("c", addrs.IntKey(1)),
+		PrevRunAddr:  instAddr("c", addrs.IntKey(1)),
+		ProviderAddr: providerAddr,
+		Change: plans.Change{
+			Action: plans.Update,
+			Before: cty.NullVal(objTy),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.StringVal("c1"),
+				"secret": cty.StringVal("new").Mark(marks.Sensitive),
+				"old":    cty.UnknownVal(cty.String),
+			}),
+		},
+	})
+	changesSync.AppendResourceInstanceChange(&plans.ResourceInstanceChange{
+		Addr:         instAddr("c", addrs.IntKey(3)),
+		PrevRunAddr:  instAddr("c", addrs.IntKey(3)),
+		ProviderAddr: providerAddr,
+		Change: plans.Change{
+			Action: plans.Delete,
+			Before: cty.NullVal(objTy),
+			After:  cty.NullVal(objTy),
+		},
+	})
+
+	schemas := &Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): {
+				ResourceTypes: map[string]providers.Schema{
+					"test_resource": {
+						Body: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id":     {Type: cty.String, Computed: true},
+								"secret": {Type: cty.String, Optional: true, Sensitive: true},
+								"old":    {Type: cty.String, Optional: true, Deprecated: true},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resourceConfig := func(name string) *configs.Resource {
+		return &configs.Resource{
+			Mode:     addrs.ManagedResourceMode,
+			Type:     "test_resource",
+			Name:     name,
+			Provider: addrs.NewDefaultProvider("test"),
+		}
+	}
+	countConfig := resourceConfig("c")
+	countConfig.Count = hcltest.MockExprLiteral(cty.NumberIntVal(5))
+	forEachConfig := resourceConfig("f")
+	forEachConfig.ForEach = hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+		"a": cty.StringVal("a"),
+		"b": cty.StringVal("b"),
+	}))
+
+	evaluator := &Evaluator{
+		Meta:      &ContextMeta{Env: "foo"},
+		Operation: walkPlan,
+		Config: &configs.Config{
+			Module: &configs.Module{
+				ManagedResources: map[string]*configs.Resource{
+					"test_resource.c": countConfig,
+					"test_resource.f": forEachConfig,
+					"test_resource.s": resourceConfig("s"),
+				},
+			},
+		},
+		State:       stateSync,
+		Changes:     changesSync,
+		Instances:   instances.NewExpander(nil),
+		NamedValues: namedvals.NewState(),
+		Deferrals:   deferring.NewDeferred(false),
+		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
+	}
+	evaluator.Instances.SetResourceCount(addrs.RootModuleInstance, resource("c"), 5)
+	evaluator.Instances.SetResourceForEach(addrs.RootModuleInstance, resource("f"), map[string]cty.Value{
+		"a": cty.StringVal("a"),
+		"b": cty.StringVal("b"),
+	})
+	evaluator.Instances.SetResourceSingle(addrs.RootModuleInstance, resource("s"))
+
+	data := &evaluationStateData{
+		evaluationData: &evaluationData{
+			Evaluator: evaluator,
+		},
+		ModulePath: addrs.RootModuleInstance,
+		Operation:  walkPlan,
+	}
+
+	tests := []struct {
+		addr   addrs.ResourceInstance
+		wantOk bool
+	}{
+		{resource("c").Instance(addrs.IntKey(0)), true},
+		// planned, with the value taken from the change
+		{resource("c").Instance(addrs.IntKey(1)), true},
+		// no current object, so the value is unknown
+		{resource("c").Instance(addrs.IntKey(2)), true},
+		// pending deletion, so excluded from the resource's value
+		{resource("c").Instance(addrs.IntKey(3)), false},
+		// planned, but with no recorded change
+		{resource("c").Instance(addrs.IntKey(4)), false},
+		// not in the state at all
+		{resource("c").Instance(addrs.IntKey(5)), false},
+		// wrong kind of key for the resource
+		{resource("c").Instance(addrs.StringKey("a")), false},
+		{resource("f").Instance(addrs.StringKey("a")), true},
+		{resource("f").Instance(addrs.StringKey("b")), true},
+		{resource("f").Instance(addrs.StringKey("c")), false},
+		{resource("s").Instance(addrs.NoKey), true},
+		{resource("s").Instance(addrs.IntKey(0)), false},
+		// undeclared
+		{resource("missing").Instance(addrs.NoKey), false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.addr.String(), func(t *testing.T) {
+			got, ok := data.GetResourceInstance(test.addr)
+			if ok != test.wantOk {
+				t.Fatalf("wrong ok result %t, want %t", ok, test.wantOk)
+			}
+			if !ok {
+				return
+			}
+
+			all, diags := data.GetResource(test.addr.Resource, tfdiags.SourceRange{})
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			want := all
+			switch key := test.addr.Key.(type) {
+			case addrs.IntKey:
+				want = all.Index(cty.NumberIntVal(int64(key)))
+			case addrs.StringKey:
+				want = all.GetAttr(string(key))
+			}
+			if !got.RawEquals(want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+			}
+		})
+	}
+}
+
 func TestEvaluatorGetModule(t *testing.T) {
 	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper(), nil, nil)
 	evaluator.Instances.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"})
