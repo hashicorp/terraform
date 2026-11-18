@@ -23,6 +23,26 @@ func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext, allowUnknow
 	return newForEachEvaluator(expr, ctx, allowUnknown).ResourceValue()
 }
 
+// resourceInstanceRepetitionData returns the count.index, each.key, and
+// each.value values for the given resource instance, where forEachExpr is
+// the resource's for_each expression, if any.
+//
+// When the resource's expansion has already been registered with a known set
+// of instances including this one, the result is the data recorded during
+// expansion, because evaluating the for_each expression again for each
+// instance would make the total cost of expansion quadratic in the number of
+// instances. Otherwise the for_each expression is evaluated again.
+func resourceInstanceRepetitionData(ctx EvalContext, addr addrs.AbsResourceInstance, forEachExpr hcl.Expression) (instances.RepetitionData, tfdiags.Diagnostics) {
+	if expander := ctx.InstanceExpander(); expander != nil {
+		if data, ok := expander.KnownResourceInstanceRepetitionData(addr); ok {
+			return data, nil
+		}
+	}
+
+	forEach, _, diags := evaluateForEachExpression(forEachExpr, ctx, false)
+	return EvalDataForInstanceKey(addr.Resource.Key, forEach), diags
+}
+
 // forEachEvaluator is the standard mechanism for interpreting an expression
 // given for a "for_each" argument on a resource, module, or import.
 func newForEachEvaluator(expr hcl.Expression, ctx EvalContext, allowUnknown bool) *forEachEvaluator {

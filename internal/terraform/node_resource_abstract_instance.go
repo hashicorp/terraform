@@ -1897,8 +1897,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	objTy := schema.Body.ImpliedType()
 	priorVal := cty.NullVal(objTy)
 
-	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
-	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+	keyData, _ = resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), config.ForEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -2229,8 +2228,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
-	keyData = EvalDataForInstanceKey(n.Addr.Resource.Key, forEach)
+	keyData, _ = resourceInstanceRepetitionData(ctx, n.Addr, config.ForEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -2565,10 +2563,8 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	forEach, _, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx, false)
+	keyData, forEachDiags := resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), n.Config.ForEach)
 	diags = diags.Append(forEachDiags)
-
-	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	config, _, configDiags := ctx.EvaluateBlock(body, schema, n.ResourceInstanceAddr().Resource, keyData)
 	diags = diags.Append(configDiags)

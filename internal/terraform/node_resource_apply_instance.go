@@ -8,7 +8,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -219,14 +218,14 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Get the saved diff
 	diff := ctx.Changes().GetResourceInstanceChange(n.Addr, addrs.NotDeposed)
 
-	var forEach map[string]cty.Value
+	var repData InstanceKeyEvalData
 	if n.Config != nil {
 		// these diagnostics would be caught earlier, and adding them here only
 		// causes duplicates
-		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+		repData, _ = resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), n.Config.ForEach)
+	} else {
+		repData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil)
 	}
-
-	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.

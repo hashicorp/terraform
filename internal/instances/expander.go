@@ -448,6 +448,38 @@ func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInsta
 	return exp.repetitionData(addr.Resource.Key)
 }
 
+// KnownResourceInstanceRepetitionData is like GetResourceInstanceRepetitionData,
+// except that it returns false rather than unknown data or panicking when the
+// expansion of the containing resource or any of its ancestor modules hasn't
+// been registered or isn't known, or when the known instances don't include
+// the given instance.
+//
+// When this returns true, the result is the repetition data recorded when the
+// resource was expanded, which callers can use instead of evaluating the
+// resource's count or for_each expression again.
+func (e *Expander) KnownResourceInstanceRepetitionData(addr addrs.AbsResourceInstance) (RepetitionData, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	mod := e.exps
+	for _, step := range addr.Module {
+		if expansionIsDeferred(mod.moduleCalls[addrs.ModuleCall{Name: step.Name}]) {
+			return RepetitionData{}, false
+		}
+		next, ok := mod.childInstances[step]
+		if !ok {
+			return RepetitionData{}, false
+		}
+		mod = next
+	}
+
+	exp, ok := mod.resources[addr.Resource.Resource]
+	if !ok || !expansionHasInstanceKey(exp, addr.Resource.Key) {
+		return RepetitionData{}, false
+	}
+	return exp.repetitionData(addr.Resource.Key), true
+}
+
 // ResourceInstanceKeys determines the child instance keys for one specific
 // instance of a resource.
 //

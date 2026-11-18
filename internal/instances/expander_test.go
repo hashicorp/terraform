@@ -881,3 +881,60 @@ func valueEquals(a, b cty.Value) bool {
 	}
 	return a.RawEquals(b)
 }
+
+func TestExpanderKnownResourceInstanceRepetitionData(t *testing.T) {
+	resource := func(name string) addrs.Resource {
+		return addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: name,
+		}
+	}
+	root := addrs.RootModuleInstance
+	child := root.Child("child", addrs.NoKey)
+	unknownMod := root.Child("unknown", addrs.IntKey(0))
+
+	expander := NewExpander(nil)
+	expander.SetResourceSingle(root, resource("single"))
+	expander.SetResourceCount(root, resource("count"), 2)
+	expander.SetResourceForEach(root, resource("for_each"), map[string]cty.Value{
+		"a": cty.StringVal("value_a"),
+	})
+	expander.SetResourceCountUnknown(root, resource("unknown"))
+	expander.SetModuleSingle(root, addrs.ModuleCall{Name: "child"})
+	expander.SetResourceCount(child, resource("count"), 1)
+	expander.SetModuleCountUnknown(root, addrs.ModuleCall{Name: "unknown"})
+
+	tests := []struct {
+		addr   addrs.AbsResourceInstance
+		want   RepetitionData
+		wantOk bool
+	}{
+		{resource("single").Instance(addrs.NoKey).Absolute(root), RepetitionData{}, true},
+		{resource("single").Instance(addrs.IntKey(0)).Absolute(root), RepetitionData{}, false},
+		{resource("count").Instance(addrs.IntKey(1)).Absolute(root), RepetitionData{CountIndex: cty.NumberIntVal(1)}, true},
+		{resource("count").Instance(addrs.IntKey(2)).Absolute(root), RepetitionData{}, false},
+		{resource("count").Instance(addrs.StringKey("a")).Absolute(root), RepetitionData{}, false},
+		{resource("count").Instance(addrs.NoKey).Absolute(root), RepetitionData{}, false},
+		{resource("for_each").Instance(addrs.StringKey("a")).Absolute(root), RepetitionData{EachKey: cty.StringVal("a"), EachValue: cty.StringVal("value_a")}, true},
+		{resource("for_each").Instance(addrs.StringKey("b")).Absolute(root), RepetitionData{}, false},
+		{resource("for_each").Instance(addrs.IntKey(0)).Absolute(root), RepetitionData{}, false},
+		{resource("unknown").Instance(addrs.IntKey(0)).Absolute(root), RepetitionData{}, false},
+		{resource("unregistered").Instance(addrs.NoKey).Absolute(root), RepetitionData{}, false},
+		{resource("count").Instance(addrs.IntKey(0)).Absolute(child), RepetitionData{CountIndex: cty.NumberIntVal(0)}, true},
+		{resource("count").Instance(addrs.IntKey(0)).Absolute(unknownMod), RepetitionData{}, false},
+		{resource("count").Instance(addrs.IntKey(0)).Absolute(root.Child("unregistered", addrs.NoKey)), RepetitionData{}, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.addr.String(), func(t *testing.T) {
+			got, ok := expander.KnownResourceInstanceRepetitionData(test.addr)
+			if ok != test.wantOk {
+				t.Fatalf("wrong ok result %t, want %t", ok, test.wantOk)
+			}
+			if diff := cmp.Diff(test.want, got, ctydebug.CmpOptions); diff != "" {
+				t.Errorf("wrong result\n%s", diff)
+			}
+		})
+	}
+}
