@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -991,6 +992,53 @@ func TestImport_targetIsModule(t *testing.T) {
 	msg := ui.ErrorWriter.String()
 	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+func TestImport_badArgs(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-implicit"), td)
+	t.Chdir(td)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := testUiWrapped(t)
+	view, _ := testView(t)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-foobar",
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	want := fmt.Sprintf(`
+Error: Failed to parse command-line flags
+
+flag provided but not defined: -foobar
+
+
+Error: Wrong number of arguments
+
+The import command expects two arguments: ADDR and ID.
+
+%s
+`, c.Help())
+	if diff := cmp.Diff(msg, want); diff != "" {
+		t.Errorf("incorrect message, diff:\n%s", diff)
 	}
 }
 
