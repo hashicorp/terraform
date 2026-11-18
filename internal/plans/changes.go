@@ -38,6 +38,9 @@ type Changes struct {
 	// externally-visible, while other outputs are implementation details and
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
+	//
+	// Changes removed through a ChangesSync may leave nil entries in this
+	// slice, which must be skipped by readers.
 	Outputs []*OutputChange
 }
 
@@ -116,6 +119,9 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	}
 
 	for _, ocs := range c.Outputs {
+		if ocs == nil {
+			continue
+		}
 		oc, err := ocs.Encode()
 		if err != nil {
 			return changesSrc, err
@@ -201,7 +207,7 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 //	given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChange {
 	for _, oc := range c.Outputs {
-		if oc.Addr.Equal(addr) {
+		if oc != nil && oc.Addr.Equal(addr) {
 			return oc
 		}
 	}
@@ -215,7 +221,7 @@ func (c *Changes) RootOutputValues() []*OutputChange {
 
 	for _, oc := range c.Outputs {
 		// we can't evaluate root module outputs
-		if !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+		if oc == nil || !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
 			continue
 		}
 
@@ -234,7 +240,7 @@ func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleC
 
 	for _, oc := range c.Outputs {
 		// we can't evaluate root module outputs
-		if oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+		if oc == nil || oc.Addr.Module.Equal(addrs.RootModuleInstance) {
 			continue
 		}
 

@@ -5,6 +5,7 @@ package plans
 
 import (
 	"iter"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -17,14 +18,32 @@ import (
 // Each ChangesSync is independent of all others, so all concurrent writers
 // to a particular Changes must share a single ChangesSync. Behavior is
 // undefined if any other caller makes changes to the underlying Changes
-// object or its nested objects concurrently with any of the methods of a
-// particular ChangesSync.
+// object or its nested objects while a particular ChangesSync is in use.
 // Once the object is closed, it is no longer writable and any further
 // modifications will panic.
+//
+// Output changes removed through a ChangesSync leave nil entries in the
+// Outputs slice of the underlying Changes, which are compacted periodically
+// and when the ChangesSync is closed.
 type ChangesSync struct {
 	lock    sync.Mutex
 	changes *Changes
 	closed  atomic.Bool
+
+	// outputIndex maps the address of each output change in changes.Outputs
+	// to its position, so that output changes can be found without scanning
+	// all of them. It is built on first use, because the wrapped Changes may
+	// already contain output changes, and is reset to nil whenever it needs
+	// to be rebuilt.
+	outputIndex map[string]int
+
+	// outputHoles counts the nil entries left in changes.Outputs by removals.
+	outputHoles int
+
+	// outputDuplicates records that changes.Outputs contains more than one
+	// change for the same address, in which case outputIndex refers to the
+	// first of them.
+	outputDuplicates bool
 }
 
 // AppendResourceInstanceChange records the given resource instance change in
@@ -179,6 +198,13 @@ func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChange) {
 	}
 	defer cs.beginWrite()()
 
+	index := cs.outputChangeIndex()
+	key := changeSrc.Addr.String()
+	if _, exists := index[key]; exists {
+		cs.outputDuplicates = true
+	} else {
+		index[key] = len(cs.changes.Outputs)
+	}
 	cs.changes.Outputs = append(cs.changes.Outputs, changeSrc)
 }
 
@@ -197,7 +223,11 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChange 
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	return cs.changes.OutputValue(addr)
+	i, ok := cs.outputChangeIndex()[addr.String()]
+	if !ok {
+		return nil
+	}
+	return cs.changes.Outputs[i]
 }
 
 // GetRootOutputChanges searches the set of output changes for any that reside
@@ -241,16 +271,67 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	}
 	defer cs.beginWrite()()
 
-	addrStr := addr.String()
-
-	for i, o := range cs.changes.Outputs {
-		if o.Addr.String() != addrStr {
-			continue
-		}
-		copy(cs.changes.Outputs[i:], cs.changes.Outputs[i+1:])
-		cs.changes.Outputs = cs.changes.Outputs[:len(cs.changes.Outputs)-1]
+	index := cs.outputChangeIndex()
+	key := addr.String()
+	i, ok := index[key]
+	if !ok {
 		return
 	}
+
+	// Rather than shifting all of the following changes, we leave a hole
+	// which preserves the positions of the others.
+	cs.changes.Outputs[i] = nil
+	delete(index, key)
+	cs.outputHoles++
+
+	switch {
+	case cs.outputDuplicates:
+		// Another change for the same address may now be the first one, so
+		// the index must be rebuilt to find it.
+		cs.outputIndex = nil
+	case cs.outputHoles > len(cs.changes.Outputs)/2:
+		cs.compactOutputChanges()
+	}
+}
+
+// outputChangeIndex returns the index of output changes by address, building
+// it first if necessary. The caller must hold the lock.
+func (cs *ChangesSync) outputChangeIndex() map[string]int {
+	if cs.outputIndex != nil {
+		return cs.outputIndex
+	}
+
+	cs.outputIndex = make(map[string]int, len(cs.changes.Outputs))
+	cs.outputHoles = 0
+	cs.outputDuplicates = false
+	for i, oc := range cs.changes.Outputs {
+		if oc == nil {
+			cs.outputHoles++
+			continue
+		}
+		key := oc.Addr.String()
+		if _, exists := cs.outputIndex[key]; exists {
+			cs.outputDuplicates = true
+			continue
+		}
+		cs.outputIndex[key] = i
+	}
+	return cs.outputIndex
+}
+
+// compactOutputChanges removes the holes left in the output changes by
+// removals, preserving the order of the remaining changes. The caller must
+// hold the lock.
+func (cs *ChangesSync) compactOutputChanges() {
+	if cs.outputHoles == 0 {
+		return
+	}
+	cs.changes.Outputs = slices.DeleteFunc(cs.changes.Outputs, func(oc *OutputChange) bool {
+		return oc == nil
+	})
+	// The positions have changed, so the index must be rebuilt.
+	cs.outputIndex = nil
+	cs.outputHoles = 0
 }
 
 // GetActionInvocation gets an action invocation based on the action address, the triggering
@@ -305,6 +386,7 @@ func (cs *ChangesSync) RemoveActionInvocation(addr addrs.AbsActionInstance) {
 func (cs *ChangesSync) Close() {
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
+	cs.compactOutputChanges()
 	cs.closed.Store(true) // only reading is allowed after close
 }
 
