@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -36,7 +37,9 @@ func (c *StateShowCommand) Run(args []string) int {
 	parsedArgs, diags := arguments.ParseStateShow(args)
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
-		c.View.HelpPrompt("state show")
+		if parsedArgs.ViewType == arguments.ViewHuman {
+			return cli.RunResultHelp // help text, exit code 1
+		}
 		return 1
 	}
 
