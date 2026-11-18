@@ -14,6 +14,8 @@ import (
 type WorkspaceShow interface {
 	Show(workspace string, diags tfdiags.Diagnostics)
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceShow(viewType arguments.ViewType, view *View) WorkspaceShow {
@@ -28,6 +30,8 @@ func NewWorkspaceShow(viewType arguments.ViewType, view *View) WorkspaceShow {
 // The WorkspaceShowHuman implementation renders human-readable output.
 type WorkspaceShowHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceShow = (*WorkspaceShowHuman)(nil)
