@@ -21,6 +21,8 @@ type WorkspaceNew interface {
 	LogWorkspaceCreationFromStateFailure(workspaceName string, diags tfdiags.Diagnostics)
 
 	Diagnostics(diags tfdiags.Diagnostics)
+
+	CommandHelper
 }
 
 func NewWorkspaceNew(viewType arguments.ViewType, view *View) WorkspaceNew {
@@ -37,6 +39,8 @@ func NewWorkspaceNew(viewType arguments.ViewType, view *View) WorkspaceNew {
 // The WorkspaceNewHuman implementation renders human-readable logs, suitable for direct consumption by a human user.
 type WorkspaceNewHuman struct {
 	view *View
+
+	HelpHuman
 }
 
 var _ WorkspaceNew = (*WorkspaceNewHuman)(nil)
