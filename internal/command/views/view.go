@@ -214,6 +214,11 @@ For more help on using this command, run:
   terraform %s -help
 `
 
+// FullHelpText prints the full help text for the given command.
+func (v *View) FullHelpText(text string) {
+	v.streams.Eprint(text)
+}
+
 // wrapToStdout will word-wrap the given message to the output column width of stdout.
 func (v *View) wrapToStdout(msg string) string {
 	return format.WordWrap(msg, v.outputColumns())
