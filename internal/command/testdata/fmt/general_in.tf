@@ -50,4 +50,8 @@ locals {
   wrapped = "${(var.my_var == null ? 1 :
     var.your_var == null ? 2 :
   3)}"
+  multiline = "${(var.env == "prod") ? "app" :
+    lookup(var.names, var.env)}"
+  parens = "${((var.env == "prod") ? "app" :
+    lookup(var.names, var.env))}"
 }
