@@ -17,6 +17,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -454,7 +457,8 @@ func TestQueryCommand_Validate(t *testing.T) {
 
 type queryPolicyRemoteCommandBackend struct {
 	backendrun.OperationsBackend
-	local bool
+	local       bool
+	entitlement *policy.Entitlement
 }
 
 func (*queryPolicyRemoteCommandBackend) IgnoreVersionConflict() {}
@@ -465,6 +469,10 @@ func (*queryPolicyRemoteCommandBackend) VerifyWorkspaceTerraformVersion(string) 
 
 func (b *queryPolicyRemoteCommandBackend) IsLocalOperations() bool {
 	return b.local
+}
+
+func (b *queryPolicyRemoteCommandBackend) PolicyEntitlement() *policy.Entitlement {
+	return b.entitlement
 }
 
 func TestQueryCommand_policyClientRouting(t *testing.T) {
@@ -491,8 +499,11 @@ func TestQueryCommand_policyClientRouting(t *testing.T) {
 				testingOverrides: &testingOverrides{PolicyClient: client},
 			}}
 			op := &backendrun.Operation{PolicyPaths: tc.policyPaths}
-			stop := cmd.configureQueryPolicyClient(be, op)
+			stop, ok := cmd.configureQueryPolicyClient(be, op)
 			stop()
+			if !ok {
+				t.Fatal("unexpected policy setup failure")
+			}
 			if tc.wantClient {
 				if op.PolicyClient != client {
 					t.Fatal("policy client was not propagated to the operation")
@@ -505,6 +516,56 @@ func TestQueryCommand_policyClientRouting(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestQueryCommand_policyEntitlementFallback(t *testing.T) {
+	const host = "example.com"
+	t.Setenv(queryPolicyEntitlementHostEnv, host)
+	t.Setenv(queryPolicyEntitlementOrgEnv, "example-org")
+	cmd := &QueryCommand{Meta: Meta{Services: disco.NewWithCredentialsSource(auth.StaticCredentialsSource(
+		map[svchost.Hostname]map[string]any{host: {"token": "test-token"}},
+	))}}
+	local := backendLocal.New()
+
+	ent, fromEnv, err := cmd.queryPolicyEntitlement(local)
+	want := &policy.Entitlement{Host: host, Org: "example-org", Token: "test-token", EvaluationStage: policy.PlanEvaluationStage}
+	if err != nil || !fromEnv || !cmp.Equal(ent, want) {
+		t.Fatalf("expected host-scoped entitlement from the environment, got fromEnv=%t, err=%v", fromEnv, err)
+	}
+
+	remote := &queryPolicyRemoteCommandBackend{OperationsBackend: local, local: true}
+	if ent, fromEnv, err := cmd.queryPolicyEntitlement(remote); ent != nil || fromEnv || err != nil {
+		t.Fatal("remote backend executing locally must not use the fallback")
+	}
+	remote.entitlement = &policy.Entitlement{Host: "remote.example.com", Org: "remote-org", Token: "remote-token"}
+	if ent, fromEnv, err := cmd.queryPolicyEntitlement(remote); ent != remote.entitlement || fromEnv || err != nil {
+		t.Fatal("configured backend entitlement must take precedence over the environment")
+	}
+
+	t.Run("partial context fails", func(t *testing.T) {
+		t.Setenv(queryPolicyEntitlementOrgEnv, "")
+		stop, ok := cmd.configureQueryPolicyClient(local, &backendrun.Operation{PolicyPaths: []string{"policy"}})
+		defer stop()
+		if ok {
+			t.Fatal("query with an incomplete entitlement must not proceed")
+		}
+	})
+
+	t.Run("different host has no credentials", func(t *testing.T) {
+		t.Setenv(queryPolicyEntitlementHostEnv, "other.example.com")
+		if _, _, err := cmd.queryPolicyEntitlement(local); err == nil {
+			t.Fatal("expected missing credentials for the selected host")
+		}
+	})
+
+	t.Run("plugin setup failure stops the query", func(t *testing.T) {
+		t.Setenv(policy.TerraformPolicyPluginEnvVar, filepath.Join(t.TempDir(), "missing-plugin"))
+		stop, ok := cmd.configureQueryPolicyClient(local, &backendrun.Operation{PolicyPaths: []string{"policy"}})
+		defer stop()
+		if ok {
+			t.Fatal("query must not proceed without the requested policy client")
+		}
+	})
 }
 
 func queryFixtureProvider() *testing_provider.MockProvider {

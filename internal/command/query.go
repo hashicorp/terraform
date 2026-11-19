@@ -5,9 +5,12 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/policy"
@@ -17,6 +20,11 @@ import (
 type QueryCommand struct {
 	Meta
 }
+
+const (
+	queryPolicyEntitlementHostEnv = "TF_POLICY_ENTITLEMENT_HOST"
+	queryPolicyEntitlementOrgEnv  = "TF_POLICY_ENTITLEMENT_ORG"
+)
 
 func (c *QueryCommand) Help() string {
 	helpText := `
@@ -150,8 +158,12 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	stopPolicyClient := c.configureQueryPolicyClient(be, opReq)
+	stopPolicyClient, policySetupOK := c.configureQueryPolicyClient(be, opReq)
 	defer stopPolicyClient()
+	if !policySetupOK {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Assign config loader and variables to the operation request
 	opReq.ConfigLoader = loader
@@ -181,20 +193,68 @@ func (c *QueryCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBackend, opReq *backendrun.Operation) func() {
+func (c *QueryCommand) configureQueryPolicyClient(be backendrun.OperationsBackend, opReq *backendrun.Operation) (stop func(), ok bool) {
 	remote, isRemoteBackend := be.(BackendWithRemoteTerraformVersion)
 	// Remote execution forwards policy paths to the server; only local
 	// execution needs an in-process policy client.
 	if len(opReq.PolicyPaths) == 0 || (isRemoteBackend && !remote.IsLocalOperations()) {
-		return func() {}
+		return func() {}, true
 	}
 
-	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, backendPolicyEntitlement(be, policy.PlanEvaluationStage))
+	entitlement, fromEnv, err := c.queryPolicyEntitlement(be)
+	if err != nil {
+		if opReq.View != nil {
+			opReq.View.PolicyDiagnostics(policy.Diagnostics{policy.NewErrorDiagnostic(
+				"Failed to configure query policy entitlement", err.Error(), policy.SetupErrorResult,
+			)})
+		}
+		return func() {}, false
+	}
+	client, policyDiags, stopClient := c.PolicyClient(c.CommandContext(), opReq.PolicyPaths, entitlement)
 	if opReq.View != nil && policyDiags != nil {
 		opReq.View.PolicyDiagnostics(policyDiags)
 	}
 	opReq.PolicyClient = client
-	return stopClient
+	// An explicit entitlement request must not silently run without policy.
+	return stopClient, !fromEnv || (client != nil && !policyDiags.HasErrors())
+}
+
+func (c *QueryCommand) queryPolicyEntitlement(be backendrun.OperationsBackend) (entitlement *policy.Entitlement, fromEnv bool, err error) {
+	if entitlement := backendPolicyEntitlement(be, policy.PlanEvaluationStage); entitlement != nil {
+		return entitlement, false, nil
+	}
+	// Local execution can wrap a remote state backend. Only standalone local
+	// storage is eligible for entitlement independent of the backend.
+	local, ok := be.(*backendLocal.Local)
+	if !ok || local.Backend != nil {
+		return nil, false, nil
+	}
+
+	host, hasHost := os.LookupEnv(queryPolicyEntitlementHostEnv)
+	org, hasOrg := os.LookupEnv(queryPolicyEntitlementOrgEnv)
+	if !hasHost && !hasOrg {
+		return nil, false, nil
+	}
+	if strings.TrimSpace(host) == "" || strings.TrimSpace(org) == "" {
+		return nil, false, fmt.Errorf("%s and %s must both be set to non-empty values", queryPolicyEntitlementHostEnv, queryPolicyEntitlementOrgEnv)
+	}
+	hostname, err := svchost.ForComparison(host)
+	if err != nil {
+		return nil, false, fmt.Errorf("%s must be a valid hostname", queryPolicyEntitlementHostEnv)
+	}
+	if c.Services == nil {
+		return nil, false, fmt.Errorf("Terraform CLI credentials are unavailable")
+	}
+	creds, err := c.Services.CredentialsForHost(hostname)
+	if err != nil || creds == nil || creds.Token() == "" {
+		return nil, false, fmt.Errorf("could not resolve Terraform CLI credentials for the policy entitlement host %q", hostname.ForDisplay())
+	}
+	return &policy.Entitlement{
+		Host:            string(hostname),
+		Org:             org,
+		Token:           creds.Token(),
+		EvaluationStage: policy.PlanEvaluationStage,
+	}, true, nil
 }
 
 func (c *QueryCommand) Validate(args *arguments.Query) (diags tfdiags.Diagnostics) {
