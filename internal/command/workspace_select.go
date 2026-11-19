@@ -38,9 +38,7 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		if args.ViewType == arguments.ViewHuman {
-			view.FullHelpText(c.Help())
-		}
+		view.FullHelpText(c.Help())
 		return 1
 	}
 

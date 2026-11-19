@@ -45,9 +45,7 @@ func (c *WorkspaceNewCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		if args.ViewType == arguments.ViewHuman {
-			view.HelpPrompt("workspace new")
-		}
+		view.HelpPrompt("workspace new")
 		return 1
 	}
 
