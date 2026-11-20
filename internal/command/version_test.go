@@ -183,9 +183,9 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 			"-no-color",
 			"-foobar",
 		}
-		if code := c.Run(args); code != 1 {
+		if code := c.Run(args); code != cli.RunResultHelp {
 			output := done(t)
-			t.Fatalf("expected code 1 and error output, but got code %d:\nstdout: %s\nstderr: %s", code, output.Stdout(), output.Stderr())
+			t.Fatalf("expected code %d and error output, but got code %d:\nstdout: %s\nstderr: %s", cli.RunResultHelp, code, output.Stdout(), output.Stderr())
 		}
 
 		output := done(t)
@@ -195,6 +195,7 @@ func TestVersion_unexpectedArgsOrFlags(t *testing.T) {
 			t.Fatalf("wrong stdout output\ngot: %#v\nwant: %#v", actual, expected)
 		}
 
+		// Note - help text is rendered by the CLI, which isn't testable here.
 		actual = strings.TrimSpace(output.Stderr())
 		expected = `Error: Failed to parse command-line flags
 
@@ -213,8 +214,8 @@ flag provided but not defined: -foobar`
 			"-json",
 			"-foobar",
 		}
-		if code := c.Run(args); code != 1 {
-			t.Fatalf("expected code 1 and error output, but got code %d:\nstdout: %s\nstderr: %s", code, done(t).Stdout(), done(t).Stderr())
+		if code := c.Run(args); code != cli.RunResultHelp {
+			t.Fatalf("expected code %d and error output, but got code %d:\nstdout: %s\nstderr: %s", cli.RunResultHelp, code, done(t).Stdout(), done(t).Stderr())
 		}
 
 		output = done(t)
