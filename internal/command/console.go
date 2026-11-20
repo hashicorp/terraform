@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
@@ -46,7 +48,7 @@ func (c *ConsoleCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return 1
+		return cli.RunResultHelp
 	}
 
 	// Copy parsed flags back to Meta
