@@ -161,7 +161,7 @@ func onlySelfRefs(body hcl.Body) hcl.Diagnostics {
 		for _, v := range attr.Expr.Variables() {
 			valid := false
 			switch v.RootName() {
-			case "self", "path", "terraform":
+			case "self", "path", "source", "terraform":
 				valid = true
 			case "count":
 				// count must use "index"

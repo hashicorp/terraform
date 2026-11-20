@@ -1,0 +1,3 @@
+kind: NEW FEATURES
+body: 'language: Added the `source` object, which exposes `source.module`, `source.ref`, and `source.version` so a module can reference the source address, resolved ref, and version of how it was loaded. The root module reports `"."` for `source.module`'
+time: 2026-10-29T14:48:00.000000-07:00

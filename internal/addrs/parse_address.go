@@ -155,7 +155,7 @@ func parseResourceUnderModule(remain hcl.Traversal, keys instanceKeys, allowExtr
 		// Starting a resource address with "resource" is optional, so we'll
 		// just ignore it.
 		remain = remain[1:]
-	case "count", "each", "local", "module", "path", "self", "terraform", "var", "template", "lazy", "arg":
+	case "count", "each", "local", "module", "path", "self", "source", "terraform", "var", "template", "lazy", "arg":
 		// These are all reserved words that are not valid as resource types.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

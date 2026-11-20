@@ -5,13 +5,16 @@ package terraform
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -95,6 +98,102 @@ func (d *evaluationData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRang
 		})
 		return cty.DynamicVal, diags
 	}
+}
+
+// GetSourceAttr implements lang.Data.
+//
+// The root module is always loaded from the working directory, so its source
+// is reported as ".".
+func (d *evaluationData) GetSourceAttr(addr addrs.SourceAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	switch addr.Name {
+
+	case "module":
+		moduleConfig := d.Evaluator.Config.Descendant(d.Module)
+		if moduleConfig == nil {
+			// should never happen, since we can't be evaluating in a module
+			// that wasn't mentioned in configuration.
+			panic(fmt.Sprintf("source.module read from module %s, which has no configuration", d.Module))
+		}
+		if moduleConfig.Parent == nil {
+			return cty.StringVal("."), diags
+		}
+		return cty.StringVal(moduleConfig.SourceAddrRaw), diags
+
+	case "ref":
+		moduleConfig := d.Evaluator.Config.Descendant(d.Module)
+		if moduleConfig == nil {
+			// should never happen, since we can't be evaluating in a module
+			// that wasn't mentioned in configuration.
+			panic(fmt.Sprintf("source.ref read from module %s, which has no configuration", d.Module))
+		}
+		return cty.StringVal(moduleSourceRef(moduleConfig)), diags
+
+	case "version":
+		moduleConfig := d.Evaluator.Config.Descendant(d.Module)
+		if moduleConfig == nil {
+			// should never happen, since we can't be evaluating in a module
+			// that wasn't mentioned in configuration.
+			panic(fmt.Sprintf("source.version read from module %s, which has no configuration", d.Module))
+		}
+		return cty.StringVal(moduleSourceVersion(moduleConfig)), diags
+
+	default:
+		suggestion := didyoumean.NameSuggestion(addr.Name, []string{"module", "ref", "version"})
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid "source" attribute`,
+			Detail:   fmt.Sprintf(`The "source" object does not have an attribute named %q.%s`, addr.Name, suggestion),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+}
+
+// moduleSourceRef returns the ref used to obtain the given module: the
+// selected version for registry modules, or the "ref" query argument for
+// remote sources. It returns an empty string if the module has no ref or the
+// ref hasn't been resolved yet.
+func moduleSourceRef(cfg *configs.Config) string {
+	if cfg.Parent == nil {
+		return ""
+	}
+	if cfg.Version != nil {
+		return cfg.Version.String()
+	}
+	if len(cfg.VersionConstraint.Required) != 0 {
+		// A registry module whose version hasn't been selected yet.
+		return ""
+	}
+	return moduleSourceQueryRef(cfg.SourceAddrRaw)
+}
+
+// moduleSourceVersion returns the raw version string given for the module if
+// there is one, otherwise the "ref" given in its source address. It returns an
+// empty string if neither is provided.
+func moduleSourceVersion(cfg *configs.Config) string {
+	if cfg.Parent == nil {
+		return ""
+	}
+	if cfg.VersionConstraint.Raw != "" {
+		return cfg.VersionConstraint.Raw
+	}
+	return moduleSourceQueryRef(cfg.SourceAddrRaw)
+}
+
+func moduleSourceQueryRef(source string) string {
+	_, query, found := strings.Cut(source, "?")
+	if !found {
+		return ""
+	}
+	values, err := url.ParseQuery(query)
+	if err != nil {
+		return ""
+	}
+	return values.Get("ref")
 }
 
 // GetTerraformAttr implements lang.Data.
