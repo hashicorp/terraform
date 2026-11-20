@@ -30,8 +30,8 @@ func ParseAbsTargetable(traversal hcl.Traversal) (Targetable, tfdiags.Diagnostic
 // The given traversal must be absolute, or this function will panic.
 //
 // The traversal may be a traversal pattern, such as those produced by
-// hclsyntax.ParseTraversalPartial, in which case a [*] step selects every
-// instance.
+// hclsyntax.ParseTraversalAbsPattern and hcl.AbsTraversalPatternForExpr, in
+// which case a [*] step selects every instance.
 //
 // A target is always a TargetPattern, so any module call or resource written
 // without an instance key selects every instance, the same as using an explicit
@@ -161,7 +161,7 @@ func ParseAbsTargetableStr(str string) (Targetable, tfdiags.Diagnostics) {
 func ParseTargetStr(str string) (TargetPattern, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	traversal, parseDiags := hclsyntax.ParseTraversalAbsPattern([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return TargetPattern{}, diags
@@ -363,7 +363,7 @@ func ParseAbsResourceInstanceStr(str string) (AbsResourceInstance, tfdiags.Diagn
 func ParsePartialResourceInstanceStr(str string) (AbsResourceInstance, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	traversal, parseDiags := hclsyntax.ParseTraversalAbsPattern([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return AbsResourceInstance{}, diags

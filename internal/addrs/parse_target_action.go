@@ -42,8 +42,8 @@ func parseAbsActionTarget(traversal hcl.Traversal) (Targetable, tfdiags.Diagnost
 // panic.
 //
 // The traversal may be a traversal pattern, such as those produced by
-// hclsyntax.ParseTraversalPartial, in which case a [*] step selects every
-// instance.
+// hclsyntax.ParseTraversalAbsPattern and hcl.AbsTraversalPatternForExpr, in
+// which case a [*] step selects every instance.
 //
 // As with other targets, an action target is always parsed as a TargetPattern,
 // so any module call or action written without an instance key selects every
@@ -94,7 +94,7 @@ func parseTargetAction(traversal hcl.Traversal, keys instanceKeys) (AbsActionIns
 func ParseTargetActionStr(str string) (TargetPattern, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	traversal, parseDiags := hclsyntax.ParseTraversalPartial([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	traversal, parseDiags := hclsyntax.ParseTraversalAbsPattern([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
 	diags = diags.Append(parseDiags)
 	if parseDiags.HasErrors() {
 		return TargetPattern{}, diags
