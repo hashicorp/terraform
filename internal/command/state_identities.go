@@ -42,7 +42,10 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if args.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
+		return 1
 	}
 
 	// Load the backend

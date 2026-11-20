@@ -40,7 +40,10 @@ func (c *StateRmCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if parsedArgs.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
+		return 1
 	}
 
 	c.backupPath = parsedArgs.BackupPath

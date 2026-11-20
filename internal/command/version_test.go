@@ -214,8 +214,9 @@ flag provided but not defined: -foobar`
 			"-json",
 			"-foobar",
 		}
-		if code := c.Run(args); code != cli.RunResultHelp {
-			t.Fatalf("expected code %d and error output, but got code %d:\nstdout: %s\nstderr: %s", cli.RunResultHelp, code, done(t).Stdout(), done(t).Stderr())
+		if code := c.Run(args); code != 1 { // not cli.RunResultHelp due to JSON output
+			output := done(t)
+			t.Fatalf("expected code %d and error output, but got code %d:\nstdout: %s\nstderr: %s", cli.RunResultHelp, code, output.Stdout(), output.Stderr())
 		}
 
 		output = done(t)

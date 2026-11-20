@@ -76,7 +76,10 @@ func (c *VersionCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if args.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
+		return 1
 	}
 
 	// Collect version information

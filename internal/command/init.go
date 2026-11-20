@@ -63,7 +63,10 @@ func (c *InitCommand) Run(args []string) int {
 
 	if initDiags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if initArgs.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
+		return 1
 	}
 
 	loader, err := c.initConfigLoader()

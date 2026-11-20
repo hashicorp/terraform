@@ -40,7 +40,10 @@ func (c *WorkspaceSelectCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return cli.RunResultHelp
+		if args.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
+		return 1
 	}
 
 	// Block selecting a workspace if an environment variable will override the new selection anyway.
