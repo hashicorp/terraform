@@ -802,6 +802,11 @@ func (d *evaluationData) GetResource(addr addrs.Resource, rng tfdiags.SourceRang
 	return d.current.GetResource(addr, rng)
 }
 
+// GetSelfInstance implements lang.Data.
+func (d *evaluationData) GetSelfInstance(addr addrs.ResourceInstance) (cty.Value, bool) {
+	return d.current.GetSelfInstance(addr)
+}
+
 // GetRunBlock implements lang.Data.
 func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

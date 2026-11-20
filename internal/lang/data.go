@@ -37,4 +37,18 @@ type Data interface {
 	GetOutput(addrs.OutputValue, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetCheckBlock(addrs.Check, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetRunBlock(addrs.Run, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
+
+	// GetSelfInstance returns the value of the given resource instance for a
+	// "self" reference, which always refers to a particular resource instance,
+	// without building the value of the entire containing resource.
+	//
+	// The result must be equal to the element GetResource would produce for
+	// that instance, or the whole value for a resource with no instance key.
+	//
+	// If the value can't be determined from this instance alone, or this
+	// instance has a problem GetResource would report, the second return
+	// value is false and the caller must use GetResource instead.
+	// Implementations which can't find the value of a single instance can
+	// therefore always return false.
+	GetSelfInstance(addrs.ResourceInstance) (cty.Value, bool)
 }

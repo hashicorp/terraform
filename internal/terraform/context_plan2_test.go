@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
@@ -6751,6 +6752,132 @@ data "test_data_source" "foo" {
 
 	_, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	tfdiags.AssertNoErrors(t, diags)
+}
+
+func TestContext2Plan_selfPostconditionUnupgradedSibling(t *testing.T) {
+	// Instances of a resource aren't ordered relative to one another, so when
+	// one instance evaluates a postcondition referring to self, another
+	// instance's state may not have been upgraded yet. The new schema version
+	// here removed an attribute, so the prior state of each instance can't be
+	// decoded until it's upgraded. The state of test_object.a["b"] isn't
+	// upgraded until the postcondition of test_object.a["a"] has called the
+	// release function, which must succeed using only the state of
+	// test_object.a["a"].
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+    }
+  }
+}
+
+resource "test_object" "a" {
+  for_each = toset(["a", "b"])
+
+  lifecycle {
+    postcondition {
+      condition     = provider::test::release(self.id)
+      error_message = "Not released."
+    }
+  }
+}
+`,
+	})
+
+	released := make(chan struct{})
+	var releaseOnce sync.Once
+
+	p := new(testing_provider.MockProvider)
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Version: 1,
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+		Functions: map[string]providers.FunctionDecl{
+			"release": {
+				Parameters: []providers.FunctionParam{
+					{Name: "id", Type: cty.String},
+				},
+				ReturnType: cty.Bool,
+			},
+		},
+	}
+	p.CallFunctionFn = func(req providers.CallFunctionRequest) (resp providers.CallFunctionResponse) {
+		releaseOnce.Do(func() { close(released) })
+		resp.Result = cty.True
+		return resp
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		// Version 1 of the schema removed the "old" attribute.
+		priorTy := cty.Object(map[string]cty.Type{"id": cty.String, "old": cty.String})
+		prior, err := ctyjson.Unmarshal(req.RawStateJSON, priorTy)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"id": prior.GetAttr("id"),
+		})
+		return resp
+	}
+	provider := upgradeWaitingProvider{
+		MockProvider: p,
+		wait: func(req providers.UpgradeResourceStateRequest) {
+			if !bytes.Contains(req.RawStateJSON, []byte(`"id":"b"`)) {
+				return
+			}
+			select {
+			case <-released:
+			case <-time.After(10 * time.Second):
+				t.Error(`the postcondition of test_object.a["a"] did not call release`)
+			}
+		},
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		for _, key := range []string{"a", "b"} {
+			s.SetResourceInstanceCurrent(
+				mustResourceInstanceAddr(fmt.Sprintf("test_object.a[%q]", key)),
+				&states.ResourceInstanceObjectSrc{
+					Status:        states.ObjectReady,
+					SchemaVersion: 0,
+					AttrsJSON:     []byte(fmt.Sprintf(`{"id":%q,"old":"x"}`, key)),
+				},
+				mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			)
+		}
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(provider),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	tfdiags.AssertNoErrors(t, diags)
+}
+
+// upgradeWaitingProvider is a mock provider which calls wait before upgrading
+// the state of each resource instance. Unlike a mock provider function, wait
+// doesn't hold the mock provider's lock, so the provider can still be used
+// while it blocks.
+type upgradeWaitingProvider struct {
+	*testing_provider.MockProvider
+	wait func(providers.UpgradeResourceStateRequest)
+}
+
+func (p upgradeWaitingProvider) UpgradeResourceState(req providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+	p.wait(req)
+	return p.MockProvider.UpgradeResourceState(req)
 }
 
 func TestContext2Plan_upgradeState_WriteOnlyAttribute(t *testing.T) {

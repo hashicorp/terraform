@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/langrefs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -957,6 +958,102 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 					"wrong result\nexpr: %s\ngot:  %#v\nwant: %#v",
 					test.Config, gotVal, wantVal,
 				)
+			}
+		})
+	}
+}
+
+// dataWithResourceInstances extends dataForTests with an implementation of
+// GetSelfInstance, and counts calls to GetResource.
+type dataWithResourceInstances struct {
+	*dataForTests
+	Instances        map[string]cty.Value
+	getResourceCalls int
+	getInstanceCalls int
+}
+
+func (d *dataWithResourceInstances) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	d.getResourceCalls++
+	return d.dataForTests.GetResource(addr, rng)
+}
+
+func (d *dataWithResourceInstances) GetSelfInstance(addr addrs.ResourceInstance) (cty.Value, bool) {
+	d.getInstanceCalls++
+	val, ok := d.Instances[addr.String()]
+	return val, ok
+}
+
+func TestScopeEvalContext_selfInstance(t *testing.T) {
+	resource := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "null_resource",
+		Name: "multi",
+	}
+	aggregate := cty.TupleVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("multi0")}),
+		cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("multi1")}),
+	})
+
+	expr, parseDiags := hclsyntax.ParseExpression([]byte(`self.attr`), "", hcl.Pos{Line: 1, Column: 1})
+	if parseDiags.HasErrors() {
+		t.Fatal(parseDiags.Error())
+	}
+	refs, refsDiags := langrefs.ReferencesInExpr(addrs.ParseRef, expr)
+	if refsDiags.HasErrors() {
+		t.Fatal(refsDiags.Err())
+	}
+
+	tests := map[string]struct {
+		instances        map[string]cty.Value
+		want             cty.Value
+		wantGetResources int
+	}{
+		"direct": {
+			instances: map[string]cty.Value{
+				"null_resource.multi[1]": cty.ObjectVal(map[string]cty.Value{"attr": cty.StringVal("direct")}),
+			},
+			want:             cty.StringVal("direct"),
+			wantGetResources: 0,
+		},
+		"fallback": {
+			instances:        nil,
+			want:             cty.StringVal("multi1"),
+			wantGetResources: 1,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			data := &dataWithResourceInstances{
+				dataForTests: &dataForTests{
+					Resources: map[string]cty.Value{
+						resource.String(): aggregate,
+					},
+				},
+				Instances: test.instances,
+			}
+			scope := &Scope{
+				Data:     data,
+				ParseRef: addrs.ParseRef,
+				SelfAddr: resource.Instance(addrs.IntKey(1)),
+			}
+
+			ctx, diags := scope.EvalContext(refs)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			got, hclDiags := expr.Value(ctx)
+			if hclDiags.HasErrors() {
+				t.Fatal(hclDiags.Error())
+			}
+			if !got.RawEquals(test.want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.want)
+			}
+			if data.getInstanceCalls != 1 {
+				t.Errorf("GetSelfInstance called %d times, want 1", data.getInstanceCalls)
+			}
+			if data.getResourceCalls != test.wantGetResources {
+				t.Errorf("GetResource called %d times, want %d", data.getResourceCalls, test.wantGetResources)
 			}
 		})
 	}

@@ -219,6 +219,12 @@ func (d *evaluationPlaceholderData) GetResource(addrs.Resource, tfdiags.SourceRa
 	// However, for resources that use count or for_each we'd not be able
 	// to predict anything more than cty.DynamicVal here anyway, since
 	// we don't know the instance keys, and so that improvement would only
-	// really help references to single-instance resources.
 	return cty.DynamicVal, nil
+}
+
+// GetSelfInstance implements lang.Data.
+func (d *evaluationPlaceholderData) GetSelfInstance(addrs.ResourceInstance) (cty.Value, bool) {
+	// Instances under an unexpanded module prefix have no values of their
+	// own, so the caller must use GetResource.
+	return cty.NilVal, false
 }

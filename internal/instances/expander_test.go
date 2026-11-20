@@ -881,3 +881,51 @@ func valueEquals(a, b cty.Value) bool {
 	}
 	return a.RawEquals(b)
 }
+
+func TestExpanderResourceExpansionKnown(t *testing.T) {
+	resource := func(name string) addrs.Resource {
+		return addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: name,
+		}
+	}
+	root := addrs.RootModuleInstance
+	child := root.Child("child", addrs.NoKey)
+	unknownMod := root.Child("unknown", addrs.IntKey(0))
+
+	expander := NewExpander(nil)
+	expander.SetResourceSingle(root, resource("single"))
+	expander.SetResourceCount(root, resource("count"), 2)
+	expander.SetResourceForEach(root, resource("for_each"), map[string]cty.Value{
+		"a": cty.StringVal("value_a"),
+	})
+	expander.SetResourceCountUnknown(root, resource("unknown_count"))
+	expander.SetResourceForEachUnknown(root, resource("unknown_for_each"))
+	expander.SetModuleSingle(root, addrs.ModuleCall{Name: "child"})
+	expander.SetResourceCount(child, resource("count"), 1)
+	expander.SetModuleCountUnknown(root, addrs.ModuleCall{Name: "unknown"})
+
+	tests := []struct {
+		addr addrs.AbsResource
+		want bool
+	}{
+		{resource("single").Absolute(root), true},
+		{resource("count").Absolute(root), true},
+		{resource("for_each").Absolute(root), true},
+		{resource("unknown_count").Absolute(root), false},
+		{resource("unknown_for_each").Absolute(root), false},
+		{resource("unregistered").Absolute(root), false},
+		{resource("count").Absolute(child), true},
+		{resource("count").Absolute(unknownMod), false},
+		{resource("count").Absolute(root.Child("unregistered", addrs.NoKey)), false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.addr.String(), func(t *testing.T) {
+			if got := expander.ResourceExpansionKnown(test.addr); got != test.want {
+				t.Errorf("wrong result %t, want %t", got, test.want)
+			}
+		})
+	}
+}

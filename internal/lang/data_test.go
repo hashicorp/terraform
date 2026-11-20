@@ -42,6 +42,10 @@ func (d *dataForTests) GetResource(addr addrs.Resource, rng tfdiags.SourceRange)
 	return d.Resources[addr.String()], nil
 }
 
+func (d *dataForTests) GetSelfInstance(addr addrs.ResourceInstance) (cty.Value, bool) {
+	return cty.NilVal, false
+}
+
 func (d *dataForTests) GetInputVariable(addr addrs.InputVariable, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.InputVariables[addr.Name], nil
 }
