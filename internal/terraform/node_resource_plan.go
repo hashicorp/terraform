@@ -540,7 +540,7 @@ func (n *nodeExpandPlannableResource) dynamicExpand(ctx EvalContext, knownModule
 			for key := range res.Instances {
 				inst := res.Addr.Instance(key)
 				abs := NewNodeAbstractResourceInstance(inst)
-				abs.AttachResourceState(res)
+				abs.AttachResourceInstanceState(res.Instance(key), res.ProviderConfig)
 				g.Add(n.concreteResourceOrphan(abs))
 			}
 		}

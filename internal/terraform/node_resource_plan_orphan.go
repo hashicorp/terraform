@@ -33,16 +33,16 @@ type NodePlannableResourceInstanceOrphan struct {
 }
 
 var (
-	_ GraphNodeModuleInstance       = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeReferenceable        = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeReferencer           = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeConfigResource       = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
-	_ GraphNodeDestroyer            = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeModuleInstance              = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeReferenceable               = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeReferencer                  = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeConfigResource              = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeResourceInstance            = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeAttachResourceConfig        = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeAttachResourceInstanceState = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeExecutable                  = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeProviderConsumer            = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeDestroyer                   = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {

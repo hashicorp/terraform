@@ -6,23 +6,24 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-// GraphNodeAttachResourceState is an interface that can be implemented
+// GraphNodeAttachResourceInstanceState is an interface that can be implemented
 // to request that a ResourceState is attached to the node.
 //
 // Due to a historical naming inconsistency, the type ResourceState actually
 // represents the state for a particular _instance_, while InstanceState
 // represents the values for that instance during a particular phase
-// (e.g. primary vs. deposed). Consequently, GraphNodeAttachResourceState
+// (e.g. primary vs. deposed). Consequently, GraphNodeAttachResourceInstanceState
 // is supported only for nodes that represent resource instances, even though
 // the name might suggest it is for containing resources.
-type GraphNodeAttachResourceState interface {
+type GraphNodeAttachResourceInstanceState interface {
 	GraphNodeResourceInstance
 
 	// Sets the state
-	AttachResourceState(*states.Resource)
+	AttachResourceInstanceState(*states.ResourceInstance, addrs.AbsProviderConfig)
 }
 
 // AttachStateTransformer goes through the graph and attaches
@@ -40,7 +41,7 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 
 	for v := range g.VerticesSeq() {
 		// Nodes implement this interface to request state attachment.
-		an, ok := v.(GraphNodeAttachResourceState)
+		an, ok := v.(GraphNodeAttachResourceInstanceState)
 		if !ok {
 			continue
 		}
@@ -54,16 +55,17 @@ func (t *AttachStateTransformer) Transform(g *Graph) error {
 
 		is := rs.Instance(addr.Resource.Key)
 		if is == nil {
-			// We don't actually need this here, since we'll attach the whole
-			// resource state, but we still check because it'd be weird
-			// for the specific instance we're attaching to not to exist.
+			// It'd be weird for the specific instance we're attaching to not
+			// to exist.
 			log.Printf("[DEBUG] Resource instance state not found for node %q, instance %s", v.Name(), addr)
 			continue
 		}
 
-		// make sure to attach a copy of the state, so instances can modify the
-		// same ResourceState.
-		an.AttachResourceState(rs.DeepCopy())
+		// Attach a copy containing only this node's own instance, so that
+		// instances can't modify each other's state. Copying the entire
+		// resource for every instance would be quadratic in the number of
+		// instances, and nodes only retain their own instance anyway.
+		an.AttachResourceInstanceState(is.DeepCopy(), rs.ProviderConfig)
 	}
 
 	return nil

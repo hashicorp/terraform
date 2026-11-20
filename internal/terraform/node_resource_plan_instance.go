@@ -65,14 +65,14 @@ type importTarget struct {
 }
 
 var (
-	_ GraphNodeModuleInstance       = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeReferenceable        = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeReferencer           = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeConfigResource       = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeResourceInstance     = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstance)(nil)
-	_ GraphNodeExecutable           = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeModuleInstance              = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeReferenceable               = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeReferencer                  = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeConfigResource              = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeResourceInstance            = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig        = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeAttachResourceInstanceState = (*NodePlannableResourceInstance)(nil)
+	_ GraphNodeExecutable                  = (*NodePlannableResourceInstance)(nil)
 )
 
 // GraphNodeEvalable

@@ -58,23 +58,23 @@ type NodeAbstractResourceInstance struct {
 }
 
 var (
-	_ GraphNodeModuleInstance            = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferenceable             = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeReferencer                = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProviderConsumer          = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeProvisionerConsumer       = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeConfigResource            = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeResourceInstance          = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceState       = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeActionInvoker             = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeActionCaller              = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceConfig      = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachResourceSchema      = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachProvisionerSchema   = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeAttachProviderMetaConfigs = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeTargetable                = (*NodeAbstractResourceInstance)(nil)
-	_ GraphNodeOverridable               = (*NodeAbstractResourceInstance)(nil)
-	_ dag.GraphNodeDotter                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeModuleInstance              = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferenceable               = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeReferencer                  = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProviderConsumer            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeProvisionerConsumer         = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeConfigResource              = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeResourceInstance            = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceInstanceState = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeActionInvoker               = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeActionCaller                = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceConfig        = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachResourceSchema        = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProvisionerSchema     = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeAttachProviderMetaConfigs   = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeTargetable                  = (*NodeAbstractResourceInstance)(nil)
+	_ GraphNodeOverridable                 = (*NodeAbstractResourceInstance)(nil)
+	_ dag.GraphNodeDotter                  = (*NodeAbstractResourceInstance)(nil)
 )
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -185,14 +185,14 @@ func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceI
 }
 
 // GraphNodeAttachResourceState
-func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
-	if s == nil {
+func (n *NodeAbstractResourceInstance) AttachResourceInstanceState(state *states.ResourceInstance, provider addrs.AbsProviderConfig) {
+	if state == nil {
 		log.Printf("[WARN] attaching nil state to %s", n.Addr)
 		return
 	}
-	log.Printf("[TRACE] NodeAbstractResourceInstance.AttachResourceState for %s", n.Addr)
-	n.instanceState = s.Instance(n.Addr.Resource.Key)
-	n.storedProviderConfig = s.ProviderConfig
+	log.Printf("[TRACE] NodeAbstractResourceInstance.AttachResourceInstanceState for %s", n.Addr)
+	n.instanceState = state
+	n.storedProviderConfig = provider
 }
 
 // GraphNodeOverridable
