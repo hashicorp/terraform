@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/hashicorp/hcl/v2"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
@@ -58,6 +60,11 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Log version output
 	view.Version()
+
+	if initDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return cli.RunResultHelp
+	}
 
 	loader, err := c.initConfigLoader()
 	if err != nil {
