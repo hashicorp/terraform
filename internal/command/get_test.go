@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"

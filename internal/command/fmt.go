@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"

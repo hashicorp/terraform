@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"

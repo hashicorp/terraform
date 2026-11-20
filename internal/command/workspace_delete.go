@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"

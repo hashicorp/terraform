@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/terraform/internal/backend/backendrun"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"

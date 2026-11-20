@@ -10,9 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/cli"
-
 	"github.com/apparentlymart/go-versions/versions"
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"

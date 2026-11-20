@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"

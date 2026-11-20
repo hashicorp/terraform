@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	"github.com/hashicorp/hcl/v2"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"

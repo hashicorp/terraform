@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/cli"
-
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
