@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -184,7 +185,7 @@ func TestGraph_multipleArgs(t *testing.T) {
 		"bad",
 		"bad",
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 }
