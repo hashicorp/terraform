@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/cli"
+
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -47,7 +49,7 @@ func (c *ProvidersMirrorCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		return 1
+		return cli.RunResultHelp
 	}
 
 	var platforms []getproviders.Platform

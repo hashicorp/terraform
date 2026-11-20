@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
@@ -37,8 +38,8 @@ func TestProvidersMirror(t *testing.T) {
 		}
 		args := []string{"-no-color"}
 		code := c.Run(args)
-		if code != 1 {
-			t.Fatalf("wrong exit code. expected 1, got %d", code)
+		if code != cli.RunResultHelp {
+			t.Fatalf("wrong exit code. expected %d, got %d", cli.RunResultHelp, code)
 		}
 
 		got := done(t).Stderr()
