@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -229,7 +230,7 @@ func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
 	// Should return an error because the -json flag is required
 	code := c.Run(args)
 	out := done(t)
-	if code != 1 {
+	if code != cli.RunResultHelp {
 		t.Fatalf("expected error: \n%s", out.Stderr())
 	}
 }
@@ -361,7 +362,7 @@ func TestStateIdentities_noState(t *testing.T) {
 	args := []string{}
 	code := c.Run(args)
 	out := done(t)
-	if code != 1 {
+	if code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 }
@@ -531,7 +532,6 @@ func TestStateIdentities_modules(t *testing.T) {
 			t.Fatalf("bad: %d: %s", code, out.Stdout())
 		}
 	})
-
 }
 
 func TestStateIdentities_stateStore(t *testing.T) {
