@@ -22,8 +22,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CallbackService_GetResources_FullMethodName  = "/proto.CallbackService/GetResources"
-	CallbackService_GetDataSource_FullMethodName = "/proto.CallbackService/GetDataSource"
+	CallbackService_GetResources_FullMethodName     = "/proto.CallbackService/GetResources"
+	CallbackService_RelatedResources_FullMethodName = "/proto.CallbackService/RelatedResources"
+	CallbackService_GetDataSource_FullMethodName    = "/proto.CallbackService/GetDataSource"
 )
 
 // CallbackServiceClient is the client API for CallbackService service.
@@ -31,6 +32,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CallbackServiceClient interface {
 	GetResources(ctx context.Context, in *GetResourcesRequest, opts ...grpc.CallOption) (*GetResourcesResponse, error)
+	RelatedResources(ctx context.Context, in *RelatedResourcesRequest, opts ...grpc.CallOption) (*RelatedResourcesResponse, error)
 	GetDataSource(ctx context.Context, in *GetDataSourceRequest, opts ...grpc.CallOption) (*GetDataSourceResponse, error)
 }
 
@@ -52,6 +54,16 @@ func (c *callbackServiceClient) GetResources(ctx context.Context, in *GetResourc
 	return out, nil
 }
 
+func (c *callbackServiceClient) RelatedResources(ctx context.Context, in *RelatedResourcesRequest, opts ...grpc.CallOption) (*RelatedResourcesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RelatedResourcesResponse)
+	err := c.cc.Invoke(ctx, CallbackService_RelatedResources_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *callbackServiceClient) GetDataSource(ctx context.Context, in *GetDataSourceRequest, opts ...grpc.CallOption) (*GetDataSourceResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetDataSourceResponse)
@@ -67,6 +79,7 @@ func (c *callbackServiceClient) GetDataSource(ctx context.Context, in *GetDataSo
 // for forward compatibility.
 type CallbackServiceServer interface {
 	GetResources(context.Context, *GetResourcesRequest) (*GetResourcesResponse, error)
+	RelatedResources(context.Context, *RelatedResourcesRequest) (*RelatedResourcesResponse, error)
 	GetDataSource(context.Context, *GetDataSourceRequest) (*GetDataSourceResponse, error)
 	mustEmbedUnimplementedCallbackServiceServer()
 }
@@ -80,6 +93,9 @@ type UnimplementedCallbackServiceServer struct{}
 
 func (UnimplementedCallbackServiceServer) GetResources(context.Context, *GetResourcesRequest) (*GetResourcesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetResources not implemented")
+}
+func (UnimplementedCallbackServiceServer) RelatedResources(context.Context, *RelatedResourcesRequest) (*RelatedResourcesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RelatedResources not implemented")
 }
 func (UnimplementedCallbackServiceServer) GetDataSource(context.Context, *GetDataSourceRequest) (*GetDataSourceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDataSource not implemented")
@@ -123,6 +139,24 @@ func _CallbackService_GetResources_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CallbackService_RelatedResources_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RelatedResourcesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CallbackServiceServer).RelatedResources(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CallbackService_RelatedResources_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CallbackServiceServer).RelatedResources(ctx, req.(*RelatedResourcesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CallbackService_GetDataSource_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetDataSourceRequest)
 	if err := dec(in); err != nil {
@@ -151,6 +185,10 @@ var CallbackService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetResources",
 			Handler:    _CallbackService_GetResources_Handler,
+		},
+		{
+			MethodName: "RelatedResources",
+			Handler:    _CallbackService_RelatedResources_Handler,
 		},
 		{
 			MethodName: "GetDataSource",
