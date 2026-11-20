@@ -29,3 +29,12 @@ func (vt ViewType) String() string {
 		return "unknown"
 	}
 }
+
+func (vt ViewType) IsHuman() bool {
+	switch vt {
+	case ViewHuman:
+		return true
+	default:
+		return false
+	}
+}
