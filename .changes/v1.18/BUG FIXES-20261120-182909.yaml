@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: 'state pull: : This command now shows help text alongside errors caused by argument parsing.'
+body: 'state pull: This command now shows help text alongside errors caused by argument parsing.'
 time: 2026-11-20T18:29:09.87628Z
 custom:
     Issue: "39574"
