@@ -3,6 +3,12 @@
 
 package getproviders
 
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/internal/depsfile"
+)
+
 // ProviderSupplyMode describes how a provider is being supplied to Terraform.
 type ProviderSupplyMode string
 
@@ -30,6 +36,26 @@ const (
 // This method is intended to be used when that distinction is important.
 func (m ProviderSupplyMode) NotManagedByTerraform() bool {
 	return m != ManagedByTerraform
+}
+
+// VersionStringForDisplay returns a human-readable description of the provider version based on the supply mode and lock information.
+func (m ProviderSupplyMode) VersionStringForDisplay(lock *depsfile.ProviderLock) string {
+	switch m {
+	case ManagedByTerraform:
+		// The supplied lock is irrelevant in all other cases except this one.
+		if lock != nil {
+			return lock.Version().String()
+		}
+		panic("VersionStringForDisplay: received a nil lock despite a provider being managed by Terraform")
+	case BuiltIn:
+		return "<built-in provider>"
+	case Reattached:
+		return "<reattached provider>"
+	case DevOverride:
+		return "<dev override provider>"
+	default:
+		panic(fmt.Sprintf("VersionStringForDisplay: unknown provider supply mode: %v (type %T)", m, m))
+	}
 }
 
 func DetermineProviderSupplyMode(isDevOverride bool, isReattached bool, isBuiltin bool) ProviderSupplyMode {

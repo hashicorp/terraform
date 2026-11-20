@@ -414,6 +414,99 @@ func TestPrimary_stateStore_stateMigrateCmd_upgrade(t *testing.T) {
 	}
 }
 
+// Test using `terraform state migrate` subcommand with reattached providers as source or destination.
+func TestPrimary_stateStore_stateMigrateCmd_reattachedProviders(t *testing.T) {
+	t.Run("source uses reattached provider", func(t *testing.T) {
+		if !canRunGoBuild {
+			// We're running in a separate-build-then-run context, so we can't
+			// currently execute this test which depends on being able to build
+			// new executable at runtime.
+			//
+			// (See the comment on canRunGoBuild's declaration for more information.)
+			t.Skip("can't run without building a new provider executable")
+		}
+
+		fixturePath := filepath.Join("testdata", "state-migrate-store-to-local")
+
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+		t.Chdir(tf.WorkDir())
+
+		// setup reattached provider as migration source
+		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
+
+		stdout, stderr, err := tf.Run("state", "migrate", "-input=false", "-force-copy", "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+		}
+
+		expectedMsg := []string{
+			`Installing providers...`,
+			`Migrating state from state store "simple6_fs" (hashicorp/simple6 <reattached provider>) to backend "local"...`,
+			`Finished migrating state from state store "simple6_fs" (hashicorp/simple6 <reattached provider>) to backend "local".`,
+		}
+		for _, expectedMsg := range expectedMsg {
+			if !strings.Contains(stdout, expectedMsg) {
+				t.Fatalf("expected output %q, got %q", expectedMsg, stdout)
+			}
+		}
+
+		// Instead of full assertions about migrated state, check for the new state location in the filesystem
+		if _, err := os.Stat(filepath.Join(tf.WorkDir(), "new-location", "default", "terraform.tfstate")); err != nil {
+			if os.IsNotExist(err) {
+				t.Fatalf("expected state file not found: %s", err)
+			}
+
+			t.Fatalf("unexpected error stating state file: %s", err)
+		}
+	})
+
+	t.Run("destination uses reattached provider", func(t *testing.T) {
+		if !canRunGoBuild {
+			// We're running in a separate-build-then-run context, so we can't
+			// currently execute this test which depends on being able to build
+			// new executable at runtime.
+			//
+			// (See the comment on canRunGoBuild's declaration for more information.)
+			t.Skip("can't run without building a new provider executable")
+		}
+
+		fixturePath := filepath.Join("testdata", "state-migrate-local-to-store")
+
+		tf := e2e.NewBinary(t, experimentalTerraformBin, fixturePath)
+		t.Chdir(tf.WorkDir())
+
+		// setup reattached provider as migration source
+		reattachStr, _ := reattachedProviderForTest(t, addrs.NewDefaultProvider("simple6"), 6)
+		tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
+
+		stdout, stderr, err := tf.Run("state", "migrate", "-input=false", "-force-copy", "-no-color")
+		if err != nil {
+			t.Fatalf("unexpected error: %s\nstderr:\n%q", err, stderr)
+		}
+
+		expectedMsg := []string{
+			`Installing providers...`,
+			`Migrating state from backend "local" to state store "simple6_fs" (hashicorp/simple6 <reattached provider>)...`,
+			`Finished migrating state from backend "local" to state store "simple6_fs" (hashicorp/simple6 <reattached provider>).`,
+		}
+		for _, expectedMsg := range expectedMsg {
+			if !strings.Contains(stdout, expectedMsg) {
+				t.Fatalf("expected output %q, got %q", expectedMsg, stdout)
+			}
+		}
+
+		// Instead of full assertions about migrated state, check for the new state location in the filesystem
+		if _, err := os.Stat(filepath.Join(tf.WorkDir(), "new-location", "default", "terraform.tfstate")); err != nil {
+			if os.IsNotExist(err) {
+				t.Fatalf("expected state file not found: %s", err)
+			}
+
+			t.Fatalf("unexpected error stating state file: %s", err)
+		}
+	})
+}
+
 // Test using `terraform state migrate` subcommand when upgrade changes the provider's schema.
 func TestPrimary_stateStore_stateMigrateCmd_upgradeWithSchemaChange(t *testing.T) {
 	t.Parallel()
