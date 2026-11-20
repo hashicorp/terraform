@@ -384,6 +384,7 @@ func TestMain_helpTextOnArgError(t *testing.T) {
 		// Print short help prompts and return 1, instead of returning cli.RunResultHelp and rendering full help text
 		"apply":      "uses c.View.HelpPrompt() instead",
 		"destroy":    "uses c.View.HelpPrompt() instead",
+		"output":     "uses c.View.HelpPrompt() instead",
 		"plan":       "uses c.View.HelpPrompt() instead",
 		"query":      "uses c.View.HelpPrompt() instead",
 		"refresh":    "uses c.View.HelpPrompt() instead",
