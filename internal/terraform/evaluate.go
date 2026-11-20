@@ -6,6 +6,9 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"maps"
+	"slices"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -83,6 +86,11 @@ type Evaluator struct {
 	FunctionResults *lang.FunctionResults
 
 	PlanTimestamp time.Time
+
+	// moduleCallValues caches the values of module calls once they can no
+	// longer change during the walk. It may be nil, in which case nothing is
+	// cached.
+	moduleCallValues *moduleCallValues
 }
 
 // Scope creates an evaluation scope for the given module path and optional
@@ -410,6 +418,12 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
+	// Values are only cached at the end of this function, which validate walks
+	// never reach, so this can't return a cached value during validate.
+	if val, ok := d.Evaluator.moduleCallValues.get(absAddr); ok {
+		return val, diags
+	}
+
 	// We'll consult the configuration to see what output names we are
 	// expecting, so we can ensure the resulting object is of the expected
 	// type even if our data is incomplete for some reason.
@@ -524,16 +538,29 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
-	instanceObjVal := func(instKey addrs.InstanceKey) (cty.Value, tfdiags.Diagnostics) {
-		// This function must always return a valid value, even if it's
-		// just a cty.DynamicVal placeholder accompanying error diagnostics.
-		var diags tfdiags.Diagnostics
-
-		namedVals := d.Evaluator.NamedValues
+	// Read the output values of all of the instances while taking the lock
+	// only once, rather than once or twice for each output value.
+	outputNames := slices.Sorted(maps.Keys(outputConfigs))
+	outputAddrs := make([]addrs.AbsOutputValue, 0, len(instKeys)*len(outputNames))
+	for _, instKey := range instKeys {
 		moduleInstAddr := absAddr.Instance(instKey)
-		attrs := make(map[string]cty.Value, len(outputConfigs))
-		for name, cfg := range outputConfigs {
-			outputAddr := moduleInstAddr.OutputValue(name)
+		for _, name := range outputNames {
+			outputAddrs = append(outputAddrs, moduleInstAddr.OutputValue(name))
+		}
+	}
+	outputVals, published := d.Evaluator.NamedValues.GetOutputValues(outputAddrs)
+
+	// allPublished records whether every output value of every instance was
+	// available, in which case the result can no longer change.
+	allPublished := true
+
+	// instanceObjVal returns the object value for the instance at index i
+	// of instKeys.
+	instanceObjVal := func(i int) cty.Value {
+		attrs := make(map[string]cty.Value, len(outputNames))
+		for j, name := range outputNames {
+			cfg := outputConfigs[name]
+			idx := i*len(outputNames) + j
 
 			// Although we do typically expect the graph dependencies to ensure
 			// that values get registered before they are needed, we track
@@ -542,24 +569,26 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			// valid for some of this call's output values to not be known yet,
 			// with the graph builder being responsible for making sure that no
 			// expression in the configuration can actually observe that.
-			if !namedVals.HasOutputValue(outputAddr) {
+			if !published[idx] {
+				allPublished = false
 				attrs[name] = cty.UnknownVal(cfg.ConstraintType)
 				continue
 			}
-			outputVal := namedVals.GetOutputValue(outputAddr)
+			outputVal := outputVals[idx]
 			if cfg.Sensitive {
 				outputVal = outputVal.Mark(marks.Sensitive)
 			}
 
 			if cfg.DeprecatedSet {
-				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, moduleInstAddr.OutputValue(name).ConfigOutputValue().ForDisplay()))
+				outputVal = outputVal.Mark(marks.NewDeprecation(cfg.Deprecated, outputAddrs[idx].ConfigOutputValue().ForDisplay()))
 			}
 			attrs[name] = outputVal
 		}
 
-		return cty.ObjectVal(attrs), diags
+		return cty.ObjectVal(attrs)
 	}
 
+	var ret cty.Value
 	switch instKeyType {
 
 	case addrs.NoKeyType:
@@ -569,43 +598,37 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		if len(instKeys) != 1 {
 			panic(fmt.Sprintf("module call has no instance key type but has %d instances (should be 1)", len(instKeys)))
 		}
-		ret, moreDiags := instanceObjVal(instKeys[0])
-		diags = diags.Append(moreDiags)
-		return ret, diags
+		ret = instanceObjVal(0)
 
 	case addrs.IntKeyType:
 		// We can assume that the instance keys are in ascending numerical order
 		// and are consecutive, per the contract of allInstances.ExpandModuleCall.
 		elems := make([]cty.Value, 0, len(instKeys))
-		for _, instKey := range instKeys {
-			instVal, moreDiags := instanceObjVal(instKey)
-			elems = append(elems, instVal)
-			diags = diags.Append(moreDiags)
+		for i := range instKeys {
+			elems = append(elems, instanceObjVal(i))
 		}
 		switch {
 		case noDynamicTypes && len(elems) == 0:
-			return cty.ListValEmpty(instTy), diags
+			ret = cty.ListValEmpty(instTy)
 		case noDynamicTypes:
-			return cty.ListVal(elems), diags
+			ret = cty.ListVal(elems)
 		default:
-			return cty.TupleVal(elems), diags
+			ret = cty.TupleVal(elems)
 		}
 
 	case addrs.StringKeyType:
 		attrs := make(map[string]cty.Value, len(instKeys))
-		for _, instKey := range instKeys {
-			instVal, moreDiags := instanceObjVal(instKey)
-			attrs[string(instKey.(addrs.StringKey))] = instVal
-			diags = diags.Append(moreDiags)
+		for i, instKey := range instKeys {
+			attrs[string(instKey.(addrs.StringKey))] = instanceObjVal(i)
 		}
 
 		switch {
 		case noDynamicTypes && len(attrs) == 0:
-			return cty.MapValEmpty(instTy), diags
+			ret = cty.MapValEmpty(instTy)
 		case noDynamicTypes:
-			return cty.MapVal(attrs), diags
+			ret = cty.MapVal(attrs)
 		default:
-			return cty.ObjectVal(attrs), diags
+			ret = cty.ObjectVal(attrs)
 		}
 
 	default:
@@ -620,6 +643,14 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		})
 		return cty.DynamicVal, diags
 	}
+
+	// The expansion is known, and expansions and output values can only be
+	// set once per walk, so once every output value has been published the
+	// result is final.
+	if allPublished {
+		d.Evaluator.moduleCallValues.put(absAddr, ret)
+	}
+	return ret, diags
 }
 
 func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
@@ -1303,4 +1334,44 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
+}
+
+// moduleCallValues caches the values of module calls which can no longer
+// change during the current graph walk, so that references to a module call
+// don't each need to rebuild its value from the output values of all of its
+// instances.
+//
+// The value of a module call is final once the expansion of the call is known
+// and every output value of every instance has been published, because
+// neither can be set more than once during a walk.
+//
+// A nil *moduleCallValues is valid, and caches nothing.
+type moduleCallValues struct {
+	mu     sync.RWMutex
+	values addrs.Map[addrs.AbsModuleCall, cty.Value]
+}
+
+func newModuleCallValues() *moduleCallValues {
+	return &moduleCallValues{
+		values: addrs.MakeMap[addrs.AbsModuleCall, cty.Value](),
+	}
+}
+
+func (c *moduleCallValues) get(addr addrs.AbsModuleCall) (cty.Value, bool) {
+	if c == nil {
+		return cty.NilVal, false
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.values.GetOk(addr)
+}
+
+// put records the final value of the given module call.
+func (c *moduleCallValues) put(addr addrs.AbsModuleCall, val cty.Value) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.values.Put(addr, val)
 }

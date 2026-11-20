@@ -76,6 +76,15 @@ func (v *values[LocalType, AbsType]) HasExactResult(addr AbsType) bool {
 	return v.exact.Has(addr)
 }
 
+// GetExactResultByKey returns the value for the address with the given unique
+// key and true if it has been set, or cty.NilVal and false if it has not.
+// Taking the key rather than the address allows callers to build the keys
+// before taking a lock, because doing so formats each address as a string.
+func (v *values[LocalType, AbsType]) GetExactResultByKey(key addrs.UniqueKey) (cty.Value, bool) {
+	elem, ok := v.exact.Elems[key]
+	return elem.Value, ok
+}
+
 func (v *values[LocalType, AbsType]) GetExactResult(addr AbsType) cty.Value {
 	// TODO: Do we need to handle placeholder results in here too? Seems like
 	// callers should not end up holding AbsType addresses if they are dealing

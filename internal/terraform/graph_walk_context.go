@@ -71,6 +71,7 @@ type ContextGraphWalker struct {
 
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex
+	moduleCallValues   *moduleCallValues
 	providerCache      map[string]providers.Interface
 	providerFuncCache  map[string]providers.Interface
 	functionResults    *lang.FunctionResults
@@ -125,6 +126,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Plugins:            w.Context.plugins,
 		Instances:          w.InstanceExpander,
 		NamedValues:        w.NamedValues,
+		moduleCallValues:   w.moduleCallValues,
 		Deferrals:          w.Deferrals,
 		PlanTimestamp:      w.PlanTimestamp,
 		FunctionResults:    w.functionResults,
