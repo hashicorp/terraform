@@ -31,12 +31,12 @@ type StateMeta struct {
 // backup path.
 func (c *StateMeta) State(view arguments.ViewType) (statemgr.Full, error) {
 	var realState statemgr.Full
-	backupPath := c.backupPath
-	stateOutPath := c.statePath
+	backupPath := c.overrideBackupPath
+	stateOutPath := c.overrideStatePath
 
 	// use the specified state
-	if c.statePath != "" {
-		realState = statemgr.NewFilesystem(c.statePath)
+	if c.overrideStatePath != "" {
+		realState = statemgr.NewFilesystem(c.overrideStatePath)
 	} else {
 
 		// Load the backend

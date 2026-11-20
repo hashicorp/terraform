@@ -59,7 +59,7 @@ func (c *OutputCommand) Outputs(statePath string, view arguments.ViewType) (map[
 
 	// Allow state path override
 	if statePath != "" {
-		c.Meta.statePath = statePath
+		c.Meta.overrideStatePath = statePath
 	}
 
 	// Load the backend

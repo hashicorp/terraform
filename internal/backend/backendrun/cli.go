@@ -60,16 +60,18 @@ type CLIOpts struct {
 	// for tailoring the output to fit the attached terminal, for example.
 	Streams *terminal.Streams
 
-	// StatePath is the local path where state is read from.
+	// OverrideStatePath (-state CLI flag) will override the local path where state is read from.
 	//
-	// StateOutPath is the local path where the state will be written.
-	// If this is empty, it will default to StatePath.
+	// OverrideStateOutPath (-state-out CLI flag) will override the local path where the state will be written.
+	// If this is empty, it will default to OverrideStatePath.
 	//
-	// StateBackupPath is the local path where a backup file will be written.
+	// StateBackupPath (-state-backup CLI flag) will enable creating a backup file at that path.
 	// If this is empty, no backup will be taken.
-	StatePath       string
-	StateOutPath    string
-	StateBackupPath string
+	//
+	// These are currently only used in the local backend.
+	OverrideStatePath       string
+	OverrideStateOutPath    string
+	OverrideStateBackupPath string
 
 	// ContextOpts are the base context options to set when initializing a
 	// Terraform context. Many of these will be overridden or merged by

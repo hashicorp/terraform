@@ -198,7 +198,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 
 	// Setup the meta
 	m := testMetaBackend(t)
-	m.statePath = statePath
+	m.overrideStatePath = statePath
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -1820,7 +1820,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 
 	// Setup the meta
 	m := testMetaBackend(t)
-	m.stateOutPath = statePath
+	m.overrideStateOutPath = statePath
 
 	// Get the backend
 	b, diags := m.BackendForLocalPlan(plan)

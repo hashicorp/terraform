@@ -33,7 +33,7 @@ func (c *StateIdentitiesCommand) Run(rawArgs []string) int {
 	diags = diags.Append(argDiags)
 
 	if args.StatePath != "" {
-		c.Meta.statePath = args.StatePath
+		c.Meta.overrideStatePath = args.StatePath
 	}
 
 	view := views.NewStateIdentities(args.ViewType, c.View)

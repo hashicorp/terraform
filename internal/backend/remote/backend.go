@@ -100,9 +100,12 @@ type Remote struct {
 	ignoreVersionConflict bool
 }
 
-var _ backend.Backend = (*Remote)(nil)
-var _ backendrun.OperationsBackend = (*Remote)(nil)
-var _ backendrun.Local = (*Remote)(nil)
+var (
+	_ backend.Backend              = (*Remote)(nil)
+	_ backendrun.OperationsBackend = (*Remote)(nil)
+	_ backendrun.Local             = (*Remote)(nil)
+	_ backendrun.CLI               = (*Remote)(nil)
+)
 
 // New creates a new initialized remote backend.
 func New(services *disco.Disco) *Remote {
@@ -760,7 +763,6 @@ func (b *Remote) fetchWorkspace(ctx context.Context, organization string, name s
 // Operation implements backendrun.OperationsBackend.
 func (b *Remote) Operation(ctx context.Context, op *backendrun.Operation) (*backendrun.RunningOperation, error) {
 	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
-
 	if err != nil {
 		return nil, err
 	}

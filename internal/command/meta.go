@@ -235,17 +235,26 @@ type Meta struct {
 	// The fields below are expected to be set by the command via
 	// command line flags. See the Apply command for an example.
 	//
-	// statePath is the path to the state file. If this is empty, then
-	// no state will be loaded. It is also okay for this to be a path to
-	// a file that doesn't exist; it is assumed that this means that there
-	// is simply no state.
+	// These fields are only relevant when running operations via a local backend.
 	//
-	// stateOutPath is used to override the output path for the state.
-	// If not provided, the StatePath is used causing the old state to
+	// overrideStatePath, set via -state CLI flag, is an override path to the
+	// state file. If this is empty, then the default state path will be used.
+	//
+	// overrideStateOutPath, set via -state-out CLI flag, is used to override
+	// the output path for the state. If not provided, the default state path
+	// will be used is used causing the old state to
 	// be overridden.
 	//
-	// backupPath is used to backup the state file before writing a modified
-	// version. It defaults to stateOutPath + DefaultBackupExtension
+	// overrideBackupPath, set via -state-backup CLI flag, is used to backup the state
+	// file before writing a modified version.
+	// It defaults to stateOutPath + DefaultBackupExtension
+	overrideStatePath    string
+	overrideStateOutPath string
+	overrideBackupPath   string
+
+	// The fields below are expected to be set by the command via
+	// command line flags. See the Apply command for an example.
+	//
 	//
 	// parallelism is used to control the number of concurrent operations
 	// allowed when walking the graph
@@ -267,9 +276,6 @@ type Meta struct {
 	//
 	// compactWarnings (-compact-warnings) selects a more compact presentation
 	// of warnings in the output when they are not accompanied by errors.
-	statePath        string
-	stateOutPath     string
-	backupPath       string
 	parallelism      int
 	stateLock        bool
 	stateLockTimeout time.Duration
@@ -314,7 +320,7 @@ func (to *testingOverrides) Input() bool {
 
 // StateOutPath returns the true output path for the state file
 func (m *Meta) StateOutPath() string {
-	return m.stateOutPath
+	return m.overrideStateOutPath
 }
 
 // Colorize returns the colorization structure for a command.
@@ -822,9 +828,9 @@ func (m *Meta) SetWorkspace(name string) error {
 func (m *Meta) applyStateArguments(args *arguments.State) {
 	m.stateLock = args.Lock
 	m.stateLockTimeout = args.LockTimeout
-	m.statePath = args.StatePath
-	m.stateOutPath = args.StateOutPath
-	m.backupPath = args.BackupPath
+	m.overrideStatePath = args.StatePath
+	m.overrideStateOutPath = args.StateOutPath
+	m.overrideBackupPath = args.BackupPath
 }
 
 // checkRequiredVersion loads the config and check if the
