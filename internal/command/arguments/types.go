@@ -9,10 +9,12 @@ package arguments
 type ViewType rune
 
 const (
-	ViewNone  ViewType = 0
-	ViewHuman ViewType = 'H'
-	ViewJSON  ViewType = 'J'
-	ViewRaw   ViewType = 'R'
+	ViewNone          ViewType = 0
+	ViewHuman         ViewType = 'H'
+	ViewHumanRedacted ViewType = 'I'
+	ViewJSON          ViewType = 'J'
+	ViewJSONRedacted  ViewType = 'K'
+	ViewRaw           ViewType = 'R'
 )
 
 func (vt ViewType) String() string {
@@ -21,8 +23,12 @@ func (vt ViewType) String() string {
 		return "none"
 	case ViewHuman:
 		return "human"
+	case ViewHumanRedacted:
+		return "humanredacted"
 	case ViewJSON:
 		return "json"
+	case ViewJSONRedacted:
+		return "jsonredacted"
 	case ViewRaw:
 		return "raw"
 	default:
