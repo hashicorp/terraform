@@ -83,12 +83,13 @@ func TestStateReplaceProvider(t *testing.T) {
 					View: view,
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
-						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: nil,
-							Writer: streams.Stdout.File,
-						}, nil, map[string]string{
-							"replace-provider": "yes",
-						}),
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "yes",
+							}),
 					},
 				},
 			},
@@ -199,12 +200,13 @@ Successfully replaced provider for 2 resources.
 					View: view,
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
-						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: nil,
-							Writer: streams.Stdout.File,
-						}, nil, map[string]string{
-							"replace-provider": "no",
-						}),
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "no",
+							}),
 					},
 				},
 			},
@@ -262,10 +264,13 @@ Cancelled replacing providers.
 					View: view,
 					testingOverrides: &testingOverrides{
 						// Respond to the interactive approval prompt
-						UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-							Reader: bytes.NewBufferString("no\n"),
-							Writer: streams.Stdout.File,
-						}, nil, nil),
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "no",
+							}),
 					},
 				},
 			},
@@ -437,12 +442,13 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 					},
 
 					// Respond to the interactive approval prompt
-					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: nil,
-						Writer: streams.Stdout.File,
-					}, nil, map[string]string{
-						"replace-provider": "yes",
-					}),
+					UIInput: tfui.NewUIInputForTests(
+						t,
+						tfui.UIInputOptions{
+							Writer: streams.Stdout.File,
+						}, map[string]string{
+							"replace-provider": "yes",
+						}),
 				},
 				View: view,
 			},
@@ -661,12 +667,13 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 				View: view,
 				testingOverrides: &testingOverrides{
 					// Respond to the interactive approval prompt
-					UIInput: tfui.NewUIInputForTests(tfui.UIInputOptions{
-						Reader: nil,
-						Writer: streams.Stdout.File,
-					}, nil, map[string]string{
-						"replace-provider": "yes",
-					}),
+					UIInput: tfui.NewUIInputForTests(
+						t,
+						tfui.UIInputOptions{
+							Writer: streams.Stdout.File,
+						}, map[string]string{
+							"replace-provider": "yes",
+						}),
 				},
 			},
 		},

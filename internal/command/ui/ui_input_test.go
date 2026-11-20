@@ -49,11 +49,11 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 	t.Run("input via supplied reader", func(t *testing.T) {
 		t.Parallel()
 		i := NewUIInputForTests(
+			t,
 			UIInputOptions{
 				Reader: bytes.NewBufferString("foo\n"),
 				Writer: bytes.NewBuffer(nil),
 			},
-			nil,
 			nil,
 		)
 
@@ -67,48 +67,16 @@ func TestNewUIInputForTest_Input(t *testing.T) {
 		}
 	})
 
-	t.Run("input via supplied testInputResponse slice", func(t *testing.T) {
-		t.Parallel()
-
-		testInputResponse := []string{"foo1", "foo2"}
-		i := NewUIInputForTests(
-			UIInputOptions{
-				Reader: bytes.NewBuffer(nil),
-				Writer: bytes.NewBuffer(nil),
-			},
-			testInputResponse,
-			nil,
-		)
-
-		v, err := i.Input(context.Background(), &terraform.InputOpts{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		if v != "foo1" {
-			t.Fatalf("unexpected input: %s", v)
-		}
-
-		v, err = i.Input(context.Background(), &terraform.InputOpts{})
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		if v != "foo2" {
-			t.Fatalf("unexpected input: %s", v)
-		}
-	})
-
 	t.Run("input via supplied testInputResponseMap map", func(t *testing.T) {
 		t.Parallel()
 
 		testInputResponseMap := map[string]string{"prompt-number-1": "foo"}
 		i := NewUIInputForTests(
+			t,
 			UIInputOptions{
 				Reader: bytes.NewBuffer(nil),
 				Writer: bytes.NewBuffer(nil),
 			},
-			nil,
 			testInputResponseMap,
 		)
 
@@ -129,11 +97,11 @@ func TestUIInputInput_canceled(t *testing.T) {
 	t.Parallel()
 	r, w := io.Pipe()
 	i := NewUIInputForTests(
+		t,
 		UIInputOptions{
 			Reader: r,
 			Writer: bytes.NewBuffer(nil),
 		},
-		nil,
 		nil,
 	)
 
