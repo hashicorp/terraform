@@ -382,13 +382,14 @@ func TestMain_helpTextOnArgError(t *testing.T) {
 		"push":   "obsolete command does not parse arguments",
 
 		// Print short help prompts and return 1, instead of returning cli.RunResultHelp and rendering full help text
-		"apply":    "uses c.View.HelpPrompt() instead",
-		"destroy":  "uses c.View.HelpPrompt() instead",
-		"plan":     "uses c.View.HelpPrompt() instead",
-		"query":    "uses c.View.HelpPrompt() instead",
-		"refresh":  "uses c.View.HelpPrompt() instead",
-		"test":     "uses c.View.HelpPrompt() instead",
-		"validate": "uses c.View.HelpPrompt() instead",
+		"apply":      "uses c.View.HelpPrompt() instead",
+		"destroy":    "uses c.View.HelpPrompt() instead",
+		"plan":       "uses c.View.HelpPrompt() instead",
+		"query":      "uses c.View.HelpPrompt() instead",
+		"refresh":    "uses c.View.HelpPrompt() instead",
+		"state show": "uses c.View.HelpPrompt() instead",
+		"test":       "uses c.View.HelpPrompt() instead",
+		"validate":   "uses c.View.HelpPrompt() instead",
 	}
 
 	for n, cf := range Commands {
