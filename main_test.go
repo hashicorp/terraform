@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,7 +14,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/cli"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/ui"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
@@ -343,6 +346,66 @@ func TestMain_autoComplete(t *testing.T) {
 	}
 	if n != 0 {
 		t.Fatalf("expected autocompletion to return 0 bytes, but got %d: %q", n, b[0:n])
+	}
+}
+
+// Assert that all commands return cli.RunResultHelp when given an invalid argument.
+// Returning this value causes the CLI to render the full help text for the command.
+// Some commands are skipped because they handle arguments differently or have
+// custom help behavior.
+//
+// As this test iterates over all commands, it ensures that any new commands will be
+// implemented to return cli.RunResultHelp when given an invalid argument.
+func TestMain_helpTextOnArgError(t *testing.T) {
+	td := t.TempDir()
+	t.Chdir(td)
+
+	ctx := context.Background()
+	streams, _ := terminal.StreamsForTesting(t)
+	emptyConfig := &cliconfig.Config{}
+
+	initCommands(
+		ctx,
+		td,
+		streams,
+		emptyConfig,
+		nil, // no services
+		nil, // no provider source
+		nil, // no dev_override providers
+		nil, // no unmanaged/reattached providers
+	)
+
+	skippedCommands := map[string]string{
+		// Don't handle arguments
+		"stacks": "arguments are parsed by the downstream stacks plugin, not the command implementation",
+		"rpcapi": "arguments are handled by the RPC API server, not the command implementation",
+		"push":   "obsolete command does not parse arguments",
+
+		// Print short help prompts and return 1, instead of returning cli.RunResultHelp and rendering full help text
+		"apply":   "uses view.HelpPrompt() instead",
+		"destroy": "uses view.HelpPrompt() instead",
+		"plan":    "uses view.HelpPrompt() instead",
+		"refresh": "uses view.HelpPrompt() instead",
+		"query":   "uses view.HelpPrompt() instead",
+	}
+
+	for n, cf := range Commands {
+		t.Run(n, func(t *testing.T) {
+			if reason, skip := skippedCommands[n]; skip {
+				t.Skip(reason)
+			}
+
+			cmd, err := cf()
+			if err != nil {
+				t.Fatalf("failed to create command: %v", err)
+			}
+
+			args := []string{"-invalid-arg"} // Pass command a flag it doesn't expect
+			code := cmd.Run(args)
+			if code != cli.RunResultHelp {
+				t.Errorf("expected command %q to return exit code %d, but got %d", n, cli.RunResultHelp, code)
+			}
+		})
 	}
 }
 
