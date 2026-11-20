@@ -9,6 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -92,18 +93,15 @@ func TestChangeEncodeSensitive(t *testing.T) {
 
 // make sure we get a valid value back even when faced with an error
 func TestChangeEncodeError(t *testing.T) {
-	changes := &Changes{
-		Outputs: []*OutputChange{
-			{
-				// Missing Addr
-				Change: Change{
-					Before: cty.NullVal(cty.DynamicPseudoType),
-					// can't encode a marked value
-					After: cty.StringVal("test").Mark("should not be here"),
-				},
-			},
+	changes := NewChanges()
+	changes.Outputs.Put(addrs.AbsOutputValue{}, &OutputChange{
+		// Missing Addr
+		Change: Change{
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			// can't encode a marked value
+			After: cty.StringVal("test").Mark("should not be here"),
 		},
-	}
+	})
 	// no resources so we can get by with no schemas
 	changesSrc, err := changes.Encode(nil)
 	if err == nil {

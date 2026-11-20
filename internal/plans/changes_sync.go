@@ -28,7 +28,8 @@ type ChangesSync struct {
 }
 
 // AppendResourceInstanceChange records the given resource instance change in
-// the set of planned resource changes.
+// the set of planned resource changes, replacing any existing change for the
+// same resource instance object.
 //
 // The caller must ensure that there are no concurrent writes to the given
 // change while this method is running, but it is safe to resume mutating
@@ -40,7 +41,7 @@ func (cs *ChangesSync) AppendResourceInstanceChange(change *ResourceInstanceChan
 	defer cs.beginWrite()()
 
 	s := change.DeepCopy()
-	cs.changes.Resources = append(cs.changes.Resources, s)
+	cs.changes.Resources.Put(s.ObjectAddr(), s)
 }
 
 func (cs *ChangesSync) AppendQueryInstance(query *QueryInstance) {
@@ -70,10 +71,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	if dk == addrs.NotDeposed {
-		return cs.changes.ResourceInstance(addr).DeepCopy()
-	}
-	return cs.changes.ResourceInstanceDeposed(addr, dk).DeepCopy()
+	return cs.changes.Resources.Get(addr.DeposedObject(dk)).DeepCopy()
 }
 
 // GetChangesForConfigResource searches the set of resource instance
@@ -156,19 +154,12 @@ func (cs *ChangesSync) RemoveResourceInstanceChange(addr addrs.AbsResourceInstan
 	}
 	defer cs.beginWrite()()
 
-	addrStr := addr.String()
-	for i, r := range cs.changes.Resources {
-		if r.Addr.String() != addrStr || r.DeposedKey != dk {
-			continue
-		}
-		copy(cs.changes.Resources[i:], cs.changes.Resources[i+1:])
-		cs.changes.Resources = cs.changes.Resources[:len(cs.changes.Resources)-1]
-		return
-	}
+	cs.changes.Resources.Remove(addr.DeposedObject(dk))
 }
 
 // AppendOutputChange records the given output value change in the set of
-// planned value changes.
+// planned value changes, replacing any existing change for the same output
+// value.
 //
 // The caller must ensure that there are no concurrent writes to the given
 // change while this method is running, but it is safe to resume mutating
@@ -179,7 +170,7 @@ func (cs *ChangesSync) AppendOutputChange(changeSrc *OutputChange) {
 	}
 	defer cs.beginWrite()()
 
-	cs.changes.Outputs = append(cs.changes.Outputs, changeSrc)
+	cs.changes.Outputs.Put(changeSrc.Addr, changeSrc)
 }
 
 // GetOutputChange searches the set of output value changes for one matching
@@ -197,40 +188,7 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChange 
 	cs.lock.Lock()
 	defer cs.lock.Unlock()
 
-	return cs.changes.OutputValue(addr)
-}
-
-// GetRootOutputChanges searches the set of output changes for any that reside
-// the root module. If no such changes exist, nil is returned.
-//
-// The returned objects are a deep copy of the change recorded in the plan, so
-// callers may mutate them although it's generally better (less confusing) to
-// treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetRootOutputChanges() []*OutputChange {
-	if cs == nil {
-		panic("GetRootOutputChanges on nil ChangesSync")
-	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
-
-	return cs.changes.RootOutputValues()
-}
-
-// GetOutputChanges searches the set of output changes for any that reside in
-// module instances beneath the given module. If no changes exist, nil
-// is returned.
-//
-// The returned objects are a deep copy of the change recorded in the plan, so
-// callers may mutate them although it's generally better (less confusing) to
-// treat planned changes as immutable after they've been initially constructed.
-func (cs *ChangesSync) GetOutputChanges(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChange {
-	if cs == nil {
-		panic("GetOutputChange on nil ChangesSync")
-	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
-
-	return cs.changes.OutputValues(parent, module)
+	return cs.changes.Outputs.Get(addr)
 }
 
 // RemoveOutputChange searches the set of output value changes for one matching
@@ -241,16 +199,7 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	}
 	defer cs.beginWrite()()
 
-	addrStr := addr.String()
-
-	for i, o := range cs.changes.Outputs {
-		if o.Addr.String() != addrStr {
-			continue
-		}
-		copy(cs.changes.Outputs[i:], cs.changes.Outputs[i+1:])
-		cs.changes.Outputs = cs.changes.Outputs[:len(cs.changes.Outputs)-1]
-		return
-	}
+	cs.changes.Outputs.Remove(addr)
 }
 
 // GetActionInvocation gets an action invocation based on the action address, the triggering

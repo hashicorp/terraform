@@ -897,14 +897,21 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
-	var forgottenResources []string
-	for _, rc := range changes.Resources {
+	var forgotten []addrs.AbsResourceInstanceObject
+	for obj, rc := range changes.Resources.Iter() {
 		if rc.Action == plans.Forget || rc.Action == plans.ForgetThenCreate || rc.Action == plans.CreateThenForget {
-			// TODO KEM display resource ids
-			forgottenResources = append(forgottenResources, fmt.Sprintf(" - %s", rc.Addr))
+			forgotten = append(forgotten, obj)
 		}
 	}
-	if len(forgottenResources) > 0 {
+	if len(forgotten) > 0 {
+		sort.Slice(forgotten, func(i, j int) bool {
+			return forgotten[i].Less(forgotten[j])
+		})
+		forgottenResources := make([]string, len(forgotten))
+		for i, obj := range forgotten {
+			// TODO KEM display resource ids
+			forgottenResources[i] = fmt.Sprintf(" - %s", obj.ResourceInstance)
+		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Some objects will no longer be managed by Terraform",

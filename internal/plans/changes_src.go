@@ -142,7 +142,7 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		rc.Before = marks.MarkPaths(rc.Before, marks.Sensitive, rcs.BeforeSensitivePaths)
 		rc.After = marks.MarkPaths(rc.After, marks.Sensitive, rcs.AfterSensitivePaths)
 
-		changes.Resources = append(changes.Resources, rc)
+		changes.Resources.Put(rc.ObjectAddr(), rc)
 	}
 
 	for _, qis := range c.Queries {
@@ -187,7 +187,7 @@ func (c *ChangesSrc) Decode(schemas *schemarepo.Schemas) (*Changes, error) {
 		if err != nil {
 			return nil, err
 		}
-		changes.Outputs = append(changes.Outputs, oc)
+		changes.Outputs.Put(oc.Addr, oc)
 	}
 	return changes, nil
 }

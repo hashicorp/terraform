@@ -6,6 +6,7 @@ package plans
 import (
 	"fmt"
 	"iter"
+	"slices"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -20,9 +21,13 @@ import (
 
 // Changes describes various actions that Terraform will attempt to take if
 // the corresponding plan is applied.
+//
+// Use NewChanges to create a Changes, because the maps it contains must be
+// initialized before any changes can be added.
 type Changes struct {
-	// Resources tracks planned changes to resource instance objects.
-	Resources []*ResourceInstanceChange
+	// Resources tracks planned changes to resource instance objects, by the
+	// address of the object each change applies to.
+	Resources addrs.Map[addrs.AbsResourceInstanceObject, *ResourceInstanceChange]
 
 	Queries []*QueryInstance
 
@@ -30,7 +35,7 @@ type Changes struct {
 	// embedded resource instance changes.
 	ActionInvocations ActionInvocationInstances
 
-	// Outputs tracks planned changes output values.
+	// Outputs tracks planned changes output values, by address.
 	//
 	// Note that although an in-memory plan contains planned changes for
 	// outputs throughout the configuration, a plan serialized
@@ -38,21 +43,26 @@ type Changes struct {
 	// externally-visible, while other outputs are implementation details and
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
-	Outputs []*OutputChange
+	Outputs addrs.Map[addrs.AbsOutputValue, *OutputChange]
 }
 
 // NewChanges returns a valid Changes object that describes no changes.
 func NewChanges() *Changes {
-	return &Changes{}
+	return &Changes{
+		Resources: addrs.MakeMap[addrs.AbsResourceInstanceObject, *ResourceInstanceChange](),
+		Outputs:   addrs.MakeMap[addrs.AbsOutputValue, *OutputChange](),
+	}
 }
 
-// Encode encodes all the stored resource and output changes into a new *ChangeSrc value
+// Encode encodes all the stored resource and output changes into a new
+// *ChangeSrc value. The encoded resource and output changes are sorted by
+// address.
 func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	// a plan is always built even when there are errors, so make sure to return
 	// a valid changesSrc.
 	changesSrc := NewChangesSrc()
 
-	for _, rc := range c.Resources {
+	for _, rc := range sortedValues(c.Resources) {
 		p, ok := schemas.Providers[rc.ProviderAddr.Provider]
 		if !ok {
 			return changesSrc, fmt.Errorf("Changes.Encode: missing provider %s for %s", rc.ProviderAddr, rc.Addr)
@@ -115,7 +125,7 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 		changesSrc.ActionInvocations = append(changesSrc.ActionInvocations, a)
 	}
 
-	for _, ocs := range c.Outputs {
+	for _, ocs := range sortedValues(c.Outputs) {
 		oc, err := ocs.Encode()
 		if err != nil {
 			return changesSrc, err
@@ -126,18 +136,35 @@ func (c *Changes) Encode(schemas *schemarepo.Schemas) (*ChangesSrc, error) {
 	return changesSrc, nil
 }
 
+// sortedValues returns the values of the given map, sorted by key.
+func sortedValues[K interface {
+	addrs.UniqueKeyer
+	Less(K) bool
+}, V any](m addrs.Map[K, V]) []V {
+	elems := m.Elements()
+	slices.SortFunc(elems, func(a, b addrs.MapElem[K, V]) int {
+		switch {
+		case a.Key.Less(b.Key):
+			return -1
+		case b.Key.Less(a.Key):
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	ret := make([]V, len(elems))
+	for i, elem := range elems {
+		ret[i] = elem.Value
+	}
+	return ret
+}
+
 // ResourceInstance returns the planned change for the current object of the
 // resource instance of the given address, if any. Returns nil if no change is
 // planned.
 func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChange {
-	for _, rc := range c.Resources {
-		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
-			return rc
-		}
-	}
-
-	return nil
-
+	return c.Resources.Get(addr.CurrentObject())
 }
 
 // InstancesForAbsResource returns the planned change for the current objects
@@ -145,7 +172,8 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 // changes are planned.
 func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChange {
 	var changes []*ResourceInstanceChange
-	for _, rc := range c.Resources {
+	for _, elem := range c.Resources.Elems {
+		rc := elem.Value
 		resAddr := rc.Addr.ContainingResource()
 		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
 			changes = append(changes, rc)
@@ -172,7 +200,8 @@ func (c *Changes) QueriesForAbsResource(addr addrs.AbsResource) []*QueryInstance
 // changes are planned.
 func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) iter.Seq[*ResourceInstanceChange] {
 	return func(yield func(*ResourceInstanceChange) bool) {
-		for _, rc := range c.Resources {
+		for _, elem := range c.Resources.Elems {
+			rc := elem.Value
 			resAddr := rc.Addr.ContainingResource().Config()
 			if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
 				if !yield(rc) {
@@ -187,73 +216,14 @@ func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) iter.Seq
 // the resource instance of the given address, if any. Returns nil if no change
 // is planned.
 func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChange {
-	for _, rc := range c.Resources {
-		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
-			return rc
-		}
-	}
-
-	return nil
+	return c.Resources.Get(addr.DeposedObject(key))
 }
 
 // OutputValue returns the planned change for the output value with the
 //
 //	given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChange {
-	for _, oc := range c.Outputs {
-		if oc.Addr.Equal(addr) {
-			return oc
-		}
-	}
-
-	return nil
-}
-
-// RootOutputValues returns planned changes for all outputs of the root module.
-func (c *Changes) RootOutputValues() []*OutputChange {
-	var res []*OutputChange
-
-	for _, oc := range c.Outputs {
-		// we can't evaluate root module outputs
-		if !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
-			continue
-		}
-
-		res = append(res, oc)
-
-	}
-
-	return res
-}
-
-// OutputValues returns planned changes for all outputs for all module
-// instances that reside in the parent path.  Returns nil if no changes are
-// planned.
-func (c *Changes) OutputValues(parent addrs.ModuleInstance, module addrs.ModuleCall) []*OutputChange {
-	var res []*OutputChange
-
-	for _, oc := range c.Outputs {
-		// we can't evaluate root module outputs
-		if oc.Addr.Module.Equal(addrs.RootModuleInstance) {
-			continue
-		}
-
-		changeMod, changeCall := oc.Addr.Module.Call()
-		// this does not reside on our parent instance path
-		if !changeMod.Equal(parent) {
-			continue
-		}
-
-		// this is not the module you're looking for
-		if changeCall.Name != module.Name {
-			continue
-		}
-
-		res = append(res, oc)
-
-	}
-
-	return res
+	return c.Outputs.Get(addr)
 }
 
 // SyncWrapper returns a wrapper object around the receiver that can be used
@@ -392,6 +362,14 @@ type ResourceInstanceChange struct {
 	// Terraform that relates to this change. Terraform will save this
 	// byte-for-byte and return it to the provider in the apply call.
 	Private []byte
+}
+
+// ObjectAddr returns the address of the resource instance object that the
+// change applies to.
+func (rc *ResourceInstanceChange) ObjectAddr() addrs.AbsResourceInstanceObject {
+	// To insert the correct key, we always call DeposedObject which handles
+	// NotDeposed the same as any other key.
+	return rc.Addr.DeposedObject(rc.DeposedKey)
 }
 
 // Encode produces a variant of the receiver that has its change values

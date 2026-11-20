@@ -115,20 +115,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			}
 
 			// Find any recorded change for this output
-			var change *plans.OutputChange
-			var outputChanges []*plans.OutputChange
-			if module.IsRoot() {
-				outputChanges = changes.GetRootOutputChanges()
-			} else {
-				parent, call := module.Call()
-				outputChanges = changes.GetOutputChanges(parent, call)
-			}
-			for _, c := range outputChanges {
-				if c.Addr.String() == absAddr.String() {
-					change = c
-					break
-				}
-			}
+			change := changes.GetOutputChange(absAddr)
 
 			var node dag.Vertex
 			switch {
@@ -748,7 +735,6 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			},
 		}
 
-		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(change) // add the new planned change
 	}
 	state.RemoveOutputValue(n.Addr)

@@ -438,8 +438,8 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
 	}
 
-	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
-		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	if !planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only"))
 	}
 
 	state, diags := ctx.Apply(plan, m, &ApplyOpts{
@@ -564,8 +564,8 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
 	}
 
-	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
-		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	if !planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only"))
 	}
 
 	state, diags := ctx.Apply(plan, m, &ApplyOpts{
@@ -701,8 +701,8 @@ resource "ephem_write_only" "wo" {
 		t.Fatalf("Failed to decode plan changes: %v.", err)
 	}
 
-	if !planChanges.Resources[0].After.GetAttr("write_only").IsNull() {
-		t.Fatalf("Expected write_only to be null, got %v", planChanges.Resources[0].After.GetAttr("write_only"))
+	if !planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only").IsNull() {
+		t.Fatalf("Expected write_only to be null, got %v", planChanges.ResourceInstance(mustResourceInstanceAddr("ephem_write_only.wo")).After.GetAttr("write_only"))
 	}
 
 	state, diags := ctx.Apply(plan, m, &ApplyOpts{

@@ -101,6 +101,15 @@ func (v AbsOutputValue) Equal(o AbsOutputValue) bool {
 	return v.OutputValue.Equal(o.OutputValue) && v.Module.Equal(o.Module)
 }
 
+// Less returns true if the receiver should sort before the given other value
+// in a sorted list of addresses.
+func (v AbsOutputValue) Less(o AbsOutputValue) bool {
+	if !v.Module.Equal(o.Module) {
+		return v.Module.Less(o.Module)
+	}
+	return v.OutputValue.Name < o.OutputValue.Name
+}
+
 func (v AbsOutputValue) ConfigOutputValue() ConfigOutputValue {
 	return ConfigOutputValue{
 		Module:      v.Module.Module(),

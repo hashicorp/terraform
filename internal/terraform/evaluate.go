@@ -754,10 +754,9 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = value
 	}
 
-	// Proactively read out all the resource changes before iteration. Not only
-	// does GetResourceInstanceChange have to iterate over all instances
-	// internally causing an n^2 lookup, but Changes is also a major point of
-	// lock contention.
+	// Proactively read out all the resource changes before iteration, rather
+	// than looking up each instance's change individually, because Changes is
+	// a major point of lock contention.
 	resChanges := d.Evaluator.Changes.GetChangesForConfigResource(addr.InModule(moduleConfig.Path))
 	instChanges := addrs.MakeMap[addrs.AbsResourceInstance, *plans.ResourceInstanceChange]()
 	for _, ch := range resChanges {

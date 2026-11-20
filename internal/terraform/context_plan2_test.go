@@ -6388,28 +6388,25 @@ resource "test_object" "obj" {
 	if plan.Changes.Empty() {
 		t.Fatal("unexpected empty plan")
 	}
-	expectedChanges := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChange{
-			{
-				Addr:         rAddr,
-				PrevRunAddr:  rAddr,
-				ProviderAddr: pAddr,
-				Change: plans.Change{
-					Action: plans.DeleteThenCreate,
-					Before: cty.ObjectVal(map[string]cty.Value{
-						"value": cty.NullVal(cty.String),
-					}),
-					BeforeIdentity: cty.NullVal(cty.EmptyObject),
-					After: cty.ObjectVal(map[string]cty.Value{
-						"value": cty.NullVal(cty.String),
-					}),
-					AfterIdentity: cty.NullVal(cty.EmptyObject),
-				},
-				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
-				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
-			},
+	expectedChanges := plans.NewChanges()
+	expectedChanges.Resources.Put(rAddr.CurrentObject(), &plans.ResourceInstanceChange{
+		Addr:         rAddr,
+		PrevRunAddr:  rAddr,
+		ProviderAddr: pAddr,
+		Change: plans.Change{
+			Action: plans.DeleteThenCreate,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.NullVal(cty.String),
+			}),
+			BeforeIdentity: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.NullVal(cty.String),
+			}),
+			AfterIdentity: cty.NullVal(cty.EmptyObject),
 		},
-	}
+		ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+		RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
+	})
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
 	tfdiags.AssertNoDiagnostics(t, schemaDiags)
@@ -6486,28 +6483,25 @@ resource "test_object" "obj" {
 	if plan.Changes.Empty() {
 		t.Fatal("unexpected empty plan")
 	}
-	expectedChanges := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChange{
-			{
-				Addr:         rAddr,
-				PrevRunAddr:  rAddr,
-				ProviderAddr: pAddr,
-				Change: plans.Change{
-					Action: plans.CreateThenDelete,
-					Before: cty.ObjectVal(map[string]cty.Value{
-						"value": cty.NullVal(cty.String),
-					}),
-					BeforeIdentity: cty.NullVal(cty.EmptyObject),
-					After: cty.ObjectVal(map[string]cty.Value{
-						"value": cty.NullVal(cty.String),
-					}),
-					AfterIdentity: cty.NullVal(cty.EmptyObject),
-				},
-				ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
-				RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
-			},
+	expectedChanges := plans.NewChanges()
+	expectedChanges.Resources.Put(rAddr.CurrentObject(), &plans.ResourceInstanceChange{
+		Addr:         rAddr,
+		PrevRunAddr:  rAddr,
+		ProviderAddr: pAddr,
+		Change: plans.Change{
+			Action: plans.CreateThenDelete,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.NullVal(cty.String),
+			}),
+			BeforeIdentity: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"value": cty.NullVal(cty.String),
+			}),
+			AfterIdentity: cty.NullVal(cty.EmptyObject),
 		},
-	}
+		ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+		RequiredReplace: cty.NewPathSet(cty.GetAttrPath("value")),
+	})
 
 	schemas, schemaDiags := ctx.Schemas(m, plan.PriorState)
 	tfdiags.AssertNoDiagnostics(t, schemaDiags)
@@ -6667,38 +6661,35 @@ output "staying" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	tfdiags.AssertNoErrors(t, diags)
 
-	expectedChanges := &plans.Changes{
-		Outputs: []*plans.OutputChange{
-			{
-				Addr: mustAbsOutputValue("output.old"),
-				Change: plans.Change{
-					Action:         plans.Delete,
-					Before:         cty.StringVal("old_value"),
-					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
-					After:          cty.NullVal(cty.DynamicPseudoType),
-					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
-				},
-			},
-			{
-				Addr: mustAbsOutputValue("output.staying"),
-				Change: plans.Change{
-					Action:         plans.NoOp,
-					Before:         cty.StringVal("foo"),
-					BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
-					After:          cty.StringVal("foo"),
-					AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
-				},
+	expectedChanges := plans.NewChanges()
+	for _, oc := range []*plans.OutputChange{
+		{
+			Addr: mustAbsOutputValue("output.old"),
+			Change: plans.Change{
+				Action:         plans.Delete,
+				Before:         cty.StringVal("old_value"),
+				BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+				After:          cty.NullVal(cty.DynamicPseudoType),
+				AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
 			},
 		},
+		{
+			Addr: mustAbsOutputValue("output.staying"),
+			Change: plans.Change{
+				Action:         plans.NoOp,
+				Before:         cty.StringVal("foo"),
+				BeforeIdentity: cty.NullVal(cty.DynamicPseudoType),
+				After:          cty.StringVal("foo"),
+				AfterIdentity:  cty.NullVal(cty.DynamicPseudoType),
+			},
+		},
+	} {
+		expectedChanges.Outputs.Put(oc.Addr, oc)
 	}
 	changes, err := plan.Changes.Decode(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	sort.SliceStable(changes.Outputs, func(i, j int) bool {
-		return changes.Outputs[i].Addr.String() < changes.Outputs[j].Addr.String()
-	})
 
 	if diff := cmp.Diff(expectedChanges, changes, ctydebug.CmpOptions); diff != "" {
 		t.Fatalf("unexpected changes: %s", diff)
