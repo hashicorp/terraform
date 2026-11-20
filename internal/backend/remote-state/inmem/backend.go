@@ -27,6 +27,8 @@ import (
 var (
 	states stateMap
 	locks  lockMap
+
+	forceWriteError bool
 )
 
 func init() {
@@ -44,6 +46,8 @@ func Reset() {
 	locks = lockMap{
 		m: map[string]*statemgr.LockInfo{},
 	}
+
+	forceWriteError = false
 }
 
 // New creates a new backend for Inmem remote state.
@@ -56,6 +60,11 @@ func New() backend.Backend {
 						Type:        cty.String,
 						Optional:    true,
 						Description: "initializes the state in a locked configuration",
+					},
+					"force_write_error": {
+						Type:        cty.Bool,
+						Optional:    true,
+						Description: "simulates an error during state write",
 					},
 				},
 			},
@@ -71,12 +80,19 @@ func (b *Backend) Configure(configVal cty.Value) tfdiags.Diagnostics {
 	states.Lock()
 	defer states.Unlock()
 
+	if v := configVal.GetAttr("force_write_error"); !v.IsNull() {
+		forceWriteError = v.True()
+	}
+
 	// Some tests may configure this backend multiple times
 	// and expect the same state from memory afterwards.
 	_, ok := states.m[backend.DefaultStateName]
 	if !ok {
-		defaultClient := &RemoteClient{
-			Name: backend.DefaultStateName,
+		defaultClient := &client{
+			wrappedRemoteClient: RemoteClient{
+				Name: backend.DefaultStateName,
+			},
+			forceWriteError: forceWriteError,
 		}
 
 		states.m[backend.DefaultStateName] = &remote.State{
@@ -131,10 +147,14 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, tfdiags.Diagnostics) {
 
 	s := states.m[name]
 	if s == nil {
-		s = &remote.State{
-			Client: &RemoteClient{
+		client := &client{
+			wrappedRemoteClient: RemoteClient{
 				Name: name,
 			},
+			forceWriteError: forceWriteError,
+		}
+		s = &remote.State{
+			Client: client,
 		}
 		states.m[name] = s
 
@@ -217,4 +237,39 @@ func (l *lockMap) unlock(name, id string) error {
 
 	delete(l.m, name)
 	return nil
+}
+
+type client struct {
+	wrappedRemoteClient RemoteClient
+
+	forceWriteError bool
+}
+
+var _ remote.ClientLocker = (*client)(nil)
+
+func (c *client) Get() (*remote.Payload, tfdiags.Diagnostics) {
+	return c.wrappedRemoteClient.Get()
+}
+
+func (c *client) Put(b []byte) tfdiags.Diagnostics {
+	if c.forceWriteError {
+		return tfdiags.Diagnostics{tfdiags.Sourceless(
+			tfdiags.Error,
+			"forced write error",
+			"this is an error forced by the test",
+		)}
+	}
+	return c.wrappedRemoteClient.Put(b)
+}
+
+func (c *client) Delete() tfdiags.Diagnostics {
+	return c.wrappedRemoteClient.Delete()
+}
+
+func (c *client) Lock(info *statemgr.LockInfo) (string, error) {
+	return c.wrappedRemoteClient.Lock(info)
+}
+
+func (c *client) Unlock(id string) error {
+	return c.wrappedRemoteClient.Unlock(id)
 }
