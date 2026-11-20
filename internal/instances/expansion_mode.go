@@ -122,3 +122,25 @@ func expansionIsDeferred(exp expansion) bool {
 	_, ret := exp.(expansionDeferred)
 	return ret
 }
+
+// expansionHasInstanceKey returns true if the given expansion is known and
+// includes an instance with the given key, in which case it's safe to call
+// repetitionData with that key.
+func expansionHasInstanceKey(exp expansion, key addrs.InstanceKey) bool {
+	switch exp := exp.(type) {
+	case expansionSingle:
+		return key == addrs.NoKey
+	case expansionCount:
+		i, ok := key.(addrs.IntKey)
+		return ok && i >= 0 && int(i) < int(exp)
+	case expansionForEach:
+		k, ok := key.(addrs.StringKey)
+		if !ok {
+			return false
+		}
+		_, ok = exp[string(k)]
+		return ok
+	default:
+		return false
+	}
+}

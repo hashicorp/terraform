@@ -32,8 +32,7 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 
 	keyData := EvalDataForInstanceKey(addr.Resource.Key, nil)
 	if config.ForEach != nil {
-		forEach, _, _ := evaluateForEachExpression(config.ForEach, ctx, false)
-		keyData = EvalDataForInstanceKey(addr.Resource.Key, forEach)
+		keyData, _ = resourceInstanceRepetitionData(ctx, addr, config.ForEach)
 	}
 
 	schema := providerSchema.SchemaForListResourceType(n.Config.Type)

@@ -317,14 +317,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// of this to report this as the before value if the refresh is deferred.
 	priorInstanceRefreshState := instanceRefreshState
 
-	var forEach map[string]cty.Value
+	var repData InstanceKeyEvalData
 	if n.Config != nil {
 		// these diagnostics would be caught earlier, and adding them here only
 		// causes duplicates
-		forEach, _, _ = evaluateForEachExpression(n.Config.ForEach, ctx, false)
+		repData, _ = resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), n.Config.ForEach)
+	} else {
+		repData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, nil)
 	}
-
-	repData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	if !n.skipPlanChanges {
 		// add this instance to n.forceReplace if replacement is triggered by
@@ -471,15 +471,14 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	if n.skipPlanChanges {
-		// In refresh-only mode we need to evaluate the for-each expression in
+		// In refresh-only mode we need the value of the for-each expression in
 		// order to supply the value to the pre- and post-condition check
 		// blocks. This has the unfortunate edge case of a refresh-only plan
 		// executing with a for-each map which has the same keys but different
 		// values, which could result in a post-condition check relying on that
 		// value being inaccurate. Unless we decide to store the value of the
 		// for-each expression in state, this is unavoidable.
-		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+		repeatData, _ := resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), n.Config.ForEach)
 
 		checkDiags := evalCheckRules(
 			addrs.ResourcePrecondition,
@@ -807,8 +806,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			return nil, deferred, diags
 		}
 
-		forEach, _, _ := evaluateForEachExpression(n.Config.ForEach, ctx, false)
-		keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+		keyData, _ := resourceInstanceRepetitionData(ctx, n.ResourceInstanceAddr(), n.Config.ForEach)
 		configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema.Body, nil, keyData)
 		if configDiags.HasErrors() {
 			// We have an overridden resource so we're definitely in a test and
