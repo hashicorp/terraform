@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -34,6 +35,9 @@ func (c *WorkspaceShowCommand) Run(rawArgs []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
+		if args.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
 		return 1
 	}
 

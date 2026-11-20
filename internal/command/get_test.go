@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendCloud "github.com/hashicorp/terraform/internal/cloud"
@@ -53,7 +54,7 @@ func TestGet_multipleArgs(t *testing.T) {
 		"bad",
 		"bad",
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 }

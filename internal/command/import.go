@@ -10,6 +10,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
@@ -45,8 +46,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
-		c.Ui.Error(c.Help())
-		return 1
+		return cli.RunResultHelp
 	}
 
 	// Parse the provided resource address.

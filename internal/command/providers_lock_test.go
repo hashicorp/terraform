@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -246,8 +247,8 @@ func TestProvidersLock_args(t *testing.T) {
 		}
 		code := c.Run(args)
 
-		if code != 1 {
-			t.Fatalf("wrong exit code; expected 1, got %d", code)
+		if code != cli.RunResultHelp {
+			t.Fatalf("wrong exit code; expected %d, got %d", cli.RunResultHelp, code)
 		}
 		output := done(t)
 		if !strings.Contains(output.Stderr(), "The -fs-mirror and -net-mirror command line options are mutually-exclusive.") {
@@ -271,7 +272,7 @@ func TestProvidersLock_args(t *testing.T) {
 		code := c.Run(args)
 
 		if code != 1 {
-			t.Fatalf("wrong exit code; expected 1, got %d", code)
+			t.Fatalf("wrong exit code; expected %d, got %d", 1, code)
 		}
 		output := done(t)
 		if !strings.Contains(output.Stderr(), "must be two words separated by an underscore.") {
@@ -295,7 +296,7 @@ func TestProvidersLock_args(t *testing.T) {
 		code := c.Run(args)
 
 		if code != 1 {
-			t.Fatalf("wrong exit code; expected 1, got %d", code)
+			t.Fatalf("wrong exit code; expected %d, got %d", 1, code)
 		}
 		output := done(t)
 		if !strings.Contains(output.Stderr(), "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
