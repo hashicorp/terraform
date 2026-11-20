@@ -111,7 +111,7 @@ client_id            = "configured-client"
 			if parseDiags.HasErrors() {
 				t.Fatal(parseDiags)
 			}
-			m := testMetaBackend(t, nil)
+			m := testMetaBackend(t)
 			b, rawConfig, diags := m.backendInitFromConfig(&configs.Backend{Type: "azurerm", Config: file.Body})
 			if diags.HasErrors() {
 				t.Fatal(diags.ErrWithWarnings())
