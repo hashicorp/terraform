@@ -68,6 +68,11 @@ func TestParseMetadataFunctions_invalid(t *testing.T) {
 					"Failed to parse command-line flags",
 					"flag provided but not defined: -wat",
 				),
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"The -json flag is required",
+					"The `terraform metadata functions` command requires the `-json` flag.",
+				),
 			},
 		},
 		"unknown flag after json": {

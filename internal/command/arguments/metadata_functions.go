@@ -28,8 +28,6 @@ func ParseMetadataFunctions(args []string) (*MetadataFunctions, tfdiags.Diagnost
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
-
-		return metadataFunctions, diags
 	}
 
 	// Positional arguments are currently accepted and ignored.

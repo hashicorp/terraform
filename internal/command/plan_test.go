@@ -1029,7 +1029,9 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	// This will (helpfully) panic if more than one variable is requested during plan:
 	// https://github.com/hashicorp/terraform/issues/26027
-	uiInput := testInteractiveInput(t, []string{"bar"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.foo": "bar",
+	})
 
 	p := planVarsFixtureProvider()
 	testingOverrides := metaOverridesForProvider(p)

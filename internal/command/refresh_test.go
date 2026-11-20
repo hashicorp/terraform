@@ -562,12 +562,10 @@ func TestRefresh_varsUnset(t *testing.T) {
 	testingOverrides := metaOverridesForProvider(p)
 	testingOverrides.UIInput = uiInput
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
 			View:             view,
 		},
 	}

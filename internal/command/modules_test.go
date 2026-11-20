@@ -26,13 +26,11 @@ func TestModules_noJsonFlag(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 	t.Chdir(dir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -76,13 +74,11 @@ func TestModules_noJsonFlag_noModules(t *testing.T) {
 	os.MkdirAll(dir, 0755)
 	t.Chdir(dir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -106,13 +102,11 @@ func TestModules_fullCmd(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-nested-dependencies"), dir)
 	t.Chdir(dir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -133,13 +127,11 @@ func TestModules_fullCmd_unreferencedEntries(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-unreferenced-entries"), dir)
 	t.Chdir(dir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -159,13 +151,11 @@ func TestModules_uninstalledModules(t *testing.T) {
 	testCopyDir(t, testFixturePath("modules-uninstalled-entries"), dir)
 	t.Chdir(dir)
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 
 	cmd := &ModulesCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -190,13 +180,11 @@ func TestModules_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -218,13 +206,11 @@ func TestModules_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -270,13 +256,11 @@ Modules declared by configuration:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-cloud-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 
 		cmd := &ModulesCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 				Services:         d,

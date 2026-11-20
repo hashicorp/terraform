@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'query: Reduce time and memory used to render generated configuration in JSON output for large query results.'
+time: 2026-11-03T13:43:15.901059-08:00
+custom:
+    Issue: "39489"

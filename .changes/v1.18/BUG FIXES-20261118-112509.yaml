@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'fmt: fix issue formatting multiline expressions wrapped in parens'
+time: 2026-11-18T11:25:09.509942-05:00
+custom:
+    Issue: "39570"

@@ -20,9 +20,7 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 		td := t.TempDir()
 		t.Chdir(td)
 
-		ui := testUiWrapped(t)
 		meta := &Meta{
-			Ui:         ui,
 			WorkingDir: workdir.NewDir(td),
 		}
 
@@ -55,12 +53,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
 		meta := Meta{
 			WorkingDir:                workdir.NewDir(td), // Use the test's temp dir
-			Ui:                        ui,
-			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{
@@ -94,12 +88,8 @@ func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 			"hashicorp/test": {"1.0.0"},
 		})
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
 		meta := Meta{
 			WorkingDir:                workdir.NewDir(td), // Use the test's temp dir
-			Ui:                        ui,
-			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
 				Providers: map[addrs.Provider]providers.Factory{

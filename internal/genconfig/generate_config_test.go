@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -1132,5 +1133,125 @@ import {
 
 	if diff := cmp.Diff(normalizedExpected, normalizedActual); diff != "" {
 		t.Errorf("Generated content doesn't match expected. want:\n%s\ngot:\n%s\ndiff:\n%s", normalizedExpected, normalizedActual, diff)
+	}
+}
+
+func TestGenerateResourceContentsString(t *testing.T) {
+	addr := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "example"}.
+		Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	stringSchema := &configschema.Block{Attributes: map[string]*configschema.Attribute{
+		"value": {Type: cty.String, Optional: true},
+	}}
+
+	tcs := map[string]struct {
+		schema        *configschema.Block
+		value         cty.Value
+		forceProvider bool
+		want          string
+	}{
+		"empty": {
+			schema: &configschema.Block{},
+			value:  cty.EmptyObjectVal,
+			want:   "resource \"test_resource\" \"example\" {\n}",
+		},
+		"provider and alignment": {
+			schema: &configschema.Block{Attributes: map[string]*configschema.Attribute{
+				"a":         {Type: cty.Number, Optional: true},
+				"long_name": {Type: cty.Number, Optional: true},
+			}},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"a":         cty.NumberIntVal(1),
+				"long_name": cty.NumberIntVal(2),
+			}),
+			forceProvider: true,
+			want:          "resource \"test_resource\" \"example\" {\n  provider  = test\n  a         = 1\n  long_name = 2\n}",
+		},
+		"sensitive": {
+			schema: &configschema.Block{Attributes: map[string]*configschema.Attribute{
+				"secret": {Type: cty.String, Optional: true, Sensitive: true},
+				"value":  {Type: cty.String, Optional: true},
+			}},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("hidden"),
+				"value":  cty.StringVal("visible"),
+			}),
+			want: "resource \"test_resource\" \"example\" {\n  secret = null # sensitive\n  value  = \"visible\"\n}",
+		},
+		"null": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.NullVal(cty.String)}),
+		},
+		"empty string": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("")}),
+		},
+		"unicode": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("café 日本語 👩🏽‍💻 e\u0301")}),
+		},
+		"escaping": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("\"quoted\" \\path\\ ${literal} %{literal} <>&")}),
+		},
+		"multiline": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal("line1\n\nline2\r\nline3\tend")}),
+			want:   "resource \"test_resource\" \"example\" {\n  value = \"line1\\n\\nline2\\r\\nline3\\tend\"\n}",
+		},
+		"json": {
+			schema: stringSchema,
+			value:  cty.ObjectVal(map[string]cty.Value{"value": cty.StringVal(`{"a":[1,2],"b":{"c":"d"}}`)}),
+		},
+		"nested": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"tags": {Type: cty.Map(cty.List(cty.String)), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{Attributes: map[string]*configschema.Attribute{
+							"address":     {Type: cty.String, Optional: true},
+							"subnet_name": {Type: cty.String, Optional: true},
+						}},
+					},
+				},
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"tags": cty.MapVal(map[string]cty.Value{
+					"日本語":             cty.ListVal([]cty.Value{cty.StringVal("a\nb"), cty.StringVal("café")}),
+					"key with spaces": cty.ListValEmpty(cty.String),
+				}),
+				"network": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"address": cty.StringVal("10.0.0.1"), "subnet_name": cty.StringVal("one")}),
+					cty.ObjectVal(map[string]cty.Value{"address": cty.StringVal("10.0.0.2"), "subnet_name": cty.StringVal("two")}),
+				}),
+			}),
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			r, diags := GenerateResourceContents(addr, tc.schema, addrs.LocalProviderConfig{LocalName: "test"}, tc.value, tc.forceProvider)
+			if diags.HasErrors() {
+				t.Fatal(diags.Err())
+			}
+			got := r.String()
+
+			// Output must match formatting the body on its own and then
+			// formatting it again inside the resource block.
+			want := string(hclwrite.Format([]byte(resourceHeader(addr) + string(hclwrite.Format(r.Body)) + "}")))
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("output differs from formatting the body twice (-want +got):\n%s", diff)
+			}
+			if tc.want != "" {
+				if diff := cmp.Diff(tc.want, got); diff != "" {
+					t.Errorf("unexpected output (-want +got):\n%s", diff)
+				}
+			}
+			if _, diags := hclsyntax.ParseConfig(r.Body, "body.tf", hcl.InitialPos); diags.HasErrors() {
+				t.Errorf("body is not valid HCL: %s", diags.Error())
+			}
+		})
 	}
 }
