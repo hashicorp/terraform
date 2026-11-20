@@ -4,7 +4,6 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,7 +18,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -550,10 +548,9 @@ func TestRefresh_varsUnset(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	reader := bytes.NewBufferString("bar\n")
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: reader,
-	}, []string{}, map[string]string{})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.should_ask": "bar",
+	})
 
 	state := testState()
 	statePath := testStateFile(t, state)
