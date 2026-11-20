@@ -199,6 +199,11 @@ func (d SDKLikeDefaults) ApplyTo(base cty.Value) (cty.Value, error) {
 			retAttrs[attrName] = givenVal
 			continue
 		}
+		if !givenVal.IsNull() && (givenVal.Type() == cty.String) && (givenVal.AsString() == "") {
+			// Don't use defaults if a string attribute is explicitly set to an empty string in the configuration.
+			retAttrs[attrName] = givenVal
+			continue
+		}
 
 		// The legacy SDK shims convert all values into strings (for flatmap)
 		// and then do their work in terms of that, so we'll follow suit here.
