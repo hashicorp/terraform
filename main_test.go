@@ -387,6 +387,7 @@ func TestMain_helpTextOnArgError(t *testing.T) {
 		"plan":       "uses c.View.HelpPrompt() instead",
 		"query":      "uses c.View.HelpPrompt() instead",
 		"refresh":    "uses c.View.HelpPrompt() instead",
+		"show":       "uses c.View.HelpPrompt() instead",
 		"state show": "uses c.View.HelpPrompt() instead",
 		"test":       "uses c.View.HelpPrompt() instead",
 		"validate":   "uses c.View.HelpPrompt() instead",
