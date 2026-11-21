@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: "'terraform validate' no longer reports 'Provider configuration not present' when run directly on a module that declares additional provider configurations via 'configuration_aliases' in 'required_providers'"
+time: 2026-11-21T21:43:35.985474+00:00
+custom:
+    Issue: "39575"
