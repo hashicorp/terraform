@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: Fixed terraform validate treating configuration_aliases provider configs as missing when validating a module directly
+time: 2026-11-21T21:13:03.000000Z
+custom:
+    Issue: "39575"
