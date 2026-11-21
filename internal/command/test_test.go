@@ -2944,14 +2944,10 @@ main.tftest.hcl... fail
 Failure! 0 passed, 1 failed.
 `,
 			expectedErr: `
-Error: Provider configuration not present
+Error: Undefined provider configuration
 
-To work with test_resource.secondary its original provider configuration at
-provider["registry.terraform.io/hashicorp/test"].secondary is required, but
-it has been removed. This occurs when a provider configuration is removed
-while objects created by that provider still exist in the state. Re-add the
-provider configuration to destroy test_resource.secondary, after which you
-can remove the provider configuration again.
+The root module declares that it requires the caller to pass a configuration
+for provider registry.terraform.io/hashicorp/test with alias "secondary".
 `,
 		},
 		"missing-provider-in-run-block": {
@@ -2963,14 +2959,10 @@ main.tftest.hcl... fail
 Failure! 0 passed, 1 failed.
 `,
 			expectedErr: `
-Error: Provider configuration not present
+Error: Undefined provider configuration
 
-To work with test_resource.secondary its original provider configuration at
-provider["registry.terraform.io/hashicorp/test"].secondary is required, but
-it has been removed. This occurs when a provider configuration is removed
-while objects created by that provider still exist in the state. Re-add the
-provider configuration to destroy test_resource.secondary, after which you
-can remove the provider configuration again.
+The root module declares that it requires the caller to pass a configuration
+for provider registry.terraform.io/hashicorp/test with alias "secondary".
 `,
 		},
 		"missing-provider-definition-in-file": {
@@ -3000,14 +2992,10 @@ main.tftest.hcl... fail
 Failure! 1 passed, 1 failed.
 `,
 			expectedErr: `
-Error: Provider configuration not present
+Error: Undefined provider configuration
 
-To work with test_resource.secondary its original provider configuration at
-provider["registry.terraform.io/hashicorp/test"].secondary is required, but
-it has been removed. This occurs when a provider configuration is removed
-while objects created by that provider still exist in the state. Re-add the
-provider configuration to destroy test_resource.secondary, after which you
-can remove the provider configuration again.
+The root module declares that it requires the caller to pass a configuration
+for provider registry.terraform.io/hashicorp/test with alias "secondary".
 `,
 		},
 	}

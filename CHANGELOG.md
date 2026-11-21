@@ -1,5 +1,8 @@
 ## 1.18.0 (Unreleased)
 
+BUG FIXES:
+
+- `terraform validate` no longer fails with `Error: Provider configuration not present` when run directly on a module that declares additional provider configurations via `configuration_aliases` in `required_providers` and uses them from its resources. Validation now treats provider configurations declared this way as present, because the module expects its caller to pass them in, which is always the case when the module is used from a parent module. ([#28490](https://github.com/hashicorp/terraform/issues/28490))
 
 EXPERIMENTS:
 

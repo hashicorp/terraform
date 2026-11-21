@@ -74,6 +74,21 @@ func TestValidateCommand(t *testing.T) {
 	}
 }
 
+// A module which declares additional provider configurations via
+// configuration_aliases in required_providers must be validatable directly,
+// even though no parent module is present to pass those configurations in.
+//
+// See https://github.com/hashicorp/terraform/issues/28490
+func TestValidateCommand_configurationAliases(t *testing.T) {
+	output, code := setupTest(t, "validate-configuration-aliases")
+	if code != 0 {
+		t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
+	}
+	if strings.Contains(output.Stderr(), "Provider configuration not present") {
+		t.Fatalf("unexpected 'Provider configuration not present' error\n\n%s", output.Stderr())
+	}
+}
+
 func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	// Create a temporary working directory that is empty because this test
 	// requires scanning the current working directory by validate command.

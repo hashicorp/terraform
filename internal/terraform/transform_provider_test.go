@@ -177,7 +177,7 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := transformProviders(concrete, mod, nil)
+		transform := transformProviders(concrete, mod, nil, walkPlan)
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -242,7 +242,7 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod, nil)
+		tf := transformProviders(concrete, mod, nil, walkPlan)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -262,7 +262,7 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod, nil)
+		tf := transformProviders(concrete, mod, nil, walkPlan)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -296,7 +296,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod, nil)
+		tf := transformProviders(concrete, mod, nil, walkPlan)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -374,7 +374,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := transformProviders(concrete, mod, nil)
+		tf := transformProviders(concrete, mod, nil, walkPlan)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -490,3 +490,65 @@ module.child.module.grandchild.aws_instance.baz
   provider["registry.terraform.io/hashicorp/aws"].foo
 provider["registry.terraform.io/hashicorp/aws"].foo
 `
+
+// During validation, a provider configuration that is declared via
+// configuration_aliases in required_providers but has no configuration node
+// in the graph (because the module expects its caller to pass it in) must be
+// stubbed with an init-only provider node instead of producing a
+// "Provider configuration not present" error. This is what allows
+// "terraform validate" to run directly on a reusable module which declares
+// configuration_aliases. All other walks must still treat the configuration
+// as missing.
+//
+// See https://github.com/hashicorp/terraform/issues/28490
+func TestProviderTransformer_validateConfigurationAliases(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+      configuration_aliases = [ test.x ]
+    }
+  }
+}
+
+resource "test_object" "a" {
+  provider = test.x
+}
+`,
+	})
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	// When building a graph for validation, the declared alias is treated as
+	// present via an init-only stub node.
+	g := testProviderTransformerGraph(t, mod)
+	{
+		tf := transformProviders(concrete, mod, nil, walkValidate)
+		if err := tf.Transform(g); err != nil {
+			t.Fatalf("unexpected err: %s", err)
+		}
+	}
+
+	expected := `provider["registry.terraform.io/hashicorp/test"].x
+test_object.a
+  provider["registry.terraform.io/hashicorp/test"].x`
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+
+	// For any other walk the missing configuration is still an error.
+	g = testProviderTransformerGraph(t, mod)
+	{
+		tf := transformProviders(concrete, mod, nil, walkPlan)
+		err := tf.Transform(g)
+		if err == nil {
+			t.Fatal("expected error for missing provider configuration during plan, but got none")
+		}
+		if !strings.Contains(err.Error(), "Provider configuration not present") {
+			t.Fatalf("wrong error: %s", err)
+		}
+	}
+}

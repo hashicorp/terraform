@@ -17,7 +17,17 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface) GraphTransformer {
+// transformProviders builds the transformer sequence responsible for adding
+// provider configuration nodes to the graph and connecting all of the
+// provider consumers to them.
+//
+// The operation argument tells the ProviderTransformer which walk the graph
+// is being built for, so that it can apply the correct strictness when a
+// provider configuration is missing: during validation a module is allowed
+// to rely on provider configurations that its caller is expected to pass in
+// (declared via configuration_aliases in required_providers), while all
+// other walks require every used provider configuration to be present.
+func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Config, externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface, operation walkOperation) GraphTransformer {
 	return GraphTransformMulti(
 		// Add placeholder nodes for any externally-configured providers
 		&externalProviderTransformer{
@@ -35,7 +45,8 @@ func transformProviders(concrete ConcreteProviderNodeFunc, config *configs.Confi
 		},
 		// Connect the providers
 		&ProviderTransformer{
-			Config: config,
+			Config:    config,
+			Operation: operation,
 		},
 		// Remove unused providers and proxies
 		&PruneProviderTransformer{},
@@ -161,6 +172,14 @@ func (r ProviderRef) getProviderMeta(ctx EvalContext, resource addrs.ResourceIns
 // to proper resources.
 type ProviderTransformer struct {
 	Config *configs.Config
+
+	// Operation is the walk operation that the graph being transformed is
+	// intended for. During walkValidate, provider configurations that a
+	// module declares via configuration_aliases in required_providers are
+	// treated as present even when no configuration node exists for them,
+	// because the module expects its caller to pass them in and validation
+	// may be running on the module directly without any caller.
+	Operation walkOperation
 }
 
 func (t *ProviderTransformer) Transform(g *Graph) error {
@@ -170,6 +189,32 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	// so that the providers will get initialized first.
 
 	var diags tfdiags.Diagnostics
+
+	// expectedAliases records the addresses of all provider configurations
+	// that any module in the configuration declares via configuration_aliases
+	// in its required_providers block. Such configurations are expected to
+	// be passed in by the module's caller, so during validation we treat
+	// them as present even if no configuration node exists for them, which
+	// is the case when a module is being validated directly (as the root
+	// module) with no parent to pass the configurations in.
+	expectedAliases := map[string]addrs.AbsProviderConfig{}
+	if t.Operation == walkValidate && t.Config != nil {
+		t.Config.DeepEach(func(c *configs.Config) {
+			if c.Module == nil || c.Module.ProviderRequirements == nil {
+				return
+			}
+			for _, req := range c.Module.ProviderRequirements.RequiredProviders {
+				for _, alias := range req.Aliases {
+					addr := addrs.AbsProviderConfig{
+						Module:   c.Path,
+						Provider: req.Type,
+						Alias:    alias.Alias,
+					}
+					expectedAliases[addr.String()] = addr
+				}
+			}
+		})
+	}
 
 	// To start, we'll collect the _requested_ provider address for each
 	// node, which we'll then resolve (handling provider inheritance, etc) in
@@ -255,6 +300,28 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			log.Printf("[TRACE] ProviderTransformer: creating init-only node for %s", stubAddr)
 			target = stub
 			g.Add(target)
+		}
+
+		// During validation, a provider configuration that the module
+		// declares via configuration_aliases in required_providers is
+		// expected to be passed in by the module's caller. When the module
+		// is being validated directly there is no caller, so we stub out
+		// the declared alias with an init-only provider node as well, which
+		// is enough to obtain the provider schema needed to validate the
+		// configuration. Other walks still require the configuration to
+		// actually be present.
+		if target == nil {
+			if aliasAddr, declared := expectedAliases[absProvider.String()]; declared {
+				stub := &NodeEvalableProvider{
+					&NodeAbstractProvider{
+						Addr: aliasAddr,
+					},
+				}
+				m[aliasAddr.String()] = stub
+				log.Printf("[TRACE] ProviderTransformer: creating init-only node for declared provider alias %s", aliasAddr)
+				target = stub
+				g.Add(target)
+			}
 		}
 
 		if target == nil {

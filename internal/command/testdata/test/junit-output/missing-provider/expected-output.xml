@@ -2,14 +2,10 @@
   <testsuite name="main.tftest.hcl" tests="1" skipped="0" failures="0" errors="1">
     <testcase name="passes_validation" classname="main.tftest.hcl" time="TIME_REDACTED" timestamp="TIMESTAMP_REDACTED">
       <error message="Encountered an error"><![CDATA[
-Error: Provider configuration not present
+Error: Undefined provider configuration
 
-To work with test_resource.secondary its original provider configuration at
-provider["registry.terraform.io/hashicorp/test"].secondary is required, but it
-has been removed. This occurs when a provider configuration is removed while
-objects created by that provider still exist in the state. Re-add the provider
-configuration to destroy test_resource.secondary, after which you can remove
-the provider configuration again.
+The root module declares that it requires the caller to pass a configuration
+for provider registry.terraform.io/hashicorp/test with alias "secondary".
 ]]></error>
     </testcase>
   </testsuite>

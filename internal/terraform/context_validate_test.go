@@ -2049,6 +2049,110 @@ resource "test_object" "t" {
 	}
 }
 
+// A module which declares additional provider configurations via
+// configuration_aliases in required_providers expects those configurations
+// to be passed in by its caller. When such a module is validated directly
+// (as the root module) there is no caller to pass them in, but validation
+// must still succeed because the module is only declaring what it expects
+// to receive, not configuring the providers itself.
+//
+// See https://github.com/hashicorp/terraform/issues/28490
+func TestContext2Validate_configurationAliasesInRootModule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+      configuration_aliases = [ test.alias ]
+    }
+  }
+}
+
+resource "test_object" "default" {
+}
+
+resource "test_object" "aliased" {
+  provider = test.alias
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+// A root module may both declare configuration_aliases for itself and pass
+// aliased provider configurations into child modules which declare the same
+// aliases. Validation must succeed in that case too.
+//
+// See https://github.com/hashicorp/terraform/issues/28490
+func TestContext2Validate_configurationAliasesPassedToChildModule(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+      configuration_aliases = [ test.root_alias ]
+    }
+  }
+}
+
+provider "test" {
+  alias = "z"
+}
+
+module "child" {
+  source = "./child"
+  providers = {
+    test.alias = test.z
+  }
+}
+
+resource "test_object" "root_aliased" {
+  provider = test.root_alias
+}
+`,
+
+		"child/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+      configuration_aliases = [ test.alias ]
+    }
+  }
+}
+
+resource "test_object" "t" {
+  provider = test.alias
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m, nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
 func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
 	p := new(testing_provider.MockProvider)
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&providerSchema{

@@ -326,6 +326,48 @@ resource "test_object" "a" {
 	tfdiags.AssertNoErrors(t, diags)
 }
 
+// Unlike validation, planning must still fail when the root module uses a
+// provider configuration which is only declared via configuration_aliases
+// and is not actually configured anywhere, because at plan time the root
+// module has no caller that could pass the configuration in.
+//
+// See https://github.com/hashicorp/terraform/issues/28490
+func TestContext2Plan_configurationAliasesInRootModuleNotConfigured(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+      configuration_aliases = [ test.alias ]
+    }
+  }
+}
+
+resource "test_object" "a" {
+  provider = test.alias
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatal("expected plan to fail for a missing aliased provider configuration, but it succeeded")
+	}
+	errStr := diags.Err().Error()
+	if !strings.Contains(errStr, "Undefined provider configuration") &&
+		!strings.Contains(errStr, "Provider configuration not present") {
+		t.Fatalf("expected a missing provider configuration error, got: %s", errStr)
+	}
+}
+
 func TestContext2Plan_dataReferencesResourceInModules(t *testing.T) {
 	p := testProvider("test")
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
