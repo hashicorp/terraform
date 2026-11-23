@@ -420,6 +420,11 @@ var OneFunc = function.New(&function.Spec{
 		{
 			Name: "list",
 			Type: cty.DynamicPseudoType,
+			// We handle marks ourselves so that only marks on the collection
+			// itself are applied to the whole result. Marks on the element
+			// (or nested inside it) stay where they are, rather than being
+			// collapsed into a single mark on the entire returned value.
+			AllowMarked: true,
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -441,7 +446,7 @@ var OneFunc = function.New(&function.Spec{
 		return cty.NilType, function.NewArgErrorf(0, "must be a list, set, or tuple value with either zero or one elements")
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		val := args[0]
+		val, marks := args[0].Unmark()
 		ty := val.Type()
 
 		// Our parameter spec above doesn't set AllowUnknown or AllowNull,
@@ -452,7 +457,7 @@ var OneFunc = function.New(&function.Spec{
 		case ty.IsListType() || ty.IsSetType():
 			lenVal := val.Length()
 			if !lenVal.IsKnown() {
-				return cty.UnknownVal(retType), nil
+				return cty.UnknownVal(retType).WithMarks(marks), nil
 			}
 			var l int
 			err := gocty.FromCtyValue(lenVal, &l)
@@ -464,7 +469,7 @@ var OneFunc = function.New(&function.Spec{
 			}
 			switch l {
 			case 0:
-				return cty.NullVal(retType), nil
+				return cty.NullVal(retType).WithMarks(marks), nil
 			case 1:
 				var ret cty.Value
 				// We'll use an iterator here because that works for both lists
@@ -474,16 +479,16 @@ var OneFunc = function.New(&function.Spec{
 				for it := val.ElementIterator(); it.Next(); {
 					_, ret = it.Element()
 				}
-				return ret, nil
+				return ret.WithMarks(marks), nil
 			}
 		case ty.IsTupleType():
 			etys := ty.TupleElementTypes()
 			switch len(etys) {
 			case 0:
-				return cty.NullVal(retType), nil
+				return cty.NullVal(retType).WithMarks(marks), nil
 			case 1:
 				ret := val.Index(cty.NumberIntVal(0))
-				return ret, nil
+				return ret.WithMarks(marks), nil
 			}
 		}
 		return cty.NilVal, function.NewArgErrorf(0, "must be a list, set, or tuple value with either zero or one elements")
