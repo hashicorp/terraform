@@ -55,20 +55,19 @@ type Local struct {
 	StateBackupPath   string
 	StateWorkspaceDir string
 
-	// The OverrideState* paths are set based on per-operation CLI arguments
+	// The overrideState* paths are set based on per-operation CLI arguments
 	// and will override what'd be built from the State* fields if non-empty.
 	// While the interpretation of the State* fields depends on the active
-	// workspace, the OverrideState* fields are always used literally.
+	// workspace, the overrideState* fields are always used literally.
 	//
-	// OverrideStatePath is set as a result of the -state flag
-	// OverrideStateOutPath is set as a result of the -state-out flag
-	// OverrideStateBackupPath is set as a result of the -state-backup flag
+	// overrideStatePath is set as a result of the -state flag
+	// overrideStateOutPath is set as a result of the -state-out flag
+	// overrideStateBackupPath is set as a result of the -state-backup flag
 	//
 	// Note: these flags are only accepted by some commands.
-	// Importantly, they are not accepted by `init`.
-	OverrideStatePath       string
-	OverrideStateOutPath    string
-	OverrideStateBackupPath string
+	overrideStatePath       string
+	overrideStateOutPath    string
+	overrideStateBackupPath string
 
 	// We only want to create a single instance of a local state, so store them
 	// here as they're loaded.
@@ -98,8 +97,12 @@ type Local struct {
 	opLock sync.Mutex
 }
 
-var _ backend.Backend = (*Local)(nil)
-var _ backendrun.OperationsBackend = (*Local)(nil)
+var (
+	_ backend.Backend              = (*Local)(nil)
+	_ backendrun.OperationsBackend = (*Local)(nil)
+	_ backendrun.Local             = (*Local)(nil)
+	_ backendrun.CLI               = (*Local)(nil)
+)
 
 // New returns a new initialized local backend.
 func New() *Local {
@@ -362,7 +365,8 @@ func (b *Local) opWait(
 	cancelCtx context.Context,
 	tfCtx *terraform.Context,
 	opStateMgr statemgr.Persister,
-	view views.Operation) (canceled bool) {
+	view views.Operation,
+) (canceled bool) {
 	// Wait for the operation to finish or for us to be interrupted so
 	// we can handle it properly.
 	select {
@@ -415,9 +419,9 @@ func (b *Local) opWait(
 //
 // * Values configured from the CLI.
 func (b *Local) StatePaths(name string) (stateIn, stateOut, backupOut string) {
-	statePath := b.OverrideStatePath
-	stateOutPath := b.OverrideStateOutPath
-	backupPath := b.OverrideStateBackupPath
+	statePath := b.overrideStatePath
+	stateOutPath := b.overrideStateOutPath
+	backupPath := b.overrideStateBackupPath
 
 	isDefault := name == backend.DefaultStateName || name == ""
 

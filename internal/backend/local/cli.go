@@ -16,19 +16,19 @@ func (b *Local) CLIInit(opts *backendrun.CLIOpts) error {
 	b.OpValidation = opts.Validation
 
 	// configure any new cli options
-	if opts.StatePath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -state is overriding state path to %s", opts.StatePath)
-		b.OverrideStatePath = opts.StatePath
+	if opts.OverrideStatePath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -state is overriding state path to %s", opts.OverrideStatePath)
+		b.overrideStatePath = opts.OverrideStatePath
 	}
 
-	if opts.StateOutPath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -state-out is overriding state output path to %s", opts.StateOutPath)
-		b.OverrideStateOutPath = opts.StateOutPath
+	if opts.OverrideStateOutPath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -state-out is overriding state output path to %s", opts.OverrideStateOutPath)
+		b.overrideStateOutPath = opts.OverrideStateOutPath
 	}
 
-	if opts.StateBackupPath != "" {
-		log.Printf("[TRACE] backend/local: CLI option -backup is overriding state backup path to %s", opts.StateBackupPath)
-		b.OverrideStateBackupPath = opts.StateBackupPath
+	if opts.OverrideStateBackupPath != "" {
+		log.Printf("[TRACE] backend/local: CLI option -backup is overriding state backup path to %s", opts.OverrideStateBackupPath)
+		b.overrideStateBackupPath = opts.OverrideStateBackupPath
 	}
 
 	return nil

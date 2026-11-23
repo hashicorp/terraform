@@ -50,7 +50,7 @@ func (c *ConsoleCommand) Run(rawArgs []string) int {
 	}
 
 	// Copy parsed flags back to Meta
-	c.Meta.statePath = parsedArgs.StatePath
+	c.Meta.overrideStatePath = parsedArgs.StatePath
 	c.Meta.input = parsedArgs.InputEnabled
 	c.Meta.compactWarnings = parsedArgs.CompactWarnings
 	c.Meta.targetFlags = parsedArgs.TargetFlags
