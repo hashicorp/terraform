@@ -272,7 +272,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 	}
 
 	for _, trigger := range n.actionApplyTriggers {
-		refs = append(refs, trigger.References()...)
+		result = append(result, trigger.References()...)
 	}
 
 	return result

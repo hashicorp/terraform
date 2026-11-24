@@ -5,15 +5,48 @@ package terraform
 
 import (
 	"fmt"
+	"slices"
 	"testing"
+
+	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
+
+func TestNodeAbstractResource_References_actionApplyTriggers(t *testing.T) {
+	actionAddr := mustActionInstanceAddr("action.test_action.notify[0]")
+	node := &NodeAbstractResource{
+		Config: &configs.Resource{
+			Count: hcltest.MockExprTraversalSrc("var.resource_count"),
+		},
+		Schema: &providers.Schema{Body: &configschema.Block{}},
+		actionApplyTriggers: []*actionTriggerApplyInstance{{
+			ActionInvocation: &plans.ActionInvocationInstanceSrc{Addr: actionAddr},
+			actionNode: &NodeActionConfig{
+				Addr: actionAddr.ConfigAction(),
+				Config: &configs.Action{
+					Count: hcltest.MockExprTraversalSrc("var.action_count"),
+				},
+			},
+		}},
+	}
+
+	var got []string
+	for _, ref := range node.References() {
+		got = append(got, ref.Subject.String())
+	}
+	slices.Sort(got)
+	want := []string{actionAddr.String(), "var.action_count", "var.resource_count"}
+	if !slices.Equal(got, want) {
+		t.Errorf("wrong reference subjects\ngot:  %v\nwant: %v", got, want)
+	}
+}
 
 func TestNodeAbstractResourceProvider(t *testing.T) {
 	tests := []struct {
