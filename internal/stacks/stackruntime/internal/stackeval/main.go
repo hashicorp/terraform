@@ -90,7 +90,7 @@ type Main struct {
 	providerTypes                  map[addrs.Provider]*ProviderType
 	providerFunctionResults        *lang.FunctionResults
 	cleanupFuncs                   []func(context.Context) tfdiags.Diagnostics
-	ephemeralComponentCleanupFuncs []func(context.Context) tfdiags.Diagnostics
+	ephemeralModuleCleanupFuncs []func(context.Context) tfdiags.Diagnostics
 }
 
 type mainValidating struct {
@@ -562,8 +562,8 @@ func (m *Main) RegisterCleanup(cb func(ctx context.Context) tfdiags.Diagnostics)
 	m.mu.Unlock()
 }
 
-// RegisterEphemeralComponentCleanup registers the cleanup of an ephemeral
-// component, which releases the Terraform modules runtime plan operation that holds
+// RegisterEphemeralModuleCleanup registers the cleanup of an ephemeral
+// module, which releases the Terraform modules runtime plan operation that holds
 // any ephemeral resources open.
 //
 // Callbacks registered this way differ from [Main.RegisterCleanup] in two ways:
@@ -575,19 +575,19 @@ func (m *Main) RegisterCleanup(cb func(ctx context.Context) tfdiags.Diagnostics)
 //     first.
 //
 //   - They run in the reverse of their registration order. An ephemeral
-//     component can only start once the components it consumes have produced
+//     module can only start once its dependencies have produced
 //     their values, so registration order follows dependency order. A later
-//     component may use a provider that was configured from an earlier
-//     component's value, so it must be released first, or its resources would
+//     module may use a provider that was configured from an earlier
+//     module's value, so it must be released first, or its resources would
 //     be closed after the values it relies on are gone.
-func (m *Main) RegisterEphemeralComponentCleanup(cb func(ctx context.Context) tfdiags.Diagnostics) {
+func (m *Main) RegisterEphemeralModuleCleanup(cb func(ctx context.Context) tfdiags.Diagnostics) {
 	m.mu.Lock()
-	m.ephemeralComponentCleanupFuncs = append(m.ephemeralComponentCleanupFuncs, cb)
+	m.ephemeralModuleCleanupFuncs = append(m.ephemeralModuleCleanupFuncs, cb)
 	m.mu.Unlock()
 }
 
 // DoCleanup executes any cleanup functions previously registered using
-// [Main.RegisterEphemeralComponentCleanup] (in reverse order) and then
+// [Main.RegisterEphemeralModuleCleanup] (in reverse order) and then
 // [Main.RegisterCleanup], returning any collected diagnostics.
 //
 // Call this only once evaluation has completed and there aren't any requests
@@ -597,8 +597,8 @@ func (m *Main) RegisterEphemeralComponentCleanup(cb func(ctx context.Context) tf
 func (m *Main) DoCleanup(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	m.mu.Lock()
-	ephemeralFuncs := m.ephemeralComponentCleanupFuncs
-	m.ephemeralComponentCleanupFuncs = nil
+	ephemeralFuncs := m.ephemeralModuleCleanupFuncs
+	m.ephemeralModuleCleanupFuncs = nil
 	funcs := m.cleanupFuncs
 	m.cleanupFuncs = nil
 	m.mu.Unlock()

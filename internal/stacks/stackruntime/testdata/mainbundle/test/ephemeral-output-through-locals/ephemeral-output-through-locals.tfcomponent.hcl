@@ -7,7 +7,7 @@ required_providers {
 
 provider "testing" "main" {}
 
-ephemeral_component "out" {
+ephemeral_module "out" {
   source = "./out"
 
   providers = {
@@ -16,7 +16,7 @@ ephemeral_component "out" {
 }
 
 locals {
-  eph = "local-${ephemeral_component.out.value}"
+  eph = "local-${ephemeral_module.out.value}"
 }
 
 component "in" {

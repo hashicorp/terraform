@@ -12,7 +12,7 @@ variable "provider_set" {
 
 provider "testing" "main" {}
 
-ephemeral_component "out" {
+ephemeral_module "out" {
   source   = "./out"
   for_each = var.provider_set
 
@@ -35,6 +35,6 @@ component "in" {
 
   inputs = {
     id    = each.value
-    input = ephemeral_component.out[each.value].value
+    input = ephemeral_module.out[each.value].value
   }
 }

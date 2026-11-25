@@ -1,0 +1,39 @@
+required_providers {
+  testing = {
+    source  = "hashicorp/testing"
+    version = "0.1.0"
+  }
+}
+
+provider "testing" "main" {}
+
+variable "ids" {
+  type = set(string)
+}
+
+ephemeral_module "basic" {
+  source = "./ephemeral-output"
+
+  providers = {
+    testing = provider.testing.main
+  }
+}
+
+ephemeral_module "expanded" {
+  source   = "./ephemeral-output"
+  for_each = var.ids
+
+  inputs = {
+    id = each.value
+  }
+
+  providers = {
+    testing = provider.testing.main
+  }
+}
+
+output "value" {
+  type      = string
+  value     = ephemeral_module.basic.value
+  ephemeral = true
+}

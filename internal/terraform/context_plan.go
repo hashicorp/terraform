@@ -189,7 +189,7 @@ type PlanOpts struct {
 	// ephemeral resources in the module open until the channel returned by said function
 	// is closed. This allows Terraform core to manage the ephemeral resource lifecycle
 	// (open, renew, close), while also allowing root ephemeral outputs to be consumed by
-	// the caller. The only consumer of this field is the stacks runtime "ephemeral_component" block.
+	// the caller. The only consumer of this field is the stacks runtime "ephemeral_module" block.
 	//
 	// The callback function is called at most once, only after every other node in the plan walk
 	// completed without errors, and is passed a scope that evaluates expressions in the

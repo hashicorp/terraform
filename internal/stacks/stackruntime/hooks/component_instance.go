@@ -102,10 +102,10 @@ type ComponentInstancePolicyResult struct {
 	Result        policy.EvaluationResponse
 }
 
-// EphemeralComponentInstancePolicyResult is the argument type for the hook callback which
-// sends policy results back to the client for an ephemeral component instance.
-type EphemeralComponentInstancePolicyResult struct {
-	EphemeralComponentAddr stackaddrs.AbsEphemeralComponentInstance
+// EphemeralModuleInstancePolicyResult is the argument type for the hook callback which
+// sends policy results back to the client for an ephemeral module instance.
+type EphemeralModuleInstancePolicyResult struct {
+	EphemeralModuleAddr stackaddrs.AbsEphemeralModuleInstance
 	ModuleAddr             string
 	Result                 policy.EvaluationResponse
 }

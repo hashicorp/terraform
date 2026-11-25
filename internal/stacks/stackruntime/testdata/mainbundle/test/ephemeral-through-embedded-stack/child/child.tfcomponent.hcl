@@ -7,7 +7,7 @@ required_providers {
 
 provider "testing" "main" {}
 
-ephemeral_component "out" {
+ephemeral_module "out" {
   source = "./out"
 
   providers = {
@@ -17,6 +17,6 @@ ephemeral_component "out" {
 
 output "result" {
   type      = string
-  value     = ephemeral_component.out.value
+  value     = ephemeral_module.out.value
   ephemeral = true
 }

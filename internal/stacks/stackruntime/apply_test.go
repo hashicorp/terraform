@@ -2382,9 +2382,9 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"ephemeral-component-module-features": {
-			path: "ephemeral-component-module-features",
-			// Populated by the credentials component which uses a bunch of
+		"ephemeral-module-features": {
+			path: "ephemeral-module-features",
+			// Populated by the credentials ephemeral module which uses a bunch of
 			// different Terraform module language features.
 			authVal: "secret",
 			store: stacks_testing_provider.NewResourceStoreBuilder().
@@ -2491,8 +2491,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"ephemeral-component-output-to-provider": {
-			path:    "ephemeral-component-output-to-provider",
+		"ephemeral-module-output-to-provider": {
+			path:    "ephemeral-module-output-to-provider",
 			authVal: "secret", // populated by ephemeral.testing_resource
 			cycles: []TestCycle{
 				{
@@ -2560,7 +2560,7 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 					},
 				},
 				{
-					path: "ephemeral-component-output-to-provider-removed",
+					path: "ephemeral-module-output-to-provider-removed",
 					wantAppliedChanges: []stackstate.AppliedChange{
 						&stackstate.AppliedChangeComponentInstanceRemoved{
 							ComponentAddr:         mustAbsComponent("component.in"),
@@ -2574,8 +2574,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"ephemeral-expanded-component-to-provider": {
-			path:    "ephemeral-expanded-component-to-provider",
+		"ephemeral-expanded-module-to-provider": {
+			path:    "ephemeral-expanded-module-to-provider",
 			authVal: "secret", // populated by ephemeral.testing_resource
 			cycles: []TestCycle{
 				{
@@ -3113,8 +3113,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							Detail:   `The input variable "input" does not accept ephemeral values.`,
 							Subject: &hcl.Range{
 								Filename: mainBundleSourceAddrStr("ephemeral-output-to-non-ephemeral-input/ephemeral-output-to-non-ephemeral-input.tfcomponent.hcl"),
-								Start:    hcl.Pos{Line: 25, Column: 12, Byte: 339},
-								End:      hcl.Pos{Line: 27, Column: 4, Byte: 386},
+								Start:    hcl.Pos{Line: 25, Column: 12, Byte: 336},
+								End:      hcl.Pos{Line: 27, Column: 4, Byte: 380},
 							},
 						})
 					}),
@@ -3132,8 +3132,8 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 							Detail:   `The given "for_each" value is derived from an ephemeral value, which means that Terraform cannot persist it between plan/apply rounds. Use only non-ephemeral values to specify a resource's instance keys.`,
 							Subject: &hcl.Range{
 								Filename: mainBundleSourceAddrStr("ephemeral-value-to-for-each/ephemeral-value-to-for-each.tfcomponent.hcl"),
-								Start:    hcl.Pos{Line: 19, Column: 14, Byte: 265},
-								End:      hcl.Pos{Line: 19, Column: 52, Byte: 303},
+								Start:    hcl.Pos{Line: 19, Column: 14, Byte: 262},
+								End:      hcl.Pos{Line: 19, Column: 49, Byte: 297},
 							},
 						})
 					}),
@@ -3196,20 +3196,20 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 				},
 			},
 		},
-		"ephemeral-component-invalid-provider": {
-			path: "ephemeral-component-invalid-provider",
+		"ephemeral-module-invalid-provider": {
+			path: "ephemeral-module-invalid-provider",
 			cycles: []TestCycle{
 				{
 					wantPlannedDiags: initDiags(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
 						return diags.Append(
 							&hcl.Diagnostic{
 								Severity: hcl.DiagError,
-								Summary:  "Cannot evaluate ephemeral_component",
-								Detail:   "Cannot retrieve ephemeral data for ephemeral_component.out because its provider configuration assignments are invalid.",
+								Summary:  "Cannot evaluate ephemeral_module",
+								Detail:   "Cannot retrieve ephemeral data for ephemeral_module.out because its provider configuration assignments are invalid.",
 								Subject: &hcl.Range{
-									Filename: mainBundleSourceAddrStr("ephemeral-component-invalid-provider/ephemeral-component-invalid-provider.tfcomponent.hcl"),
+									Filename: mainBundleSourceAddrStr("ephemeral-module-invalid-provider/ephemeral-module-invalid-provider.tfcomponent.hcl"),
 									Start:    hcl.Pos{Line: 12, Column: 1, Byte: 155},
-									End:      hcl.Pos{Line: 12, Column: 26, Byte: 180},
+									End:      hcl.Pos{Line: 12, Column: 23, Byte: 177},
 								},
 							},
 							&hcl.Diagnostic{
@@ -3217,9 +3217,9 @@ After applying this plan, Terraform will no longer manage these objects. You wil
 								Summary:  "Invalid index",
 								Detail:   "The given key does not identify an element in this collection value.",
 								Subject: &hcl.Range{
-									Filename: mainBundleSourceAddrStr("ephemeral-component-invalid-provider/ephemeral-component-invalid-provider.tfcomponent.hcl"),
-									Start:    hcl.Pos{Line: 16, Column: 36, Byte: 254},
-									End:      hcl.Pos{Line: 16, Column: 47, Byte: 265},
+									Filename: mainBundleSourceAddrStr("ephemeral-module-invalid-provider/ephemeral-module-invalid-provider.tfcomponent.hcl"),
+									Start:    hcl.Pos{Line: 16, Column: 36, Byte: 251},
+									End:      hcl.Pos{Line: 16, Column: 47, Byte: 262},
 								},
 							},
 						)
@@ -5788,8 +5788,8 @@ func TestApply_WithPolicyResults(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
-		`ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
-		`ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp1"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp2"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -5839,8 +5839,8 @@ func TestApply_WithPolicyResults_EmbeddedStack(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`stack.embedded.component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
-		`stack.embedded.ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
-		`stack.embedded.ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.ephemeral_module.simple_ephemeral_module["comp1"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
+		`stack.embedded.ephemeral_module.simple_ephemeral_module["comp2"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 		`stack.embedded.provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation-embedded-stack/embedded"),
 	}
@@ -5913,8 +5913,8 @@ func TestApply_WithPolicyResultsOnRefresh(t *testing.T) {
 		`component.simple_component["comp1"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
 		`component.simple_component["comp2"]`: createExpectedComponentInstancePolicyEvaluationForModules("policy-evaluation"),
 
-		`ephemeral_component.simple_ephemeral_component["comp1"]`: createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
-		`ephemeral_component.simple_ephemeral_component["comp2"]`: createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp1"]`: createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp2"]`: createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
 
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
@@ -5966,8 +5966,8 @@ func TestApply_WithPolicyResultsOnDestroy(t *testing.T) {
 	wantPolicyResults := map[string]map[string]policy.EvaluationResponse{
 		`component.simple_component["comp1"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
 		`component.simple_component["comp2"]`:                                  createExpectedComponentInstancePolicyEvaluation("policy-evaluation"),
-		`ephemeral_component.simple_ephemeral_component["comp1"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
-		`ephemeral_component.simple_ephemeral_component["comp2"]`:              createExpectedEphemeralComponentInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp1"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
+		`ephemeral_module.simple_ephemeral_module["comp2"]`:                    createExpectedEphemeralModuleInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 		`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`: createExpectedProviderInstancePolicyEvaluation("policy-evaluation"),
 	}
@@ -6103,10 +6103,10 @@ func applyAndCollectPolicyResults(t *testing.T, ctx context.Context, req ApplyRe
 	var mu sync.Mutex
 	gotPolicyResults := make(map[string]map[string]policy.EvaluationResponse)
 	applyHooks := &Hooks{
-		ReportEphemeralComponentInstancePolicyResult: func(ctx context.Context, data *hooks.EphemeralComponentInstancePolicyResult) {
+		ReportEphemeralModuleInstancePolicyResult: func(ctx context.Context, data *hooks.EphemeralModuleInstancePolicyResult) {
 			mu.Lock()
 			defer mu.Unlock()
-			addr := data.EphemeralComponentAddr.String()
+			addr := data.EphemeralModuleAddr.String()
 			if gotPolicyResults[addr] == nil {
 				gotPolicyResults[addr] = make(map[string]policy.EvaluationResponse)
 			}
@@ -6175,7 +6175,7 @@ func collectApplyOutput(changesCh <-chan stackstate.AppliedChange, diagsCh <-cha
 	}
 }
 
-func TestApplyWithEphemeralComponentDeferredUpstream(t *testing.T) {
+func TestApplyWithEphemeralModuleDeferredUpstream(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream")
 
@@ -6261,10 +6261,10 @@ func TestApplyWithEphemeralComponentDeferredUpstream(t *testing.T) {
 	}
 }
 
-// The ephemeral component here references a known output from a component, however
-// the component itself is deferred, which we detect and assert that the ephemeral component
+// The ephemeral module here references a known output from a component, however
+// the component itself is deferred, which we detect and assert that the ephemeral module
 // does not execute.
-func TestApplyWithEphemeralComponentKnownOutputFromDeferred(t *testing.T) {
+func TestApplyWithEphemeralModuleKnownOutputFromDeferred(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream-known-output")
 
@@ -6329,7 +6329,7 @@ func TestApplyWithEphemeralComponentKnownOutputFromDeferred(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The ephemeral component must not be opened while the component it uses
+	// The ephemeral module must not be opened while the component it uses
 	// a value from has an incomplete plan.
 	if got, want := opened.Swap(0), int32(0); got != want {
 		t.Errorf("wrong number of ephemeral resources opened during plan: got %d, want %d", got, want)
@@ -6360,7 +6360,7 @@ func TestApplyWithEphemeralComponentKnownOutputFromDeferred(t *testing.T) {
 	}
 }
 
-func TestApplyWithEphemeralComponentDeferredUpstreamToProvider(t *testing.T) {
+func TestApplyWithEphemeralModuleDeferredUpstreamToProvider(t *testing.T) {
 	ctx := context.Background()
 	cfg := loadMainBundleConfigForTest(t, "ephemeral-deferred-upstream-to-provider")
 
@@ -6439,7 +6439,7 @@ func TestApplyWithEphemeralComponentDeferredUpstreamToProvider(t *testing.T) {
 	}
 
 	// The component using the provider is deferred through the ephemeral
-	// component the provider is configured from, so there is nothing to apply.
+	// module the provider is configured from, so there is nothing to apply.
 	for _, change := range applyChanges {
 		if obj, ok := change.(*stackstate.AppliedChangeResourceInstanceObject); ok {
 			t.Errorf("unexpected applied resource %s", obj.ResourceInstanceObjectAddr)
@@ -6447,16 +6447,16 @@ func TestApplyWithEphemeralComponentDeferredUpstreamToProvider(t *testing.T) {
 	}
 }
 
-// TestApplyDestroyWithEphemeralComponent destroys stacks where the component "a" feeds the
-// ephemeral component "e". As the order of components is reversed when destroying, "e" must
+// TestApplyDestroyWithEphemeralModule destroys stacks where the component "a" feeds the
+// ephemeral module "e". As the order of components is reversed when destroying, "e" must
 // still be able to read from "a" and anything depending on "e" must be destroyed before "a".
-func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
+func TestApplyDestroyWithEphemeralModule(t *testing.T) {
 	tcs := map[string]struct {
 		path          string
 		destroyInputs map[string]cty.Value
 
 		// aIDs are the ids of the resources in component "a", which default to "a". The
-		// ephemeral component must only be executed while all of them exist.
+		// ephemeral module must only be executed while all of them exist.
 		aIDs []string
 
 		// wantDestroyed are the resources expected to be destroyed, in groups that are destroyed
@@ -6472,13 +6472,13 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 	}{
 		// a -> e -> provider "auth" -> b
 		"consumed-by-provider": {
-			path:          "ephemeral-component-destroy-order",
+			path:          "ephemeral-module-destroy-order",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
 			wantLeases:    2,
 		},
 		// The same chain as "consumed-by-provider", with one chain per instance (x and y) of a, e and b.
 		"for-each": {
-			path:          "ephemeral-component-destroy-for-each",
+			path:          "ephemeral-module-destroy-for-each",
 			aIDs:          []string{"a-x", "a-y"},
 			wantDestroyed: [][]string{{"b-x", "b-y"}, {"a-x", "a-y"}},
 			wantLeases:    4,
@@ -6487,7 +6487,7 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 		// for_each is unknown. This must not stop "b" from being destroyed, as "b" never
 		// needed "a" to be destroyed first and "e" will retrieve it's input data from state.
 		"incomplete-destroy-plan": {
-			path: "ephemeral-component-destroy-deferred-required",
+			path: "ephemeral-module-destroy-deferred-required",
 			destroyInputs: map[string]cty.Value{
 				"a_names": cty.UnknownVal(cty.Set(cty.String)),
 			},
@@ -6497,13 +6497,13 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 		},
 		// a -> e -> stack input -> provider "auth" -> b (in the embedded stack)
 		"consumed-in-embedded-stack": {
-			path:          "ephemeral-component-destroy-embedded-consumer",
+			path:          "ephemeral-module-destroy-embedded-consumer",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
 			wantLeases:    2,
 		},
 		// a -> stack input -> e (in the embedded stack) -> stack output -> provider "auth" -> b
-		"ephemeral-component-in-embedded-stack": {
-			path:          "ephemeral-component-destroy-embedded-ephemeral",
+		"ephemeral-module-in-embedded-stack": {
+			path:          "ephemeral-module-destroy-embedded-ephemeral",
 			wantDestroyed: [][]string{{"b"}, {"a"}},
 			wantLeases:    2,
 		},
@@ -6621,36 +6621,36 @@ func TestApplyDestroyWithEphemeralComponent(t *testing.T) {
 
 			// Assert the ephemeral resource was only opened before component "a" was destroyed
 			if len(opened) == 0 {
-				t.Errorf("the ephemeral component was never executed")
+				t.Errorf("the ephemeral module was never executed")
 			}
 			for i, aExisted := range opened {
 				if !aExisted {
-					t.Errorf("execution %d of the ephemeral component happened after component.a was destroyed", i+1)
+					t.Errorf("execution %d of the ephemeral module happened after component.a was destroyed", i+1)
 				}
 			}
 		})
 	}
 }
 
-// TestApplyEphemeralComponentLifecycle verifies that ephemeral components satisfy the ephemeral resource lifecycle of:
+// TestApplyEphemeralModuleLifecycle verifies that ephemeral modules satisfy the ephemeral resource lifecycle of:
 // - Opening ephemeral resource
 // - Using the ephemeral value
 // - Closing the ephemeral resource (any future use of the ephemeral value is invalid)
-func TestApplyEphemeralComponentLifecycle(t *testing.T) {
+func TestApplyEphemeralModuleLifecycle(t *testing.T) {
 	tcs := map[string]struct {
 		bundle         string
 		expectedLeases int
 	}{
 		"output to provider": {
-			bundle:         "ephemeral-component-output-to-provider",
+			bundle:         "ephemeral-module-output-to-provider",
 			expectedLeases: 1,
 		},
 		"expanded": {
-			bundle:         "ephemeral-expanded-component-to-provider",
+			bundle:         "ephemeral-expanded-module-to-provider",
 			expectedLeases: 2,
 		},
 		"multiple": {
-			bundle:         "ephemeral-component-multiple",
+			bundle:         "ephemeral-module-multiple",
 			expectedLeases: 2,
 		},
 	}

@@ -370,13 +370,13 @@ func TestComponentSourceResolution(t *testing.T) {
 	})
 }
 
-func TestLoadConfigDirEphemeralComponents(t *testing.T) {
+func TestLoadConfigDirEphemeralModules(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-component.git").(sourceaddrs.RemoteSource)
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-module.git").(sourceaddrs.RemoteSource)
 	config, diags := LoadConfigDir(rootAddr, bundle)
 	if len(diags) != 0 {
 		t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
@@ -385,17 +385,17 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 	testingProvider := addrs.LocalProviderConfig{LocalName: "testing"}
 
 	t.Run("declarations", func(t *testing.T) {
-		if got, want := len(config.Root.Stack.EphemeralComponents), 2; got != want {
-			t.Errorf("wrong number of ephemeral components %d; want %d", got, want)
+		if got, want := len(config.Root.Stack.EphemeralModules), 2; got != want {
+			t.Errorf("wrong number of ephemeral modules %d; want %d", got, want)
 		}
 		if got, want := len(config.Root.Stack.Components), 0; got != want {
 			t.Errorf("wrong number of components %d; want %d", got, want)
 		}
 	})
 	t.Run("basic", func(t *testing.T) {
-		cfg, ok := config.Root.Stack.EphemeralComponents["basic"]
+		cfg, ok := config.Root.Stack.EphemeralModules["basic"]
 		if !ok {
-			t.Fatal("Root stack config has no ephemeral component named \"basic\".")
+			t.Fatal("Root stack config has no ephemeral module named \"basic\".")
 		}
 		if got, want := cfg.Name, "basic"; got != want {
 			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
@@ -406,7 +406,7 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 		if cfg.FinalSourceAddr == nil {
 			t.Fatal("FinalSourceAddr was not resolved")
 		}
-		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-component.git//ephemeral-output"; got != want {
+		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-module.git//ephemeral-output"; got != want {
 			t.Errorf("wrong final source address\ngot:  %s\nwant: %s", got, want)
 		}
 		if cfg.ForEach != nil {
@@ -420,14 +420,14 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 		}
 	})
 	t.Run("expanded", func(t *testing.T) {
-		cfg, ok := config.Root.Stack.EphemeralComponents["expanded"]
+		cfg, ok := config.Root.Stack.EphemeralModules["expanded"]
 		if !ok {
-			t.Fatal("Root stack config has no ephemeral component named \"expanded\".")
+			t.Fatal("Root stack config has no ephemeral module named \"expanded\".")
 		}
 		if got, want := cfg.Name, "expanded"; got != want {
 			t.Errorf("wrong name\ngot:  %s\nwant: %s", got, want)
 		}
-		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-component.git//ephemeral-output"; got != want {
+		if got, want := cfg.FinalSourceAddr.String(), "git::https://example.com/ephemeral-module.git//ephemeral-output"; got != want {
 			t.Errorf("wrong final source address\ngot:  %s\nwant: %s", got, want)
 		}
 		if cfg.ForEach == nil {
@@ -441,36 +441,36 @@ func TestLoadConfigDirEphemeralComponents(t *testing.T) {
 		}
 	})
 	t.Run("lookup by address", func(t *testing.T) {
-		addr := stackaddrs.ConfigEphemeralComponent{
+		addr := stackaddrs.ConfigEphemeralModule{
 			Stack: stackaddrs.RootStack,
-			Item:  stackaddrs.EphemeralComponent{Name: "basic"},
+			Item:  stackaddrs.EphemeralModule{Name: "basic"},
 		}
-		if got, want := config.EphemeralComponent(addr), config.Root.Stack.EphemeralComponents["basic"]; got != want || got == nil {
-			t.Errorf("wrong ephemeral component for %s\ngot:  %p\nwant: %p", addr, got, want)
+		if got, want := config.EphemeralModule(addr), config.Root.Stack.EphemeralModules["basic"]; got != want || got == nil {
+			t.Errorf("wrong ephemeral module for %s\ngot:  %p\nwant: %p", addr, got, want)
 		}
 		addr.Item.Name = "nonexistent"
-		if got := config.EphemeralComponent(addr); got != nil {
-			t.Errorf("unexpected ephemeral component for %s", addr)
+		if got := config.EphemeralModule(addr); got != nil {
+			t.Errorf("unexpected ephemeral module for %s", addr)
 		}
 	})
 	t.Run("module config", func(t *testing.T) {
-		moduleCfg, diags := config.Root.Stack.EphemeralComponents["basic"].ModuleConfig(bundle)
+		moduleCfg, diags := config.Root.Stack.EphemeralModules["basic"].ModuleConfig(bundle)
 		if len(diags) != 0 {
 			t.Fatalf("unexpected diagnostics:\n%s", diags.NonFatalErr().Error())
 		}
 		if out, ok := moduleCfg.Module.Outputs["value"]; !ok || !out.Ephemeral {
-			t.Errorf("expected an ephemeral output named \"value\" in the ephemeral component's module")
+			t.Errorf("expected an ephemeral output named \"value\" in the ephemeral module's module")
 		}
 	})
 }
 
-func TestLoadConfigDirEphemeralComponentErrors(t *testing.T) {
+func TestLoadConfigDirEphemeralModuleErrors(t *testing.T) {
 	bundle, err := sourcebundle.OpenDir("testdata/basics-bundle")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-component-errored.git").(sourceaddrs.RemoteSource)
+	rootAddr := sourceaddrs.MustParseSource("git::https://example.com/ephemeral-module-errored.git").(sourceaddrs.RemoteSource)
 	_, gotDiags := LoadConfigDir(rootAddr, bundle)
 
 	sort.SliceStable(gotDiags, func(i, j int) bool {
@@ -486,7 +486,7 @@ func TestLoadConfigDirEphemeralComponentErrors(t *testing.T) {
 	})
 
 	wantDiags := tfdiags.Diagnostics{
-		tfdiags.Sourceless(tfdiags.Error, "Duplicate ephemeral component declaration", "An ephemeral component named \"dupe\" was already declared at git::https://example.com/ephemeral-component-errored.git//main.tfcomponent.hcl:10,1-27."),
+		tfdiags.Sourceless(tfdiags.Error, "Duplicate ephemeral module declaration", "An ephemeral module named \"dupe\" was already declared at git::https://example.com/ephemeral-module-errored.git//main.tfcomponent.hcl:10,1-24."),
 	}
 
 	count := len(wantDiags)

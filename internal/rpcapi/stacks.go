@@ -434,8 +434,8 @@ func (s *stacksServer) PlanStackChanges(req *stacks.PlanStackChanges_Request, ev
 		}
 		for addr, results := range ephemeralPolicyResults.All() {
 			syncEvts.Send(&stacks.PlanStackChanges_Event{
-				Event: &stacks.PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation{
-					EphemeralComponentInstancePolicyEvaluation: ephemeralComponentInstancePolicyEvaluationProto(addr, results),
+				Event: &stacks.PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation{
+					EphemeralModuleInstancePolicyEvaluation: ephemeralModuleInstancePolicyEvaluationProto(addr, results),
 				},
 			})
 		}
@@ -770,8 +770,8 @@ func (s *stacksServer) ApplyStackChanges(req *stacks.ApplyStackChanges_Request, 
 		}
 		for addr, results := range ephemeralPolicyResults.All() {
 			syncEvts.Send(&stacks.ApplyStackChanges_Event{
-				Event: &stacks.ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation{
-					EphemeralComponentInstancePolicyEvaluation: ephemeralComponentInstancePolicyEvaluationProto(addr, results),
+				Event: &stacks.ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation{
+					EphemeralModuleInstancePolicyEvaluation: ephemeralModuleInstancePolicyEvaluationProto(addr, results),
 				},
 			})
 		}
@@ -1559,17 +1559,17 @@ func stackPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackr
 	return resultMap
 }
 
-func stackEphemeralPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsEphemeralComponentInstance, map[string][]policy.EvaluationResponse] {
-	resultMap := collections.NewMap[stackaddrs.AbsEphemeralComponentInstance, map[string][]policy.EvaluationResponse]()
+func stackEphemeralPolicyEvaluationHooks(policyClient policy.Client, runtimeHooks *stackruntime.Hooks) collections.Map[stackaddrs.AbsEphemeralModuleInstance, map[string][]policy.EvaluationResponse] {
+	resultMap := collections.NewMap[stackaddrs.AbsEphemeralModuleInstance, map[string][]policy.EvaluationResponse]()
 	if policyClient != nil {
 		mu := sync.Mutex{}
-		runtimeHooks.ReportEphemeralComponentInstancePolicyResult = func(ctx context.Context, h *hooks.EphemeralComponentInstancePolicyResult) {
+		runtimeHooks.ReportEphemeralModuleInstancePolicyResult = func(ctx context.Context, h *hooks.EphemeralModuleInstancePolicyResult) {
 			mu.Lock()
 			defer mu.Unlock()
-			mp, ok := resultMap.GetOk(h.EphemeralComponentAddr)
+			mp, ok := resultMap.GetOk(h.EphemeralModuleAddr)
 			if !ok {
 				mp = make(map[string][]policy.EvaluationResponse)
-				resultMap.Put(h.EphemeralComponentAddr, mp)
+				resultMap.Put(h.EphemeralModuleAddr, mp)
 			}
 			mp[h.ModuleAddr] = append(mp[h.ModuleAddr], h.Result)
 		}

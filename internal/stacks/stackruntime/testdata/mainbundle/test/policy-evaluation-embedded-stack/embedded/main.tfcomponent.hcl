@@ -30,7 +30,7 @@ component "simple_component" {
   }
 }
 
-ephemeral_component "simple_ephemeral_component" {
+ephemeral_module "simple_ephemeral_module" {
   source   = "./ephemeral"
   for_each = var.component_names
 

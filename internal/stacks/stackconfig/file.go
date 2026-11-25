@@ -94,11 +94,11 @@ func DecodeFileBody(body hcl.Body, fileAddr sourceaddrs.FinalSource) (*File, tfd
 				ret.Declarations.addComponent(decl),
 			)
 
-		case "ephemeral_component":
-			decl, moreDiags := decodeEphemeralComponentBlock(block)
+		case "ephemeral_module":
+			decl, moreDiags := decodeEphemeralModuleBlock(block)
 			diags = diags.Append(moreDiags)
 			diags = diags.Append(
-				ret.Declarations.addEphemeralComponent(decl),
+				ret.Declarations.addEphemeralModule(decl),
 			)
 
 		case "stack":
@@ -231,7 +231,7 @@ var rootConfigSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "stack", LabelNames: []string{"name"}},
 		{Type: "component", LabelNames: []string{"name"}},
-		{Type: "ephemeral_component", LabelNames: []string{"name"}},
+		{Type: "ephemeral_module", LabelNames: []string{"name"}},
 		{Type: "variable", LabelNames: []string{"name"}},
 		{Type: "locals"},
 		{Type: "output", LabelNames: []string{"name"}},

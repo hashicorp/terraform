@@ -7,7 +7,7 @@ required_providers {
 
 provider "testing" "main" {}
 
-ephemeral_component "out" {
+ephemeral_module "out" {
   source = "./out"
 
   providers = {
@@ -16,7 +16,7 @@ ephemeral_component "out" {
 }
 
 component "in" {
-  for_each = toset([ephemeral_component.out.value])
+  for_each = toset([ephemeral_module.out.value])
 
   source = "./in"
 

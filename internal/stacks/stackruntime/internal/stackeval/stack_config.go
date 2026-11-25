@@ -47,7 +47,7 @@ type StackConfig struct {
 	removedStackCalls   collections.Map[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig]
 	components          map[stackaddrs.Component]*ComponentConfig
 	removedComponents   collections.Map[stackaddrs.ConfigComponent, []*RemovedComponentConfig]
-	ephemeralComponents map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig
+	ephemeralModules map[stackaddrs.EphemeralModule]*EphemeralModuleConfig
 	providers           map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
@@ -71,7 +71,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, parent *StackConfig, conf
 		removedStackCalls:   collections.NewMap[stackaddrs.ConfigStackCall, []*RemovedStackCallConfig](),
 		components:          make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 		removedComponents:   collections.NewMap[stackaddrs.ConfigComponent, []*RemovedComponentConfig](),
-		ephemeralComponents: make(map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig, len(config.Stack.Declarations.EphemeralComponents)),
+		ephemeralModules: make(map[stackaddrs.EphemeralModule]*EphemeralModuleConfig, len(config.Stack.Declarations.EphemeralModules)),
 		providers:           make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
@@ -454,35 +454,35 @@ func (s *StackConfig) RemovedComponents() collections.Map[stackaddrs.ConfigCompo
 	return ret
 }
 
-// EphemeralComponent returns an [EphemeralComponentConfig] representing the ephemeral_component call
+// EphemeralModule returns an [EphemeralModuleConfig] representing the ephemeral_module call
 // declared within this stack config that matches the given address, or nil if there is no such declaration.
-func (s *StackConfig) EphemeralComponent(addr stackaddrs.EphemeralComponent) *EphemeralComponentConfig {
+func (s *StackConfig) EphemeralModule(addr stackaddrs.EphemeralModule) *EphemeralModuleConfig {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ret, ok := s.ephemeralComponents[addr]
+	ret, ok := s.ephemeralModules[addr]
 	if !ok {
-		cfg, ok := s.config.Stack.EphemeralComponents[addr.Name]
+		cfg, ok := s.config.Stack.EphemeralModules[addr.Name]
 		if !ok {
 			return nil
 		}
 		cfgAddr := stackaddrs.Config(s.addr, addr)
-		ret = newEphemeralComponentConfig(s.main, cfgAddr, s, cfg)
-		s.ephemeralComponents[addr] = ret
+		ret = newEphemeralModuleConfig(s.main, cfgAddr, s, cfg)
+		s.ephemeralModules[addr] = ret
 	}
 	return ret
 }
 
-// EphemeralComponents returns a map of the objects representing all of the
-// component calls declared inside this stack configuration.
-func (s *StackConfig) EphemeralComponents() map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig {
-	if len(s.config.Stack.EphemeralComponents) == 0 {
+// EphemeralModules returns a map of the objects representing all of the
+// ephemeral module calls declared inside this stack configuration.
+func (s *StackConfig) EphemeralModules() map[stackaddrs.EphemeralModule]*EphemeralModuleConfig {
+	if len(s.config.Stack.EphemeralModules) == 0 {
 		return nil
 	}
-	ret := make(map[stackaddrs.EphemeralComponent]*EphemeralComponentConfig, len(s.config.Stack.EphemeralComponents))
-	for name := range s.config.Stack.EphemeralComponents {
-		addr := stackaddrs.EphemeralComponent{Name: name}
-		ret[addr] = s.EphemeralComponent(addr)
+	ret := make(map[stackaddrs.EphemeralModule]*EphemeralModuleConfig, len(s.config.Stack.EphemeralModules))
+	for name := range s.config.Stack.EphemeralModules {
+		addr := stackaddrs.EphemeralModule{Name: name}
+		ret[addr] = s.EphemeralModule(addr)
 	}
 	return ret
 }
@@ -552,13 +552,13 @@ func (s *StackConfig) resolveExpressionReference(
 			return nil, diags
 		}
 		return ret, diags
-	case stackaddrs.EphemeralComponent:
-		ret := s.EphemeralComponent(addr)
+	case stackaddrs.EphemeralModule:
+		ret := s.EphemeralModule(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Reference to undeclared ephemeral component",
-				Detail:   fmt.Sprintf("There is no ephemeral component %q block declared in this stack.", addr.Name),
+				Summary:  "Reference to undeclared ephemeral module",
+				Detail:   fmt.Sprintf("There is no ephemeral module %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags

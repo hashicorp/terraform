@@ -23,7 +23,7 @@ import (
 // also provides access to the underlying configuration module that is being
 // evaluated by this scope.
 //
-// This is typically used to share code between removed, component, and ephemeral_component
+// This is typically used to share code between removed, component, and ephemeral_module
 // blocks which all load and execute Terraform configurations.
 type ConfigComponentExpressionScope[Addr fmt.Stringer] interface {
 	ExpressionScope
@@ -169,10 +169,10 @@ func EvalProviderTypes[Addr fmt.Stringer](ctx context.Context, stack *StackConfi
 	return ret, diags
 }
 
-// EvalProviderValues evaluates the provider configuration for a component or an ephemeral component,
+// EvalProviderValues evaluates the provider configuration for a component or an ephemeral module,
 // and returns the provider configuration instances that should be used in the component.
 //
-// This function should be called during dynamic evaluations of components, removed, and ephemeral_component blocks.
+// This function should be called during dynamic evaluations of components, removed, and ephemeral_module blocks.
 func EvalProviderValues[Addr fmt.Stringer](ctx context.Context, main *Main, providers map[addrs.LocalProviderConfig]hcl.Expression, phase EvalPhase, scope ConfigComponentExpressionScope[Addr]) (map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance, map[addrs.RootProviderConfig]addrs.Provider, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	knownProviders := make(map[addrs.RootProviderConfig]stackaddrs.AbsProviderConfigInstance)

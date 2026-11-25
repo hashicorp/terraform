@@ -274,8 +274,8 @@ message PlanStackChanges {
       // Resources and modules evaluate policies for each component instance
       ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 11;
 
-      // Modules evaluate policies for each ephemeral component instance (resources are not allowed in ephemeral components)
-      EphemeralComponentInstancePolicyEvaluation ephemeral_component_instance_policy_evaluation = 14;
+      // Modules evaluate policies for each ephemeral module instance (resources are not allowed in ephemeral modules)
+      EphemeralModuleInstancePolicyEvaluation ephemeral_module_instance_policy_evaluation = 14;
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 12;
@@ -361,8 +361,8 @@ message ApplyStackChanges {
       // Resources and modules evaluate policies for each component instance
       ComponentInstancePolicyEvaluation component_instance_policy_evaluation = 4;
 
-      // Modules evaluate policies for each ephemeral component instance (resources are not allowed in ephemeral components)
-      EphemeralComponentInstancePolicyEvaluation ephemeral_component_instance_policy_evaluation = 7;
+      // Modules evaluate policies for each ephemeral module instance (resources are not allowed in ephemeral modules)
+      EphemeralModuleInstancePolicyEvaluation ephemeral_module_instance_policy_evaluation = 7;
 
       // Providers evaluate policy for each instance in a stack
       ProviderInstancePolicyEvaluation provider_instance_policy_evaluation = 5;
@@ -462,12 +462,12 @@ message ComponentInstanceInStackAddr {
   string component_instance_addr = 2;
 }
 
-message EphemeralComponentInstanceInStackAddr {
-  // The address of the static ephemeral component that this is an instance of.
-  string ephemeral_component_addr = 1;
-  // The instance address, including keys on the ephemeral component and any
+message EphemeralModuleInstanceInStackAddr {
+  // The address of the static ephemeral module that this is an instance of.
+  string ephemeral_module_addr = 1;
+  // The instance address, including keys on the ephemeral module and any
   // containing embedded stacks.
-  string ephemeral_component_instance_addr = 2;
+  string ephemeral_module_instance_addr = 2;
 }
 
 // Represents the address of a specific action inside a specific 
@@ -1137,8 +1137,8 @@ message ComponentInstancePolicyEvaluation {
   repeated PolicyDiagnostic diagnostics = 4;
 }
 
-message EphemeralComponentInstancePolicyEvaluation {
-  EphemeralComponentInstanceInStackAddr addr = 1;
+message EphemeralModuleInstancePolicyEvaluation {
+  EphemeralModuleInstanceInStackAddr addr = 1;
   repeated PolicyResult results = 2;
   repeated PolicyInfo infos = 3;
   repeated PolicyDiagnostic diagnostics = 4;

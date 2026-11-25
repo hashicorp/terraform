@@ -48,7 +48,7 @@ type Stack struct {
 	stackCalls          map[stackaddrs.StackCall]*StackCall
 	outputValues        map[stackaddrs.OutputValue]*OutputValue
 	components          map[stackaddrs.Component]*Component
-	ephemeralComponents map[stackaddrs.EphemeralComponent]*EphemeralComponent
+	ephemeralModules map[stackaddrs.EphemeralModule]*EphemeralModule
 	providers           map[stackaddrs.ProviderConfigRef]*Provider
 	removedInitialised  bool
 }
@@ -336,31 +336,31 @@ func (s *Stack) KnownComponentInstances(component stackaddrs.Component, phase Ev
 	}
 }
 
-func (s *Stack) EphemeralComponents() map[stackaddrs.EphemeralComponent]*EphemeralComponent {
+func (s *Stack) EphemeralModules() map[stackaddrs.EphemeralModule]*EphemeralModule {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// We intentionally save a non-nil map below even if it's empty so that
 	// we can unambiguously recognize whether we've loaded this or not.
-	if s.ephemeralComponents != nil {
-		return s.ephemeralComponents
+	if s.ephemeralModules != nil {
+		return s.ephemeralModules
 	}
 
 	decls := s.config.config.Stack
-	ret := make(map[stackaddrs.EphemeralComponent]*EphemeralComponent, len(decls.EphemeralComponents))
-	for _, c := range decls.EphemeralComponents {
-		absAddr := stackaddrs.AbsEphemeralComponent{
+	ret := make(map[stackaddrs.EphemeralModule]*EphemeralModule, len(decls.EphemeralModules))
+	for _, c := range decls.EphemeralModules {
+		absAddr := stackaddrs.AbsEphemeralModule{
 			Stack: s.addr,
-			Item:  stackaddrs.EphemeralComponent{Name: c.Name},
+			Item:  stackaddrs.EphemeralModule{Name: c.Name},
 		}
-		ret[absAddr.Item] = newEphemeralComponent(s.main, absAddr, s, s.config.EphemeralComponent(absAddr.Item))
+		ret[absAddr.Item] = newEphemeralModule(s.main, absAddr, s, s.config.EphemeralModule(absAddr.Item))
 	}
-	s.ephemeralComponents = ret
+	s.ephemeralModules = ret
 	return ret
 }
 
-func (s *Stack) EphemeralComponent(addr stackaddrs.EphemeralComponent) *EphemeralComponent {
-	return s.EphemeralComponents()[addr]
+func (s *Stack) EphemeralModule(addr stackaddrs.EphemeralModule) *EphemeralModule {
+	return s.EphemeralModules()[addr]
 }
 
 func (s *Stack) ProviderByLocalAddr(localAddr stackaddrs.ProviderConfigRef) *Provider {
@@ -552,13 +552,13 @@ func (s *Stack) resolveExpressionReference(
 			return nil, diags
 		}
 		return ret, diags
-	case stackaddrs.EphemeralComponent:
-		ret := s.EphemeralComponent(addr)
+	case stackaddrs.EphemeralModule:
+		ret := s.EphemeralModule(addr)
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Reference to undeclared ephemeral component",
-				Detail:   fmt.Sprintf("There is no ephemeral component %q block declared in this stack.", addr.Name),
+				Summary:  "Reference to undeclared ephemeral module",
+				Detail:   fmt.Sprintf("There is no ephemeral module %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 			return nil, diags

@@ -631,8 +631,8 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	wantEvents := []aggregatedPolicyEvent{
 		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
 		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
-		createExpectedEphemeralComponentInstancePolicyEvaluation(`ephemeral_component.simple_ephemeral_component["comp1"]`),
-		createExpectedEphemeralComponentInstancePolicyEvaluation(`ephemeral_component.simple_ephemeral_component["comp2"]`),
+		createExpectedEphemeralModuleInstancePolicyEvaluation(`ephemeral_module.simple_ephemeral_module["comp1"]`),
+		createExpectedEphemeralModuleInstancePolicyEvaluation(`ephemeral_module.simple_ephemeral_module["comp2"]`),
 		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
 		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
@@ -642,7 +642,7 @@ func TestStacksPlanStackChanges_withPolicies(t *testing.T) {
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
 		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
-		protocmp.SortRepeatedFields(&stacks.EphemeralComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.EphemeralModuleInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
@@ -880,8 +880,8 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 	wantEvents := []aggregatedPolicyEvent{
 		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp1"]`),
 		createExpectedComponentInstancePolicyEvaluation(`component.simple_component["comp2"]`),
-		createExpectedEphemeralComponentInstancePolicyEvaluation(`ephemeral_component.simple_ephemeral_component["comp1"]`),
-		createExpectedEphemeralComponentInstancePolicyEvaluation(`ephemeral_component.simple_ephemeral_component["comp2"]`),
+		createExpectedEphemeralModuleInstancePolicyEvaluation(`ephemeral_module.simple_ephemeral_module["comp1"]`),
+		createExpectedEphemeralModuleInstancePolicyEvaluation(`ephemeral_module.simple_ephemeral_module["comp2"]`),
 		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp1"]`),
 		createExpectedProviderInstancePolicyEvaluation(`provider["registry.terraform.io/hashicorp/testing"].default["comp2"]`),
 	}
@@ -891,7 +891,7 @@ func TestStacksApplyStackChanges_withPolicies(t *testing.T) {
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform(),
 		// Order of policy evaluation data is not guaranteed
 		protocmp.SortRepeatedFields(&stacks.ComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
-		protocmp.SortRepeatedFields(&stacks.EphemeralComponentInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
+		protocmp.SortRepeatedFields(&stacks.EphemeralModuleInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 		protocmp.SortRepeatedFields(&stacks.ProviderInstancePolicyEvaluation{}, "results", "infos", "diagnostics"),
 	); diff != "" {
 		t.Fatalf("unexpected policy events\n%s", diff)
@@ -2758,7 +2758,7 @@ func createExpectedComponentInstancePolicyEvaluation(componentInstanceAddr strin
 	}
 }
 
-func createExpectedEphemeralComponentInstancePolicyEvaluation(ephemeralComponentInstanceAddr string) aggregatedPolicyEvent {
+func createExpectedEphemeralModuleInstancePolicyEvaluation(ephemeralModuleInstanceAddr string) aggregatedPolicyEvent {
 	expectedPolicyMetadata := &stacks.PolicyMetaData{
 		PolicyName:       "policy_name",
 		PolicySetName:    "some_policy_set",
@@ -2767,11 +2767,11 @@ func createExpectedEphemeralComponentInstancePolicyEvaluation(ephemeralComponent
 	}
 
 	return aggregatedPolicyEvent{
-		Addr: ephemeralComponentInstanceAddr,
-		PolicyEvalautionProto: &stacks.EphemeralComponentInstancePolicyEvaluation{
-			Addr: &stacks.EphemeralComponentInstanceInStackAddr{
-				EphemeralComponentAddr:         "ephemeral_component.simple_ephemeral_component",
-				EphemeralComponentInstanceAddr: ephemeralComponentInstanceAddr,
+		Addr: ephemeralModuleInstanceAddr,
+		PolicyEvalautionProto: &stacks.EphemeralModuleInstancePolicyEvaluation{
+			Addr: &stacks.EphemeralModuleInstanceInStackAddr{
+				EphemeralModuleAddr:         "ephemeral_module.simple_ephemeral_module",
+				EphemeralModuleInstanceAddr: ephemeralModuleInstanceAddr,
 			},
 			Results: []*stacks.PolicyResult{
 				{
@@ -2896,10 +2896,10 @@ func collectPolicyEventsFromPlan(t *testing.T, planEvents grpc.ServerStreamingCl
 				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
 			})
-		case *stacks.PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation:
+		case *stacks.PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, aggregatedPolicyEvent{
-				Addr:                  evt.EphemeralComponentInstancePolicyEvaluation.GetAddr().GetEphemeralComponentInstanceAddr(),
-				PolicyEvalautionProto: evt.EphemeralComponentInstancePolicyEvaluation,
+				Addr:                  evt.EphemeralModuleInstancePolicyEvaluation.GetAddr().GetEphemeralModuleInstanceAddr(),
+				PolicyEvalautionProto: evt.EphemeralModuleInstancePolicyEvaluation,
 			})
 		case *stacks.PlanStackChanges_Event_ProviderInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, aggregatedPolicyEvent{
@@ -2946,10 +2946,10 @@ func collectPolicyEventsFromApply(t *testing.T, applyEvents grpc.ServerStreaming
 				Addr:                  evt.ComponentInstancePolicyEvaluation.GetAddr().GetComponentInstanceAddr(),
 				PolicyEvalautionProto: evt.ComponentInstancePolicyEvaluation,
 			})
-		case *stacks.ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation:
+		case *stacks.ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, aggregatedPolicyEvent{
-				Addr:                  evt.EphemeralComponentInstancePolicyEvaluation.GetAddr().GetEphemeralComponentInstanceAddr(),
-				PolicyEvalautionProto: evt.EphemeralComponentInstancePolicyEvaluation,
+				Addr:                  evt.EphemeralModuleInstancePolicyEvaluation.GetAddr().GetEphemeralModuleInstanceAddr(),
+				PolicyEvalautionProto: evt.EphemeralModuleInstancePolicyEvaluation,
 			})
 		case *stacks.ApplyStackChanges_Event_ProviderInstancePolicyEvaluation:
 			gotEvents = append(gotEvents, aggregatedPolicyEvent{

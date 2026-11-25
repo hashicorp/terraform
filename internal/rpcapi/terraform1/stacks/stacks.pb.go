@@ -1590,31 +1590,31 @@ func (x *ComponentInstanceInStackAddr) GetComponentInstanceAddr() string {
 	return ""
 }
 
-type EphemeralComponentInstanceInStackAddr struct {
+type EphemeralModuleInstanceInStackAddr struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The address of the static ephemeral component that this is an instance of.
-	EphemeralComponentAddr string `protobuf:"bytes,1,opt,name=ephemeral_component_addr,json=ephemeralComponentAddr,proto3" json:"ephemeral_component_addr,omitempty"`
-	// The instance address, including keys on the ephemeral component and any
+	// The address of the static ephemeral module that this is an instance of.
+	EphemeralModuleAddr string `protobuf:"bytes,1,opt,name=ephemeral_module_addr,json=ephemeralModuleAddr,proto3" json:"ephemeral_module_addr,omitempty"`
+	// The instance address, including keys on the ephemeral module and any
 	// containing embedded stacks.
-	EphemeralComponentInstanceAddr string `protobuf:"bytes,2,opt,name=ephemeral_component_instance_addr,json=ephemeralComponentInstanceAddr,proto3" json:"ephemeral_component_instance_addr,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	EphemeralModuleInstanceAddr string `protobuf:"bytes,2,opt,name=ephemeral_module_instance_addr,json=ephemeralModuleInstanceAddr,proto3" json:"ephemeral_module_instance_addr,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
-func (x *EphemeralComponentInstanceInStackAddr) Reset() {
-	*x = EphemeralComponentInstanceInStackAddr{}
+func (x *EphemeralModuleInstanceInStackAddr) Reset() {
+	*x = EphemeralModuleInstanceInStackAddr{}
 	mi := &file_stacks_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EphemeralComponentInstanceInStackAddr) String() string {
+func (x *EphemeralModuleInstanceInStackAddr) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EphemeralComponentInstanceInStackAddr) ProtoMessage() {}
+func (*EphemeralModuleInstanceInStackAddr) ProtoMessage() {}
 
-func (x *EphemeralComponentInstanceInStackAddr) ProtoReflect() protoreflect.Message {
+func (x *EphemeralModuleInstanceInStackAddr) ProtoReflect() protoreflect.Message {
 	mi := &file_stacks_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1626,21 +1626,21 @@ func (x *EphemeralComponentInstanceInStackAddr) ProtoReflect() protoreflect.Mess
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EphemeralComponentInstanceInStackAddr.ProtoReflect.Descriptor instead.
-func (*EphemeralComponentInstanceInStackAddr) Descriptor() ([]byte, []int) {
+// Deprecated: Use EphemeralModuleInstanceInStackAddr.ProtoReflect.Descriptor instead.
+func (*EphemeralModuleInstanceInStackAddr) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{21}
 }
 
-func (x *EphemeralComponentInstanceInStackAddr) GetEphemeralComponentAddr() string {
+func (x *EphemeralModuleInstanceInStackAddr) GetEphemeralModuleAddr() string {
 	if x != nil {
-		return x.EphemeralComponentAddr
+		return x.EphemeralModuleAddr
 	}
 	return ""
 }
 
-func (x *EphemeralComponentInstanceInStackAddr) GetEphemeralComponentInstanceAddr() string {
+func (x *EphemeralModuleInstanceInStackAddr) GetEphemeralModuleInstanceAddr() string {
 	if x != nil {
-		return x.EphemeralComponentInstanceAddr
+		return x.EphemeralModuleInstanceAddr
 	}
 	return ""
 }
@@ -2420,30 +2420,30 @@ func (x *ComponentInstancePolicyEvaluation) GetDiagnostics() []*PolicyDiagnostic
 	return nil
 }
 
-type EphemeralComponentInstancePolicyEvaluation struct {
-	state         protoimpl.MessageState                 `protogen:"open.v1"`
-	Addr          *EphemeralComponentInstanceInStackAddr `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
-	Results       []*PolicyResult                        `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
-	Infos         []*PolicyInfo                          `protobuf:"bytes,3,rep,name=infos,proto3" json:"infos,omitempty"`
-	Diagnostics   []*PolicyDiagnostic                    `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+type EphemeralModuleInstancePolicyEvaluation struct {
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Addr          *EphemeralModuleInstanceInStackAddr `protobuf:"bytes,1,opt,name=addr,proto3" json:"addr,omitempty"`
+	Results       []*PolicyResult                     `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
+	Infos         []*PolicyInfo                       `protobuf:"bytes,3,rep,name=infos,proto3" json:"infos,omitempty"`
+	Diagnostics   []*PolicyDiagnostic                 `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) Reset() {
-	*x = EphemeralComponentInstancePolicyEvaluation{}
+func (x *EphemeralModuleInstancePolicyEvaluation) Reset() {
+	*x = EphemeralModuleInstancePolicyEvaluation{}
 	mi := &file_stacks_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) String() string {
+func (x *EphemeralModuleInstancePolicyEvaluation) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*EphemeralComponentInstancePolicyEvaluation) ProtoMessage() {}
+func (*EphemeralModuleInstancePolicyEvaluation) ProtoMessage() {}
 
-func (x *EphemeralComponentInstancePolicyEvaluation) ProtoReflect() protoreflect.Message {
+func (x *EphemeralModuleInstancePolicyEvaluation) ProtoReflect() protoreflect.Message {
 	mi := &file_stacks_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2455,33 +2455,33 @@ func (x *EphemeralComponentInstancePolicyEvaluation) ProtoReflect() protoreflect
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use EphemeralComponentInstancePolicyEvaluation.ProtoReflect.Descriptor instead.
-func (*EphemeralComponentInstancePolicyEvaluation) Descriptor() ([]byte, []int) {
+// Deprecated: Use EphemeralModuleInstancePolicyEvaluation.ProtoReflect.Descriptor instead.
+func (*EphemeralModuleInstancePolicyEvaluation) Descriptor() ([]byte, []int) {
 	return file_stacks_proto_rawDescGZIP(), []int{31}
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) GetAddr() *EphemeralComponentInstanceInStackAddr {
+func (x *EphemeralModuleInstancePolicyEvaluation) GetAddr() *EphemeralModuleInstanceInStackAddr {
 	if x != nil {
 		return x.Addr
 	}
 	return nil
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) GetResults() []*PolicyResult {
+func (x *EphemeralModuleInstancePolicyEvaluation) GetResults() []*PolicyResult {
 	if x != nil {
 		return x.Results
 	}
 	return nil
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) GetInfos() []*PolicyInfo {
+func (x *EphemeralModuleInstancePolicyEvaluation) GetInfos() []*PolicyInfo {
 	if x != nil {
 		return x.Infos
 	}
 	return nil
 }
 
-func (x *EphemeralComponentInstancePolicyEvaluation) GetDiagnostics() []*PolicyDiagnostic {
+func (x *EphemeralModuleInstancePolicyEvaluation) GetDiagnostics() []*PolicyDiagnostic {
 	if x != nil {
 		return x.Diagnostics
 	}
@@ -4775,7 +4775,7 @@ type PlanStackChanges_Event struct {
 	//	*PlanStackChanges_Event_Diagnostic
 	//	*PlanStackChanges_Event_Progress
 	//	*PlanStackChanges_Event_ComponentInstancePolicyEvaluation
-	//	*PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation
+	//	*PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation
 	//	*PlanStackChanges_Event_ProviderInstancePolicyEvaluation
 	//	*PlanStackChanges_Event_PolicySetupDiagnostics
 	Event         isPlanStackChanges_Event_Event `protobuf_oneof:"event"`
@@ -4856,10 +4856,10 @@ func (x *PlanStackChanges_Event) GetComponentInstancePolicyEvaluation() *Compone
 	return nil
 }
 
-func (x *PlanStackChanges_Event) GetEphemeralComponentInstancePolicyEvaluation() *EphemeralComponentInstancePolicyEvaluation {
+func (x *PlanStackChanges_Event) GetEphemeralModuleInstancePolicyEvaluation() *EphemeralModuleInstancePolicyEvaluation {
 	if x != nil {
-		if x, ok := x.Event.(*PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation); ok {
-			return x.EphemeralComponentInstancePolicyEvaluation
+		if x, ok := x.Event.(*PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation); ok {
+			return x.EphemeralModuleInstancePolicyEvaluation
 		}
 	}
 	return nil
@@ -4904,9 +4904,9 @@ type PlanStackChanges_Event_ComponentInstancePolicyEvaluation struct {
 	ComponentInstancePolicyEvaluation *ComponentInstancePolicyEvaluation `protobuf:"bytes,11,opt,name=component_instance_policy_evaluation,json=componentInstancePolicyEvaluation,proto3,oneof"`
 }
 
-type PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation struct {
-	// Modules evaluate policies for each ephemeral component instance (resources are not allowed in ephemeral components)
-	EphemeralComponentInstancePolicyEvaluation *EphemeralComponentInstancePolicyEvaluation `protobuf:"bytes,14,opt,name=ephemeral_component_instance_policy_evaluation,json=ephemeralComponentInstancePolicyEvaluation,proto3,oneof"`
+type PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation struct {
+	// Modules evaluate policies for each ephemeral module instance (resources are not allowed in ephemeral modules)
+	EphemeralModuleInstancePolicyEvaluation *EphemeralModuleInstancePolicyEvaluation `protobuf:"bytes,14,opt,name=ephemeral_module_instance_policy_evaluation,json=ephemeralModuleInstancePolicyEvaluation,proto3,oneof"`
 }
 
 type PlanStackChanges_Event_ProviderInstancePolicyEvaluation struct {
@@ -4927,7 +4927,7 @@ func (*PlanStackChanges_Event_Progress) isPlanStackChanges_Event_Event() {}
 
 func (*PlanStackChanges_Event_ComponentInstancePolicyEvaluation) isPlanStackChanges_Event_Event() {}
 
-func (*PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation) isPlanStackChanges_Event_Event() {
+func (*PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation) isPlanStackChanges_Event_Event() {
 }
 
 func (*PlanStackChanges_Event_ProviderInstancePolicyEvaluation) isPlanStackChanges_Event_Event() {}
@@ -5259,7 +5259,7 @@ type ApplyStackChanges_Event struct {
 	//	*ApplyStackChanges_Event_Diagnostic
 	//	*ApplyStackChanges_Event_Progress
 	//	*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation
-	//	*ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation
+	//	*ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation
 	//	*ApplyStackChanges_Event_ProviderInstancePolicyEvaluation
 	//	*ApplyStackChanges_Event_PolicySetupDiagnostics
 	Event         isApplyStackChanges_Event_Event `protobuf_oneof:"event"`
@@ -5340,10 +5340,10 @@ func (x *ApplyStackChanges_Event) GetComponentInstancePolicyEvaluation() *Compon
 	return nil
 }
 
-func (x *ApplyStackChanges_Event) GetEphemeralComponentInstancePolicyEvaluation() *EphemeralComponentInstancePolicyEvaluation {
+func (x *ApplyStackChanges_Event) GetEphemeralModuleInstancePolicyEvaluation() *EphemeralModuleInstancePolicyEvaluation {
 	if x != nil {
-		if x, ok := x.Event.(*ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation); ok {
-			return x.EphemeralComponentInstancePolicyEvaluation
+		if x, ok := x.Event.(*ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation); ok {
+			return x.EphemeralModuleInstancePolicyEvaluation
 		}
 	}
 	return nil
@@ -5388,9 +5388,9 @@ type ApplyStackChanges_Event_ComponentInstancePolicyEvaluation struct {
 	ComponentInstancePolicyEvaluation *ComponentInstancePolicyEvaluation `protobuf:"bytes,4,opt,name=component_instance_policy_evaluation,json=componentInstancePolicyEvaluation,proto3,oneof"`
 }
 
-type ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation struct {
-	// Modules evaluate policies for each ephemeral component instance (resources are not allowed in ephemeral components)
-	EphemeralComponentInstancePolicyEvaluation *EphemeralComponentInstancePolicyEvaluation `protobuf:"bytes,7,opt,name=ephemeral_component_instance_policy_evaluation,json=ephemeralComponentInstancePolicyEvaluation,proto3,oneof"`
+type ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation struct {
+	// Modules evaluate policies for each ephemeral module instance (resources are not allowed in ephemeral modules)
+	EphemeralModuleInstancePolicyEvaluation *EphemeralModuleInstancePolicyEvaluation `protobuf:"bytes,7,opt,name=ephemeral_module_instance_policy_evaluation,json=ephemeralModuleInstancePolicyEvaluation,proto3,oneof"`
 }
 
 type ApplyStackChanges_Event_ProviderInstancePolicyEvaluation struct {
@@ -5411,7 +5411,7 @@ func (*ApplyStackChanges_Event_Progress) isApplyStackChanges_Event_Event() {}
 
 func (*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation) isApplyStackChanges_Event_Event() {}
 
-func (*ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation) isApplyStackChanges_Event_Event() {
+func (*ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation) isApplyStackChanges_Event_Event() {
 }
 
 func (*ApplyStackChanges_Event_ProviderInstancePolicyEvaluation) isApplyStackChanges_Event_Event() {}
@@ -8746,7 +8746,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\aRequest\x12!\n" +
 	"\fstate_handle\x18\x01 \x01(\x03R\vstateHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\x81\r\n" +
+	"\bResponse\"\xf8\f\n" +
 	"\x10PlanStackChanges\x1a\xea\x06\n" +
 	"\aRequest\x128\n" +
 	"\tplan_mode\x18\x01 \x01(\x0e2\x1b.terraform1.stacks.PlanModeR\bplanMode\x12.\n" +
@@ -8766,7 +8766,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
 	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
-	"\x15_tfpolicy_plugin_path\x1a\xff\x05\n" +
+	"\x15_tfpolicy_plugin_path\x1a\xf6\x05\n" +
 	"\x05Event\x12I\n" +
 	"\x0eplanned_change\x18\x01 \x01(\v2 .terraform1.stacks.PlannedChangeH\x00R\rplannedChange\x128\n" +
 	"\n" +
@@ -8774,8 +8774,8 @@ const file_stacks_proto_rawDesc = "" +
 	"diagnostic\x12D\n" +
 	"\bprogress\x18\n" +
 	" \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12\x87\x01\n" +
-	"$component_instance_policy_evaluation\x18\v \x01(\v24.terraform1.stacks.ComponentInstancePolicyEvaluationH\x00R!componentInstancePolicyEvaluation\x12\xa3\x01\n" +
-	".ephemeral_component_instance_policy_evaluation\x18\x0e \x01(\v2=.terraform1.stacks.EphemeralComponentInstancePolicyEvaluationH\x00R*ephemeralComponentInstancePolicyEvaluation\x12\x84\x01\n" +
+	"$component_instance_policy_evaluation\x18\v \x01(\v24.terraform1.stacks.ComponentInstancePolicyEvaluationH\x00R!componentInstancePolicyEvaluation\x12\x9a\x01\n" +
+	"+ephemeral_module_instance_policy_evaluation\x18\x0e \x01(\v2:.terraform1.stacks.EphemeralModuleInstancePolicyEvaluationH\x00R'ephemeralModuleInstancePolicyEvaluation\x12\x84\x01\n" +
 	"#provider_instance_policy_evaluation\x18\f \x01(\v23.terraform1.stacks.ProviderInstancePolicyEvaluationH\x00R providerInstancePolicyEvaluation\x12e\n" +
 	"\x18policy_setup_diagnostics\x18\r \x01(\v2).terraform1.stacks.PolicySetupDiagnosticsH\x00R\x16policySetupDiagnosticsB\a\n" +
 	"\x05eventJ\x04\b\x03\x10\n" +
@@ -8791,7 +8791,7 @@ const file_stacks_proto_rawDesc = "" +
 	"\vplan_handle\x18\x01 \x01(\x03R\n" +
 	"planHandle\x1a\n" +
 	"\n" +
-	"\bResponse\"\xec\v\n" +
+	"\bResponse\"\xe3\v\n" +
 	"\x11ApplyStackChanges\x1a\xda\x05\n" +
 	"\aRequest\x12.\n" +
 	"\x13stack_config_handle\x18\x01 \x01(\x03R\x11stackConfigHandle\x124\n" +
@@ -8809,15 +8809,15 @@ const file_stacks_proto_rawDesc = "" +
 	"\x10InputValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12?\n" +
 	"\x05value\x18\x02 \x01(\v2).terraform1.stacks.DynamicValueWithSourceR\x05value:\x028\x01B\x17\n" +
-	"\x15_tfpolicy_plugin_pathJ\x04\b\x02\x10\x03\x1a\xf9\x05\n" +
+	"\x15_tfpolicy_plugin_pathJ\x04\b\x02\x10\x03\x1a\xf0\x05\n" +
 	"\x05Event\x12I\n" +
 	"\x0eapplied_change\x18\x01 \x01(\v2 .terraform1.stacks.AppliedChangeH\x00R\rappliedChange\x128\n" +
 	"\n" +
 	"diagnostic\x18\x02 \x01(\v2\x16.terraform1.DiagnosticH\x00R\n" +
 	"diagnostic\x12D\n" +
 	"\bprogress\x18\x03 \x01(\v2&.terraform1.stacks.StackChangeProgressH\x00R\bprogress\x12\x87\x01\n" +
-	"$component_instance_policy_evaluation\x18\x04 \x01(\v24.terraform1.stacks.ComponentInstancePolicyEvaluationH\x00R!componentInstancePolicyEvaluation\x12\xa3\x01\n" +
-	".ephemeral_component_instance_policy_evaluation\x18\a \x01(\v2=.terraform1.stacks.EphemeralComponentInstancePolicyEvaluationH\x00R*ephemeralComponentInstancePolicyEvaluation\x12\x84\x01\n" +
+	"$component_instance_policy_evaluation\x18\x04 \x01(\v24.terraform1.stacks.ComponentInstancePolicyEvaluationH\x00R!componentInstancePolicyEvaluation\x12\x9a\x01\n" +
+	"+ephemeral_module_instance_policy_evaluation\x18\a \x01(\v2:.terraform1.stacks.EphemeralModuleInstancePolicyEvaluationH\x00R'ephemeralModuleInstancePolicyEvaluation\x12\x84\x01\n" +
 	"#provider_instance_policy_evaluation\x18\x05 \x01(\v23.terraform1.stacks.ProviderInstancePolicyEvaluationH\x00R providerInstancePolicyEvaluation\x12e\n" +
 	"\x18policy_setup_diagnostics\x18\x06 \x01(\v2).terraform1.stacks.PolicySetupDiagnosticsH\x00R\x16policySetupDiagnosticsB\a\n" +
 	"\x05event\"\xa6\x05\n" +
@@ -8869,10 +8869,10 @@ const file_stacks_proto_rawDesc = "" +
 	"\x16provider_instance_addr\x18\x02 \x01(\tR\x14providerInstanceAddr\"}\n" +
 	"\x1cComponentInstanceInStackAddr\x12%\n" +
 	"\x0ecomponent_addr\x18\x01 \x01(\tR\rcomponentAddr\x126\n" +
-	"\x17component_instance_addr\x18\x02 \x01(\tR\x15componentInstanceAddr\"\xac\x01\n" +
-	"%EphemeralComponentInstanceInStackAddr\x128\n" +
-	"\x18ephemeral_component_addr\x18\x01 \x01(\tR\x16ephemeralComponentAddr\x12I\n" +
-	"!ephemeral_component_instance_addr\x18\x02 \x01(\tR\x1eephemeralComponentInstanceAddr\"\xa4\x01\n" +
+	"\x17component_instance_addr\x18\x02 \x01(\tR\x15componentInstanceAddr\"\x9d\x01\n" +
+	"\"EphemeralModuleInstanceInStackAddr\x122\n" +
+	"\x15ephemeral_module_addr\x18\x01 \x01(\tR\x13ephemeralModuleAddr\x12C\n" +
+	"\x1eephemeral_module_instance_addr\x18\x02 \x01(\tR\x1bephemeralModuleInstanceAddr\"\xa4\x01\n" +
 	"#ActionInvocationInstanceInStackAddr\x126\n" +
 	"\x17component_instance_addr\x18\x01 \x01(\tR\x15componentInstanceAddr\x12E\n" +
 	"\x1faction_invocation_instance_addr\x18\x02 \x01(\tR\x1cactionInvocationInstanceAddr\"\x8b\x01\n" +
@@ -9158,9 +9158,9 @@ const file_stacks_proto_rawDesc = "" +
 	"\x04addr\x18\x01 \x01(\v2/.terraform1.stacks.ComponentInstanceInStackAddrR\x04addr\x129\n" +
 	"\aresults\x18\x02 \x03(\v2\x1f.terraform1.stacks.PolicyResultR\aresults\x123\n" +
 	"\x05infos\x18\x03 \x03(\v2\x1d.terraform1.stacks.PolicyInfoR\x05infos\x12E\n" +
-	"\vdiagnostics\x18\x04 \x03(\v2#.terraform1.stacks.PolicyDiagnosticR\vdiagnostics\"\xb1\x02\n" +
-	"*EphemeralComponentInstancePolicyEvaluation\x12L\n" +
-	"\x04addr\x18\x01 \x01(\v28.terraform1.stacks.EphemeralComponentInstanceInStackAddrR\x04addr\x129\n" +
+	"\vdiagnostics\x18\x04 \x03(\v2#.terraform1.stacks.PolicyDiagnosticR\vdiagnostics\"\xab\x02\n" +
+	"'EphemeralModuleInstancePolicyEvaluation\x12I\n" +
+	"\x04addr\x18\x01 \x01(\v25.terraform1.stacks.EphemeralModuleInstanceInStackAddrR\x04addr\x129\n" +
 	"\aresults\x18\x02 \x03(\v2\x1f.terraform1.stacks.PolicyResultR\aresults\x123\n" +
 	"\x05infos\x18\x03 \x03(\v2\x1d.terraform1.stacks.PolicyInfoR\x05infos\x12E\n" +
 	"\vdiagnostics\x18\x04 \x03(\v2#.terraform1.stacks.PolicyDiagnosticR\vdiagnostics\"\x9d\x02\n" +
@@ -9314,7 +9314,7 @@ var file_stacks_proto_goTypes = []any{
 	(*AttributePath)(nil),                                   // 30: terraform1.stacks.AttributePath
 	(*ProviderInstanceInStackAddr)(nil),                     // 31: terraform1.stacks.ProviderInstanceInStackAddr
 	(*ComponentInstanceInStackAddr)(nil),                    // 32: terraform1.stacks.ComponentInstanceInStackAddr
-	(*EphemeralComponentInstanceInStackAddr)(nil),           // 33: terraform1.stacks.EphemeralComponentInstanceInStackAddr
+	(*EphemeralModuleInstanceInStackAddr)(nil),              // 33: terraform1.stacks.EphemeralModuleInstanceInStackAddr
 	(*ActionInvocationInstanceInStackAddr)(nil),             // 34: terraform1.stacks.ActionInvocationInstanceInStackAddr
 	(*ResourceInstanceInStackAddr)(nil),                     // 35: terraform1.stacks.ResourceInstanceInStackAddr
 	(*ResourceInstanceObjectInStackAddr)(nil),               // 36: terraform1.stacks.ResourceInstanceObjectInStackAddr
@@ -9324,7 +9324,7 @@ var file_stacks_proto_goTypes = []any{
 	(*StackChangeProgress)(nil),                             // 40: terraform1.stacks.StackChangeProgress
 	(*ListResourceIdentities)(nil),                          // 41: terraform1.stacks.ListResourceIdentities
 	(*ComponentInstancePolicyEvaluation)(nil),               // 42: terraform1.stacks.ComponentInstancePolicyEvaluation
-	(*EphemeralComponentInstancePolicyEvaluation)(nil),      // 43: terraform1.stacks.EphemeralComponentInstancePolicyEvaluation
+	(*EphemeralModuleInstancePolicyEvaluation)(nil),         // 43: terraform1.stacks.EphemeralModuleInstancePolicyEvaluation
 	(*ProviderInstancePolicyEvaluation)(nil),                // 44: terraform1.stacks.ProviderInstancePolicyEvaluation
 	(*PolicySetupDiagnostics)(nil),                          // 45: terraform1.stacks.PolicySetupDiagnostics
 	(*PolicyMetaData)(nil),                                  // 46: terraform1.stacks.PolicyMetaData
@@ -9459,10 +9459,10 @@ var file_stacks_proto_depIdxs = []int32{
 	47,  // 23: terraform1.stacks.ComponentInstancePolicyEvaluation.results:type_name -> terraform1.stacks.PolicyResult
 	48,  // 24: terraform1.stacks.ComponentInstancePolicyEvaluation.infos:type_name -> terraform1.stacks.PolicyInfo
 	50,  // 25: terraform1.stacks.ComponentInstancePolicyEvaluation.diagnostics:type_name -> terraform1.stacks.PolicyDiagnostic
-	33,  // 26: terraform1.stacks.EphemeralComponentInstancePolicyEvaluation.addr:type_name -> terraform1.stacks.EphemeralComponentInstanceInStackAddr
-	47,  // 27: terraform1.stacks.EphemeralComponentInstancePolicyEvaluation.results:type_name -> terraform1.stacks.PolicyResult
-	48,  // 28: terraform1.stacks.EphemeralComponentInstancePolicyEvaluation.infos:type_name -> terraform1.stacks.PolicyInfo
-	50,  // 29: terraform1.stacks.EphemeralComponentInstancePolicyEvaluation.diagnostics:type_name -> terraform1.stacks.PolicyDiagnostic
+	33,  // 26: terraform1.stacks.EphemeralModuleInstancePolicyEvaluation.addr:type_name -> terraform1.stacks.EphemeralModuleInstanceInStackAddr
+	47,  // 27: terraform1.stacks.EphemeralModuleInstancePolicyEvaluation.results:type_name -> terraform1.stacks.PolicyResult
+	48,  // 28: terraform1.stacks.EphemeralModuleInstancePolicyEvaluation.infos:type_name -> terraform1.stacks.PolicyInfo
+	50,  // 29: terraform1.stacks.EphemeralModuleInstancePolicyEvaluation.diagnostics:type_name -> terraform1.stacks.PolicyDiagnostic
 	31,  // 30: terraform1.stacks.ProviderInstancePolicyEvaluation.addr:type_name -> terraform1.stacks.ProviderInstanceInStackAddr
 	47,  // 31: terraform1.stacks.ProviderInstancePolicyEvaluation.results:type_name -> terraform1.stacks.PolicyResult
 	48,  // 32: terraform1.stacks.ProviderInstancePolicyEvaluation.infos:type_name -> terraform1.stacks.PolicyInfo
@@ -9519,7 +9519,7 @@ var file_stacks_proto_depIdxs = []int32{
 	147, // 83: terraform1.stacks.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	40,  // 84: terraform1.stacks.PlanStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
 	42,  // 85: terraform1.stacks.PlanStackChanges.Event.component_instance_policy_evaluation:type_name -> terraform1.stacks.ComponentInstancePolicyEvaluation
-	43,  // 86: terraform1.stacks.PlanStackChanges.Event.ephemeral_component_instance_policy_evaluation:type_name -> terraform1.stacks.EphemeralComponentInstancePolicyEvaluation
+	43,  // 86: terraform1.stacks.PlanStackChanges.Event.ephemeral_module_instance_policy_evaluation:type_name -> terraform1.stacks.EphemeralModuleInstancePolicyEvaluation
 	44,  // 87: terraform1.stacks.PlanStackChanges.Event.provider_instance_policy_evaluation:type_name -> terraform1.stacks.ProviderInstancePolicyEvaluation
 	45,  // 88: terraform1.stacks.PlanStackChanges.Event.policy_setup_diagnostics:type_name -> terraform1.stacks.PolicySetupDiagnostics
 	146, // 89: terraform1.stacks.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
@@ -9532,7 +9532,7 @@ var file_stacks_proto_depIdxs = []int32{
 	147, // 96: terraform1.stacks.ApplyStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
 	40,  // 97: terraform1.stacks.ApplyStackChanges.Event.progress:type_name -> terraform1.stacks.StackChangeProgress
 	42,  // 98: terraform1.stacks.ApplyStackChanges.Event.component_instance_policy_evaluation:type_name -> terraform1.stacks.ComponentInstancePolicyEvaluation
-	43,  // 99: terraform1.stacks.ApplyStackChanges.Event.ephemeral_component_instance_policy_evaluation:type_name -> terraform1.stacks.EphemeralComponentInstancePolicyEvaluation
+	43,  // 99: terraform1.stacks.ApplyStackChanges.Event.ephemeral_module_instance_policy_evaluation:type_name -> terraform1.stacks.EphemeralModuleInstancePolicyEvaluation
 	44,  // 100: terraform1.stacks.ApplyStackChanges.Event.provider_instance_policy_evaluation:type_name -> terraform1.stacks.ProviderInstancePolicyEvaluation
 	45,  // 101: terraform1.stacks.ApplyStackChanges.Event.policy_setup_diagnostics:type_name -> terraform1.stacks.PolicySetupDiagnostics
 	29,  // 102: terraform1.stacks.ApplyStackChanges.Request.InputValuesEntry.value:type_name -> terraform1.stacks.DynamicValueWithSource
@@ -9696,7 +9696,7 @@ func file_stacks_proto_init() {
 		(*PlanStackChanges_Event_Diagnostic)(nil),
 		(*PlanStackChanges_Event_Progress)(nil),
 		(*PlanStackChanges_Event_ComponentInstancePolicyEvaluation)(nil),
-		(*PlanStackChanges_Event_EphemeralComponentInstancePolicyEvaluation)(nil),
+		(*PlanStackChanges_Event_EphemeralModuleInstancePolicyEvaluation)(nil),
 		(*PlanStackChanges_Event_ProviderInstancePolicyEvaluation)(nil),
 		(*PlanStackChanges_Event_PolicySetupDiagnostics)(nil),
 	}
@@ -9706,7 +9706,7 @@ func file_stacks_proto_init() {
 		(*ApplyStackChanges_Event_Diagnostic)(nil),
 		(*ApplyStackChanges_Event_Progress)(nil),
 		(*ApplyStackChanges_Event_ComponentInstancePolicyEvaluation)(nil),
-		(*ApplyStackChanges_Event_EphemeralComponentInstancePolicyEvaluation)(nil),
+		(*ApplyStackChanges_Event_EphemeralModuleInstancePolicyEvaluation)(nil),
 		(*ApplyStackChanges_Event_ProviderInstancePolicyEvaluation)(nil),
 		(*ApplyStackChanges_Event_PolicySetupDiagnostics)(nil),
 	}

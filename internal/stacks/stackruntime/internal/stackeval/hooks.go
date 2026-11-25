@@ -155,8 +155,8 @@ type Hooks struct {
 	// ReportComponentInstancePolicyResult is called to report the policy result for a component instance.
 	ReportComponentInstancePolicyResult hooks.MoreFunc[*hooks.ComponentInstancePolicyResult]
 
-	// ReportEphemeralComponentInstancePolicyResult is called to report the policy result for an ephemeral component instance.
-	ReportEphemeralComponentInstancePolicyResult hooks.SingleFunc[*hooks.EphemeralComponentInstancePolicyResult]
+	// ReportEphemeralModuleInstancePolicyResult is called to report the policy result for an ephemeral module instance.
+	ReportEphemeralModuleInstancePolicyResult hooks.SingleFunc[*hooks.EphemeralModuleInstancePolicyResult]
 
 	// ReportProviderInstancePolicyResult is called after a provider instance is configured during plan or apply. If no policy results are provided
 	// it will not emit an event.

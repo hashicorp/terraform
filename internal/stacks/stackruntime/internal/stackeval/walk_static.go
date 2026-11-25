@@ -64,7 +64,7 @@ func walkStaticObjectsInStackConfig[Output any](
 		visit(ctx, walk, obj)
 	}
 
-	for _, obj := range stackConfig.EphemeralComponents() {
+	for _, obj := range stackConfig.EphemeralModules() {
 		visit(ctx, walk, obj)
 	}
 

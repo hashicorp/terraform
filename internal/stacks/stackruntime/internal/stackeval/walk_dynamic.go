@@ -99,8 +99,8 @@ func walkDynamicObjectsInStack[Output any](
 		})
 	}
 
-	for ephComponent := range stack.EphemeralComponents() {
-		walkEphemeralComponent(ctx, walk, stack, ephComponent, phase, visit)
+	for ephModule := range stack.EphemeralModules() {
+		walkEphemeralModule(ctx, walk, stack, ephModule, phase, visit)
 	}
 
 	for _, variable := range stack.InputVariables() {
@@ -408,19 +408,19 @@ func walkEmbeddedStack[Output any](
 
 }
 
-func walkEphemeralComponent[Output any](
+func walkEphemeralModule[Output any](
 	ctx context.Context,
 	walk *walkWithOutput[Output],
 	stack *Stack,
-	addr stackaddrs.EphemeralComponent,
+	addr stackaddrs.EphemeralModule,
 	phase EvalPhase,
 	visit func(ctx context.Context, walk *walkWithOutput[Output], obj DynamicEvaler)) {
 
 	var wg sync.WaitGroup
 
-	ephComponent := stack.EphemeralComponent(addr)
-	if ephComponent != nil {
-		visit(ctx, walk, ephComponent) // first, just visit the ephemeral component directly
+	ephModule := stack.EphemeralModule(addr)
+	if ephModule != nil {
+		visit(ctx, walk, ephModule) // first, just visit the ephemeral module directly
 
 		// then visit the component instances. we must do this in an async task as
 		// we evaulate the for_each valuate within the instances call.
@@ -429,12 +429,12 @@ func walkEphemeralComponent[Output any](
 		walk.AsyncTask(ctx, func(ctx context.Context) {
 			defer wg.Done()
 
-			insts, unknown := ephComponent.Instances(ctx, phase)
+			insts, unknown := ephModule.Instances(ctx, phase)
 			if unknown {
 				// An unknown expansion still needs an instance to evaluate, so that errors in
 				// the module that depend on its input values are reported. The instance is
 				// treated as deferred, as its upstream for_each is unknown.
-				inst := ephComponent.UnknownInstance(ctx, addrs.WildcardKey, phase)
+				inst := ephModule.UnknownInstance(ctx, addrs.WildcardKey, phase)
 				visit(ctx, walk, inst)
 
 				return

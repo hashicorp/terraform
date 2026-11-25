@@ -173,12 +173,12 @@ func componentInstancePolicyEvaluationProto(componentInstanceAddr stackaddrs.Abs
 	}
 }
 
-func ephemeralComponentInstancePolicyEvaluationProto(ephComponentInstanceAddr stackaddrs.AbsEphemeralComponentInstance, policyResults map[string][]policy.EvaluationResponse) *stacks.EphemeralComponentInstancePolicyEvaluation {
+func ephemeralModuleInstancePolicyEvaluationProto(ephModuleInstanceAddr stackaddrs.AbsEphemeralModuleInstance, policyResults map[string][]policy.EvaluationResponse) *stacks.EphemeralModuleInstancePolicyEvaluation {
 	results, infos, policyDiags := policyEvaluationsToProto(policyResults)
-	return &stacks.EphemeralComponentInstancePolicyEvaluation{
-		Addr: &stacks.EphemeralComponentInstanceInStackAddr{
-			EphemeralComponentAddr:         stackaddrs.ConfigEphemeralComponentForAbsInstance(ephComponentInstanceAddr).String(),
-			EphemeralComponentInstanceAddr: ephComponentInstanceAddr.String(),
+	return &stacks.EphemeralModuleInstancePolicyEvaluation{
+		Addr: &stacks.EphemeralModuleInstanceInStackAddr{
+			EphemeralModuleAddr:         stackaddrs.ConfigEphemeralModuleForAbsInstance(ephModuleInstanceAddr).String(),
+			EphemeralModuleInstanceAddr: ephModuleInstanceAddr.String(),
 		},
 		Results:     results,
 		Infos:       infos,

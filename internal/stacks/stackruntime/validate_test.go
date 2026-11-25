@@ -274,101 +274,101 @@ var (
 				return diags
 			},
 		},
-		"ephemeral-depends-on-ephemeral-component": {
+		"ephemeral-depends-on-ephemeral-module": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid depends_on target",
-					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"ephemeral_component.out\".",
+					Detail:   "The depends_on argument must refer to an embedded stack or component, but this reference refers to \"ephemeral_module.out\".",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-depends-on-ephemeral-component/ephemeral-depends-on-ephemeral-component.tfcomponent.hcl"),
-						Start:    hcl.Pos{Line: 31, Column: 17, Byte: 516},
-						End:      hcl.Pos{Line: 31, Column: 40, Byte: 539},
+						Filename: mainBundleSourceAddrStr("ephemeral-depends-on-ephemeral-module/ephemeral-depends-on-ephemeral-module.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 31, Column: 17, Byte: 507},
+						End:      hcl.Pos{Line: 31, Column: 37, Byte: 527},
 					},
 				})
 				return diags
 			},
 		},
-		"ephemeral-component-unsupported-blocks": {
+		"ephemeral-module-unsupported-blocks": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Managed resource not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare managed resources, because ephemeral components have no plan or state.",
+					Summary:  "Managed resource not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare managed resources, because ephemeral modules have no plan or state.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 19, Column: 1, Byte: 226},
 						End:      hcl.Pos{Line: 19, Column: 35, Byte: 260},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Managed resource not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare managed resources, because ephemeral components have no plan or state.",
+					Summary:  "Managed resource not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare managed resources, because ephemeral modules have no plan or state.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/child/child.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/child/child.tf"),
 						Start:    hcl.Pos{Line: 10, Column: 1, Byte: 124},
 						End:      hcl.Pos{Line: 10, Column: 37, Byte: 160},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Check block not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare check blocks, because ephemeral components have no plan to record check results in.",
+					Summary:  "Check block not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare check blocks, because ephemeral modules have no plan to record check results in.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 23, Column: 1, Byte: 286},
 						End:      hcl.Pos{Line: 23, Column: 16, Byte: 301},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Action block not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare actions, because ephemeral components do not support running actions.",
+					Summary:  "Action block not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare actions, because ephemeral modules do not support running actions.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 30, Column: 1, Byte: 392},
 						End:      hcl.Pos{Line: 30, Column: 34, Byte: 425},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Import block not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare import blocks, because ephemeral components have no state to import into.",
+					Summary:  "Import block not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare import blocks, because ephemeral modules have no state to import into.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 34, Column: 1, Byte: 443},
 						End:      hcl.Pos{Line: 34, Column: 7, Byte: 449},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Moved block not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare moved blocks, because ephemeral components have no state to move objects within.",
+					Summary:  "Moved block not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare moved blocks, because ephemeral modules have no state to move objects within.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 39, Column: 1, Byte: 497},
 						End:      hcl.Pos{Line: 39, Column: 6, Byte: 502},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Removed block not allowed in ephemeral component",
-					Detail:   "A module used by an ephemeral component cannot declare removed blocks, because ephemeral components have no state to remove objects from.",
+					Summary:  "Removed block not allowed in ephemeral module",
+					Detail:   "A module used by an ephemeral module cannot declare removed blocks, because ephemeral modules have no state to remove objects from.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 44, Column: 1, Byte: 569},
 						End:      hcl.Pos{Line: 44, Column: 8, Byte: 576},
 					},
 				})
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Non-ephemeral root output not allowed in ephemeral component",
-					Detail:   "All root module outputs of an ephemeral component must be declared with ephemeral = true.",
+					Summary:  "Non-ephemeral root output not allowed in ephemeral module",
+					Detail:   "All root module outputs of an ephemeral module must be declared with ephemeral = true.",
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-unsupported-blocks/ephemeral-component-unsupported-blocks.tf"),
+						Filename: mainBundleSourceAddrStr("ephemeral-module-unsupported-blocks/ephemeral-module-unsupported-blocks.tf"),
 						Start:    hcl.Pos{Line: 52, Column: 1, Byte: 652},
 						End:      hcl.Pos{Line: 52, Column: 23, Byte: 674},
 					},
@@ -376,7 +376,7 @@ var (
 				return diags
 			},
 		},
-		"ephemeral-component-static-misuse": {
+		"ephemeral-module-static-misuse": {
 			diags: func() tfdiags.Diagnostics {
 				var diags tfdiags.Diagnostics
 				diags = diags.Append(&hcl.Diagnostic{
@@ -384,9 +384,9 @@ var (
 					Summary:  "Ephemeral value not allowed",
 					Detail:   `The input variable "value" does not accept ephemeral values.`,
 					Subject: &hcl.Range{
-						Filename: mainBundleSourceAddrStr("ephemeral-component-static-misuse/main.tfcomponent.hcl"),
-						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 111},
-						End:      hcl.Pos{Line: 10, Column: 4, Byte: 238},
+						Filename: mainBundleSourceAddrStr("ephemeral-module-static-misuse/main.tfcomponent.hcl"),
+						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 108},
+						End:      hcl.Pos{Line: 10, Column: 4, Byte: 232},
 					},
 				})
 				return diags

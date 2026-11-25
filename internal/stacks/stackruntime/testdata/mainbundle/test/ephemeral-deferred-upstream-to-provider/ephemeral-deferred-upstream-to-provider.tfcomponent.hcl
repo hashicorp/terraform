@@ -16,7 +16,7 @@ component "deferred_upstream" {
   }
 }
 
-ephemeral_component "out" {
+ephemeral_module "out" {
   source = "./out"
 
   providers = {
@@ -30,12 +30,12 @@ ephemeral_component "out" {
 
 provider "testing" "auth" {
   config {
-    authentication = ephemeral_component.out.value
+    authentication = ephemeral_module.out.value
   }
 }
 
 # This only refers to the provider, but the provider depends on the ephemeral
-# component, which depends on the deferred component.
+# module, which depends on the deferred component.
 component "in" {
   source = "./in"
 

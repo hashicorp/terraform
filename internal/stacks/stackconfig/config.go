@@ -66,12 +66,12 @@ func (config *Config) Component(component stackaddrs.ConfigComponent) *Component
 	return stack.Components[component.Item.Name]
 }
 
-func (config *Config) EphemeralComponent(ephComponent stackaddrs.ConfigEphemeralComponent) *EphemeralComponent {
-	stack := config.Stack(ephComponent.Stack)
-	if stack == nil || stack.EphemeralComponents == nil {
+func (config *Config) EphemeralModule(ephModule stackaddrs.ConfigEphemeralModule) *EphemeralModule {
+	stack := config.Stack(ephModule.Stack)
+	if stack == nil || stack.EphemeralModules == nil {
 		return nil
 	}
-	return stack.EphemeralComponents[ephComponent.Item.Name]
+	return stack.EphemeralModules[ephModule.Item.Name]
 }
 
 // ConfigNode represents a node in a tree of stacks that are to be planned and
@@ -307,7 +307,7 @@ func loadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 		cmpn.FinalSourceAddr = effectiveSourceAddr
 	}
 
-	for _, ephCmpn := range stack.EphemeralComponents {
+	for _, ephCmpn := range stack.EphemeralModules {
 		effectiveSourceAddr, err := resolveFinalSourceAddr(sourceAddr, ephCmpn.SourceAddr, ephCmpn.VersionConstraints, sources)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{

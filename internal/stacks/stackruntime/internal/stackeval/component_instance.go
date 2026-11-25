@@ -179,8 +179,8 @@ func (c *ComponentInstance) PlanOpts(ctx context.Context, mode plans.Mode, skipR
 		// values can't be stored in plan/state (thus it must be computed on every run) and the order of components is reversed
 		// during destroy.
 		//
-		// The only way to produce ephemeral data in stacks is with the ephemeral_component block, which is similar to a normal
-		// component, but the results are never stored in plan/state and they cannot contain managed resources (as they can't be destroyed).
+		// The only way to produce ephemeral data in stacks is with the ephemeral_module block as the results are never stored in
+		// plan/state and they cannot contain managed resources (as they can't be destroyed).
 		AllowRootEphemeralOutputs:  false,
 		AllowRootDeprecatedOutputs: false, // Stacks does not yet support deprecated values.
 		PolicyClient:               c.main.PolicyClient(),

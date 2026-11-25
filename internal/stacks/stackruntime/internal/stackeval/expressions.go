@@ -124,7 +124,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 	varVals := make(map[string]cty.Value)
 	localVals := make(map[string]cty.Value)
 	componentVals := make(map[string]cty.Value)
-	ephemeralComponentVals := make(map[string]cty.Value)
+	ephemeralModuleVals := make(map[string]cty.Value)
 	stackVals := make(map[string]cty.Value)
 	providerVals := make(map[string]map[string]cty.Value)
 	eachVals := make(map[string]cty.Value)
@@ -142,8 +142,8 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 			localVals[addr.Name] = val
 		case stackaddrs.Component:
 			componentVals[addr.Name] = val
-		case stackaddrs.EphemeralComponent:
-			ephemeralComponentVals[addr.Name] = val
+		case stackaddrs.EphemeralModule:
+			ephemeralModuleVals[addr.Name] = val
 		case stackaddrs.StackCall:
 			stackVals[addr.Name] = val
 		case stackaddrs.ProviderConfigRef:
@@ -206,7 +206,7 @@ func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, p
 			"var":                 cty.ObjectVal(varVals),
 			"local":               cty.ObjectVal(localVals),
 			"component":           cty.ObjectVal(componentVals),
-			"ephemeral_component": cty.ObjectVal(ephemeralComponentVals),
+			"ephemeral_module": cty.ObjectVal(ephemeralModuleVals),
 			"stack":               cty.ObjectVal(stackVals),
 			"provider":            cty.ObjectVal(providerValVals),
 		},

@@ -32,13 +32,13 @@
             "meta": {}
         },
         {
-            "source": "git::https://example.com/ephemeral-component.git",
-            "local": "ephemeral-component",
+            "source": "git::https://example.com/ephemeral-module.git",
+            "local": "ephemeral-module",
             "meta": {}
         },
         {
-            "source": "git::https://example.com/ephemeral-component-errored.git",
-            "local": "ephemeral-component-errored",
+            "source": "git::https://example.com/ephemeral-module-errored.git",
+            "local": "ephemeral-module-errored",
             "meta": {}
         }
     ],

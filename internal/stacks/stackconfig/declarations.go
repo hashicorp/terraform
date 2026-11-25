@@ -29,9 +29,9 @@ type Declarations struct {
 	// real infrastructure described by a stack.
 	Components map[string]*Component
 
-	// EphemeralComponents are calls to trees of Terraform modules that represent
+	// EphemeralModules are calls to trees of Terraform modules that represent
 	// ephemeral data to be produced and then consumed by the stack.
-	EphemeralComponents map[string]*EphemeralComponent
+	EphemeralModules map[string]*EphemeralModule
 
 	// InputVariables, LocalValues, and OutputValues together represent all
 	// of the "named values" in the stack configuration, which are just glue
@@ -64,7 +64,7 @@ func makeDeclarations() Declarations {
 	return Declarations{
 		EmbeddedStacks:        make(map[string]*EmbeddedStack),
 		Components:            make(map[string]*Component),
-		EphemeralComponents:   make(map[string]*EphemeralComponent),
+		EphemeralModules:   make(map[string]*EphemeralModule),
 		InputVariables:        make(map[string]*InputVariable),
 		LocalValues:           make(map[string]*LocalValue),
 		OutputValues:          make(map[string]*OutputValue),
@@ -127,19 +127,19 @@ func (d *Declarations) addComponent(decl *Component) tfdiags.Diagnostics {
 	return diags
 }
 
-func (d *Declarations) addEphemeralComponent(decl *EphemeralComponent) tfdiags.Diagnostics {
+func (d *Declarations) addEphemeralModule(decl *EphemeralModule) tfdiags.Diagnostics {
 	if decl == nil {
 		return nil
 	}
 	var diags tfdiags.Diagnostics
 
 	name := decl.Name
-	if existing, exists := d.EphemeralComponents[name]; exists {
+	if existing, exists := d.EphemeralModules[name]; exists {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "Duplicate ephemeral component declaration",
+			Summary:  "Duplicate ephemeral module declaration",
 			Detail: fmt.Sprintf(
-				"An ephemeral component named %q was already declared at %s.",
+				"An ephemeral module named %q was already declared at %s.",
 				name, existing.DeclRange.ToHCL(),
 			),
 			Subject: decl.DeclRange.ToHCL().Ptr(),
@@ -147,7 +147,7 @@ func (d *Declarations) addEphemeralComponent(decl *EphemeralComponent) tfdiags.D
 		return diags
 	}
 
-	d.EphemeralComponents[name] = decl
+	d.EphemeralModules[name] = decl
 	return diags
 }
 
@@ -394,9 +394,9 @@ func (d *Declarations) merge(other *Declarations) tfdiags.Diagnostics {
 			d.addComponent(decl),
 		)
 	}
-	for _, decl := range other.EphemeralComponents {
+	for _, decl := range other.EphemeralModules {
 		diags = diags.Append(
-			d.addEphemeralComponent(decl),
+			d.addEphemeralModule(decl),
 		)
 	}
 	for _, decl := range other.InputVariables {

@@ -910,7 +910,7 @@ func TestProviderInstancePolicyEvaluationProto(t *testing.T) {
 	}
 }
 
-func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
+func TestEphemeralModuleInstancePolicyEvaluationProto(t *testing.T) {
 	policyObj := &policy.Policy{
 		Result:           policy.AllowResult,
 		Address:          "policy_name",
@@ -929,19 +929,19 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 	moduleAddr := addrs.RootModule.Child("example")
 
 	testCases := map[string]struct {
-		componentAddr string
+		moduleAddr    string
 		policyResults func() map[string]policy.EvaluationResponse
-		want          *stacks.EphemeralComponentInstancePolicyEvaluation
+		want          *stacks.EphemeralModuleInstancePolicyEvaluation
 	}{
 		"no results": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{},
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{},
 		},
 		"policy result with diagnostic": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{
 					addrs.RootModule.Child("example").String(): {
@@ -962,7 +962,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					},
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -989,7 +989,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy info with snippet and range": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{
 					addrs.RootModule.Child("example").String(): {
@@ -1023,7 +1023,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					},
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -1065,7 +1065,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy diagnostic with extra data": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{
 					addrs.RootModule.Child("example").String(): {
@@ -1105,7 +1105,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					},
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
@@ -1144,7 +1144,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy diagnostic with enforce block index": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{
 					addrs.RootModule.Child("example").String(): policy.EvaluationFromProtoResponse(
@@ -1176,7 +1176,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					),
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Results: []*stacks.PolicyResult{
 					{
 						TargetAddress: "module.example",
@@ -1210,7 +1210,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy diagnostic with warning severity and local range": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				diags := policy.DiagsFromProto([]*proto.Diagnostic{{
 					Severity: proto.Severity_WARNING,
@@ -1236,7 +1236,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					},
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
@@ -1267,7 +1267,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 			},
 		},
 		"policy diagnostic with duplicate and invalid expression values": {
-			componentAddr: "ephemeral_component.test",
+			moduleAddr: "ephemeral_module.test",
 			policyResults: func() map[string]policy.EvaluationResponse {
 				return map[string]policy.EvaluationResponse{
 					moduleAddr.String(): {
@@ -1295,7 +1295,7 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 					},
 				}
 			},
-			want: &stacks.EphemeralComponentInstancePolicyEvaluation{
+			want: &stacks.EphemeralModuleInstancePolicyEvaluation{
 				Diagnostics: []*stacks.PolicyDiagnostic{
 					{
 						TargetAddress: "module.example",
@@ -1325,22 +1325,22 @@ func TestEphemeralComponentInstancePolicyEvaluationProto(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			ephComponentAddr, diags := stackaddrs.ParseAbsEphemeralComponentInstanceStr(tc.componentAddr)
+			ephModuleAddr, diags := stackaddrs.ParseAbsEphemeralModuleInstanceStr(tc.moduleAddr)
 			if diags.HasErrors() {
-				t.Fatalf("failed to parse ephemeral component address: %s", diags.Err())
+				t.Fatalf("failed to parse ephemeral module address: %s", diags.Err())
 			}
 
 			want := tc.want
-			want.Addr = &stacks.EphemeralComponentInstanceInStackAddr{
-				EphemeralComponentAddr:         stackaddrs.ConfigEphemeralComponentForAbsInstance(ephComponentAddr).String(),
-				EphemeralComponentInstanceAddr: ephComponentAddr.String(),
+			want.Addr = &stacks.EphemeralModuleInstanceInStackAddr{
+				EphemeralModuleAddr:         stackaddrs.ConfigEphemeralModuleForAbsInstance(ephModuleAddr).String(),
+				EphemeralModuleInstanceAddr: ephModuleAddr.String(),
 			}
 
 			policyResults := make(map[string][]policy.EvaluationResponse)
 			for addr, result := range tc.policyResults() {
 				policyResults[addr] = []policy.EvaluationResponse{result}
 			}
-			got := ephemeralComponentInstancePolicyEvaluationProto(ephComponentAddr, policyResults)
+			got := ephemeralModuleInstancePolicyEvaluationProto(ephModuleAddr, policyResults)
 
 			if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 				t.Errorf("wrong result\n%s", diff)
