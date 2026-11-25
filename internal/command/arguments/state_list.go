@@ -19,6 +19,8 @@ type StateList struct {
 	// Addrs are optional resource or module addresses used to filter the
 	// listed instances.
 	Addrs []string
+
+	ViewType ViewType
 }
 
 // ParseStateList processes CLI arguments, returning a StateList value and
@@ -26,7 +28,9 @@ type StateList struct {
 // representing the best effort interpretation of the arguments.
 func ParseStateList(args []string) (*StateList, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	list := &StateList{}
+	list := &StateList{
+		ViewType: ViewHuman,
+	}
 
 	var statePath, id string
 	cmdFlags := defaultFlagSet("state list")

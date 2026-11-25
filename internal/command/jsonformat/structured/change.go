@@ -128,15 +128,18 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 // FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
 // into generic interface{} types that can be reasoned about.
 func FromJsonResource(resource jsonstate.Resource) Change {
+	// Resource formatting is a no-op, so both sides can share the decoded values.
+	values := unwrapAttributeValues(resource.AttributeValues)
+	sensitive := unmarshalGeneric(resource.SensitiveValues)
+
 	return Change{
-		// We model resource formatting as NoOps.
-		Before: unwrapAttributeValues(resource.AttributeValues),
-		After:  unwrapAttributeValues(resource.AttributeValues),
+		Before: values,
+		After:  values,
 
 		// We have some sensitive values, but we don't have any unknown values.
 		Unknown:         false,
-		BeforeSensitive: unmarshalGeneric(resource.SensitiveValues),
-		AfterSensitive:  unmarshalGeneric(resource.SensitiveValues),
+		BeforeSensitive: sensitive,
+		AfterSensitive:  sensitive,
 
 		// We don't display replacement data for resources, and all attributes
 		// are relevant.
@@ -148,10 +151,12 @@ func FromJsonResource(resource jsonstate.Resource) Change {
 // FromJsonOutput unmarshals the raw values in the jsonstate.Output structs into
 // generic interface{} types that can be reasoned about.
 func FromJsonOutput(output jsonstate.Output) Change {
+	values := unmarshalGeneric(output.Value)
+
 	return Change{
-		// We model resource formatting as NoOps.
-		Before: unmarshalGeneric(output.Value),
-		After:  unmarshalGeneric(output.Value),
+		// Output formatting is a no-op, so both sides can share the decoded value.
+		Before: values,
+		After:  values,
 
 		// We have some sensitive values, but we don't have any unknown values.
 		Unknown:         false,
@@ -168,10 +173,12 @@ func FromJsonOutput(output jsonstate.Output) Change {
 // FromJsonViewsOutput unmarshals the raw values in the viewsjson.Output structs into
 // generic interface{} types that can be reasoned about.
 func FromJsonViewsOutput(output viewsjson.Output) Change {
+	values := unmarshalGeneric(output.Value)
+
 	return Change{
-		// We model resource formatting as NoOps.
-		Before: unmarshalGeneric(output.Value),
-		After:  unmarshalGeneric(output.Value),
+		// Output formatting is a no-op, so both sides can share the decoded value.
+		Before: values,
+		After:  values,
 
 		// We have some sensitive values, but we don't have any unknown values.
 		Unknown:         false,
@@ -186,12 +193,16 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 }
 
 func FromJsonActionInvocation(actionInvocation jsonplan.ActionInvocation) Change {
+	values := unmarshalGeneric(actionInvocation.ConfigValues)
+	unknown := unmarshalGeneric(actionInvocation.ConfigUnknown)
+	sensitive := unmarshalGeneric(actionInvocation.ConfigSensitive)
+
 	return Change{
-		Before:          unmarshalGeneric(actionInvocation.ConfigValues),
-		After:           unmarshalGeneric(actionInvocation.ConfigValues),
-		Unknown:         unmarshalGeneric(actionInvocation.ConfigUnknown),
-		BeforeSensitive: unmarshalGeneric(actionInvocation.ConfigSensitive),
-		AfterSensitive:  unmarshalGeneric(actionInvocation.ConfigSensitive),
+		Before:          values,
+		After:           values,
+		Unknown:         unknown,
+		BeforeSensitive: sensitive,
+		AfterSensitive:  sensitive,
 
 		ReplacePaths:       attribute_path.Empty(false),
 		RelevantAttributes: attribute_path.AlwaysMatcher(),

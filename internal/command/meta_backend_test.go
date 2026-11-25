@@ -198,7 +198,7 @@ func TestMetaBackend_emptyWithExplicitState(t *testing.T) {
 
 	// Setup the meta
 	m := testMetaBackend(t)
-	m.statePath = statePath
+	m.overrideStatePath = statePath
 
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
@@ -334,7 +334,9 @@ func TestMetaBackend_configureNewBackendWithState(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"yes"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -464,7 +466,9 @@ func TestMetaBackend_configureNewBackendWithStateNoMigrate(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"no"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "no",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -582,7 +586,9 @@ func TestMetaBackend_configureNewBackendWithStateExistingNoMigrate(t *testing.T)
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"no"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "no",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -698,7 +704,9 @@ func TestMetaBackend_changeConfiguredBackend(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"no"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "no",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -936,7 +944,9 @@ func TestMetaBackend_configuredBackendChangeCopy(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -1497,7 +1507,9 @@ func TestMetaBackend_configuredBackendUnset(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"no"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "no",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -1562,7 +1574,9 @@ func TestMetaBackend_configuredBackendUnsetCopy(t *testing.T) {
 	t.Chdir(td)
 
 	// Ask for input
-	uiInput := testInteractiveInput(t, []string{"yes", "yes"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"backend-migrate-copy-to-empty": "yes",
+	})
 
 	// Setup the meta
 	m := testMetaBackend(t)
@@ -1806,7 +1820,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 
 	// Setup the meta
 	m := testMetaBackend(t)
-	m.stateOutPath = statePath
+	m.overrideStateOutPath = statePath
 
 	// Get the backend
 	b, diags := m.BackendForLocalPlan(plan)

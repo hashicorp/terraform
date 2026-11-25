@@ -543,6 +543,12 @@ func (ctx *BuiltinEvalContext) evaluationExternalFunctions() lang.ExternalFuncs 
 	// by the module author.
 	ret := lang.ExternalFuncs{}
 
+	if ctx.Evaluator.Operation == walkInit {
+		// Providers are not yet installed during init, so their functions
+		// can't be available.
+		return ret
+	}
+
 	cfg := ctx.Evaluator.Config.Descendant(ctx.scope.evalContextScopeModule())
 	if cfg == nil {
 		// It's weird to not have a configuration by this point, but we'll

@@ -17,12 +17,12 @@ func TestLogout(t *testing.T) {
 	t.Parallel()
 	workDir := t.TempDir()
 
-	ui := testUiWrapped(t)
 	credsSrc := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 
+	view, done := testView(t)
 	c := &LogoutCommand{
 		Meta: Meta{
-			Ui:       ui,
+			View:     view,
 			Services: disco.NewWithCredentialsSource(credsSrc),
 		},
 	}
@@ -57,7 +57,7 @@ func TestLogout(t *testing.T) {
 
 		status := c.Run(tc.args)
 		if status != 0 {
-			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
+			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, done(t).Stderr())
 		}
 
 		creds, err := credsSrc.ForHost(host)

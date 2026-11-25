@@ -397,7 +397,9 @@ func initCommands(
 
 		"state identities": func() (cli.Command, error) {
 			return &command.StateIdentitiesCommand{
-				Meta: meta,
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
 			}, nil
 		},
 

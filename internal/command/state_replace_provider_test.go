@@ -14,10 +14,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	tfui "github.com/hashicorp/terraform/internal/command/ui"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestStateReplaceProvider(t *testing.T) {
@@ -72,30 +75,37 @@ func TestStateReplaceProvider(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		streams, done := terminal.StreamsForTesting(t) // obtain output stream for ui input mocking
+		view := views.NewView(streams)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
+					testingOverrides: &testingOverrides{
+						// Respond to the interactive approval prompt
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "yes",
+							}),
+					},
 				},
 			},
 		}
 
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-		inputBuf.WriteString("yes\n")
-
 		args := []string{
+			"-no-color",
 			"-state", statePath,
 			"hashicorp/aws",
 			"acmecorp/aws",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
+		// Assert that the state file has been updated correctly, and backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutput)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
@@ -103,35 +113,55 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateReplaceProviderOutputOriginal)
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Do you want to make these changes?
+Only 'yes' will be accepted to continue.
+
+  Enter a value: 
+
+Successfully replaced provider for 2 resources.
+`
+		if diff := cmp.Diff(expectedOutput, done(t).Stdout()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("auto approve", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			},
 		}
 
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-
 		args := []string{
+			"-no-color",
 			"-state", statePath,
 			"-auto-approve",
 			"hashicorp/aws",
 			"acmecorp/aws",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
+		// Assert that the state file has been updated correctly, and backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutput)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
@@ -139,53 +169,109 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
 		testStateOutput(t, backups[0], testStateReplaceProviderOutputOriginal)
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Successfully replaced provider for 2 resources.
+`
+		if diff := cmp.Diff(expectedOutput, done(t).Stdout()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("cancel at approval step", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		streams, done := terminal.StreamsForTesting(t) // obtain output stream for ui input mocking
+		view := views.NewView(streams)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
+					testingOverrides: &testingOverrides{
+						// Respond to the interactive approval prompt
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "no",
+							}),
+					},
 				},
 			},
 		}
 
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-		inputBuf.WriteString("no\n")
-
 		args := []string{
+			"-no-color",
 			"-state", statePath,
 			"hashicorp/aws",
 			"acmecorp/aws",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
+		// Assert that the state file hasn't been changed, and no backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
 		if len(backups) != 0 {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
+
+		// Assert terminal output
+		expectedOutput := `Terraform will perform the following actions:
+
+  ~ Updating provider:
+    - registry.terraform.io/hashicorp/aws
+    + registry.terraform.io/acmecorp/aws
+
+Changing 2 resources:
+
+  aws_instance.alpha
+  aws_instance.beta
+
+Do you want to make these changes?
+Only 'yes' will be accepted to continue.
+
+  Enter a value: 
+Cancelled replacing providers.
+`
+		if diff := cmp.Diff(expectedOutput, done(t).Stdout()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("no matching provider found", func(t *testing.T) {
 		statePath := testStateFile(t, state)
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		streams, done := terminal.StreamsForTesting(t) // obtain output stream for ui input mocking
+		view := views.NewView(streams)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
+					testingOverrides: &testingOverrides{
+						// Respond to the interactive approval prompt
+						UIInput: tfui.NewUIInputForTests(
+							t,
+							tfui.UIInputOptions{
+								Writer: streams.Stdout.File,
+							}, map[string]string{
+								"replace-provider": "no",
+							}),
+					},
 				},
 			},
 		}
@@ -196,24 +282,29 @@ func TestStateReplaceProvider(t *testing.T) {
 			"acmecorp/google",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
+		// Assert that the state file hasn't been changed, and no backups exist
 		testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 		backups := testStateBackups(t, filepath.Dir(statePath))
 		if len(backups) != 0 {
 			t.Fatalf("unexpected backups: %#v", backups)
 		}
+
+		// Assert terminal output
+		expectedOutput := "No matching resources found.\n"
+		if diff := cmp.Diff(expectedOutput, done(t).Stdout()); diff != "" {
+			t.Fatalf("unexpected diff in output:\n%s", diff)
+		}
 	})
 
 	t.Run("invalid flags", func(t *testing.T) {
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			},
@@ -228,18 +319,16 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Failed to parse command-line flags"; !strings.Contains(got, want) {
+		if got, want := done(t).Stderr(), "Failed to parse command-line flags"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	})
 
 	t.Run("wrong number of arguments", func(t *testing.T) {
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			},
@@ -250,18 +339,16 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Exactly two arguments expected"; !strings.Contains(got, want) {
+		if got, want := done(t).Stderr(), "Exactly two arguments expected"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	})
 
 	t.Run("invalid provider strings", func(t *testing.T) {
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			},
@@ -275,7 +362,7 @@ func TestStateReplaceProvider(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		got := ui.ErrorWriter.String()
+		got := done(t).Stderr()
 		msgs := []string{
 			`Invalid "from" provider "hashicorp/google_cloud"`,
 			"Invalid provider type",
@@ -343,7 +430,8 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
+	streams, done := terminal.StreamsForTesting(t) // obtain output stream for ui input mocking
+	view := views.NewView(streams)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
@@ -352,22 +440,28 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						mockProviderAddress: providers.FactoryFixed(mockProvider),
 					},
+
+					// Respond to the interactive approval prompt
+					UIInput: tfui.NewUIInputForTests(
+						t,
+						tfui.UIInputOptions{
+							Writer: streams.Stdout.File,
+						}, map[string]string{
+							"replace-provider": "yes",
+						}),
 				},
-				Ui: ui,
+				View: view,
 			},
 		},
 	}
 
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes\n")
-
 	args := []string{
+		"-no-color",
 		"hashicorp/test",
 		"testing-corp/test",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// For the two resources in the mocked state, we expect them both to be changed.
@@ -375,10 +469,11 @@ func TestStateReplaceProvider_stateStore(t *testing.T) {
 		"- registry.terraform.io/hashicorp/test\n    + registry.terraform.io/testing-corp/test\n",
 		"Successfully replaced provider for 2 resources.",
 	}
+	output := done(t)
 	for _, msg := range expectedOutputMsgs {
-		if !strings.Contains(ui.OutputWriter.String(), msg) {
+		if !strings.Contains(output.Stdout(), msg) {
 			t.Fatalf("expected command output to include %q but it's not present in the output:\nOutput = %s",
-				msg, ui.OutputWriter.String())
+				msg, output.Stdout())
 		}
 	}
 }
@@ -388,13 +483,11 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					WorkingDir:       wd,
 				},
@@ -410,7 +503,7 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -420,13 +513,11 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					WorkingDir:       wd,
 				},
@@ -440,7 +531,7 @@ func TestStateReplaceProvider_constVariable(t *testing.T) {
 			"testing-corp/test",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -466,13 +557,11 @@ module.child:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
 					View:             view,
 					WorkingDir:       wd,
 				},
@@ -485,7 +574,7 @@ module.child:
 			"testing-corp/test",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("return code: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("return code: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -570,20 +659,25 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	streams, done := terminal.StreamsForTesting(t) // obtain output stream for ui input mocking
+	view := views.NewView(streams)
 	c := &StateReplaceProviderCommand{
 		StateMeta{
 			Meta: Meta{
-				Ui:   ui,
 				View: view,
+				testingOverrides: &testingOverrides{
+					// Respond to the interactive approval prompt
+					UIInput: tfui.NewUIInputForTests(
+						t,
+						tfui.UIInputOptions{
+							Writer: streams.Stdout.File,
+						}, map[string]string{
+							"replace-provider": "yes",
+						}),
+				},
 			},
 		},
 	}
-
-	inputBuf := &bytes.Buffer{}
-	ui.InputReader = inputBuf
-	inputBuf.WriteString("yes\n")
 
 	args := []string{
 		"-state", statePath,
@@ -591,14 +685,15 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 		"acmecorp/aws",
 	}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		output := done(t)
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
 	// State is unchanged
 	testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}

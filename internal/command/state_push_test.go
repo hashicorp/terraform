@@ -28,19 +28,17 @@ func TestStatePush_empty(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -62,7 +60,7 @@ func TestStatePush_stateStore(t *testing.T) {
 	mockProvider.MockStates = testing_provider.NewMockStateBytesWithStateIds("test_store", []string{"default"})
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -71,13 +69,13 @@ func TestStatePush_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui: ui,
+			View: view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Access the pushed state from the mock's internal store
@@ -103,12 +101,10 @@ func TestStatePush_lockedState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -123,8 +119,8 @@ func TestStatePush_lockedState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "Error acquiring the state lock") {
-		t.Fatalf("expected a lock error, got: %s", ui.ErrorWriter.String())
+	if !strings.Contains(done(t).Stderr(), "Error acquiring the state lock") {
+		t.Fatalf("expected a lock error, got: %s", done(t).Stderr())
 	}
 }
 
@@ -137,19 +133,17 @@ func TestStatePush_replaceMatch(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -174,19 +168,17 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 	defer testStdinPipe(t, &buf)()
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"-force", "-"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -204,19 +196,17 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 	expected := testStateRead(t, "local-state.tfstate")
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -234,12 +224,10 @@ func TestStatePush_serialNewer(t *testing.T) {
 	expected := testStateRead(t, "local-state.tfstate")
 
 	p := testProvider()
-	ui := testUiWrapped(t)
 	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -264,19 +252,17 @@ func TestStatePush_serialOlder(t *testing.T) {
 	expected := testStateRead(t, "replace.tfstate")
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	actual := testStateRead(t, "local-state.tfstate")
@@ -295,22 +281,21 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	statePath := testStateFile(t, s)
 
 	// init the backend
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	initCmd := &InitCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{View: view},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("bad: \n%s", done(t).Stderr())
 	}
 
 	// create a new workspace
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	newCmd := &WorkspaceNewCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{View: view},
 	}
 	if code := newCmd.Run([]string{"test"}); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// put a dummy state in place, so we have something to force
@@ -327,14 +312,14 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	}
 
 	// push our local state to that new workspace
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	c := &StatePushCommand{
-		Meta: Meta{Ui: ui, View: view},
+		Meta: Meta{View: view},
 	}
 
 	args := []string{"-force", statePath}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 }
 
@@ -343,12 +328,10 @@ func TestStatePush_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -359,7 +342,7 @@ func TestStatePush_constVariable(t *testing.T) {
 			t.Fatalf("expected error, got 0")
 		}
 
-		errStr := ui.ErrorWriter.String()
+		errStr := done(t).Stderr()
 		if !strings.Contains(errStr, "No value for required variable") {
 			t.Fatalf("expected missing variable error, got: %s", errStr)
 		}
@@ -369,12 +352,10 @@ func TestStatePush_constVariable(t *testing.T) {
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -382,7 +363,7 @@ func TestStatePush_constVariable(t *testing.T) {
 
 		args := []string{"-var", "module_name=child", "replace.tfstate"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -406,12 +387,10 @@ module.replaced:
 		wd := tempWorkingDirFixture(t, "dynamic-module-sources/command-with-const-var-backend")
 		t.Chdir(wd.RootModuleDir())
 
-		ui := testUiWrapped(t)
-		view, _ := testView(t)
+		view, done := testView(t)
 		c := &StatePushCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
-				Ui:               ui,
 				View:             view,
 				WorkingDir:       wd,
 			},
@@ -419,7 +398,7 @@ module.replaced:
 
 		args := []string{"replace.tfstate"}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 		}
 
 		actual := strings.TrimSpace(testStateRead(t, "terraform.tfstate").String())
@@ -441,23 +420,21 @@ func TestStatePush_checkRequiredVersion(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"replace.tfstate"}
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, done(t).Stderr(), done(t).Stdout())
 	}
 
 	// Required version diags are correct
-	errStr := ui.ErrorWriter.String()
+	errStr := done(t).Stderr()
 	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
 		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
 	}

@@ -17,13 +17,16 @@ type Fmt struct {
 	Check     bool
 	Recursive bool
 	Paths     []string
+
+	ViewType ViewType
 }
 
 func ParseFmt(args []string) (*Fmt, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	fmt := &Fmt{
-		List:  true,
-		Write: true,
+		List:     true,
+		Write:    true,
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := defaultFlagSet("fmt")

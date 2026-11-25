@@ -21,6 +21,7 @@ func TestParseConsole_valid(t *testing.T) {
 			&Console{
 				Vars:         &Vars{},
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 		},
 		"state flag": {
@@ -29,6 +30,7 @@ func TestParseConsole_valid(t *testing.T) {
 				Vars:         &Vars{},
 				StatePath:    "mystate.tfstate",
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 		},
 		"plan flag": {
@@ -37,6 +39,7 @@ func TestParseConsole_valid(t *testing.T) {
 				Vars:         &Vars{},
 				EvalFromPlan: true,
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 		},
 		"input disabled": {
@@ -44,6 +47,7 @@ func TestParseConsole_valid(t *testing.T) {
 			&Console{
 				Vars:         &Vars{},
 				InputEnabled: false,
+				ViewType:     ViewHuman,
 			},
 		},
 		"module scope": {
@@ -52,6 +56,7 @@ func TestParseConsole_valid(t *testing.T) {
 				Vars:         &Vars{},
 				InputEnabled: true,
 				Scope:        "module.child",
+				ViewType:     ViewHuman,
 			},
 		},
 		"compact warnings": {
@@ -60,6 +65,7 @@ func TestParseConsole_valid(t *testing.T) {
 				Vars:            &Vars{},
 				InputEnabled:    true,
 				CompactWarnings: true,
+				ViewType:        ViewHuman,
 			},
 		},
 		"all flags": {
@@ -71,6 +77,7 @@ func TestParseConsole_valid(t *testing.T) {
 				InputEnabled:    false,
 				CompactWarnings: true,
 				Scope:           "module.child[0]",
+				ViewType:        ViewHuman,
 			},
 		},
 	}
@@ -101,6 +108,7 @@ func TestParseConsole_invalid(t *testing.T) {
 			&Console{
 				Vars:         &Vars{},
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -115,6 +123,7 @@ func TestParseConsole_invalid(t *testing.T) {
 			&Console{
 				Vars:         &Vars{},
 				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

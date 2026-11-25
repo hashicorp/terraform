@@ -32,12 +32,10 @@ func TestUnlock(t *testing.T) {
 	}
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 			WorkingDir:       td,
 		},
@@ -49,7 +47,8 @@ func TestUnlock(t *testing.T) {
 	}
 
 	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
 	// make sure we don't crash with arguments in the wrong order
@@ -59,7 +58,8 @@ func TestUnlock(t *testing.T) {
 	}
 
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 }
 
@@ -71,23 +71,21 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	defer inmem.Reset()
 
 	// init backend
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	ci := &InitCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: td,
 		},
 	}
 	if code := ci.Run(nil); code != 0 {
-		t.Fatalf("bad: %d\n%s", code, ui.ErrorWriter)
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: td,
 		},
@@ -100,13 +98,13 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	}
 
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 
-	ui = testUiWrapped(t)
+	view, done = testView(t)
 	c = &UnlockCommand{
 		Meta: Meta{
-			Ui:         ui,
 			View:       view,
 			WorkingDir: td,
 		},
@@ -115,6 +113,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	// lockID set in the test fixture
 	args[1] = "2b6a6738-5dd5-50d6-c0ae-f6352977666b"
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+		output := done(t)
+		t.Fatalf("bad: %d\n%s\n%s", code, output.Stdout(), output.Stderr())
 	}
 }

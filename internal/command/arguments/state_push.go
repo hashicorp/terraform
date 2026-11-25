@@ -31,6 +31,8 @@ type StatePush struct {
 
 	// Path is the path to the state file to push, or "-" for stdin.
 	Path string
+
+	ViewType ViewType
 }
 
 // ParseStatePush processes CLI arguments, returning a StatePush value and
@@ -39,7 +41,8 @@ type StatePush struct {
 func ParseStatePush(args []string) (*StatePush, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	push := &StatePush{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("state push", nil, nil, push.Vars)

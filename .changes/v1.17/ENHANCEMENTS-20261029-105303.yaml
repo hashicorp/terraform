@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'query: Improve performance and reduce allocations when generating configuration from large HCP Terraform queries.'
+time: 2026-10-29T10:53:03.504711-04:00
+custom:
+    Issue: "39470"

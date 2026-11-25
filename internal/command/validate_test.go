@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	testing_command "github.com/hashicorp/terraform/internal/command/testing"
-	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	testing_provider "github.com/hashicorp/terraform/internal/providers/testing"
@@ -263,9 +262,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
 	t.Chdir(td)
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 
 	provider := testing_command.NewProvider(nil)
 
@@ -275,9 +272,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -286,7 +281,7 @@ func TestValidateWithInvalidTestModule(t *testing.T) {
 	}
 
 	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+		t.Fatalf("expected status code 0 but got %d: %s", code, done(t).Stderr())
 	}
 
 	c := &ValidateCommand{
@@ -401,21 +396,14 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	testCopyDir(t, testFixturePath(path.Join("test", "invalid-overrides")), td)
 	t.Chdir(td)
 
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := testUiWrapped(t)
-
 	provider := testing_command.NewProvider(nil)
-
 	providerSource := newMockProviderSource(t, map[string][]string{
 		"test": {"1.0.0"},
 	})
-
+	view, done := testView(t)
 	meta := Meta{
 		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
 		View:             view,
-		Streams:          streams,
 		ProviderSource:   providerSource,
 	}
 
@@ -429,9 +417,8 @@ func TestValidateWithInvalidOverrides(t *testing.T) {
 	}
 
 	// reset streams for next command
-	streams, done = terminal.StreamsForTesting(t)
-	meta.View = views.NewView(streams)
-	meta.Streams = streams
+	view, done = testView(t)
+	meta.View = view
 
 	c := &ValidateCommand{
 		Meta: meta,
@@ -605,20 +592,15 @@ The first step in the traversal for a list resource must be an attribute
 			testCopyDir(t, testFixturePath(tc.path), td)
 			t.Chdir(td)
 
-			streams, done := terminal.StreamsForTesting(t)
-			view := views.NewView(streams)
-			ui := testUiWrapped(t)
-
 			provider := queryFixtureProvider()
 			providerSource := newMockProviderSource(t, map[string][]string{
 				"test": {"1.0.0"},
 			})
 
+			view, done := testView(t)
 			meta := Meta{
 				testingOverrides: metaOverridesForProvider(provider),
-				Ui:               ui,
 				View:             view,
-				Streams:          streams,
 				ProviderSource:   providerSource,
 			}
 
@@ -627,9 +609,11 @@ The first step in the traversal for a list resource must be an attribute
 			}
 
 			if code := init.Run(nil); code != 0 {
-				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+				t.Fatalf("expected status code 0 but got %d: %s", code, done(t).Stderr())
 			}
 
+			view, done = testView(t)
+			meta.View = view
 			c := &ValidateCommand{
 				Meta: meta,
 			}

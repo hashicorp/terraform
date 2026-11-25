@@ -164,7 +164,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}
@@ -233,7 +233,7 @@ func TestApply_destroyApproveYes(t *testing.T) {
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}

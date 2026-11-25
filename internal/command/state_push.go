@@ -25,10 +25,23 @@ type StatePushCommand struct {
 	StateMeta
 }
 
-func (c *StatePushCommand) Run(args []string) int {
-	parsedArgs, diags := arguments.ParseStatePush(c.Meta.process(args))
+func (c *StatePushCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Process command-specific arguments.
+	parsedArgs, parseDiags := arguments.ParseStatePush(rawArgs)
+	diags = diags.Append(parseDiags)
+
+	// Prepare the view
+	view := views.NewStatePush(parsedArgs.ViewType, c.View)
+
+	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -39,7 +52,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	loader, err := c.initConfigLoader()
 	if err != nil {
 		diags = diags.Append(err)
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -47,13 +60,16 @@ func (c *StatePushCommand) Run(args []string) int {
 	c.VariableValues, varDiags = parsedArgs.Vars.CollectValues(func(filename string, src []byte) {
 		loader.Parser().ForceFileSource(filename, src)
 	})
+	diags = diags.Append(varDiags)
 	if varDiags.HasErrors() {
-		c.showDiagnostics(varDiags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	if diags := c.Meta.checkRequiredVersion(); diags != nil {
-		c.showDiagnostics(diags)
+	vDiags := c.Meta.checkRequiredVersion()
+	diags = diags.Append(vDiags)
+	if vDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -63,7 +79,14 @@ func (c *StatePushCommand) Run(args []string) int {
 	if parsedArgs.Path != "-" {
 		f, err := os.Open(parsedArgs.Path)
 		if err != nil {
-			c.Ui.Error(err.Error())
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to open state",
+					fmt.Sprintf("Error opening state %q: %s", parsedArgs.Path, err),
+				),
+			)
+			view.Diagnostics(diags)
 			return 1
 		}
 
@@ -80,54 +103,78 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Close()
 	}
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err))
+		diags = diags.Append(
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to read source state",
+				fmt.Sprintf("Error reading source state %q: %s", parsedArgs.Path, err),
+			),
+		)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Load the backend
-	view := arguments.ViewHuman
-	b, diags := c.backend(".", view)
+	b, diags := c.backend(".", parsedArgs.ViewType)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Determine the workspace name
 	workspace, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to select workspace",
+			fmt.Sprintf("Error selecting workspace: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
-	c.showDiagnostics(remoteVersionDiags)
+	diags = diags.Append(remoteVersionDiags)
 	if remoteVersionDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Get the state manager for the currently-selected workspace
 	stateMgr, sDiags := b.StateMgr(workspace)
 	if sDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", sDiags.Err()))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to access state",
+			fmt.Sprintf("Failed to access destination state: %s", sDiags.Err()),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
-		if diags := stateLocker.Lock(stateMgr, "state-push"); diags.HasErrors() {
-			c.showDiagnostics(diags)
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(parsedArgs.ViewType, c.View))
+		if lockDiags := stateLocker.Lock(stateMgr, "state-push"); lockDiags.HasErrors() {
+			diags = diags.Append(lockDiags)
+			view.Diagnostics(diags)
 			return 1
 		}
 		defer func() {
-			if diags := stateLocker.Unlock(); diags.HasErrors() {
-				c.showDiagnostics(diags)
+			if unlockDiags := stateLocker.Unlock(); unlockDiags.HasErrors() {
+				diags = diags.Append(unlockDiags)
+				view.Diagnostics(diags)
 			}
 		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh destination state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to refresh the state",
+			fmt.Sprintf("Error refreshing the destination state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -138,7 +185,12 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Import it, forcing through the lineage/serial if requested and possible.
 	if err := statemgr.Import(srcStateFile, stateMgr, parsedArgs.Force); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
@@ -149,15 +201,25 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 	if err := stateMgr.PersistState(schemas); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to save the state",
+			fmt.Sprintf("Terraform encountered an error when saving state: %s", err),
+		))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	return 0
 }
 
@@ -181,6 +243,10 @@ Usage: terraform [global options] state push [options] PATH
 
 Options:
 
+  -compact-warnings   If Terraform produces any warnings that are not
+                      accompanied by errors, show them in a more compact
+                      form that includes only the summary messages
+
   -force              Write the state even if lineages don't match or the
                       remote serial is higher.
 
@@ -189,6 +255,8 @@ Options:
                       against the same workspace.
 
   -lock-timeout=0s    Duration to retry a state lock.
+
+  -no-color           Disable text coloring in the output.
 
   -var 'foo=bar'      Set a value for one of the input variables in the root
                       module of the configuration. Use this option more than

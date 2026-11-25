@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'state: Error output from `mv`, `replace-provider` and `rm` subcommands has been updated with different wording and formatting.'
+time: 2026-11-03T14:17:26.833636Z
+custom:
+    Issue: "39486"

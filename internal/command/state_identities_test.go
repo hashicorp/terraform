@@ -22,11 +22,13 @@ func TestStateIdentities(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
@@ -34,19 +36,24 @@ func TestStateIdentities(t *testing.T) {
 		"-state", statePath,
 		"-json",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := `{
-		"test_instance.foo": {"id": "my-foo-id"},
-		"test_instance.bar": {"id": "my-bar-id"}
+		"format_version": "1.0",
+		"identities": {
+			"test_instance.foo": {"id": "my-foo-id"},
+			"test_instance.bar": {"id": "my-bar-id"}
+		}
 	}`
-	actual := ui.OutputWriter.String()
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}
@@ -64,11 +71,13 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
@@ -76,16 +85,21 @@ func TestStateIdentitiesWithNoIdentityInfo(t *testing.T) {
 		"-state", statePath,
 		"-json",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that an empty output is displayed with no error
-	expected := `{}`
-	actual := ui.OutputWriter.String()
+	expected := `{
+		"format_version": "1.0",
+		"identities": {}
+	}`
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}
@@ -103,11 +117,13 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
@@ -116,18 +132,23 @@ func TestStateIdentitiesFilterByID(t *testing.T) {
 		"-json",
 		"-id", "foo",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := `{
-		"test_instance.foo": {"id": "my-foo-id"}
+		"format_version": "1.0",
+		"identities": {
+			"test_instance.foo": {"id": "my-foo-id"}
+		}
 	}`
-	actual := ui.OutputWriter.String()
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}
@@ -145,11 +166,13 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
@@ -158,16 +181,30 @@ func TestStateIdentitiesWithNonExistentID(t *testing.T) {
 		"-json",
 		"-id", "baz",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that output is empty
-	if ui.OutputWriter != nil {
-		actual := ui.OutputWriter.String()
-		if actual != "{}\n" {
-			t.Fatalf("Expected an empty output but got: %q", actual)
-		}
+	expected := `{
+		"format_version": "1.0",
+		"identities": {}
+	}`
+	actual := out.Stdout()
+
+	// Normalize JSON strings
+	var expectedJSON, actualJSON map[string]any
+	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
+	}
+	if err := json.Unmarshal([]byte(actual), &actualJSON); err != nil {
+		t.Fatalf("Failed to unmarshal actual JSON: %s", err)
+	}
+
+	if !reflect.DeepEqual(expectedJSON, actualJSON) {
+		t.Fatalf("Expected:\n%q\n\nTo equal: %q", expected, actual)
 	}
 }
 
@@ -176,11 +213,13 @@ func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
@@ -188,8 +227,10 @@ func TestStateIdentitiesWithNoJsonFlag(t *testing.T) {
 		"-state", statePath,
 	}
 	// Should return an error because the -json flag is required
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("expected error: \n%s", ui.OutputWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 1 {
+		t.Fatalf("expected error: \n%s", out.Stderr())
 	}
 }
 
@@ -200,31 +241,38 @@ func TestStateIdentities_backendDefaultState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
 	args := []string{"-json"}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := `{
-		"null_resource.a": {
-			"project": "my-project",
-			"role": "roles/viewer",
-			"member": "user:peter@example.com"
+		"format_version": "1.0",
+		"identities": {
+			"null_resource.a": {
+				"project": "my-project",
+				"role": "roles/viewer",
+				"member": "user:peter@example.com"
+			}
 		}
 	}`
-	actual := ui.OutputWriter.String()
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}
@@ -250,32 +298,39 @@ func TestStateIdentities_backendOverrideState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
 	// Run the command with a custom state file
 	args := []string{"-state=custom.tfstate", "-json"}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d", code)
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := `{
-		"null_resource.a": {
-			"project": "my-project",
-			"role": "roles/viewer",
-			"member": "user:peter@example.com"
+		"format_version": "1.0",
+		"identities": {
+			"null_resource.a": {
+				"project": "my-project",
+				"role": "roles/viewer",
+				"member": "user:peter@example.com"
+			}
 		}
 	}`
-	actual := ui.OutputWriter.String()
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}
@@ -293,17 +348,21 @@ func TestStateIdentities_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+		StateMeta: StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d", code)
+	code := c.Run(args)
+	out := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 }
 
@@ -314,35 +373,43 @@ func TestStateIdentities_modules(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
-	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-		},
-	}
 
 	t.Run("list resources in module and submodules", func(t *testing.T) {
+		view, done := testView(t)
+		c := &StateIdentitiesCommand{
+			StateMeta: StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			},
+		}
+
 		args := []string{"-json", "module.nest"}
-		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d", code)
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 		}
 
 		// resources in the module and any submodules should be included in the outputs
 		expected := `{
-			"module.nest.test_instance.nest": {
-				"project": "my-project-nest",
-				"role": "roles/viewer-nest"
-			},
-			"module.nest.module.subnest.test_instance.subnest": {
-				"project": "my-project-subnest",
-				"role": "roles/viewer-subnest"
+			"format_version": "1.0",
+			"identities": {
+				"module.nest.test_instance.nest": {
+					"project": "my-project-nest",
+					"role": "roles/viewer-nest"
+				},
+				"module.nest.module.subnest.test_instance.subnest": {
+					"project": "my-project-subnest",
+					"role": "roles/viewer-subnest"
+				}
 			}
 		}`
-		actual := ui.OutputWriter.String()
+		actual := out.Stdout()
 
 		// Normalize JSON strings
-		var expectedJSON, actualJSON map[string]interface{}
+		var expectedJSON, actualJSON map[string]any
 		if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 			t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 		}
@@ -357,21 +424,35 @@ func TestStateIdentities_modules(t *testing.T) {
 
 	t.Run("submodule has resources only", func(t *testing.T) {
 		// now get the state for a module that has no resources, only another nested module
-		ui.OutputWriter.Reset()
+		view, done := testView(t)
+		c := &StateIdentitiesCommand{
+			StateMeta: StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			},
+		}
+
 		args := []string{"-json", "module.nonexist"}
-		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d", code)
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 		}
 		expected := `{
-			"module.nonexist.module.child.test_instance.child": {
-				"project": "my-project-child",
-				"role": "roles/viewer-child"
+			"format_version": "1.0",
+			"identities": {
+				"module.nonexist.module.child.test_instance.child": {
+					"project": "my-project-child",
+					"role": "roles/viewer-child"
+				}
 			}
 		}`
-		actual := ui.OutputWriter.String()
+		actual := out.Stdout()
 
 		// Normalize JSON strings
-		var expectedJSON, actualJSON map[string]interface{}
+		var expectedJSON, actualJSON map[string]any
 		if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 			t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 		}
@@ -386,25 +467,39 @@ func TestStateIdentities_modules(t *testing.T) {
 
 	t.Run("expanded module", func(t *testing.T) {
 		// finally get the state for a module with an index
-		ui.OutputWriter.Reset()
+		view, done := testView(t)
+		c := &StateIdentitiesCommand{
+			StateMeta: StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			},
+		}
+
 		args := []string{"-json", "module.count"}
-		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d: %s", code, ui.ErrorWriter.String())
+		code := c.Run(args)
+		out := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d: %s", code, out.Stderr())
 		}
 		expected := `{
-			"module.count[0].test_instance.count": {
-				"project": "my-project-count-0",
-				"role": "roles/viewer-count-0"
-			},
-			"module.count[1].test_instance.count": {
-				"project": "my-project-count-1",
-				"role": "roles/viewer-count-1"
+			"format_version": "1.0",
+			"identities": {
+				"module.count[0].test_instance.count": {
+					"project": "my-project-count-0",
+					"role": "roles/viewer-count-0"
+				},
+				"module.count[1].test_instance.count": {
+					"project": "my-project-count-1",
+					"role": "roles/viewer-count-1"
+				}
 			}
 		}`
-		actual := ui.OutputWriter.String()
+		actual := out.Stdout()
 
 		// Normalize JSON strings
-		var expectedJSON, actualJSON map[string]interface{}
+		var expectedJSON, actualJSON map[string]any
 		if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 			t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 		}
@@ -419,10 +514,21 @@ func TestStateIdentities_modules(t *testing.T) {
 
 	t.Run("completely nonexistent module", func(t *testing.T) {
 		// finally get the state for a module with an index
-		ui.OutputWriter.Reset()
+		view, done := testView(t)
+		c := &StateIdentitiesCommand{
+			StateMeta: StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			},
+		}
+
 		args := []string{"-json", "module.notevenalittlebit"}
-		if code := c.Run(args); code != 1 {
-			t.Fatalf("bad: %d: %s", code, ui.OutputWriter.String())
+		code := c.Run(args)
+		out := done(t)
+		if code != 1 {
+			t.Fatalf("bad: %d: %s", code, out.Stdout())
 		}
 	})
 
@@ -451,38 +557,45 @@ func TestStateIdentities_stateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateIdentitiesCommand{
-		Meta: Meta{
-			AllowExperimentalFeatures: true,
-			testingOverrides: &testingOverrides{
-				Providers: map[addrs.Provider]providers.Factory{
-					mockProviderAddress: providers.FactoryFixed(mockProvider),
+		StateMeta: StateMeta{
+			Meta: Meta{
+				AllowExperimentalFeatures: true,
+				testingOverrides: &testingOverrides{
+					Providers: map[addrs.Provider]providers.Factory{
+						mockProviderAddress: providers.FactoryFixed(mockProvider),
+					},
 				},
+				View: view,
 			},
-			Ui: ui,
 		},
 	}
 
 	args := []string{"-json"}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	out := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, out.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := `{
-  "test_instance.bar": {
-    "id": "my-bar-id"
-  },
-  "test_instance.foo": {
-    "id": "my-foo-id"
+  "format_version": "1.0",
+  "identities": {
+    "test_instance.bar": {
+      "id": "my-bar-id"
+    },
+    "test_instance.foo": {
+      "id": "my-foo-id"
+    }
   }
 }
 `
-	actual := ui.OutputWriter.String()
+	actual := out.Stdout()
 
 	// Normalize JSON strings
-	var expectedJSON, actualJSON map[string]interface{}
+	var expectedJSON, actualJSON map[string]any
 	if err := json.Unmarshal([]byte(expected), &expectedJSON); err != nil {
 		t.Fatalf("Failed to unmarshal expected JSON: %s", err)
 	}

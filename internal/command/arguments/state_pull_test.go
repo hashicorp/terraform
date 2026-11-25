@@ -20,7 +20,8 @@ func TestParseStatePull_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&StatePull{
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 		},
 	}
@@ -93,7 +94,8 @@ func TestParseStatePull_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-boop"},
 			&StatePull{
-				Vars: &Vars{},
+				Vars:     &Vars{},
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

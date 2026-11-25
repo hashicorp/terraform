@@ -697,62 +697,6 @@ func testStdinPipe(t *testing.T, src io.Reader) func() {
 	}
 }
 
-// Modify os.Stdout to write to the given buffer. Note that this is generally
-// not useful since the commands are configured to write to a cli.Ui, not
-// Stdout directly. Commands like `console` though use the raw stdout.
-func testStdoutCapture(t *testing.T, dst io.Writer) func() {
-	t.Helper()
-
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Modify stdout
-	old := os.Stdout
-	os.Stdout = w
-
-	// Copy
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		defer r.Close()
-		io.Copy(dst, r)
-	}()
-
-	return func() {
-		// Close the writer end of the pipe
-		w.Sync()
-		w.Close()
-
-		// Reset stdout
-		os.Stdout = old
-
-		// Wait for the data copy to complete to avoid a race reading data
-		<-doneCh
-	}
-}
-
-// testInteractiveInput configures a *ui.UIInput for tests so that the answers given are sent
-// in order to interactive prompts.
-// Calling code must use the returned *ui.UIInput when defining the Meta's testOverrides.
-func testInteractiveInput(t *testing.T, answers []string) ui.InputRequesterForTest {
-	t.Helper()
-
-	// Set up reader/writers
-	testInputResponse := answers
-	inputReader := bytes.NewBufferString("")
-	inputWriter := new(bytes.Buffer)
-
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: inputReader,
-		Writer: inputWriter,
-	}, testInputResponse, nil)
-
-	// Return the UIInput for use in the test
-	return uiInput
-}
-
 // testInputMap configures a *ui.UIInput for tests so that the given answers are returned
 // for calls to Input when the right question is asked. The key is the
 // question "Id" that is used.
@@ -768,13 +712,14 @@ func testInputMap(t *testing.T, answers map[string]string) (ui.InputRequesterFor
 	inputWriter := new(bytes.Buffer)
 
 	// Setup answers
-	var testInputResponse []string
 	var testInputResponseMap map[string]string = answers
 
-	ret := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: inputReader,
-		Writer: inputWriter,
-	}, testInputResponse, testInputResponseMap)
+	ret := ui.NewUIInputForTests(
+		t,
+		ui.UIInputOptions{
+			Reader: inputReader,
+			Writer: inputWriter,
+		}, testInputResponseMap)
 
 	// Queue the cleanup for the end of the test
 	t.Cleanup(func() {

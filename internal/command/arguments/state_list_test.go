@@ -16,24 +16,27 @@ func TestParseStateList_valid(t *testing.T) {
 	}{
 		"defaults": {
 			nil,
-			&StateList{},
+			&StateList{ViewType: ViewHuman},
 		},
 		"state path": {
 			[]string{"-state=foobar.tfstate"},
 			&StateList{
 				StatePath: "foobar.tfstate",
+				ViewType:  ViewHuman,
 			},
 		},
 		"id filter": {
 			[]string{"-id=bar"},
 			&StateList{
-				ID: "bar",
+				ID:       "bar",
+				ViewType: ViewHuman,
 			},
 		},
 		"with addresses": {
 			[]string{"module.example", "aws_instance.foo"},
 			&StateList{
-				Addrs: []string{"module.example", "aws_instance.foo"},
+				Addrs:    []string{"module.example", "aws_instance.foo"},
+				ViewType: ViewHuman,
 			},
 		},
 		"all options": {
@@ -42,6 +45,7 @@ func TestParseStateList_valid(t *testing.T) {
 				StatePath: "foobar.tfstate",
 				ID:        "bar",
 				Addrs:     []string{"module.example"},
+				ViewType:  ViewHuman,
 			},
 		},
 	}
@@ -78,7 +82,7 @@ func TestParseStateList_invalid(t *testing.T) {
 	}{
 		"unknown flag": {
 			[]string{"-boop"},
-			&StateList{},
+			&StateList{ViewType: ViewHuman},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,

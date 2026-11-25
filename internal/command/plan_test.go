@@ -24,7 +24,6 @@ import (
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -880,12 +879,6 @@ func TestPlan_stateDefault(t *testing.T) {
 }
 
 func TestPlan_validate(t *testing.T) {
-	// Ask for input
-	uiInput := ui.NewUIInputForTests(
-		ui.UIInputOptions{},
-		nil, nil,
-	)
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-invalid"), td)
 	t.Chdir(td)
@@ -909,7 +902,6 @@ func TestPlan_validate(t *testing.T) {
 	}
 
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &PlanCommand{
@@ -1029,7 +1021,9 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	// This will (helpfully) panic if more than one variable is requested during plan:
 	// https://github.com/hashicorp/terraform/issues/26027
-	uiInput := testInteractiveInput(t, []string{"bar"})
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.foo": "bar",
+	})
 
 	p := planVarsFixtureProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -1061,10 +1055,9 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	t.Chdir(td)
 
 	// The plan command will prompt for interactive input of provider.test.region
-	reader := bytes.NewBufferString("us-east-1\n")
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: reader,
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"provider.test.region": "us-east-1",
+	})
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument
@@ -1143,10 +1136,9 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 	t.Chdir(td)
 
 	// The plan command will prompt for interactive input of provider.test.region
-	reader := bytes.NewBufferString("us-east-1\n")
-	uiInput := ui.NewUIInputForTests(ui.UIInputOptions{
-		Reader: reader,
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"provider.test.region": "us-east-1",
+	})
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument and a nested block

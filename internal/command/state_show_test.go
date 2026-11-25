@@ -403,7 +403,6 @@ func TestStateShow_stateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
@@ -413,7 +412,6 @@ func TestStateShow_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -466,7 +464,6 @@ func TestStateShow_stateStore_error(t *testing.T) {
 	}
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
 	view, done := testView(t)
 	c := &StateShowCommand{
 		Meta: Meta{
@@ -476,7 +473,6 @@ func TestStateShow_stateStore_error(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui:   ui,
 			View: view,
 		},
 	}

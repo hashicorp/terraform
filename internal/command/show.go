@@ -10,8 +10,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
@@ -115,9 +113,23 @@ Usage: terraform [global options] show [options] [path]
 Options:
 
   -no-color           If specified, output won't contain any color.
+
   -json               If specified, output the Terraform plan or state in
                       a machine-readable form.
 
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable. Only used when
+                      Terraform must read the current configuration, such as
+                      when showing the current state or a state file. Ignored
+                      for local plan files.
+
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file. Only used when Terraform must read the
+                      current configuration, such as when showing the current
+                      state or a state file. Ignored for local plan files.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -363,25 +375,8 @@ func readConfig(r *planfile.Reader, allowLanguageExperiments bool, plan *plans.P
 	// create the plan, regardless of any current variable values or defaults.
 	// Ephemeral values aren't needed here because const variables cannot be
 	// ephemeral.
-	variables := terraform.InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-		if pvm, ok := plan.VariableMarks[name]; ok {
-			val = val.MarkWithPaths(pvm)
-		}
-		variables[name] = &terraform.InputValue{
-			Value:      val,
-			SourceType: terraform.ValueFromPlan,
-		}
-	}
+	variables, varDiags := terraform.InputValuesFromPlan(plan)
+	diags = diags.Append(varDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}

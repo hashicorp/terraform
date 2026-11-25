@@ -16,11 +16,15 @@ type Login struct {
 	InputEnabled bool
 
 	CompactWarnings bool
+
+	ViewType ViewType
 }
 
 func ParseLogin(rawArgs []string) (*Login, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := &Login{}
+	ret := &Login{
+		ViewType: ViewHuman,
+	}
 
 	cmdFlags := defaultFlagSet("login")
 	cmdFlags.BoolVar(&ret.InputEnabled, "input", true, "input")

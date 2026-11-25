@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/cli"
 )
 
 func TestFmt_MockDataFiles(t *testing.T) {
@@ -57,16 +56,16 @@ func TestFmt_MockDataFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := testUiWrapped(t)
+			view, done := testView(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
+					View:             view,
 				},
 			}
 			args := []string{gotFile}
 			if code := c.Run(args); code != 0 {
-				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
+				t.Fatalf("fmt command was unsuccessful:\n%s", done(t).Stderr())
 			}
 
 			got, err := os.ReadFile(gotFile)
@@ -123,16 +122,16 @@ func TestFmt_TestFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := testUiWrapped(t)
+			view, done := testView(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
+					View:             view,
 				},
 			}
 			args := []string{gotFile}
 			if code := c.Run(args); code != 0 {
-				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
+				t.Fatalf("fmt command was unsuccessful:\n%s", done(t).Stderr())
 			}
 
 			got, err := os.ReadFile(gotFile)
@@ -189,16 +188,16 @@ func TestFmt_QueryFiles(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := testUiWrapped(t)
+			view, done := testView(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
+					View:             view,
 				},
 			}
 			args := []string{gotFile}
 			if code := c.Run(args); code != 0 {
-				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
+				t.Fatalf("fmt command was unsuccessful:\n%s", done(t).Stderr())
 			}
 
 			got, err := os.ReadFile(gotFile)
@@ -255,16 +254,16 @@ func TestFmt(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			ui := testUiWrapped(t)
+			view, done := testView(t)
 			c := &FmtCommand{
 				Meta: Meta{
 					testingOverrides: metaOverridesForProvider(testProvider()),
-					Ui:               ui,
+					View:             view,
 				},
 			}
 			args := []string{gotFile}
 			if code := c.Run(args); code != 0 {
-				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
+				t.Fatalf("fmt command was unsuccessful:\n%s", done(t).Stderr())
 			}
 
 			got, err := os.ReadFile(gotFile)
@@ -284,22 +283,23 @@ func TestFmt_nonexist(t *testing.T) {
 
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	missingDir := filepath.Join(tempDir, "doesnotexist")
 	args := []string{missingDir}
 	if code := c.Run(args); code != 2 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
+	output := done(t)
 
 	expected := "No file or directory at"
-	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
+	if actual := output.Stderr(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
 }
@@ -318,21 +318,22 @@ a = 1 +
 		t.Fatal(err)
 	}
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{tempDir}
 	if code := c.Run(args); code != 2 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
+	output := done(t)
 
 	expected := "Invalid expression"
-	if actual := ui.ErrorWriter.String(); !strings.Contains(actual, expected) {
+	if actual := output.Stderr(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
 }
@@ -349,26 +350,27 @@ func TestFmt_snippetInError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
-	args := []string{tempDir}
+	args := []string{"-no-color", tempDir}
 	if code := c.Run(args); code != 2 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
+	output := done(t)
 
 	substrings := []string{
 		"Argument definition required",
 		"line 1, in terraform",
-		`1: terraform {backend "s3" {}}`,
+		`terraform {backend "s3" {}}`,
 	}
 	for _, substring := range substrings {
-		if actual := ui.ErrorWriter.String(); !strings.Contains(actual, substring) {
+		if actual := output.Stderr(); !strings.Contains(actual, substring) {
 			t.Errorf("expected:\n%s\n\nto include: %q", actual, substring)
 		}
 	}
@@ -386,11 +388,11 @@ func TestFmt_manyArgs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -399,10 +401,11 @@ func TestFmt_manyArgs(t *testing.T) {
 		filepath.Join(tempDir, "second.tf"),
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
-	got, err := filepath.Abs(strings.TrimSpace(ui.OutputWriter.String()))
+	output := done(t)
+	got, err := filepath.Abs(strings.TrimSpace(output.Stdout()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -426,21 +429,21 @@ func TestFmt_workingDirectory(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
 	expected := fmt.Sprintf("%s\n", fmtFixture.filename)
-	if actual := ui.OutputWriter.String(); actual != expected {
+	if actual := done(t).Stdout(); actual != expected {
 		t.Fatalf("got: %q\nexpected: %q", actual, expected)
 	}
 }
@@ -449,20 +452,21 @@ func TestFmt_directoryArg(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{tempDir}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
-	got, err := filepath.Abs(strings.TrimSpace(ui.OutputWriter.String()))
+	output := done(t)
+	got, err := filepath.Abs(strings.TrimSpace(output.Stdout()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -477,20 +481,21 @@ func TestFmt_fileArg(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{filepath.Join(tempDir, fmtFixture.filename)}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
-	got, err := filepath.Abs(strings.TrimSpace(ui.OutputWriter.String()))
+	output := done(t)
+	got, err := filepath.Abs(strings.TrimSpace(output.Stdout()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -506,22 +511,23 @@ func TestFmt_stdinArg(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 		input: input,
 	}
 
 	args := []string{"-"}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
 	expected := fmtFixture.golden
-	if actual := ui.OutputWriter.Bytes(); !bytes.Equal(actual, expected) {
+	actual := done(t).Stdout()
+	if actual := []byte(actual); !bytes.Equal(actual, expected) {
 		t.Fatalf("got: %q\nexpected: %q", actual, expected)
 	}
 }
@@ -534,11 +540,11 @@ func TestFmt_stdinArgIgnoresFurtherArguments(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 		input: input,
 	}
@@ -548,10 +554,10 @@ func TestFmt_stdinArgIgnoresFurtherArguments(t *testing.T) {
 		"does-not-exist.tf", // Ignored, so it doesn't cause usual error "No file or directory at does-not-exist.tf"
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
-	if actual := ui.OutputWriter.Bytes(); !bytes.Equal(actual, fmtFixture.golden) {
+	if actual := []byte(done(t).Stdout()); !bytes.Equal(actual, fmtFixture.golden) {
 		t.Fatalf("got: %q\nexpected: %q", actual, fmtFixture.golden)
 	}
 }
@@ -560,11 +566,11 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -575,42 +581,264 @@ func TestFmt_nonDefaultOptions(t *testing.T) {
 		tempDir,
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("wrong exit code. errors: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("wrong exit code. errors: \n%s", done(t).Stderr())
 	}
 
 	expected := fmt.Sprintf("-%s+%s", fmtFixture.input, fmtFixture.golden)
-	if actual := ui.OutputWriter.String(); !strings.Contains(actual, expected) {
+	if actual := done(t).Stdout(); !strings.Contains(actual, expected) {
 		t.Fatalf("expected:\n%s\n\nto include: %q", actual, expected)
 	}
 }
 
-func TestFmt_check(t *testing.T) {
+// If a user has set options to prevent the command from producing output, either by:
+// - list=false : Won't list files that need formatting
+// - diff=false : Won't show diffs for files that changed
+// - write=false : Won't write changes to files
+// In these cases, the command falls back to printing the formatted content to stdout.
+func TestFmt_formattedResultFallbackOutput(t *testing.T) {
 	t.Parallel()
 	tempDir := fmtFixtureWriteDir(t)
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{
-		"-check",
+		"-list=false",
+		"-diff=false",
+		"-write=false",
 		tempDir,
 	}
-	if code := c.Run(args); code != 3 {
-		t.Fatalf("wrong exit code. expected 3")
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("wrong exit code. expected 0")
 	}
 
-	// Given that we give relative paths back to the user, normalize this temp
-	// dir so that we're comparing against a relative-ized (normalized) path
-	tempDir = c.normalizePath(tempDir)
+	expectedOutput := "foo = \"bar\"\n"
 
-	if actual := ui.OutputWriter.String(); !strings.Contains(actual, tempDir) {
-		t.Fatalf("expected:\n%s\n\nto include: %q", actual, tempDir)
+	output := done(t)
+	if actual := output.Stdout(); actual != expectedOutput {
+		t.Fatalf("expected:\n%s\n\nto be:\n%s", actual, expectedOutput)
 	}
+	if actual := output.Stderr(); actual != "" {
+		t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+	}
+}
+
+func TestFmt_check(t *testing.T) {
+	t.Run("check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-list=true", // -list defaults to true, but set explicitly here
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		// Given that we give relative paths back to the user, normalize this temp
+		// dir so that we're comparing against a relative-ized (normalized) path
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
+
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\nto be:\n%s", actual, expectedOutput)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("with list disabled", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-list=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		output := done(t)
+		if actual := output.Stdout(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("with diff option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-diff",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf(`%s/main.tf
+--- old/%s/main.tf
++++ new/%s/main.tf
+@@ -1 +1 @@
+-  foo  =  "bar"
++foo = "bar"
+`, tempDir, tempDir, tempDir)
+
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("combining -diff and -list=false options", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-diff",
+			"-list=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		// output doesn't have the file path printed before the diff, which is the -list contribution to output
+		expectedOutput := fmt.Sprintf(`--- old/%s/main.tf
++++ new/%s/main.tf
+@@ -1 +1 @@
+-  foo  =  "bar"
++foo = "bar"
+`, tempDir, tempDir)
+
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("explicit -write=true option is silently ignored when using the check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-write=true", // Setting the default value, which is overridden when -check is used
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		tempDir = c.normalizePath(tempDir)
+		expectedOutput := fmt.Sprintf("%s/main.tf\n", tempDir)
+
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
+
+	t.Run("all outputs disabled, alongside -check option", func(t *testing.T) {
+		t.Parallel()
+		tempDir := fmtFixtureWriteDir(t)
+
+		view, done := testView(t)
+		c := &FmtCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-check",
+			"-write=false",
+			"-list=false",
+			"-diff=false",
+			tempDir,
+		}
+		if code := c.Run(args); code != 3 {
+			t.Fatalf("wrong exit code. expected 3")
+		}
+
+		expectedOutput := ""
+
+		output := done(t)
+		if actual := output.Stdout(); actual != expectedOutput {
+			t.Fatalf("expected:\n%s\n\ngot:\n%s", expectedOutput, actual)
+		}
+		if actual := output.Stderr(); actual != "" {
+			t.Fatalf("expected:\n%s\n\nto be empty.", actual)
+		}
+	})
 }
 
 // When `fmt` encounters a symlink:
@@ -654,16 +882,16 @@ c =   "y"
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &FmtCommand{
 			Meta: Meta{
-				Ui:         ui,
+				View:       view,
 				WorkingDir: workingDir,
 			},
 		}
 
 		if code := c.Run([]string{"-no-color"}); code != 0 {
-			t.Fatalf("unexpected failure with code %d: %s", code, ui.ErrorWriter.String())
+			t.Fatalf("unexpected failure with code %d: %s", code, done(t).Stderr())
 		}
 
 		// The symlink is still a symlink
@@ -685,14 +913,20 @@ c =   "y"
 		}
 
 		// The symlinked file has been formatted
-		ui = testUiWrapped(t)
-		c.Ui = ui
+		view, done = testView(t)
+		c = &FmtCommand{
+			Meta: Meta{
+				View:       view,
+				WorkingDir: workingDir,
+			},
+		}
 		args := []string{
 			"-no-color",
 			"-check",
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+			output := done(t)
+			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, output.Stdout(), output.Stderr())
 		}
 	})
 
@@ -733,10 +967,10 @@ c =   "y"
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &FmtCommand{
 			Meta: Meta{
-				Ui: ui,
+				View: view,
 				// Not setting WorkingDir
 			},
 		}
@@ -746,7 +980,7 @@ c =   "y"
 			workingDir.RootModuleDir(),
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("unexpected failure with code %d: %s", code, ui.ErrorWriter.String())
+			t.Fatalf("unexpected failure with code %d: %s", code, done(t).Stderr())
 		}
 
 		// The symlink is still a symlink
@@ -768,15 +1002,21 @@ c =   "y"
 		}
 
 		// The symlinked file has been formatted
-		ui = testUiWrapped(t)
-		c.Ui = ui
+		view, done = testView(t)
+		c = &FmtCommand{
+			Meta: Meta{
+				View: view,
+				// Not setting WorkingDir
+			},
+		}
 		args = []string{
 			"-no-color",
 			"-check",
 			filepath.Join(workingDir.RootModuleDir(), "main.tf"),
 		}
 		if code := c.Run(args); code != 0 {
-			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+			output := done(t)
+			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, output.Stdout(), output.Stderr())
 		}
 	})
 
@@ -837,17 +1077,18 @@ c =   "y"
 			t.Fatal(err)
 		}
 
-		ui := testUiWrapped(t)
+		view, done := testView(t)
 		c := &FmtCommand{
 			Meta: Meta{
-				Ui:         ui,
+				View:       view,
 				WorkingDir: workingDir,
 			},
 		}
 
 		// Format "mod" directory, which contains a symlink
 		if code := c.Run([]string{"-no-color", "mod"}); code != 0 {
-			t.Fatalf("unexpected failure with code %d: %s", code, ui.ErrorWriter.String())
+			output := done(t)
+			t.Fatalf("unexpected failure with code %d: %s", code, output.Stderr())
 		}
 
 		// Ensure that the main.tf file in the root directory is unchanged
@@ -879,15 +1120,16 @@ c =   "y"
 			t.Fatalf("expected target file permissions to be %o, got: %o", perms, fi.Mode().Perm())
 		}
 
-		ui = testUiWrapped(t)
+		view, done = testView(t)
 		c = &FmtCommand{
 			Meta: Meta{
-				Ui:         ui,
+				View:       view,
 				WorkingDir: workingDir,
 			},
 		}
 		if code := c.Run([]string{"-no-color", "-check", "mod"}); code != 0 {
-			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
+			output := done(t)
+			t.Fatalf("expected `terraform fmt -check` to exit with code 0 due to the file being formatted, got code %d: stdout: %s\nstderr: %s", code, output.Stdout(), output.Stderr())
 		}
 	})
 }
@@ -897,11 +1139,11 @@ func TestFmt_checkStdin(t *testing.T) {
 	input := new(bytes.Buffer)
 	input.Write(fmtFixture.input)
 
-	ui := testUiWrapped(t, new(cli.MockUi))
+	view, done := testView(t)
 	c := &FmtCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 		input: input,
 	}
@@ -914,8 +1156,9 @@ func TestFmt_checkStdin(t *testing.T) {
 		t.Fatalf("wrong exit code. expected 3, got %d", code)
 	}
 
-	if ui.OutputWriter != nil {
-		t.Fatalf("expected no output, got: %q", ui.OutputWriter.String())
+	output := done(t)
+	if output.Stdout() != "" {
+		t.Fatalf("expected no output, got: %q", output.Stdout())
 	}
 }
 

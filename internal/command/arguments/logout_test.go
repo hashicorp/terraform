@@ -18,13 +18,15 @@ func TestParseLogout_valid(t *testing.T) {
 		"default host": {
 			nil,
 			&Logout{
-				Host: "app.terraform.io",
+				Host:     "app.terraform.io",
+				ViewType: ViewHuman,
 			},
 		},
 		"non-default host": {
 			[]string{"other.host.io"},
 			&Logout{
-				Host: "other.host.io",
+				Host:     "other.host.io",
+				ViewType: ViewHuman,
 			},
 		},
 	}
@@ -51,7 +53,8 @@ func TestParseLogout_invalid(t *testing.T) {
 		"invalid flag": {
 			[]string{"-foobar"},
 			&Logout{
-				Host: "app.terraform.io",
+				Host:     "app.terraform.io",
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -64,7 +67,8 @@ func TestParseLogout_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"other.host.io", "app.terraform.io"},
 			&Logout{
-				Host: "other.host.io",
+				Host:     "other.host.io",
+				ViewType: ViewHuman,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

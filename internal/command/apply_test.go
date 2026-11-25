@@ -4,7 +4,6 @@
 package command
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	tfui "github.com/hashicorp/terraform/internal/command/ui"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -131,7 +129,7 @@ func TestApply_approveNo(t *testing.T) {
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}
@@ -177,7 +175,7 @@ func TestApply_approveYes(t *testing.T) {
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
+			Ui:               ui, // Used for handling user input
 			View:             view,
 		},
 	}
@@ -552,10 +550,9 @@ func TestApply_input(t *testing.T) {
 	// value "result" to echo that back to us below.
 	//
 	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: bytes.NewBufferString("foo\n"),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.foo": "foo",
+	})
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -598,10 +595,9 @@ func TestApply_inputPartial(t *testing.T) {
 	t.Chdir(td)
 
 	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: bytes.NewBufferString("one\ntwo\n"),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
+	uiInput, _ := testInputMap(t, map[string]string{
+		"var.bar": "one",
+	})
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
@@ -675,18 +671,11 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	// Don't disable input, so input would be asked
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: new(bytes.Buffer),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
-
 	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &ApplyCommand{
@@ -841,10 +830,8 @@ output "foobar" {
 			"hashicorp/test": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -888,8 +875,6 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		planCmd := &PlanCommand{
@@ -903,8 +888,6 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		applyCmd := &ApplyCommand{
@@ -963,10 +946,8 @@ output "foobar" {
 			"hashicorp/terraform": {"1.2.3"},
 		})
 
-		ui := testUiWrapped(t)
 		view, done := testView(t)
 		meta := Meta{
-			Ui:                        ui,
 			View:                      view,
 			AllowExperimentalFeatures: true,
 			testingOverrides: &testingOverrides{
@@ -1003,8 +984,6 @@ output "foobar" {
 		// Plan - to produce a plan file.
 		//
 		// The plan file will not include version data, as the provider is considered to be a dev override.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		planCmd := &PlanCommand{
@@ -1018,8 +997,6 @@ output "foobar" {
 		}
 
 		// Apply - to use the plan file that lacks version data.
-		ui = testUiWrapped(t)
-		meta.Ui = ui
 		view, done = testView(t)
 		meta.View = view
 		applyCmd := &ApplyCommand{
@@ -1039,13 +1016,6 @@ output "foobar" {
 // Test unhappy paths when applying a plan file describing a state store.
 func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	t.Run("error when the provider doesn't include the state store named in the plan", func(t *testing.T) {
-		// Don't disable input, so input would be asked
-		// Set some default reader/writers for the inputs
-		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-			Reader: new(bytes.Buffer),
-			Writer: new(bytes.Buffer),
-		}, nil, nil)
-
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
 		providerCfg := cty.ObjectVal(map[string]cty.Value{
@@ -1104,7 +1074,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
-					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1126,13 +1095,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 	})
 
 	t.Run("error when the provider doesn't implement state stores", func(t *testing.T) {
-		// Don't disable input, so input would be asked
-		// Set some default reader/writers for the inputs
-		uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-			Reader: new(bytes.Buffer),
-			Writer: new(bytes.Buffer),
-		}, nil, nil)
-
 		// Create the plan file that includes a state store
 		ver := version.Must(version.NewVersion("1.2.3"))
 		providerCfg := cty.ObjectVal(map[string]cty.Value{
@@ -1191,7 +1153,6 @@ func TestApply_plan_stateStore_errorCases(t *testing.T) {
 					Providers: map[addrs.Provider]providers.Factory{
 						addrs.NewDefaultProvider("test"): providers.FactoryFixed(mock),
 					},
-					UIInput: uiInput,
 				},
 				View: view,
 			},
@@ -1298,13 +1259,6 @@ func TestApply_plan_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Don't disable input, so input would be asked
-	// Set some default reader/writers for the inputs
-	uiInput := tfui.NewUIInputForTests(tfui.UIInputOptions{
-		Reader: new(bytes.Buffer),
-		Writer: new(bytes.Buffer),
-	}, nil, nil)
-
 	// Create a remote state
 	state := testState()
 	_, srv := testRemoteState(t, state, 200)
@@ -1343,7 +1297,6 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	p := testProvider()
 	testingOverrides := metaOverridesForProvider(p)
-	testingOverrides.UIInput = uiInput
 
 	view, done := testView(t)
 	c := &ApplyCommand{
@@ -1784,9 +1737,6 @@ foo = "bar"
 		},
 
 		"with planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			inputUi := testInteractiveInput(t, []string{"bar"})
-			c.testingOverrides.UIInput = inputUi
-
 			args := []string{
 				"-state", statePath,
 				planPath,
@@ -1875,7 +1825,9 @@ foo = "bar"
 		},
 
 		"without planfile passing ephemeral variable through interactive prompts": func(t *testing.T, c *ApplyCommand, statePath, planPath string, done func(*testing.T) *terminal.TestOutput) {
-			uiInput := testInteractiveInput(t, []string{"bar"})
+			uiInput, _ := testInputMap(t, map[string]string{
+				"var.foo": "bar",
+			})
 			c.Meta.testingOverrides.UIInput = uiInput
 
 			args := []string{

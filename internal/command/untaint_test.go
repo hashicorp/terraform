@@ -33,11 +33,9 @@ func TestUntaint(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui:   ui,
 			View: view,
 		},
 	}
@@ -47,7 +45,7 @@ func TestUntaint(t *testing.T) {
 		"test_instance.foo",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 
 	expected := strings.TrimSpace(`

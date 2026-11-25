@@ -20,11 +20,11 @@ func TestStateList(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -32,12 +32,12 @@ func TestStateList(t *testing.T) {
 		"-state", statePath,
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := strings.TrimSpace(testStateListOutput) + "\n"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
@@ -48,11 +48,11 @@ func TestStateListWithID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -61,12 +61,12 @@ func TestStateListWithID(t *testing.T) {
 		"-id", "bar",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := strings.TrimSpace(testStateListOutput) + "\n"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
@@ -77,11 +77,11 @@ func TestStateListWithNonExistentID(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -90,15 +90,13 @@ func TestStateListWithNonExistentID(t *testing.T) {
 		"-id", "baz",
 	}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that output is empty
-	if ui.OutputWriter != nil {
-		actual := ui.OutputWriter.String()
-		if actual != "" {
-			t.Fatalf("Expected an empty output but got: %q", actual)
-		}
+	output := done(t).Stdout()
+	if output != "" {
+		t.Fatalf("Expected an empty output but got: %q", output)
 	}
 }
 
@@ -109,22 +107,22 @@ func TestStateList_backendDefaultState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := "null_resource.a\n"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
@@ -137,22 +135,22 @@ func TestStateList_backendCustomState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := "null_resource.a\n"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
@@ -206,7 +204,7 @@ func TestStateList_stateStore(t *testing.T) {
 	)
 	mockProviderAddress := addrs.NewDefaultProvider("test")
 
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			AllowExperimentalFeatures: true,
@@ -215,18 +213,18 @@ func TestStateList_stateStore(t *testing.T) {
 					mockProviderAddress: providers.FactoryFixed(mockProvider),
 				},
 			},
-			Ui: ui,
+			View: view,
 		},
 	}
 
 	args := []string{}
 	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("bad: %d\n\n%s", code, done(t).Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := "test_instance.foo\n"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 	}
@@ -239,11 +237,11 @@ func TestStateList_backendOverrideState(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, done := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -256,8 +254,8 @@ func TestStateList_backendOverrideState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "No state file was found!") {
-		t.Fatalf("expected a no state file error, got: %s", ui.ErrorWriter.String())
+	if !strings.Contains(done(t).Stderr(), "No state file was found!") {
+		t.Fatalf("expected a no state file error, got: %s", done(t).Stderr())
 	}
 }
 
@@ -266,11 +264,11 @@ func TestStateList_noState(t *testing.T) {
 	t.Chdir(tmp)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, _ := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -287,15 +285,17 @@ func TestStateList_modules(t *testing.T) {
 	t.Chdir(td)
 
 	p := testProvider()
-	ui := testUiWrapped(t)
+	view, _ := testView(t)
 	c := &StateListCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	t.Run("list resources in module and submodules", func(t *testing.T) {
+		view, done := testView(t)
+		c.Meta.View = view
 		args := []string{"module.nest"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: %d", code)
@@ -303,7 +303,7 @@ func TestStateList_modules(t *testing.T) {
 
 		// resources in the module and any submodules should be included in the outputs
 		expected := "module.nest.test_instance.nest\nmodule.nest.module.subnest.test_instance.subnest\n"
-		actual := ui.OutputWriter.String()
+		actual := done(t).Stdout()
 		if actual != expected {
 			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 		}
@@ -311,13 +311,14 @@ func TestStateList_modules(t *testing.T) {
 
 	t.Run("submodule has resources only", func(t *testing.T) {
 		// now get the state for a module that has no resources, only another nested module
-		ui.OutputWriter.Reset()
+		view, done := testView(t)
+		c.Meta.View = view
 		args := []string{"module.nonexist"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: %d", code)
 		}
 		expected := "module.nonexist.module.child.test_instance.child\n"
-		actual := ui.OutputWriter.String()
+		actual := done(t).Stdout()
 		if actual != expected {
 			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 		}
@@ -325,13 +326,14 @@ func TestStateList_modules(t *testing.T) {
 
 	t.Run("expanded module", func(t *testing.T) {
 		// finally get the state for a module with an index
-		ui.OutputWriter.Reset()
+		view, done := testView(t)
+		c.Meta.View = view
 		args := []string{"module.count"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: %d", code)
 		}
 		expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
-		actual := ui.OutputWriter.String()
+		actual := done(t).Stdout()
 		if actual != expected {
 			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
 		}
@@ -341,12 +343,13 @@ func TestStateList_modules(t *testing.T) {
 		// a module address selects every instance of a module call without
 		// an instance key, the same as an explicit wildcard
 		for _, addr := range []string{"module.count", "module.count[*]"} {
-			ui.OutputWriter.Reset()
+			view, done := testView(t)
+			c.Meta.View = view
 			if code := c.Run([]string{addr}); code != 0 {
 				t.Fatalf("%s: bad: %d", addr, code)
 			}
 			expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
-			actual := ui.OutputWriter.String()
+			actual := done(t).Stdout()
 			if actual != expected {
 				t.Fatalf("%s: Expected:\n%q\n\nTo equal: %q", addr, actual, expected)
 			}
@@ -357,42 +360,44 @@ func TestStateList_modules(t *testing.T) {
 		// a resource address only selects the resource in a single module
 		// instance, so a module call without an instance key in a resource
 		// address doesn't select any instance of an expanded module
-		ui.OutputWriter.Reset()
-		ui.ErrorWriter.Reset()
+		view, done := testView(t)
+		c.Meta.View = view
 		if code := c.Run([]string{"module.count.test_instance.count"}); code != 1 {
 			t.Fatalf("bad: %d", code)
 		}
-		if actual := ui.OutputWriter.String(); actual != "" {
+		output := done(t)
+		if actual := output.Stdout(); actual != "" {
 			t.Fatalf("unexpected output: %q", actual)
 		}
-		if got := ui.ErrorWriter.String(); !strings.Contains(got, "Unknown resource") {
+		if got := output.Stderr(); !strings.Contains(got, "Unknown resource") {
 			t.Fatalf("wrong error: %s", got)
 		}
 	})
 
 	t.Run("wildcard in a resource address", func(t *testing.T) {
-		ui.OutputWriter.Reset()
-		ui.ErrorWriter.Reset()
+		view, done := testView(t)
+		c.Meta.View = view
 		if code := c.Run([]string{"module.count[*].test_instance.count"}); code != 1 {
 			t.Fatalf("bad: %d", code)
 		}
-		if actual := ui.OutputWriter.String(); actual != "" {
+		output := done(t)
+		if actual := output.Stdout(); actual != "" {
 			t.Fatalf("unexpected output: %q", actual)
 		}
-		if got := ui.ErrorWriter.String(); !strings.Contains(got, "Invalid resource address") {
+		if got := output.Stderr(); !strings.Contains(got, "Invalid resource address") {
 			t.Fatalf("wrong error: %s", got)
 		}
 	})
 
 	t.Run("completely nonexistent module", func(t *testing.T) {
 		// finally get the state for a module with an index
-		ui.OutputWriter.Reset()
+		view, _ := testView(t)
+		c.Meta.View = view
 		args := []string{"module.notevenalittlebit"}
 		if code := c.Run(args); code != 1 {
 			t.Fatalf("bad: %d", code)
 		}
 	})
-
 }
 
 const testStateListOutput = `

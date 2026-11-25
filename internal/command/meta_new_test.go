@@ -67,7 +67,7 @@ func TestMeta_Input(t *testing.T) {
 			meta: &Meta{
 				input: true, // default
 				testingOverrides: &testingOverrides{
-					UIInput: ui.NewUIInputForTests(ui.UIInputOptions{}, nil, nil),
+					UIInput: ui.NewUIInputForTests(t, ui.UIInputOptions{}, nil),
 				},
 			},
 			expected: true,

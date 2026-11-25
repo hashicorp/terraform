@@ -11,6 +11,8 @@ import (
 type StatePull struct {
 	// Vars are the variable-related flags (-var, -var-file).
 	Vars *Vars
+
+	ViewType ViewType
 }
 
 // ParseStatePull processes CLI arguments, returning a StatePull value and
@@ -19,7 +21,8 @@ type StatePull struct {
 func ParseStatePull(args []string) (*StatePull, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	pull := &StatePull{
-		Vars: &Vars{},
+		Vars:     &Vars{},
+		ViewType: ViewHuman,
 	}
 
 	cmdFlags := extendedFlagSet("state pull", nil, nil, pull.Vars)
