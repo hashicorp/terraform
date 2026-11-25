@@ -450,7 +450,7 @@ func TestPartialExpandedAction(t *testing.T) {
 // mustParsePartialModuleInstance parses a module instance address which may
 // use the [*] wildcard for any instance key.
 func mustParsePartialModuleInstance(s string) ModuleInstance {
-	traversal, hclDiags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	traversal, hclDiags := hclsyntax.ParseTraversalAbsPattern([]byte(s), "", hcl.InitialPos)
 	if hclDiags.HasErrors() {
 		panic(hclDiags.Error())
 	}

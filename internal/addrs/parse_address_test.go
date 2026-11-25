@@ -165,7 +165,7 @@ func TestParseAddressInstanceKeys(t *testing.T) {
 
 func mustParseTraversalPattern(t *testing.T, s string) hcl.Traversal {
 	t.Helper()
-	traversal, diags := hclsyntax.ParseTraversalPartial([]byte(s), "", hcl.InitialPos)
+	traversal, diags := hclsyntax.ParseTraversalAbsPattern([]byte(s), "", hcl.InitialPos)
 	if diags.HasErrors() {
 		t.Fatalf("invalid traversal %q: %s", s, diags.Error())
 	}

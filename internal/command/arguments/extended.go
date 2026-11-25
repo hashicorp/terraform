@@ -122,7 +122,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	o.Targets = nil
 
 	for _, tr := range o.targetsRaw {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalPartial([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbsPattern([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -146,7 +146,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	}
 
 	for _, tr := range o.actionTargetsRaw {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalPartial([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbsPattern([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
 		if syntaxDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
