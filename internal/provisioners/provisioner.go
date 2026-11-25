@@ -4,9 +4,10 @@
 package provisioners
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Interface is the set of methods required for a resource provisioner plugin.
@@ -39,6 +40,10 @@ type Interface interface {
 	// Close shuts down the plugin process if applicable.
 	Close() error
 }
+
+// ProvisionerSchema is an overall container for all of the schemas defined
+// within a particular provisioner.
+type ProvisionerSchema GetSchemaResponse
 
 type GetSchemaResponse struct {
 	// Provisioner contains the schema for this provisioner.
