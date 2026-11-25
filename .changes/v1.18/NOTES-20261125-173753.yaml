@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'Terraform requires macOS 13 Ventura or later; support for previous versions has been discontinued (due to being built on Go 1.27 which imposes these requirements)'
+time: 2026-11-25T17:37:53.620298Z
+custom:
+    Issue: "39582"
