@@ -62,38 +62,23 @@ type InputRequesterForTest interface {
 
 	// Used for integration testing external to the ui package.
 	RemainingTestInputResponses() map[string]string
-
-	// Used for testing internal to the ui package.
-	getListening() int32
 }
 
 type UIInputOptions struct {
 	Colorize *colorstring.Colorize
-	Reader   io.Reader
-	Writer   io.Writer
 }
 
 func NewUIInput(opts UIInputOptions) InputRequester {
 	i := &uIInput{
 		Colorize: opts.Colorize,
-		Reader:   opts.Reader,
-		Writer:   opts.Writer,
 	}
 
 	i.once.Do(i.init)
 
-	// If a Reader or Writer wasn't provided, fall back to the OS standard streams.
-	r := i.Reader
-	w := i.Writer
-	if r == nil {
-		r = os.Stdin
-	}
-	if w == nil {
-		w = os.Stdout
-	}
-
-	i.Reader = r
-	i.Writer = w
+	// Always use stdin/stdout for input and output when
+	// the CLI is used in non-test scenarios.
+	i.Reader = os.Stdin
+	i.Writer = os.Stdout
 
 	return i
 }
@@ -102,8 +87,23 @@ func NewUIInput(opts UIInputOptions) InputRequester {
 func NewUIInputForTests(t *testing.T, opts UIInputOptions, testInputResponseMap map[string]string) InputRequesterForTest {
 	i := NewUIInput(opts).(*uIInput)
 
+	// Leave i.Reader set as stdin; tests will fail due to receiving only EOF input.
+
+	i.Writer = io.Discard // Use NewUIInputForTestsWithWriter if output shouldn't be discarded
+
 	// Input will be read from this map, instead of from stdin
 	i.testInputResponseMap = testInputResponseMap
+
+	return i
+}
+
+// NewUIInputForTests creates a new UI input instance for testing purposes, using the provided test input responses.
+// Also, prompts shown to the user will be printed to the provided writer.
+func NewUIInputForTestsWithWriter(t *testing.T, opts UIInputOptions, testInputResponseMap map[string]string, w io.Writer) InputRequesterForTest {
+	i := NewUIInputForTests(t, opts, testInputResponseMap).(*uIInput)
+
+	// Output usually written to stdout will go to this test-provided writer.
+	i.Writer = w
 
 	return i
 }
@@ -112,11 +112,6 @@ func NewUIInputForTests(t *testing.T, opts UIInputOptions, testInputResponseMap 
 func (i *uIInput) RemainingTestInputResponses() map[string]string {
 	// Entries are deleted as they are consumed.
 	return i.testInputResponseMap
-}
-
-// Implements InputRequesterForTest.
-func (i *uIInput) getListening() int32 {
-	return atomic.LoadInt32(&i.listening)
 }
 
 // Implements terraform.UIInput.
