@@ -407,6 +407,9 @@ func (b *deprecatedInmemBackend) PrepareConfig(obj cty.Value) (cty.Value, tfdiag
 func TestOutputRaw_warningsSuppressed(t *testing.T) {
 	// Pre-populate the inmem backend with a state containing an output value
 	inmem.Reset()
+
+	t.Cleanup(inmem.Reset)
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(
 			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
@@ -472,6 +475,9 @@ func TestOutputRaw_warningsSuppressed(t *testing.T) {
 func TestOutputJson_warningsSuppressed(t *testing.T) {
 	// Pre-populate the inmem backend with a state containing an output value
 	inmem.Reset()
+
+	t.Cleanup(inmem.Reset)
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(
 			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),

@@ -275,7 +275,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
 	t.Chdir(td)
-	defer inmem.Reset()
+	t.Cleanup(inmem.Reset)
 
 	s := states.NewState()
 	statePath := testStateFile(t, s)
