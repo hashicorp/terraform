@@ -65,7 +65,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 	invalidSemverProvider := addrs.MustParseProviderSourceString("example.com/awesomesauce/invalidsemver")
 	invalidSemverProviderDir := getproviders.PackageHTTPURL(fmt.Sprintf("%s/pkg/awesomesauce/invalidsemver_1.2.0.zip", baseDir))
 	h1Hash := getproviders.HashScheme1.New("z+Ic+uNhBTO9zbYfr9tAfhYw4R+rxOq8n7ivKlCOgPI=")
-	zipHash := getproviders.HashSchemeZip.New("d595832bf433c79cd90b447872d250be213d443080120899e965ab2b2cce0d4b")
+	zipHash := getproviders.HashSchemeZip.New("aeb1d79847b73ff5b8c8a98d271c5c5bf93f58e353eff08638a8ecb218ec3c2b")
 
 	tests := map[string]Test{
 		// The registry returns a mix of valid and invalid semver,

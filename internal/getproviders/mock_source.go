@@ -157,6 +157,10 @@ func FakeInstallablePackageMeta(t *testing.T, provider addrs.Provider, version V
 		return PackageMeta{}, err
 	}
 
+	filename := fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String())
+
+	t.Logf("created fake installable package %q with following checksum: %x", filename, checksum[:])
+
 	meta := PackageMeta{
 		Provider:         provider,
 		Version:          version,
@@ -170,7 +174,7 @@ func FakeInstallablePackageMeta(t *testing.T, provider addrs.Provider, version V
 		// intends to use it to name a local copy of the temporary file.
 		// (At the time of writing, no caller actually does that, but who
 		// knows what the future holds?)
-		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+		Filename: filename,
 
 		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}
