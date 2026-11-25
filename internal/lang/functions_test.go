@@ -108,7 +108,7 @@ func TestFunctions(t *testing.T) {
 		"base64gzip": {
 			{
 				`base64gzip("test")`,
-				cty.StringVal("H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA"),
+				cty.StringVal("H4sIAAAAAAAA/wAEAPv/dGVzdAAAAP//AwAMfn/YBAAAAA=="),
 			},
 		},
 
