@@ -5,6 +5,7 @@ package command
 
 import (
 	"bytes"
+	"crypto/fips140"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -396,6 +397,9 @@ func TestStateMv_stateStore(t *testing.T) {
 }
 
 func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{

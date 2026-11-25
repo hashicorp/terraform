@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"crypto/fips140"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -1252,6 +1253,9 @@ func TestApply_plan_noBackup(t *testing.T) {
 }
 
 func TestApply_plan_remoteState(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	tmp := t.TempDir()
 	t.Chdir(tmp)
 	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)

@@ -5,6 +5,7 @@ package command
 
 import (
 	"bytes"
+	"crypto/fips140"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -405,6 +406,9 @@ func (b *deprecatedInmemBackend) PrepareConfig(obj cty.Value) (cty.Value, tfdiag
 }
 
 func TestOutputRaw_warningsSuppressed(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Pre-populate the inmem backend with a state containing an output value
 	inmem.Reset()
 
@@ -473,6 +477,9 @@ func TestOutputRaw_warningsSuppressed(t *testing.T) {
 }
 
 func TestOutputJson_warningsSuppressed(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Pre-populate the inmem backend with a state containing an output value
 	inmem.Reset()
 

@@ -6,6 +6,7 @@ package command
 import (
 	"bytes"
 	"context"
+	"crypto/fips140"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -374,6 +375,9 @@ func TestPlan_outPathWithError(t *testing.T) {
 
 // When using "-out" with a backend, the plan should encode the backend config
 func TestPlan_outBackend(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-out-backend"), td)
@@ -487,6 +491,9 @@ func TestPlan_outBackend(t *testing.T) {
 // To test planning with a non-default workspace we need to use a backend that supports
 // workspaces. In this test the `inmem` backend is used.
 func TestPlan_outBackend_withWorkspace(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Create a temporary working directory
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-out-backend-workspace"), td)

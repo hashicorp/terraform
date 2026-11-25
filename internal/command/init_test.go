@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"context"
+	"crypto/fips140"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -6915,6 +6916,10 @@ func TestInit_uninitialized_stateStore(t *testing.T) {
 }
 
 func TestInit_backend_to_stateStore_singleWorkspace(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
+
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 
@@ -7360,6 +7365,9 @@ func TestInit_localBackend_to_stateStore(t *testing.T) {
 }
 
 func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 
@@ -7556,6 +7564,9 @@ func TestInit_backend_to_stateStore_multipleWorkspaces(t *testing.T) {
 }
 
 func TestInit_cloud_to_stateStore(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
 

@@ -5,6 +5,7 @@ package command
 
 import (
 	"bytes"
+	"crypto/fips140"
 	"strings"
 	"testing"
 
@@ -272,6 +273,9 @@ func TestStatePush_serialOlder(t *testing.T) {
 }
 
 func TestStatePush_forceRemoteState(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
 	t.Chdir(td)

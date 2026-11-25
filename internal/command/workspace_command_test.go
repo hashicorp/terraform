@@ -4,6 +4,7 @@
 package command
 
 import (
+	"crypto/fips140"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -596,6 +597,9 @@ func TestWorkspace_createInvalid(t *testing.T) {
 }
 
 func TestWorkspace_createWithState(t *testing.T) {
+	if fips140.Enabled() {
+		t.Skip("skipping in FIPS mode")
+	}
 	t.Run("success", func(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("inmem-backend"), td)
