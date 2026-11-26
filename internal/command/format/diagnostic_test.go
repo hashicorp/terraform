@@ -452,7 +452,7 @@ func TestDiagnostic(t *testing.T) {
 			got := strings.TrimSpace(Diagnostic(diag, sources, colorize, 40))
 			want := strings.TrimSpace(test.Want)
 
-			if diff := cmp.Diff(got, want); diff != "" {
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s\n\n", got, want, diff)
 			}
 		})
@@ -783,7 +783,7 @@ Countermeasures must be taken.
 			diag := diags[0]
 			got := strings.TrimSpace(DiagnosticPlain(diag, sources, 40))
 			want := strings.TrimSpace(test.Want)
-			if diff := cmp.Diff(got, want); diff != "" {
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n,diff:\n%s\n\n", got, want, diff)
 			}
 		})
