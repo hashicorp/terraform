@@ -600,7 +600,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("inmem-backend"), td)
 		t.Chdir(td)
-		defer inmem.Reset()
+		t.Cleanup(inmem.Reset)
 
 		// init the backend
 		view, done := testView(t)
@@ -675,7 +675,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 		td := t.TempDir()
 		testCopyDir(t, testFixturePath("inmem-backend"), td)
 		t.Chdir(td)
-		defer inmem.Reset()
+		t.Cleanup(inmem.Reset)
 
 		// init the backend
 		view, done := testView(t)

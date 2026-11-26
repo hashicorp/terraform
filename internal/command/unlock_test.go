@@ -68,7 +68,7 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	td := tempWorkingDirFixture(t, "backend-inmem-locked")
 	t.Chdir(td.RootModuleDir())
 
-	defer inmem.Reset()
+	t.Cleanup(inmem.Reset)
 
 	// init backend
 	view, done := testView(t)

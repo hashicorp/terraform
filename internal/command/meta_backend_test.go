@@ -46,6 +46,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/backend/pluggable"
+	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 )
 
@@ -2211,6 +2212,8 @@ func TestMetaBackend_backendConfigToExtra(t *testing.T) {
 func TestBackendFromState(t *testing.T) {
 	wd := tempWorkingDirFixture(t, "backend-from-state")
 	t.Chdir(wd.RootModuleDir())
+
+	t.Cleanup(inmem.Reset)
 
 	// Setup the meta
 	m := testMetaBackend(t)
