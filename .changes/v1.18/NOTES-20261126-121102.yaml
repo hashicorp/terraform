@@ -1,0 +1,5 @@
+kind: NOTES
+body: "builtin functions or configuration parsing which rely on Unicode tables may produce different results due to upgrade from Unicode 15 to Unicode 17. For example, `upper` may return different output for the same input if it contains a character that didn't have an uppercase version in Unicode 15 and now does."
+time: 2026-11-26T12:11:02.078642Z
+custom:
+    Issue: "39582"
