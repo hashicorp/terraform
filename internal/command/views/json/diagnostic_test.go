@@ -32,7 +32,7 @@ func TestNewDiagnostic(t *testing.T) {
   }
 }
 `),
-		"short.tf":       []byte("bad source code"),
+		"short.tf":       []byte(`bad_blk "one" "two"`),
 		"odd-comment.tf": []byte("foo\n\n#\n"),
 		"values.tf": []byte(`[
   var.a,
@@ -125,7 +125,7 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
+					Context:              new(`resource "test_resource" "test"`),
 					Code:                 `resource "test_resource" "test" {`,
 					StartLine:            1,
 					HighlightStartOffset: 9,
@@ -163,11 +163,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              nil,
-					Code:                 (`bad source code`),
-					StartLine:            (1),
-					HighlightStartOffset: (4),
-					HighlightEndOffset:   (9),
+					Context:              new(`bad_blk "one" "two"`),
+					Code:                 `bad_blk "one" "two"`,
+					StartLine:            1,
+					HighlightStartOffset: 4,
+					HighlightEndOffset:   9,
 					Values:               []DiagnosticExpressionValue{},
 				},
 			},
@@ -206,7 +206,7 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
+					Context:              new(`resource "test_resource" "test"`),
 					Code:                 "  bar = {\n    baz = maybe\n  }",
 					StartLine:            3,
 					HighlightStartOffset: 20,
@@ -222,8 +222,8 @@ func TestNewDiagnostic(t *testing.T) {
 				Detail:   "Please finish your thought",
 				Subject: &hcl.Range{
 					Filename: "short.tf",
-					Start:    hcl.Pos{Line: 1, Column: 16, Byte: 15},
-					End:      hcl.Pos{Line: 1, Column: 16, Byte: 15},
+					Start:    hcl.Pos{Line: 1, Column: 20, Byte: 19},
+					End:      hcl.Pos{Line: 1, Column: 20, Byte: 19},
 				},
 			},
 			&Diagnostic{
@@ -234,20 +234,21 @@ func TestNewDiagnostic(t *testing.T) {
 					Filename: "short.tf",
 					Start: Pos{
 						Line:   1,
-						Column: 16,
-						Byte:   15,
+						Column: 20,
+						Byte:   19,
 					},
 					End: Pos{
 						Line:   1,
-						Column: 17,
-						Byte:   16,
+						Column: 21,
+						Byte:   20,
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Code:                 ("bad source code"),
-					StartLine:            (1),
-					HighlightStartOffset: (15),
-					HighlightEndOffset:   (15),
+					Context:              new(`bad_blk "one" "two"`),
+					Code:                 `bad_blk "one" "two"`,
+					StartLine:            1,
+					HighlightStartOffset: 19,
+					HighlightEndOffset:   19,
 					Values:               []DiagnosticExpressionValue{},
 				},
 			},
@@ -281,7 +282,7 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
+					Context:              new(`resource "test_resource" "test"`),
 					Code:                 `resource "test_resource" "test" {`,
 					StartLine:            1,
 					HighlightStartOffset: 15,
@@ -378,11 +379,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values: []DiagnosticExpressionValue{
 						{
 							Traversal: `var.boop["hello!"]`,
@@ -436,11 +437,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values: []DiagnosticExpressionValue{
 						{
 							Traversal: `var.boop["hello!"]`,
@@ -493,11 +494,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values:               []DiagnosticExpressionValue{
 						// The sensitive value is filtered out because this is
 						// not a sensitive-value-related diagnostic message.
@@ -547,11 +548,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values: []DiagnosticExpressionValue{
 						{
 							Traversal: `var.boop`,
@@ -605,11 +606,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values: []DiagnosticExpressionValue{
 						{
 							Traversal: `var.boop["hello!"]`,
@@ -663,11 +664,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values: []DiagnosticExpressionValue{
 						{
 							Traversal: `var.boop["hello!"]`,
@@ -720,11 +721,11 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
-					Code:                 (`  foo = var.boop["hello!"]`),
-					StartLine:            (2),
-					HighlightStartOffset: (8),
-					HighlightEndOffset:   (25),
+					Context:              new(`resource "test_resource" "test"`),
+					Code:                 `  foo = var.boop["hello!"]`,
+					StartLine:            2,
+					HighlightStartOffset: 8,
+					HighlightEndOffset:   25,
 					Values:               []DiagnosticExpressionValue{
 						// The unknown value is filtered out because this is
 						// not an unknown-value-related diagnostic message.
@@ -901,7 +902,7 @@ func TestNewDiagnostic(t *testing.T) {
 					},
 				},
 				Snippet: &DiagnosticSnippet{
-					Context:              strPtr(`resource "test_resource" "test"`),
+					Context:              new(`resource "test_resource" "test"`),
 					Code:                 `resource "test_resource" "test" {`,
 					StartLine:            1,
 					HighlightStartOffset: 9,
@@ -969,11 +970,6 @@ func TestNewDiagnostic(t *testing.T) {
 		})
 	}
 }
-
-// Helper function to make constructing literal Diagnostics easier. There
-// are fields which are pointer-to-string to ensure that the rendered JSON
-// results in `null` for an empty value, rather than `""`.
-func strPtr(s string) *string { return &s }
 
 // diagnosticCausedByUnknown is a testing helper for exercising our logic
 // for selectively showing unknown values alongside our source snippets for

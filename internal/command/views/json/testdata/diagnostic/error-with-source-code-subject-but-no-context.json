@@ -16,8 +16,8 @@
     }
   },
   "snippet": {
-    "context": null,
-    "code": "bad source code",
+    "context": "bad_blk \"one\" \"two\"",
+    "code": "bad_blk \"one\" \"two\"",
     "start_line": 1,
     "highlight_start_offset": 4,
     "highlight_end_offset": 9,

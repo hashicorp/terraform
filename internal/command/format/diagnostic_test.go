@@ -67,15 +67,15 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 			},
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]
 [red]│[reset] Whatever shall we do?
 [red]╵[reset]
@@ -88,8 +88,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -106,8 +106,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] is "blah"
 [red]│[reset]
@@ -122,8 +122,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -141,8 +141,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] has a sensitive value
 [red]│[reset]
@@ -157,8 +157,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -176,8 +176,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] is a string, known only after apply
 [red]│[reset]
@@ -192,8 +192,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -211,8 +211,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] will be known only after apply
 [red]│[reset]
@@ -227,8 +227,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprLiteral(cty.True),
 				EvalContext: &hcl.EvalContext{
@@ -259,8 +259,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] while calling [bold]beep[reset](pos_param_0, pos_param_1, var_param...)
 [red]│[reset]
@@ -275,8 +275,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "LHS not equal to RHS",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: &hclsyntax.BinaryOpExpr{
 					Op: hclsyntax.OpEqual,
@@ -294,8 +294,8 @@ func TestDiagnostic(t *testing.T) {
 					},
 					SrcRange: hcl.Range{
 						Filename: "test.tf",
-						Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-						End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+						Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+						End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 					},
 				},
 				EvalContext: &hcl.EvalContext{
@@ -316,8 +316,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Test assertion failed[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]     [dark_gray]├────────────────[reset]
 [red]│[reset]     [dark_gray]│[reset] [bold]LHS[reset]:
 [red]│[reset]     [dark_gray]│[reset]   {
@@ -351,8 +351,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Example crash",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: &hclsyntax.FunctionCallExpr{
 					Name: "tobool",
@@ -373,8 +373,8 @@ func TestDiagnostic(t *testing.T) {
 							},
 							SrcRange: hcl.Range{
 								Filename: "test.tf",
-								Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-								End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+								Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+								End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 							},
 						},
 					},
@@ -400,8 +400,8 @@ func TestDiagnostic(t *testing.T) {
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Test assertion failed[reset]
 [red]│[reset]
-[red]│[reset]   on test.tf line 1:
-[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[red]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [red]│[reset]
 [red]│[reset] Example crash
 [red]╵[reset]
@@ -414,8 +414,8 @@ func TestDiagnostic(t *testing.T) {
 				Detail:   "Countermeasures must be taken.",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
 					OriginDescription: "module.foo.bar",
@@ -424,8 +424,8 @@ func TestDiagnostic(t *testing.T) {
 			`[yellow]╷[reset]
 [yellow]│[reset] [bold][yellow]Warning: [reset][bold]Deprecation detected[reset]
 [yellow]│[reset]
-[yellow]│[reset]   on test.tf line 1:
-[yellow]│[reset]    1: test [underline]source[reset] code
+[yellow]│[reset]   on test.tf line 1, in resource "foo" "bar":
+[yellow]│[reset]    1: resource "[underline]foo[reset]" "bar" {
 [yellow]│[reset]
 [yellow]│[reset]   The deprecation originates from module.foo.bar
 [yellow]│[reset]
@@ -436,8 +436,14 @@ func TestDiagnostic(t *testing.T) {
 	}
 
 	sources := map[string][]byte{
-		"test.tf":       []byte(`test source code`),
-		"deprecated.tf": []byte(`source of deprecation`),
+		"test.tf": []byte(`resource "foo" "bar" {
+  boo = "toot"
+}
+`),
+		"deprecated.tf": []byte(`terraform {
+  deprecated = true
+}
+`),
 	}
 
 	// This empty Colorize just passes through all of the formatting codes
@@ -452,7 +458,7 @@ func TestDiagnostic(t *testing.T) {
 			got := strings.TrimSpace(Diagnostic(diag, sources, colorize, 40))
 			want := strings.TrimSpace(test.Want)
 
-			if diff := cmp.Diff(got, want); diff != "" {
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s\n\n", got, want, diff)
 			}
 		})
@@ -500,15 +506,15 @@ wrap over multiple lines.
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 			},
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
 
 Whatever shall we do?
 `,
@@ -520,8 +526,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -538,8 +544,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
     ├────────────────
     │ boop.beep is "blah"
 
@@ -553,8 +559,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -572,8 +578,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
     ├────────────────
     │ boop.beep has a sensitive value
 
@@ -587,8 +593,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -605,8 +611,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
 
 Whatever shall we do?
 `,
@@ -618,8 +624,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -637,8 +643,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
     ├────────────────
     │ boop.beep is a string, known only after apply
 
@@ -652,8 +658,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -670,8 +676,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
     ├────────────────
     │ boop.beep is a string
 
@@ -685,8 +691,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -704,8 +710,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
     ├────────────────
     │ boop.beep will be known only after apply
 
@@ -719,8 +725,8 @@ Whatever shall we do?
 				Detail:   "Whatever shall we do?",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Expression: hcltest.MockExprTraversal(hcl.Traversal{
 					hcl.TraverseRoot{Name: "boop"},
@@ -737,8 +743,8 @@ Whatever shall we do?
 			`
 Error: Bad bad bad
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
 
 Whatever shall we do?
 `,
@@ -751,8 +757,8 @@ Whatever shall we do?
 				Detail:   "Countermeasures must be taken.",
 				Subject: &hcl.Range{
 					Filename: "test.tf",
-					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
-					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+					Start:    hcl.Pos{Line: 1, Column: 11, Byte: 10},
+					End:      hcl.Pos{Line: 1, Column: 14, Byte: 13},
 				},
 				Extra: &tfdiags.DeprecationOriginDiagnosticExtra{
 					OriginDescription: "module.foo.bar",
@@ -761,8 +767,8 @@ Whatever shall we do?
 			`
 Warning: Deprecation detected
 
-  on test.tf line 1:
-   1: test source code
+  on test.tf line 1, in resource "foo" "bar":
+   1: resource "foo" "bar" {
 
   The deprecation originates from module.foo.bar
 
@@ -772,8 +778,14 @@ Countermeasures must be taken.
 	}
 
 	sources := map[string][]byte{
-		"test.tf":       []byte(`test source code`),
-		"deprecated.tf": []byte(`source of deprecation`),
+		"test.tf": []byte(`resource "foo" "bar" {
+  boo = "toot"
+}
+`),
+		"deprecated.tf": []byte(`terraform {
+  deprecated = true
+}
+`),
 	}
 
 	for name, test := range tests {
@@ -783,7 +795,7 @@ Countermeasures must be taken.
 			diag := diags[0]
 			got := strings.TrimSpace(DiagnosticPlain(diag, sources, 40))
 			want := strings.TrimSpace(test.Want)
-			if diff := cmp.Diff(got, want); diff != "" {
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n,diff:\n%s\n\n", got, want, diff)
 			}
 		})
