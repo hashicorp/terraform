@@ -1,0 +1,5 @@
+kind: NOTES
+body: 'functions/base64gzip: Function may return different value for the same byte-to-byte input due to compression algorithm changes in Go 1.27'
+time: 2026-11-25T17:35:11.947635Z
+custom:
+    Issue: "39582"

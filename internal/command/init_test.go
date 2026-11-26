@@ -3284,7 +3284,7 @@ provider "registry.terraform.io/hashicorp/test" {
   version     = "1.2.3"
   constraints = "1.2.3"
   hashes = [
-    "zh:e919b507a91e23a00da5c2c4d0b64bcc7900b68d43b3951ac0f6e5d80387fbdc",
+    "zh:a9d10b3330a3ed4c1d35bb958f59994b4747050d7aafe9e9ef959845cf320db5",
   ]
 }
 `)
@@ -3311,7 +3311,7 @@ provider "registry.terraform.io/hashicorp/test" {
   constraints = "1.2.3"
   hashes = [
     "h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
-    "zh:e919b507a91e23a00da5c2c4d0b64bcc7900b68d43b3951ac0f6e5d80387fbdc",
+    "zh:a9d10b3330a3ed4c1d35bb958f59994b4747050d7aafe9e9ef959845cf320db5",
   ]
 }
 `)

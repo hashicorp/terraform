@@ -141,7 +141,7 @@ func TestBase64Gzip(t *testing.T) {
 	}{
 		{
 			cty.StringVal("test"),
-			cty.StringVal("H4sIAAAAAAAA/ypJLS4BAAAA//8BAAD//wx+f9gEAAAA"),
+			cty.StringVal("H4sIAAAAAAAA/wAEAPv/dGVzdAAAAP//AwAMfn/YBAAAAA=="),
 			false,
 		},
 	}

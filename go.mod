@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform
 
-go 1.26.11
+go 1.27.4
 
 godebug winsymlink=0
 
@@ -30,6 +30,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/hashicorp/go-slug v0.18.3
 	github.com/hashicorp/go-tfe v1.112.0
+	github.com/hashicorp/go-tfe/v2 v2.6.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.9.0
 	github.com/hashicorp/hcl v1.0.0
@@ -84,7 +85,7 @@ require (
 	google.golang.org/grpc v1.83.2
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.11
-	honnef.co/go/tools v0.6.0
+	honnef.co/go/tools v0.8.2
 )
 
 require (
@@ -195,7 +196,6 @@ require (
 	github.com/hashicorp/go-metrics v0.5.4 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
-	github.com/hashicorp/go-tfe/v2 v2.6.0
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/serf v0.10.2 // indirect
@@ -301,7 +301,6 @@ require (
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260924152758-ed294f943157 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	google.golang.org/api v0.271.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect
