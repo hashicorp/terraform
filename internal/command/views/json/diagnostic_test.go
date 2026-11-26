@@ -971,11 +971,6 @@ func TestNewDiagnostic(t *testing.T) {
 	}
 }
 
-// Helper function to make constructing literal Diagnostics easier. There
-// are fields which are pointer-to-string to ensure that the rendered JSON
-// results in `null` for an empty value, rather than `""`.
-func strPtr(s string) *string { return &s }
-
 // diagnosticCausedByUnknown is a testing helper for exercising our logic
 // for selectively showing unknown values alongside our source snippets for
 // diagnostics that are explicitly marked as being caused by unknown values.
