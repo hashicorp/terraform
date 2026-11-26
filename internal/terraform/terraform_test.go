@@ -667,17 +667,17 @@ aws_instance.foo.1:
   type = aws_instance
 `
 const testTerraformApplyForEachVariableStr = `
-aws_instance.foo["b15c6d616d6143248c575900dff57325eb1de498"]:
+aws_instance.foo["c729eaf54df19d13da8a6b99c6c977e5e804f60f398f36f5efae3031d15b6a23"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
   type = aws_instance
-aws_instance.foo["c3de47d34b0a9f13918dd705c141d579dd6555fd"]:
+aws_instance.foo["ceae2100344ee7981c4793ac92d55796e55409ebfe6121931fcc40bea0cee9ff"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
   type = aws_instance
-aws_instance.foo["e30a7edcc42a846684f2a4eea5f3cd261d33c46d"]:
+aws_instance.foo["f9c0aefd71d3bb8d503529fb7b1662e2f423b21e55db472041c5c653db4d8507"]:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = foo
