@@ -5,6 +5,7 @@ package ssh
 
 import (
 	"bytes"
+	"crypto/fips140"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -358,6 +359,29 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	conf := &ssh.ClientConfig{
 		HostKeyCallback: hkCallback,
 		User:            opts.user,
+	}
+
+	if fips140.Enabled() {
+		algos := []string{
+			// EXCLUDE mlkem768x25519-sha256
+			// EXCLUDE curve25519-sha256
+			ssh.KeyExchangeECDHP256,
+			ssh.KeyExchangeECDHP384,
+			ssh.KeyExchangeECDHP521,
+			ssh.KeyExchangeDH14SHA256,
+			ssh.KeyExchangeDH16SHA512,
+			ssh.KeyExchangeDHGEXSHA256,
+		}
+		ciphers := []string{
+			// EXCLUDE aes128-gcm@openssh.com
+			// EXCLUDE aes256-gcm@openssh.com
+			ssh.CipherChaCha20Poly1305,
+			ssh.CipherAES128CTR,
+			ssh.CipherAES192CTR,
+			ssh.CipherAES256CTR,
+		}
+		conf.KeyExchanges = algos
+		conf.Ciphers = ciphers
 	}
 
 	if opts.privateKey != "" {
