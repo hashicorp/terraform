@@ -1,5 +1,5 @@
 kind: NOTES
-body: We've restored behaviour to various commands to print a command's help text if there's an error due to bad CLi flags or argument values. This was accidentally removed between versions 1.15 and 1.18.
+body: Various commands' behaviour has been restored to print the command's help text if there's an error due to bad CLI flags or argument values. This was accidentally removed between versions 1.15 and 1.18.
 time: 2026-11-20T18:26:38.611069Z
 custom:
     Issue: "39574"

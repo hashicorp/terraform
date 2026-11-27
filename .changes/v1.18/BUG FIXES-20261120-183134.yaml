@@ -1,5 +1,5 @@
 kind: BUG FIXES
-body: "init: We've restored behaviour to show help text alongside errors caused by argument parsing. This was accidentally removed in v1.9"
+body: "init: This command's behaviour has been restored to show help text alongside errors caused by argument parsing. This was accidentally removed in v1.9"
 time: 2026-11-20T18:31:34.434989Z
 custom:
     Issue: "39574"
