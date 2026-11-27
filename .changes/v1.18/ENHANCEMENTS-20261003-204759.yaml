@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'backend/oss: Support CloudSSO, OAuth, External and ChainableRamRoleArn profiles, and refresh their credentials automatically'
+time: 2026-10-03T20:47:59.44152+08:00
+custom:
+    Issue: "39329"
