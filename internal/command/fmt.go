@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
@@ -69,6 +70,9 @@ func (c *FmtCommand) Run(args []string) int {
 	// Now the view is ready, process any error diagnostics from parsing arguments.
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
+		if parsedArgs.ViewType.IsHuman() {
+			return cli.RunResultHelp
+		}
 		return 1
 	}
 

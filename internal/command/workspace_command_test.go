@@ -1224,7 +1224,7 @@ func TestWorkspace_extraArgError(t *testing.T) {
 		"-no-color",
 		"extra-arg", // The list subcommand does not accept any arguments, so this should error
 	}
-	if code := listCmd.Run(args); code != 1 {
+	if code := listCmd.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n\n%s", code, done(t).All())
 	}
 	expectedError = "Error: Too many command line arguments. Did you mean to use -chdir?\n"

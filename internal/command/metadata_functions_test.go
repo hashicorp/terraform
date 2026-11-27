@@ -6,6 +6,8 @@ package command
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/hashicorp/cli"
 )
 
 func TestMetadataFunctions_error(t *testing.T) {
@@ -18,7 +20,7 @@ func TestMetadataFunctions_error(t *testing.T) {
 	}
 
 	// This test will always error because it's missing the -json flag
-	if code := c.Run(nil); code != 1 {
+	if code := c.Run(nil); code != cli.RunResultHelp {
 		t.Fatalf("expected error, got:\n%s", ui.OutputWriter.String())
 	}
 }

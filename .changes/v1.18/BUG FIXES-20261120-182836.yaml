@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'workspace list: This command now shows help text alongside errors caused by argument parsing.'
+time: 2026-11-20T18:28:36.853825Z
+custom:
+    Issue: "39574"

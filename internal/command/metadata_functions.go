@@ -4,6 +4,7 @@
 package command
 
 import (
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonfunction"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -37,7 +38,7 @@ func (c *MetadataFunctionsCommand) Run(rawArgs []string) int {
 		c.showDiagnostics(diags)
 		if !parsedArgs.JSON {
 			// Show help message if the -json flag is not provided
-			c.Ui.Error(c.Help())
+			return cli.RunResultHelp
 		}
 		return 1
 	}

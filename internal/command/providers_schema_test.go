@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/cli"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -37,7 +38,7 @@ func TestProvidersSchema_error(t *testing.T) {
 		},
 	}
 
-	if code := c.Run(nil); code != 1 {
+	if code := c.Run(nil); code != cli.RunResultHelp {
 		t.Fatalf("expected error: \n%s", done(t).All())
 	}
 }

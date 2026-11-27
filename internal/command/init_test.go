@@ -21,6 +21,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/cli"
 	version "github.com/hashicorp/go-version"
 	tfaddr "github.com/hashicorp/terraform-registry-address"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -362,7 +363,7 @@ func TestInit_multipleArgs(t *testing.T) {
 		"bad",
 		"bad",
 	}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: \n%s", done(t).All())
 	}
 
@@ -937,7 +938,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	args := []string{"-backend-config=", "./input.config"}
 	code := c.Run(args)
 	output := done(t)
-	if code != 1 {
+	if code != cli.RunResultHelp {
 		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, output.Stderr(), output.Stdout())
 	}
 
