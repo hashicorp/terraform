@@ -1255,6 +1255,36 @@ func TestOne(t *testing.T) {
 			cty.NumberIntVal(1).Mark("boop"),
 			"",
 		},
+		{
+			// A mark nested inside the element must stay on the nested
+			// attribute rather than being applied to the whole result.
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("shh").Mark("sensitive"),
+					"public": cty.StringVal("hello"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("shh").Mark("sensitive"),
+				"public": cty.StringVal("hello"),
+			}),
+			"",
+		},
+		{
+			// Marks on the collection and marks nested inside the element
+			// are each preserved at their own level.
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("shh").Mark("sensitive"),
+					"public": cty.StringVal("hello"),
+				}),
+			}).Mark("boop"),
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("shh").Mark("sensitive"),
+				"public": cty.StringVal("hello"),
+			}).Mark("boop"),
+			"",
+		},
 
 		{
 			cty.SetVal([]cty.Value{
@@ -1408,6 +1438,36 @@ func TestOne(t *testing.T) {
 				cty.NumberIntVal(1).Mark("boop"),
 			}),
 			cty.NumberIntVal(1).Mark("boop"),
+			"",
+		},
+		{
+			// A mark nested inside the element must stay on the nested
+			// attribute rather than being applied to the whole result.
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("shh").Mark("sensitive"),
+					"public": cty.StringVal("hello"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("shh").Mark("sensitive"),
+				"public": cty.StringVal("hello"),
+			}),
+			"",
+		},
+		{
+			// Marks on the collection and marks nested inside the element
+			// are each preserved at their own level.
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"secret": cty.StringVal("shh").Mark("sensitive"),
+					"public": cty.StringVal("hello"),
+				}),
+			}).Mark("boop"),
+			cty.ObjectVal(map[string]cty.Value{
+				"secret": cty.StringVal("shh").Mark("sensitive"),
+				"public": cty.StringVal("hello"),
+			}).Mark("boop"),
 			"",
 		},
 

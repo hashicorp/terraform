@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`one`: Preserve sensitivity of nested values instead of marking the whole returned value as sensitive'
+time: 2026-11-23T18:06:25.226895+01:00
+custom:
+    Issue: "39578"
