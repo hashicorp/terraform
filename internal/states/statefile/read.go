@@ -100,7 +100,7 @@ func readState(src []byte) (*File, error) {
 		return nil, errUnusable(diags.Err())
 	}
 
-	version, versionDiags := sniffJSONStateVersion(src)
+	version, current, versionDiags := sniffJSONStateMaybeCurrent(src)
 	diags = diags.Append(versionDiags)
 	if versionDiags.HasErrors() {
 		// This is the last point where there's a really good chance it's not a
@@ -125,7 +125,12 @@ func readState(src []byte) (*File, error) {
 	case 3:
 		result, diags = readStateV3(src)
 	case 4:
-		result, diags = readStateV4(src)
+		if current != nil {
+			result, diags = prepareStateV4(current)
+		} else {
+			result, diags = readStateV4(src)
+		}
+
 	default:
 		thisVersion := tfversion.SemVer.String()
 		creatingVersion := sniffJSONStateTerraformVersion(src)
@@ -150,6 +155,32 @@ func readState(src []byte) (*File, error) {
 	}
 
 	return result, err
+}
+
+// sniffJSONStateMaybeCurrent returns the version,  a stateV4-object if it unmarshalled without error, and diags.
+func sniffJSONStateMaybeCurrent(src []byte) (uint64, *stateV4, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	type VersionV4 struct {
+		Version *uint64 `json:"version"`
+		stateV4
+	}
+	var sniff VersionV4
+	// fall back to the generic state handling if there is an error, as malformed state can hide an invalid version
+	if err := json.Unmarshal(src, &sniff); err != nil {
+		version, diags := sniffJSONStateVersion(src)
+		return version, nil, diags
+	}
+
+	if sniff.Version == nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			unsupportedFormat,
+			"The state file does not have a \"version\" attribute, which is required to identify the format version.",
+		))
+		return 0, nil, diags
+	}
+
+	return *sniff.Version, &sniff.stateV4, diags
 }
 
 func sniffJSONStateVersion(src []byte) (uint64, tfdiags.Diagnostics) {
