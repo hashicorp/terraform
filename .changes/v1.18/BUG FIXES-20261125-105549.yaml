@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'backend/s3: Fixed state locking with `use_lockfile` failing immediately instead of waiting for `-lock-timeout`'
+time: 2026-11-25T10:55:49.77452Z
+custom:
+    Issue: "39580"

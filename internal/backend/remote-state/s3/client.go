@@ -22,6 +22,7 @@ import (
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	baselogging "github.com/hashicorp/aws-sdk-go-base/v2/logging"
 	"github.com/hashicorp/go-hclog"
 	uuid "github.com/hashicorp/go-uuid"
@@ -386,10 +387,20 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 	log.Debug("Uploading lock file")
 
 	uploader := manager.NewUploader(c.s3Client)
-	_, err = uploader.Upload(ctx, input)
-	if err != nil {
+	for attempt := 1; ; attempt++ {
+		input.Body = bytes.NewReader(lockFileJson)
+		_, err = uploader.Upload(ctx, input)
+		if err == nil {
+			return nil
+		}
+
 		// Attempt to retrieve lock info from the file, and merge errors if it fails.
 		lockInfo, infoErr := c.getLockInfoWithFile(ctx)
+		if isConditionalWriteRejected(err) && IsA[*s3types.NoSuchKey](infoErr) && attempt < lockFileAttempts {
+			// The holder released the lock between the rejected write and the read, so it is free.
+			log.Debug("Lock file was released while acquiring the lock, retrying")
+			continue
+		}
 		if infoErr != nil {
 			err = errors.Join(err, infoErr)
 		}
@@ -399,8 +410,24 @@ func (c *RemoteClient) lockWithFile(ctx context.Context, info *statemgr.LockInfo
 			Info: lockInfo,
 		}
 	}
+}
 
-	return nil
+// lockFileAttempts bounds how many times lockWithFile writes the lock file when each rejected
+// write finds the lock already released.
+const lockFileAttempts = 5
+
+// isConditionalWriteRejected reports whether err is S3 refusing a conditional write because the
+// object exists (412) or a concurrent conditional write is in progress (409).
+func isConditionalWriteRejected(err error) bool {
+	apiErr, ok := As[smithy.APIError](err)
+	if !ok {
+		return false
+	}
+	switch apiErr.ErrorCode() {
+	case "PreconditionFailed", "ConditionalRequestConflict":
+		return true
+	}
+	return false
 }
 
 func (c *RemoteClient) lockWithDynamoDB(ctx context.Context, info *statemgr.LockInfo) error {
