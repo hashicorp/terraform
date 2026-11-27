@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/grpc"
 	gproto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
@@ -183,7 +184,7 @@ func TestClientEvaluate(t *testing.T) {
 				callbackRegistry: registry,
 			}
 
-			resp := c.EvaluateResource(ctx, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+			resp := c.EvaluateResource(ctx, EvaluationRequest[*proto.ResourceMetadata]{
 				Target:     "test_resource",
 				Attrs:      test.attrs,
 				PriorAttrs: test.priorAttrs,
@@ -528,5 +529,110 @@ func TestClientSetupEntitlement(t *testing.T) {
 				t.Fatalf("unexpected entitlement: got %+v, want %+v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestClientSetupRelationships(t *testing.T) {
+	for name, tc := range map[string]struct {
+		severity         proto.Severity
+		invalidReference bool
+		wantConfig       bool
+	}{
+		"prepared configuration": {wantConfig: true},
+		"invalid reference":      {invalidReference: true},
+		"server error":           {severity: proto.Severity_ERROR},
+		"server warning":         {severity: proto.Severity_WARNING, wantConfig: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			capabilities := &proto.PolicySetupResponse_ServerCapabilities{
+				Relationships:         []*proto.Relationship{setupDefinition("a_b", "a", "b")},
+				ResourceRelationships: []*proto.ResourceRelationships{{ResourceType: "a", References: []*proto.ResourceRelationships_Reference{{Relationship: "a_b"}}}},
+			}
+			if tc.invalidReference {
+				capabilities.ResourceRelationships[0].References[0].Relationship = "unknown"
+			}
+			wire := &proto.PolicySetupResponse{ServerCapabilities: capabilities}
+			if tc.severity == proto.Severity_ERROR || tc.severity == proto.Severity_WARNING {
+				wire.Diagnostics = []*proto.Diagnostic{{Severity: tc.severity, Summary: "setup diagnostic"}}
+			}
+			var gotReq *proto.PolicySetupRequest
+			c := &client{client: &stubPolicyClient{setupFn: func(req *proto.PolicySetupRequest) (*proto.PolicySetupResponse, error) {
+				gotReq = req
+				return wire, nil
+			}}}
+			response := c.Setup(t.Context(), SetupRequest{})
+			config := c.Config()
+			if gotReq == nil || gotReq.ClientCapabilities == nil || !gotReq.ClientCapabilities.Relationships {
+				t.Fatal("Setup must advertise relationship support")
+			}
+			if (config != nil) != tc.wantConfig || response.Config() != config || response.Diagnostics.HasErrors() == tc.wantConfig {
+				t.Fatalf("unexpected configuration publication: config=%#v diagnostics=%#v", config, response.Diagnostics)
+			}
+			if wire.Diagnostics != nil && len(response.Diagnostics) != 1 {
+				t.Fatal("Setup discarded server diagnostics")
+			}
+			if config == nil {
+				return
+			}
+
+			// Getters reuse the prepared snapshot, not the mutable wire input.
+			capabilities.Relationships[0].Name = "changed"
+			capabilities.Relationships[0].Matches[0].Keys[0].KeyPath.Steps[0].Selector = nil
+			capabilities.ResourceRelationships[0].References[0].Relationship = "undefined"
+			if c.Config() != config || response.Config() != config || config.Definitions["a_b"].Name != "a_b" || config.Relationships["a"][0].Name != "a_b" || !config.Definitions["a_b"].Matches[0][0].KeyPath.Equals(cty.GetAttrPath("id")) {
+				t.Fatal("prepared configuration depends on mutable wire input")
+			}
+		})
+	}
+}
+
+func TestClientEvaluateRelations(t *testing.T) {
+	ctx := t.Context()
+
+	var gotReq *proto.PolicyEvaluateResourceRequest
+	c := &client{
+		callbackRegistry: callback.NewRegistry(),
+		client: &stubPolicyClient{
+			evaluateResourceFn: func(req *proto.PolicyEvaluateResourceRequest) (*proto.PolicyEvaluateResourceResponse, error) {
+				gotReq = req
+				return &proto.PolicyEvaluateResourceResponse{Result: proto.EvaluateResult_ALLOW_EVALUATE_RESULT}, nil
+			},
+		},
+	}
+
+	c.EvaluateResource(ctx, EvaluationRequest[*proto.ResourceMetadata]{
+		Target:     "aws_lb",
+		Identifier: "aws_lb.web",
+		Relations: []Relation{
+			{
+				Relationship: "load_balancer_listeners",
+				Complete:     true,
+				Resources: map[string][]Relation{
+					"aws_lb_listener.https": {
+						{Relationship: "listener_rules", Resources: map[string][]Relation{}},
+					},
+				},
+			},
+		},
+	})
+
+	want := []*proto.Relation{
+		{
+			Relationship: "load_balancer_listeners",
+			Complete:     true,
+			Resources: map[string]*proto.RelatedResource{
+				"aws_lb_listener.https": {
+					Relationships: []*proto.Relation{
+						{Relationship: "listener_rules", Resources: map[string]*proto.RelatedResource{}},
+					},
+				},
+			},
+		},
+	}
+	if gotReq.Identifier != "aws_lb.web" {
+		t.Fatalf("wrong identifier: got %q, want %q", gotReq.Identifier, "aws_lb.web")
+	}
+	if diff := cmp.Diff(want, gotReq.Relationships, protocmp.Transform()); diff != "" {
+		t.Fatalf("wrong relationships (-want +got):\n%s", diff)
 	}
 }

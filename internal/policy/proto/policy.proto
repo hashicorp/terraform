@@ -33,9 +33,11 @@ service Policy {
 message PolicySetupRequest {
 
   // ClientCapabilities are the set of capabilities the client supports.
-  // At launch, this is empty as we don't have any backwards or forwards
-  // compatibility concerns to worry about.
-  message ClientCapabilities {}
+  message ClientCapabilities {
+    // relationships is true when the client can send related resources with
+    // EvaluateResource.
+    bool relationships = 1;
+  }
 
   // Entitlement carries the host, token, and org the plugin uses to verify
   // policy-enforcement entitlement at Setup.
@@ -73,6 +75,12 @@ message PolicySetupResponse {
   message ServerCapabilities {
     // All loaded terraform_configuration blocks keyed by Policy file path.
     map<string, TerraformConfiguration> configurations = 1;
+
+    // Shared definitions, with each relationship name defined once.
+    repeated Relationship relationships = 2;
+
+    // Reference trees only for resource types whose policies follow relationships.
+    repeated ResourceRelationships resource_relationships = 3;
   }
 
   // service_capabilities will be populated by the server to indicate which
@@ -106,11 +114,78 @@ message PolicyEvaluateResourceRequest {
   // prior_attrs contains the state of the resource prior to the current operation.
   ResourceAttributes prior_attrs = 5;
 
-  message ResourceMetadata {
-    string provider_type = 1;
-    Operation operation = 2;
-    string module_path = 3;
+  // identifier uniquely identifies the resource being evaluated within a walk.
+  string identifier = 6;
+
+  // relationships contains one Relation per Reference at the top of the
+  // tree for the resource's type.
+  repeated Relation relationships = 7;
+}
+
+// Relationship relates resources of two types.
+message Relationship {
+  // name is the name of the relationship, e.g. load_balancer_listeners.
+  string name = 1;
+
+  // key_type is the type on the left of each key, e.g. aws_lb.
+  string key_type = 2;
+
+  // value_type is the type on the right of each key, e.g. aws_lb_listener.
+  string value_type = 3;
+
+  // Two resources are related when any one Match matches.
+  repeated Match matches = 4;
+
+  // The prototype embedded nested definitions here. Nesting now belongs to
+  // ResourceRelationships.Reference instead.
+  reserved 5;
+  reserved "relationships";
+
+  // Match matches when every Key matches.
+  message Match {
+    repeated Key keys = 1;
   }
+
+  message Key {
+    // key_path is an attribute of the key type, e.g. arn.
+    AttributePath key_path = 1;
+
+    // value_path is an attribute of the value type, e.g. load_balancer_arn.
+    AttributePath value_path = 2;
+  }
+}
+
+// ResourceRelationships describes how policies for one resource type use the
+// shared relationship definitions. Each resource type has at most one entry.
+message ResourceRelationships {
+  string resource_type = 1;
+  repeated Reference references = 2;
+
+  // Reference names a shared definition and describes the next traversal level.
+  // The tree is finite even when relationships connect cyclic resource graphs.
+  message Reference {
+    string relationship = 1;
+    repeated Reference references = 2;
+  }
+}
+
+// Relation contains the resources related by a Relationship.
+message Relation {
+  // relationship is the name of the Relationship.
+  string relationship = 1;
+
+  // resources are keyed by identifier, e.g. aws_lb_listener.https.
+  map<string, RelatedResource> resources = 2;
+
+  // complete is false when Terraform can't be sure it has found every
+  // related resource.
+  bool complete = 3;
+}
+
+// RelatedResource contains one Relation per Reference nested under the
+// one that reached it.
+message RelatedResource {
+  repeated Relation relationships = 1;
 }
 
 // PolicyEvaluationDetail contains detailed information about a single policy evaluation

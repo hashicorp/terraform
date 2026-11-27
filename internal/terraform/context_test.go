@@ -609,6 +609,7 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 						Computed: true,
 					},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{},
 			},
 			name + "_eip": {
 				Attributes: map[string]*configschema.Attribute{

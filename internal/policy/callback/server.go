@@ -87,6 +87,21 @@ func (s *Server) GetDataSource(ctx context.Context, request *proto.GetDataSource
 	}, nil
 }
 
+func (s *Server) GetResourcesByIdentifier(ctx context.Context, request *proto.GetResourcesByIdentifierRequest) (*proto.GetResourcesByIdentifierResponse, error) {
+	functions, ok := s.Registry.Get(request.EvaluationRequestId)
+	if !ok {
+		return nil, fmt.Errorf("no callback registered for ID %d (request type: GetResourcesByIdentifier)", request.EvaluationRequestId)
+	}
+	if functions.GetResourcesByIdentifier == nil {
+		return nil, fmt.Errorf("GetResourcesByIdentifier callback unavailable for ID %d", request.EvaluationRequestId)
+	}
+	resources, err := functions.GetResourcesByIdentifier(ctx, request.Identifiers)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.GetResourcesByIdentifierResponse{Resources: resources}, nil
+}
+
 func (s *Server) Stop() {
 	if s.Grpc != nil {
 		s.Grpc.GracefulStop()

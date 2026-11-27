@@ -26,8 +26,8 @@ type MockClient struct {
 	// Evaluate method tracking
 	EvaluateCalled   bool
 	EvaluateResponse *EvaluationResponse
-	EvaluateRequest  EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]
-	EvaluateFn       func(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
+	EvaluateRequest  EvaluationRequest[*proto.ResourceMetadata]
+	EvaluateFn       func(context.Context, EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse
 
 	// EvaluateProvider method tracking
 	EvaluateProviderCalled   bool
@@ -40,6 +40,9 @@ type MockClient struct {
 	EvaluateModuleResponse *EvaluationResponse
 	EvaluateModuleRequest  EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]
 	EvaluateModuleFn       func(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+
+	// ConfigValue is returned by Config.
+	ConfigValue *Config
 
 	// Stop method tracking
 	StopCalled bool
@@ -67,7 +70,7 @@ func (p *MockClient) Setup(ctx context.Context, req SetupRequest) (resp SetupRes
 	return resp
 }
 
-func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) (resp EvaluationResponse) {
+func (p *MockClient) EvaluateResource(ctx context.Context, r EvaluationRequest[*proto.ResourceMetadata]) (resp EvaluationResponse) {
 	defer p.beginWrite()()
 
 	p.EvaluateCalled = true
@@ -113,6 +116,10 @@ func (p *MockClient) EvaluateModule(ctx context.Context, r EvaluationRequest[*pr
 	}
 
 	return resp
+}
+
+func (p *MockClient) Config() *Config {
+	return p.ConfigValue
 }
 
 func (p *MockClient) Stop() {

@@ -308,7 +308,7 @@ func TestApply_WithPolicyClientStopAfterApply(t *testing.T) {
 	policyClient.StopFn = func() {
 		stopCalled.Store(true)
 	}
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		policyEvaluated.Store(true)
 		if stopCalled.Load() {
 			t.Fatal("policy client Stop was called before apply finished")
@@ -433,7 +433,7 @@ func TestApply_WithPlanPolicyDiagnosticsJSON(t *testing.T) {
 		return policy.EvaluationFromProtoResponse(result, []*proto.PolicyEvaluationDetail{detail})
 	}
 
-	policyClient.EvaluateFn = func(ctx context.Context, er policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, er policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		// This is what is returned during the post-plan policy evaluation
 		if !er.Attrs.Raw.GetAttr("id").IsWhollyKnown() {
 			return evalRespFn(proto.EvaluateResult_DENY_EVALUATE_RESULT)

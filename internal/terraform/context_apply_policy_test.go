@@ -161,7 +161,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 	}
 	actualPlan := make(map[string]cty.Value)
 
-	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		var actualVal cty.Value
 		attrs := req.Attrs
 		target := req.Target
@@ -253,7 +253,7 @@ func TestContext2Apply_PolicyEvaluation_Full(t *testing.T) {
 	}
 	actualApply := make(map[string]cty.Value)
 
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
@@ -405,7 +405,7 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 		}),
 	}
 
-	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
@@ -458,7 +458,7 @@ func TestContext2Apply_PolicyEvaluationError(t *testing.T) {
 	}
 
 	// Track which resource we're evaluating for different responses
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		var actual cty.Value
 		attrs := req.Attrs
 		target := req.Target
@@ -526,7 +526,7 @@ func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
 		name             string
 		applyResourceFn  func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 		expectPolicyCall bool
-		assertPolicyReq  func(*testing.T, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata])
+		assertPolicyReq  func(*testing.T, policy.EvaluationRequest[*proto.ResourceMetadata])
 		expectDiags      tfdiags.Diagnostics
 	}{
 		{
@@ -540,13 +540,13 @@ func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
 				}
 			},
 			expectPolicyCall: true,
-			assertPolicyReq: func(t *testing.T, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) {
+			assertPolicyReq: func(t *testing.T, req policy.EvaluationRequest[*proto.ResourceMetadata]) {
 				t.Helper()
 
 				if req.Target != "ephem_write_only" {
 					t.Fatalf("unexpected policy target %q", req.Target)
 				}
-				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+				if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 					ProviderType: "ephem",
 					Operation:    proto.Operation_UPDATE,
 				}, protocmp.Transform()); diff != "" {
@@ -676,7 +676,7 @@ func TestContext2Apply_PolicyEvaluation_WriteOnly(t *testing.T) {
 			tfdiags.AssertNoDiagnostics(t, diags)
 
 			applyPolicyClient := policy.NewTestMockClient(t)
-			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				if tc.assertPolicyReq != nil {
 					tc.assertPolicyReq(t, req)
 				}
@@ -768,10 +768,10 @@ func TestContext2Apply_PolicyEvaluation_NoResourceAfterPolicy(t *testing.T) {
 	tfdiags.AssertNoDiagnostics(t, diags)
 
 	applyPolicyClient := policy.NewTestMockClient(t)
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		policyRan.Store(true)
 
-		if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+		if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 			ProviderType: "test",
 			Operation:    proto.Operation_CREATE,
 		}, protocmp.Transform()); diff != "" {
@@ -902,12 +902,12 @@ resource "test_resource" "test" {
 
 			applyPolicyClient := policy.NewTestMockClient(t)
 			var called int
-			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				called++
 				if req.Target != tc.expectTarget {
 					t.Fatalf("expected target %s, got %s", tc.expectTarget, req.Target)
 				}
-				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+				if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 					ProviderType: "test",
 					Operation:    tc.expectOp,
 				}, protocmp.Transform()); diff != "" {
@@ -1017,9 +1017,9 @@ func TestContext2Apply_PolicyEvaluation_NoOpOperation(t *testing.T) {
 
 			applyPolicyClient := policy.NewTestMockClient(t)
 			var evaluateCalled int
-			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				evaluateCalled++
-				if diff := cmp.Diff(req.Meta, &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+				if diff := cmp.Diff(req.Meta, &proto.ResourceMetadata{
 					ProviderType: "test",
 					Operation:    proto.Operation_NO_OP,
 				}, protocmp.Transform()); diff != "" {
@@ -1131,7 +1131,7 @@ func TestContext2Apply_PolicyEvaluation_ReplaceOperation(t *testing.T) {
 
 	applyPolicyClient := policy.NewTestMockClient(t)
 	ops := make([]proto.Operation, 0, 2)
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		ops = append(ops, req.Meta.Operation)
 		if diff := cmp.Diff(req.Meta.ProviderType, "test"); diff != "" {
 			t.Fatalf("unexpected resource metadata (-got +want):\n%s", diff)
@@ -1246,7 +1246,7 @@ func TestContext2Apply_PolicyEvaluation_PartialApply(t *testing.T) {
 
 	applyPolicyClient := policy.NewTestMockClient(t)
 	evaluatedPolicyValues := map[string]struct{}{}
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		if req.Attrs.Raw.Type().IsObjectType() && !req.Attrs.Raw.IsNull() {
 			evaluatedPolicyValues[req.Attrs.Raw.GetAttr("value").AsString()] = struct{}{}
 		}
@@ -1315,7 +1315,7 @@ func TestContext2Apply_PolicyEvaluation_Destroy(t *testing.T) {
 	planPolicyClient := policy.NewTestMockClient(t)
 	var planEvalCalled int
 
-	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		planEvalCalled++
 
 		if req.Target != "test_resource" {
@@ -1372,7 +1372,7 @@ func TestContext2Apply_PolicyEvaluation_Destroy(t *testing.T) {
 	applyPolicyClient := policy.NewTestMockClient(t)
 	var applyEvalCalled int
 
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		applyEvalCalled++
 
 		if req.Target != "test_resource" {
@@ -1466,7 +1466,7 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 	// The plan policy client allows everything; the callback assertions run
 	// during apply only.
 	planPolicyClient := policy.NewTestMockClient(t)
-	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
@@ -1474,7 +1474,7 @@ func TestContext2Apply_PolicyCallback(t *testing.T) {
 	results := make(map[string]callbackResult)
 
 	applyPolicyClient := policy.NewTestMockClient(t)
-	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		cr := callbackResult{}
 
 		if req.Callbacks.GetResources == nil {
@@ -1638,13 +1638,13 @@ func TestContext2Apply_PolicyCallback_GetDataSource(t *testing.T) {
 
 			// The plan policy client allows everything; the callback assertions run during apply only.
 			planPolicyClient := policy.NewTestMockClient(t)
-			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}
 
 			var gotResults []callbackResult
 			applyPolicyClient := policy.NewTestMockClient(t)
-			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				result, deferred, err := req.Callbacks.GetDataSource(t.Context(), tc.targetDataSource, tc.dataSourceReqConfig)
 				if err != nil {
 					if !strings.Contains(err.Error(), tc.expectedErr) {
@@ -1861,13 +1861,13 @@ func TestContext2Apply_PolicyCallback_GetResources_Deferral(t *testing.T) {
 
 			// The plan policy client allows everything; the callback assertions run during apply only.
 			planPolicyClient := policy.NewTestMockClient(t)
-			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			planPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}
 
 			gotResults := make([]callbackResult, 0)
 			applyPolicyClient := policy.NewTestMockClient(t)
-			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			applyPolicyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				cr := callbackResult{}
 
 				matches, partial, err := req.Callbacks.GetResources(t.Context(), "test_resource", cty.NullVal(cty.DynamicPseudoType))
@@ -1977,7 +1977,7 @@ func TestContext2Apply_PolicySpanParentage(t *testing.T) {
 
 	// Plan with an allow-all client (no spans needed during plan here).
 	planClient := policy.NewTestMockClient(t)
-	planClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	planClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
 
@@ -1986,7 +1986,7 @@ func TestContext2Apply_PolicySpanParentage(t *testing.T) {
 	// context), which acquireRun parents on the caller context we set below.
 	var evaluateSpanContext trace.SpanContext
 	applyClient := policy.NewTestMockClient(t)
-	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		_, span := otel.Tracer("test").Start(ctx, "policy.client.evaluate_resource")
 		evaluateSpanContext = span.SpanContext()
 		span.End()
@@ -2145,7 +2145,7 @@ func TestContext2Apply_PolicyPhaseSpanOutlivesEvaluations(t *testing.T) {
 	// per-resource span under the phase span, invokes a callback to nest a
 	// further span, then does some work.
 	applyClient := policy.NewTestMockClient(t)
-	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	applyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		spanCtx, span := otel.Tracer("test").Start(ctx, "policy.client.evaluate_resource")
 		defer span.End()
 

@@ -7,9 +7,14 @@ package proto;
 
 option go_package = "github.com/hashicorp/terraform-policy-plugin/proto";
 
+import "diagnostics.proto";
+import "policy.proto";
+import "types.proto";
+
 service CallbackService {
   rpc GetResources(GetResourcesRequest) returns (GetResourcesResponse);
   rpc GetDataSource(GetDataSourceRequest) returns (GetDataSourceResponse);
+  rpc GetResourcesByIdentifier(GetResourcesByIdentifierRequest) returns (GetResourcesByIdentifierResponse);
 }
 
 message GetResourcesRequest {
@@ -41,4 +46,29 @@ message GetDataSourceResponse {
   bytes result = 1;
   // deferred indicates that the data source read was deferred during evaluation.
   bool deferred = 2;
+}
+
+message GetResourcesByIdentifierRequest {
+  // evaluation_request_id is the ID of the policy evaluation request that is
+  // making this callback request.
+  uint32 evaluation_request_id = 1;
+
+  // identifiers are the identifiers Terraform sent with EvaluateResource.
+  repeated string identifiers = 2;
+}
+
+message GetResourcesByIdentifierResponse {
+  // resources contains one Resource per requested identifier.
+  repeated Resource resources = 1;
+  repeated Diagnostic diagnostics = 2;
+
+  message Resource {
+    string identifier = 1;
+
+    // type is the resource type, e.g. aws_lb_listener.
+    string type = 2;
+    ResourceMetadata metadata = 3;
+    ResourceAttributes attrs = 4;
+    ResourceAttributes prior_attrs = 5;
+  }
 }

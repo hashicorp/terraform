@@ -43,7 +43,7 @@ func (t *policyEvalTransformer) Transform(g *Graph) error {
 		}
 
 		// In query mode, policyNode only needs to depend on list block nodes since
-		// those are the only vertices that populate the policy subgraph via ctx.PolicyGraph().AddQuery.
+		// those are the only vertices that populate the policy evaluation graph via ctx.PolicyState().addQueryNode.
 		// All other vertices are skipped.
 		if t.QueryPlan {
 			if res, ok := v.(GraphNodeConfigResource); ok {

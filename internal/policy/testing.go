@@ -9,7 +9,7 @@ import (
 
 func NewTestMockClient(t *testing.T) *MockClient {
 
-	ret := &MockClient{}
+	ret := &MockClient{ConfigValue: &Config{}}
 
 	ret.EvaluateProviderResponse = &EvaluationResponse{Overall: AllowResult}
 	ret.EvaluateResponse = &EvaluationResponse{Overall: AllowResult}

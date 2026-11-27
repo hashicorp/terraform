@@ -24,18 +24,20 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
-func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.PolicyEvaluateResourceRequest_ResourceMetadata, callbacks callback.Functions) policy.EvaluationResponse {
+func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config *configs.Resource, attrs, priorAttrs cty.Value, meta *proto.ResourceMetadata, relations []policy.Relation, callbacks callback.Functions) policy.EvaluationResponse {
 	// We want a per-resource parent span so we can reason about the evaluation of individual
 	// resources in the trace
 	evalCtx := ctx.StopCtx()
-	if pg := ctx.PolicyGraph(); pg != nil {
+	if pg := ctx.PolicyState(); pg != nil {
 		if phaseSpan := pg.span; phaseSpan != nil {
 			evalCtx = trace.ContextWithSpan(evalCtx, phaseSpan)
 		}
 	}
 
-	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]{
+	result := ctx.PolicyClient().EvaluateResource(evalCtx, policy.EvaluationRequest[*proto.ResourceMetadata]{
 		Target:     target.Resource.Resource.Type,
+		Identifier: target.String(),
+		Relations:  relations,
 		Attrs:      policy.CtyToPolicyValue(attrs),
 		PriorAttrs: policy.CtyToPolicyValue(priorAttrs),
 		Meta:       meta,
@@ -51,7 +53,7 @@ func evaluatePolicies(ctx EvalContext, target addrs.AbsResourceInstance, config 
 	return result
 }
 
-func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation, provider providers.Interface, schema providers.GetProviderSchemaResponse, config *configs.Config) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
+func (cb *PolicyCallbackManager) GetResourcesCallback(ctx EvalContext, provider providers.Interface) func(callbackCtx context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) ([]cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getResources", trace.WithAttributes(
 			attribute.String("policy.callback.getResources.type", target),
@@ -64,14 +66,14 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 			filterMap = attrs.AsValueMap()
 		}
 		var isPartialResult bool
-		config.DeepEach(func(c *configs.Config) {
+		cb.Config.DeepEach(func(c *configs.Config) {
 			state := ctx.State()
 			for _, resource := range c.Module.ManagedResources {
 				if resource.Type != target {
 					continue
 				}
 				addr := resource.Addr().InModule(c.Path)
-				schema := schema.SchemaForResourceAddr(addr.Resource)
+				schema := cb.Schema.SchemaForResourceAddr(addr.Resource)
 
 				// Before checking the data to see if there is a match, check if
 				// there is a deferral for this address.
@@ -90,7 +92,7 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 				// Now we implement a generator function that yields resource instances
 				// from either the state or the config, depending on the walk operation.
 				var resourcesSeq iter.Seq[cty.Value]
-				if walkOperation == walkApply {
+				if cb.WalkOperation == walkApply {
 					// Read each config resource instance from the state, decoding it into a cty.Value
 					resourcesSeq = states.ReadEachConfigResourceInstance(state, addr, func(inst *states.ResourceInstance) (cty.Value, bool) {
 						if inst.Current == nil {
@@ -132,12 +134,13 @@ func getResourcesForPolicyCallback(ctx EvalContext, walkOperation walkOperation,
 	}
 }
 
-func getDataSourceForPolicyCallback(ctx EvalContext, provider providers.Interface, schema providers.GetProviderSchemaResponse) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
+func (cb *PolicyCallbackManager) GetDataSourceCallback(ctx EvalContext, provider providers.Interface) func(callbackCtx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error) {
 	return func(c context.Context, target string, attrs cty.Value) (cty.Value, bool, error) {
 		_, span := tracer().Start(c, "policy.callback.getDataSource", trace.WithAttributes(
 			attribute.String("policy.callback.getDataSource.type", target),
 		))
 		defer span.End()
+		schema := cb.Schema
 		if datasource, ok := schema.DataSources[target]; ok {
 			configVal, err := datasource.Body.CoerceValue(attrs)
 			if err != nil {

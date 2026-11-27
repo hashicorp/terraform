@@ -195,6 +195,28 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 	}
 	deferred.LoadPlannedDeferrals(opts.PlannedDeferrals)
 
+	var relationships map[string][]policy.Relationship
+	if opts.PolicyClient != nil {
+		if config := opts.PolicyClient.Config(); config != nil {
+			relationships = config.Relationships
+		}
+	}
+
+	// Record immediate resource origins only for relationship-enabled plan
+	// walks. Local aliases are resolved from configuration when needed.
+	trackOrigins := operation == walkPlan && len(relationships) > 0
+	policyState := newPolicyWalkState(trackOrigins)
+
+	// For apply walk, we still need the input changes for later
+	// access to their action
+	if operation == walkApply && opts.PolicyClient != nil {
+		for _, change := range changes.Resources {
+			if change.DeposedKey == addrs.NotDeposed {
+				policyState.applyChanges.Put(change.Addr, change.DeepCopy())
+			}
+		}
+	}
+
 	walker := &ContextGraphWalker{
 		Context:                 c,
 		State:                   state,
@@ -202,7 +224,7 @@ func (c *Context) graphWalker(graph *Graph, operation walkOperation, opts *graph
 		RefreshState:            refreshState,
 		Overrides:               opts.Overrides,
 		PrevRunState:            prevRunState,
-		PolicyGraph:             newPolicySubgraph(),
+		PolicyState:             policyState,
 		Changes:                 changes.SyncWrapper(),
 		NamedValues:             namedvals.NewState(),
 		EphemeralResources:      ephemeral.NewResources(),

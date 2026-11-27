@@ -633,10 +633,10 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		// Pre-destroy refreshes do not need to be sent for policy evaluation because
 		// they are just used internally by Terraform to refresh resources before
 		// they are destroyed (See comments in https://github.com/hashicorp/terraform/blob/d4ca814cbea037dcf2a59d083f8a540bf5d38d3a/internal/terraform/context_plan.go#L46-L53).
-		if policyGraph := ctx.PolicyGraph(); policyGraph != nil && !n.preDestroyRefresh {
+		if policyState := ctx.PolicyState(); policyState != nil && !n.preDestroyRefresh {
 			if n.Addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 				for _, node := range policyNodesFromChange(change) {
-					policyGraph.Add(node)
+					policyState.addResourceNode(node)
 				}
 			}
 		}

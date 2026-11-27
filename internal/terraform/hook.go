@@ -162,6 +162,11 @@ type Hook interface {
 	PostStateUpdate(new *states.State) (HookAction, error)
 
 	PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error)
+
+	// PolicyDiagnostics is called with policy diagnostics that aren't tied to
+	// the evaluation of a single object, such as an invalid relationship.
+	// These diagnostics don't fail the operation.
+	PolicyDiagnostics(diags policy.Diagnostics) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -275,5 +280,9 @@ func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {
 }
 
 func (*NilHook) PolicyResult(addr string, resp policy.EvaluationResponse) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PolicyDiagnostics(diags policy.Diagnostics) (HookAction, error) {
 	return HookActionContinue, nil
 }

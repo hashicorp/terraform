@@ -186,6 +186,9 @@ type client struct {
 	client           proto.PolicyClient
 	callbackRegistry callback.Registry
 	cbServer         *callback.Server
+
+	// config is published only after Setup has prepared the whole configuration.
+	config *Config
 }
 
 func (c *client) RegisterCallbackService(ctx context.Context) (*callback.Server, Diagnostics) {
@@ -246,9 +249,11 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 
 	log.Printf("[DEBUG] Setting up Terraform Policy connection")
 	protoReq := &proto.PolicySetupRequest{
-		ClientCapabilities: new(proto.PolicySetupRequest_ClientCapabilities),
-		SourceLocations:    req.SourceLocations,
-		CallbackService:    req.CallbackService,
+		ClientCapabilities: &proto.PolicySetupRequest_ClientCapabilities{
+			Relationships: true,
+		},
+		SourceLocations: req.SourceLocations,
+		CallbackService: req.CallbackService,
 	}
 	if req.Entitlement != nil {
 		protoReq.Entitlement = &proto.PolicySetupRequest_Entitlement{
@@ -267,13 +272,30 @@ func (c *client) Setup(ctx context.Context, req SetupRequest) SetupResponse {
 		}}
 	}
 
-	return SetupResponse{
+	resp := SetupResponse{
 		serverCapabilities: response.ServerCapabilities,
 		Diagnostics:        DiagsFromProto(response.Diagnostics, nil),
 	}
+
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+	config, err := configFromProto(response.ServerCapabilities)
+	if err != nil {
+		resp.Diagnostics = append(resp.Diagnostics, NewErrorDiagnostic(
+			"Invalid policy relationship",
+			fmt.Sprintf("The policy engine sent an invalid relationship: %s.", err),
+			SetupErrorResult,
+		))
+		return resp
+	}
+	resp.config = config
+	c.config = config
+
+	return resp
 }
 
-func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse {
+func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse {
 	ctx, span := tracer().Start(ctx, "policy.client.evaluate_resource",
 		trace.WithAttributes(attribute.String("policy.resource.type", req.Target)),
 	)
@@ -304,11 +326,13 @@ func (c *client) EvaluateResource(ctx context.Context, req EvaluationRequest[*pr
 
 	evalID := c.callbackRegistry.NextID()
 	request := &proto.PolicyEvaluateResourceRequest{
-		EvaluationId: evalID,
-		Resource:     req.Target,
-		Attrs:        attrs,
-		PriorAttrs:   priorAttrs,
-		Metadata:     req.Meta,
+		EvaluationId:  evalID,
+		Resource:      req.Target,
+		Attrs:         attrs,
+		PriorAttrs:    priorAttrs,
+		Metadata:      req.Meta,
+		Identifier:    req.Identifier,
+		Relationships: relationsToProto(req.Relations),
 	}
 
 	// Register the callback functions with the callback service, so that they are available
@@ -405,6 +429,10 @@ func (c *client) EvaluateModule(ctx context.Context, req EvaluationRequest[*prot
 	return EvaluationFromProtoResponse(response.Result, response.PolicyDetails)
 }
 
+func (c *client) Config() *Config {
+	return c.config
+}
+
 func (c *client) Stop() {
 	log.Println("[DEBUG] stopping policy client")
 	if c.cbServer != nil {
@@ -429,6 +457,8 @@ func normalizeRequest[T any](req EvaluationRequest[T]) EvaluationRequest[T] {
 		PriorAttrs: priorAttrs,
 		Meta:       req.Meta,
 		Callbacks:  req.Callbacks,
+		Identifier: req.Identifier,
+		Relations:  req.Relations,
 	}
 }
 

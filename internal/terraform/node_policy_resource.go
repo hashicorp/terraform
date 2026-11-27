@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/policy"
 	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -36,6 +37,7 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	var diags tfdiags.Diagnostics
 	client := ctx.PolicyClient()
 	config := ctx.Config()
+	relationships := ctx.PolicyClient().Config().Relationships
 
 	if client == nil {
 		log.Printf("[DEBUG] No policy client configured, skipping policy evaluation")
@@ -60,10 +62,11 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 		return nil
 	}
 
-	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+	meta := &proto.ResourceMetadata{
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    policyOperation,
 		ModulePath:   n.ResourceAddr.Module.String(),
+		Address:      n.ResourceAddr.String(),
 	}
 
 	// the module config may be nil if the module call has been removed from the configuration
@@ -73,13 +76,22 @@ func (n *nodeResourcePolicy) Execute(ctx EvalContext, operation walkOperation) t
 	if modCfg != nil {
 		resourceConfig = modCfg.Module.ResourceByAddr(n.ResourceAddr.Resource.Resource)
 	}
-
-	callbacks := callback.Functions{
-		GetResources:  getResourcesForPolicyCallback(ctx, operation, provider, schema, config),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
+	var relations []policy.Relation
+	if graph := ctx.PolicyState(); graph != nil {
+		if resource, ok := graph.resourceMap[n.ResourceAddr.String()]; ok {
+			tree := relationships[n.ResourceAddr.Resource.Resource.Type]
+			relations = graph.followRelationships(resource, tree)
+		}
 	}
 
-	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, callbacks)
+	callbackManager := NewPolicyCallbackManager(operation, schema, config)
+	callbacks := callback.Functions{
+		GetResources:             callbackManager.GetResourcesCallback(ctx, provider),
+		GetDataSource:            callbackManager.GetDataSourceCallback(ctx, provider),
+		GetResourcesByIdentifier: callbackManager.GetResourcesByIdentifierCallback(ctx, n.ResourceAddr, relations),
+	}
+
+	result := evaluatePolicies(ctx, n.ResourceAddr, resourceConfig, n.After, n.Before, meta, relations, callbacks)
 	if !result.Empty() {
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PolicyResult(n.ResourceAddr.String(), result)

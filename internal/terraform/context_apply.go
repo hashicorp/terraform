@@ -183,6 +183,14 @@ func (c *Context) ApplyAndEval(plan *plans.Plan, config *configs.Config, opts *A
 		}
 	}
 
+	if opts.PolicyClient != nil {
+		policyDiags := c.checkPolicyRelationships(opts.PolicyClient, config, plan.PriorState, opts.ProviderLocks)
+		diags = diags.Append(policyDiags)
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+	}
+
 	graph, operation, moreDiags := c.applyGraph(plan, config, opts, true)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

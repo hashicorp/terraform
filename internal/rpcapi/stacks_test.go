@@ -2538,7 +2538,7 @@ func policyEvaluationTestClient(t *testing.T) policy.Client {
 		}
 	}
 
-	policyClient.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*policyproto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(_ context.Context, req policy.EvaluationRequest[*policyproto.ResourceMetadata]) policy.EvaluationResponse {
 		// Assert some of the data from the component resource
 		if req.Target != "testing_resource" {
 			t.Fatalf(`unexpected resource evaluated, wanted: testing_resource, got: %q`, req.Target)

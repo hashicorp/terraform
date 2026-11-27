@@ -745,7 +745,7 @@ func TestQueryPolicyStatusReporting(t *testing.T) {
 
 	var evaluated []string
 	policyClient := policy.NewTestMockClient(t)
-	policyClient.EvaluateFn = func(_ context.Context, request policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(_ context.Context, request policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		id := request.Attrs.Raw.GetAttr("ami").AsString()
 		evaluated = append(evaluated, id)
 		switch id {
@@ -870,7 +870,7 @@ func TestQueryPolicyStatusReporting_NoPoliciesArgument(t *testing.T) {
 	p := queryFixtureProvider()
 	policyClient := policy.NewTestMockClient(t)
 	var policyClientCalled atomic.Bool
-	policyClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		policyClientCalled.Store(true)
 		return policy.EvaluationResponse{Overall: policy.AllowResult}
 	}
@@ -962,7 +962,7 @@ func TestQueryCommand_policyPathNotADirectory(t *testing.T) {
 
 			policyClient := policy.NewTestMockClient(t)
 			var policyClientUsed atomic.Bool
-			policyClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+			policyClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 				policyClientUsed.Store(true)
 				return policy.EvaluationResponse{Overall: policy.AllowResult}
 			}

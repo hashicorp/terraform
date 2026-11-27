@@ -948,7 +948,7 @@ func TestPlan_WithPolicyClientStopAfterPlan(t *testing.T) {
 	policyClient.StopFn = func() {
 		stopCalled.Store(true)
 	}
-	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	policyClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		policyEvaluated.Store(true)
 		if stopCalled.Load() {
 			t.Fatal("policy client Stop was called before the plan finished")

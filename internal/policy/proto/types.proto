@@ -84,3 +84,12 @@ enum EvaluationStage {
     PLAN_EVALUATION_STAGE = 2;
     APPLY_EVALUATION_STAGE = 3;
 }
+
+message ResourceMetadata {
+  string provider_type = 1;
+  Operation operation = 2;
+  string module_path = 3;
+
+  // address is the resource's address, for messages only.
+  string address = 4;
+}

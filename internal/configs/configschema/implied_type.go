@@ -24,6 +24,32 @@ func (b *Block) ImpliedType() cty.Type {
 	return b.specType().WithoutOptionalAttributesDeep()
 }
 
+// schemaType preserves the declared shape of nested blocks for static path
+// lookup, even when dynamic descendants make their decoding types unpredictable.
+func (b *Block) schemaType() cty.Type {
+	if b == nil {
+		return cty.EmptyObject
+	}
+
+	attributes := make(map[string]cty.Type, len(b.Attributes)+len(b.BlockTypes))
+	for name, attr := range b.Attributes {
+		attributes[name] = attr.ImpliedType()
+	}
+	for name, nested := range b.BlockTypes {
+		typ := nested.schemaType()
+		switch nested.Nesting {
+		case NestingList:
+			typ = cty.List(typ)
+		case NestingMap:
+			typ = cty.Map(typ)
+		case NestingSet:
+			typ = cty.Set(typ)
+		}
+		attributes[name] = typ
+	}
+	return cty.Object(attributes)
+}
+
 // specType returns the cty.Type used for decoding a configuration
 // block using the receiving block schema. This is the type used internally by
 // hcldec to decode configuration.

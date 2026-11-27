@@ -663,8 +663,8 @@ func (n *NodeAbstractResource) addPolicyNode(
 		return
 	}
 
-	policyGraph := ctx.PolicyGraph()
-	if policyGraph == nil {
+	policyState := ctx.PolicyState()
+	if policyState == nil {
 		return
 	}
 
@@ -672,7 +672,7 @@ func (n *NodeAbstractResource) addPolicyNode(
 	if state != nil {
 		after = state.Value
 	}
-	policyGraph.Add(&nodeResourcePolicy{
+	policyState.addResourceNode(&nodeResourcePolicy{
 		ResourceAddr: change.Addr,
 		ProviderAddr: change.ProviderAddr,
 		Before:       change.Before,

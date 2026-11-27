@@ -166,9 +166,9 @@ func (n *NodePlannableResourceInstance) listResourceExecute(ctx EvalContext) (di
 		}
 		diags = diags.Append(policyDiags)
 	}
-	if ctx.PolicyGraph() != nil {
+	if ctx.PolicyState() != nil {
 		for _, input := range policyInputs {
-			ctx.PolicyGraph().AddQuery(&nodeQueryResourcePolicy{
+			ctx.PolicyState().addQueryNode(&nodeQueryResourcePolicy{
 				ResourceAddr:    input.SyntheticAddr,
 				ProviderAddr:    n.ResolvedProvider,
 				GeneratedConfig: input.GeneratedConfig,

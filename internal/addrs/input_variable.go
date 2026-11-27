@@ -3,9 +3,7 @@
 
 package addrs
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // InputVariable is the address of an input variable.
 type InputVariable struct {

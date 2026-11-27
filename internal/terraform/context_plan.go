@@ -816,6 +816,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		opts.PolicyClient = nil
 	}
 
+	if opts.PolicyClient != nil {
+		// validate the policy relationships contain valid attribute paths
+		policyDiags := c.checkPolicyRelationships(opts.PolicyClient, config, prevRunState, opts.ProviderLocks)
+		diags = diags.Append(policyDiags)
+		if diags.HasErrors() {
+			return nil, nil, diags
+		}
+	}
+
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {

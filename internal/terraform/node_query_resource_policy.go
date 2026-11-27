@@ -120,17 +120,18 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 
 	// Query resources are always evaluated as CREATE operations since they
 	// represent discovered resources that don't exist in the configuration.
-	meta := &proto.PolicyEvaluateResourceRequest_ResourceMetadata{
+	meta := &proto.ResourceMetadata{
 		ProviderType: providerAddr.Provider.Type,
 		Operation:    proto.Operation_CREATE,
 		ModulePath:   n.ResourceAddr.Module.String(),
+		Address:      n.ResourceAddr.String(),
 	}
 
-	getResources := getResourcesForPolicyCallback(ctx, op, provider, schema, config)
+	callbackManager := NewPolicyCallbackManager(op, schema, config)
 
 	callbacks := callback.Functions{
-		GetResources:  queryGetResourcesCallback(getResources),
-		GetDataSource: getDataSourceForPolicyCallback(ctx, provider, schema),
+		GetResources:  queryGetResourcesCallback(callbackManager.GetResourcesCallback(ctx, provider)),
+		GetDataSource: callbackManager.GetDataSourceCallback(ctx, provider),
 	}
 
 	// Only actual policy evaluations consume the policy semaphore.
@@ -143,7 +144,7 @@ func (n *nodeQueryResourcePolicy) Execute(ctx EvalContext, op walkOperation) tfd
 	// Evaluate policies with the generated config as the "after" state
 	// and null as the "before" state (since these are discovered resources).
 	// evaluatePolicies already applies WithLocalRange internally; do not reapply.
-	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, callbacks)
+	result := evaluatePolicies(ctx, n.ResourceAddr, n.ResourceConfig, n.GeneratedConfig, cty.NullVal(n.GeneratedConfig.Type()), meta, nil, callbacks)
 	return emitResult(result)
 }
 

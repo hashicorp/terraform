@@ -490,12 +490,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		diags = diags.Append(checkDiags)
 
 		// We also need to send refreshed objects to the policy.
-		if policyGraph := ctx.PolicyGraph(); policyGraph != nil {
+		if policyState := ctx.PolicyState(); policyState != nil {
 			value := cty.NilVal
 			if instanceRefreshState != nil {
 				value = instanceRefreshState.Value
 			}
-			policyGraph.Add(&nodeResourcePolicy{
+			policyState.addResourceNode(&nodeResourcePolicy{
 				ResourceAddr: n.ResourceInstanceAddr(),
 				ProviderAddr: n.ResolvedProvider,
 				Before:       value,
@@ -697,6 +697,15 @@ func (n *NodePlannableResourceInstance) finalizePlan(ctx EvalContext, deferred, 
 		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
+
+	// An existing object can retain a semantically equivalent prior value,
+	// including during replacement. Only an absent prior object rules that out.
+	policyState := ctx.PolicyState()
+	if !diags.HasErrors() && policyState != nil && policyState.origins != nil && !n.preDestroyRefresh && change.Action == plans.Create && change.Before.IsNull() {
+		addr := n.ResourceInstanceAddr()
+		paths := ctx.PolicyClient().Config().ComparisonPaths(addr.Resource.Resource.Type)
+		recordPolicyOrigins(ctx, addr, n.Config, n.Schema.Body, paths)
+	}
 
 	return diags
 }

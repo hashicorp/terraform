@@ -18,9 +18,13 @@ import (
 // Client is an interface for interacting with a policy engine.
 type Client interface {
 	Setup(context.Context, SetupRequest) SetupResponse
-	EvaluateResource(context.Context, EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) EvaluationResponse
+	EvaluateResource(context.Context, EvaluationRequest[*proto.ResourceMetadata]) EvaluationResponse
 	EvaluateProvider(context.Context, EvaluationRequest[*proto.PolicyEvaluateProviderRequest_ProviderMetadata]) EvaluationResponse
 	EvaluateModule(context.Context, EvaluationRequest[*proto.PolicyEvaluateModuleRequest_ModuleMetadata]) EvaluationResponse
+
+	// Config returns the prepared, read-only policy configuration from Setup.
+	// It is nil before successful initialization.
+	Config() *Config
 	Stop()
 }
 
@@ -33,6 +37,7 @@ type (
 	SetupResponse struct {
 		// serverCapabilities contains the map of a policy path to the capabilities of the server.
 		serverCapabilities *proto.PolicySetupResponse_ServerCapabilities
+		config             *Config
 
 		Diagnostics Diagnostics
 	}
@@ -43,6 +48,57 @@ type (
 
 		// RequiredVersion is the required version of the policy file.
 		RequiredVersion string
+	}
+
+	// Match is a list of keys, each of which form a relationship match.
+	// Every key pair in match must be equal for two resources to be related.
+	Match []RelationshipKey
+
+	// Relationship relates resources of two types.
+	Relationship struct {
+		Name      string
+		KeyType   string
+		ValueType string
+
+		// Matches contains the keys of each match. Two resources are related
+		// when every key of any one match is equal.
+		Matches []Match
+
+		// Relationships are followed from each resource this relationship reaches.
+		Relationships []Relationship
+	}
+
+	// RelationshipKey pairs an attribute of the key type with an attribute
+	// of the value type.
+	RelationshipKey struct {
+		KeyPath   cty.Path
+		ValuePath cty.Path
+	}
+
+	// Relation contains the resources related by a Relationship.
+	Relation struct {
+		Relationship string
+
+		// Resources contains the relations of each related resource, keyed by
+		// the resource's identifier.
+		Resources map[string][]Relation
+
+		// Complete is false when Terraform can't be sure it has found every
+		// related resource.
+		Complete bool
+	}
+
+	// Config is the prepared policy configuration. Its maps, slices and paths
+	// must not be mutated after Setup publishes it. Mutable walk data belongs
+	// to Terraform's policy walk state, not this configuration.
+	Config struct {
+		// Definitions contains every shared definition, including unused ones,
+		// for provider-schema validation. Definitions have no usage children.
+		Definitions map[string]Relationship
+
+		// Relationships contains resolved usage trees, keyed by the resource
+		// type whose policies follow them. Matching requires no name lookups.
+		Relationships map[string][]Relationship
 	}
 )
 
@@ -58,6 +114,12 @@ func (s *SetupResponse) ServerConfigurations() []ServerConfiguration {
 		})
 	}
 	return ret
+}
+
+// Config returns the configuration prepared during Setup, without decoding or
+// resolving it again. Failed initialization does not publish a partial config.
+func (s *SetupResponse) Config() *Config {
+	return s.config
 }
 
 type (
@@ -112,6 +174,13 @@ type (
 		Meta T
 
 		Callbacks callback.Functions
+
+		// Identifier uniquely identifies the object being evaluated within a walk.
+		Identifier string
+
+		// Relations contains one Relation per Relationship at the top of the
+		// tree for the object's type.
+		Relations []Relation
 	}
 
 	EnforcementResult struct {

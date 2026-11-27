@@ -11,10 +11,51 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/deferring"
+	"github.com/hashicorp/terraform/internal/policy"
+	"github.com/hashicorp/terraform/internal/policy/callback"
 	"github.com/hashicorp/terraform/internal/policy/proto"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
+
+func TestEvaluatePoliciesRelations(t *testing.T) {
+	for name, tc := range map[string]struct {
+		graph     *policyWalkState
+		relations []policy.Relation
+	}{
+		"no policy graph": {},
+		"empty tree":      {graph: newPolicyWalkState(false)},
+		"explicit relations": {relations: []policy.Relation{{
+			Relationship: "children",
+			Resources:    map[string][]policy.Relation{"test_resource.child": nil},
+			Complete:     true,
+		}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			client := policy.NewTestMockClient(t)
+			ctx := &MockEvalContext{
+				PolicyClientValue: client,
+				PolicyStateValue:  tc.graph,
+			}
+			addr := mustResourceInstanceAddr(`module.child["a"].test_resource.example[0]`)
+			evaluatePolicies(ctx, addr, nil, cty.EmptyObjectVal, cty.NullVal(cty.EmptyObject), &proto.ResourceMetadata{}, tc.relations, callback.Functions{})
+
+			if !client.EvaluateCalled {
+				t.Fatal("resource was not evaluated")
+			}
+			req := client.EvaluateRequest
+			if req.Identifier != addr.String() {
+				t.Errorf("Identifier = %q, want %q", req.Identifier, addr.String())
+			}
+			if req.Target != "test_resource" {
+				t.Errorf("Target = %q, want test_resource", req.Target)
+			}
+			if diff := cmp.Diff(tc.relations, req.Relations); diff != "" {
+				t.Errorf("wrong relations (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestGetResourcesForPolicyCallback(t *testing.T) {
 	providerSchema := *getProviderSchemaResponseFromProviderSchema(&providerSchema{
@@ -92,7 +133,8 @@ resource "test_resource" "b" {
 		DeferralsState: deferring.NewDeferred(false),
 	}
 
-	callback := getResourcesForPolicyCallback(ctx, walkApply, nil, providerSchema, config)
+	callbackManager := NewPolicyCallbackManager(walkApply, providerSchema, config)
+	callback := callbackManager.GetResourcesCallback(ctx, nil)
 
 	tests := []struct {
 		name        string
@@ -110,6 +152,182 @@ resource "test_resource" "b" {
 			name: "scalar attribute filter matches a subset",
 			filter: cty.ObjectVal(map[string]cty.Value{
 				"name": cty.StringVal("alpha"),
+			}),
+			wantNames:   []string{"alpha"},
+			wantUnknown: false,
+		},
+		{
+			name: "computed attribute filter matches a subset",
+			filter: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("a"),
+			}),
+			wantNames:   []string{"alpha"},
+			wantUnknown: false,
+		},
+		{
+			name: "nested block filter filter matches a subset",
+			filter: cty.ObjectVal(map[string]cty.Value{
+				"child": cty.ObjectVal(map[string]cty.Value{
+					"value": cty.StringVal("one"),
+				}),
+			}),
+			wantNames:   []string{"alpha"},
+			wantUnknown: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				got        []cty.Value
+				gotUnknown bool
+				gotErr     error
+			)
+
+			got, gotUnknown, gotErr = callback(t.Context(), "test_resource", tt.filter)
+			if gotErr != nil {
+				t.Fatalf("unexpected error: %v", gotErr)
+			}
+			if gotUnknown != tt.wantUnknown {
+				t.Fatalf("wrong unknown result\ngot:  %t\nwant: %t", gotUnknown, tt.wantUnknown)
+			}
+
+			gotNames := make([]string, 0, len(got))
+			for _, resource := range got {
+				gotNames = append(gotNames, resource.GetAttr("name").AsString())
+			}
+			sort.Strings(gotNames)
+
+			wantNames := append([]string{}, tt.wantNames...)
+			sort.Strings(wantNames)
+			if diff := cmp.Diff(wantNames, gotNames); diff != "" {
+				t.Fatalf("wrong matched resources (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+func TestGetResourcesForPolicyCallback_Plan(t *testing.T) {
+	providerSchema := *getProviderSchemaResponseFromProviderSchema(&providerSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"name": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"child": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	config := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "a" {
+  name = "alpha"
+
+  child {
+    value = "one"
+  }
+}
+
+resource "test_resource" "b" {
+  name = resource.test_resource.a.name
+
+  child {
+    value = "two"
+  }
+}
+`,
+	})
+
+	resourceA := cty.ObjectVal(map[string]cty.Value{
+		"id":   cty.StringVal("a"),
+		"name": cty.StringVal("alpha"),
+		"child": cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("one"),
+		}),
+	})
+	resourceB := cty.ObjectVal(map[string]cty.Value{
+		"id":   cty.StringVal("b"),
+		"name": cty.StringVal("beta"),
+		"child": cty.ObjectVal(map[string]cty.Value{
+			"value": cty.StringVal("two"),
+		}),
+	})
+
+	changes := plans.NewChanges().SyncWrapper()
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChange{
+		Addr:         mustResourceInstanceAddr("test_resource.a"),
+		PrevRunAddr:  mustResourceInstanceAddr("test_resource.a"),
+		ProviderAddr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		Change: plans.Change{
+			Action: plans.NoOp,
+			Before: resourceA,
+			After:  resourceA,
+		},
+	})
+	changes.AppendResourceInstanceChange(&plans.ResourceInstanceChange{
+		Addr:         mustResourceInstanceAddr("test_resource.b"),
+		PrevRunAddr:  mustResourceInstanceAddr("test_resource.b"),
+		ProviderAddr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		Change: plans.Change{
+			Action: plans.NoOp,
+			Before: resourceB,
+			After:  resourceB,
+		},
+	})
+	changes.Close()
+
+	ctx := &MockEvalContext{
+		StateState:     states.NewState().SyncWrapper(),
+		ChangesChanges: changes,
+		DeferralsState: deferring.NewDeferred(false),
+	}
+
+	callbackManager := NewPolicyCallbackManager(walkPlan, providerSchema, config)
+	callback := callbackManager.GetResourcesCallback(ctx, nil)
+
+	tests := []struct {
+		name        string
+		filter      cty.Value
+		wantNames   []string
+		wantUnknown bool
+	}{
+		{
+			name:        "null filter returns all matching resources",
+			filter:      cty.NullVal(cty.DynamicPseudoType),
+			wantNames:   []string{"alpha", "beta"},
+			wantUnknown: false,
+		},
+		{
+			name: "scalar attribute filter matches a subset",
+			filter: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("alpha"),
+			}),
+			wantNames:   []string{"alpha"},
+			wantUnknown: false,
+		},
+		{
+			name: "computed attribute filter matches a subset",
+			filter: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("a"),
 			}),
 			wantNames:   []string{"alpha"},
 			wantUnknown: false,

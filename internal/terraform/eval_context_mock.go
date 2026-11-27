@@ -150,8 +150,8 @@ type MockEvalContext struct {
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
 
-	PolicyGraphCalled bool
-	PolicyGraphValue  *policySubgraph
+	PolicyStateCalled bool
+	PolicyStateValue  *policyWalkState
 
 	MoveResultsCalled  bool
 	MoveResultsResults refactoring.MoveResults
@@ -418,9 +418,9 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	return c.PrevRunStateState
 }
 
-func (c *MockEvalContext) PolicyGraph() *policySubgraph {
-	c.PolicyGraphCalled = true
-	return c.PolicyGraphValue
+func (c *MockEvalContext) PolicyState() *policyWalkState {
+	c.PolicyStateCalled = true
+	return c.PolicyStateValue
 }
 
 func (c *MockEvalContext) MoveResults() refactoring.MoveResults {

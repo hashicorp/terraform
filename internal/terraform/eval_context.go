@@ -181,11 +181,10 @@ type EvalContext interface {
 	// meaningful comparison with RefreshState.
 	PrevRunState() *states.SyncState
 
-	// PolicyGraph returns the policy subgraph for this context.
-	// It is used to store resource policy nodes that are collected during the resource
-	// graph evaluation. Each managed resource instance selected for
-	// policy evaluation will have a corresponding policy node in this graph.
-	PolicyGraph() *policySubgraph
+	// PolicyState returns the state shared by policy evaluation in this walk,
+	// including collected evaluation nodes, resource inventory, completeness,
+	// and immediate origins. It is not shared across walks.
+	PolicyState() *policyWalkState
 
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"

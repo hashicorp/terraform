@@ -9,11 +9,14 @@ import (
 	"sync/atomic"
 
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/policy/proto"
 )
 
 type Functions struct {
-	GetResources  func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
-	GetDataSource func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
+	GetResources             func(ctx context.Context, resource string, attrs cty.Value) ([]cty.Value, bool, error)
+	GetDataSource            func(ctx context.Context, datasource string, attrs cty.Value) (cty.Value, bool, error)
+	GetResourcesByIdentifier func(ctx context.Context, identifiers []string) ([]*proto.GetResourcesByIdentifierResponse_Resource, error)
 }
 
 // Registry is an interface for managing callback functions for resources and

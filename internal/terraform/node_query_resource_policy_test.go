@@ -30,11 +30,11 @@ import (
 // exercising it in isolation without requiring the full listResourceExecute setup.
 func insertQueryPolicyNodes(t *testing.T, inputs []listResourcePolicy, ctx *MockEvalContext, n *NodePlannableResourceInstance) {
 	t.Helper()
-	if ctx.PolicyGraph() == nil {
+	if ctx.PolicyState() == nil {
 		return
 	}
 	for _, input := range inputs {
-		ctx.PolicyGraph().AddQuery(&nodeQueryResourcePolicy{
+		ctx.PolicyState().addQueryNode(&nodeQueryResourcePolicy{
 			ResourceAddr:    input.SyntheticAddr,
 			ProviderAddr:    n.ResolvedProvider,
 			GeneratedConfig: input.GeneratedConfig,
@@ -58,9 +58,9 @@ func TestQueryPolicyNodeInsertion_CountMatchesResources(t *testing.T) {
 	listBlockAddr := n.Addr
 
 	ctx := listPolicyTestContext(listBlockAddr, p, schema)
-	ps := newPolicySubgraph()
+	ps := newPolicyWalkState(false)
 	ctx.PolicyClientValue = policy.NewTestMockClient(t)
-	ctx.PolicyGraphValue = ps
+	ctx.PolicyStateValue = ps
 
 	stateVal := cty.ObjectVal(map[string]cty.Value{
 		"instance_type": cty.StringVal("t2.micro"),
@@ -97,9 +97,9 @@ func TestQueryPolicyNodeInsertion_UnknownResourcesIncluded(t *testing.T) {
 	listBlockAddr := n.Addr
 
 	ctx := listPolicyTestContext(listBlockAddr, p, schema)
-	ps := newPolicySubgraph()
+	ps := newPolicyWalkState(false)
 	ctx.PolicyClientValue = policy.NewTestMockClient(t)
-	ctx.PolicyGraphValue = ps
+	ctx.PolicyStateValue = ps
 
 	stateVal := cty.ObjectVal(map[string]cty.Value{
 		"instance_type": cty.StringVal("t2.micro"),
@@ -151,9 +151,9 @@ func TestQueryPolicyNodeInsertion_NodePayload(t *testing.T) {
 	listBlockAddr := n.Addr
 
 	ctx := listPolicyTestContext(listBlockAddr, p, schema)
-	ps := newPolicySubgraph()
+	ps := newPolicyWalkState(false)
 	ctx.PolicyClientValue = policy.NewTestMockClient(t)
-	ctx.PolicyGraphValue = ps
+	ctx.PolicyStateValue = ps
 
 	stateVal := cty.ObjectVal(map[string]cty.Value{
 		"instance_type": cty.StringVal("m5.large"),
@@ -212,15 +212,15 @@ func TestNodeQueryResourcePolicy_Name(t *testing.T) {
 	}
 }
 
-// TestQueryPolicyNodeInsertion_NilPolicyGraph verifies that insertQueryPolicyNodes
-// does not panic when ctx.PolicyGraph() returns nil.
-func TestQueryPolicyNodeInsertion_NilPolicyGraph(t *testing.T) {
+// TestQueryPolicyNodeInsertion_NilPolicyState verifies that insertQueryPolicyNodes
+// does not panic when ctx.PolicyState() returns nil.
+func TestQueryPolicyNodeInsertion_NilPolicyState(t *testing.T) {
 	p := &testing_provider.MockProvider{}
 	schema := listPolicyTestProviderSchema(false)
 	n := listPolicyTestNode("test_resource", "mylist")
 	listBlockAddr := n.Addr
 
-	// PolicyGraphValue is intentionally left nil.
+	// PolicyStateValue is intentionally left nil.
 	ctx := listPolicyTestContext(listBlockAddr, p, schema)
 
 	stateVal := cty.ObjectVal(map[string]cty.Value{
@@ -235,7 +235,7 @@ func TestQueryPolicyNodeInsertion_NilPolicyGraph(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	// Should not panic with nil PolicyGraph.
+	// Should not panic with nil PolicyState.
 	insertQueryPolicyNodes(t, inputs, ctx, n)
 }
 
@@ -251,9 +251,9 @@ func TestQueryPolicyNodeInsertion_NodeIndependence(t *testing.T) {
 	listBlockAddr := n.Addr
 
 	ctx := listPolicyTestContext(listBlockAddr, p, schema)
-	ps := newPolicySubgraph()
+	ps := newPolicyWalkState(false)
 	ctx.PolicyClientValue = policy.NewTestMockClient(t)
-	ctx.PolicyGraphValue = ps
+	ctx.PolicyStateValue = ps
 
 	stateVal := cty.ObjectVal(map[string]cty.Value{
 		"instance_type": cty.StringVal("t2.micro"),
@@ -520,13 +520,13 @@ func executeTestCtx(t *testing.T, policyClient policy.Client, hook Hook) *MockEv
 		Module: &configs.Module{},
 	}
 
-	ps := newPolicySubgraph()
+	ps := newPolicyWalkState(false)
 
 	ctx := &MockEvalContext{
 		ProviderProvider:         p,
 		ProviderSchemaSchema:     schema,
 		PolicyClientValue:        policyClient,
-		PolicyGraphValue:         ps,
+		PolicyStateValue:         ps,
 		ConfigValue:              rootCfg,
 		InstanceExpanderExpander: expander,
 		StopCtxValue:             context.Background(),
@@ -583,6 +583,17 @@ func TestNodeQueryResourcePolicy_Execute_AllowResult(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
+	req := mockClient.EvaluateRequest
+	if req.Identifier != resourceAddr.String() {
+		t.Errorf("Identifier = %q, want %q", req.Identifier, resourceAddr.String())
+	}
+	if req.Meta.Address != resourceAddr.String() {
+		t.Errorf("meta.address = %q, want %q", req.Meta.Address, resourceAddr.String())
+	}
+	if len(req.Relations) != 0 {
+		t.Errorf("unexpected query relations: %#v", req.Relations)
+	}
+
 	// Passing results must still produce a hook call so downstream aggregators can record them.
 	if _, ok := hook.PolicyResults[resourceAddr.String()]; !ok {
 		t.Errorf("expected PolicyResult hook call for AllowResult (query node always emits), got none")
@@ -598,7 +609,7 @@ func TestNodeQueryResourcePolicy_Execute_MultiplePolicies(t *testing.T) {
 	pol2 := &policy.Policy{Result: policy.AllowResult, Address: "policy.allow_tag"}
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall:  policy.DenyResult,
 			Policies: []*policy.Policy{pol1, pol2},
@@ -641,7 +652,7 @@ func TestNodeQueryResourcePolicy_Execute_DenyResult(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Enforcements: []policy.EnforcementResult{
@@ -675,7 +686,7 @@ func TestNodeQueryResourcePolicy_Execute_UnknownResult(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall: policy.UnknownResult,
 			Enforcements: []policy.EnforcementResult{
@@ -703,7 +714,7 @@ func TestNodeQueryResourcePolicy_Execute_UnknownResult(t *testing.T) {
 func TestNodeQueryResourcePolicy_Execute_PreEvaluationUnknown(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 	mockClient := policy.NewTestMockClient(t)
-	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		t.Fatal("policy client must not be called for a pre-evaluation Unknown")
 		return policy.EvaluationResponse{}
 	}
@@ -750,7 +761,7 @@ func TestNodeQueryResourcePolicy_Execute_DenyNoEnforcements(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		// DenyResult with no enforcement details and no diagnostics:
 		// Empty() returns false (Overall != AllowResult), but the old
 		// len-based gate would have treated it as empty and dropped it.
@@ -795,7 +806,7 @@ func TestNodeQueryResourcePolicy_Execute_IdentityAnnotation(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Enforcements: []policy.EnforcementResult{
@@ -839,7 +850,7 @@ func TestNodeQueryResourcePolicy_Execute_ListBlockAddrAnnotation(t *testing.T) {
 	expectedListBlockAddr := mustResourceInstanceAddr("test_resource.mylist")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Enforcements: []policy.EnforcementResult{
@@ -873,7 +884,7 @@ func TestNodeQueryResourcePolicy_Execute_ListBlockAddrAnnotation(t *testing.T) {
 // preparation failure is emitted as a row-local policy Error.
 func TestNodeQueryResourcePolicy_Execute_ProviderError(t *testing.T) {
 	mockClient := policy.NewTestMockClient(t)
-	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		t.Fatal("policy client must not be called after provider preparation fails")
 		return policy.EvaluationResponse{}
 	}
@@ -994,7 +1005,7 @@ func TestNodeQueryResourcePolicy_Execute_NilClient(t *testing.T) {
 // configuration after a row exists is emitted as a row-local policy Error.
 func TestNodeQueryResourcePolicy_Execute_NilConfig(t *testing.T) {
 	mockClient := policy.NewTestMockClient(t)
-	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		t.Fatal("policy client must not be called without configuration")
 		return policy.EvaluationResponse{}
 	}
@@ -1021,7 +1032,7 @@ func TestNodeQueryResourcePolicy_Execute_NilConfig(t *testing.T) {
 func TestNodeQueryResourcePolicy_Execute_SemaphoreAcquired(t *testing.T) {
 	sem := NewSemaphore(1)
 	mockClient := policy.NewTestMockClient(t)
-	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(context.Context, policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		if len(sem) != 1 {
 			t.Errorf("policy semaphore occupancy = %d, want 1 during evaluation", len(sem))
 		}
@@ -1042,20 +1053,20 @@ func TestNodeQueryResourcePolicy_Execute_SemaphoreAcquired(t *testing.T) {
 	}
 }
 
-// TestNodeQueryResourcePolicy_Execute_NilPolicyGraph verifies that Execute() does not
-// panic when ctx.PolicyGraph() returns nil (Finding #15 guard).
-func TestNodeQueryResourcePolicy_Execute_NilPolicyGraph(t *testing.T) {
+// TestNodeQueryResourcePolicy_Execute_NilPolicyState verifies that Execute() does not
+// panic when ctx.PolicyState() returns nil (Finding #15 guard).
+func TestNodeQueryResourcePolicy_Execute_NilPolicyState(t *testing.T) {
 	mockClient := policy.NewTestMockClient(t)
 	hook := &testHook{}
 	ctx := executeTestCtx(t, mockClient, hook)
-	ctx.PolicyGraphValue = nil // PolicyGraph() returns nil
+	ctx.PolicyStateValue = nil // PolicyState() returns nil
 
 	n := makeExecuteNode(mustResourceInstanceAddr("test_resource.mylist_0"), cty.NilVal)
 
 	// Must not panic.
 	diags := n.Execute(ctx, walkPlan)
 	if diags.HasErrors() {
-		t.Fatalf("unexpected errors with nil PolicyGraph: %s", diags.Err())
+		t.Fatalf("unexpected errors with nil PolicyState: %s", diags.Err())
 	}
 }
 
@@ -1067,7 +1078,7 @@ func TestNodeQueryResourcePolicy_Execute_ResourceConfigSetsRange(t *testing.T) {
 	resourceAddr := mustResourceInstanceAddr("test_resource.mylist_0")
 
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(_ context.Context, _ policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		return policy.EvaluationResponse{
 			Overall: policy.DenyResult,
 			Enforcements: []policy.EnforcementResult{
@@ -1274,7 +1285,7 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Pass(t *testing.T) {
 
 	var callbackInvoked bool
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		if req.Callbacks.GetResources == nil {
 			t.Error("GetResources callback was nil")
 			return policy.EvaluationResponse{Overall: policy.AllowResult}
@@ -1333,7 +1344,7 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Fail(t *testing.T) {
 
 	var callbackInvoked bool
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		if req.Callbacks.GetResources == nil {
 			t.Error("GetResources callback was nil")
 			return policy.EvaluationResponse{Overall: policy.DenyResult}
@@ -1393,7 +1404,7 @@ func TestNodeQueryResourcePolicy_Execute_GetResources_Unknown(t *testing.T) {
 	var gotPartial bool
 	var gotResourceCount int
 	mockClient := &policy.MockClient{}
-	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		if req.Callbacks.GetResources == nil {
 			t.Error("GetResources callback was nil")
 			return policy.EvaluationResponse{Overall: policy.UnknownResult}
@@ -1454,7 +1465,7 @@ func TestNodeQueryResourcePolicy_Execute_CallbackError(t *testing.T) {
 	var callbackInvoked bool
 	var callbackErr error
 	mockClient := policy.NewTestMockClient(t)
-	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.PolicyEvaluateResourceRequest_ResourceMetadata]) policy.EvaluationResponse {
+	mockClient.EvaluateFn = func(ctx context.Context, req policy.EvaluationRequest[*proto.ResourceMetadata]) policy.EvaluationResponse {
 		callbackInvoked = true
 		_, partial, err := req.Callbacks.GetDataSource(ctx, "missing_data_source", cty.EmptyObjectVal)
 		if partial {

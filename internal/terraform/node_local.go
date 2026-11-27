@@ -147,6 +147,7 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Di
 	diags = diags.Append(deprecationDiags)
 
 	namedVals.SetLocalValue(n.Addr, valWithoutDeprecations)
+
 	return diags
 }
 

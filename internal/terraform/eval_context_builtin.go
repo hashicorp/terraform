@@ -91,13 +91,13 @@ type BuiltinEvalContext struct {
 	EphemeralResourcesValue *ephemeral.Resources
 	RefreshStateValue       *states.SyncState
 	PrevRunStateValue       *states.SyncState
-	PolicyGraphValue        *policySubgraph
+	PolicyStateValue        *policyWalkState
+	PolicySemaphoreValue    Semaphore
 	InstanceExpanderValue   *instances.Expander
 	MoveResultsValue        refactoring.MoveResults
 	OverrideValues          *mocking.Overrides
 	ProviderLocksValue      map[addrs.Provider]*depsfile.ProviderLock
 	PolicyClientValue       policy.Client
-	PolicySemaphoreValue    Semaphore
 	DeprecationsValue       *deprecation.Deprecations
 }
 
@@ -113,8 +113,8 @@ func (ctx *BuiltinEvalContext) PolicySemaphore() Semaphore {
 	return ctx.PolicySemaphoreValue
 }
 
-func (ctx *BuiltinEvalContext) PolicyGraph() *policySubgraph {
-	return ctx.PolicyGraphValue
+func (ctx *BuiltinEvalContext) PolicyState() *policyWalkState {
+	return ctx.PolicyStateValue
 }
 
 func (ctx *BuiltinEvalContext) Config() *configs.Config {

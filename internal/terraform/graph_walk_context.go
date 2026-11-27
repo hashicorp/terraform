@@ -67,7 +67,7 @@ type ContextGraphWalker struct {
 	ProviderLocks map[addrs.Provider]*depsfile.ProviderLock
 
 	PolicyClient policy.Client
-	PolicyGraph  *policySubgraph // Used for writing resource policy evaluation nodes
+	PolicyState  *policyWalkState // Used for writing resource policy evaluation nodes
 
 	contexts           collections.Map[evalContextScope, *BuiltinEvalContext]
 	contextLock        sync.Mutex
@@ -153,7 +153,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
-		PolicyGraphValue:        w.PolicyGraph,
+		PolicyStateValue:        w.PolicyState,
 		Evaluator:               evaluator,
 		OverrideValues:          w.Overrides,
 		forget:                  w.Forget,
