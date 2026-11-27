@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend/pluggable"
@@ -21,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/getproviders/providerreqs"
+	"github.com/hashicorp/terraform/internal/getproviders/reattach"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -80,6 +83,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	if cfg.Module.StateStore != nil {
+		// If present, record how the destination state store provider is supplied to Terraform
 		cfg.Module.StateStore.ProviderSupplyMode = c.getProviderSupplyModeForStateStore(cfg.Module)
 	}
 
@@ -92,6 +96,15 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 		))
 		view.Diagnostics(diags)
 		return 1
+	}
+	if smi.StateStore != nil {
+		// If present, record how the source state store provider is supplied to Terraform
+		isReattached, err := reattach.IsProviderReattached(smi.StateStore.ProviderAddr, os.Getenv("TF_REATTACH_PROVIDERS"))
+		if err != nil {
+			panic(fmt.Sprintf("Unable to determine if provider %s is reattached while initializing the state store. This is a bug in Terraform and should be reported: %v", smi.StateStore.ProviderAddr.ForDisplay(), err))
+		}
+		smi.StateStore.ProviderSupplyMode = getproviders.DetermineProviderSupplyMode(c.isProviderDevOverride(smi.StateStore.ProviderAddr), isReattached, smi.StateStore.ProviderAddr.IsBuiltIn())
+
 	}
 
 	// When configuring the source and destination backends,
@@ -154,8 +167,12 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		if !diags.HasErrors() {
 			pLock := sourceLock.Provider(smi.StateStore.ProviderAddr)
-			source = fmt.Sprintf("state store %q (%s %s)", smi.StateStore.Type,
-				smi.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+			source = fmt.Sprintf(
+				"state store %q (%s %s)",
+				smi.StateStore.Type,
+				smi.StateStore.ProviderAddr.ForDisplay(),
+				smi.StateStore.ProviderSupplyMode.VersionStringForDisplay(pLock),
+			)
 
 			migrateOpts.SourceType = smi.StateStore.Type
 			migrateOpts.Source = srcB
@@ -225,8 +242,12 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 
 		if !diags.HasErrors() {
 			pLock := destinationLock.Provider(rootMod.StateStore.ProviderAddr)
-			destination = fmt.Sprintf("state store %q (%s %s)", rootMod.StateStore.Type,
-				rootMod.StateStore.ProviderAddr.ForDisplay(), pLock.Version())
+			destination = fmt.Sprintf(
+				"state store %q (%s %s)",
+				rootMod.StateStore.Type,
+				rootMod.StateStore.ProviderAddr.ForDisplay(),
+				rootMod.StateStore.ProviderSupplyMode.VersionStringForDisplay(pLock),
+			)
 
 			migrateOpts.DestinationType = rootMod.StateStore.Type
 			migrateOpts.Destination = dstB
@@ -241,12 +262,20 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				view.Diagnostics(diags)
 				return 1
 			}
-			v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version() // We just downloaded this provider, so the lock wil be present.
-			version, err := providerreqs.GoVersionFromVersion(v)
-			if err != nil {
-				diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
-				view.Diagnostics(diags)
-				return 1
+
+			var version *version.Version
+			if rootMod.StateStore.ProviderSupplyMode.NotManagedByTerraform() {
+				// No lock and no version data
+				version = nil
+			} else {
+				v := destinationLock.Provider(rootMod.StateStore.ProviderAddr).Version()
+				var err error
+				version, err = providerreqs.GoVersionFromVersion(v)
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("Failed to convert provider version to Go version: %s", err))
+					view.Diagnostics(diags)
+					return 1
+				}
 			}
 
 			bsf.StateStore = &workdir.StateStoreConfigState{
@@ -258,7 +287,7 @@ func (c *StateMigrateCommand) Run(rawArgs []string) int {
 				},
 				ProviderSupplyMode: rootMod.StateStore.ProviderSupplyMode,
 			}
-			err = bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
+			err := bsf.StateStore.SetConfig(stateStoreConfigVal, dstB.ConfigSchema())
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to set state store configuration: %w", err))
 				view.Diagnostics(diags)
