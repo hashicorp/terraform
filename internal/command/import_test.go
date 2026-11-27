@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -927,37 +928,74 @@ func TestImport_dataResource(t *testing.T) {
 }
 
 func TestImport_invalidResourceAddr(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
-	t.Chdir(td)
+	t.Run("address not interpretable as resource instance", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+		t.Chdir(td)
 
-	statePath := testTempFile(t)
+		statePath := testTempFile(t)
 
-	p := testProvider()
-	ui := testUiWrapped(t)
-	view, _ := testView(t)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
-		},
-	}
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &ImportCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		}
 
-	args := []string{
-		"-state", statePath,
-		"bananas",
-		"bar",
-	}
-	code := c.Run(args)
-	if code != 1 {
-		t.Fatalf("import succeeded; expected failure")
-	}
+		args := []string{
+			"-state", statePath,
+			"bananas",
+			"bar",
+		}
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("import succeeded; expected failure")
+		}
 
-	msg := ui.ErrorWriter.String()
-	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
-		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
-	}
+		msg := ui.ErrorWriter.String()
+		want := "\nError: Invalid address\n\n  on <import-address> line 1:\n   1: bananas\n\nResource specification must include a resource type and name.\n\n"
+		if msg != want {
+			t.Errorf("incorrect message\nwant: %s\ngot:\n%s", want, msg)
+		}
+	})
+	t.Run("invalid address", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("import-missing-resource-config"), td)
+		t.Chdir(td)
+
+		statePath := testTempFile(t)
+
+		p := testProvider()
+		ui := testUiWrapped(t)
+		view, _ := testView(t)
+		c := &ImportCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"~",
+			"bar",
+		}
+		code := c.Run(args)
+		if code != 1 {
+			t.Fatalf("import succeeded; expected failure")
+		}
+
+		want := "\nError: Unsupported operator\n\n  on <import-address> line 1:\n   1: ~\n\nBitwise operators are not supported. Did you mean boolean NOT (\"!\")?\n\n\nError: Variable name required\n\n  on <import-address> line 1:\n   1: ~\n\nMust begin with a variable name.\n\n"
+		msg := ui.ErrorWriter.String()
+		if msg != want {
+			t.Errorf("incorrect message\nwant:\n%s\ngot:\n%s", want, msg)
+		}
+	})
 }
 
 func TestImport_targetIsModule(t *testing.T) {
@@ -991,6 +1029,111 @@ func TestImport_targetIsModule(t *testing.T) {
 	msg := ui.ErrorWriter.String()
 	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
+	}
+}
+
+func TestImport_badArgs(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-implicit"), td)
+	t.Chdir(td)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := testUiWrapped(t)
+	view, _ := testView(t)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-foobar",
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	want := fmt.Sprintf(`
+Error: Failed to parse command-line flags
+
+flag provided but not defined: -foobar
+
+
+Error: Wrong number of arguments
+
+The import command expects two arguments: ADDR and ID.
+
+%s
+`, c.Help())
+	if diff := cmp.Diff(msg, want); diff != "" {
+		t.Errorf("incorrect message, diff:\n%s", diff)
+	}
+}
+
+func TestImport_failedStateWrite(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("import-provider-inmem"), td)
+	t.Chdir(td)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Body: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	ui := testUiWrapped(t)
+	view, _ := testView(t)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"bar",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("import succeeded; expected failure")
+	}
+
+	msg := ui.ErrorWriter.String()
+	want := "Error writing state file: forced write error: this is an error forced by the test\n"
+	if diff := cmp.Diff(msg, want); diff != "" {
+		t.Errorf("incorrect message, diff:\n%s", diff)
 	}
 }
 

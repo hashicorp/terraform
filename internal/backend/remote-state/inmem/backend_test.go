@@ -41,8 +41,8 @@ func TestBackendConfig(t *testing.T) {
 		t.Fatal(sDiags)
 	}
 
-	c := s.(*remote.State).Client.(*RemoteClient)
-	if c.Name != backend.DefaultStateName {
+	c := s.(*remote.State).Client.(*client)
+	if c.wrappedRemoteClient.Name != backend.DefaultStateName {
 		t.Fatal("client name is not configured")
 	}
 
@@ -91,5 +91,28 @@ func TestRemoteState(t *testing.T) {
 
 	if err := s.RefreshState(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestBackendForceWriteError(t *testing.T) {
+	defer Reset()
+	config := map[string]interface{}{
+		"force_write_error": true,
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	s, sDiags := b.StateMgr(backend.DefaultStateName)
+	if sDiags.HasErrors() {
+		t.Fatal(sDiags)
+	}
+
+	newState := statespkg.NewState()
+	if err := s.WriteState(newState); err != nil {
+		t.Fatal("unexpected error writing state")
+	}
+	if err := s.PersistState(nil); err == nil {
+		// The PersistState call is what actually uses the backend
+		t.Fatal("expected a forced error when persisting state")
 	}
 }
