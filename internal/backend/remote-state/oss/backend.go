@@ -144,6 +144,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ALICLOUD_OSS_ENDPOINT", "ALIBABA_CLOUD_OSS_ENDPOINT", "OSS_ENDPOINT"}, ""),
 			},
 
+			"force_path_style": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: "Use path-style OSS URLs with the bucket name in the URL path instead of the hostname. Enable this for PrivateLink endpoints.",
+			},
+
 			"bucket": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -408,7 +415,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		endpoint = fmt.Sprintf("%s://%s", protocol, endpoint)
 	}
 	log.Printf("[DEBUG] Instantiate OSS client using endpoint: %#v", endpoint)
-	var options []oss.ClientOption
+	options := []oss.ClientOption{oss.ForcePathStyle(d.Get("force_path_style").(bool))}
 	if securityToken != "" {
 		options = append(options, oss.SecurityToken(securityToken))
 	}
