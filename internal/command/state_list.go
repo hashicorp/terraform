@@ -41,10 +41,7 @@ func (c *StateListCommand) Run(rawArgs []string) int {
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		if parsedArgs.ViewType.IsHuman() {
-			if parsedArgs.ViewType.IsHuman() {
-				return cli.RunResultHelp
-			}
-			return 1
+			return cli.RunResultHelp
 		}
 		return 1
 	}
