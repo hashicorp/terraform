@@ -18,13 +18,13 @@ func TestParseMetadataFunctions_valid(t *testing.T) {
 		"json": {
 			args: []string{"-json"},
 			want: &MetadataFunctions{
-				JSON: true,
+				ViewType: ViewJSON,
 			},
 		},
 		"json with ignored positional argument": {
 			args: []string{"-json", "extra"},
 			want: &MetadataFunctions{
-				JSON: true,
+				ViewType: ViewJSON,
 			},
 		},
 	}
@@ -50,7 +50,9 @@ func TestParseMetadataFunctions_invalid(t *testing.T) {
 	}{
 		"default values": {
 			args: []string{},
-			want: &MetadataFunctions{},
+			want: &MetadataFunctions{
+				ViewType: ViewHuman,
+			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -61,7 +63,9 @@ func TestParseMetadataFunctions_invalid(t *testing.T) {
 		},
 		"unknown flag": {
 			args: []string{"-wat"},
-			want: &MetadataFunctions{},
+			want: &MetadataFunctions{
+				ViewType: ViewHuman,
+			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -78,7 +82,7 @@ func TestParseMetadataFunctions_invalid(t *testing.T) {
 		"unknown flag after json": {
 			args: []string{"-json", "-wat"},
 			want: &MetadataFunctions{
-				JSON: true,
+				ViewType: ViewJSON,
 			},
 			wantDiags: tfdiags.Diagnostics{
 				tfdiags.Sourceless(
