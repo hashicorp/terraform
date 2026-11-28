@@ -264,9 +264,9 @@ func TestSDKLikeApplyEnvDefaults(t *testing.T) {
 			"string_set_fallback":    cty.StringVal("set in config"),
 			"string_set_env":         cty.StringVal("set in config"),
 			"string_fallback_null":   cty.StringVal("boop from fallback"),
-			"string_fallback_empty":  cty.StringVal("boop from fallback"),
+			"string_fallback_empty":  cty.StringVal(""), // config value is used
 			"string_env_null":        cty.StringVal("beep from environment"),
-			"string_env_empty":       cty.StringVal("beep from environment"),
+			"string_env_empty":       cty.StringVal(""), // config value is used
 			"string_env_unsetfirst":  cty.StringVal("beep from environment"),
 			"string_env_unsetsecond": cty.StringVal("beep from environment"),
 			"string_nothing_null":    cty.NullVal(cty.String),
