@@ -27,6 +27,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/knownhosts"
 
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
@@ -209,6 +210,16 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, hostAndPort, c.config.config)
 	if err != nil {
 		err = fmt.Errorf("SSH authentication failed (%s@%s): %w", c.connInfo.User, hostAndPort, err)
+
+		// Host key mismatch and revoked key errors are non-retryable: the
+		// server's key will not change between attempts, so retrying until
+		// timeout only delays the inevitable failure.
+		var keyErr *knownhosts.KeyError
+		var revokedErr *knownhosts.RevokedError
+		if (errors.As(err, &keyErr) && len(keyErr.Want) > 0) || errors.As(err, &revokedErr) {
+			log.Printf("[ERROR] %s", err)
+			return fatalError{err}
+		}
 
 		// While in theory this should be a fatal error, some hosts may start
 		// the ssh service before it is properly configured, or before user
