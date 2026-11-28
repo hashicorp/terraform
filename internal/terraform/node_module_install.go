@@ -428,5 +428,6 @@ func evalVersionConstraint(versionExpr hcl.Expression, ctx EvalContext) (configs
 	}
 
 	ret.Required = constraints
+	ret.Raw = constraintStr
 	return ret, diags
 }

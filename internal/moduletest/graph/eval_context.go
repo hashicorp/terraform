@@ -829,6 +829,11 @@ func (d *evaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (c
 	return ret, diags
 }
 
+// GetSourceAttr implements lang.Data.
+func (d *evaluationData) GetSourceAttr(addr addrs.SourceAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.current.GetSourceAttr(addr, rng)
+}
+
 // GetTerraformAttr implements lang.Data.
 func (d *evaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.current.GetTerraformAttr(addr, rng)

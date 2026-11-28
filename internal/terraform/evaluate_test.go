@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
@@ -95,6 +96,97 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 		}
 		if !got.RawEquals(want) {
 			t.Errorf("wrong result %#v; want %#v", got, want)
+		}
+	})
+}
+
+func TestEvaluatorGetSourceAttr(t *testing.T) {
+	constraint, err := version.NewConstraint("~> 6.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	newChild := func(raw string, v *version.Version, c version.Constraints) *configs.Config {
+		cfg := &configs.Config{
+			Module:        &configs.Module{},
+			SourceAddrRaw: raw,
+			Version:       v,
+		}
+		if c != nil {
+			cfg.VersionConstraint = configs.VersionConstraint{Required: c, Raw: c.String()}
+		}
+		return cfg
+	}
+
+	tests := map[string]struct {
+		child                *configs.Config
+		module, ref, version string
+	}{
+		"git ref": {
+			newChild("git::https://example.com/mod.git?ref=v1.0.0", nil, nil),
+			"git::https://example.com/mod.git?ref=v1.0.0", "v1.0.0", "v1.0.0",
+		},
+		"git without ref": {
+			newChild("git::https://example.com/mod.git", nil, nil),
+			"git::https://example.com/mod.git", "", "",
+		},
+		"local": {newChild("./child", nil, nil), "./child", "", ""},
+		"registry selected version": {
+			newChild("terraform-aws-modules/vpc/aws", version.Must(version.NewVersion("6.0.1")), constraint),
+			"terraform-aws-modules/vpc/aws", "6.0.1", "~> 6.0",
+		},
+		"registry unresolved constraint": {
+			newChild("terraform-aws-modules/vpc/aws", nil, constraint),
+			"terraform-aws-modules/vpc/aws", "", "~> 6.0",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			root := &configs.Config{Module: &configs.Module{}}
+			test.child.Parent = root
+			test.child.Path = addrs.Module{"child"}
+			root.Children = map[string]*configs.Config{"child": test.child}
+			evaluator := &Evaluator{
+				Meta:        &ContextMeta{Env: "foo"},
+				Config:      root,
+				NamedValues: namedvals.NewState(),
+			}
+			data := &evaluationData{Evaluator: evaluator, Module: addrs.Module{"child"}}
+			for attr, want := range map[string]string{"module": test.module, "ref": test.ref, "version": test.version} {
+				got, diags := data.GetSourceAttr(addrs.SourceAttr{Name: attr}, tfdiags.SourceRange{})
+				if len(diags) != 0 {
+					t.Fatalf("unexpected diagnostics %s", spew.Sdump(diags))
+				}
+				if !got.RawEquals(cty.StringVal(want)) {
+					t.Errorf("source.%s: wrong result %#v; want %q", attr, got, want)
+				}
+			}
+		})
+	}
+
+	t.Run("root module", func(t *testing.T) {
+		evaluator := &Evaluator{
+			Meta:        &ContextMeta{Env: "foo"},
+			Config:      &configs.Config{Module: &configs.Module{}},
+			NamedValues: namedvals.NewState(),
+		}
+		data := &evaluationData{Evaluator: evaluator, Module: addrs.RootModule}
+		for attr, want := range map[string]string{"module": ".", "ref": "", "version": ""} {
+			got, diags := data.GetSourceAttr(addrs.SourceAttr{Name: attr}, tfdiags.SourceRange{})
+			if len(diags) != 0 {
+				t.Fatalf("unexpected diagnostics %s", spew.Sdump(diags))
+			}
+			if !got.RawEquals(cty.StringVal(want)) {
+				t.Errorf("source.%s: wrong result %#v; want %q", attr, got, want)
+			}
+		}
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		evaluator := &Evaluator{Config: &configs.Config{Module: &configs.Module{}}}
+		data := &evaluationData{Evaluator: evaluator, Module: addrs.RootModule}
+		_, diags := data.GetSourceAttr(addrs.SourceAttr{Name: "modul"}, tfdiags.SourceRange{})
+		if !diags.HasErrors() {
+			t.Fatal("expected error")
 		}
 	})
 }
@@ -1032,6 +1124,10 @@ func (d *fakeEvaluationData) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange
 }
 
 // GetTerraformAttr implements lang.Data.
+func (d *fakeEvaluationData) GetSourceAttr(addr addrs.SourceAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return cty.DynamicVal, nil
+}
+
 func (d *fakeEvaluationData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return fakeEvaluationDataLookup(addr, rng, d.terraformAttrs)
 }
