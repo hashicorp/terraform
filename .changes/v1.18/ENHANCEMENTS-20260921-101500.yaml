@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'terraform init: Less time and CPU spent linking a provider from the global plugin cache when the dependency lock file has checksums for it'
+time: 2026-09-21T10:15:00+02:00
+custom:
+    Issue: "39253"
